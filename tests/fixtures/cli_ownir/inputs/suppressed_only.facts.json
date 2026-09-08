@@ -1,0 +1,24 @@
+{
+  "ownir_version": 0,
+  "module": "SuppressedOnly",
+  "_doc": [
+    "Every finding is [OwnIgnore]-suppressed: the run prints the `ok` line",
+    "(nothing is shown) AND counts the suppression in the summary.",
+    "Trap 4 of the #261 brief, and the control for `ok-line-with-suppressed`."
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "Vm.cs",
+      "subscriptions": [
+        {
+          "event": "SystemEvents.Static",
+          "handler": "OnS",
+          "line": 7,
+          "source": "static",
+          "ignore_reason": "owned by the host container"
+        }
+      ]
+    }
+  ]
+}

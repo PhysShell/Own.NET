@@ -40,10 +40,17 @@
 //! Verdict types deliberately do **not** live here: `own-ir` is facts + the
 //! span/location leaf; diagnostics/evidence belong to `own-diagnostics`.
 //!
-//! Error *message* parity with Python is not claimed yet — that lands with the
-//! shared error-text fixtures (P-022 oracle section), not by copy-paste.
+//! Error *message* parity with Python is claimed for ONE family and not the
+//! rest. #261 ruling 2a settled the `ownir_version` gate: that text is ours on
+//! both sides, so a divergence there is a bug, and both its rejection messages
+//! are byte-exact with the reference (see `strict::version` and `pyrepr`).
+//! Every other family still carries only KIND parity — `OwnIrErrorKind` is the
+//! cross-language contract and the message is a human-facing aid, which is
+//! what `tests/validation_replay.rs` compares and why it says so in its own
+//! docstring.
 
 pub mod protocol;
+mod pyrepr;
 pub mod span;
 mod strict;
 
@@ -617,7 +624,7 @@ impl OwnIr {
                 "OwnIR root must be a JSON object",
             ));
         };
-        strict::validate_document(obj)?;
+        strict::validate_document(obj, Some(text))?;
         // serde is the CONSTRUCTOR, not the arbiter: the document has already
         // been accepted, so a failure here is a hole in the validator rather
         // than a rejection. Marked with a sentinel the replay test asserts no
@@ -651,7 +658,11 @@ impl OwnIr {
                 "OwnIR root must be a JSON object",
             ));
         };
-        strict::validate_document(obj)
+        // No raw text here by construction — this door's input is a value
+        // built in memory, so the Version message falls back to the `Value`
+        // spelling. Reachable only through an `extra` key colliding with the
+        // typed `ownir_version` field, since the field itself is `Option<i64>`.
+        strict::validate_document(obj, None)
     }
 
     /// Serialize back to a JSON value. Together with `from_json` this is the

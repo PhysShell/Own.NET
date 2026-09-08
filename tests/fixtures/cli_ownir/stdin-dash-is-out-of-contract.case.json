@@ -1,0 +1,17 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "-"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 2,
+    "stdout": "",
+    "stderr": "-: error: cannot read -: <OS_ERROR>\n",
+    "os_error_tail": {
+      "linux": "[Errno 2] No such file or directory: '-'"
+    }
+  }
+}

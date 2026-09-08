@@ -415,8 +415,8 @@ fn sites(obj: &Map<String, Value>, key: &str, what: &str) -> Checked {
 ///
 /// Sections are visited in declaration order and each is finished before the
 /// next begins — that is the property the cross-section ordering controls pin.
-pub(crate) fn validate_document(obj: &Map<String, Value>) -> Checked {
-    version(obj)?;
+pub(crate) fn validate_document(obj: &Map<String, Value>, source: Option<&str>) -> Checked {
+    version(obj, source)?;
     components(obj)?;
     services(obj)?;
     effects(obj)?;
@@ -428,7 +428,14 @@ pub(crate) fn validate_document(obj: &Map<String, Value>) -> Checked {
 /// The version gate, first: a vocabulary mismatch makes every later shape check
 /// meaningless. An absent field means the current version — the only producers
 /// that omit it predate versioning.
-fn version(obj: &Map<String, Value>) -> Checked {
+///
+/// `source` is the raw document text when there is one ([`crate::OwnIr::from_json`])
+/// and `None` when there is not (the in-memory door, whose `ownir_version` is a
+/// typed `Option<i64>`). It is read **only to spell a rejection this function
+/// has already decided on**, never to decide one: `serde_json` stays the single
+/// parser whose verdict is the acceptance contract, and every branch below is
+/// reached on the strength of `v` alone.
+fn version(obj: &Map<String, Value>, source: Option<&str>) -> Checked {
     let Some(v) = obj.get("ownir_version") else {
         return Ok(());
     };
@@ -440,22 +447,65 @@ fn version(obj: &Map<String, Value>) -> Checked {
     let Some(ver) = ver else {
         return Err(OwnIrError::new(
             OwnIrErrorKind::Version,
-            format!("OwnIR 'ownir_version' must be an integer, got {v}"),
+            wrong_type_or_oversized(v, source),
         ));
     };
     if ver != crate::OWNIR_VERSION {
         return Err(OwnIrError::new(
             OwnIrErrorKind::Version,
-            format!(
-                "OwnIR facts are schema v{ver}, but this core understands \
-                 v{}. Build the extractor and the core from the same commit — \
-                 the OwnIR fact vocabulary changed between the version that \
-                 produced this file and the one reading it.",
-                crate::OWNIR_VERSION
-            ),
+            version_mismatch(&ver.to_string()),
         ));
     }
     Ok(())
+}
+
+/// The message for a version `serde_json` could not read as an `i64` — which
+/// is two different Python outcomes, not one.
+///
+/// The reference's oracle is `repr(json.loads(raw)["ownir_version"])`, and a
+/// Python `int` has no width, so an *integral* literal too large for `i64` is
+/// still an `int` over there: it clears the reference's type check and lands in
+/// the **mismatch** arm carrying its full decimal spelling (#261 ruling V3).
+/// Anything else is genuinely the wrong type and takes the wrong-type arm.
+///
+/// The one case where the raw reading is deliberately discarded is the literal
+/// `-0`: an `int` to `CPython`, an `f64` to `serde_json`. Reporting it as `0`
+/// would name a type this crate did not read and would imply an acceptance it
+/// does not grant — #261 ruling V2, the same cross-parser encoding defect
+/// `tests/fixtures/repro` froze for #260. It is recognised structurally (an
+/// integral literal that *does* fit `i64`, which `serde_json` nonetheless
+/// declined to read as one) rather than by matching the two characters.
+fn wrong_type_or_oversized(v: &Value, source: Option<&str>) -> String {
+    let raw = source.and_then(crate::pyrepr::version_value);
+    let spelled = match &raw {
+        Some(crate::pyrepr::PyValue::Int(digits)) => {
+            if digits.parse::<i64>().is_err() {
+                return version_mismatch(digits);
+            }
+            // V2: the two parsers disagree about the TYPE, so this crate
+            // reports what its own parser read.
+            crate::pyrepr::py_repr_value(v)
+        }
+        Some(other) => crate::pyrepr::py_repr(other),
+        // No raw text, or a document this reader declined: the `Value`
+        // spelling is byte-exact for every scalar and differs only in object
+        // order and oversized integers, which is what the fallback costs.
+        None => crate::pyrepr::py_repr_value(v),
+    };
+    format!("OwnIR 'ownir_version' must be an integer, got {spelled}")
+}
+
+/// The mismatch text, shared by the two arms that can reach it so the version
+/// a reader is told about is the only thing that varies between them.
+fn version_mismatch(ver: &str) -> String {
+    format!(
+        "OwnIR facts are schema v{ver}, but this core understands \
+         v{}. Build the Roslyn extractor and the Python core from the \
+         same commit — \
+         the OwnIR fact vocabulary changed between the version that \
+         produced this file and the one reading it.",
+        crate::OWNIR_VERSION
+    )
 }
 
 fn components(obj: &Map<String, Value>) -> Checked {

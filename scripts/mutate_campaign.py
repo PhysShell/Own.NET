@@ -737,9 +737,13 @@ def _rust_catcher_exists(target: str, test_path: str) -> str | None:
 
     The first segment may be a crate directory or a layer id (`rust-bridge`
     names the `own-bridge` crate), so the file is resolved by its suffix and
-    the ambiguity is reported rather than guessed at. A `src/lib.rs` target is
-    the crate's LIB target and its unit tests live wherever the module does, so
-    that case searches the crate's whole `src/` tree."""
+    the ambiguity is reported rather than guessed at. A `src/lib.rs` or
+    `src/main.rs` target is the crate's LIB or BIN target, and either one's unit
+    tests live wherever the module does, so those cases search the crate's whole
+    `src/` tree. (`src/main.rs` joined `src/lib.rs` here with #261: `own-cli` is
+    the first binary crate whose unit tests a campaign names as catchers, and
+    without it every one of them read as "names a test that does not exist"
+    while pointing at a test that plainly did.)"""
     _prefix, _, rest = target.partition("/")
     name = test_path.rsplit("::", 1)[-1]
     crates = os.path.join(ROOT, "rust", "crates")
@@ -752,7 +756,7 @@ def _rust_catcher_exists(target: str, test_path: str) -> str | None:
         return f"names no file: no rust/crates/*/{rest}"
     hay: list[str] = []
     for match in matches:
-        if rest == "src/lib.rs":
+        if rest in ("src/lib.rs", "src/main.rs"):
             root = os.path.dirname(match)
             for dirpath, _dirs, files in os.walk(root):
                 hay += [os.path.join(dirpath, f) for f in sorted(files)

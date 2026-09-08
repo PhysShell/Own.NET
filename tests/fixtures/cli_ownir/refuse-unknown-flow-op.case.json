@@ -1,0 +1,15 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "../verdict_renders/render_refusal.facts.json"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 2,
+    "stdout": "",
+    "stderr": "../verdict_renders/render_refusal.facts.json: error: unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)\n",
+    "os_error_tail": null
+  }
+}

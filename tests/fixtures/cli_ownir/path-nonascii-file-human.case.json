@@ -1,0 +1,15 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "inputs/nonascii_file.facts.json"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 1,
+    "stdout": "src/Ünïcødé/Вью_😀.cs:4: error: [OWN001] event 'SystemEvents.Static' is subscribed (handler 'OnS') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]\n\n1 finding.\n",
+    "stderr": "",
+    "os_error_tail": null
+  }
+}

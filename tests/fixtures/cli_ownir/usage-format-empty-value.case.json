@@ -1,0 +1,16 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "../verdict_renders/render_empty.facts.json",
+    "--format="
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 2,
+    "stdout": "",
+    "stderr": "unknown --format '' (choose: github, human, json, msbuild, sarif)\n",
+    "os_error_tail": null
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "inputs/not_json_bom.facts.broken"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 2,
+    "stdout": "",
+    "stderr": "inputs/not_json_bom.facts.broken: error: inputs/not_json_bom.facts.broken is not valid JSON: Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)\n",
+    "os_error_tail": null
+  },
+  "boundary": {
+    "id": "CLI-B1",
+    "expected_kind": "json"
+  }
+}

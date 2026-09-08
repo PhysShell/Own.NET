@@ -8,7 +8,7 @@
 
 [workspace]
 resolver = "2"
-members = ["crates/own-ir", "crates/own-syntax", "crates/own-cfg", "crates/own-diagnostics", "crates/own-analysis", "crates/own-lowered", "crates/own-bridge", "crates/own-shadow"]
+members = ["crates/own-ir", "crates/own-syntax", "crates/own-cfg", "crates/own-diagnostics", "crates/own-analysis", "crates/own-lowered", "crates/own-bridge", "crates/own-shadow", "crates/own-cli"]
 
 [workspace.package]
 edition = "2021"
@@ -51,8 +51,20 @@ panic = "deny"
 dbg_macro = "deny"
 print_stdout = "deny"
 
-# Release profile per P-022 — panic is per-binary, NOT set here: "abort" for
-# own-cli, "unwind" for any LSP binary (salsa cancels via unwinding).
+# Release profile per P-022. `panic` is deliberately NOT set here, and the note
+# that used to stand in this place — "panic is per-binary: abort for own-cli,
+# unwind for any LSP binary" — was a stale design note rather than a plan Cargo
+# can execute: a profile applies to EVERY target of a build, so there is no
+# per-package `panic` and a `panic = "abort"` written here would abort the whole
+# workspace, an LSP binary included.
+#
+# The workspace therefore keeps the default `unwind`, and #261 rules that this
+# is the contract build for `own-cli`: a custom panic hook suppresses the
+# default output and a top-level `catch_unwind` turns an ordinary panic into one
+# actionable stderr diagnostic and exit 70 (never 101). A hook alone would only
+# OBSERVE the panic; the catch is what produces the exit code, and it needs
+# unwinding to exist. Corrected here and in its P-022 mirror as a design note,
+# not as a behaviour change: nothing about the built artifacts moves.
 [profile.release]
 lto = "thin"
 codegen-units = 1

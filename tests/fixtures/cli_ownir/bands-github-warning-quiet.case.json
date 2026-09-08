@@ -1,0 +1,21 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "../verdict_renders/render_tiers_and_levels.facts.json",
+    "--format",
+    "github",
+    "--severity",
+    "warning",
+    "--verbosity",
+    "quiet"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 1,
+    "stdout": "::warning file=Vm.cs,line=10,title=OWN001::[OWN001] event 'bus.Injected' is subscribed (handler 'OnI') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'Vm' alive (possible leak) [resource: subscription token]\n::warning file=Vm.cs,line=11,title=OWN001::[OWN001] event 'SystemEvents.Static' is subscribed (handler 'OnS') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]\n",
+    "stderr": "\n2 findings (1 advisory hidden), 1 suppressed ([OwnIgnore]).\n",
+    "os_error_tail": null
+  }
+}

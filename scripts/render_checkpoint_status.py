@@ -70,6 +70,7 @@ fragments turns the existing Python gate red.
 from __future__ import annotations
 
 import difflib
+import json
 import os
 import sys
 
@@ -131,6 +132,8 @@ CP5_MUTATIONS_MD = "p022-cp5-mutations.md"
 CP4B_MUTATIONS_MD = "p022-cp4b-mutations.md"
 COORD_MUTATIONS_MD = "p022-coord-mutations.md"
 MUTATIONS_MD = "p022-cp4-mutations.md"
+CLI_CENSUS_MD = "p022-cli-census.md"
+CLI_MUTATIONS_MD = "p022-cli-mutations.md"
 SHADOW_CENSUS_MD = "p022-shadow-census.md"
 SHADOW_MUTATIONS_MD = "p022-shadow-mutations.md"
 SHADOW_SWEEP_MD = "p022-shadow-sweep.md"
@@ -173,6 +176,13 @@ CP4B_CAMPAIGNS = (
 COORD_CAMPAIGNS = (
     ("the strict door — the coordinate domain, both implementations", "p022-coord-1"),
     ("the tolerant door — the degrade, both implementations", "p022-coord-2"),
+)
+# P-022 step 7b (#261): the production OwnIR executable. One campaign, because
+# the surface is one process contract — the display policy, the serialization
+# and the exit codes fail together and are read together.
+CLI_CAMPAIGNS = (
+    ("261.B — `own-cli ownir`: the display policy, the CLI's SARIF bytes, the "
+     "usage exit codes and the process contract", "p022-cli-1"),
 )
 SELF = "scripts/render_checkpoint_status.py"
 
@@ -359,6 +369,106 @@ def render_validation_census(c: ValidationCensus) -> str:
         lines.append(f"| {('… rejected `' + name + '`').ljust(34)} | {n} |")
     lines.append("")
     return "\n".join(lines)
+
+# --- the CLI contract census ----------------------------------------------
+
+
+class CliCensusError(Exception):
+    """The CLI fixture cannot be read as evidence."""
+
+    def __init__(self, problems: list[str]) -> None:
+        super().__init__("; ".join(problems))
+        self.problems = problems
+
+
+def compute_cli_census() -> tuple[list[tuple[str, int]], list[tuple[str, int]], int]:
+    """`(by rule, by oracle, total)` over `tests/fixtures/cli_ownir/manifest.json`.
+
+    Read from the manifest rather than counted by hand, for the reason every
+    other census here exists: a number typed beside a fixture stops being true
+    the first time somebody adds a case and does not stop LOOKING true.
+    """
+    path = os.path.join(ROOT, "tests", "fixtures", "cli_ownir", "manifest.json")
+    if not os.path.isfile(path):
+        raise CliCensusError([f"{_rel(path)} is missing"])
+    with open(path, encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    cases = manifest.get("cases")
+    if not isinstance(cases, list) or not cases:
+        raise CliCensusError([f"{_rel(path)} lists no cases"])
+    by_rule: dict[str, int] = {}
+    by_oracle: dict[str, int] = {}
+    problems: list[str] = []
+    for case in cases:
+        name = case.get("name", "?")
+        oracle = case.get("oracle")
+        if oracle not in ("python", "python-docstring", "owen-convention"):
+            problems.append(f"case {name!r} has an unknown oracle {oracle!r}")
+            continue
+        by_oracle[oracle] = by_oracle.get(oracle, 0) + 1
+        rules = case.get("rules")
+        if not isinstance(rules, list) or not rules:
+            problems.append(f"case {name!r} names no rule it is the control for")
+            continue
+        for rule in rules:
+            by_rule[str(rule)] = by_rule.get(str(rule), 0) + 1
+    if problems:
+        raise CliCensusError(problems)
+    return sorted(by_rule.items()), sorted(by_oracle.items()), len(cases)
+
+
+_ORACLE_MEANING = {
+    "python": "an executed `python -m ownlang ownir` run",
+    "python-docstring": "the same, where the bytes are the WHOLE module docstring on "
+                        "stdout — frozen as measured and flagged, so the owner can "
+                        "declare that class a defect knowing what was frozen",
+    "owen-convention": "no Python byte oracle exists: the top-level shell, authored "
+                       "once from the `owen` convention and shared with the binary",
+}
+
+
+def render_cli_census(census: tuple[list[tuple[str, int]], list[tuple[str, int]], int]) -> str:
+    """The frozen CLI contract, counted from the fixture that is the contract."""
+    by_rule, by_oracle, total = census
+    lines = [
+        _header("tests/fixtures/cli_ownir/manifest.json"),
+        "# P-022 step 7b (#261) — the `own-cli ownir` contract, counted",
+        "",
+        "`tests/fixtures/cli_ownir/` is the frozen CLI contract, authoritative via "
+        "`python tests/test_cli_ownir_fixtures.py --write` on Linux and replayed against "
+        "the built binary with **zero Python** by `own-cli/tests/replay.rs` on Linux and "
+        "Windows CI. Every case names the rule it is the control for and the oracle that "
+        "authored its bytes; both tables below are read from the manifest.",
+        "",
+        f"| {'measure'.ljust(34)} | value |",
+        f"|{'-' * 36}|------:|",
+        f"| {'frozen cases'.ljust(34)} | {total} |",
+        "",
+        "## By oracle",
+        "",
+        "The oracle boundary is #261's C-1, and it is the SURFACE rather than the "
+        "reference's internal print branch.",
+        "",
+        "| oracle | cases | what authored the bytes |",
+        "|---|------:|---|",
+    ]
+    for oracle, count in by_oracle:
+        lines.append(f"| `{oracle}` | {count} | {_ORACLE_MEANING[oracle]} |")
+    lines += [
+        "",
+        "## By rule",
+        "",
+        "A case may be the control for more than one rule, so these do not sum to the "
+        "case count — they say how much evidence each rule has, which is the question.",
+        "",
+        "| rule | cases |",
+        "|---|------:|",
+    ]
+    for rule, count in by_rule:
+        lines.append(f"| `{rule}` | {count} |")
+    lines.append("")
+    return "\n".join(lines)
+
 
 # --- the coordinate census ------------------------------------------------
 
@@ -1057,6 +1167,27 @@ def fragments() -> tuple[dict[str, str], list[str]]:
         COORD_CAMPAIGNS)
     out[COORD_MUTATIONS_MD] = coord
     problems.extend(f"mutation campaign {p}" for p in coord_problems)
+    try:
+        out[CLI_CENSUS_MD] = render_cli_census(compute_cli_census())
+    except CliCensusError as e:
+        problems.extend(f"cli contract census: {p}" for p in e.problems)
+    cli, cli_problems = render_campaign_set(
+        "# P-022 step 7b (#261) — mutation campaigns",
+        "The production OwnIR executable's contract: the display policy the reference's "
+        "`cmd_ownir` defines, the CLI's own SARIF serialization conventions (which are "
+        "NOT the BR-V9 fixture emitter's), the usage-error exit codes, and the process "
+        "contract — a catchable panic is one actionable diagnostic and exit 70, never "
+        "101. Every mutation is a plausible MISREADING of the reference rather than a "
+        "syntactic accident: each one would pass a reviewer who had read the module "
+        "docstring instead of the code. Every mutation edits a **production** surface "
+        "(P-022 discipline 2) and every declared layer runs for every mutation "
+        "(discipline 3: no fail-fast) — including the layer that enables the "
+        "off-by-default `fault-injection` feature, without which the two failure-mode "
+        "controls could not be seen to catch anything. The counts are derived from the "
+        "recorded run by `scripts/mutate_campaign.summarize()`, never typed.",
+        CLI_CAMPAIGNS)
+    out[CLI_MUTATIONS_MD] = cli
+    problems.extend(f"mutation campaign {p}" for p in cli_problems)
     return out, problems
 
 

@@ -1,0 +1,17 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "../verdict_renders/render_anchorless.facts.json",
+    "--verbosity",
+    "verbose"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 0,
+    "stdout": "?:0: warning: [OWN052] interprocedural summary inference failed (ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)); method summaries skipped — cross-method ownership transfer was not checked this run [resource: method summaries]\n\n0 findings, 1 advisory (OWN052).\n  by code: OWN052=1\n",
+    "stderr": "",
+    "os_error_tail": null
+  }
+}

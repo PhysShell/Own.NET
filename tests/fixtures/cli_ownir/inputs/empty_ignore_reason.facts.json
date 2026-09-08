@@ -1,0 +1,25 @@
+{
+  "ownir_version": 0,
+  "module": "EmptyReason",
+  "_doc": [
+    "BR-V6: a reason-less [OwnIgnore] never suppresses. `ignore_reason` is",
+    "the empty string, which is NOT None/absent: the reference's",
+    "`ignore_reason is not None` is True, so the finding IS suppressed.",
+    "Measured, not assumed."
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "Vm.cs",
+      "subscriptions": [
+        {
+          "event": "SystemEvents.Static",
+          "handler": "OnS",
+          "line": 5,
+          "source": "static",
+          "ignore_reason": ""
+        }
+      ]
+    }
+  ]
+}

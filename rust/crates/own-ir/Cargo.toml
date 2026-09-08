@@ -10,6 +10,14 @@ version = "0.1.0"
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
+# Unicode general categories, the data behind CPython's `str.isprintable()`.
+# The strict door's `ownir_version` rejection interpolates a Python `repr` of
+# the offending value (#261 ruling 2a: that text is ours on both sides, so a
+# divergence is a bug, not a boundary), and reproducing `repr` exactly needs
+# real printability rather than a guess. NOT a workspace-crate edge: `own-ir`
+# is the DAG leaf and stays one — see src/pyrepr.rs for why the helper is
+# carried here rather than imported.
+unicode-properties = { workspace = true }
 
 [lints]
 workspace = true

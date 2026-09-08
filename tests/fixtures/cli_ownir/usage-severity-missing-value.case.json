@@ -1,0 +1,16 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "../verdict_renders/render_empty.facts.json",
+    "--severity"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 2,
+    "stdout": "",
+    "stderr": "--severity requires a value\n",
+    "os_error_tail": null
+  }
+}

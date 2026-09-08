@@ -1,0 +1,17 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "inputs"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 2,
+    "stdout": "",
+    "stderr": "inputs: error: cannot read inputs: <OS_ERROR>\n",
+    "os_error_tail": {
+      "linux": "[Errno 21] Is a directory: 'inputs'"
+    }
+  }
+}

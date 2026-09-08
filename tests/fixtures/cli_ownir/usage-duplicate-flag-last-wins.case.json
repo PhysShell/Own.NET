@@ -1,0 +1,17 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "../verdict_renders/render_empty.facts.json",
+    "--format=human",
+    "--format=sarif"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 0,
+    "stdout": "{\n  \"$schema\": \"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json\",\n  \"version\": \"2.1.0\",\n  \"runs\": [\n    {\n      \"tool\": {\n        \"driver\": {\n          \"name\": \"Owen\",\n          \"informationUri\": \"https://github.com/PhysShell/Own.NET\",\n          \"rules\": [],\n          \"properties\": {\n            \"ownirSchemaVersion\": 0\n          }\n        }\n      },\n      \"results\": []\n    }\n  ]\n}\n",
+    "stderr": "../verdict_renders/render_empty.facts.json: ok — no subscription leaks found\n\n0 findings.\n",
+    "os_error_tail": null
+  }
+}

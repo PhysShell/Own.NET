@@ -77,6 +77,18 @@ fn allowed_edges() -> HashMap<&'static str, BTreeSet<&'static str>> {
             .into_iter()
             .collect(),
     );
+    // The production entry point (P-022 step 7b, #261): `own-cli ownir`. It is
+    // the crate P-022's plan names as THE entry point, and it depends on
+    // exactly two workspace crates — `own-ir` for the typed strict door and
+    // `own-bridge` for the analysis and the byte-pinned renders. Nothing else:
+    // the CLI holds no analysis and no bridge logic, only argument handling,
+    // I/O, the display policy and the process contract, so a third edge here
+    // would mean logic had leaked into an argument handler. `own-codegen` in
+    // particular is NOT here — that is #345's `emit` slice, after #257 — and
+    // neither is `own-shadow`, which is #260's dev surface rather than this
+    // one's. Only entry-point crates may depend on `own-bridge`, and this is
+    // the one the constraint below names.
+    m.insert("own-cli", ["own-ir", "own-bridge"].into_iter().collect());
     // own-analysis CONSTRUCTS diagnostics and consumes the cfg lowering. It reads
     // the effect type through `own_cfg::Effect`, NOT the parser — so there is no
     // production own-syntax edge (own-syntax is a dev-only edge for its tests).

@@ -1,0 +1,17 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "inputs/no_such_facts.json"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 2,
+    "stdout": "",
+    "stderr": "inputs/no_such_facts.json: error: cannot read inputs/no_such_facts.json: <OS_ERROR>\n",
+    "os_error_tail": {
+      "linux": "[Errno 2] No such file or directory: 'inputs/no_such_facts.json'"
+    }
+  }
+}

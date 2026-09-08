@@ -108,6 +108,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "own-cli"
+version = "0.1.0"
+dependencies = [
+ "own-bridge",
+ "own-ir",
+ "serde_json",
+ "unicode-properties",
+]
+
+[[package]]
 name = "own-diagnostics"
 version = "0.1.0"
 dependencies = [
@@ -121,6 +131,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "unicode-properties",
 ]
 
 [[package]]

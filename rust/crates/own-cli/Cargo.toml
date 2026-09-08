@@ -1,0 +1,52 @@
+# The production OwnIR executable (P-022 step 7b, #261). P-022's crate plan
+# names `own-cli` the entry point, and this is it, created with the single
+# `ownir` subcommand — the one core invocation the product seam makes today
+# (`own-check.sh`, `own-check.ps1`, the Action and `owen check` all run
+# `python -m ownlang ownir <facts> --format F --severity S`, and nothing else).
+# #345 adds `cfg`/`summaries`/`explain`/`.own check`/`emit` to THIS binary
+# later, so the dispatch is one table and the help is one surface rather than a
+# special case those commands would have to rewrite.
+#
+# The DAG (own-diagnostics/tests/dag.rs): `own-ir` for the typed strict door and
+# `own-bridge` for the analysis and the renders. Nothing else — the CLI holds no
+# analysis and no bridge logic, only argument handling, I/O, the display policy
+# and the process contract. `own-bridge` may be depended on ONLY by entry-point
+# crates, and this is the one P-022 named.
+[package]
+name = "own-cli"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "own-cli: the production OwnIR executable (`own-cli ownir`), parity with `python -m ownlang ownir`"
+
+[[bin]]
+name = "own-cli"
+path = "src/main.rs"
+
+[dependencies]
+own-ir = { path = "../own-ir" }
+own-bridge = { path = "../own-bridge" }
+# The SARIF log is serialized here rather than in the bridge because the CLI's
+# byte shape is NOT the fixture emitter's: `cmd_ownir` prints
+# `json.dumps(indent=2)` with `ensure_ascii` left at its default, so the CLI
+# path is pure ASCII with `\uXXXX` escapes, while the BR-V9 goldens are
+# `ensure_ascii=False`. Two byte shapes, one builder — see src/sarif.rs.
+serde_json.workspace = true
+# Unicode general categories, the data behind CPython's `str.isprintable()`.
+# The reference interpolates `repr()` of a rejected flag value
+# (`unknown --format {fmt!r}`), so byte-identical usage errors need CPython's
+# quoting rules. Not a workspace-crate edge: `own-syntax` owns the same helper
+# but the DAG does not admit `own-cli -> own-syntax` (see src/pyrepr.rs).
+unicode-properties.workspace = true
+
+[features]
+# OFF by default and absent from every production build. It gates two dev-only
+# hooks that force the two failure modes #261 rules on, so the forced-panic and
+# forced-death controls are MEASURED by the integration test rather than
+# asserted from the design. See src/faults.rs.
+fault-injection = []
+
+[lints]
+workspace = true

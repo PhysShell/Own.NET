@@ -1,0 +1,17 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "../verdict_renders/render_anchorless.facts.json",
+    "--verbosity",
+    "quiet"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 0,
+    "stdout": "../verdict_renders/render_anchorless.facts.json: ok — no subscription leaks found\n\n0 findings (1 advisory hidden).\n",
+    "stderr": "",
+    "os_error_tail": null
+  }
+}

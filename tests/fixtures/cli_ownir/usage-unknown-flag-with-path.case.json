@@ -1,0 +1,16 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "--bogus",
+    "../verdict_renders/render_empty.facts.json"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 2,
+    "stdout": "\nCommand-line driver for the OwnLang PoC.\n\n    python -m ownlang check  file.own      # report ownership diagnostics\n    python -m ownlang check  file.own --format sarif   # SARIF 2.1.0 log (code scanning)\n    python -m ownlang emit   file.own      # check, then print generated C#\n    python -m ownlang cfg    file.own      # dump the control-flow graph (human debug view)\n    python -m ownlang cfg    file.own --format json   # canonical CFG JSON (oracle seam)\n    python -m ownlang report file.own      # buffer storage report + .ownreport.json\n    python -m ownlang ownir  facts.json    # check OwnIR facts extracted from C# (P-001)\n    python -m ownlang ownir  facts.json --format github|msbuild|human|sarif\n    python -m ownlang summaries facts.json # dump solved method-ownership summaries\n                                           # (MOS) + extern log — deterministic JSON\n    python -m ownlang explain OWN001 [DI002 ...]     # explain diagnostic code(s): what/why/fix\n    python -m ownlang explain --json findings.json   # explain every code in a findings/SARIF file\n\n`explain` is the diagnostic catalogue side of the CLI (the `ownsharp explain` the\nroslyn-tools-shaped surface advertises): it prints what a code means, why it fires,\nand how to fix it. It lives in the core, next to the catalogue, because there is one\nchecker — the C# extractor emits facts, it does not own the diagnostics.\n\n`--format` selects the finding surface. On `ownir`: `human` (default CLI line),\n`github` (CI annotations on the PR diff), `msbuild` (VS Error List), or `sarif`\n(a SARIF 2.1.0 log — GitHub code scanning, and the cross-tool oracle reads it too).\nOn `check` it is `human` (default) or `sarif` — the `.own` flow diagnostics as a\nSARIF log carrying each finding's evidence slice (relatedLocations / codeFlows);\n`github`/`msbuild` are ownir-only (they render a Finding, not a Diagnostic).\n`--severity` (ownir only) picks how the host shows a finding — `error` (default,\nfails a build / red check) or `warning` (advisory). It is a presentation choice;\nthe finding is still the core's verdict.\n`--verbosity` (ownir only) is `quiet` (errors only — hide the advisory notes:\nOWN050 \"leakage analysis skipped\", OWN051 \"ownership transfer unverified\",\nOWN052 \"summaries skipped\"), `normal` (default), or `verbose` (also print a\nper-code breakdown).\n\nExit code is non-zero if any error-level diagnostic was produced.\n\n",
+    "stderr": "",
+    "os_error_tail": null
+  }
+}

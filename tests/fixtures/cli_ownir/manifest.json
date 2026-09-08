@@ -1,0 +1,1028 @@
+{
+  "comment": "The frozen `own-cli ownir` CLI contract (#261 261.B). Authoritative via `python tests/test_cli_ownir_fixtures.py --write` on LINUX; replayed against the built binary with zero Python by rust/crates/own-cli/tests/replay.rs on Linux and Windows. `oracle` says who authored a case's bytes: `python` an executed reference run, `python-docstring` the same where the bytes are the whole module docstring on stdout (frozen as measured AND flagged so the owner can declare that class a defect), `owen-convention` the top-level shell, which has no Python byte oracle at all.",
+  "cli_ownir_version": 1,
+  "own_cli_version": "0.1.0",
+  "shell_usage": "own-cli — the Own.NET core as a native executable.\n\nUsage:\n  own-cli ownir <facts.json> [options]   check OwnIR facts extracted from C#\n\nOptions (ownir):\n  --format {human|github|msbuild|sarif}  finding surface (default: human)\n  --severity {error|warning}             how a finding is shown (default: error)\n  --verbosity {quiet|normal|verbose}     quiet hides the advisory notes;\n                                         verbose adds a per-code breakdown\n                                         (default: normal)\n  --help, -h                             print this help\n  --version                              print the version\n\nBoth `--flag value` and `--flag=value` are accepted. `ownir` takes exactly one\npositional argument, the facts file; there is no `--` separator and there are\nno short flags.\n\nExit codes:\n  0  clean\n  1  findings — any non-advisory, unsuppressed finding, independent of\n     --severity\n  2  usage error, or a facts document the strict door refuses\n  70 internal error — a bug in the analyzer, never silence\n",
+  "ownir_usage": "own-cli ownir — check OwnIR facts extracted from C# by the Roslyn frontend.\n\nUsage:\n  own-cli ownir <facts.json> [--format F] [--severity S] [--verbosity V]\n\nOptions:\n  --format {human|github|msbuild|sarif}  human is the default CLI line, github\n                                         a CI annotation, msbuild the VS Error\n                                         List line, sarif a SARIF 2.1.0 log\n  --severity {error|warning}             how the host shows a finding; it never\n                                         changes the exit code\n  --verbosity {quiet|normal|verbose}     quiet hides the advisory notes\n                                         (OWN050/051/052, OBL005); verbose adds\n                                         a per-code breakdown over every\n                                         finding, suppressed ones included\n\nBoth `--flag value` and `--flag=value` are accepted. Exactly one positional\nargument; there is no `--` separator and there are no short flags.\n\nExit codes:\n  0  no leaks\n  1  at least one non-advisory, unsuppressed finding\n  2  usage error, or a facts document the strict door refuses\n  70 internal error — a bug in the analyzer, never silence\n",
+  "unknown_command_line": "own-cli: unknown command {name!r}\n",
+  "os_error_placeholder": "<OS_ERROR>",
+  "declared_boundaries": {
+    "CLI-B1": {
+      "name": "JSON_PARSER_DETAIL",
+      "applies_iff": "OwnIrErrorKind == Json",
+      "pinned": "exit 2, stderr, kind == Json, and the full CLI-owned wrapper byte-exact: '{path}: error: {path} is not valid JSON: '",
+      "declared": "only the bytes AFTER that prefix — the parser library's own text",
+      "guard": "rust/crates/own-cli/tests/replay.rs proves valid UTF-8, then OwnIr::from_json rejecting, then kind == Json, BEFORE relaxing anything"
+    }
+  },
+  "cases": [
+    {
+      "name": "shell-empty-invocation",
+      "oracle": "owen-convention",
+      "rules": [
+        "usage-owen-shape"
+      ],
+      "pins": [
+        "the empty invocation prints help to stdout and exits 2"
+      ]
+    },
+    {
+      "name": "shell-help-long",
+      "oracle": "owen-convention",
+      "rules": [
+        "usage-owen-shape"
+      ],
+      "pins": [
+        "--help is a success"
+      ]
+    },
+    {
+      "name": "shell-help-short",
+      "oracle": "owen-convention",
+      "rules": [
+        "usage-owen-shape"
+      ],
+      "pins": [
+        "-h is the same as --help"
+      ]
+    },
+    {
+      "name": "shell-version",
+      "oracle": "owen-convention",
+      "rules": [
+        "usage-owen-shape"
+      ],
+      "pins": [
+        "own-cli <version> on stdout"
+      ]
+    },
+    {
+      "name": "shell-unknown-command",
+      "oracle": "owen-convention",
+      "rules": [
+        "usage-owen-shape"
+      ],
+      "pins": [
+        "distinct from the empty invocation: one error line and the help, both on STDERR, exit 2"
+      ]
+    },
+    {
+      "name": "shell-unknown-command-that-looks-like-a-flag",
+      "oracle": "owen-convention",
+      "rules": [
+        "usage-owen-shape"
+      ],
+      "pins": [
+        "an unrecognised flag at the SHELL is an unknown command; the reference's positional-swallowing parser is a branch after `ownir`, not the surface"
+      ]
+    },
+    {
+      "name": "ownir-help-is-the-declared-defect",
+      "oracle": "owen-convention",
+      "rules": [
+        "usage-owen-shape",
+        "declared-defect"
+      ],
+      "pins": [
+        "C-1: the reference answers `cannot read --help` with exit 2. That is declared a defect and NOT ported: the shell convention extends to the subcommand"
+      ]
+    },
+    {
+      "name": "usage-no-positional",
+      "oracle": "python-docstring",
+      "rules": [
+        "docstring-on-stdout"
+      ],
+      "pins": [
+        "zero positionals prints the whole module docstring to stdout, exit 2"
+      ]
+    },
+    {
+      "name": "usage-two-positionals",
+      "oracle": "python-docstring",
+      "rules": [
+        "docstring-on-stdout"
+      ],
+      "pins": [
+        "two positionals: the same docstring"
+      ]
+    },
+    {
+      "name": "usage-unknown-flag-with-path",
+      "oracle": "python-docstring",
+      "rules": [
+        "docstring-on-stdout",
+        "unknown-flag-is-positional"
+      ],
+      "pins": [
+        "an unknown flag is a POSITIONAL to the reference's parser, so with a real path it is two positionals"
+      ]
+    },
+    {
+      "name": "usage-double-dash-not-a-separator",
+      "oracle": "python-docstring",
+      "rules": [
+        "docstring-on-stdout",
+        "no-double-dash-separator"
+      ],
+      "pins": [
+        "`--` is an ordinary positional; there is no separator"
+      ]
+    },
+    {
+      "name": "usage-unknown-flag-alone",
+      "oracle": "python",
+      "rules": [
+        "unknown-flag-is-positional",
+        "os-error-placeholder"
+      ],
+      "pins": [
+        "one positional named --bogus: the read fails, exit 2"
+      ]
+    },
+    {
+      "name": "usage-format-missing-value",
+      "oracle": "python",
+      "rules": [
+        "missing-flag-value"
+      ],
+      "pins": [
+        "`--format` with nothing after it"
+      ]
+    },
+    {
+      "name": "usage-severity-missing-value",
+      "oracle": "python",
+      "rules": [
+        "missing-flag-value"
+      ],
+      "pins": [
+        "`--severity` with nothing after it"
+      ]
+    },
+    {
+      "name": "usage-verbosity-missing-value",
+      "oracle": "python",
+      "rules": [
+        "missing-flag-value"
+      ],
+      "pins": [
+        "`--verbosity` with nothing after it"
+      ]
+    },
+    {
+      "name": "usage-format-invalid",
+      "oracle": "python",
+      "rules": [
+        "invalid-flag-value"
+      ],
+      "pins": [
+        "the global _FORMATS gate, which still lists json"
+      ]
+    },
+    {
+      "name": "usage-format-empty-value",
+      "oracle": "python",
+      "rules": [
+        "invalid-flag-value",
+        "equals-spelling"
+      ],
+      "pins": [
+        "`--format=` is an empty value, not a missing one"
+      ]
+    },
+    {
+      "name": "usage-format-value-is-a-flag",
+      "oracle": "python",
+      "rules": [
+        "invalid-flag-value"
+      ],
+      "pins": [
+        "a following flag is consumed as the value"
+      ]
+    },
+    {
+      "name": "usage-severity-invalid",
+      "oracle": "python",
+      "rules": [
+        "invalid-flag-value"
+      ],
+      "pins": [
+        "error|warning"
+      ]
+    },
+    {
+      "name": "usage-verbosity-invalid",
+      "oracle": "python",
+      "rules": [
+        "invalid-flag-value"
+      ],
+      "pins": [
+        "quiet|normal|verbose"
+      ]
+    },
+    {
+      "name": "usage-format-json-rejected-by-ownir",
+      "oracle": "python",
+      "rules": [
+        "invalid-flag-value",
+        "ownir-format-scope"
+      ],
+      "pins": [
+        "the cfg seam's format is not an ownir surface"
+      ]
+    },
+    {
+      "name": "usage-equals-spelling-accepted",
+      "oracle": "python",
+      "rules": [
+        "equals-spelling"
+      ],
+      "pins": [
+        "--flag=value is identical to --flag value"
+      ]
+    },
+    {
+      "name": "usage-duplicate-flag-last-wins",
+      "oracle": "python",
+      "rules": [
+        "equals-spelling",
+        "duplicate-flag"
+      ],
+      "pins": [
+        "a repeated flag is not an error; the last one wins"
+      ]
+    },
+    {
+      "name": "refuse-missing-file",
+      "oracle": "python",
+      "rules": [
+        "os-error-placeholder",
+        "strict-door"
+      ],
+      "pins": [
+        "a missing facts file is a polite exit 2, never a crash"
+      ]
+    },
+    {
+      "name": "refuse-directory",
+      "oracle": "python",
+      "rules": [
+        "os-error-placeholder",
+        "strict-door"
+      ],
+      "pins": [
+        "a directory is an OS error, and its text is platform-native"
+      ]
+    },
+    {
+      "name": "refuse-root-not-an-object",
+      "oracle": "python",
+      "rules": [
+        "strict-door"
+      ],
+      "pins": [
+        "the shape refusal, byte-identical in both implementations"
+      ]
+    },
+    {
+      "name": "refuse-unknown-flow-op",
+      "oracle": "python",
+      "rules": [
+        "strict-door"
+      ],
+      "pins": [
+        "the vocabulary refusal, already byte-pinned by BR-V9"
+      ]
+    },
+    {
+      "name": "refuse-version-wrong-type-string",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "version-byte-parity"
+      ],
+      "pins": [
+        "a string version: repr single-quotes it, `got '0'`"
+      ]
+    },
+    {
+      "name": "refuse-version-wrong-type-bool",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "version-byte-parity"
+      ],
+      "pins": [
+        "a bool version: repr capitalizes it, `got True`"
+      ]
+    },
+    {
+      "name": "refuse-version-wrong-type-float",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "version-byte-parity"
+      ],
+      "pins": [
+        "a float version: the one wrong-type value that already agreed, kept so the agreement is asserted rather than assumed"
+      ]
+    },
+    {
+      "name": "refuse-version-wrong-type-null",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "version-byte-parity"
+      ],
+      "pins": [
+        "a null version: repr writes `got None`, not `null` — the divergence the ruling's own list did not enumerate"
+      ]
+    },
+    {
+      "name": "refuse-version-mismatch",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "version-byte-parity",
+        "cli-b1-negative-control"
+      ],
+      "pins": [
+        "the schema-mismatch wording, byte-exact including 'Roslyn extractor' and 'Python core'; and the negative control that CLI-B1 cannot match a non-Json rejection"
+      ]
+    },
+    {
+      "name": "refuse-json-empty-file",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "cli-b1-json-parser-detail"
+      ],
+      "pins": [
+        "an empty file: the wrapper is pinned, the parser detail (CPython 'Expecting value...' vs serde 'EOF while...') is the declared tail"
+      ],
+      "boundary": {
+        "id": "CLI-B1",
+        "expected_kind": "json"
+      }
+    },
+    {
+      "name": "refuse-json-truncated",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "cli-b1-json-parser-detail"
+      ],
+      "pins": [
+        "a truncated document: the same wrapper, a different tail"
+      ],
+      "boundary": {
+        "id": "CLI-B1",
+        "expected_kind": "json"
+      }
+    },
+    {
+      "name": "refuse-json-bom",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "cli-b1-json-parser-detail"
+      ],
+      "pins": [
+        "a UTF-8 BOM: valid UTF-8, invalid JSON — it must reach CLI-B1 and not R4's invalid-UTF-8 defect"
+      ],
+      "boundary": {
+        "id": "CLI-B1",
+        "expected_kind": "json"
+      }
+    },
+    {
+      "name": "stdin-dash-is-out-of-contract",
+      "oracle": "python",
+      "rules": [
+        "stdin-out-of-contract",
+        "os-error-placeholder"
+      ],
+      "pins": [
+        "the ruling: stdin is not part of the contract. The reference opens the literal path '-' and fails; recorded here so 'out of contract' is a fixture, not a silence"
+      ]
+    },
+    {
+      "name": "clean-human",
+      "oracle": "python",
+      "rules": [
+        "ok-line",
+        "stream-split"
+      ],
+      "pins": [
+        "a clean document rendered as human"
+      ]
+    },
+    {
+      "name": "clean-github",
+      "oracle": "python",
+      "rules": [
+        "ok-line",
+        "stream-split",
+        "machine-stdout-empty-when-clean"
+      ],
+      "pins": [
+        "a clean document rendered as github"
+      ]
+    },
+    {
+      "name": "clean-msbuild",
+      "oracle": "python",
+      "rules": [
+        "ok-line",
+        "stream-split",
+        "machine-stdout-empty-when-clean"
+      ],
+      "pins": [
+        "a clean document rendered as msbuild"
+      ]
+    },
+    {
+      "name": "clean-sarif",
+      "oracle": "python",
+      "rules": [
+        "ok-line",
+        "stream-split"
+      ],
+      "pins": [
+        "a clean document rendered as sarif"
+      ]
+    },
+    {
+      "name": "leaky-human-error",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split"
+      ],
+      "pins": [
+        "two OWN001 leaks as human at --severity error"
+      ]
+    },
+    {
+      "name": "leaky-human-warning",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split"
+      ],
+      "pins": [
+        "two OWN001 leaks as human at --severity warning"
+      ]
+    },
+    {
+      "name": "leaky-github-error",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split"
+      ],
+      "pins": [
+        "two OWN001 leaks as github at --severity error"
+      ]
+    },
+    {
+      "name": "leaky-github-warning",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split"
+      ],
+      "pins": [
+        "two OWN001 leaks as github at --severity warning"
+      ]
+    },
+    {
+      "name": "leaky-msbuild-error",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split"
+      ],
+      "pins": [
+        "two OWN001 leaks as msbuild at --severity error"
+      ]
+    },
+    {
+      "name": "leaky-msbuild-warning",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split"
+      ],
+      "pins": [
+        "two OWN001 leaks as msbuild at --severity warning"
+      ]
+    },
+    {
+      "name": "leaky-sarif-error",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split"
+      ],
+      "pins": [
+        "two OWN001 leaks as sarif at --severity error"
+      ]
+    },
+    {
+      "name": "leaky-sarif-warning",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split"
+      ],
+      "pins": [
+        "two OWN001 leaks as sarif at --severity warning"
+      ]
+    },
+    {
+      "name": "bands-human-error-quiet",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "quiet-hides-advisory"
+      ],
+      "pins": [
+        "all four bands as human, --severity error, --verbosity quiet"
+      ]
+    },
+    {
+      "name": "bands-human-error-normal",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail"
+      ],
+      "pins": [
+        "all four bands as human, --severity error, --verbosity normal"
+      ]
+    },
+    {
+      "name": "bands-human-error-verbose",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "verbose-counts-every-finding"
+      ],
+      "pins": [
+        "all four bands as human, --severity error, --verbosity verbose"
+      ]
+    },
+    {
+      "name": "bands-human-warning-quiet",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "quiet-hides-advisory"
+      ],
+      "pins": [
+        "all four bands as human, --severity warning, --verbosity quiet"
+      ]
+    },
+    {
+      "name": "bands-human-warning-normal",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail"
+      ],
+      "pins": [
+        "all four bands as human, --severity warning, --verbosity normal"
+      ]
+    },
+    {
+      "name": "bands-human-warning-verbose",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "verbose-counts-every-finding"
+      ],
+      "pins": [
+        "all four bands as human, --severity warning, --verbosity verbose"
+      ]
+    },
+    {
+      "name": "bands-github-error-quiet",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "quiet-hides-advisory"
+      ],
+      "pins": [
+        "all four bands as github, --severity error, --verbosity quiet"
+      ]
+    },
+    {
+      "name": "bands-github-error-normal",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail"
+      ],
+      "pins": [
+        "all four bands as github, --severity error, --verbosity normal"
+      ]
+    },
+    {
+      "name": "bands-github-error-verbose",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "verbose-counts-every-finding"
+      ],
+      "pins": [
+        "all four bands as github, --severity error, --verbosity verbose"
+      ]
+    },
+    {
+      "name": "bands-github-warning-quiet",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "quiet-hides-advisory"
+      ],
+      "pins": [
+        "all four bands as github, --severity warning, --verbosity quiet"
+      ]
+    },
+    {
+      "name": "bands-github-warning-normal",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail"
+      ],
+      "pins": [
+        "all four bands as github, --severity warning, --verbosity normal"
+      ]
+    },
+    {
+      "name": "bands-github-warning-verbose",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "verbose-counts-every-finding"
+      ],
+      "pins": [
+        "all four bands as github, --severity warning, --verbosity verbose"
+      ]
+    },
+    {
+      "name": "bands-msbuild-error-quiet",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "quiet-hides-advisory"
+      ],
+      "pins": [
+        "all four bands as msbuild, --severity error, --verbosity quiet"
+      ]
+    },
+    {
+      "name": "bands-msbuild-error-normal",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail"
+      ],
+      "pins": [
+        "all four bands as msbuild, --severity error, --verbosity normal"
+      ]
+    },
+    {
+      "name": "bands-msbuild-error-verbose",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "verbose-counts-every-finding"
+      ],
+      "pins": [
+        "all four bands as msbuild, --severity error, --verbosity verbose"
+      ]
+    },
+    {
+      "name": "bands-msbuild-warning-quiet",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "quiet-hides-advisory"
+      ],
+      "pins": [
+        "all four bands as msbuild, --severity warning, --verbosity quiet"
+      ]
+    },
+    {
+      "name": "bands-msbuild-warning-normal",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail"
+      ],
+      "pins": [
+        "all four bands as msbuild, --severity warning, --verbosity normal"
+      ]
+    },
+    {
+      "name": "bands-msbuild-warning-verbose",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "verbose-counts-every-finding"
+      ],
+      "pins": [
+        "all four bands as msbuild, --severity warning, --verbosity verbose"
+      ]
+    },
+    {
+      "name": "bands-sarif-error-quiet",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "quiet-hides-advisory",
+        "sarif-carries-shown-plus-suppressed"
+      ],
+      "pins": [
+        "all four bands as sarif, --severity error, --verbosity quiet"
+      ]
+    },
+    {
+      "name": "bands-sarif-error-normal",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "sarif-carries-shown-plus-suppressed"
+      ],
+      "pins": [
+        "all four bands as sarif, --severity error, --verbosity normal"
+      ]
+    },
+    {
+      "name": "bands-sarif-error-verbose",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "verbose-counts-every-finding",
+        "sarif-carries-shown-plus-suppressed"
+      ],
+      "pins": [
+        "all four bands as sarif, --severity error, --verbosity verbose"
+      ]
+    },
+    {
+      "name": "bands-sarif-warning-quiet",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "quiet-hides-advisory",
+        "sarif-carries-shown-plus-suppressed"
+      ],
+      "pins": [
+        "all four bands as sarif, --severity warning, --verbosity quiet"
+      ]
+    },
+    {
+      "name": "bands-sarif-warning-normal",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "sarif-carries-shown-plus-suppressed"
+      ],
+      "pins": [
+        "all four bands as sarif, --severity warning, --verbosity normal"
+      ]
+    },
+    {
+      "name": "bands-sarif-warning-verbose",
+      "oracle": "python",
+      "rules": [
+        "exit-independent-of-severity",
+        "stream-split",
+        "summary-suppressed-tail",
+        "verbose-counts-every-finding",
+        "sarif-carries-shown-plus-suppressed"
+      ],
+      "pins": [
+        "all four bands as sarif, --severity warning, --verbosity verbose"
+      ]
+    },
+    {
+      "name": "advisory-only-quiet",
+      "oracle": "python",
+      "rules": [
+        "advisory-never-fails-the-run",
+        "quiet-hides-advisory",
+        "verbose-counts-every-finding"
+      ],
+      "pins": [
+        "an OWN052 advisory and no leak: exit 0"
+      ]
+    },
+    {
+      "name": "advisory-only-normal",
+      "oracle": "python",
+      "rules": [
+        "advisory-never-fails-the-run",
+        "quiet-hides-advisory",
+        "verbose-counts-every-finding"
+      ],
+      "pins": [
+        "an OWN052 advisory and no leak: exit 0"
+      ]
+    },
+    {
+      "name": "advisory-only-verbose",
+      "oracle": "python",
+      "rules": [
+        "advisory-never-fails-the-run",
+        "quiet-hides-advisory",
+        "verbose-counts-every-finding"
+      ],
+      "pins": [
+        "an OWN052 advisory and no leak: exit 0"
+      ]
+    },
+    {
+      "name": "suppressed-only-normal",
+      "oracle": "python",
+      "rules": [
+        "ok-line-with-suppressed",
+        "summary-suppressed-tail",
+        "verbose-counts-every-finding"
+      ],
+      "pins": [
+        "every finding [OwnIgnore]-suppressed: ok, a tally, exit 0"
+      ]
+    },
+    {
+      "name": "suppressed-only-verbose",
+      "oracle": "python",
+      "rules": [
+        "ok-line-with-suppressed",
+        "summary-suppressed-tail",
+        "verbose-counts-every-finding"
+      ],
+      "pins": [
+        "every finding [OwnIgnore]-suppressed: ok, a tally, exit 0"
+      ]
+    },
+    {
+      "name": "suppressed-only-sarif",
+      "oracle": "python",
+      "rules": [
+        "sarif-carries-shown-plus-suppressed",
+        "ok-line-with-suppressed"
+      ],
+      "pins": [
+        "a suppressed finding still rides in the SARIF results"
+      ]
+    },
+    {
+      "name": "empty-ignore-reason-does-not-suppress",
+      "oracle": "python",
+      "rules": [
+        "empty-reason-never-suppresses"
+      ],
+      "pins": [
+        "ignore_reason='' leaves the finding shown and the exit at 1"
+      ]
+    },
+    {
+      "name": "path-nonascii-file-human",
+      "oracle": "python",
+      "rules": [
+        "nonascii-in-file-field"
+      ],
+      "pins": [
+        "a non-ASCII (and astral) `file` on the human line"
+      ]
+    },
+    {
+      "name": "path-nonascii-file-github",
+      "oracle": "python",
+      "rules": [
+        "nonascii-in-file-field"
+      ],
+      "pins": [
+        "the same, as a GitHub annotation"
+      ]
+    },
+    {
+      "name": "path-nonascii-file-sarif",
+      "oracle": "python",
+      "rules": [
+        "sarif-ascii-escape",
+        "nonascii-in-file-field"
+      ],
+      "pins": [
+        "json.dumps' ASCII escaping, surrogate pair above the BMP"
+      ]
+    },
+    {
+      "name": "sarif-ascii-escape-em-dash",
+      "oracle": "python",
+      "rules": [
+        "sarif-ascii-escape"
+      ],
+      "pins": [
+        "the message's U+2014 leaves as the six ASCII characters \\u2014, NOT the literal bytes the BR-V9 goldens carry"
+      ]
+    },
+    {
+      "name": "path-backslash-file-github",
+      "oracle": "python",
+      "rules": [
+        "windows-path-form"
+      ],
+      "pins": [
+        "a backslash `file` and the %3A/%2C property escaping"
+      ]
+    },
+    {
+      "name": "path-backslash-file-sarif",
+      "oracle": "python",
+      "rules": [
+        "windows-path-form"
+      ],
+      "pins": [
+        "SARIF folds the backslash to a forward slash in the uri"
+      ]
+    },
+    {
+      "name": "path-with-space-and-nonascii",
+      "oracle": "python",
+      "rules": [
+        "nonascii-in-path"
+      ],
+      "pins": [
+        "the facts PATH carries a space and non-ASCII"
+      ]
+    },
+    {
+      "name": "debug-env-does-not-change-ordinary-output",
+      "oracle": "python",
+      "rules": [
+        "debug-env-is-inert-when-nothing-crashes"
+      ],
+      "pins": [
+        "OWNLANG_DEBUG only ever changes the internal-error path"
+      ]
+    },
+    {
+      "name": "cwd-relative-path-is-echoed-as-given",
+      "oracle": "python",
+      "rules": [
+        "path-echoed-as-given",
+        "nonascii-in-path"
+      ],
+      "pins": [
+        "the summary echoes argv, never a resolved path"
+      ]
+    }
+  ]
+}

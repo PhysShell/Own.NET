@@ -10,8 +10,8 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 
 | measure                            | value |
 |------------------------------------|------:|
-| JSON files scanned                 | 331 |
-| coordinate slots found             | 2193 |
+| JSON files scanned                 | 430 |
+| coordinate slots found             | 2197 |
 
 ## By value class
 
@@ -21,7 +21,7 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `below-1` | 19 | 19 |
 | `bool` | 14 | 14 |
 | `float` | 2 | 2 |
-| `in-domain` | 1748 | 953 |
+| `in-domain` | 1752 | 957 |
 | `negative` | 23 | 23 |
 | `null` | 227 | 7 |
 | `outside-int64` | 14 | 14 |
@@ -139,6 +139,8 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `(root)` | `order_cases[].emitted[].diagnostic.line` | `in-domain` | — | 15 | 1 | — |
 | `(root)` | `render_cases[].diagnostic.evidence[].line` | `in-domain` | — | 9 | 1 | — |
 | `(root)` | `render_cases[].diagnostic.line` | `in-domain` | — | 26 | 1 | — |
+| `cli_ownir/inputs` | `components[].subscriptions[].line` | `in-domain` | yes | 3 | 3 | — |
+| `cli_ownir/inputs/pa th ünïcødé` | `components[].subscriptions[].line` | `in-domain` | yes | 1 | 1 | — |
 | `lowered` | `components[].subscriptions[].line` | `in-domain` | yes | 24 | 10 | — |
 | `lowered` | `functions[].<nested>[].line` | `in-domain` | yes | 150 | 41 | — |
 | `lowered` | `functions[].params[].line` | `in-domain` | yes | 20 | 10 | — |

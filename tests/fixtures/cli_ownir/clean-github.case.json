@@ -1,0 +1,17 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "../verdict_renders/render_empty.facts.json",
+    "--format",
+    "github"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 0,
+    "stdout": "",
+    "stderr": "../verdict_renders/render_empty.facts.json: ok — no subscription leaks found\n\n0 findings.\n",
+    "os_error_tail": null
+  }
+}

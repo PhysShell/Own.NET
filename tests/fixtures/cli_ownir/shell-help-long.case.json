@@ -1,0 +1,14 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "--help"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 0,
+    "stdout": "own-cli — the Own.NET core as a native executable.\n\nUsage:\n  own-cli ownir <facts.json> [options]   check OwnIR facts extracted from C#\n\nOptions (ownir):\n  --format {human|github|msbuild|sarif}  finding surface (default: human)\n  --severity {error|warning}             how a finding is shown (default: error)\n  --verbosity {quiet|normal|verbose}     quiet hides the advisory notes;\n                                         verbose adds a per-code breakdown\n                                         (default: normal)\n  --help, -h                             print this help\n  --version                              print the version\n\nBoth `--flag value` and `--flag=value` are accepted. `ownir` takes exactly one\npositional argument, the facts file; there is no `--` separator and there are\nno short flags.\n\nExit codes:\n  0  clean\n  1  findings — any non-advisory, unsuppressed finding, independent of\n     --severity\n  2  usage error, or a facts document the strict door refuses\n  70 internal error — a bug in the analyzer, never silence\n",
+    "stderr": "",
+    "os_error_tail": null
+  }
+}

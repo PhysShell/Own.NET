@@ -1,0 +1,22 @@
+{
+  "ownir_version": 0,
+  "module": "SpacedPath",
+  "_doc": [
+    "Reached through a directory whose name carries a space and non-ASCII:",
+    "the PATH, not the document, is the surface under test."
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "Vm.cs",
+      "subscriptions": [
+        {
+          "event": "SystemEvents.Static",
+          "handler": "OnS",
+          "line": 3,
+          "source": "static"
+        }
+      ]
+    }
+  ]
+}
