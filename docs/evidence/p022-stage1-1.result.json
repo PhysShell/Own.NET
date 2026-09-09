@@ -1,0 +1,144 @@
+{
+  "schema": 1,
+  "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
+  "campaign": "p022-stage1-1",
+  "definition": "docs/evidence/p022-stage1-1.json",
+  "definition_sha256": "b27b905145eec08d287830830f0d2f8d7611e1f5345e880b881c7a50d994e3e7",
+  "source_commit": "9f34e2058de42ec8464a72b0180bda011a541a08",
+  "dirty": false,
+  "recorded_at": "2026-09-09T01:37:09Z",
+  "layers": [
+    "stage1"
+  ],
+  "command": "every layer the definition declares, for every mutation",
+  "control": {
+    "id": "M00",
+    "outcome": "survived",
+    "catchers": [],
+    "elapsed_seconds": 30.4
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "outcome": "caught",
+      "catchers": [
+        "stage1::default-stays-python"
+      ],
+      "elapsed_seconds": 24.9
+    },
+    {
+      "id": "M02",
+      "outcome": "caught",
+      "catchers": [
+        "stage1::rust-actually-runs-rust"
+      ],
+      "elapsed_seconds": 23.2
+    },
+    {
+      "id": "M03",
+      "outcome": "caught",
+      "catchers": [
+        "stage1::rc70-is-not-a-verdict",
+        "stage1::rust-failure-no-fallback"
+      ],
+      "elapsed_seconds": 24.3
+    },
+    {
+      "id": "M04",
+      "outcome": "caught",
+      "catchers": [
+        "stage1::raw-rc-retained",
+        "stage1::rc70-is-not-a-verdict",
+        "stage1::rust-failure-no-fallback",
+        "stage1::unexpected-rc-maps-to-5"
+      ],
+      "elapsed_seconds": 23.2
+    },
+    {
+      "id": "M05",
+      "outcome": "caught",
+      "catchers": [
+        "stage1::raw-rc-retained"
+      ],
+      "elapsed_seconds": 23.9
+    },
+    {
+      "id": "M06",
+      "outcome": "survived",
+      "catchers": [],
+      "elapsed_seconds": 24.0
+    },
+    {
+      "id": "M07",
+      "outcome": "survived",
+      "catchers": [],
+      "elapsed_seconds": 23.6
+    },
+    {
+      "id": "M08",
+      "outcome": "caught",
+      "catchers": [
+        "stage1::rust-failure-no-fallback"
+      ],
+      "elapsed_seconds": 25.1
+    },
+    {
+      "id": "M09",
+      "outcome": "caught",
+      "catchers": [
+        "stage1::bad-locator-is-2"
+      ],
+      "elapsed_seconds": 25.2
+    },
+    {
+      "id": "M10",
+      "outcome": "caught",
+      "catchers": [
+        "stage1::compare-same-input"
+      ],
+      "elapsed_seconds": 23.9
+    },
+    {
+      "id": "M11",
+      "outcome": "survived",
+      "catchers": [],
+      "elapsed_seconds": 24.9
+    },
+    {
+      "id": "M12",
+      "outcome": "survived",
+      "catchers": [],
+      "elapsed_seconds": 23.7
+    },
+    {
+      "id": "M13",
+      "outcome": "caught",
+      "catchers": [
+        "stage1::candidate-identity"
+      ],
+      "elapsed_seconds": 24.6
+    },
+    {
+      "id": "M14",
+      "outcome": "survived",
+      "catchers": [],
+      "elapsed_seconds": 24.4
+    },
+    {
+      "id": "M15",
+      "outcome": "caught",
+      "catchers": [
+        "stage1::divergence-is-5"
+      ],
+      "elapsed_seconds": 24.0
+    },
+    {
+      "id": "M16",
+      "outcome": "caught",
+      "catchers": [
+        "stage1::compare-zero-document"
+      ],
+      "elapsed_seconds": 24.1
+    }
+  ]
+}

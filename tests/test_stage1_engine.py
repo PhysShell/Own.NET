@@ -207,30 +207,49 @@ def control_bad_locator_is_2(sample: Path, tmp: Path) -> None:
         "non-executable": str(not_exec),
     }
     problems = []
-    for engine in ("rust", "compare"):
-        for name, value in cases.items():
-            env = {"OWEN_RUST_CORE": value} if value is not None else {}
-            e = dict(os.environ)
-            e.update(env)
-            if value is None:
-                e.pop("OWEN_RUST_CORE", None)
-            r = subprocess.run(
-                ["bash", str(ROOT / "scripts/own-check.sh"),
-                 "--engine", engine, "--", str(sample)],
-                capture_output=True, env=e, cwd=str(ROOT), check=False)
-            if r.returncode != 2:
-                problems.append(f"{engine}/{name}: exit {r.returncode}, expected 2")
-            merged = (r.stdout + r.stderr).decode("utf-8", "replace")
-            # A fallback would have produced a verdict; the diagnostic must
-            # also say, in as many words, that no fallback happened.
-            if "finding" in merged and "OWEN_RUST_CORE" not in merged:
-                problems.append(f"{engine}/{name}: produced a verdict — looks like a fallback")
-            if r.returncode == 2 and "did not fall back to Python" not in merged:
-                problems.append(f"{engine}/{name}: diagnostic does not deny a Python fallback")
+    # D2: the locator contract is ONE contract, so it is driven on BOTH the
+    # shell surface and the `owen` launcher. Testing only the shell would let
+    # the launcher's own exit code drift freely — which is exactly what a
+    # campaign mutation of that constant proved.
+    surfaces: list[tuple[str, object]] = [("own-check.sh", "shell")]
+    if launcher_dll() is not None and have_dotnet():
+        surfaces.append(("owen", "launcher"))
+    else:
+        skip(check + "/owen", "no built launcher/dotnet")
+
+    for surface_name, kind in surfaces:
+        for engine in ("rust", "compare"):
+            for name, value in cases.items():
+                env = {"OWEN_RUST_CORE": value} if value is not None else {}
+                e = dict(os.environ)
+                e.update(env)
+                if value is None:
+                    e.pop("OWEN_RUST_CORE", None)
+                if kind == "shell":
+                    r = subprocess.run(
+                        ["bash", str(ROOT / "scripts/own-check.sh"),
+                         "--engine", engine, "--", str(sample)],
+                        capture_output=True, env=e, cwd=str(ROOT), check=False)
+                else:
+                    r = subprocess.run(
+                        ["dotnet", str(launcher_dll()), "check", "--engine", engine, str(sample)],
+                        capture_output=True, env=e, cwd=str(ROOT), check=False)
+                where = f"{surface_name}/{engine}/{name}"
+                if r.returncode != 2:
+                    problems.append(f"{where}: exit {r.returncode}, expected 2 "
+                                    "(not 3 — that is Python-specific; not 5 — that is an "
+                                    "internal failure)")
+                merged = (r.stdout + r.stderr).decode("utf-8", "replace")
+                # A fallback would have produced a verdict; the diagnostic must
+                # also say, in as many words, that no fallback happened.
+                if "finding" in merged and "OWEN_RUST_CORE" not in merged:
+                    problems.append(f"{where}: produced a verdict — looks like a fallback")
+                if r.returncode == 2 and "did not fall back to Python" not in merged:
+                    problems.append(f"{where}: diagnostic does not deny a Python fallback")
     if problems:
         fail(check, "; ".join(problems))
     else:
-        ok(check, f"{len(cases) * 2} invalid-locator cases all exit 2, no fallback")
+        ok(check, f"{len(cases) * 2 * len(surfaces)} invalid-locator cases all exit 2, no fallback")
 
 
 def control_default_stays_python(sample: Path) -> None:
@@ -552,24 +571,38 @@ def control_compare_zero_document(tmp: Path) -> None:
     empty_dir = tmp / "empty-sample"
     empty_dir.mkdir(exist_ok=True)
     (empty_dir / "Nothing.cs").write_text(EMPTY_CS, encoding="utf-8")
-    r = run_own_check(["--engine", "compare", "--format", "human", "--", str(empty_dir)],
-                      env={"OWEN_RUST_CORE": core})
-    merged = (r.stdout + r.stderr).decode("utf-8", "replace")
-    if r.returncode in (0, 1):
-        fail(check, f"a zero-document compare exited {r.returncode} — it passed instead of failing")
-        return
-    if r.returncode != 5:
-        # Exit 4 (no supported input) is a different, legitimate refusal: the
-        # sample never reached the engines at all, so the control cannot speak.
+    runs = [("own-check.sh",
+             run_own_check(["--engine", "compare", "--format", "human", "--", str(empty_dir)],
+                           env={"OWEN_RUST_CORE": core}))]
+    # D2 again: the guard belongs to both surfaces, and a C#-side mutation is
+    # invisible to a shell-only control.
+    owen = run_owen(["--engine", "compare", "--format", "human", str(empty_dir)],
+                    env={"OWEN_RUST_CORE": core})
+    if owen is not None:
+        runs.append(("owen", owen))
+    else:
+        skip(check + "/owen", "no built launcher/dotnet")
+
+    problems = []
+    for where, r in runs:
+        merged = (r.stdout + r.stderr).decode("utf-8", "replace")
         if r.returncode == 4:
-            skip(check, "the sample was rejected as unsupported input before the engines ran")
+            # Exit 4 (no supported input) is a different, legitimate refusal:
+            # the sample never reached the engines, so the control cannot speak.
+            skip(check, f"{where}: the sample was rejected as unsupported input before the "
+                        "engines ran")
             return
-        fail(check, f"a zero-document compare exited {r.returncode}, expected 5")
+        if r.returncode in (0, 1):
+            problems.append(f"{where}: a zero-document compare exited {r.returncode} — it "
+                            "passed instead of failing")
+        elif r.returncode != 5:
+            problems.append(f"{where}: a zero-document compare exited {r.returncode}, expected 5")
+        elif "nothing to analyse" not in merged:
+            problems.append(f"{where}: a zero-document compare failed without saying why")
+    if problems:
+        fail(check, "; ".join(problems))
         return
-    if "nothing to analyse" not in merged and "zero document" not in merged:
-        fail(check, "a zero-document compare failed without saying why")
-        return
-    ok(check, "a zero-document compare fails (exit 5) and says so")
+    ok(check, "a zero-document compare fails (exit 5) and says so, on every surface")
 
 
 def control_compare_failure_and_divergence(sample: Path, tmp: Path) -> None:
@@ -588,43 +621,83 @@ def control_compare_failure_and_divergence(sample: Path, tmp: Path) -> None:
             skip(c, "no dotnet")
         return
 
-    # (b) divergence: a candidate that answers legally but differently.
-    diverging = write_stub(tmp / "diverging-core", 0, stdout="a different answer\n")
-    r = run_own_check(["--engine", "compare", "--format", "human", "--", str(sample)],
-                      env={"OWEN_RUST_CORE": str(diverging)})
-    merged = (r.stdout + r.stderr).decode("utf-8", "replace")
-    if r.returncode == 1:
-        fail(div_check, "a compare divergence exited 1 — in public Owen that already means findings")
-    elif r.returncode != 5:
-        fail(div_check, f"a compare divergence exited {r.returncode}, expected public 5")
-    elif "divergence" not in merged:
-        fail(div_check, "a compare divergence exited 5 without an actionable diagnostic")
-    elif "sha256" not in merged:
-        fail(div_check, "a compare divergence produced no reproduction evidence (no input digest)")
+    # (b) divergence. The candidate answers LEGALLY and with the SAME exit code
+    # the reference produces (1 = findings on this leaky sample), differing only
+    # in the bytes. That is deliberate: a stub that also differed in its exit
+    # code would let a compare that had stopped comparing stdout still look
+    # correct, because the exit-code check alone would flag the divergence.
+    diverging = write_stub(tmp / "diverging-core", 1, stdout="a different answer\n")
+    div_runs = [("own-check.sh",
+                 run_own_check(["--engine", "compare", "--format", "human", "--", str(sample)],
+                               env={"OWEN_RUST_CORE": str(diverging)}))]
+    owen_div = run_owen(["--engine", "compare", "--format", "human", str(sample)],
+                        env={"OWEN_RUST_CORE": str(diverging)})
+    if owen_div is not None:
+        div_runs.append(("owen", owen_div))
     else:
-        ok(div_check, "a compare divergence is public exit 5 with reproduction evidence")
+        skip(div_check + "/owen", "no built launcher/dotnet")
 
-    if b"a different answer" in r.stdout:
-        fail(sub_check, "the candidate's answer was exposed as the result of a diverging compare")
+    div_problems, sub_problems = [], []
+    for where, r in div_runs:
+        merged = (r.stdout + r.stderr).decode("utf-8", "replace")
+        if r.returncode == 1:
+            div_problems.append(f"{where}: a compare divergence exited 1 — in public Owen that "
+                                "already means findings")
+        elif r.returncode != 5:
+            div_problems.append(f"{where}: a compare divergence exited {r.returncode}, "
+                                "expected public 5")
+        elif "divergence" not in merged:
+            div_problems.append(f"{where}: a compare divergence exited 5 without an actionable "
+                                "diagnostic")
+        elif "sha256" not in merged:
+            div_problems.append(f"{where}: a compare divergence produced no reproduction "
+                                "evidence (no input digest)")
+        if b"a different answer" in r.stdout:
+            sub_problems.append(f"{where}: the candidate's answer was exposed as the result of "
+                                "a diverging compare")
+    if div_problems:
+        fail(div_check, "; ".join(div_problems))
     else:
-        ok(sub_check, "no engine's answer was exposed on divergence")
+        ok(div_check, "a divergence in the bytes alone is public exit 5 with reproduction "
+                      "evidence, on every surface")
 
     # (c) execution failure: a candidate that produces no verdict at all.
     crashing = write_stub(tmp / "crashing-core", 42, stderr="forced execution failure\n")
-    r2 = run_own_check(["--engine", "compare", "--format", "human", "--", str(sample)],
-                       env={"OWEN_RUST_CORE": str(crashing)})
-    merged2 = (r2.stdout + r2.stderr).decode("utf-8", "replace")
-    if r2.returncode != 5:
-        fail(exec_check, f"a compare execution failure exited {r2.returncode}, expected public 5")
-    elif "execution failure" not in merged2:
-        fail(exec_check, "a compare execution failure exited 5 without an actionable diagnostic")
-    elif "42" not in merged2:
-        fail(exec_check, "a compare execution failure did not retain the raw Rust child status")
+    exec_runs = [("own-check.sh",
+                  run_own_check(["--engine", "compare", "--format", "human", "--", str(sample)],
+                                env={"OWEN_RUST_CORE": str(crashing)}))]
+    owen_exec = run_owen(["--engine", "compare", "--format", "human", str(sample)],
+                         env={"OWEN_RUST_CORE": str(crashing)})
+    if owen_exec is not None:
+        exec_runs.append(("owen", owen_exec))
     else:
-        ok(exec_check, "a compare execution failure is public exit 5 with failure evidence")
+        skip(exec_check + "/owen", "no built launcher/dotnet")
 
-    if b"OWN001" in r2.stdout:
-        fail(sub_check, "Python's verdict was exposed after the candidate failed the compare")
+    exec_problems = []
+    for where, r in exec_runs:
+        merged = (r.stdout + r.stderr).decode("utf-8", "replace")
+        if r.returncode != 5:
+            exec_problems.append(f"{where}: a compare execution failure exited {r.returncode}, "
+                                 "expected public 5")
+        elif "execution failure" not in merged:
+            exec_problems.append(f"{where}: a compare execution failure exited 5 without an "
+                                 "actionable diagnostic")
+        elif "42" not in merged:
+            exec_problems.append(f"{where}: a compare execution failure did not retain the raw "
+                                 "Rust child status")
+        if b"OWN001" in r.stdout:
+            sub_problems.append(f"{where}: Python's verdict was exposed after the candidate "
+                                "failed the compare")
+    if exec_problems:
+        fail(exec_check, "; ".join(exec_problems))
+    else:
+        ok(exec_check, "a compare execution failure is public exit 5 with failure evidence, on "
+                       "every surface")
+
+    if sub_problems:
+        fail(sub_check, "; ".join(sub_problems))
+    else:
+        ok(sub_check, "no engine's answer was exposed on divergence or on failure")
 
 
 def control_candidate_identity(sample: Path, tmp: Path) -> None:

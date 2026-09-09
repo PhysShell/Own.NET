@@ -187,6 +187,15 @@ internal static class CompareMode
             string diagnostic, int? childExitCode)
         {
             Console.Error.WriteLine($"owen: --engine compare: {diagnostic}");
+            // The reproduction line is on STDERR, not only inside the evidence
+            // file: the two identities that make a compare reproducible are the
+            // input bytes and the candidate binary, and a reader who has to
+            // open a JSON file to learn them has been handed a filename rather
+            // than a reproduction. own-check.sh prints the same two facts, so
+            // the surfaces say one thing (D2).
+            Console.Error.WriteLine(
+                $"  Reproduction — input sha256 {(capturedSha.Length > 0 ? capturedSha : "(no capture)")}, " +
+                $"candidate {core.Path} (sha256 {core.Sha256})");
             var path = WriteEvidence(a, core, capturedSha, py, rs,
                 verdict: childExitCode is null && py is not null && rs is not null
                     ? "divergence"
