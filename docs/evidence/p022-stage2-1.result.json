@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
+  "campaign": "p022-stage2-1",
+  "definition": "docs/evidence/p022-stage2-1.json",
+  "definition_sha256": "ab355418652628cc4b924ff8525a53b9e42ddaaaab922b938082c814c3ed37c7",
+  "source_commit": "e02e209251c338dd771dffad94758c215a7f0727",
+  "dirty": false,
+  "recorded_at": "2026-09-09T14:59:38Z",
+  "layers": [
+    "stage2"
+  ],
+  "command": "every layer the definition declares, for every mutation",
+  "control": {
+    "id": "M00",
+    "outcome": "survived",
+    "catchers": [],
+    "elapsed_seconds": 8.4
+  },
+  "mutations": [
+    {
+      "id": "S01",
+      "outcome": "caught",
+      "catchers": [
+        "stage2::internal-default-not-rust"
+      ],
+      "elapsed_seconds": 6.1
+    },
+    {
+      "id": "S02",
+      "outcome": "caught",
+      "catchers": [
+        "stage2::wrong-rust-candidate"
+      ],
+      "elapsed_seconds": 6.2
+    },
+    {
+      "id": "S03",
+      "outcome": "caught",
+      "catchers": [
+        "stage2::platform-leg-lost"
+      ],
+      "elapsed_seconds": 6.0
+    },
+    {
+      "id": "S04",
+      "outcome": "caught",
+      "catchers": [
+        "stage2::locator-contract-bypassed"
+      ],
+      "elapsed_seconds": 6.7
+    },
+    {
+      "id": "S05",
+      "outcome": "caught",
+      "catchers": [
+        "stage2::rust-job-falls-back"
+      ],
+      "elapsed_seconds": 6.6
+    },
+    {
+      "id": "S06",
+      "outcome": "caught",
+      "catchers": [
+        "stage2::public-default-moved"
+      ],
+      "elapsed_seconds": 6.1
+    },
+    {
+      "id": "S07",
+      "outcome": "caught",
+      "catchers": [
+        "stage2::public-default-moved"
+      ],
+      "elapsed_seconds": 5.9
+    },
+    {
+      "id": "S08",
+      "outcome": "caught",
+      "catchers": [
+        "stage2::compare-gate-dropped"
+      ],
+      "elapsed_seconds": 6.7
+    },
+    {
+      "id": "S09",
+      "outcome": "caught",
+      "catchers": [
+        "stage2::stage2-census"
+      ],
+      "elapsed_seconds": 5.9
+    },
+    {
+      "id": "S10",
+      "outcome": "caught",
+      "catchers": [
+        "stage2::stage2-census"
+      ],
+      "elapsed_seconds": 6.2
+    },
+    {
+      "id": "S11",
+      "outcome": "caught",
+      "catchers": [
+        "stage2::internal-default-not-rust"
+      ],
+      "elapsed_seconds": 6.0
+    }
+  ]
+}
