@@ -4,9 +4,9 @@
   "campaign": "p022-stage1-1",
   "definition": "docs/evidence/p022-stage1-1.json",
   "definition_sha256": "b27b905145eec08d287830830f0d2f8d7611e1f5345e880b881c7a50d994e3e7",
-  "source_commit": "757c29d88edbb8eff5f9a4d870725c692b98e867",
+  "source_commit": "1e89d8aea28d75bc7b1f15576ee7893cfe1eadcb",
   "dirty": false,
-  "recorded_at": "2026-09-09T01:48:28Z",
+  "recorded_at": "2026-09-09T01:58:04Z",
   "layers": [
     "stage1"
   ],
@@ -15,7 +15,7 @@
     "id": "M00",
     "outcome": "survived",
     "catchers": [],
-    "elapsed_seconds": 34.5
+    "elapsed_seconds": 34.1
   },
   "mutations": [
     {
@@ -24,7 +24,7 @@
       "catchers": [
         "stage1::default-stays-python"
       ],
-      "elapsed_seconds": 29.4
+      "elapsed_seconds": 30.4
     },
     {
       "id": "M02",
@@ -41,7 +41,7 @@
         "stage1::rc70-is-not-a-verdict",
         "stage1::rust-failure-no-fallback"
       ],
-      "elapsed_seconds": 28.0
+      "elapsed_seconds": 28.1
     },
     {
       "id": "M04",
@@ -52,7 +52,7 @@
         "stage1::rust-failure-no-fallback",
         "stage1::unexpected-rc-maps-to-5"
       ],
-      "elapsed_seconds": 27.9
+      "elapsed_seconds": 28.4
     },
     {
       "id": "M05",
@@ -60,7 +60,7 @@
       "catchers": [
         "stage1::raw-rc-retained"
       ],
-      "elapsed_seconds": 28.9
+      "elapsed_seconds": 28.8
     },
     {
       "id": "M06",
@@ -68,7 +68,7 @@
       "catchers": [
         "stage1::bad-locator-is-2"
       ],
-      "elapsed_seconds": 27.9
+      "elapsed_seconds": 28.6
     },
     {
       "id": "M07",
@@ -76,7 +76,7 @@
       "catchers": [
         "stage1::bad-locator-is-2"
       ],
-      "elapsed_seconds": 28.3
+      "elapsed_seconds": 28.1
     },
     {
       "id": "M08",
@@ -84,7 +84,7 @@
       "catchers": [
         "stage1::rust-failure-no-fallback"
       ],
-      "elapsed_seconds": 28.2
+      "elapsed_seconds": 28.1
     },
     {
       "id": "M09",
@@ -92,16 +92,17 @@
       "catchers": [
         "stage1::bad-locator-is-2"
       ],
-      "elapsed_seconds": 28.6
+      "elapsed_seconds": 28.0
     },
     {
       "id": "M10",
       "outcome": "caught",
       "catchers": [
+        "stage1::compare-no-substitution",
         "stage1::compare-same-input",
         "stage1::divergence-is-5"
       ],
-      "elapsed_seconds": 28.5
+      "elapsed_seconds": 28.4
     },
     {
       "id": "M11",
@@ -109,7 +110,7 @@
       "catchers": [
         "stage1::exec-failure-is-5"
       ],
-      "elapsed_seconds": 28.1
+      "elapsed_seconds": 28.3
     },
     {
       "id": "M12",
@@ -117,7 +118,7 @@
       "catchers": [
         "stage1::compare-zero-document"
       ],
-      "elapsed_seconds": 28.6
+      "elapsed_seconds": 28.3
     },
     {
       "id": "M13",
@@ -125,15 +126,16 @@
       "catchers": [
         "stage1::candidate-identity"
       ],
-      "elapsed_seconds": 28.3
+      "elapsed_seconds": 28.9
     },
     {
       "id": "M14",
       "outcome": "caught",
       "catchers": [
+        "stage1::compare-no-substitution",
         "stage1::divergence-is-5"
       ],
-      "elapsed_seconds": 28.0
+      "elapsed_seconds": 28.3
     },
     {
       "id": "M15",
@@ -141,7 +143,7 @@
       "catchers": [
         "stage1::divergence-is-5"
       ],
-      "elapsed_seconds": 28.6
+      "elapsed_seconds": 27.7
     },
     {
       "id": "M16",
@@ -149,7 +151,7 @@
       "catchers": [
         "stage1::compare-zero-document"
       ],
-      "elapsed_seconds": 29.0
+      "elapsed_seconds": 28.5
     }
   ]
 }

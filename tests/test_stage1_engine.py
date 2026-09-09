@@ -510,7 +510,8 @@ def control_compare_same_input_and_extract_once(sample: Path, tmp: Path) -> None
     lines = tally.read_text(encoding="utf-8").splitlines() if tally.exists() else []
     extractions = [ln for ln in lines if "OwnSharp.Extractor" in ln]
     if len(extractions) != 1:
-        fail(once_check, f"compare invoked the extractor {len(extractions)} times, expected exactly 1")
+        fail(once_check,
+             f"compare invoked the extractor {len(extractions)} times, expected exactly 1")
     else:
         ok(once_check, "compare extracted exactly once")
 
@@ -547,7 +548,8 @@ def control_compare_same_input_and_extract_once(sample: Path, tmp: Path) -> None
         fail(same_check, "the compare run wrote no evidence to attest the capture digest")
         return
     try:
-        attested = (json.loads(evidence.read_text(encoding="utf-8")).get("input") or {}).get("sha256")
+        recorded = json.loads(evidence.read_text(encoding="utf-8"))
+        attested = (recorded.get("input") or {}).get("sha256")
     except (OSError, json.JSONDecodeError) as exc:
         fail(same_check, f"the compare evidence is unreadable: {exc}")
         return
