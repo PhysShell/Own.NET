@@ -60,6 +60,7 @@ public class Leaky
 _FAILURES: list[tuple[str, str]] = []
 _PASSES: list[str] = []
 _SKIPS: list[tuple[str, str]] = []
+_NOT_APPLICABLE: list[tuple[str, str]] = []
 
 
 def fail(check: str, detail: str) -> None:
@@ -81,6 +82,13 @@ def skip(check: str, why: str) -> None:
         return
     _SKIPS.append((check, why))
     print(f"skip[{check}]: {why}")
+
+
+def not_applicable(check: str, why: str) -> None:
+    """A control this platform cannot be asked, as distinct from one whose
+    toolchain is missing. Printed and counted, never silently dropped."""
+    _NOT_APPLICABLE.append((check, why))
+    print(f"n/a[{check}]: {why}")
 
 
 def tail(r: subprocess.CompletedProcess[bytes], limit: int = 400) -> str:
@@ -182,6 +190,25 @@ def control_not_started_is_2(sample: Path, tmp: Path) -> None:
     path, which `Test-Path` rejects long before any spawn.
     """
     check = "ps1-not-started-is-2"
+    if os.name != "nt":
+        # Measured on a Linux runner: PowerShell there does not refuse a
+        # non-executable file, it hands it to the DESKTOP OPENER — the run
+        # exits 0 with `xdg-open: no method available for opening ...`. So
+        # "the loader will not start this image" is not a state Linux can be
+        # asked about; it answers a different question and answers it
+        # successfully.
+        #
+        # Worth recording why this was nearly missed: the control PASSED on a
+        # developer container, for the wrong reason — no xdg-open was
+        # installed there, so the invocation failed and looked like a refusal.
+        # A control whose verdict depends on whether a desktop helper happens
+        # to be present is not measuring the contract. This is exactly the
+        # case the Windows-native mutation leg exists for.
+        not_applicable(check, "PowerShell on Linux routes a non-executable file to the desktop "
+                              "opener instead of refusing it, so the spawn seam cannot be posed "
+                              "here; it is required on Windows, where the ps1 mutation campaign "
+                              "runs")
+        return
     unstartable = tmp / "not-a-program.txt"
     unstartable.write_text("this is text, not an executable image\n", encoding="utf-8")
 
@@ -339,9 +366,11 @@ def run() -> int:
 
     print()
     print(f"stage-1 ps1 controls: {len(_PASSES)} passed, {len(_FAILURES)} failed, "
-          f"{len(_SKIPS)} skipped")
+          f"{len(_SKIPS)} skipped, {len(_NOT_APPLICABLE)} not applicable on this platform")
     for name, why in _SKIPS:
         print(f"    skip {name}: {why}")
+    for name, why in _NOT_APPLICABLE:
+        print(f"    n/a  {name}: {why}")
     return 1 if _FAILURES else 0
 
 
