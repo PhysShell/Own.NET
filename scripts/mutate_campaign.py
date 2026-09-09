@@ -962,7 +962,11 @@ def write_result(result: Result, definition: Definition, path: str) -> None:
         doc["command"] = "cargo test -p <package> --no-fail-fast, for every workspace member"
     doc["control"] = _outcome_json(result.control)
     doc["mutations"] = [_outcome_json(o) for o in result.mutations]
-    with open(path, "w", encoding="utf-8") as f:
+    # newline="\n" explicitly: a campaign now runs on a Windows runner, and
+    # Python's text mode would write CRLF there. A result recorded on Windows
+    # has to be byte-identical to one recorded on Linux, or the evidence
+    # differs from itself by the platform that happened to take it.
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(doc, f, indent=2, ensure_ascii=False)
         f.write("\n")
 

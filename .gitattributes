@@ -14,3 +14,12 @@
 # evidence" as its own hygiene tail; this rule covers executable shell scripts
 # only and takes no position on that wider question.
 *.sh text eol=lf
+
+# Campaign evidence is hashed BY BYTE, so it must not depend on a checkout
+# setting. `mutate_campaign.py` records the sha256 of the definition it ran,
+# and the gate refuses a result whose definition hash does not match. The
+# #262 Stage-1 Windows campaign runs on a windows-latest runner, where
+# `core.autocrlf=true` rewrote these files on checkout: the same definition
+# hashed 79ad1476f219 on Linux and 3dda13ce16d6 on Windows, and a run that
+# measured exactly the right tree was rejected as evidence for another tree.
+docs/evidence/*.json text eol=lf
