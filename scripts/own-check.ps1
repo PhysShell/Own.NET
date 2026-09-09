@@ -114,9 +114,9 @@ if ($Engine -eq "rust" -or $Engine -eq "compare") {
         # Windows has no execute bit: an existing regular file is accepted here
         # and a genuinely broken image fails at spawn, which is the other side
         # of the D3.1 seam and already maps to the internal-error path.
-        Write-Error -Message ("own-check: --engine $Engine needs the candidate ``own-cli`` binary, but " +
+        [Console]::Error.WriteLine(("own-check: --engine $Engine needs the candidate ``own-cli`` binary, but " +
             "OWEN_RUST_CORE $problem. Set OWEN_RUST_CORE to the absolute path of the ``own-cli`` " +
-            "executable to run. Owen did not fall back to Python.") -ErrorAction Continue
+            "executable to run. Owen did not fall back to Python."))
         exit 2
     }
 }
@@ -159,8 +159,8 @@ try {
         # and takes the public internal-error path (5) with the raw child
         # status named. It never runs Python instead.
         if ($rc -ne 0 -and $rc -ne 1 -and $rc -ne 2) {
-            Write-Error -Message ("own-check: the Rust analysis core exited $rc, which is not a " +
-                "verdict (raw child status: $rc). Owen did not fall back to Python.") -ErrorAction Continue
+            [Console]::Error.WriteLine(("own-check: the Rust analysis core exited $rc, which is not a " +
+                "verdict (raw child status: $rc). Owen did not fall back to Python."))
             exit 5
         }
     }
@@ -187,9 +187,9 @@ try {
                     if ($null -ne $v -and $null -ne $v.Value -and @($v.Value).Count -gt 0) { $hasUnit = $true; break }
                 }
                 if (-not $hasUnit) {
-                    Write-Error -Message ("own-check: --engine compare: the captured OwnIR contains nothing to " +
+                    [Console]::Error.WriteLine(("own-check: --engine compare: the captured OwnIR contains nothing to " +
                         "analyse — a compare over zero documents proves nothing and is a failure, not an " +
-                        "agreement.") -ErrorAction Continue
+                        "agreement."))
                     exit 5
                 }
             }
@@ -201,9 +201,9 @@ try {
             $pyInSha = (Get-FileHash -LiteralPath $pyIn -Algorithm SHA256).Hash.ToLowerInvariant()
             $rsInSha = (Get-FileHash -LiteralPath $rsIn -Algorithm SHA256).Hash.ToLowerInvariant()
             if ($pyInSha -ne $captureSha -or $rsInSha -ne $captureSha) {
-                Write-Error -Message ("own-check: --engine compare: the two engine inputs are not byte-identical " +
+                [Console]::Error.WriteLine(("own-check: --engine compare: the two engine inputs are not byte-identical " +
                     "to the single capture (capture $captureSha, python $pyInSha, rust $rsInSha) — the " +
-                    "same-input invariant failed, so no comparison may be reported.") -ErrorAction Continue
+                    "same-input invariant failed, so no comparison may be reported."))
                 exit 5
             }
 
@@ -228,11 +228,10 @@ try {
             $pyLegal = ($pyRc -eq 0 -or $pyRc -eq 1 -or $pyRc -eq 2)
             $rsLegal = ($rsRc -eq 0 -or $rsRc -eq 1 -or $rsRc -eq 2)
             if (-not $pyLegal -or -not $rsLegal) {
-                Write-Error -Message ("own-check: --engine compare: compare execution failure (python exit " +
+                [Console]::Error.WriteLine(("own-check: --engine compare: compare execution failure (python exit " +
                     "$pyRc, rust exit $rsRc). No engine's result was substituted for the other's failure. " +
-                    "Reproduction — input sha256 $captureSha, candidate $rustCore, artifacts in $cmpDir") `
-                    -ErrorAction Continue
-                if (-not $rsLegal) { Write-Error -Message "own-check: raw Rust child status: $rsRc" -ErrorAction Continue }
+                    "Reproduction — input sha256 $captureSha, candidate $rustCore, artifacts in $cmpDir"))
+                if (-not $rsLegal) { [Console]::Error.WriteLine("own-check: raw Rust child status: $rsRc") }
                 exit 5
             }
 
@@ -246,10 +245,10 @@ try {
             if ($pyOutH -ne $rsOutH) { $diverged += "stdout" }
             if ($pyErrH -ne $rsErrH) { $diverged += "stderr" }
             if ($diverged.Count -gt 0) {
-                Write-Error -Message ("own-check: --engine compare: engine divergence — the reference and the " +
+                [Console]::Error.WriteLine(("own-check: --engine compare: engine divergence — the reference and the " +
                     "candidate disagree on " + ($diverged -join ", ") + ". Neither verdict is exposed as " +
                     "authoritative. Reproduction — input sha256 $captureSha, candidate $rustCore, artifacts " +
-                    "in $cmpDir") -ErrorAction Continue
+                    "in $cmpDir"))
                 # Keep the artifacts for reproduction rather than deleting them.
                 $keep = $true
                 exit 5

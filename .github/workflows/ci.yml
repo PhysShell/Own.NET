@@ -218,6 +218,12 @@ jobs:
           & ./scripts/own-check.ps1 -Engine rust -Format human -- $sample
           if ($LASTEXITCODE -ne 2) { throw "own-check.ps1 with a bad OWEN_RUST_CORE expected exit 2, got $LASTEXITCODE" }
           Write-Host "own-check.ps1 engine contract OK"
+          # The assertions above ARE this step's verdict, so say so
+          # explicitly. GitHub's pwsh wrapper appends `exit $LASTEXITCODE`,
+          # and the last command here exits 2 ON PURPOSE — without this the
+          # step would inherit the exit code of a case it was written to
+          # require.
+          exit 0
 
   # P-022 step 7a (#260) — COMPARE MODE over the committed corpus: the FAST half
   # of #260's test matrix, and one leg of it. The five pinned OSS repositories,
