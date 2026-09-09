@@ -41,6 +41,12 @@
     },
     {
       "workflow": ".github/workflows/ci.yml",
+      "job": "stage2-windows-mutations",
+      "class": "A",
+      "why": "The Windows verdict on the Stage-2 campaign, as a gate. It drives the Stage-2 controls through mutate_campaign.py, so it exercises the launchers the way stage1-windows-mutations does — a contract measurement, not operational analysis, and it records nothing."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
       "job": "shadow-compare",
       "class": "C",
       "why": "#260 compare mode over the committed corpus, through the dev-only own-shadow-engine adapter."

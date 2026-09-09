@@ -8,31 +8,6 @@ Stage 2 moves nothing a user can see: it makes THIS repository's CI and dogfood 
 
 Campaign `p022-stage2-1` — #262 Stage 2 — the CI/dogfood ENGINE-SELECTION seam. Stage 2's deliverable is a configuration, so its mutants are configuration: each one is a plausible way the Rust-default claim could quietly stop being true, or the public contract could quietly start moving, while every job still went green. The catchers are the controls in tests/test_stage2_dogfood.py, which read the workflows rather than being told about them.
 
-Definition: `docs/evidence/p022-stage2-1.json` (sha256 `ab355418652628cc…`, 11 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-stage2-1.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
+Definition: `docs/evidence/p022-stage2-1.json` (sha256 `fd96f37ba882a9b9…`, 11 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-stage2-1.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
-| measure                                          | value |
-|--------------------------------------------------|---|
-| recorded at commit                               | `e02e209251c338dd771dffad94758c215a7f0727` |
-| layers run (every one, for every mutation)       | `stage2` |
-| mutations                                        | 11 |
-| caught                                           | 11 |
-| survived                                         | 0 |
-| compile-error (no evidence either way)           | 0 |
-| invalid-mutation                                 | 0 |
-| runner-error                                     | 0 |
-| caught without every expected catcher            | none |
-| honesty control `M00` (unmutated tree must pass) | survived — as required |
-
-| id | rule | mutation | outcome | caught by |
-|---|---|---|---|---|
-| S01 | dogfood-selects-rust-explicitly | the dog-food job stops asking for an engine — the most likely regression of all, because the job still runs, still analyses, still uploads, and silently goes back to the public Python default | caught | `stage2::internal-default-not-rust` |
-| S02 | dogfood-runs-the-production-core | the dog-food candidate becomes own-shadow-engine — the #260 dev adapter is a Rust binary that this repository really builds, so the substitution looks right and measures a thing that is not the product | caught | `stage2::wrong-rust-candidate` |
-| S03 | the-claim-covers-both-platforms | the Rust-default dogfood matrix loses its Windows leg — 'our CI runs on Rust' quietly becomes a statement about Linux, which is the half of the product whose launcher mechanics never broke | caught | `stage2::platform-leg-lost` |
-| S04 | the-locator-is-owen-rust-core-alone | the dogfood finds its candidate on PATH — 'the binary is right there, why spell out an absolute path', which is precisely how a stale binary stands in for the one under test | caught | `stage2::locator-contract-bypassed` |
-| S05 | a-rust-failure-is-visible | the dogfood run swallows its exit code — the classic 'don't let the dogfood job break the build', which turns every Rust-default claim in this PR into decoration | caught | `stage2::rust-job-falls-back` |
-| S06 | the-public-default-does-not-move | the PRODUCT default flips to Rust — the covert Stage 3, and the single edit that would make every internal Rust job pass by accident while changing what every user gets | caught | `stage2::public-default-moved` |
-| S07 | the-public-default-does-not-move | the ACTION's public engine input defaults to rust — the same cutover through the other public door, and the one a C#-only control would miss | caught | `stage2::public-default-moved` |
-| S08 | compare-evidence-is-not-traded-away | a #260 compare gate is disabled — the cheapest way to make a Rust-default dogfood green is to remove the job that would have disagreed with it | caught | `stage2::compare-gate-dropped` |
-| S09 | no-unclassified-call-site | a new bare launcher invocation appears in a job nobody classified — the hole the census exists to close, and the one that reopens every time somebody adds a convenient scan step | caught | `stage2::stage2-census` |
-| S10 | no-escape-by-relabelling | the dog-food job is reclassified out of the Rust-default population — every other rule is satisfied by shrinking Class D, so without a rule that reads the job's own name this is a green way to stop dogfooding | caught | `stage2::stage2-census` |
-| S11 | dogfood-selects-rust-explicitly | the dog-food's engine selection is COMMENTED OUT rather than deleted — the shape a temporary rollback really takes ('just for one run, we'll put it back'). Its twin S01 deletes the line; this one leaves the words `engine: rust` sitting in the file, which is all a control that greps the job's raw text would need to stay green. It exists because S03 survived for exactly that reason on a different key | caught | `stage2::internal-default-not-rust` |
+**No recorded run** is committed (expected at `docs/evidence/p022-stage2-1.result.json`): the campaign has a definition but no evidence. Nothing below is a number.

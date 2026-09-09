@@ -219,7 +219,15 @@ def enumerate_call_sites() -> tuple[dict[tuple[str, str], list[str]], list[str]]
     patterns = [re.compile(p) for p in ledger()["entry_points"]]  # type: ignore[index]
     found: dict[tuple[str, str], list[str]] = {}
     for wf in sorted(WORKFLOWS.glob("*.yml")):
-        rel = str(wf.relative_to(ROOT))
+        # as_posix(), not str(). On Windows str() yields `.github\\workflows\\ci.yml`
+        # while the ledger stores forward slashes, so every key missed: every
+        # call site read as unclassified and every ledger entry as stale, and
+        # the census failed on Windows while passing on Linux. This repository
+        # has paid for a host path separator once already — #260's mutation
+        # harness took the separator into a catcher NAME and reported five
+        # protected rules as unprotected. The ledger is a committed artefact
+        # shared by both platforms, so its keys are POSIX by definition.
+        rel = wf.relative_to(ROOT).as_posix()
         lines = wf.read_text(encoding="utf-8").splitlines()
         for job, first, last in job_spans(wf):
             hits = []
