@@ -1200,7 +1200,13 @@ def run() -> int:
         for name, fn in controls.items():
             if only and name not in only:
                 continue
-            fn()
+            try:
+                fn()
+            except Exception as exc:  # a raise is this check's failure, not the suite's
+                # No-fail-fast has to survive a control that RAISES too. An
+                # abort costs every control after it, and a campaign then reads
+                # one nameless failure where it needed a named catcher.
+                fail(name, f"the control itself raised {type(exc).__name__}: {exc}")
 
     print()
     if only:

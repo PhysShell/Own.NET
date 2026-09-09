@@ -863,8 +863,16 @@ def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
     control = Outcome(definition.control_id, outcome, tuple(catchers),
                       round(time.monotonic() - t0, 1), detail)
     print(f"  -> {outcome} ({len(catchers)} failing test(s))", flush=True)
+    for c in catchers:
+        print(f"       {c}", flush=True)
     if outcome != "survived":
-        raise CampaignError(f"the unmutated tree did not pass ({outcome}): the run is void")
+        # Name them here. A void run is the one message a reader cannot act on
+        # without the names: "1 failing test" sent two CI rounds looking for
+        # which check it was, and the runner knew all along.
+        raise CampaignError(
+            f"the unmutated tree did not pass ({outcome}): the run is void"
+            + (f" — failing: {', '.join(catchers)}" if catchers else "")
+            + (f" [{detail}]" if detail else ""))
     assert_tree_unchanged(baseline, "during the control run")
 
     outcomes: list[Outcome] = []

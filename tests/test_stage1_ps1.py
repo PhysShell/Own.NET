@@ -130,6 +130,34 @@ def stub_exe(tmp: Path) -> str | None:
     return str(out) if r.returncode == 0 and out.is_file() else None
 
 
+def bash_exe() -> str:
+    """The bash that can actually run `own-check.sh`.
+
+    Two things this must survive on a Windows runner. `own-check.sh` cannot be
+    handed to CreateProcess — a .sh file is not a Win32 image, and Windows CI
+    raised exactly that (WinError 193) where the shebang had quietly carried it
+    on Linux. And `bash` on PATH there is C:\\Windows\\System32\\bash.exe, the WSL
+    launcher rather than a shell: with no distribution installed it exits 1
+    with a UTF-16 message about installing one, which arrives as a
+    plausible-looking script failure and is nothing of the kind.
+
+    A harness concern, not a product one: a Windows user runs own-check.sh from
+    a git-bash prompt, where `bash` is already the right one.
+    """
+    if os.name != "nt":
+        return "bash"
+    candidates = [
+        os.environ.get("SHELL"),
+        r"C:\Program Files\Git\bin\bash.exe",
+        r"C:\Program Files\Git\usr\bin\bash.exe",
+        shutil.which("bash"),
+    ]
+    for cand in candidates:
+        if cand and "system32" not in cand.lower() and Path(cand).is_file():
+            return cand
+    return "bash"
+
+
 def run_ps1(args: list[str], env: dict[str, str] | None = None,
             cwd: str | None = None) -> subprocess.CompletedProcess[bytes] | None:
     """Drive own-check.ps1, capturing RAW bytes — the replay contract is about
@@ -288,7 +316,8 @@ def control_agreement_replays_bytes(sample: Path, tmp: Path) -> None:
     # Extract once, then ask the reference what it says about those facts.
     facts = tmp / "agree.facts.json"
     ex = subprocess.run(
-        [str(ROOT / "scripts/own-check.sh"), "--emit-facts", str(facts), "--", str(sample)],
+        [bash_exe(), str(ROOT / "scripts/own-check.sh"),
+         "--emit-facts", str(facts), "--", str(sample)],
         capture_output=True, check=False, cwd=str(ROOT),
         env={**os.environ, "PYTHONPATH": str(ROOT)})
     if not facts.is_file():
@@ -389,10 +418,22 @@ def run() -> int:
         sample_dir.mkdir()
         (sample_dir / "Leak.cs").write_text(SAMPLE_CS, encoding="utf-8")
 
-        control_absolute_locator(sample_dir, tmp)
-        control_not_started_is_2(sample_dir, tmp)
-        control_agreement_replays_bytes(sample_dir, tmp)
-        control_failure_evidence_exists(sample_dir, tmp)
+        # No fail-fast, and that has to survive a control that RAISES. A
+        # harness bug here aborted the suite on Windows (own-check.sh handed
+        # straight to CreateProcess), so the two controls after it never ran
+        # and the campaign saw one nameless failure instead of a named check.
+        # An unexpected exception is this check's failure, reported like any
+        # other, and the rest of the suite still runs.
+        for name, control in (
+            ("ps1-absolute-locator", control_absolute_locator),
+            ("ps1-not-started-is-2", control_not_started_is_2),
+            ("ps1-agreement-replays", control_agreement_replays_bytes),
+            ("ps1-failure-evidence", control_failure_evidence_exists),
+        ):
+            try:
+                control(sample_dir, tmp)
+            except Exception as exc:  # a raise is this check's failure, not the suite's
+                fail(name, f"the control itself raised {type(exc).__name__}: {exc}")
 
     print()
     print(f"stage-1 ps1 controls: {len(_PASSES)} passed, {len(_FAILURES)} failed, "
