@@ -393,9 +393,25 @@ jobs:
       # Left uncommitted on purpose: one campaign has one recorded provenance,
       # and it is the Linux run. A second file claiming the same campaign name
       # would make "which tree was measured" ambiguous.
+      #
+      # Restore-or-remove, because the recorded result is tracked at some
+      # commits and not at others, and `git checkout --` on an untracked path
+      # is an error rather than a no-op — which is exactly how the first
+      # version of this step failed a job whose verdict had already agreed.
+      # The assertion is the point, not the cleanup: the step fails if this
+      # gate left a result behind.
       - name: Confirm nothing was recorded from this run
         if: always()
-        run: git checkout -- docs/evidence/p022-stage2-1.result.json
+        run: |
+          f=docs/evidence/p022-stage2-1.result.json
+          if git ls-files --error-unmatch "$f" >/dev/null 2>&1; then
+            git checkout -- "$f"
+          else
+            rm -f "$f"
+          fi
+          test -z "$(git status --porcelain -- "$f")" \
+            || { echo "FAIL: the Windows gate left a recorded result behind"; exit 1; }
+          echo "OK: the Windows verdict recorded nothing"
 
   # P-022 step 7a (#260) — COMPARE MODE over the committed corpus: the FAST half
   # of #260's test matrix, and one leg of it. The five pinned OSS repositories,
