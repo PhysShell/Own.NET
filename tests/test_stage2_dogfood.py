@@ -147,6 +147,69 @@ def job_text(path: Path, first: int, last: int) -> str:
     return "\n".join(lines[first - 1:last])
 
 
+def job_code(path: Path, first: int, last: int) -> str:
+    """The job with its whole-line comments removed.
+
+    Every control below that asks "does this job do X" must ask it of the code
+    and not of the prose beside it, or a mutation that comments X out leaves
+    the words in place and the control green.
+    """
+    return "\n".join(_strip_comment(ln) for ln in job_text(path, first, last).splitlines())
+
+
+def runner_oses(path: Path, first: int, last: int) -> set[str]:
+    """The runner images this job ACTUALLY runs on.
+
+    Not "does the string windows-latest appear somewhere in it". That was the
+    first version, and a mutation that deleted windows-latest from the matrix
+    SURVIVED it: the `if: matrix.os == 'windows-latest'` guards left behind
+    still contained the word, so a job that could no longer run on Windows
+    still looked like one that did. The lesson is the same one this repository
+    keeps paying for — a validator must read the thing it means.
+
+    Two shapes are read, because two are used here: a literal `runs-on`, and a
+    `runs-on: ${{ matrix.os }}` resolved through `strategy.matrix.os` in either
+    its flow or its block form. Anything else returns empty, which fails the
+    caller rather than passing it.
+    """
+    lines = job_code(path, first, last).splitlines()
+    runs_on: str | None = None
+    matrix: list[str] = []
+    in_os_block = False
+    for ln in lines:
+        m = re.match(r"^    runs-on:\s*(\S.*?)\s*$", ln)
+        if m:
+            runs_on = m.group(1)
+        m = re.match(r"^\s{6,}os:\s*\[(.+)\]\s*$", ln)
+        if m:
+            matrix = [x.strip().strip("'\"") for x in m.group(1).split(",") if x.strip()]
+            in_os_block = False
+            continue
+        if re.match(r"^\s{6,}os:\s*$", ln):
+            in_os_block = True
+            continue
+        if in_os_block:
+            m = re.match(r"^\s+-\s*['\"]?([A-Za-z0-9._-]+)['\"]?\s*$", ln)
+            if m:
+                matrix.append(m.group(1))
+            elif ln.strip():
+                in_os_block = False
+    if runs_on is None:
+        return set()
+    return set(matrix) if "matrix." in runs_on else {runs_on}
+
+
+def platform_of(image: str) -> str | None:
+    low = image.lower()
+    if "windows" in low:
+        return "windows"
+    if "ubuntu" in low or "linux" in low:
+        return "linux"
+    if "macos" in low:
+        return "macos"
+    return None
+
+
 def enumerate_call_sites() -> tuple[dict[tuple[str, str], list[str]], list[str]]:
     """Every (workflow, job) that executes the core or a launcher surface.
 
@@ -249,7 +312,7 @@ def control_census() -> None:
         span = next((sp for sp in job_spans(path) if sp[0] == job), None)
         if span is None:
             continue
-        m = re.search(r"^    name: (.+)$", job_text(path, span[1], span[2]), re.M)
+        m = re.search(r"^    name: (.+)$", job_code(path, span[1], span[2]), re.M)
         label = (m.group(1) if m else "").lower()
         if re.search(r"dog[- ]?food", label) and known.get((wf_rel, job), {}).get("class") != "D":
             problems.append(f"{wf_rel}::{job} calls itself dog-food but is classified "
@@ -293,7 +356,7 @@ def control_internal_default_not_rust() -> None:
         if span is None:
             problems.append(f"{job}: not found in {wf}")
             continue
-        text = job_text(path, span[1], span[2])
+        text = job_code(path, span[1], span[2])
         if not any(re.search(p, text) for p in _RUST_SELECTORS):
             problems.append(f"{wf}::{job} is Class D but selects no engine explicitly — it "
                             "would run the PUBLIC default, which is Python")
@@ -328,7 +391,7 @@ def control_wrong_rust_candidate() -> None:
         span = next((s for s in job_spans(path) if s[0] == job), None)
         if span is None:
             continue
-        text = job_text(path, span[1], span[2])
+        text = job_code(path, span[1], span[2])
         for token, what in banned.items():
             if re.search(rf"OWEN_RUST_CORE[^\n]*{re.escape(token)}", text):
                 problems.append(f"{wf}::{job} points OWEN_RUST_CORE at {what} ({token})")
@@ -364,7 +427,7 @@ def control_locator_contract_bypassed() -> None:
         span = next((s for s in job_spans(path) if s[0] == job), None)
         if span is None:
             continue
-        text = job_text(path, span[1], span[2])
+        text = job_code(path, span[1], span[2])
         for pat, what in discovery:
             if re.search(pat, text):
                 problems.append(f"{wf}::{job} does {what} for its candidate instead of naming "
@@ -381,23 +444,32 @@ def control_platform_leg_lost() -> None:
     The two launcher surfaces differ in exactly the mechanics that broke during
     Stage 1 — process launch, executable bits, path forms, stream capture — so
     a Linux-only dogfood claim is a claim about half the product.
+
+    It reads each Class-D job's actual runner images (see `runner_oses`), which
+    is the whole point: the `windows-latest` that appears in a step guard is
+    not a Windows leg.
     """
     check = "platform-leg-lost"
-    seen = {"linux": [], "windows": []}  # type: dict[str, list[str]]
+    seen: dict[str, list[str]] = {"linux": [], "windows": []}
+    problems = []
     for (wf, job) in sorted(sites_of_class("D")):
         path = ROOT / wf
         span = next((s for s in job_spans(path) if s[0] == job), None)
         if span is None:
             continue
-        text = job_text(path, span[1], span[2])
-        if "ubuntu-latest" in text:
-            seen["linux"].append(job)
-        if "windows-latest" in text:
-            seen["windows"].append(job)
+        images = runner_oses(path, span[1], span[2])
+        if not images:
+            problems.append(f"{wf}::{job}: could not read which runner it uses at all")
+        for image in images:
+            fam = platform_of(image)
+            if fam in seen:
+                seen[fam].append(f"{job} ({image})")
     missing = [p for p, jobs in seen.items() if not jobs]
     if missing:
-        fail(check, f"the Rust-default dogfood has no {', '.join(missing)} leg — "
-                    f"present: {dict(seen)}")
+        problems.append(f"the Rust-default dogfood has no {', '.join(missing)} leg — "
+                        f"present: { {k: v for k, v in seen.items() if v} }")
+    if problems:
+        fail(check, "; ".join(problems))
     else:
         ok(check, f"Class-D dogfood runs on both platforms (linux: {', '.join(seen['linux'])}; "
                   f"windows: {', '.join(seen['windows'])})")
@@ -425,7 +497,7 @@ def control_compare_gate_dropped() -> None:
         if span is None:
             problems.append(f"compare gate {job} is gone from {wf}")
             continue
-        text = job_text(path, span[1], span[2])
+        text = job_code(path, span[1], span[2])
         if "if: false" in text.replace(" ", " "):
             problems.append(f"{wf}::{job} is disabled")
     if problems:
@@ -595,7 +667,7 @@ def control_rust_job_falls_back() -> None:
         span = next((s for s in job_spans(path) if s[0] == job), None)
         if span is None:
             continue
-        for n, line in enumerate(job_text(path, span[1], span[2]).splitlines(), span[1]):
+        for n, line in enumerate(job_code(path, span[1], span[2]).splitlines(), span[1]):
             if _strip_comment(line) and re.search(r"own-check\.(sh|ps1)[^\n]*\|\|\s*true", line):
                 problems.append(f"{wf}:{n}: the dogfood run swallows its own exit code")
             if _strip_comment(line) and re.search(r"continue-on-error:\s*true", line):

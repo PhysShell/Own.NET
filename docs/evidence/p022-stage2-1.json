@@ -132,6 +132,17 @@
       "expected_catchers": [
         "stage2::stage2-census"
       ]
+    },
+    {
+      "id": "S11",
+      "rule": "dogfood-selects-rust-explicitly",
+      "description": "the dog-food's engine selection is COMMENTED OUT rather than deleted — the shape a temporary rollback really takes ('just for one run, we'll put it back'). Its twin S01 deletes the line; this one leaves the words `engine: rust` sitting in the file, which is all a control that greps the job's raw text would need to stay green. It exists because S03 survived for exactly that reason on a different key",
+      "target": ".github/workflows/ci.yml",
+      "pattern": "          engine: rust               # STAGE 2: the dogfood runs on the Rust core",
+      "replacement": "          # engine: rust             # STAGE 2: the dogfood runs on the Rust core",
+      "expected_catchers": [
+        "stage2::internal-default-not-rust"
+      ]
     }
   ]
 }
