@@ -188,6 +188,23 @@ def run_owen(args: list[str], env: dict[str, str] | None = None
         capture_output=True, env=e, cwd=str(ROOT), check=False)
 
 
+def tail(r: subprocess.CompletedProcess[bytes], limit: int = 500) -> str:
+    """The child's own words, for a failure message.
+
+    A control that says only "expected 2, got 1" hands the reader a number and
+    keeps the reason to itself — and when the failure happens on a platform the
+    author cannot reproduce, that reason is the whole diagnosis.
+    """
+    err = r.stderr.decode("utf-8", "replace").strip()
+    out = r.stdout.decode("utf-8", "replace").strip()
+    parts = []
+    if err:
+        parts.append(f"stderr: …{err[-limit:]}")
+    if out:
+        parts.append(f"stdout: …{out[-limit:]}")
+    return " | ".join(parts) or "(both streams empty)"
+
+
 def write_stub(path: Path, exit_code: int, stdout: str = "", stderr: str = "") -> Path:
     """A candidate that exits with a chosen code. Unix only — the real
     fault-injection binary covers both platforms for the cases it can force."""
@@ -346,7 +363,10 @@ def control_rust_failure_no_fallback(sample: Path) -> None:
                        env={"OWEN_RUST_CORE": fault, "OWN_CLI_FAULT_PANIC": "1"})
     if r2.returncode in (0, 1):
         problems.append(f"own-check.sh: a forced Rust failure exited {r2.returncode} — a verdict "
-                        "was produced despite the engine failing")
+                        f"was produced despite the engine failing [{tail(r2)}]")
+    elif r2.returncode != 5:
+        problems.append(f"own-check.sh: a forced Rust failure exited {r2.returncode}, expected "
+                        f"public 5 [{tail(r2)}]")
     if b"OWN001" in r2.stdout:
         problems.append("own-check.sh: a forced Rust failure still produced findings — Python "
                         "answered for Rust")
@@ -416,15 +436,23 @@ def control_unexpected_rc_and_raw_retention(sample: Path, tmp: Path) -> None:
     probe = subprocess.run([fault, "ownir", "--format", "human", str(tmp / "no-such-facts.json")],
                            capture_output=True, check=False,
                            env={**os.environ, "OWN_CLI_FAULT_ABORT": "1"})
-    # Two runtimes, two conventions for the same event: Python's subprocess
-    # reports a signal-killed child as the NEGATIVE signal number (-6 for
-    # SIGABRT), while .NET's Process.ExitCode — and every shell — reports
-    # 128 + signal (134). Neither is wrong; they describe the same death. The
-    # launcher records what .NET observed, so the expectation is translated
-    # into that convention rather than the launcher being asked to adopt
-    # Python's. On Windows there is no signal encoding and the code is already
-    # what both sides see.
-    raw = probe.returncode if probe.returncode >= 0 else 128 - probe.returncode
+    # Three conventions for the same death, none of them wrong:
+    #
+    #   Unix, Python subprocess   -6            the negative signal number
+    #   Unix, .NET / any shell    134           128 + signal
+    #   Windows, Python           3221226505    0xC0000409, unsigned
+    #   Windows, .NET             -1073740791   the same bits, signed int32
+    #
+    # The launcher records what .NET observed, so the expectation is
+    # translated into .NET's convention rather than the launcher being asked
+    # to adopt Python's. Both translations are measured facts about the
+    # runtimes, not fudge factors: the signal form is mapped to 128+signal,
+    # and an unsigned 32-bit status is reinterpreted as signed.
+    raw = probe.returncode
+    if raw < 0 and raw >= -128:          # a Unix signal number
+        raw = 128 - raw
+    elif raw > 0x7FFFFFFF:               # an unsigned Windows status
+        raw -= 0x100000000
     if raw in (0, 1, 2):
         skip(map_check, f"the forced abort produced a legal engine exit ({raw})")
         skip(keep_check, f"the forced abort produced a legal engine exit ({raw})")
@@ -652,9 +680,10 @@ def control_compare_zero_document(tmp: Path) -> None:
             return
         if r.returncode in (0, 1):
             problems.append(f"{where}: a zero-document compare exited {r.returncode} — it "
-                            "passed instead of failing")
+                            f"passed instead of failing [{tail(r)}]")
         elif r.returncode != 5:
-            problems.append(f"{where}: a zero-document compare exited {r.returncode}, expected 5")
+            problems.append(f"{where}: a zero-document compare exited {r.returncode}, expected 5 "
+                            f"[{tail(r)}]")
         elif "nothing to analyse" not in merged:
             problems.append(f"{where}: a zero-document compare failed without saying why")
     if problems:
