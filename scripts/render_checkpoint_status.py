@@ -135,6 +135,7 @@ MUTATIONS_MD = "p022-cp4-mutations.md"
 CLI_CENSUS_MD = "p022-cli-census.md"
 CLI_MUTATIONS_MD = "p022-cli-mutations.md"
 STAGE1_MUTATIONS_MD = "p022-stage1-mutations.md"
+STAGE2_MUTATIONS_MD = "p022-stage2-mutations.md"
 SHADOW_CENSUS_MD = "p022-shadow-census.md"
 SHADOW_MUTATIONS_MD = "p022-shadow-mutations.md"
 SHADOW_SWEEP_MD = "p022-shadow-sweep.md"
@@ -198,6 +199,15 @@ STAGE1_CAMPAIGNS = (
      "a WINDOWS runner, because a mutant of either is invisible to a Linux "
      "catcher",
      "p022-stage1-windows"),
+)
+
+# Stage 2 (#262) — the CI/dogfood engine-SELECTION seam. Its deliverable is a
+# configuration, so its mutants are configuration and its catchers read the
+# workflows rather than being told about them.
+STAGE2_CAMPAIGNS = (
+    ("Stage 2 — Own.NET's own CI and dogfood select Rust, and the public contract "
+     "does not move",
+     "p022-stage2-1"),
 )
 SELF = "scripts/render_checkpoint_status.py"
 
@@ -1224,6 +1234,27 @@ def fragments() -> tuple[dict[str, str], list[str]]:
         STAGE1_CAMPAIGNS)
     out[STAGE1_MUTATIONS_MD] = stage1
     problems.extend(f"mutation campaign {p}" for p in stage1_problems)
+    stage2, stage2_problems = render_campaign_set(
+        "# P-022 step 8 (#262) Stage 2 — mutation campaigns",
+        "Stage 2 moves nothing a user can see: it makes THIS repository's CI and "
+        "dogfood run on the Rust core while all four public surfaces keep resolving "
+        "Python. The deliverable is therefore a configuration, and so are the "
+        "mutations — a workflow key, a ledger entry, an action input, one C# constant. "
+        "Each is a plausible way the Rust-default claim could quietly stop being true, "
+        "or the public default could quietly start moving, with every job still green: "
+        "the dog-food job stops naming an engine and falls back to the public default; "
+        "its candidate becomes the dev-only compare adapter; the matrix loses Windows; "
+        "the locator is found on PATH; the run swallows its own exit code; a compare "
+        "gate is disabled so nothing is left to disagree; a new bare invocation appears "
+        "in a job nobody classified; and the dog-food job escapes the Rust-default "
+        "population by being relabelled in the census rather than changed. The catchers "
+        "are the controls in `tests/test_stage2_dogfood.py`, which enumerate the "
+        "workflows themselves — a census that could be satisfied by editing prose would "
+        "be worth nothing. The counts are derived from the recorded run by "
+        "`scripts/mutate_campaign.summarize()`, never typed.",
+        STAGE2_CAMPAIGNS)
+    out[STAGE2_MUTATIONS_MD] = stage2
+    problems.extend(f"mutation campaign {p}" for p in stage2_problems)
     return out, problems
 
 
@@ -1270,7 +1301,7 @@ def main(argv: list[str]) -> int:
         print(f"checkpoint status fragments OK: {CENSUS_MD}, {CP1_CENSUS_MD}, "
               f"{COORD_CENSUS_MD}, {INVENTORY_MD}, {MUTATIONS_MD}, {CP5_MUTATIONS_MD}, "
               f"{SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD}, {SHADOW_SWEEP_MD}, "
-              f"{STAGE1_MUTATIONS_MD} in sync with the evidence")
+              f"{STAGE1_MUTATIONS_MD}, {STAGE2_MUTATIONS_MD} in sync with the evidence")
     return 0
 
 
