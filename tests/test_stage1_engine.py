@@ -166,13 +166,41 @@ def have_dotnet() -> bool:
     return shutil.which("dotnet") is not None
 
 
+def bash_exe() -> str:
+    """The bash that can actually run `own-check.sh`.
+
+    On a Windows runner `bash` on PATH is `C:\\Windows\\System32\\bash.exe` —
+    the WSL launcher, not a shell. With no distribution installed it prints
+    "You can resolve this by installing a distribution..." to stderr in UTF-16
+    and exits 1, which arrives here as a plausible-looking script failure and
+    is nothing of the kind. Git for Windows ships the bash that own-check.sh is
+    written for, so it is named explicitly and System32 is refused outright.
+
+    This is a HARNESS concern, not a product one: a Windows user running
+    own-check.sh does so from a git-bash prompt, where `bash` is already the
+    right one.
+    """
+    if os.name != "nt":
+        return "bash"
+    candidates = [
+        os.environ.get("SHELL"),
+        r"C:\Program Files\Git\bin\bash.exe",
+        r"C:\Program Files\Git\usr\bin\bash.exe",
+        shutil.which("bash"),
+    ]
+    for cand in candidates:
+        if cand and "system32" not in cand.lower() and Path(cand).is_file():
+            return cand
+    return "bash"
+
+
 def run_own_check(args: list[str], env: dict[str, str] | None = None,
                   cwd: str | None = None) -> subprocess.CompletedProcess[bytes]:
     """own-check.sh, with raw bytes: the compare contract is about bytes."""
     e = dict(os.environ)
     e.update(env or {})
     return subprocess.run(
-        ["bash", str(ROOT / "scripts/own-check.sh"), *args],
+        [bash_exe(), str(ROOT / "scripts/own-check.sh"), *args],
         capture_output=True, env=e, cwd=cwd or str(ROOT), check=False)
 
 
@@ -261,7 +289,7 @@ def control_bad_locator_is_2(sample: Path, tmp: Path) -> None:
                     e.pop("OWEN_RUST_CORE", None)
                 if kind == "shell":
                     r = subprocess.run(
-                        ["bash", str(ROOT / "scripts/own-check.sh"),
+                        [bash_exe(), str(ROOT / "scripts/own-check.sh"),
                          "--engine", engine, "--", str(sample)],
                         capture_output=True, env=e, cwd=str(ROOT), check=False)
                 else:
