@@ -21,6 +21,15 @@
 .PARAMETER Severity
   How a host shows findings: error (default) or warning (advisory).
 
+.PARAMETER Engine
+  Which analysis engine runs (#262 Stage 1): python (DEFAULT and reference),
+  rust (the Rust core `own-cli ownir`), or compare (both over one captured
+  input, exposing the reference's result only when they agree byte for byte).
+  rust and compare require the candidate binary's absolute path in
+  OWEN_RUST_CORE — there is no discovery of any kind, so an unset or unusable
+  OWEN_RUST_CORE is a configuration error (exit 2), never a silent fall back to
+  Python. A Rust failure is never turned into a Python success in any mode.
+
 .PARAMETER Verbosity
   How much to print: quiet (errors only — hide the advisory OWN050 "leakage
   analysis skipped" notes, P-014 Tier A), normal (default), or verbose (also a
@@ -49,6 +58,11 @@ param(
     [string]$Root,
     [string]$Format = "human",
     [string]$Severity = "error",
+    # D1: Python is the Stage-1 default on every launcher surface. ValidateSet
+    # makes an unknown engine a parameter-binding failure rather than a value
+    # that reaches the dispatch below.
+    [ValidateSet("python", "rust", "compare")]
+    [string]$Engine = "python",
     [ValidateSet("quiet", "normal", "verbose")]
     [string]$Verbosity = "normal",
     [switch]$Legacy,
@@ -77,6 +91,36 @@ if ([string]::IsNullOrEmpty($Root)) {
 if ($Paths) { $Paths = @($Paths | Where-Object { $_ -ne "--" }) }
 if (-not $Paths -or $Paths.Count -eq 0) { $Paths = @(".") }
 
+# D3/D3.1 — the Stage-1 Rust candidate locator, resolved BEFORE anything is
+# extracted. OWEN_RUST_CORE is the one ratified spelling and there is NO
+# discovery (no PATH lookup, no rust\target probing), because discovery is how
+# a stale binary silently stands in for the one under test. Every rejection is
+# a configuration error (exit 2) — not 3 (Python-specific), not 5 (an internal
+# failure) — and none of them falls back to Python.
+$rustCore = ""
+if ($Engine -eq "rust" -or $Engine -eq "compare") {
+    $rustCore = $env:OWEN_RUST_CORE
+    $problem = ""
+    if ([string]::IsNullOrWhiteSpace($rustCore)) {
+        $problem = "is not set (or is empty)"
+    }
+    elseif (Test-Path -LiteralPath $rustCore -PathType Container) {
+        $problem = "points at a directory, not a file: '$rustCore'"
+    }
+    elseif (-not (Test-Path -LiteralPath $rustCore -PathType Leaf)) {
+        $problem = "points at a path that does not exist: '$rustCore'"
+    }
+    if ($problem -ne "") {
+        # Windows has no execute bit: an existing regular file is accepted here
+        # and a genuinely broken image fails at spawn, which is the other side
+        # of the D3.1 seam and already maps to the internal-error path.
+        Write-Error -Message ("own-check: --engine $Engine needs the candidate ``own-cli`` binary, but " +
+            "OWEN_RUST_CORE $problem. Set OWEN_RUST_CORE to the absolute path of the ``own-cli`` " +
+            "executable to run. Owen did not fall back to Python.") -ErrorAction Continue
+        exit 2
+    }
+}
+
 $extractor = Join-Path $Root "frontend\roslyn\OwnSharp.Extractor"
 $facts = New-TemporaryFile
 try {
@@ -97,12 +141,130 @@ try {
         exit $stage1
     }
 
-    # Stage 2: the one checker produces the verdict at the C# location.
+    # Stage 2: the SELECTED engine produces the verdict at the C# location.
     $env:PYTHONPATH = $Root
     $ownirArgs = @($facts.FullName, "--format", $Format, "--severity", $Severity,
                    "--verbosity", $Verbosity)
-    & python -m ownlang ownir @ownirArgs
-    $rc = $LASTEXITCODE
+
+    if ($Engine -eq "python") {
+        & python -m ownlang ownir @ownirArgs
+        $rc = $LASTEXITCODE
+    }
+    elseif ($Engine -eq "rust") {
+        # The PRODUCTION Rust executable, never own-shadow-engine.
+        $rustArgs = @("ownir") + $ownirArgs
+        & $rustCore @rustArgs
+        $rc = $LASTEXITCODE
+        # 0/1/2 are verdicts and pass through; anything else is not a verdict
+        # and takes the public internal-error path (5) with the raw child
+        # status named. It never runs Python instead.
+        if ($rc -ne 0 -and $rc -ne 1 -and $rc -ne 2) {
+            Write-Error -Message ("own-check: the Rust analysis core exited $rc, which is not a " +
+                "verdict (raw child status: $rc). Owen did not fall back to Python.") -ErrorAction Continue
+            exit 5
+        }
+    }
+    else {
+        # D4/D4.1 — both engines over ONE capture, proved byte-identical.
+        $cmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ("owen-compare-" + [guid]::NewGuid().ToString("N"))
+        New-Item -ItemType Directory -Path $cmpDir | Out-Null
+        # Declared before the try so the finally can read it under
+        # Set-StrictMode -Version Latest, where touching an undefined variable
+        # is an error rather than $null.
+        $keep = $false
+        try {
+            $capture = Join-Path $cmpDir "capture.json"
+            Copy-Item -LiteralPath $facts.FullName -Destination $capture
+            $captureSha = (Get-FileHash -LiteralPath $capture -Algorithm SHA256).Hash.ToLowerInvariant()
+
+            # A compare that judged nothing agrees about nothing.
+            $doc = $null
+            try { $doc = Get-Content -LiteralPath $capture -Raw -Encoding utf8 | ConvertFrom-Json } catch { $doc = $null }
+            if ($null -ne $doc) {
+                $hasUnit = $false
+                foreach ($k in @("components", "functions", "services", "effects", "protocols", "protocol_functions")) {
+                    $v = $doc.PSObject.Properties[$k]
+                    if ($null -ne $v -and $null -ne $v.Value -and @($v.Value).Count -gt 0) { $hasUnit = $true; break }
+                }
+                if (-not $hasUnit) {
+                    Write-Error -Message ("own-check: --engine compare: the captured OwnIR contains nothing to " +
+                        "analyse — a compare over zero documents proves nothing and is a failure, not an " +
+                        "agreement.") -ErrorAction Continue
+                    exit 5
+                }
+            }
+
+            $pyIn = Join-Path $cmpDir "python-input.json"
+            $rsIn = Join-Path $cmpDir "rust-input.json"
+            Copy-Item -LiteralPath $capture -Destination $pyIn
+            Copy-Item -LiteralPath $capture -Destination $rsIn
+            $pyInSha = (Get-FileHash -LiteralPath $pyIn -Algorithm SHA256).Hash.ToLowerInvariant()
+            $rsInSha = (Get-FileHash -LiteralPath $rsIn -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($pyInSha -ne $captureSha -or $rsInSha -ne $captureSha) {
+                Write-Error -Message ("own-check: --engine compare: the two engine inputs are not byte-identical " +
+                    "to the single capture (capture $captureSha, python $pyInSha, rust $rsInSha) — the " +
+                    "same-input invariant failed, so no comparison may be reported.") -ErrorAction Continue
+                exit 5
+            }
+
+            # Start-Process redirects the children's RAW bytes to files: a
+            # claim about byte-identical output cannot be measured through
+            # PowerShell's own string pipeline.
+            $pyArgs = @("-m", "ownlang", "ownir", $pyIn, "--format", $Format, "--severity", $Severity,
+                        "--verbosity", $Verbosity)
+            $p1 = Start-Process -FilePath "python" -ArgumentList $pyArgs -NoNewWindow -Wait -PassThru `
+                -RedirectStandardOutput (Join-Path $cmpDir "python.out") `
+                -RedirectStandardError (Join-Path $cmpDir "python.err")
+            $rsArgs = @("ownir", $rsIn, "--format", $Format, "--severity", $Severity,
+                        "--verbosity", $Verbosity)
+            $p2 = Start-Process -FilePath $rustCore -ArgumentList $rsArgs -NoNewWindow -Wait -PassThru `
+                -RedirectStandardOutput (Join-Path $cmpDir "rust.out") `
+                -RedirectStandardError (Join-Path $cmpDir "rust.err")
+            $pyRc = $p1.ExitCode
+            $rsRc = $p2.ExitCode
+
+            # D4.1 (c): execution failure first — two results are comparable
+            # only once both exist.
+            $pyLegal = ($pyRc -eq 0 -or $pyRc -eq 1 -or $pyRc -eq 2)
+            $rsLegal = ($rsRc -eq 0 -or $rsRc -eq 1 -or $rsRc -eq 2)
+            if (-not $pyLegal -or -not $rsLegal) {
+                Write-Error -Message ("own-check: --engine compare: compare execution failure (python exit " +
+                    "$pyRc, rust exit $rsRc). No engine's result was substituted for the other's failure. " +
+                    "Reproduction — input sha256 $captureSha, candidate $rustCore, artifacts in $cmpDir") `
+                    -ErrorAction Continue
+                if (-not $rsLegal) { Write-Error -Message "own-check: raw Rust child status: $rsRc" -ErrorAction Continue }
+                exit 5
+            }
+
+            # D4.1 (a)/(b): agreement or divergence, on bytes and the exit code.
+            $diverged = @()
+            if ($pyRc -ne $rsRc) { $diverged += "exit ($pyRc vs $rsRc)" }
+            $pyOutH = (Get-FileHash -LiteralPath (Join-Path $cmpDir "python.out") -Algorithm SHA256).Hash
+            $rsOutH = (Get-FileHash -LiteralPath (Join-Path $cmpDir "rust.out") -Algorithm SHA256).Hash
+            $pyErrH = (Get-FileHash -LiteralPath (Join-Path $cmpDir "python.err") -Algorithm SHA256).Hash
+            $rsErrH = (Get-FileHash -LiteralPath (Join-Path $cmpDir "rust.err") -Algorithm SHA256).Hash
+            if ($pyOutH -ne $rsOutH) { $diverged += "stdout" }
+            if ($pyErrH -ne $rsErrH) { $diverged += "stderr" }
+            if ($diverged.Count -gt 0) {
+                Write-Error -Message ("own-check: --engine compare: engine divergence — the reference and the " +
+                    "candidate disagree on " + ($diverged -join ", ") + ". Neither verdict is exposed as " +
+                    "authoritative. Reproduction — input sha256 $captureSha, candidate $rustCore, artifacts " +
+                    "in $cmpDir") -ErrorAction Continue
+                # Keep the artifacts for reproduction rather than deleting them.
+                $keep = $true
+                exit 5
+            }
+
+            # Agreement: the externally observed result is the reference's.
+            Get-Content -LiteralPath (Join-Path $cmpDir "python.out") -Raw -ErrorAction SilentlyContinue | Write-Output
+            $rc = $pyRc
+        }
+        finally {
+            if (-not $keep) {
+                Remove-Item -LiteralPath $cmpDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
 }
 finally {
     Remove-Item $facts.FullName -ErrorAction SilentlyContinue

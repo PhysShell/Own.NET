@@ -1,0 +1,203 @@
+{
+  "schema": 1,
+  "comment": "GENERATED-BY-HAND definition; the RESULT beside it is recorded by scripts/mutate_campaign.py --run and the counts are derived from it, never typed.",
+  "campaign": "p022-stage1-1",
+  "description": "#262 Stage 1 — the launcher's engine-selection contract: that Python stays the default, that an explicitly selected Rust core actually runs (and needs no Python), that a Rust failure is never a Python success, that an unexpected child status becomes public exit 5 with the raw status retained, that an unusable OWEN_RUST_CORE is a configuration error rather than a fallback, and that compare extracts once, feeds both engines the same bytes, and refuses to answer when they disagree or when either fails. Every mutation is a plausible MISREADING of that contract rather than a syntactic accident: each one would pass a reviewer who had read the stage's summary instead of its rulings. Every mutation edits a PRODUCTION launcher surface, and every declared layer runs for every mutation (no fail-fast).",
+  "layers": [
+    {
+      "id": "stage1",
+      "cwd": ".",
+      "parser": "python-fail",
+      "command": [
+        "bash",
+        "tests/stage1_campaign_layer.sh"
+      ]
+    }
+  ],
+  "layers_comment": "One layer, and it BUILDS before it tests: the controls drive a compiled launcher, so a mutation to a .cs file would otherwise be invisible to them. The layer also sets OWEN_STAGE1_REQUIRE=1, so a control that cannot run is a failure rather than a silently shrinking denominator.",
+  "control": {
+    "id": "M00",
+    "description": "harness-honesty control: no mutation at all, which must report zero failing layers"
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "rule": "default-is-python",
+      "description": "the Stage-1 default engine is Rust — the cutover read as already decided, instead of Python remaining default until Gate G3",
+      "target": "frontend/roslyn/OwnSharp.Cli/EngineSelection.cs",
+      "pattern": "public const Engine Default = Engine\\.Python;",
+      "replacement": "public const Engine Default = Engine.Rust;",
+      "expected_catchers": [
+        "stage1::default-stays-python"
+      ]
+    },
+    {
+      "id": "M02",
+      "rule": "rust-run-needs-no-python",
+      "description": "Python is resolved for every engine — the old unconditional resolution kept 'just in case', which silently re-imposes a Python dependency on a Rust-only run",
+      "target": "frontend/roslyn/OwnSharp.Cli/EngineSelection.cs",
+      "pattern": "public static bool NeedsPython\\(Engine engine\\) => engine is Engine\\.Python or Engine\\.Compare;",
+      "replacement": "public static bool NeedsPython(Engine engine) => true;",
+      "expected_catchers": [
+        "stage1::rust-actually-runs-rust"
+      ]
+    },
+    {
+      "id": "M03",
+      "rule": "70-is-not-a-verdict",
+      "description": "70 is treated as a legal engine result — the shared internal-error code mistaken for part of the verdict contract because both engines document it",
+      "target": "frontend/roslyn/OwnSharp.Cli/EngineSelection.cs",
+      "pattern": "public static bool IsLegalEngineExit\\(int rc\\) => rc is 0 or 1 or 2;",
+      "replacement": "public static bool IsLegalEngineExit(int rc) => rc is 0 or 1 or 2 or 70;",
+      "expected_catchers": [
+        "stage1::rc70-is-not-a-verdict"
+      ]
+    },
+    {
+      "id": "M04",
+      "rule": "unexpected-rc-maps-to-5",
+      "description": "an unexpected Rust child status passes through as itself — 'propagate the child's exit code' read as faithfulness rather than as leaking a meaningless number to the caller",
+      "target": "frontend/roslyn/OwnSharp.Cli/CheckCommand.cs",
+      "pattern": "if \\(!EngineSelection\\.IsLegalEngineExit\\(rc\\)\\)",
+      "replacement": "if (rc == int.MinValue)",
+      "expected_catchers": [
+        "stage1::unexpected-rc-maps-to-5",
+        "stage1::rc70-is-not-a-verdict",
+        "stage1::rust-failure-no-fallback"
+      ]
+    },
+    {
+      "id": "M05",
+      "rule": "raw-rc-retained",
+      "description": "the raw child status is dropped from the report — the human-readable cause already names the number, so the typed carrier looks redundant",
+      "target": "frontend/roslyn/OwnSharp.Cli/CheckCommand.cs",
+      "pattern": "childExitCode: rc\\);",
+      "replacement": "childExitCode: null);",
+      "expected_catchers": [
+        "stage1::raw-rc-retained"
+      ]
+    },
+    {
+      "id": "M06",
+      "rule": "bad-locator-is-2-not-5",
+      "description": "an unusable OWEN_RUST_CORE is an internal error — a failure to start the engine read as Owen's own bug rather than the caller's configuration",
+      "target": "frontend/roslyn/OwnSharp.Cli/RustCoreLocator.cs",
+      "pattern": "public const int ExitCode = 2;",
+      "replacement": "public const int ExitCode = 5;",
+      "expected_catchers": [
+        "stage1::bad-locator-is-2"
+      ]
+    },
+    {
+      "id": "M07",
+      "rule": "bad-locator-is-2-not-3",
+      "description": "an unusable OWEN_RUST_CORE reuses exit 3 — 'no usable engine runtime' read as the same class as 'no usable Python', which it is not",
+      "target": "frontend/roslyn/OwnSharp.Cli/RustCoreLocator.cs",
+      "pattern": "public const int ExitCode = 2;",
+      "replacement": "public const int ExitCode = 3;",
+      "expected_catchers": [
+        "stage1::bad-locator-is-2"
+      ]
+    },
+    {
+      "id": "M08",
+      "rule": "no-fallback-in-the-shell",
+      "description": "the shell falls back to Python when the Rust core produces no verdict — 'be helpful, still give the user an answer', which is precisely the silent fallback every ruling forbids",
+      "target": "scripts/own-check.sh",
+      "pattern": "      echo \\\"own-check: the Rust analysis core exited \\$rc, which is not a verdict \\(raw child status: \\$rc\\)\\. Owen did not fall back to Python\\.\\\" >&2\\n      exit 5",
+      "replacement": "      PYTHONPATH=\"$root\" python -m ownlang ownir \"$facts\" --format \"$format\" --severity \"$severity\"\n      rc=$?",
+      "expected_catchers": [
+        "stage1::rust-failure-no-fallback"
+      ]
+    },
+    {
+      "id": "M09",
+      "rule": "shell-locator-is-2-not-3",
+      "description": "the shell reports an unusable OWEN_RUST_CORE as exit 3 — the Python-specific 'no usable runtime' code borrowed for the Rust candidate",
+      "target": "scripts/own-check.sh",
+      "pattern": "    exit 2\\n  fi\\nfi",
+      "replacement": "    exit 3\n  fi\nfi",
+      "expected_catchers": [
+        "stage1::bad-locator-is-2"
+      ]
+    },
+    {
+      "id": "M10",
+      "rule": "divergence-is-5",
+      "description": "a divergence exposes the reference's result — 'Python is still the reference, so trust it' read as a licence to answer while the two engines disagree",
+      "target": "frontend/roslyn/OwnSharp.Cli/CompareMode.cs",
+      "pattern": "                return Fail\\(args, rust, py, rs,\\n                    \\$\\\"engine divergence",
+      "replacement": "                await ReplayAsync(py).ConfigureAwait(false);\n                return failOnFinding ? py.Rc : (py.Rc >= 2 ? py.Rc : 0);\n#pragma warning disable CS0162\n                return Fail(args, rust, py, rs,\n                    $\"engine divergence",
+      "expected_catchers": [
+        "stage1::divergence-is-5",
+        "stage1::compare-no-substitution"
+      ]
+    },
+    {
+      "id": "M11",
+      "rule": "exec-failure-is-not-agreement",
+      "description": "the execution-failure check is skipped — comparing the results first and treating a crashed engine as just another difference, which loses the distinction D4.1 draws between (b) and (c)",
+      "target": "frontend/roslyn/OwnSharp.Cli/CompareMode.cs",
+      "pattern": "            if \\(!pyLegal \\|\\| !rsLegal\\)",
+      "replacement": "            if (false)",
+      "expected_catchers": [
+        "stage1::exec-failure-is-5"
+      ]
+    },
+    {
+      "id": "M12",
+      "rule": "zero-document-compare-fails",
+      "description": "a document with no analysable unit is compared anyway — 'both engines agreed' read as a result rather than as a zero denominator",
+      "target": "frontend/roslyn/OwnSharp.Cli/CompareMode.cs",
+      "pattern": "        if \\(!HasAnalyzableUnit\\(captured, out var why\\)\\)",
+      "replacement": "        if (false && !HasAnalyzableUnit(captured, out var why))",
+      "expected_catchers": [
+        "stage1::compare-zero-document"
+      ]
+    },
+    {
+      "id": "M13",
+      "rule": "candidate-identity-recorded",
+      "description": "the evidence records a placeholder candidate digest — the path already names the binary, so hashing it looks like belt-and-braces",
+      "target": "frontend/roslyn/OwnSharp.Cli/CompareMode.cs",
+      "pattern": "rust_core = new \\{ path = rust\\.Path, sha256 = rust\\.Sha256, bytes = rust\\.ByteLength \\},",
+      "replacement": "rust_core = new { path = rust.Path, sha256 = \"(not recorded)\", bytes = rust.ByteLength },",
+      "expected_catchers": [
+        "stage1::candidate-identity"
+      ]
+    },
+    {
+      "id": "M14",
+      "rule": "shell-compare-checks-stdout",
+      "description": "the shell compare stops comparing stdout — the exit code read as the whole of 'the public result', dropping the bytes the user actually sees",
+      "target": "scripts/own-check.sh",
+      "pattern": "    cmp -s \"\\$cmp_dir/python\\.out\" \"\\$cmp_dir/rust\\.out\" \\|\\| diverged=\"\\$\\{diverged:\\+\\$diverged, \\}stdout\"",
+      "replacement": "    true",
+      "expected_catchers": [
+        "stage1::divergence-is-5"
+      ]
+    },
+    {
+      "id": "M15",
+      "rule": "shell-divergence-is-5",
+      "description": "the shell reports a divergence as exit 1 — the 'something is wrong' tier reached for, when in public Owen 1 already means findings",
+      "target": "scripts/own-check.sh",
+      "pattern": "      trap \\x27rm -f \"\\$facts\"\\x27 EXIT\\n      exit 5",
+      "replacement": "      trap 'rm -f \"$facts\"' EXIT\n      exit 1",
+      "expected_catchers": [
+        "stage1::divergence-is-5"
+      ]
+    },
+    {
+      "id": "M16",
+      "rule": "shell-zero-document-fails",
+      "description": "the shell's zero-document guard is dropped — an empty document read as a legitimately clean agreement",
+      "target": "scripts/own-check.sh",
+      "pattern": "      echo \"own-check: --engine compare: the captured OwnIR contains nothing to analyse — a compare over zero documents proves nothing and is a failure, not an agreement\\.\" >&2\\n      exit 5",
+      "replacement": "      :",
+      "expected_catchers": [
+        "stage1::compare-zero-document"
+      ]
+    }
+  ]
+}

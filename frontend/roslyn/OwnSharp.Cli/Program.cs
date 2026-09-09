@@ -61,6 +61,7 @@ static string HelpText() => """
     Options (mirrors scripts/own-check.sh):
       --format {human|github|msbuild|sarif}   finding surface (default: human)
       --severity {error|warning}               how findings are shown (default: error)
+      --engine {python|rust|compare}           analysis engine (default: python)
       --fail-on-finding                        exit with the core's code (1 = findings) instead of always 0
       --emit-facts <path>                      also write the intermediate OwnIR facts.json here
       --legacy                                 use the flat name-based local-IDisposable detector
@@ -80,6 +81,16 @@ static string HelpText() => """
     Python: resolved via OWEN_PYTHON (OWN_PYTHON is a deprecated, temporary
     fallback), else `py -3` (Windows) / `python3` (elsewhere); must be
     >=3.11. No auto-install — see the error message if none is found.
+
+    Engine (#262 Stage 1): Python is the default and the reference. `rust`
+    runs the Rust core instead; `compare` runs both over one captured input
+    and reports the reference's result only when they agree byte for byte.
+    Rust and compare need the candidate binary's absolute path in
+    OWEN_RUST_CORE — there is NO discovery (no PATH lookup, no target/
+    probing), so a missing or unusable OWEN_RUST_CORE is a configuration
+    error (exit 2), never a silent fall back to Python. A Rust failure is
+    never turned into a Python success in any mode. `compare` is a
+    development/CI seam for the migration, not yet a promised feature.
 
     Input that doesn't match the included frontend (e.g. no .cs/.csproj/.sln
     found anywhere given) fails explicitly (exit 4) rather than reporting a

@@ -36,6 +36,7 @@ internal static class CheckCommand
     {
         string format;
         string severity;
+        string engineName;
         bool failOnFinding;
         bool legacy;
         bool stats;
@@ -44,11 +45,21 @@ internal static class CheckCommand
         List<string> paths;
         try
         {
-            (format, severity, failOnFinding, legacy, stats, bodyThrowEdges, emitFacts, paths) = ParseArgs(args);
+            (format, severity, engineName, failOnFinding, legacy, stats, bodyThrowEdges, emitFacts, paths) =
+                ParseArgs(args);
         }
         catch (InvalidOperationException ex)
         {
             Console.Error.WriteLine(ex.Message);
+            return 2;
+        }
+
+        // #262 D1: the engine is selected HERE, from an explicit launcher
+        // selector, before anything engine-specific is resolved. An unknown
+        // engine is a usage error like any other.
+        if (!EngineSelection.TryParse(engineName, out var engine, out var engineError))
+        {
+            Console.Error.WriteLine(engineError);
             return 2;
         }
 
@@ -78,16 +89,48 @@ internal static class CheckCommand
             return 4;
         }
 
-        // Resolve Python FIRST: no point extracting facts just to fail on stage 2.
-        ResolvedPython python;
-        try
+        // Engine-specific runtime resolution — AFTER the engine is chosen, and
+        // only for the engine actually chosen. Both resolutions happen before
+        // extraction for the same reason the Python one always did: no point
+        // extracting facts just to fail on stage 2.
+        //
+        // The asymmetry that used to live here is the whole finding this stage
+        // repairs: the launcher resolved Python and unpacked the vendored core
+        // unconditionally, because there was only ever one engine. A Rust-only
+        // run must do NEITHER — not as an optimisation, but because a Rust run
+        // that needs a working Python installation is not a Rust run, and it
+        // would quietly re-introduce the dependency the whole cutover exists to
+        // remove.
+        RustCore? rustCore = null;
+        if (EngineSelection.NeedsRust(engine))
         {
-            python = PythonResolver.Resolve();
+            try
+            {
+                rustCore = RustCoreLocator.Resolve();
+            }
+            catch (RustCoreNotResolvedException ex)
+            {
+                // D3.1: a locator that cannot be used, detected before the
+                // selected Rust core has started, is a configuration error —
+                // exit 2. Never 3 (Python-specific), never 5 (our own bug),
+                // and never a fallback to Python.
+                Console.Error.WriteLine(ex.Message);
+                return RustCoreLocator.ExitCode;
+            }
         }
-        catch (PythonNotFoundException ex)
+
+        ResolvedPython? python = null;
+        if (EngineSelection.NeedsPython(engine))
         {
-            Console.Error.WriteLine(ex.Message);
-            return 3;
+            try
+            {
+                python = PythonResolver.Resolve();
+            }
+            catch (PythonNotFoundException ex)
+            {
+                Console.Error.WriteLine(ex.Message);
+                return 3;
+            }
         }
 
         var factsPath = Path.GetTempFileName();
@@ -131,8 +174,32 @@ internal static class CheckCommand
                 }
             }
 
+            // Stage 2 — the selected engine. Only the chosen branch touches
+            // its own runtime: `CoreVendor.EnsureUnpacked()` unpacks the
+            // vendored PYTHON core, so it lives inside the Python-needing
+            // branches and nowhere else.
+            if (engine == Engine.Rust)
+            {
+                var rustOutcome = await EngineRunner
+                    .RunRustAsync(rustCore!, factsPath, format, severity, capture: false)
+                    .ConfigureAwait(false);
+                return MapRustChildStatus(rustOutcome.Rc, args, failOnFinding);
+            }
+
             var cacheRoot = CoreVendor.EnsureUnpacked();
-            var rc = await RunCoreAsync(python, cacheRoot, factsPath, format, severity).ConfigureAwait(false);
+
+            if (engine == Engine.Compare)
+            {
+                return await CompareMode
+                    .RunAsync(python!, cacheRoot, rustCore!, factsPath, format, severity,
+                        args, failOnFinding)
+                    .ConfigureAwait(false);
+            }
+
+            var pythonOutcome = await EngineRunner
+                .RunPythonAsync(python!, cacheRoot, factsPath, format, severity, capture: false)
+                .ConfigureAwait(false);
+            var rc = pythonOutcome.Rc;
             // The core self-reports internal errors as exit 70 (EX_SOFTWARE)
             // with one polite line (ownlang `run()`): surface them as OUR
             // internal error — pre-A1 a core crash exited 1 and, without
@@ -159,11 +226,47 @@ internal static class CheckCommand
         }
     }
 
-    private static (string Format, string Severity, bool FailOnFinding, bool Legacy, bool Stats,
-        bool BodyThrowEdges, string? EmitFacts, List<string> Paths) ParseArgs(string[] args)
+    /// <summary>
+    /// Map the Rust child's exit status onto Owen's public contract (#261's
+    /// launcher ruling, #262 D5).
+    ///
+    /// <para>0/1/2 are the engine's own verdict codes and pass through exactly
+    /// as the Python core's do. <b>Everything else</b> — the shared
+    /// internal-error code 70, a panic that escaped, a signal death, an
+    /// arbitrary 42 — is not a verdict, so it takes Owen's public
+    /// internal-error path (5) and the RAW child status is retained in the
+    /// diagnostic report's typed <c>child_exit_code</c>. An unexpected code
+    /// must never escape as itself: 42 read as an exit code is meaningless to
+    /// a caller, and 70 read as "findings" or "clean" is worse.</para>
+    ///
+    /// <para>No branch here runs Python. A Rust failure is a Rust failure.</para>
+    /// </summary>
+    private static int MapRustChildStatus(int rc, string[] args, bool failOnFinding)
+    {
+        if (!EngineSelection.IsLegalEngineExit(rc))
+        {
+            Console.Error.WriteLine(
+                $"owen: the Rust analysis core exited {rc}, which is not a verdict. " +
+                "Owen did not fall back to Python.");
+            return CrashReport.Child(
+                "analysis core (rust)", rc, args, capturedOutput: null, childExitCode: rc);
+        }
+        if (failOnFinding)
+        {
+            return rc;
+        }
+        return rc >= 2 ? rc : 0;
+    }
+
+    private static (string Format, string Severity, string Engine, bool FailOnFinding, bool Legacy,
+        bool Stats, bool BodyThrowEdges, string? EmitFacts, List<string> Paths) ParseArgs(string[] args)
     {
         var format = "human";
         var severity = "error";
+        // D1: Python is the Stage-1 default, and it is spelled here by asking
+        // EngineSelection rather than by writing "python" a second time — one
+        // place decides what the default engine is.
+        var engine = EngineSelection.ToName(EngineSelection.Default);
         var failOnFinding = false;
         var legacy = false;
         var stats = false;
@@ -185,6 +288,7 @@ internal static class CheckCommand
                 case "--": onlyPaths = true; break;
                 case "--format": format = RequireValue(args, ref i, "--format"); break;
                 case "--severity": severity = RequireValue(args, ref i, "--severity"); break;
+            case "--engine": engine = RequireValue(args, ref i, "--engine"); break;
                 case "--emit-facts": emitFacts = RequireValue(args, ref i, "--emit-facts"); break;
                 case "--fail-on-finding": failOnFinding = true; break;
                 case "--legacy": legacy = true; break;
@@ -207,7 +311,7 @@ internal static class CheckCommand
             }
         }
 
-        return (format, severity, failOnFinding, legacy, stats, bodyThrowEdges, emitFacts, paths);
+        return (format, severity, engine, failOnFinding, legacy, stats, bodyThrowEdges, emitFacts, paths);
     }
 
     private static string RequireValue(string[] args, ref int i, string flag)
@@ -336,46 +440,5 @@ internal static class CheckCommand
             }
         }
         return "dotnet";
-    }
-
-    /// <summary>Stage 2: the one checker, run against the vendored core via the
-    /// resolved system Python. Findings print to the real stdout/stderr — this
-    /// is the surface the user actually asked for.</summary>
-    private static async Task<int> RunCoreAsync(
-        ResolvedPython python, string cacheRoot, string factsPath, string format, string severity)
-    {
-        var psi = new ProcessStartInfo(python.FileName)
-        {
-            UseShellExecute = false,
-            WorkingDirectory = cacheRoot,
-        };
-        foreach (var a in python.LeadingArgs)
-        {
-            psi.ArgumentList.Add(a);
-        }
-        psi.ArgumentList.Add("-m");
-        psi.ArgumentList.Add("ownlang");
-        psi.ArgumentList.Add("ownir");
-        psi.ArgumentList.Add(factsPath);
-        psi.ArgumentList.Add("--format");
-        psi.ArgumentList.Add(format);
-        psi.ArgumentList.Add("--severity");
-        psi.ArgumentList.Add(severity);
-        // Belt-and-suspenders alongside WorkingDirectory: `-m` already adds the
-        // cwd to sys.path[0], but own-check.sh/.ps1 both set PYTHONPATH
-        // explicitly too, and matching that is cheap insurance.
-        psi.EnvironmentVariables["PYTHONPATH"] = cacheRoot;
-        // Debug passthrough (A1): the core's catch-all (`ownlang.run`) prints
-        // one polite line and exits 70; with OWNLANG_DEBUG=1 it re-raises the
-        // full traceback instead — that is what `owen check --debug` asks for.
-        if (CrashReport.Debug)
-        {
-            psi.EnvironmentVariables["OWNLANG_DEBUG"] = "1";
-        }
-
-        using var proc = Process.Start(psi)
-            ?? throw new InvalidOperationException("owen: failed to start the Python core process");
-        await proc.WaitForExitAsync().ConfigureAwait(false);
-        return proc.ExitCode;
     }
 }

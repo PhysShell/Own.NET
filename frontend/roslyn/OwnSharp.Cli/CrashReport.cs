@@ -45,7 +45,7 @@ internal static class CrashReport
         }
         var report = TryWrite(args, stage: "owen",
             cause: $"{ex.GetType().FullName}: {ex.Message}",
-            detail: ex.ToString(), childOutput: null);
+            detail: ex.ToString(), childOutput: null, childExitCode: null);
         Console.Error.WriteLine($"owen: internal error ({ex.GetType().Name}: {ex.Message})");
         Emit(report);
         return ExitCode;
@@ -53,12 +53,20 @@ internal static class CrashReport
 
     /// <summary>Frame a child stage's crash (unexpected exit code) without
     /// dumping its raw output on the user; the full capture goes into the
-    /// report instead. In debug mode the caller prints the raw output.</summary>
-    public static int Child(string stage, int rc, string[] args, string? capturedOutput)
+    /// report instead. In debug mode the caller prints the raw output.
+    ///
+    /// <para><paramref name="childExitCode"/> is #262's D5 carrier: the RAW
+    /// child status, retained as a typed integer in the report. The
+    /// human-readable <c>cause</c> below also mentions the number, but prose
+    /// is not evidence — a machine that must answer "what exactly did the
+    /// child exit with?" reads the typed field, and the forced-unexpected-rc
+    /// control asserts on that field rather than on a sentence.</para></summary>
+    public static int Child(
+        string stage, int rc, string[] args, string? capturedOutput, int? childExitCode = null)
     {
         var report = TryWrite(args, stage,
             cause: $"{stage} exited with unexpected code {rc}",
-            detail: null, childOutput: capturedOutput);
+            detail: null, childOutput: capturedOutput, childExitCode: childExitCode);
         Console.Error.WriteLine(
             $"owen: the {stage} stage failed internally (exit {rc}).");
         Emit(report);
@@ -82,7 +90,8 @@ internal static class CrashReport
     /// well-known path beats an ever-growing directory). Best-effort: a
     /// failure to write the report must never mask the original failure.</summary>
     private static string? TryWrite(
-        string[] args, string stage, string cause, string? detail, string? childOutput)
+        string[] args, string stage, string cause, string? detail, string? childOutput,
+        int? childExitCode)
     {
         try
         {
@@ -93,7 +102,10 @@ internal static class CrashReport
             var path = Path.Combine(dir, "last-failure.json");
             var report = new
             {
-                schema = 1,
+                // Bumped to 2 by #262 D5: the report gained the typed
+                // `child_exit_code` field below. `stage` keeps identifying
+                // WHICH child; no second taxonomy was introduced for it.
+                schema = 2,
                 tool = "owen",
                 version = ToolVersion.Current,
                 timestamp_utc = DateTime.UtcNow.ToString("o"),
@@ -105,6 +117,11 @@ internal static class CrashReport
                 cause,
                 detail,
                 child_output = childOutput,
+                // D5: a typed nullable integer, null for every failure that is
+                // not a child's unexpected status. Never a string, never
+                // absent — a consumer must be able to distinguish "no child
+                // status" from "the child exited 0".
+                child_exit_code = childExitCode,
             };
             File.WriteAllText(path, JsonSerializer.Serialize(
                 report, new JsonSerializerOptions { WriteIndented = true }));
