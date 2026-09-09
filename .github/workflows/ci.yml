@@ -108,6 +108,117 @@ jobs:
       - name: cargo test -p own-cli --features fault-injection (the failure-mode controls)
         run: cargo test -p own-cli --features fault-injection --test faults
 
+  # P-022 step 8 (#262) STAGE 1 — the launcher's engine-selection contract.
+  #
+  # Stage 1 makes the Rust core SELECTABLE while Python stays the default and
+  # the reference. Every claim in that sentence is a behaviour, so this job
+  # drives real launchers against a real candidate binary and asserts on the
+  # observable result. It is deliberately BOTH platforms: the ratified evidence
+  # is explicit Rust-selected runs on Windows and Linux, and the two differ in
+  # exactly the mechanics (process launch, executable bits, path forms) that a
+  # Linux-only job would leave unproven.
+  #
+  # OWEN_STAGE1_REQUIRE=1 is the zero-denominator guard: this job exists to
+  # provide the toolchain, so a control that skips here is a control that did
+  # not run, and a run of skips would otherwise be indistinguishable from a
+  # green one.
+  stage1-engine:
+    name: owen --engine (#262 Stage 1 controls)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      # The PRODUCTION candidate. The controls run the real `own-cli`, not a
+      # stand-in: a control that proves a mock's behaviour proves nothing about
+      # the binary the launcher will actually spawn.
+      - name: Build the production own-cli candidate
+        working-directory: rust
+        run: cargo build -p own-cli --release
+      # A second build with #261's off-by-default fault-injection feature, so
+      # the failure-mode controls force failures through the real binary.
+      - name: Build the fault-injection own-cli (forced failure modes)
+        working-directory: rust
+        run: cargo build -p own-cli --release --features fault-injection --target-dir target-fault
+      - name: Build the owen launcher
+        run: dotnet build frontend/roslyn/OwnSharp.Cli/OwnSharp.Cli.csproj -c Release --nologo
+      # The vendored Python core is a PACK-time payload, so a plain build does
+      # not place it where the launcher looks. Staging it here is harness setup
+      # for the Python-engine paths, not a production behaviour.
+      - name: Stage the vendored core beside the built launcher
+        run: |
+          out=frontend/roslyn/OwnSharp.Cli/bin/Release/net8.0
+          mkdir -p "$out/ownlang-core/ownlang"
+          cp ownlang/*.py "$out/ownlang-core/ownlang/"
+      - name: Stage-1 engine controls (all fifteen, no fail-fast)
+        env:
+          OWEN_STAGE1_REQUIRE: "1"
+        run: |
+          ext=""
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then ext=".exe"; fi
+          export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli$ext"
+          export OWEN_STAGE1_RUST_FAULT="$PWD/rust/target-fault/release/own-cli$ext"
+          export OWEN_STAGE1_LAUNCHER_DLL="$PWD/frontend/roslyn/OwnSharp.Cli/bin/Release/net8.0/ownsharp.dll"
+          python tests/test_stage1_engine.py
+      # The explicit Rust-selected run on this platform, through the shell
+      # launcher, recorded as its own step so the evidence names the surface
+      # and the platform rather than being inferred from a green job.
+      - name: Explicit Rust-selected run through own-check.sh
+        run: |
+          ext=""
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then ext=".exe"; fi
+          export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli$ext"
+          mkdir -p "$RUNNER_TEMP/stage1-sample"
+          cat > "$RUNNER_TEMP/stage1-sample/Leak.cs" <<'CS'
+          using System;
+          using System.IO;
+          public class Leaky
+          {
+              public void Run()
+              {
+                  var s = new FileStream("x.txt", FileMode.OpenOrCreate);
+                  Console.WriteLine(s.Length);
+              }
+          }
+          CS
+          set +e
+          out=$(bash scripts/own-check.sh --engine rust --format human --fail-on-finding -- "$RUNNER_TEMP/stage1-sample")
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: --engine rust expected exit 1 (findings), got $rc"; exit 1; }
+          case "$out" in *OWN001*) ;; *) echo "FAIL: no OWN001 finding from the Rust engine"; exit 1 ;; esac
+          echo "Rust-selected run OK on ${{ matrix.os }}"
+      # The Windows twin of the shell surface. own-check.ps1 is never exercised
+      # by the Linux legs, so its engine contract needs its own step here.
+      - name: own-check.ps1 -Engine rust (Windows only)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $env:OWEN_RUST_CORE = "$PWD/rust/target/release/own-cli.exe"
+          $sample = Join-Path $env:RUNNER_TEMP "stage1-sample"
+          & ./scripts/own-check.ps1 -Engine rust -Format human -FailOnFinding -- $sample
+          if ($LASTEXITCODE -ne 1) { throw "own-check.ps1 -Engine rust expected exit 1, got $LASTEXITCODE" }
+          # And the D3.1 seam on this surface: an unusable locator is exit 2.
+          $env:OWEN_RUST_CORE = "C:\definitely\not\a\binary.exe"
+          & ./scripts/own-check.ps1 -Engine rust -Format human -- $sample
+          if ($LASTEXITCODE -ne 2) { throw "own-check.ps1 with a bad OWEN_RUST_CORE expected exit 2, got $LASTEXITCODE" }
+          Write-Host "own-check.ps1 engine contract OK"
+
   # P-022 step 7a (#260) — COMPARE MODE over the committed corpus: the FAST half
   # of #260's test matrix, and one leg of it. The five pinned OSS repositories,
   # the large-solution controls and the examples tree are the scheduled/manual

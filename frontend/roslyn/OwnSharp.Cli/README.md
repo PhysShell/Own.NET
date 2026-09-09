@@ -63,12 +63,48 @@ owen check . --format sarif > owen.sarif                 # feed github/codeql-ac
 Uninstall/upgrade: `dotnet tool uninstall --global Owen.Cli`, then reinstall
 as above (bump `--version` if you rebuilt with a new `<Version>`).
 
+## Engine selection (#262 Stage 1)
+
+Python is the **default** and the reference. `--engine` selects otherwise:
+
+| Value | What runs |
+|---|---|
+| `python` | the vendored Python core — the default and the reference |
+| `rust` | the Rust core (`own-cli ownir`) instead |
+| `compare` | both, over one captured input, reporting the reference's result only when they agree byte for byte |
+
+`rust` and `compare` need the candidate binary's absolute path in
+**`OWEN_RUST_CORE`**. There is deliberately **no discovery** — no `PATH`
+lookup, no `rust/target/` probing, no "first binary found" — because discovery
+is how a stale binary silently stands in for the one you meant to test. A
+missing, empty, nonexistent, non-file or non-executable `OWEN_RUST_CORE` is a
+**configuration error (exit 2)** with one actionable message, and it never
+falls back to Python.
+
+There is no silent fallback anywhere: a Rust failure is never turned into a
+Python success. An unexpected Rust child status becomes owen's internal-error
+exit (`5`) with the raw status kept in the diagnostic report's
+`child_exit_code`, rather than escaping as a meaningless number.
+
+`compare` is a development/CI seam for the migration, **not yet a promised
+public feature**. When the engines disagree — or when either fails — owen
+exits `5` with reproduction evidence rather than picking a winner: a reference
+and a candidate that disagree mean owen cannot honestly emit one answer. On
+native Windows the Python reference emits cp1252/CRLF where the Rust core
+emits canonical UTF-8, so `compare` will report a real divergence there for
+non-ASCII output; that is #262's declared Windows behaviour change being
+visible, not a defect.
+
+Rollback is explicit: select `--engine python` (or simply stop passing
+`--engine`). Nothing about Stage 1 moves the public default.
+
 ## Flags (mirror `scripts/own-check.sh` 1:1)
 
 | Flag | Default | |
 |---|---|---|
 | `--format {human,github,msbuild,sarif}` | `human` | finding surface |
 | `--severity {error,warning}` | `error` | how findings are shown |
+| `--engine {python,rust,compare}` | `python` | which analysis engine runs (#262 Stage 1) |
 | `--fail-on-finding` | off | exit with the core's code (1 = findings) instead of always 0 |
 | `--emit-facts <path>` | — | also write the intermediate OwnIR facts.json |
 | `--legacy` | off | flat name-based local-`IDisposable` detector instead of `--flow-locals` |
@@ -76,7 +112,8 @@ as above (bump `--version` if you rebuilt with a new `<Version>`).
 | `--body-throw-edges` | off | opt-in: flag body-level (no-`try`) dispose-not-called-on-throw |
 
 Exit codes: `0` clean, `1` findings (only with `--fail-on-finding`), `2` a
-usage or contract error (bad flags, bad facts, a drifted contract), `3` no
+usage or contract error (bad flags, bad facts, a drifted contract, or an
+unusable `OWEN_RUST_CORE` under `--engine rust|compare`), `3` no
 usable Python found, `4` no supported input found (nothing matching the
 included frontend), `5` an **internal error** — a bug in owen or a stage it
 drives (extractor/core crash). An internal error is never silence, never a
