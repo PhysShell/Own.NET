@@ -196,6 +196,19 @@ jobs:
           export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli$ext"
           export OWEN_STAGE1_STUB="$RUNNER_TEMP/stage1-stub$ext"
           python tests/test_stage1_ps1.py
+      # P-022 Stage 2 (#262): the CI/dogfood census and the Rust-default
+      # controls. They live here because this is the job that already has the
+      # candidate, the launcher and both platforms — and REQUIRE=1 because a
+      # census that skips is a census that measured nothing.
+      - name: Stage-2 dogfood controls (census + Rust-default + public contract)
+        env:
+          OWEN_STAGE2_REQUIRE: "1"
+        run: |
+          ext=""
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then ext=".exe"; fi
+          export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli$ext"
+          export OWEN_STAGE1_LAUNCHER_DLL="$PWD/frontend/roslyn/OwnSharp.Cli/bin/Release/net8.0/ownsharp.dll"
+          python tests/test_stage2_dogfood.py
       # The explicit Rust-selected run on this platform, through the shell
       # launcher, recorded as its own step so the evidence names the surface
       # and the platform rather than being inferred from a green job.
@@ -320,6 +333,85 @@ jobs:
                      "each by the catcher its definition names")
           sys.exit(1 if problems else 0)
           PY
+
+  # P-022 step 8 (#262) STAGE 2 — the same campaign, on Windows, as a GATE.
+  #
+  # The Linux run is the recorded one and every Stage-2 mutant edits declarative
+  # text, so the verdicts ought to be identical here. "Ought to" is the word
+  # that cost this branch two review rounds: the Stage-2 controls themselves
+  # failed on Windows and passed on Linux, because a path key built with the
+  # host separator missed every ledger entry. That defect was in the harness,
+  # not in a mutant, and no Linux campaign could have reported it.
+  #
+  # So the campaign is MEASURED on both platforms rather than argued to be
+  # platform-independent. This job records nothing — the committed provenance
+  # stays the Linux run — it only fails if Windows disagrees.
+  stage2-windows-mutations:
+    name: Stage-2 mutation campaign, Windows verdict (gate only, records nothing)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build the production own-cli candidate
+        working-directory: rust
+        run: cargo build -p own-cli --release
+      - name: Run the Stage-2 campaign on Windows
+        run: |
+          export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli.exe"
+          python scripts/mutate_campaign.py --campaign docs/evidence/p022-stage2-1.json --run
+      - name: The Windows verdict must match the recorded Linux one
+        run: |
+          python - <<'PY'
+          import json, sys
+          run = json.load(open("docs/evidence/p022-stage2-1.result.json", encoding="utf-8"))
+          defn = json.load(open("docs/evidence/p022-stage2-1.json", encoding="utf-8"))
+          exp = {m["id"]: set(m["expected_catchers"]) for m in defn["mutations"]}
+          problems = []
+          if run["control"]["outcome"] != "survived":
+              problems.append("the honesty control did not survive the unmutated tree")
+          for m in run["mutations"]:
+              if m["outcome"] != "caught":
+                  problems.append(f"{m['id']}: {m['outcome']} on Windows")
+              elif not exp[m["id"]] <= set(m["catchers"]):
+                  problems.append(f"{m['id']}: expected catchers missed ({m['catchers']})")
+          print("\n".join(problems) if problems
+                else f"Windows agrees: all {len(run['mutations'])} mutations caught, "
+                     "each by the catcher its definition names")
+          sys.exit(1 if problems else 0)
+          PY
+      # Left uncommitted on purpose: one campaign has one recorded provenance,
+      # and it is the Linux run. A second file claiming the same campaign name
+      # would make "which tree was measured" ambiguous.
+      #
+      # Restore-or-remove, because the recorded result is tracked at some
+      # commits and not at others, and `git checkout --` on an untracked path
+      # is an error rather than a no-op — which is exactly how the first
+      # version of this step failed a job whose verdict had already agreed.
+      # The assertion is the point, not the cleanup: the step fails if this
+      # gate left a result behind.
+      - name: Confirm nothing was recorded from this run
+        if: always()
+        run: |
+          f=docs/evidence/p022-stage2-1.result.json
+          if git ls-files --error-unmatch "$f" >/dev/null 2>&1; then
+            git checkout -- "$f"
+          else
+            rm -f "$f"
+          fi
+          test -z "$(git status --porcelain -- "$f")" \
+            || { echo "FAIL: the Windows gate left a recorded result behind"; exit 1; }
+          echo "OK: the Windows verdict recorded nothing"
 
   # P-022 step 7a (#260) — COMPARE MODE over the committed corpus: the FAST half
   # of #260's test matrix, and one leg of it. The five pinned OSS repositories,
@@ -2636,8 +2728,18 @@ jobs:
   # consumer-facing payoff the exporter was built for. The samples are intentional
   # leak fixtures, so the alerts are real-if-intentional; a dedicated
   # `own-net-samples` category keeps them from colliding with anything else.
+  # P-022 step 8 (#262) STAGE 2. This is the repository's dog-food — Own.NET
+  # analysing its own tree and publishing the result to its own code scanning —
+  # so under Stage 2 it runs on the RUST core, selected explicitly.
+  #
+  # Explicitly, and that is the whole design. The product default stays Python
+  # (Stage 3 is a separate authorization), so a job that asks for nothing gets
+  # Python; "the dogfood is Rust-default" therefore has to be written at the
+  # call site, where tests/test_stage2_dogfood.py can read it back. The Action's
+  # own public default is unaffected and is still exercised bare by
+  # own-check-surface and by the marketplace consumer simulation.
   own-check-codescan:
-    name: own-check SARIF -> GitHub code scanning (dog-food)
+    name: own-check SARIF -> GitHub code scanning (Rust dog-food)
     runs-on: ubuntu-latest
     # Skip on fork PRs: GitHub downgrades GITHUB_TOKEN to read-only for a
     # pull_request from a fork, so security-events:write is never granted and the
@@ -2649,14 +2751,36 @@ jobs:
     permissions:
       contents: read
       security-events: write
+    # The candidate reaches the composite action through the environment, and
+    # job level rather than step level because that is the inheritance a
+    # composite action's own steps can be relied on to see.
+    env:
+      OWEN_RUST_CORE: ${{ github.workspace }}/rust/target/release/own-cli
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Own.NET leak check (SARIF surface)
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      # The PRODUCTION binary, built here, from this commit. Never
+      # own-shadow-engine (the #260 dev adapter) and never the Stage-1 test
+      # stub: a dogfood run through an instrument proves nothing about the
+      # thing being dogfooded.
+      - name: Build the production own-cli candidate
+        working-directory: rust
+        run: cargo build -p own-cli --release
+      - name: Record which candidate ran
+        run: |
+          test -x "$OWEN_RUST_CORE" || { echo "FAIL: no candidate at $OWEN_RUST_CORE"; exit 1; }
+          echo "candidate: $OWEN_RUST_CORE"
+          echo "sha256:    $(sha256sum "$OWEN_RUST_CORE" | cut -d' ' -f1)"
+          echo "bytes:     $(wc -c < "$OWEN_RUST_CORE")"
+      - name: Own.NET leak check (SARIF surface, Rust engine)
         id: own
         uses: ./
         with:
           path: frontend/roslyn/samples
           format: sarif
+          engine: rust               # STAGE 2: the dogfood runs on the Rust core
           severity: warning          # include the injected-source (warning-tier) leaks
           fail-on-finding: "false"   # let code scanning be the gate, not the step
       - name: The action exposes the SARIF path
@@ -2670,6 +2794,105 @@ jobs:
         with:
           sarif_file: ${{ steps.own.outputs.sarif-file }}
           category: own-net-samples
+
+  # P-022 step 8 (#262) STAGE 2 — the platform half of the Rust-default claim.
+  #
+  # own-check-codescan is the dogfood of record, but it is ubuntu-only and
+  # uploads a single code-scanning category, so it cannot carry Windows. The
+  # two launcher surfaces differ in exactly the mechanics that cost Stage 1 six
+  # CI rounds — process launch, executable bits, path forms, stream capture —
+  # so a Linux-only "our CI runs on Rust" is a claim about half the product.
+  #
+  # This job is deliberately NOT a contract test. stage1-engine already proves
+  # the engine contract; this one only asks the operational question: does this
+  # repository's own tree analyse correctly, through the shipped launchers,
+  # with the Rust core explicitly selected, on both platforms.
+  stage2-dogfood:
+    name: Rust-default dogfood (Own.NET's own tree, via own-cli)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build the production own-cli candidate
+        working-directory: rust
+        run: cargo build -p own-cli --release
+      - name: Record which candidate ran
+        run: |
+          ext=""
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then ext=".exe"; fi
+          core="$PWD/rust/target/release/own-cli$ext"
+          test -f "$core" || { echo "FAIL: no candidate at $core"; exit 1; }
+          echo "candidate: $core"
+          echo "sha256:    $(sha256sum "$core" | cut -d' ' -f1)"
+          echo "bytes:     $(wc -c < "$core")"
+      # The operational run. --fail-on-finding is deliberate: the dogfood tree
+      # HAS a leak, so exit 1 is the correct answer and exit 0 would mean the
+      # Rust core analysed nothing and said so quietly.
+      - name: Own.NET's own tree, through own-check.sh on the Rust core
+        run: |
+          ext=""
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then ext=".exe"; fi
+          export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli$ext"
+          set +e
+          out=$(bash scripts/own-check.sh --engine rust --format human --fail-on-finding \
+                  -- frontend/roslyn/samples)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: expected exit 1 (findings), got $rc"; exit 1; }
+          case "$out" in *OWN001*) ;; *) echo "FAIL: the Rust core found no OWN001"; exit 1 ;; esac
+          echo "OK: Rust-default dogfood on ${{ matrix.os }} (own-check.sh)"
+      # The Windows launcher is a separate implementation, not a wrapper around
+      # the shell one, so the Windows leg has to go through it to mean anything.
+      - name: Own.NET's own tree, through own-check.ps1 on the Rust core
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $env:OWEN_RUST_CORE = "$PWD/rust/target/release/own-cli.exe"
+          $out = & ./scripts/own-check.ps1 -Engine rust -Format human -FailOnFinding `
+                   -Paths frontend/roslyn/samples
+          $rc = $LASTEXITCODE
+          $out | Write-Host
+          if ($rc -ne 1) { throw "expected exit 1 (findings), got $rc" }
+          if ($out -notmatch 'OWN001') { throw "the Rust core found no OWN001" }
+          Write-Host "OK: Rust-default dogfood on windows (own-check.ps1)"
+          exit 0
+      # No fallback, measured rather than asserted: with the candidate broken,
+      # the dogfood must fail visibly. A run that quietly produced a verdict
+      # here would mean Python had answered for Rust, and every green Rust
+      # dogfood above would be worth nothing.
+      - name: A broken candidate fails the dogfood instead of being rescued
+        run: |
+          broken="$RUNNER_TEMP/not-a-core"
+          printf 'this is not an executable image\n' > "$broken"
+          export OWEN_RUST_CORE="$broken"
+          set +e
+          out=$(bash scripts/own-check.sh --engine rust --format human \
+                  -- frontend/roslyn/samples 2>&1)
+          rc=$?
+          set -e
+          case "$out" in
+            *OWN001*)
+              echo "FAIL: a verdict was produced with a broken candidate — Python answered for Rust"
+              exit 1 ;;
+          esac
+          [ "$rc" -ne 0 ] || { echo "FAIL: a broken candidate exited 0"; exit 1; }
+          echo "OK: a broken candidate is a visible failure (exit $rc), never a Python rescue"
 
   # P-014 Tier B: external-reference resolution. The SAME sample, run two ways, must give two
   # verdicts — proving the extractor binds a THIRD-PARTY event only when its DLL is referenced:

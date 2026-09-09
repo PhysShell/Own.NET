@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "comment": "GENERATED-BY-HAND ledger, ENFORCED by tests/test_stage2_dogfood.py. #262 Stage 2 claims that Own.NET's own CI and dogfood select Rust by default. A claim like that is worth nothing without a denominator, so this file names EVERY CI call site that executes the Owen analysis core or a production launcher surface, and the role each one plays. The harness enumerates the workflows itself: a call site missing from this ledger fails, and a ledger entry whose job no longer invokes anything fails too. Neither direction can be satisfied by editing prose.",
+  "classes": {
+    "A": "PUBLIC-CONTRACT VERIFIER. Exists to prove how the externally visible, packaged surface behaves. Its bare invocations run the PUBLIC default on purpose, so it stays Python-default: switching it would delete the evidence that the public default did not move. Not a counterexample to the Stage-2 claim — its whole job is the opposite.",
+    "B": "EXPLICIT PYTHON REFERENCE / deliberately engine-specific measurement. Parity, fixture semantics, benchmark methodology or a cross-tool oracle, where the reference implementation IS the instrument. Switching the engine would silently redefine what the measurement means. Anything that actually runs BOTH engines as a gate is C, not B.",
+    "C": "COMPARE GATE. Runs both engines under the ratified #260 / Stage-1 differential contract. Stage 2 increases Rust exposure and must never pay for it with differential evidence, so these are neither weakened nor relabelled.",
+    "D": "OPERATIONAL SELF-DOGFOOD. Own.NET running Owen over its own code as the engine under test — not verifying the public default, not acting as a reference. This is the Stage-2 Rust-default population: every Class-D call site selects Rust EXPLICITLY through the ratified launcher contract, with the production `own-cli` supplied via OWEN_RUST_CORE."
+  },
+  "entry_points_comment": "What counts as executing the core. The launcher surfaces are direct; the wrapper entries are scripts that invoke a launcher or the core themselves, listed so an indirect call site cannot escape the census by adding one level of indirection. Two negative lookaheads are deliberate and were measured, not guessed: `benchmark.py --selftest` validates the scoring and SARIF-parsing logic against embedded fixtures with no SDK, and `shadow_sweep.py --collect`/`--result` assemble and check a record of legs that ran elsewhere. Neither executes the analysis core, so neither is a call site; counting them would inflate the denominator with runs that analyse nothing. Comment lines and `paths:` filters are stripped for the same reason.",
+  "entry_points": [
+    "scripts/own-check\\.sh",
+    "scripts/own-check\\.ps1",
+    "\\bowen check\\b",
+    "python -m ownlang ownir",
+    "uses: \\./\\s*$",
+    "scripts/shadow_compare\\.py",
+    "scripts/benchmark\\.py(?!.*--selftest)",
+    "tests/shadow_sweep\\.py(?!.*(--collect|--result))",
+    "cargo test[^\\n]*-p own-cli",
+    "scripts/mutate_campaign\\.py"
+  ],
+  "call_sites": [
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "own-cli-parity",
+      "class": "B",
+      "why": "Replays the frozen Python-authored CLI fixture family against the built Rust `own-cli` with zero Python at run time. The measurement IS the parity between the two implementations, so it is engine-specific by construction and has no default to move."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "stage1-engine",
+      "class": "A",
+      "why": "The Stage-1 engine-contract controls, including `default-stays-python`, which is literally the public-default assertion. It selects Rust in some legs, but as the SUBJECT of a contract test, not as the repository's operational engine — the authorization says so explicitly. Judgement call recorded rather than hidden: it sits in A because the contract it verifies is the public one."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "stage1-windows-mutations",
+      "class": "A",
+      "why": "The Windows-native mutation leg over those same controls: mutate_campaign.py drives the Stage-1 harnesses, which drive the launchers. Same role as stage1-engine — it proves the controls are load-bearing, it does not analyse Own.NET's code."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "stage2-windows-mutations",
+      "class": "A",
+      "why": "The Windows verdict on the Stage-2 campaign, as a gate. It drives the Stage-2 controls through mutate_campaign.py, so it exercises the launchers the way stage1-windows-mutations does — a contract measurement, not operational analysis, and it records nothing."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "shadow-compare",
+      "class": "C",
+      "why": "#260 compare mode over the committed corpus, through the dev-only own-shadow-engine adapter."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "shadow-compare-samples",
+      "class": "C",
+      "why": "#260 compare mode over the extracted C# sample facts."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "wpf-extractor",
+      "class": "B",
+      "why": "P-001 pipeline semantics over fixture samples, asserting exact reference output. It calls `python -m ownlang ownir` DIRECTLY — the reference core, not a launcher — so there is no engine selector here to default: the Python-ness is the instrument, not an omission."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "ownts-react-effects",
+      "class": "B",
+      "why": "The OwnTS frontend spike over the same seam, also calling the reference core directly and asserting its exact verdicts (OWN001, EFF001)."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "own-check-surface",
+      "class": "A",
+      "why": "The distribution surface: bare `scripts/own-check.sh` in four formats plus five composite-action steps that pass NO engine input, which is exactly how a consumer invokes it. This job is one of the two places the Action's public default is exercised end to end."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "own-check-ps1-surface",
+      "class": "A",
+      "why": "The Windows wrapper's public exit-code tiers (#313), invoked bare."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "own-check-codescan",
+      "class": "D",
+      "why": "The repository's own dog-food: Own.NET analysing its own tree and publishing the result to its own code scanning. Labelled dog-food in its own name and the only pre-Stage-2 Class-D call site, so this is the one that had to move to Rust."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "stage2-dogfood",
+      "class": "D",
+      "why": "The Stage-2 Rust-default dogfood matrix. It exists because own-check-codescan is Linux-only and uploads one code-scanning category, so it cannot carry the Windows half of the claim; this job runs the repository's own tree through the shell launcher on Linux and the PowerShell launcher on Windows with an explicit `rust` selection."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "tier-b-refs",
+      "class": "B",
+      "why": "P-014 Tier B A/B: the SAME sample analysed twice to prove external-reference binding changes the verdict. The reference core is called directly and the assertion is on its exact codes."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "corpus-benchmark",
+      "class": "B",
+      "why": "Benchmark methodology. `scripts/benchmark.py` drives own-check.sh over the labelled corpus and produces a regression-pinned recall/specificity number; changing the engine underneath silently redefines what that pinned number means and breaks comparability with every earlier run."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "ownsharp-cli-smoke",
+      "class": "A",
+      "why": "Gate A: bare `owen check` on an INSTALLED build outside any checkout, plus the OWEN_PYTHON-broken cases that prove Python resolution is real. The packaged public surface."
+    },
+    {
+      "workflow": ".github/workflows/owen-cli-release.yml",
+      "job": "smoke-test",
+      "class": "A",
+      "why": "The release package's own smoke test: bare `owen check` against the built artifact, including the broken-interpreter case. The public contract as shipped."
+    },
+    {
+      "workflow": ".github/workflows/action-marketplace-readiness.yml",
+      "job": "consumer-simulation",
+      "class": "A",
+      "why": "Six `uses: ./` steps with no engine input — the Action consumed the way a marketplace consumer consumes it. The second place the public Action default is exercised end to end."
+    },
+    {
+      "workflow": ".github/workflows/oracle.yml",
+      "job": "oracle",
+      "class": "B",
+      "why": "Cross-tool evaluation against Infer# and CodeQL over an external repository, manual dispatch only. The agreement report's history is only comparable if Own.NET's side keeps producing it with the reference engine."
+    },
+    {
+      "workflow": ".github/workflows/shadow-sweep.yml",
+      "job": "document",
+      "class": "C",
+      "why": "The #260 sweep: own-check.sh is the single EXTRACTION per document that feeds the compare, and the compare is the gate."
+    },
+    {
+      "workflow": ".github/workflows/shadow-sweep.yml",
+      "job": "examples",
+      "class": "C",
+      "why": "The same #260 sweep over the `examples/` tree: one extraction per document through own-check.sh, feeding the same compare gate."
+    },
+    {
+      "workflow": ".github/workflows/shadow-sweep.yml",
+      "job": "windows-path-forms",
+      "class": "C",
+      "why": "The Windows leg of the same compare gate."
+    }
+  ]
+}

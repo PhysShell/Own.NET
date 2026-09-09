@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "comment": "GENERATED-BY-HAND definition; the RESULT beside it is recorded by scripts/mutate_campaign.py --run and the counts are derived from it, never typed.",
+  "campaign": "p022-stage2-1",
+  "description": "#262 Stage 2 — the CI/dogfood ENGINE-SELECTION seam. Stage 2's deliverable is a configuration, so its mutants are configuration: each one is a plausible way the Rust-default claim could quietly stop being true, or the public contract could quietly start moving, while every job still went green. The catchers are the controls in tests/test_stage2_dogfood.py, which read the workflows rather than being told about them.",
+  "layers_comment": "One layer, and the RECORDED run is Linux. Every mutation here targets declarative text — a workflow key, a ledger entry, a C# constant, an action input — and every catcher reads that text, so the verdicts should not differ by platform. They are MEASURED on both anyway, by the `stage2-windows-mutations` gate, because 'should not differ' is exactly the reasoning that failed here: the controls themselves passed on Linux and failed on Windows, where a path key built with the host separator missed every ledger entry and read all twenty call sites as unclassified. That was a defect in the harness rather than in any mutant, so no Linux campaign could have reported it, and arguing platform independence would have shipped it. The Windows job records nothing: one campaign has one recorded provenance. This is a different situation from the Stage-1 PowerShell mutants, which change semantics only a Windows runtime can evaluate and therefore keep their own recorded Windows-native campaign.",
+  "layers": [
+    {
+      "id": "stage2",
+      "cwd": ".",
+      "parser": "python-fail",
+      "command": [
+        "python",
+        "tests/test_stage2_dogfood.py"
+      ],
+      "env": {
+        "OWEN_STAGE2_REQUIRE": "1"
+      }
+    }
+  ],
+  "control": {
+    "id": "M00",
+    "description": "harness-honesty control: no mutation at all, which must report zero failing layers"
+  },
+  "mutations": [
+    {
+      "id": "S01",
+      "rule": "dogfood-selects-rust-explicitly",
+      "description": "the dog-food job stops asking for an engine — the most likely regression of all, because the job still runs, still analyses, still uploads, and silently goes back to the public Python default",
+      "target": ".github/workflows/ci.yml",
+      "pattern": "          engine: rust               # STAGE 2: the dogfood runs on the Rust core\n",
+      "replacement": "",
+      "expected_catchers": [
+        "stage2::internal-default-not-rust"
+      ]
+    },
+    {
+      "id": "S02",
+      "rule": "dogfood-runs-the-production-core",
+      "description": "the dog-food candidate becomes own-shadow-engine — the #260 dev adapter is a Rust binary that this repository really builds, so the substitution looks right and measures a thing that is not the product",
+      "target": ".github/workflows/ci.yml",
+      "pattern": "      OWEN_RUST_CORE: \\$\\{\\{ github\\.workspace \\}\\}/rust/target/release/own-cli",
+      "replacement": "      OWEN_RUST_CORE: ${{ github.workspace }}/rust/target/release/own-shadow-engine",
+      "expected_catchers": [
+        "stage2::wrong-rust-candidate"
+      ]
+    },
+    {
+      "id": "S03",
+      "rule": "the-claim-covers-both-platforms",
+      "description": "the Rust-default dogfood matrix loses its Windows leg — 'our CI runs on Rust' quietly becomes a statement about Linux, which is the half of the product whose launcher mechanics never broke",
+      "target": ".github/workflows/ci.yml",
+      "pattern": "    name: Rust-default dogfood \\(Own\\.NET's own tree, via own-cli\\)\n    strategy:\n      fail-fast: false\n      matrix:\n        os: \\[ubuntu-latest, windows-latest\\]",
+      "replacement": "    name: Rust-default dogfood (Own.NET's own tree, via own-cli)\n    strategy:\n      fail-fast: false\n      matrix:\n        os: [ubuntu-latest]",
+      "expected_catchers": [
+        "stage2::platform-leg-lost"
+      ]
+    },
+    {
+      "id": "S04",
+      "rule": "the-locator-is-owen-rust-core-alone",
+      "description": "the dogfood finds its candidate on PATH — 'the binary is right there, why spell out an absolute path', which is precisely how a stale binary stands in for the one under test",
+      "target": ".github/workflows/ci.yml",
+      "pattern": "          core=\"\\$PWD/rust/target/release/own-cli\\$ext\"",
+      "replacement": "          core=$(which own-cli || echo \"$PWD/rust/target/release/own-cli$ext\")",
+      "expected_catchers": [
+        "stage2::locator-contract-bypassed"
+      ]
+    },
+    {
+      "id": "S05",
+      "rule": "a-rust-failure-is-visible",
+      "description": "the dogfood run swallows its exit code — the classic 'don't let the dogfood job break the build', which turns every Rust-default claim in this PR into decoration",
+      "target": ".github/workflows/ci.yml",
+      "pattern": "          out=\\$\\(bash scripts/own-check\\.sh --engine rust --format human --fail-on-finding \\\\\n                  -- frontend/roslyn/samples\\)",
+      "replacement": "          out=$(bash scripts/own-check.sh --engine rust --format human --fail-on-finding -- frontend/roslyn/samples || true)",
+      "expected_catchers": [
+        "stage2::rust-job-falls-back"
+      ]
+    },
+    {
+      "id": "S06",
+      "rule": "the-public-default-does-not-move",
+      "description": "the PRODUCT default flips to Rust — the covert Stage 3, and the single edit that would make every internal Rust job pass by accident while changing what every user gets",
+      "target": "frontend/roslyn/OwnSharp.Cli/EngineSelection.cs",
+      "pattern": "public const Engine Default = Engine\\.Python;",
+      "replacement": "public const Engine Default = Engine.Rust;",
+      "expected_catchers": [
+        "stage2::public-default-moved"
+      ]
+    },
+    {
+      "id": "S07",
+      "rule": "the-public-default-does-not-move",
+      "description": "the ACTION's public engine input defaults to rust — the same cutover through the other public door, and the one a C#-only control would miss",
+      "target": "action.yml",
+      "pattern": "    required: false\n    default: \"python\"",
+      "replacement": "    required: false\n    default: \"rust\"",
+      "expected_catchers": [
+        "stage2::public-default-moved"
+      ]
+    },
+    {
+      "id": "S08",
+      "rule": "compare-evidence-is-not-traded-away",
+      "description": "a #260 compare gate is disabled — the cheapest way to make a Rust-default dogfood green is to remove the job that would have disagreed with it",
+      "target": ".github/workflows/ci.yml",
+      "pattern": "  shadow-compare:\n    name: shadow compare \\(committed corpus\\)\n",
+      "replacement": "  shadow-compare:\n    name: shadow compare (committed corpus)\n    if: false\n",
+      "expected_catchers": [
+        "stage2::compare-gate-dropped"
+      ]
+    },
+    {
+      "id": "S09",
+      "rule": "no-unclassified-call-site",
+      "description": "a new bare launcher invocation appears in a job nobody classified — the hole the census exists to close, and the one that reopens every time somebody adds a convenient scan step",
+      "target": ".github/workflows/ci.yml",
+      "pattern": "      - name: Check the emitted method is still in sync with the golden host\n",
+      "replacement": "      - name: Check the emitted method is still in sync with the golden host\n        run: scripts/own-check.sh --format human -- frontend/roslyn/samples\n",
+      "expected_catchers": [
+        "stage2::stage2-census"
+      ]
+    },
+    {
+      "id": "S10",
+      "rule": "no-escape-by-relabelling",
+      "description": "the dog-food job is reclassified out of the Rust-default population — every other rule is satisfied by shrinking Class D, so without a rule that reads the job's own name this is a green way to stop dogfooding",
+      "target": "docs/evidence/p022-stage2-census.json",
+      "pattern": "      \"job\": \"own-check-codescan\",\n      \"class\": \"D\",",
+      "replacement": "      \"job\": \"own-check-codescan\",\n      \"class\": \"A\",",
+      "expected_catchers": [
+        "stage2::stage2-census"
+      ]
+    },
+    {
+      "id": "S11",
+      "rule": "dogfood-selects-rust-explicitly",
+      "description": "the dog-food's engine selection is COMMENTED OUT rather than deleted — the shape a temporary rollback really takes ('just for one run, we'll put it back'). Its twin S01 deletes the line; this one leaves the words `engine: rust` sitting in the file, which is all a control that greps the job's raw text would need to stay green. It exists because S03 survived for exactly that reason on a different key",
+      "target": ".github/workflows/ci.yml",
+      "pattern": "          engine: rust               # STAGE 2: the dogfood runs on the Rust core",
+      "replacement": "          # engine: rust             # STAGE 2: the dogfood runs on the Rust core",
+      "expected_catchers": [
+        "stage2::internal-default-not-rust"
+      ]
+    }
+  ]
+}
