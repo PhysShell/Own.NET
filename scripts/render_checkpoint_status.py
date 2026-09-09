@@ -193,6 +193,9 @@ STAGE1_CAMPAIGNS = (
     ("Stage 1 — the launcher's `--engine` contract: the default, the candidate "
      "locator, the Rust child status and the compare result contract",
      "p022-stage1-1"),
+    ("Stage 1 — the PowerShell launcher surface, measured on a WINDOWS runner "
+     "(a PowerShell-targeted mutant is only caught by a Windows catcher)",
+     "p022-stage1-ps1"),
 )
 SELF = "scripts/render_checkpoint_status.py"
 

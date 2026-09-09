@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "comment": "GENERATED-BY-HAND definition; the RESULT beside it is recorded by scripts/mutate_campaign.py --run on a WINDOWS runner and the counts are derived from it, never typed.",
+  "campaign": "p022-stage1-ps1",
+  "description": "#262 Stage 1 — the PowerShell launcher surface. `scripts/own-check.ps1` was driven by a CI smoke step but was absent from the adversarial control set, which is why three of its engine-contract defects survived a 16/16 campaign on the other surfaces: a campaign can only prove what some control observes. Every mutation here targets own-check.ps1 itself, and every one is a plausible MISREADING rather than a syntactic accident — Test-Path answering a question D3 did not ask, a failed spawn read as the engine blowing up, `Get-Content | Write-Output` read as an echo, cleanup read as tidiness.",
+  "layers": [
+    {
+      "id": "ps1",
+      "cwd": ".",
+      "parser": "python-fail",
+      "command": [
+        "python",
+        "tests/test_stage1_ps1.py"
+      ]
+    }
+  ],
+  "layers_comment": "WINDOWS-NATIVE BY CONTRACT. A mutation whose target is scripts/own-check.ps1 is only `caught` when a Windows PowerShell catcher observes the mutant and fails; this campaign therefore runs on a windows-latest runner (.github/workflows/ci.yml, job `stage1-ps1-mutations`). Running it on Linux would execute the mutated PowerShell under a different runtime and could not settle the Windows-specific halves — the spawn seam above all — so a Linux result is not evidence for these mutants and is never recorded as one.",
+  "control": {
+    "id": "M00",
+    "description": "harness-honesty control: no mutation at all, which must report zero failing layers"
+  },
+  "mutations": [
+    {
+      "id": "P01",
+      "rule": "ps1-locator-must-be-absolute",
+      "description": "own-check.ps1 accepts a relative OWEN_RUST_CORE — Test-Path says the file is there, which is true and not the question D3 asks",
+      "target": "scripts/own-check.ps1",
+      "pattern": "    elseif \\(-not \\[System\\.IO\\.Path\\]::IsPathFullyQualified\\(\\$rustCore\\)\\) \\{",
+      "replacement": "    elseif ($false) {",
+      "expected_catchers": [
+        "ps1::ps1-absolute-locator"
+      ]
+    },
+    {
+      "id": "P02",
+      "rule": "ps1-not-started-is-configuration",
+      "description": "own-check.ps1 reports a candidate that never started as an internal failure — 'the engine blew up' read as Owen's bug rather than the caller's configuration, which is the exact side of D3.1's seam the old comment got backwards",
+      "target": "scripts/own-check.ps1",
+      "pattern": "            exit 2\n        \\}\n        # 0/1/2 are verdicts and pass through",
+      "replacement": "            exit 5\n        }\n        # 0/1/2 are verdicts and pass through",
+      "expected_catchers": [
+        "ps1::ps1-not-started-is-2"
+      ]
+    },
+    {
+      "id": "P03",
+      "rule": "ps1-agreement-replays-raw-bytes",
+      "description": "own-check.ps1 replays agreement through the object pipeline again, stdout only — `Get-Content | Write-Output` looks like an echo and is a decode-and-re-encode that also drops stderr",
+      "target": "scripts/own-check.ps1",
+      "pattern": "            \\$outBytes = \\[System\\.IO\\.File\\]::ReadAllBytes\\(\\(Join-Path \\$cmpDir \"python\\.out\"\\)\\)\n            \\$errBytes = \\[System\\.IO\\.File\\]::ReadAllBytes\\(\\(Join-Path \\$cmpDir \"python\\.err\"\\)\\)",
+      "replacement": "            Get-Content -LiteralPath (Join-Path $cmpDir \"python.out\") -Raw -ErrorAction SilentlyContinue | Write-Output\n            $outBytes = @(); $errBytes = @()",
+      "expected_catchers": [
+        "ps1::ps1-agreement-replays"
+      ]
+    },
+    {
+      "id": "P04",
+      "rule": "ps1-failure-evidence-survives",
+      "description": "own-check.ps1 deletes the reproduction directory it just named — cleanup reads as tidiness, and the message that pointed at it is left describing something that no longer exists",
+      "target": "scripts/own-check.ps1",
+      "pattern": "                # reader at a path and then deleting it on the way out is worse\n                # than not naming one at all\\.\n                \\$keep = \\$true",
+      "replacement": "                # reader at a path and then deleting it on the way out is worse\n                # than not naming one at all.\n                $keep = $false",
+      "expected_catchers": [
+        "ps1::ps1-failure-evidence"
+      ]
+    }
+  ]
+}

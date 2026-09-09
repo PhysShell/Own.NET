@@ -233,17 +233,53 @@ def tail(r: subprocess.CompletedProcess[bytes], limit: int = 500) -> str:
     return " | ".join(parts) or "(both streams empty)"
 
 
-def write_stub(path: Path, exit_code: int, stdout: str = "", stderr: str = "") -> Path:
-    """A candidate that exits with a chosen code. Unix only — the real
-    fault-injection binary covers both platforms for the cases it can force."""
-    path.write_text(
-        "#!/usr/bin/env bash\n"
-        f"printf '%s' {json.dumps(stdout)}\n"
-        f"printf '%s' {json.dumps(stderr)} >&2\n"
-        f"exit {exit_code}\n",
-        encoding="utf-8")
-    path.chmod(0o755)
-    return path
+def stub_exe(tmp: Path) -> str | None:
+    """The controllable native candidate (`tests/helpers/stage1_stub.rs`).
+
+    Built here with plain `rustc` when CI has not already supplied one, which
+    keeps it out of the cargo workspace and therefore out of #261's crate-edge
+    DAG gate. It replaces the shebang stubs these controls used to write: those
+    were Unix-only, so every compare control was declared not-applicable on
+    Windows — the coverage gap that let three PowerShell defects sit green. A
+    real executable answers the same on both platforms.
+    """
+    supplied = os.environ.get("OWEN_STAGE1_STUB")
+    if supplied and Path(supplied).is_file():
+        return supplied
+    if shutil.which("rustc") is None:
+        return None
+    out = tmp / ("stage1-stub.exe" if os.name == "nt" else "stage1-stub")
+    if out.is_file():
+        return str(out)
+    src = ROOT / "tests/helpers/stage1_stub.rs"
+    r = subprocess.run(["rustc", "-O", str(src), "-o", str(out)],
+                       capture_output=True, check=False)
+    return str(out) if r.returncode == 0 and out.is_file() else None
+
+
+def stub_env(tmp: Path, name: str, *, exit_code: int | None = None,
+             stdout: bytes | None = None, stderr: bytes | None = None,
+             copy_input: Path | None = None, version: str | None = None
+             ) -> dict[str, str]:
+    """Configure the native stub for one case. Byte payloads go through FILES,
+    not environment strings, because the agreement control has to reproduce the
+    reference's output exactly — line endings included."""
+    env: dict[str, str] = {}
+    if exit_code is not None:
+        env["STAGE1_STUB_EXIT"] = str(exit_code)
+    if stdout is not None:
+        f = tmp / f"{name}.out.bin"
+        f.write_bytes(stdout)
+        env["STAGE1_STUB_STDOUT_FILE"] = str(f)
+    if stderr is not None:
+        f = tmp / f"{name}.err.bin"
+        f.write_bytes(stderr)
+        env["STAGE1_STUB_STDERR_FILE"] = str(f)
+    if copy_input is not None:
+        env["STAGE1_STUB_COPY_INPUT"] = str(copy_input)
+    if version is not None:
+        env["STAGE1_STUB_VERSION"] = version
+    return env
 
 
 # --- the controls ----------------------------------------------------------
@@ -331,6 +367,157 @@ def control_bad_locator_is_2(sample: Path, tmp: Path) -> None:
                            "candidate cannot be constructed for the shell surface on Windows; "
                            "the launcher half of this case does run")
         ok(check, f"{total} invalid-locator cases all exit 2, no fallback")
+
+
+def control_absolute_locator_only(sample: Path, tmp: Path) -> None:
+    """D3: the locator is an ABSOLUTE path, and a relative one is refused.
+
+    A relative locator that happens to exist resolves against the current
+    working directory, so the same OWEN_RUST_CORE would select a different
+    binary depending on where Owen ran — the ambient resolution D3 exists to
+    forbid, and the failure mode ("which binary did we measure?") that D3's no-
+    discovery rule is about. The candidate here genuinely EXISTS, so nothing
+    but the absoluteness check can reject it.
+
+    The extractor count is part of the assertion. The locator is a preflight,
+    so a correct launcher rejects before doing expensive work; a validation
+    that drifted to after extraction would still exit 2 and still look green
+    without this.
+    """
+    check = "absolute-locator-only"
+    core = rust_core()
+    if core is None or not have_dotnet():
+        skip(check, "no OWEN_RUST_CORE/dotnet")
+        return
+
+    # A real, runnable candidate reachable by a RELATIVE path: copy the
+    # production binary into a working directory and name it "./<file>".
+    workdir = tmp / "relative-cwd"
+    workdir.mkdir(exist_ok=True)
+    local = workdir / ("own-cli.exe" if os.name == "nt" else "own-cli")
+    shutil.copy2(core, local)
+    if os.name != "nt":
+        local.chmod(0o755)
+    relative = f".{os.sep}{local.name}"
+
+    tally = tmp / "abs-dotnet.log"
+    if tally.exists():
+        tally.unlink()
+    shim = tmp / "abs-shim"
+    shim.mkdir(exist_ok=True)
+    shim_ok = os.name != "nt"
+    if shim_ok:
+        (shim / "dotnet").write_text(
+            "#!/usr/bin/env bash\n"
+            f'printf "%s\\n" "$*" >> {json.dumps(str(tally))}\n'
+            f'exec {json.dumps(str(shutil.which("dotnet")))} "$@"\n',
+            encoding="utf-8")
+        (shim / "dotnet").chmod(0o755)
+
+    problems = []
+    for engine in ("rust", "compare"):
+        env = dict(os.environ)
+        env["OWEN_RUST_CORE"] = relative
+        if shim_ok:
+            env["PATH"] = f"{shim}{os.pathsep}{os.environ.get('PATH', '')}"
+
+        r = subprocess.run(
+            [bash_exe(), str(ROOT / "scripts/own-check.sh"),
+             "--engine", engine, "--", str(sample)],
+            capture_output=True, env=env, cwd=str(workdir), check=False)
+        merged = (r.stdout + r.stderr).decode("utf-8", "replace")
+        if r.returncode != 2:
+            problems.append(f"own-check.sh/{engine}: exit {r.returncode}, expected 2 "
+                            f"for a relative locator [{tail(r)}]")
+        elif "absolute" not in merged:
+            problems.append(f"own-check.sh/{engine}: rejected without naming the absolute "
+                            "requirement")
+        if b"OWN001" in r.stdout:
+            problems.append(f"own-check.sh/{engine}: produced a verdict — the candidate ran, "
+                            "or Python did")
+
+        dll = launcher_dll()
+        if dll is not None:
+            r2 = subprocess.run(
+                ["dotnet", dll, "check", "--engine", engine, str(sample)],
+                capture_output=True, env=env, cwd=str(workdir), check=False)
+            merged2 = (r2.stdout + r2.stderr).decode("utf-8", "replace")
+            if r2.returncode != 2:
+                problems.append(f"owen/{engine}: exit {r2.returncode}, expected 2 for a "
+                                f"relative locator [{tail(r2)}]")
+            elif "absolute" not in merged2:
+                problems.append(f"owen/{engine}: rejected without naming the absolute requirement")
+            if b"OWN001" in r2.stdout:
+                problems.append(f"owen/{engine}: produced a verdict for a relative locator")
+
+    if shim_ok:
+        lines = tally.read_text(encoding="utf-8").splitlines() if tally.exists() else []
+        extractions = [ln for ln in lines if "OwnSharp.Extractor" in ln]
+        if extractions:
+            problems.append(f"the extractor ran {len(extractions)} time(s) before the locator was "
+                            "rejected — validation drifted past the preflight")
+
+    if problems:
+        fail(check, "; ".join(problems))
+    else:
+        ok(check, "a relative but existing locator is refused with exit 2 on both surfaces, "
+                  "before any extraction")
+
+
+def control_compare_failure_is_classified(sample: Path, tmp: Path) -> None:
+    """D4.1: the compare verdict is what the case WAS, not what a Rust-child
+    field happened to be.
+
+    The case the old classifier got wrong: the PYTHON reference produces an
+    unexpected exit while the candidate answers legally. There is no Rust child
+    status to record, so a classifier inferring from `child_exit_code` stamped
+    "divergence" onto evidence whose own diagnostic said "execution failure".
+    """
+    check = "compare-failure-classified"
+    core = rust_core()
+    stub = stub_exe(tmp)
+    if core is None or stub is None or not have_dotnet():
+        skip(check, "no OWEN_RUST_CORE / native stub / dotnet")
+        return
+
+    evidence = Path.home() / ".owen/compare/last-compare.json"
+    if evidence.exists():
+        evidence.unlink()
+    # The stub stands in for PYTHON: it answers the launcher's version probe
+    # like a supported interpreter, then fails the actual run.
+    env = {"OWEN_RUST_CORE": core,
+           "OWEN_PYTHON": stub,
+           **stub_env(tmp, "pyfail", exit_code=42, version="Python 3.13.0")}
+    r = run_owen(["--engine", "compare", "--format", "human", str(sample)], env=env)
+    if r is None:
+        skip(check, "no built launcher/dotnet")
+        return
+
+    problems = []
+    merged = (r.stdout + r.stderr).decode("utf-8", "replace")
+    if r.returncode != 5:
+        problems.append(f"a Python-only failure exited {r.returncode}, expected public 5 "
+                        f"[{tail(r)}]")
+    if "execution failure" not in merged:
+        problems.append("the diagnostic does not call it an execution failure")
+    if b"OWN001" in r.stdout:
+        problems.append("a verdict was exposed after the reference failed")
+    if not evidence.exists():
+        problems.append("no compare evidence was written")
+    else:
+        try:
+            data = json.loads(evidence.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            problems.append(f"the compare evidence is unreadable: {exc}")
+            data = {}
+        verdict = data.get("verdict")
+        if verdict != "execution-failure":
+            problems.append(f"evidence verdict is {verdict!r}, expected 'execution-failure' — "
+                            "the structured record disagrees with the diagnostic beside it")
+    if problems:
+        fail(check, "; ".join(problems))
+    else:
+        ok(check, "a Python-only failure is recorded as execution-failure, not divergence")
 
 
 def control_default_stays_python(sample: Path) -> None:
@@ -660,27 +847,18 @@ def control_compare_same_input_and_extract_once(sample: Path, tmp: Path) -> None
     # file it was actually handed, and that digest must equal the capture
     # digest the launcher attests in its evidence. If compare ever fed the two
     # engines different bytes, these two values part company.
-    if os.name == "nt":
-        not_applicable(same_check, "needs a recording stub candidate with a shebang; Unix-only. "
-                                   "The launcher code that materialises and verifies the two "
-                                   "engine inputs is platform-independent and is measured on the "
-                                   "Linux leg")
+    stub = stub_exe(tmp)
+    if stub is None:
+        skip(same_check, "no native stub (set OWEN_STAGE1_STUB or provide rustc)")
         return
-    seen = tmp / "candidate-saw.sha256"
-    recorder = tmp / "recording-core"
-    recorder.write_text(
-        "#!/usr/bin/env bash\n"
-        "# args: ownir <facts> --format F --severity S\n"
-        f"sha256sum < \"$2\" | cut -d' ' -f1 > {json.dumps(str(seen))}\n"
-        "exit 0\n",
-        encoding="utf-8")
-    recorder.chmod(0o755)
+    seen = tmp / "candidate-saw.json"
+    recorder_env = stub_env(tmp, "recorder", exit_code=0, copy_input=seen)
 
     evidence = Path.home() / ".owen/compare/last-compare.json"
     if evidence.exists():
         evidence.unlink()
     r2 = run_owen(["--engine", "compare", "--format", "human", str(sample)],
-                  env={"OWEN_RUST_CORE": str(recorder)})
+                  env={"OWEN_RUST_CORE": stub, **recorder_env})
     if r2 is None:
         skip(same_check, "no built launcher/dotnet")
         return
@@ -696,7 +874,9 @@ def control_compare_same_input_and_extract_once(sample: Path, tmp: Path) -> None
     except (OSError, json.JSONDecodeError) as exc:
         fail(same_check, f"the compare evidence is unreadable: {exc}")
         return
-    candidate_saw = seen.read_text(encoding="utf-8").strip()
+    # The stub copied the bytes it was handed; hashing the copy here is the
+    # same measurement with the arithmetic left where a library exists.
+    candidate_saw = hashlib.sha256(seen.read_bytes()).hexdigest()
     if candidate_saw != attested:
         fail(same_check, f"the candidate was handed bytes hashing to {candidate_saw}, but the "
                          f"launcher attested the capture as {attested} — the engines did not "
@@ -758,12 +938,10 @@ def control_compare_failure_and_divergence(sample: Path, tmp: Path) -> None:
     div_check = "divergence-is-5"
     exec_check = "exec-failure-is-5"
     sub_check = "compare-no-substitution"
-    if os.name == "nt":
+    stub = stub_exe(tmp)
+    if stub is None:
         for c in (div_check, exec_check, sub_check):
-            not_applicable(c, "needs a synthetic candidate with chosen output; a shebang stub "
-                              "is Unix-only, and the launcher cannot spawn a .cmd. The C# and "
-                              "bash logic under test is platform-independent and is measured on "
-                              "the Linux leg")
+            skip(c, "no native stub (set OWEN_STAGE1_STUB or provide rustc)")
         return
     if not have_dotnet():
         for c in (div_check, exec_check, sub_check):
@@ -775,12 +953,13 @@ def control_compare_failure_and_divergence(sample: Path, tmp: Path) -> None:
     # in the bytes. That is deliberate: a stub that also differed in its exit
     # code would let a compare that had stopped comparing stdout still look
     # correct, because the exit-code check alone would flag the divergence.
-    diverging = write_stub(tmp / "diverging-core", 1, stdout="a different answer\n")
+    diverging = {"OWEN_RUST_CORE": stub,
+                 **stub_env(tmp, "diverging", exit_code=1, stdout=b"a different answer\n")}
     div_runs = [("own-check.sh",
                  run_own_check(["--engine", "compare", "--format", "human", "--", str(sample)],
-                               env={"OWEN_RUST_CORE": str(diverging)}))]
+                               env=diverging))]
     owen_div = run_owen(["--engine", "compare", "--format", "human", str(sample)],
-                        env={"OWEN_RUST_CORE": str(diverging)})
+                        env=diverging)
     if owen_div is not None:
         div_runs.append(("owen", owen_div))
     else:
@@ -820,12 +999,14 @@ def control_compare_failure_and_divergence(sample: Path, tmp: Path) -> None:
                       "evidence, on every surface")
 
     # (c) execution failure: a candidate that produces no verdict at all.
-    crashing = write_stub(tmp / "crashing-core", 42, stderr="forced execution failure\n")
+    crashing = {"OWEN_RUST_CORE": stub,
+                **stub_env(tmp, "crashing", exit_code=42,
+                           stderr=b"forced execution failure\n")}
     exec_runs = [("own-check.sh",
                   run_own_check(["--engine", "compare", "--format", "human", "--", str(sample)],
-                                env={"OWEN_RUST_CORE": str(crashing)}))]
+                                env=crashing))]
     owen_exec = run_owen(["--engine", "compare", "--format", "human", str(sample)],
-                         env={"OWEN_RUST_CORE": str(crashing)})
+                         env=crashing)
     if owen_exec is not None:
         exec_runs.append(("owen", owen_exec))
     else:
@@ -911,6 +1092,8 @@ def run() -> int:
         # No fail-fast: every control runs, so a campaign sees every catcher a
         # mutation trips rather than only the first.
         control_bad_locator_is_2(sample_dir, tmp)
+        control_absolute_locator_only(sample_dir, tmp)
+        control_compare_failure_is_classified(sample_dir, tmp)
         control_no_selector_in_own_cli()
         control_default_stays_python(sample_dir)
         control_rust_actually_runs_rust(sample_dir)

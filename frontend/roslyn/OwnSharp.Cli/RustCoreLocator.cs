@@ -67,6 +67,23 @@ internal static class RustCoreLocator
         // A directory that exists still fails the File.Exists test below, but
         // saying "is a directory" beats saying "does not exist" about a path
         // the user can see with their own eyes.
+        // D3 says an ABSOLUTE path, and this is where that stops being a
+        // description and becomes a check. A relative locator that happens to
+        // exist resolves against the current working directory — which is
+        // precisely the ambient, cwd-dependent resolution D3 forbids: the same
+        // OWEN_RUST_CORE would select different binaries from different
+        // directories, and "which binary ran" would stop being a property of
+        // the configuration. Rejected before any existence test, so the
+        // diagnostic names the real problem rather than reporting on whatever
+        // the relative path happened to hit.
+        if (!Path.IsPathFullyQualified(raw))
+        {
+            throw new RustCoreNotResolvedException(
+                Problem($"is not an absolute path: '{raw}'. Stage 1 resolves the candidate " +
+                        "from this variable alone, so a path relative to the current directory " +
+                        "would select a different binary depending on where Owen was run"));
+        }
+
         if (Directory.Exists(raw))
         {
             throw new RustCoreNotResolvedException(

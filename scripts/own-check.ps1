@@ -80,6 +80,53 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Invoke-CapturedProcess {
+    <#
+    .SYNOPSIS
+      Run a child and capture its streams as RAW BYTES.
+
+    .DESCRIPTION
+      `Start-Process -RedirectStandardOutput` is NOT byte-faithful: measured
+      against the same input, the Python reference wrote 211 bytes and the
+      redirected file held 210 — a blank line silently dropped. Compare mode
+      claims the two engines' PUBLIC BYTES are identical, so capturing the
+      reference through a lossy channel does not merely lose formatting: it can
+      manufacture a divergence that does not exist, or hide one that does, and
+      an agreement reached over a corrupted capture is not an agreement at all.
+
+      This drains both pipes as byte streams, concurrently — a serial read
+      deadlocks once either pipe fills — which is the same thing the `owen`
+      launcher does in C#. A failure to START is deliberately allowed to
+      propagate so the caller can map it to D3.1's configuration exit (2).
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][string[]]$ArgumentList,
+        [Parameter(Mandatory = $true)][string]$StdoutPath,
+        [Parameter(Mandatory = $true)][string]$StderrPath
+    )
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $FilePath
+    foreach ($a in $ArgumentList) { $psi.ArgumentList.Add($a) }
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.UseShellExecute = $false
+    $proc = [System.Diagnostics.Process]::Start($psi)
+    $outFs = [System.IO.File]::Create($StdoutPath)
+    $errFs = [System.IO.File]::Create($StderrPath)
+    try {
+        $outTask = $proc.StandardOutput.BaseStream.CopyToAsync($outFs)
+        $errTask = $proc.StandardError.BaseStream.CopyToAsync($errFs)
+        $proc.WaitForExit()
+        [System.Threading.Tasks.Task]::WaitAll(@($outTask, $errTask))
+    }
+    finally {
+        $outFs.Dispose()
+        $errFs.Dispose()
+    }
+    return $proc.ExitCode
+}
+
 # Default root = the Own.NET checkout this script lives in (scripts\..).
 if ([string]::IsNullOrEmpty($Root)) {
     $Root = Split-Path -Parent $PSScriptRoot
@@ -104,6 +151,15 @@ if ($Engine -eq "rust" -or $Engine -eq "compare") {
     if ([string]::IsNullOrWhiteSpace($rustCore)) {
         $problem = "is not set (or is empty)"
     }
+    # D3 says an ABSOLUTE path, and this is where that stops being a
+    # description and becomes a check: a relative locator that happens to exist
+    # resolves against the current directory, so the same OWEN_RUST_CORE would
+    # select different binaries depending on where own-check was run.
+    elseif (-not [System.IO.Path]::IsPathFullyQualified($rustCore)) {
+        $problem = ("is not an absolute path: '$rustCore' (Stage 1 resolves the candidate from " +
+                    "this variable alone, so a path relative to the current directory would " +
+                    "select a different binary depending on where own-check was run)")
+    }
     elseif (Test-Path -LiteralPath $rustCore -PathType Container) {
         $problem = "points at a directory, not a file: '$rustCore'"
     }
@@ -111,9 +167,11 @@ if ($Engine -eq "rust" -or $Engine -eq "compare") {
         $problem = "points at a path that does not exist: '$rustCore'"
     }
     if ($problem -ne "") {
-        # Windows has no execute bit: an existing regular file is accepted here
-        # and a genuinely broken image fails at spawn, which is the other side
-        # of the D3.1 seam and already maps to the internal-error path.
+        # Windows has no execute bit, so an existing regular file is accepted
+        # here and a file the loader cannot start is caught at SPAWN instead —
+        # and that is still the locator's side of D3.1's seam ("cannot select
+        # the candidate"), so it maps to this same configuration exit 2, not to
+        # the internal-error path. See Invoke-RustCandidate below.
         [Console]::Error.WriteLine(("own-check: --engine $Engine needs the candidate ``own-cli`` binary, but " +
             "OWEN_RUST_CORE $problem. Set OWEN_RUST_CORE to the absolute path of the ``own-cli`` " +
             "executable to run. Owen did not fall back to Python."))
@@ -153,8 +211,21 @@ try {
     elseif ($Engine -eq "rust") {
         # The PRODUCTION Rust executable, never own-shadow-engine.
         $rustArgs = @("ownir") + $ownirArgs
-        & $rustCore @rustArgs
-        $rc = $LASTEXITCODE
+        try {
+            & $rustCore @rustArgs
+            $rc = $LASTEXITCODE
+        }
+        catch {
+            # D3.1's seam: the candidate never STARTED — an existing file the
+            # loader will not run. That is "cannot select the candidate", so it
+            # is a configuration error (2), not Owen failing internally (5).
+            # On Windows this is the only point at which a non-runnable
+            # candidate can be detected, since there is no execute bit to test.
+            [Console]::Error.WriteLine(("own-check: the candidate ``own-cli`` binary could not be started: " +
+                "'$rustCore' ($($_.Exception.Message)). Set OWEN_RUST_CORE to a runnable ``own-cli`` " +
+                "executable. Owen did not fall back to Python."))
+            exit 2
+        }
         # 0/1/2 are verdicts and pass through; anything else is not a verdict
         # and takes the public internal-error path (5) with the raw child
         # status named. It never runs Python instead.
@@ -212,16 +283,27 @@ try {
             # PowerShell's own string pipeline.
             $pyArgs = @("-m", "ownlang", "ownir", $pyIn, "--format", $Format, "--severity", $Severity,
                         "--verbosity", $Verbosity)
-            $p1 = Start-Process -FilePath "python" -ArgumentList $pyArgs -NoNewWindow -Wait -PassThru `
-                -RedirectStandardOutput (Join-Path $cmpDir "python.out") `
-                -RedirectStandardError (Join-Path $cmpDir "python.err")
+            $pyRcCaptured = Invoke-CapturedProcess -FilePath "python" -ArgumentList $pyArgs `
+                -StdoutPath (Join-Path $cmpDir "python.out") `
+                -StderrPath (Join-Path $cmpDir "python.err")
             $rsArgs = @("ownir", $rsIn, "--format", $Format, "--severity", $Severity,
                         "--verbosity", $Verbosity)
-            $p2 = Start-Process -FilePath $rustCore -ArgumentList $rsArgs -NoNewWindow -Wait -PassThru `
-                -RedirectStandardOutput (Join-Path $cmpDir "rust.out") `
-                -RedirectStandardError (Join-Path $cmpDir "rust.err")
-            $pyRc = $p1.ExitCode
-            $rsRc = $p2.ExitCode
+            try {
+                $rsRcCaptured = Invoke-CapturedProcess -FilePath $rustCore -ArgumentList $rsArgs `
+                    -StdoutPath (Join-Path $cmpDir "rust.out") `
+                    -StderrPath (Join-Path $cmpDir "rust.err")
+            }
+            catch {
+                # Same seam as --engine rust: a candidate that never started is
+                # a configuration error (2), not a compare execution failure
+                # (5). The compare did not happen.
+                [Console]::Error.WriteLine(("own-check: the candidate ``own-cli`` binary could not be started: " +
+                    "'$rustCore' ($($_.Exception.Message)). Set OWEN_RUST_CORE to a runnable ``own-cli`` " +
+                    "executable. Owen did not fall back to Python."))
+                exit 2
+            }
+            $pyRc = $pyRcCaptured
+            $rsRc = $rsRcCaptured
 
             # D4.1 (c): execution failure first — two results are comparable
             # only once both exist.
@@ -232,6 +314,11 @@ try {
                     "$pyRc, rust exit $rsRc). No engine's result was substituted for the other's failure. " +
                     "Reproduction — input sha256 $captureSha, candidate $rustCore, artifacts in $cmpDir"))
                 if (-not $rsLegal) { [Console]::Error.WriteLine("own-check: raw Rust child status: $rsRc") }
+                # The message above names $cmpDir as the reproduction evidence,
+                # so the directory has to outlive this process. Pointing a
+                # reader at a path and then deleting it on the way out is worse
+                # than not naming one at all.
+                $keep = $true
                 exit 5
             }
 
@@ -254,8 +341,31 @@ try {
                 exit 5
             }
 
-            # Agreement: the externally observed result is the reference's.
-            Get-Content -LiteralPath (Join-Path $cmpDir "python.out") -Raw -ErrorAction SilentlyContinue | Write-Output
+            # Agreement: the externally observed result is the reference's —
+            # its RAW BYTES, both streams. `Get-Content -Raw | Write-Output`
+            # decodes and re-encodes through PowerShell's pipeline, which is
+            # not the reference's output but a re-rendering of it, and it
+            # dropped stderr entirely. The reference result is (exit, stdout
+            # bytes, stderr bytes); C# and own-check.sh both replay all three,
+            # and this surface now does too.
+            #
+            # Implemented for the contract, not for today's statistics: a
+            # healthy Windows compare currently diverges on CRLF-vs-LF so this
+            # branch is rarely reached there, but a format, a runtime version
+            # or the A/B/C resolution can make it reachable, and a replay that
+            # is wrong only when it finally runs is worse than no replay.
+            $outBytes = [System.IO.File]::ReadAllBytes((Join-Path $cmpDir "python.out"))
+            $errBytes = [System.IO.File]::ReadAllBytes((Join-Path $cmpDir "python.err"))
+            if ($outBytes.Length -gt 0) {
+                $stdoutStream = [System.Console]::OpenStandardOutput()
+                $stdoutStream.Write($outBytes, 0, $outBytes.Length)
+                $stdoutStream.Flush()
+            }
+            if ($errBytes.Length -gt 0) {
+                $stderrStream = [System.Console]::OpenStandardError()
+                $stderrStream.Write($errBytes, 0, $errBytes.Length)
+                $stderrStream.Flush()
+            }
             $rc = $pyRc
         }
         finally {

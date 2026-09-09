@@ -46,6 +46,14 @@ internal static class CompareMode
     /// public internal-error path.</summary>
     public const int ExitCode = CrashReport.ExitCode;
 
+    /// <summary>The evidence's external <c>verdict</c> vocabulary. Three
+    /// values, written down once so a call site cannot invent a fourth: what a
+    /// consumer reads has to stay stable, and every case here is one of
+    /// "they agreed", "they disagreed", or "one of them did not answer".</summary>
+    private const string Agreement = "agreement";
+    private const string Divergence = "divergence";
+    private const string ExecutionFailure = "execution-failure";
+
     /// <summary>Run both engines over one capture and apply D4.1.</summary>
     /// <returns>The public exit code: the reference's own on agreement, else 5.</returns>
     public static async Task<int> RunAsync(
@@ -67,7 +75,7 @@ internal static class CompareMode
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return Fail(args, rust, null, null,
+            return Fail(args, rust, null, null, ExecutionFailure,
                 $"could not capture the extracted OwnIR: {ex.Message}", childExitCode: null);
         }
 
@@ -81,7 +89,7 @@ internal static class CompareMode
         // zero denominator wearing a passing grade.
         if (!HasAnalyzableUnit(captured, out var why))
         {
-            return Fail(args, rust, null, null,
+            return Fail(args, rust, null, null, ExecutionFailure,
                 $"the captured OwnIR contains nothing to analyse ({why}) — a compare over " +
                 "zero documents proves nothing and is a failure, not an agreement",
                 childExitCode: null);
@@ -99,7 +107,7 @@ internal static class CompareMode
             var rustSha = Sha256Hex(await File.ReadAllBytesAsync(rustInput).ConfigureAwait(false));
             if (pythonSha != capturedSha || rustSha != capturedSha)
             {
-                return Fail(args, rust, null, null,
+                return Fail(args, rust, null, null, ExecutionFailure,
                     "the two engine inputs are not byte-identical to the single capture " +
                     $"(capture {capturedSha}, python {pythonSha}, rust {rustSha}) — the " +
                     "same-input invariant failed, so no comparison may be reported",
@@ -116,7 +124,7 @@ internal static class CompareMode
             }
             catch (Exception ex) when (ex is InvalidOperationException or IOException)
             {
-                return Fail(args, rust, null, null,
+                return Fail(args, rust, null, null, ExecutionFailure,
                     $"the Python reference could not be run: {ex.Message}", childExitCode: null);
             }
             try
@@ -150,7 +158,7 @@ internal static class CompareMode
                     : !pyLegal
                         ? $"the Python reference failed (exit {py.Rc})"
                         : $"the Rust candidate failed (exit {rs.Rc})";
-                return Fail(args, rust, py, rs,
+                return Fail(args, rust, py, rs, ExecutionFailure,
                     $"compare execution failure — {offender}. No engine's result was " +
                     "substituted for the other's failure.",
                     childExit);
@@ -168,7 +176,7 @@ internal static class CompareMode
                     sameOut ? null : $"stdout ({py.Stdout.Length} vs {rs.Stdout.Length} bytes)",
                     sameErr ? null : $"stderr ({py.Stderr.Length} vs {rs.Stderr.Length} bytes)",
                 }.Where(x => x is not null));
-                return Fail(args, rust, py, rs,
+                return Fail(args, rust, py, rs, Divergence,
                     $"engine divergence — the reference and the candidate disagree on {what}. " +
                     "Neither verdict is exposed as authoritative: Owen cannot honestly emit " +
                     "one answer when its reference and its candidate disagree.",
@@ -180,7 +188,7 @@ internal static class CompareMode
             // the user sees exactly what a `--engine python` run would have
             // produced — byte for byte, replayed undecoded.
             await ReplayAsync(py).ConfigureAwait(false);
-            WriteEvidence(args, rust, capturedSha, py, rs, verdict: "agreement",
+            WriteEvidence(args, rust, capturedSha, py, rs, verdict: Agreement,
                 diagnostic: null, childExitCode: null);
             return failOnFinding ? py.Rc : (py.Rc >= 2 ? py.Rc : 0);
         }
@@ -190,8 +198,21 @@ internal static class CompareMode
             TryDelete(rustInput);
         }
 
+        // The classification is PASSED IN, never inferred. It used to be
+        // derived as `childExitCode is null && py is not null && rs is not
+        // null ? "divergence" : "execution-failure"`, which reads the D5 Rust
+        // child carrier as if it were a classifier: a Python-only bad exit
+        // leaves childExitCode null with both outcomes present, so the
+        // evidence said "divergence" while the diagnostic beside it said
+        // "execution failure". Only the call site knows which case it is, so
+        // only the call site says.
+        //
+        // `verdict` keeps its existing external vocabulary — agreement /
+        // divergence / execution-failure. A finer distinction belongs in the
+        // human-readable `diagnostic`, not in a new serialized value the
+        // project would then owe support for.
         int Fail(string[] a, RustCore core, EngineOutcome? py, EngineOutcome? rs,
-            string diagnostic, int? childExitCode)
+            string verdict, string diagnostic, int? childExitCode)
         {
             Console.Error.WriteLine($"owen: --engine compare: {diagnostic}");
             // The reproduction line is on STDERR, not only inside the evidence
@@ -204,10 +225,7 @@ internal static class CompareMode
                 $"  Reproduction — input sha256 {(capturedSha.Length > 0 ? capturedSha : "(no capture)")}, " +
                 $"candidate {core.Path} (sha256 {core.Sha256})");
             var path = WriteEvidence(a, core, capturedSha, py, rs,
-                verdict: childExitCode is null && py is not null && rs is not null
-                    ? "divergence"
-                    : "execution-failure",
-                diagnostic: diagnostic, childExitCode: childExitCode);
+                verdict: verdict, diagnostic: diagnostic, childExitCode: childExitCode);
             if (path is not null)
             {
                 Console.Error.WriteLine($"  Reproduction evidence: {path}");

@@ -118,8 +118,30 @@ rust_core=""
 if [[ "$engine" == "rust" || "$engine" == "compare" ]]; then
   rust_core="${OWEN_RUST_CORE:-}"
   problem=""
+  # D3 says an ABSOLUTE path, and this is where that stops being a description
+  # and becomes a check: a relative locator that happens to exist resolves
+  # against the current working directory, so the same OWEN_RUST_CORE would
+  # select different binaries from different directories.
+  #
+  # "Absolute" is not one shape here. This script runs under git-bash on
+  # Windows as well as a POSIX shell, so a genuinely absolute locator may
+  # arrive as `/d/a/...` (the MSYS form, which is what CI passes), as
+  # `C:\...` or `C:/...` (a native Windows path), or as a `//server/share`
+  # UNC. A bare `/*` test would reject two of those and turn a correct
+  # configuration into a usage error. This accepts the forms this surface
+  # actually receives and rejects everything else; it deliberately does NOT
+  # convert between them — D3 ratified an absolute locator, not a path
+  # translation policy.
+  is_absolute=0
+  case "$rust_core" in
+    /*)             is_absolute=1 ;;   # POSIX, and MSYS's /c/... form
+    [A-Za-z]:[/\]*) is_absolute=1 ;;  # C:\... or C:/...
+    \\?*)          is_absolute=1 ;;  # \\server\share (UNC)
+  esac
   if [[ -z "$rust_core" ]]; then
     problem="is not set (or is empty)"
+  elif [[ "$is_absolute" -eq 0 ]]; then
+    problem="is not an absolute path: '$rust_core' (Stage 1 resolves the candidate from this variable alone, so a path relative to the current directory would select a different binary depending on where own-check was run)"
   elif [[ -d "$rust_core" ]]; then
     problem="points at a directory, not a file: '$rust_core'"
   elif [[ ! -f "$rust_core" ]]; then

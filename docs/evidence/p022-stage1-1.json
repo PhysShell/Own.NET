@@ -126,8 +126,8 @@
       "rule": "divergence-is-5",
       "description": "a divergence exposes the reference's result — 'Python is still the reference, so trust it' read as a licence to answer while the two engines disagree",
       "target": "frontend/roslyn/OwnSharp.Cli/CompareMode.cs",
-      "pattern": "                return Fail\\(args, rust, py, rs,\\n                    \\$\\\"engine divergence",
-      "replacement": "                await ReplayAsync(py).ConfigureAwait(false);\n                return failOnFinding ? py.Rc : (py.Rc >= 2 ? py.Rc : 0);\n#pragma warning disable CS0162\n                return Fail(args, rust, py, rs,\n                    $\"engine divergence",
+      "pattern": "                return Fail\\(args, rust, py, rs, Divergence,\\n                    \\$\\\"engine divergence",
+      "replacement": "                await ReplayAsync(py).ConfigureAwait(false);\n                return failOnFinding ? py.Rc : (py.Rc >= 2 ? py.Rc : 0);\n#pragma warning disable CS0162\n                return Fail(args, rust, py, rs, Divergence,\n                    $\"engine divergence",
       "expected_catchers": [
         "stage1::divergence-is-5",
         "stage1::compare-no-substitution"
@@ -197,6 +197,39 @@
       "replacement": "      :",
       "expected_catchers": [
         "stage1::compare-zero-document"
+      ]
+    },
+    {
+      "id": "M17",
+      "rule": "locator-must-be-absolute",
+      "description": "the launcher accepts a relative OWEN_RUST_CORE — `GetFullPath` reads as 'it resolves the path for me', which it does: against whatever directory Owen happened to run in",
+      "target": "frontend/roslyn/OwnSharp.Cli/RustCoreLocator.cs",
+      "pattern": "        if \\(!Path\\.IsPathFullyQualified\\(raw\\)\\)",
+      "replacement": "        if (false)",
+      "expected_catchers": [
+        "stage1::absolute-locator-only"
+      ]
+    },
+    {
+      "id": "M18",
+      "rule": "shell-locator-must-be-absolute",
+      "description": "the shell accepts a relative OWEN_RUST_CORE — the -f/-x tests look like they answer 'is this a usable binary', and they do, for whatever the current directory made of the path",
+      "target": "scripts/own-check.sh",
+      "pattern": "  elif \\[\\[ \\\"\\$is_absolute\\\" -eq 0 \\]\\]; then",
+      "replacement": "  elif false; then",
+      "expected_catchers": [
+        "stage1::absolute-locator-only"
+      ]
+    },
+    {
+      "id": "M19",
+      "rule": "compare-verdict-is-stated",
+      "description": "the compare verdict is inferred from the Rust-child field again — `child_exit_code is null` reads as 'no engine crashed', but it is only ever about the RUST child, so a Python-only failure is stamped 'divergence'",
+      "target": "frontend/roslyn/OwnSharp.Cli/CompareMode.cs",
+      "pattern": "                verdict: verdict, diagnostic: diagnostic, childExitCode: childExitCode\\);",
+      "replacement": "                verdict: childExitCode is null && py is not null && rs is not null\n                    ? \"divergence\"\n                    : \"execution-failure\",\n                diagnostic: diagnostic, childExitCode: childExitCode);",
+      "expected_catchers": [
+        "stage1::compare-failure-classified"
       ]
     }
   ]
