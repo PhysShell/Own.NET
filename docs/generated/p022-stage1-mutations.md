@@ -12,7 +12,7 @@ Definition: `docs/evidence/p022-stage1-1.json` (sha256 `c8bd2180f285a130…`, 21
 
 | measure                                          | value |
 |--------------------------------------------------|---|
-| recorded at commit                               | `1d649e99d9c9a8fac0913ac59fcbda94499479bb` |
+| recorded at commit                               | `da897b42fcd76ea1914d286bd6bae6065c072c70` |
 | layers run (every one, for every mutation)       | `stage1` |
 | mutations                                        | 21 |
 | caught                                           | 21 |
@@ -55,21 +55,16 @@ Definition: `docs/evidence/p022-stage1-windows.json` (sha256 `6dbfa6054f6447bb�
 
 | measure                                          | value |
 |--------------------------------------------------|---|
-| recorded at commit                               | `1d649e99d9c9a8fac0913ac59fcbda94499479bb` |
+| recorded at commit                               | `da897b42fcd76ea1914d286bd6bae6065c072c70` |
 | layers run (every one, for every mutation)       | `ps1`, `shapes` |
 | mutations                                        | 9 |
-| caught                                           | 7 |
+| caught                                           | 9 |
 | survived                                         | 0 |
 | compile-error (no evidence either way)           | 0 |
 | invalid-mutation                                 | 0 |
 | runner-error                                     | 0 |
 | caught without every expected catcher            | none |
 | honesty control `M00` (unmutated tree must pass) | survived — as required |
-
-**This run is not evidence:**
-
-- the recorded result was taken over a different campaign definition (sha256 or campaign name differs) — re-run the campaign
-- result/definition mutation sets differ (missing ['P08', 'P09'], unknown [])
 
 | id | rule | mutation | outcome | caught by |
 |---|---|---|---|---|
@@ -80,5 +75,5 @@ Definition: `docs/evidence/p022-stage1-windows.json` (sha256 `6dbfa6054f6447bb�
 | P05 | absolute-locator-is-accepted | the shell's drive-rooted arm stops matching — this is the defect that actually shipped: `[/\]` escapes the closing bracket, so the set is unterminated and matches NEITHER `C:/` nor `C:\`, and every correct Windows locator was refused as 'not absolute' while every Linux control stayed green | caught | `shapes::locator-shapes` |
 | P06 | absolute-locator-is-accepted | own-check.ps1's absoluteness test is inverted — the over-rejection direction on this surface: every fully qualified locator is refused as 'not absolute' and every relative one is admitted, which no assertion that only feeds it a relative path can see | caught | `ps1::ps1-absolute-locator`<br>`ps1::ps1-agreement-replays`<br>`ps1::ps1-failure-evidence`<br>`ps1::ps1-not-started-is-2` |
 | P07 | the-candidate-is-spawned-not-opened | own-check.ps1 goes back to invoking the candidate with the call operator — 'PowerShell runs it either way, why the ceremony?'. It does not run it: it asks the platform to OPEN it, so a file the loader cannot start is handed to a desktop handler (notepad on Windows, xdg-open on Linux), the run exits 0 with empty streams, and Owen reports a clean finding-free analysis of nothing | caught | `ps1::ps1-not-started-is-2` |
-| P08 | ps1-agreement-replays-raw-bytes | own-check.ps1 drops the STDERR half of the agreement replay while leaving stdout byte-faithful — 'stderr is diagnostics, the result is stdout', which is how the original defect was written in the first place. It is the twin of P03 and exists because a single mutation that broke both streams could be killed by the stdout assertion alone: with this one, the stderr assertion is the only thing standing between the mutant and a green run | **not recorded** | — |
-| P09 | the-locator-is-a-preflight | own-check.ps1 checks that the .NET toolchain answers before it validates the locator — 'fail on the missing tool first', which plenty of CLIs do. The rejection it then produces is still correct in every observable way: exit 2, the absolute requirement named, no verdict. What it loses is the POSITION: a decision reachable from one environment variable now happens behind an external process, and on the real path that process is a Roslyn extraction over the caller's whole tree. Nothing in this control caught that until it began counting child processes | **not recorded** | — |
+| P08 | ps1-agreement-replays-raw-bytes | own-check.ps1 drops the STDERR half of the agreement replay while leaving stdout byte-faithful — 'stderr is diagnostics, the result is stdout', which is how the original defect was written in the first place. It is the twin of P03 and exists because a single mutation that broke both streams could be killed by the stdout assertion alone: with this one, the stderr assertion is the only thing standing between the mutant and a green run | caught | `ps1::ps1-agreement-replays` |
+| P09 | the-locator-is-a-preflight | own-check.ps1 checks that the .NET toolchain answers before it validates the locator — 'fail on the missing tool first', which plenty of CLIs do. The rejection it then produces is still correct in every observable way: exit 2, the absolute requirement named, no verdict. What it loses is the POSITION: a decision reachable from one environment variable now happens behind an external process, and on the real path that process is a Roslyn extraction over the caller's whole tree. Nothing in this control caught that until it began counting child processes | caught | `ps1::ps1-absolute-locator` |
