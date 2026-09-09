@@ -2,7 +2,7 @@
   "schema": 1,
   "comment": "GENERATED-BY-HAND definition; the RESULT beside it is recorded by scripts/mutate_campaign.py --run on a WINDOWS runner and the counts are derived from it, never typed.",
   "campaign": "p022-stage1-windows",
-  "description": "#262 Stage 1 — the surfaces whose contract only Windows can be asked about. `scripts/own-check.ps1` was driven by a CI smoke step but was absent from the adversarial control set, which is why three of its engine-contract defects survived a 16/16 campaign on the other surfaces: a campaign can only prove what some control observes. Beside it sits the Windows half of `scripts/own-check.sh`'s locator classifier, which the Linux campaign cannot reach at all — a drive-rooted path is absolute only where Windows resolves it, and a mutant of that arm is invisible on Linux whatever the runner reports. Every mutation here is a plausible MISREADING rather than a syntactic accident.",
+  "description": "#262 Stage 1 — the surfaces whose contract only Windows can be asked about. `scripts/own-check.ps1` was driven by a CI smoke step but was absent from the adversarial control set, which is why three of its engine-contract defects survived a 16/16 campaign on the other surfaces: a campaign can only prove what some control observes. Beside it sits the Windows half of `scripts/own-check.sh`'s locator classifier, which the Linux campaign cannot reach at all — a drive-rooted path is absolute only where Windows resolves it, and a mutant of that arm is invisible on Linux whatever the runner reports. It also carries the spawn seam itself: a candidate must be STARTED, never handed to the platform to open, and the two desktop handlers that proved this — notepad and xdg-open — are why the seam was unreachable on either platform until it was fixed. Every mutation here is a plausible MISREADING rather than a syntactic accident.",
   "layers": [
     {
       "id": "ps1",
@@ -96,6 +96,17 @@
       "replacement": "    elseif ([System.IO.Path]::IsPathFullyQualified($rustCore)) {",
       "expected_catchers": [
         "ps1::ps1-absolute-locator"
+      ]
+    },
+    {
+      "id": "P07",
+      "rule": "the-candidate-is-spawned-not-opened",
+      "description": "own-check.ps1 goes back to invoking the candidate with the call operator — 'PowerShell runs it either way, why the ceremony?'. It does not run it: it asks the platform to OPEN it, so a file the loader cannot start is handed to a desktop handler (notepad on Windows, xdg-open on Linux), the run exits 0 with empty streams, and Owen reports a clean finding-free analysis of nothing",
+      "target": "scripts/own-check.ps1",
+      "pattern": "    \\$psi\\.UseShellExecute = \\$false\n    \\$proc = \\[System\\.Diagnostics\\.Process\\]::Start\\(\\$psi\\)\n    \\$proc\\.WaitForExit\\(\\)\n    return \\$proc\\.ExitCode",
+      "replacement": "    & $FilePath @ArgumentList\n    return $LASTEXITCODE",
+      "expected_catchers": [
+        "ps1::ps1-not-started-is-2"
       ]
     }
   ]

@@ -80,6 +80,43 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Invoke-CandidateProcess {
+    <#
+    .SYNOPSIS
+      Run the candidate with the parent's streams, as a REAL process spawn.
+
+    .DESCRIPTION
+      PowerShell's call operator does not spawn a candidate; it asks the
+      PLATFORM to "open" it, and a file the loader cannot run is then handed to
+      whatever is registered for it. Measured on both platforms: on the Windows
+      CI runner a non-image candidate opened in NOTEPAD (the job's own cleanup
+      terminated it) and `& $rustCore` returned 0 with both streams empty; on
+      Linux the same file went to xdg-open. Either way own-check.ps1 reported a
+      clean, finding-free run having analysed nothing — a false "no findings",
+      which is worse than any exit code.
+
+      UseShellExecute = $false is what makes this a spawn: the image is started
+      or the start FAILS, with no file association anywhere in the path. The
+      failure is deliberately allowed to propagate so the caller can map it to
+      D3.1's configuration exit (2), which is the seam this whole path exists
+      to honour.
+
+      Nothing is redirected, so the child inherits this process's stdout and
+      stderr and its output streams live, exactly as the call operator's did.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][string[]]$ArgumentList
+    )
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $FilePath
+    foreach ($a in $ArgumentList) { $psi.ArgumentList.Add($a) }
+    $psi.UseShellExecute = $false
+    $proc = [System.Diagnostics.Process]::Start($psi)
+    $proc.WaitForExit()
+    return $proc.ExitCode
+}
+
 function Invoke-CapturedProcess {
     <#
     .SYNOPSIS
@@ -212,15 +249,15 @@ try {
         # The PRODUCTION Rust executable, never own-shadow-engine.
         $rustArgs = @("ownir") + $ownirArgs
         try {
-            & $rustCore @rustArgs
-            $rc = $LASTEXITCODE
+            $rc = Invoke-CandidateProcess -FilePath $rustCore -ArgumentList $rustArgs
         }
         catch {
             # D3.1's seam: the candidate never STARTED — an existing file the
             # loader will not run. That is "cannot select the candidate", so it
             # is a configuration error (2), not Owen failing internally (5).
-            # On Windows this is the only point at which a non-runnable
-            # candidate can be detected, since there is no execute bit to test.
+            # Reaching this catch is why the call above is a spawn and not the
+            # call operator: an "open" succeeds on a file that cannot run, and
+            # a seam nothing can ever arrive at is not a seam.
             [Console]::Error.WriteLine(("own-check: the candidate ``own-cli`` binary could not be started: " +
                 "'$rustCore' ($($_.Exception.Message)). Set OWEN_RUST_CORE to a runnable ``own-cli`` " +
                 "executable. Owen did not fall back to Python."))

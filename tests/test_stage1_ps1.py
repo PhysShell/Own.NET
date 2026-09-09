@@ -220,27 +220,25 @@ def control_not_started_is_2(sample: Path, tmp: Path) -> None:
 
     This is the case the CI smoke step could not reach: it used a NONEXISTENT
     path, which `Test-Path` rejects long before any spawn.
+
+    It took two wrong answers to get here, and both were the production code
+    rather than the platform. I first declared this control Linux-N/A because
+    PowerShell there returned 0 and printed `xdg-open: no method available for
+    opening ...`; Windows CI then returned 0 with both streams empty, and the
+    job's own cleanup terminated an orphaned NOTEPAD. Same defect, two desktop
+    handlers: own-check.ps1 was ASKING THE PLATFORM TO OPEN the candidate
+    rather than spawning it, so the seam could not be reached anywhere and
+    Owen reported a clean, finding-free run having analysed nothing. With a
+    real spawn (UseShellExecute = $false) the start either succeeds or throws,
+    and the contract is answerable on both platforms — so this control is
+    required on both, and the N/A is gone.
+
+    The near-miss is worth keeping: on a developer container with no xdg-open
+    installed, this control PASSED, because the invocation failed and looked
+    exactly like a refusal. A verdict that turns on which desktop helper
+    happens to be installed is not measuring the contract.
     """
     check = "ps1-not-started-is-2"
-    if os.name != "nt":
-        # Measured on a Linux runner: PowerShell there does not refuse a
-        # non-executable file, it hands it to the DESKTOP OPENER — the run
-        # exits 0 with `xdg-open: no method available for opening ...`. So
-        # "the loader will not start this image" is not a state Linux can be
-        # asked about; it answers a different question and answers it
-        # successfully.
-        #
-        # Worth recording why this was nearly missed: the control PASSED on a
-        # developer container, for the wrong reason — no xdg-open was
-        # installed there, so the invocation failed and looked like a refusal.
-        # A control whose verdict depends on whether a desktop helper happens
-        # to be present is not measuring the contract. This is exactly the
-        # case the Windows-native mutation leg exists for.
-        not_applicable(check, "PowerShell on Linux routes a non-executable file to the desktop "
-                              "opener instead of refusing it, so the spawn seam cannot be posed "
-                              "here; it is required on Windows, where the ps1 mutation campaign "
-                              "runs")
-        return
     unstartable = tmp / "not-a-program.txt"
     unstartable.write_text("this is text, not an executable image\n", encoding="utf-8")
 
