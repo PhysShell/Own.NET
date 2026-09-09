@@ -1,8 +1,8 @@
 {
   "schema": 1,
   "comment": "GENERATED-BY-HAND definition; the RESULT beside it is recorded by scripts/mutate_campaign.py --run on a WINDOWS runner and the counts are derived from it, never typed.",
-  "campaign": "p022-stage1-ps1",
-  "description": "#262 Stage 1 — the PowerShell launcher surface. `scripts/own-check.ps1` was driven by a CI smoke step but was absent from the adversarial control set, which is why three of its engine-contract defects survived a 16/16 campaign on the other surfaces: a campaign can only prove what some control observes. Every mutation here targets own-check.ps1 itself, and every one is a plausible MISREADING rather than a syntactic accident — Test-Path answering a question D3 did not ask, a failed spawn read as the engine blowing up, `Get-Content | Write-Output` read as an echo, cleanup read as tidiness.",
+  "campaign": "p022-stage1-windows",
+  "description": "#262 Stage 1 — the surfaces whose contract only Windows can be asked about. `scripts/own-check.ps1` was driven by a CI smoke step but was absent from the adversarial control set, which is why three of its engine-contract defects survived a 16/16 campaign on the other surfaces: a campaign can only prove what some control observes. Beside it sits the Windows half of `scripts/own-check.sh`'s locator classifier, which the Linux campaign cannot reach at all — a drive-rooted path is absolute only where Windows resolves it, and a mutant of that arm is invisible on Linux whatever the runner reports. Every mutation here is a plausible MISREADING rather than a syntactic accident.",
   "layers": [
     {
       "id": "ps1",
@@ -12,9 +12,21 @@
         "python",
         "tests/test_stage1_ps1.py"
       ]
+    },
+    {
+      "id": "shapes",
+      "cwd": ".",
+      "parser": "python-fail",
+      "command": [
+        "python",
+        "tests/test_stage1_engine.py"
+      ],
+      "env": {
+        "OWEN_STAGE1_ONLY": "locator-shapes"
+      }
     }
   ],
-  "layers_comment": "WINDOWS-NATIVE BY CONTRACT. A mutation whose target is scripts/own-check.ps1 is only `caught` when a Windows PowerShell catcher observes the mutant and fails; this campaign therefore runs on a windows-latest runner (.github/workflows/ci.yml, job `stage1-ps1-mutations`). Running it on Linux would execute the mutated PowerShell under a different runtime and could not settle the Windows-specific halves — the spawn seam above all — so a Linux result is not evidence for these mutants and is never recorded as one.",
+  "layers_comment": "WINDOWS-NATIVE BY CONTRACT. A mutation targeting scripts/own-check.ps1, or the Windows arm of scripts/own-check.sh's locator classifier, is only `caught` when a Windows catcher observes the mutant and fails; this campaign therefore runs on a windows-latest runner (.github/workflows/ci.yml, job `stage1-windows-mutations`). Running it on Linux would execute the mutated PowerShell under a different runtime and would leave the drive-rooted arm unreachable, so a Linux result is not evidence for these mutants and is never recorded as one. The `shapes` layer narrows tests/test_stage1_engine.py to its locator classification control: that control needs no candidate and no .NET, so the Windows leg stays a PowerShell-and-shell job rather than a second full build.",
   "control": {
     "id": "M00",
     "description": "harness-honesty control: no mutation at all, which must report zero failing layers"
@@ -62,6 +74,28 @@
       "replacement": "                # reader at a path and then deleting it on the way out is worse\n                # than not naming one at all.\n                $keep = $false",
       "expected_catchers": [
         "ps1::ps1-failure-evidence"
+      ]
+    },
+    {
+      "id": "P05",
+      "rule": "absolute-locator-is-accepted",
+      "description": "the shell's drive-rooted arm stops matching — this is the defect that actually shipped: `[/\\]` escapes the closing bracket, so the set is unterminated and matches NEITHER `C:/` nor `C:\\`, and every correct Windows locator was refused as 'not absolute' while every Linux control stayed green",
+      "target": "scripts/own-check.sh",
+      "pattern": "        \\[A-Za-z\\]:\\[/\\\\\\\\\\]\\*\\) is_absolute=1 ;;",
+      "replacement": "        [A-Za-z]:[/\\]*) is_absolute=1 ;;",
+      "expected_catchers": [
+        "shapes::locator-shapes"
+      ]
+    },
+    {
+      "id": "P06",
+      "rule": "absolute-locator-is-accepted",
+      "description": "own-check.ps1's absoluteness test is inverted — the over-rejection direction on this surface: every fully qualified locator is refused as 'not absolute' and every relative one is admitted, which no assertion that only feeds it a relative path can see",
+      "target": "scripts/own-check.ps1",
+      "pattern": "    elseif \\(-not \\[System\\.IO\\.Path\\]::IsPathFullyQualified\\(\\$rustCore\\)\\) \\{",
+      "replacement": "    elseif ([System.IO.Path]::IsPathFullyQualified($rustCore)) {",
+      "expected_catchers": [
+        "ps1::ps1-absolute-locator"
       ]
     }
   ]

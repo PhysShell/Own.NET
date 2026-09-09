@@ -464,6 +464,77 @@ def control_absolute_locator_only(sample: Path, tmp: Path) -> None:
                   "before any extraction")
 
 
+def control_locator_shapes(sample: Path) -> None:
+    """D3, the direction a rejection test cannot see: an ABSOLUTE locator must
+    be ACCEPTED.
+
+    A validator that refuses everything passes "reject the relative one"
+    perfectly. That is not a hypothetical: own-check.sh shipped `[/\\]` as its
+    drive-rooted arm, where the backslash escapes the closing bracket and
+    leaves an unterminated set matching NEITHER `C:/` nor `C:\\`. Every correct
+    Windows configuration was refused as "not absolute", and every Linux
+    control stayed green, because only on Windows is the locator drive-rooted.
+
+    Every path below is ABSENT, so each run stops at the same preflight and the
+    assertion is on the REASON rather than the exit code — all of these exit 2
+    either way. That keeps the control fast, needs no candidate and no .NET,
+    and makes "refused as not absolute" and "absolute, but nothing is there"
+    distinguishable, which is the whole question. The UNC row uses the `\\\\.\\`
+    device form: UNC-shaped to both classifiers, but resolved locally, so it
+    cannot stall on a name lookup for a server a test invented.
+
+    Which shapes are absolute is a property of the PLATFORM, not of Owen, so
+    the expectations flip on Windows. All implementations must flip together —
+    a locator that is absolute to one of them and relative to another is the
+    same "which binary did we measure?" ambiguity under a different name.
+    """
+    check = "locator-shapes"
+    win = os.name == "nt"
+    shapes = [
+        # (locator, is it rejected FOR ABSOLUTENESS here?, what it is)
+        (f".{os.sep}nope-own-cli", True, "explicitly relative"),
+        (os.path.join("rust", "nope-own-cli"), True, "relative, no leading dot"),
+        ("C:nope-own-cli.exe", True, "drive-RELATIVE: the drive's current directory"),
+        ("\\nope\\own-cli.exe", True, "root-relative: the current drive"),
+        ("C:/nope/own-cli.exe", not win, "drive-rooted, forward slashes"),
+        ("C:\\nope\\own-cli.exe", not win, "drive-rooted, backslashes"),
+        ("\\\\.\\C:\\nope\\own-cli.exe", not win, "UNC/device-rooted"),
+        (str(ROOT / "no-such-own-cli"), False, "this platform's own absolute form"),
+    ]
+    problems = []
+    for locator, rejected_for_absoluteness, what in shapes:
+        env = dict(os.environ)
+        env["OWEN_RUST_CORE"] = locator
+        seen = {}
+        r = subprocess.run(
+            [bash_exe(), str(ROOT / "scripts/own-check.sh"),
+             "--engine", "rust", "--", str(sample)],
+            capture_output=True, env=env, cwd=str(ROOT), check=False)
+        seen["own-check.sh"] = "is not an absolute path" in (r.stdout + r.stderr).decode(
+            "utf-8", "replace")
+        dll = launcher_dll()
+        if dll is not None and have_dotnet():
+            r2 = subprocess.run(
+                ["dotnet", dll, "check", "--engine", "rust", str(sample)],
+                capture_output=True, env=env, cwd=str(ROOT), check=False)
+            seen["owen"] = "is not an absolute path" in (r2.stdout + r2.stderr).decode(
+                "utf-8", "replace")
+        for surface, got in seen.items():
+            if got != rejected_for_absoluteness:
+                verdict = "refused it as not absolute" if got else "accepted its shape"
+                problems.append(
+                    f"{surface}: '{locator}' ({what}) — {verdict}, expected the opposite "
+                    f"on {'Windows' if win else 'this POSIX host'}")
+        if len(set(seen.values())) > 1:
+            problems.append(f"'{locator}' ({what}) is absolute to one implementation and "
+                            f"relative to another: {seen}")
+    if problems:
+        fail(check, "; ".join(problems))
+    else:
+        ok(check, f"{len(shapes)} locator shapes are classified as this platform defines them, "
+                  "and every implementation available here agrees")
+
+
 def control_compare_failure_is_classified(sample: Path, tmp: Path) -> None:
     """D4.1: the compare verdict is what the case WAS, not what a Rust-child
     field happened to be.
@@ -1091,21 +1162,49 @@ def run() -> int:
 
         # No fail-fast: every control runs, so a campaign sees every catcher a
         # mutation trips rather than only the first.
-        control_bad_locator_is_2(sample_dir, tmp)
-        control_absolute_locator_only(sample_dir, tmp)
-        control_compare_failure_is_classified(sample_dir, tmp)
-        control_no_selector_in_own_cli()
-        control_default_stays_python(sample_dir)
-        control_rust_actually_runs_rust(sample_dir)
-        control_rust_failure_no_fallback(sample_dir)
-        control_rc70_is_not_a_verdict(sample_dir)
-        control_unexpected_rc_and_raw_retention(sample_dir, tmp)
-        control_compare_same_input_and_extract_once(sample_dir, tmp)
-        control_compare_zero_document(tmp)
-        control_compare_failure_and_divergence(sample_dir, tmp)
-        control_candidate_identity(sample_dir, tmp)
+        #
+        # OWEN_STAGE1_ONLY names the controls to run, comma-separated. It
+        # exists for one job: the Windows-native mutation leg evaluates
+        # mutants whose contract only Windows can be asked about, and running
+        # the whole suite there would mean building the .NET launcher and the
+        # fault-injection core for every mutant. It NARROWS the set and can
+        # never widen it, and an unknown name is an error rather than a
+        # silently empty run — a filter that quietly selects nothing is a way
+        # to report a green campaign that measured nothing.
+        only = [n.strip() for n in os.environ.get("OWEN_STAGE1_ONLY", "").split(",") if n.strip()]
+        controls = {
+            "bad-locator-is-2": lambda: control_bad_locator_is_2(sample_dir, tmp),
+            "absolute-locator-only": lambda: control_absolute_locator_only(sample_dir, tmp),
+            "locator-shapes": lambda: control_locator_shapes(sample_dir),
+            "compare-failure-classified":
+                lambda: control_compare_failure_is_classified(sample_dir, tmp),
+            "no-selector-in-own-cli": control_no_selector_in_own_cli,
+            "default-stays-python": lambda: control_default_stays_python(sample_dir),
+            "rust-actually-runs-rust": lambda: control_rust_actually_runs_rust(sample_dir),
+            "rust-failure-no-fallback": lambda: control_rust_failure_no_fallback(sample_dir),
+            "rc70-is-not-a-verdict": lambda: control_rc70_is_not_a_verdict(sample_dir),
+            "unexpected-rc":
+                lambda: control_unexpected_rc_and_raw_retention(sample_dir, tmp),
+            "compare-extracts-once":
+                lambda: control_compare_same_input_and_extract_once(sample_dir, tmp),
+            "compare-zero-document": lambda: control_compare_zero_document(tmp),
+            "divergence-is-5":
+                lambda: control_compare_failure_and_divergence(sample_dir, tmp),
+            "candidate-identity": lambda: control_candidate_identity(sample_dir, tmp),
+        }
+        unknown = [n for n in only if n not in controls]
+        if unknown:
+            print(f"OWEN_STAGE1_ONLY names no such control(s): {', '.join(unknown)}; "
+                  f"known: {', '.join(sorted(controls))}", file=sys.stderr)
+            return 2
+        for name, fn in controls.items():
+            if only and name not in only:
+                continue
+            fn()
 
     print()
+    if only:
+        print(f"(OWEN_STAGE1_ONLY narrowed this run to: {', '.join(only)})")
     print(f"stage-1 engine controls: {len(_PASSES)} passed, "
           f"{len(_FAILURES)} failed, {len(_SKIPS)} skipped, "
           f"{len(_NOT_APPLICABLE)} not applicable on this platform")

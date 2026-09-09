@@ -186,7 +186,7 @@ jobs:
       # The PowerShell surface's own controls. They run on BOTH legs — the
       # logic is platform-neutral and a Linux run catches regressions early —
       # but only the Windows leg is evidence for a PowerShell-targeted
-      # mutation, which is what the stage1-ps1-mutations job below settles.
+      # mutation, which is what the stage1-windows-mutations job below settles.
       - name: Stage-1 PowerShell controls
         env:
           OWEN_STAGE1_REQUIRE: "1"
@@ -256,11 +256,16 @@ jobs:
   # cannot be settled there at all: a mutant that runs where its control is
   # weakest is decorative, and proves nothing about the surface it edits.
   #
+  # The same is true of one arm of own-check.sh. A drive-rooted path is
+  # absolute only where Windows resolves it, so a mutant of that arm changes
+  # nothing a Linux runner can observe, and the Linux campaign would record it
+  # as caught or survived on the strength of a question it never asked.
+  #
   # So this campaign runs here, on Windows, and this job is the gate. It fails
   # unless every mutation is caught with its expected catcher and the
   # honesty control survives the unmutated tree.
-  stage1-ps1-mutations:
-    name: own-check.ps1 mutation campaign (Windows-native)
+  stage1-windows-mutations:
+    name: Windows-native mutation campaign (own-check.ps1 + the drive-rooted locator arm)
     runs-on: windows-latest
     defaults:
       run:
@@ -281,26 +286,26 @@ jobs:
         run: cargo build -p own-cli --release
       - name: Build the Stage-1 stub candidate
         run: rustc -O tests/helpers/stage1_stub.rs -o "$RUNNER_TEMP/stage1-stub.exe"
-      - name: Run the PowerShell mutation campaign
+      - name: Run the Windows-native mutation campaign
         env:
           OWEN_STAGE1_REQUIRE: "1"
         run: |
           export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli.exe"
           export OWEN_STAGE1_STUB="$RUNNER_TEMP/stage1-stub.exe"
-          python scripts/mutate_campaign.py --campaign docs/evidence/p022-stage1-ps1.json --run
+          python scripts/mutate_campaign.py --campaign docs/evidence/p022-stage1-windows.json --run
       # The recorded run, printed in full so its provenance and per-mutation
       # catchers can be read off this job rather than taken on trust — and so
       # the committed record can be reproduced from a named CI run, the way
       # #260's sweep record is.
       - name: Print the recorded result
         if: always()
-        run: cat docs/evidence/p022-stage1-ps1.result.json
+        run: cat docs/evidence/p022-stage1-windows.result.json
       - name: Assert every mutation was caught by a Windows catcher
         run: |
           python - <<'PY'
           import json, sys
-          d = json.load(open("docs/evidence/p022-stage1-ps1.result.json", encoding="utf-8"))
-          defn = json.load(open("docs/evidence/p022-stage1-ps1.json", encoding="utf-8"))
+          d = json.load(open("docs/evidence/p022-stage1-windows.result.json", encoding="utf-8"))
+          defn = json.load(open("docs/evidence/p022-stage1-windows.json", encoding="utf-8"))
           exp = {m["id"]: set(m["expected_catchers"]) for m in defn["mutations"]}
           problems = []
           if d["control"]["outcome"] != "survived":
@@ -310,9 +315,9 @@ jobs:
                   problems.append(f"{m['id']}: {m['outcome']}")
               elif not exp[m["id"]] <= set(m["catchers"]):
                   problems.append(f"{m['id']}: expected catchers missed ({m['catchers']})")
-              elif not any(c.startswith("ps1::") for c in m["catchers"]):
-                  problems.append(f"{m['id']}: no PowerShell catcher observed it")
-          print("\n".join(problems) if problems else "every ps1 mutation caught by a Windows catcher")
+          print("\n".join(problems) if problems
+                else f"all {len(d['mutations'])} mutations caught natively on Windows, "
+                     "each by the catcher its definition names")
           sys.exit(1 if problems else 0)
           PY
 

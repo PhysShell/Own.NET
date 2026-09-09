@@ -231,6 +231,28 @@
       "expected_catchers": [
         "stage1::compare-failure-classified"
       ]
+    },
+    {
+      "id": "M20",
+      "rule": "absolute-locator-is-accepted",
+      "description": "the shell's POSIX arm stops recognising an absolute path — the over-rejection direction of D3, where a validator that refuses EVERYTHING passes every 'reject the relative one' assertion and makes the tool unusable with a correct configuration",
+      "target": "scripts/own-check.sh",
+      "pattern": "    /\\*\\) is_absolute=1 ;;  # POSIX, MSYS's /c/\\.\\.\\. form, and //srv/share",
+      "replacement": "    /nope-not-a-real-prefix*) is_absolute=1 ;;",
+      "expected_catchers": [
+        "stage1::locator-shapes"
+      ]
+    },
+    {
+      "id": "M21",
+      "rule": "absolute-locator-is-accepted",
+      "description": "the launcher's absoluteness test is inverted — the same over-rejection direction in the C# implementation: every fully qualified locator is refused as 'not absolute' and every relative one is admitted",
+      "target": "frontend/roslyn/OwnSharp.Cli/RustCoreLocator.cs",
+      "pattern": "        if \\(!Path\\.IsPathFullyQualified\\(raw\\)\\)\n        \\{",
+      "replacement": "        if (Path.IsPathFullyQualified(raw))\n        {",
+      "expected_catchers": [
+        "stage1::locator-shapes"
+      ]
     }
   ]
 }

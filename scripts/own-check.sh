@@ -125,18 +125,43 @@ if [[ "$engine" == "rust" || "$engine" == "compare" ]]; then
   #
   # "Absolute" is not one shape here. This script runs under git-bash on
   # Windows as well as a POSIX shell, so a genuinely absolute locator may
-  # arrive as `/d/a/...` (the MSYS form, which is what CI passes), as
-  # `C:\...` or `C:/...` (a native Windows path), or as a `//server/share`
-  # UNC. A bare `/*` test would reject two of those and turn a correct
-  # configuration into a usage error. This accepts the forms this surface
-  # actually receives and rejects everything else; it deliberately does NOT
-  # convert between them — D3 ratified an absolute locator, not a path
-  # translation policy.
+  # arrive as `/d/a/...` (the MSYS form), as `C:/...` or `C:\...` (a native
+  # Windows path, which is what a Windows caller and MSYS's own environment
+  # translation both hand over), or as a UNC path. A bare `/*` test would
+  # reject the Windows forms and turn a correct configuration into a usage
+  # error. This accepts the forms this surface actually receives and rejects
+  # everything else; it deliberately does NOT convert between them — D3
+  # ratified an absolute locator, not a path translation policy.
+  #
+  # The set of accepted shapes is the same one .NET's IsPathFullyQualified
+  # accepts, which is what the other two implementations call. In particular a
+  # DRIVE-RELATIVE `C:own-cli.exe` and a ROOT-RELATIVE `\own-cli.exe` are both
+  # rejected: each still resolves against ambient state (the drive's current
+  # directory, the current drive), which is the thing D3 forbids.
+  #
+  # The backslash inside the bracket expression is doubled because the shell's
+  # pattern matcher treats `\` there as an escape: `[/\]` escapes the closing
+  # bracket, leaving an unterminated set that matches NEITHER `C:/` nor `C:\`.
+  # That typo shipped once and was caught by Windows CI rejecting every
+  # correct Windows locator, so it is spelled out rather than left to be
+  # rediscovered.
   is_absolute=0
   case "$rust_core" in
-    /*)             is_absolute=1 ;;   # POSIX, and MSYS's /c/... form
-    [A-Za-z]:[/\]*) is_absolute=1 ;;  # C:\... or C:/...
-    \\?*)          is_absolute=1 ;;  # \\server\share (UNC)
+    /*) is_absolute=1 ;;  # POSIX, MSYS's /c/... form, and //srv/share
+  esac
+  # The drive and UNC forms are absolute only where Windows is doing the
+  # resolving. On Linux `C:/rust/own-cli` names a directory called `C:` in the
+  # current directory — the exact ambient-resolution case D3 forbids — so
+  # accepting it everywhere would have left the defect half-fixed on this
+  # surface and disagreed with the two implementations that call
+  # IsPathFullyQualified.
+  case "$(uname -s 2>/dev/null)" in
+    MINGW*|MSYS*|CYGWIN*|Windows_NT)
+      case "$rust_core" in
+        [A-Za-z]:[/\\]*) is_absolute=1 ;;  # C:/... or C:\... — drive-ROOTED
+        \\\\*)           is_absolute=1 ;;  # \\server\share (UNC)
+      esac
+      ;;
   esac
   if [[ -z "$rust_core" ]]; then
     problem="is not set (or is empty)"

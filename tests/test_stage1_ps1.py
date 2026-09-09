@@ -26,7 +26,7 @@ anywhere. That convenience does NOT make a Linux run acceptable as evidence: a
 mutation whose target is `scripts/own-check.ps1` is only `caught` when a
 WINDOWS PowerShell catcher observes the mutant and fails. The campaign that
 owns these mutants therefore runs on a Windows runner
-(`.github/workflows/ci.yml`, the `stage1-ps1-mutations` job), and a Linux run
+(`.github/workflows/ci.yml`, the `stage1-windows-mutations` job), and a Linux run
 of this file is a developer convenience, never the record.
 
 Failures print `FAIL[<check>]: <detail>`; nothing stops at the first one.
@@ -176,10 +176,42 @@ def control_absolute_locator(sample: Path, tmp: Path) -> None:
             problems.append(f"{engine}: refused without naming the absolute requirement")
         if b"OWN001" in r.stdout:
             problems.append(f"{engine}: produced a verdict for a relative locator")
+
+    # And the direction a "reject the relative one" assertion cannot see: an
+    # absolute locator must be ACCEPTED. own-check.sh shipped a validator that
+    # refused every drive-rooted path and still passed the negative half of
+    # this check on Linux. own-check.ps1 delegates to IsPathFullyQualified, so
+    # the same failure would look identical from outside; the assertion is on
+    # the REASON, and every path here is absent so each run stops at the same
+    # preflight without a spawn.
+    win = os.name == "nt"
+    shapes = [
+        (f".{os.sep}nope-own-cli", True, "explicitly relative"),
+        ("C:nope-own-cli.exe", True, "drive-RELATIVE: the drive's current directory"),
+        ("\\nope\\own-cli.exe", True, "root-relative: the current drive"),
+        ("C:/nope/own-cli.exe", not win, "drive-rooted, forward slashes"),
+        ("C:\\nope\\own-cli.exe", not win, "drive-rooted, backslashes"),
+        ("\\\\.\\C:\\nope\\own-cli.exe", not win, "UNC/device-rooted"),
+        (str(ROOT / "no-such-own-cli"), False, "this platform's own absolute form"),
+    ]
+    for locator, rejected_for_absoluteness, what in shapes:
+        r = run_ps1(["-Engine", "rust", "-Format", "human", str(sample)],
+                    env={"OWEN_RUST_CORE": locator})
+        if r is None:
+            skip(check, "no pwsh")
+            return
+        merged = (r.stdout + r.stderr).decode("utf-8", "replace")
+        got = "is not an absolute path" in merged
+        if got != rejected_for_absoluteness:
+            verdict = "refused it as not absolute" if got else "accepted its shape"
+            problems.append(f"'{locator}' ({what}) — {verdict}, expected the opposite "
+                            f"on {'Windows' if win else 'this POSIX host'}")
+
     if problems:
         fail(check, "; ".join(problems))
     else:
-        ok(check, "a relative but existing locator is refused with exit 2")
+        ok(check, "a relative but existing locator is refused with exit 2, and the absolute "
+                  "shapes this platform defines are accepted")
 
 
 def control_not_started_is_2(sample: Path, tmp: Path) -> None:
