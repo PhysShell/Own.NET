@@ -36,6 +36,7 @@ Run:  python tests/test_stage1_ps1.py
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -172,6 +173,49 @@ def run_ps1(args: list[str], env: dict[str, str] | None = None,
         capture_output=True, env=e, cwd=cwd or str(ROOT), check=False)
 
 
+def _dotnet_tally_shim(tmp: Path) -> tuple[Path, Path] | None:
+    """A `dotnet` that records every invocation and then delegates to the real
+    one, so "the extractor never ran" can be MEASURED rather than assumed.
+
+    D3's locator check is a preflight: a validator that drifted to after
+    extraction would still exit 2, still name the absolute requirement, and
+    still emit no verdict — every assertion in the caller would stay green
+    while Owen had already spent a full Roslyn extraction on a candidate it
+    was about to refuse. The shared harness counts these invocations, but its
+    shim is a `#!` script installed only off Windows, so the PowerShell surface
+    had no counter at all on the one platform whose campaign is the record.
+
+    own-check.ps1 reaches dotnet through PowerShell's call operator, which
+    resolves through PATHEXT, so a `.cmd` is startable there. (The stub cannot
+    stand in here: this shim has to pass the real invocation through, not
+    answer it.)
+    """
+    real = shutil.which("dotnet")
+    if real is None:
+        return None
+    shim = tmp / "ps1-dotnet-shim"
+    shim.mkdir(exist_ok=True)
+    tally = tmp / "ps1-dotnet-invocations.log"
+    if tally.exists():
+        tally.unlink()
+    if os.name == "nt":
+        (shim / "dotnet.cmd").write_text(
+            "@echo off\r\n"
+            f'>>"{tally}" echo %*\r\n'
+            f'"{real}" %*\r\n'
+            "exit /b %ERRORLEVEL%\r\n",
+            encoding="utf-8")
+    else:
+        script = shim / "dotnet"
+        script.write_text(
+            "#!/usr/bin/env bash\n"
+            f'printf "%s\\n" "$*" >> {json.dumps(str(tally))}\n'
+            f'exec {json.dumps(real)} "$@"\n',
+            encoding="utf-8")
+        script.chmod(0o755)
+    return shim, tally
+
+
 # --- controls --------------------------------------------------------------
 
 
@@ -191,9 +235,13 @@ def control_absolute_locator(sample: Path, tmp: Path) -> None:
         local.chmod(0o755)
 
     problems = []
+    counted = _dotnet_tally_shim(tmp)
     for engine in ("rust", "compare"):
+        env = {"OWEN_RUST_CORE": f".{os.sep}{local.name}"}
+        if counted is not None:
+            env["PATH"] = f"{counted[0]}{os.pathsep}{os.environ.get('PATH', '')}"
         r = run_ps1(["-Engine", engine, "-Format", "human", str(sample)],
-                    env={"OWEN_RUST_CORE": f".{os.sep}{local.name}"}, cwd=str(workdir))
+                    env=env, cwd=str(workdir))
         if r is None:
             skip(check, "no pwsh")
             return
@@ -204,6 +252,29 @@ def control_absolute_locator(sample: Path, tmp: Path) -> None:
             problems.append(f"{engine}: refused without naming the absolute requirement")
         if b"OWN001" in r.stdout:
             problems.append(f"{engine}: produced a verdict for a relative locator")
+
+    # The preflight assertion, over both engine paths at once: the EXTRACTOR
+    # never ran. A validator that drifted to after extraction still exits 2,
+    # still names the absolute requirement and still emits no verdict, so every
+    # other assertion above stays green while Owen spends a full Roslyn pass
+    # over the caller's tree on a candidate it is about to refuse.
+    #
+    # It counts extractor invocations, not every dotnet invocation, and the
+    # difference was measured rather than assumed: where pwsh is installed as a
+    # dotnet global tool — this container, for one — merely STARTING the shell
+    # invokes dotnet twice, so a count-everything assertion fails there and
+    # passes on a Windows runner where pwsh is a real executable. A control
+    # whose verdict turns on how the shell was packaged is not measuring Owen.
+    if counted is None:
+        problems.append("no dotnet on PATH, so 'the extractor never ran' could not be measured — "
+                        "this control's preflight half needs a counter, not an assumption")
+    else:
+        lines = counted[1].read_text(encoding="utf-8").splitlines() if counted[1].exists() else []
+        extractions = [ln for ln in lines if "OwnSharp.Extractor" in ln]
+        if extractions:
+            problems.append(f"the extractor ran {len(extractions)} time(s) before the locator was "
+                            f"rejected — validation drifted past the preflight "
+                            f"[{extractions[0][:100]}]")
 
     # And the direction a "reject the relative one" assertion cannot see: an
     # absolute locator must be ACCEPTED. own-check.sh shipped a validator that
@@ -238,8 +309,9 @@ def control_absolute_locator(sample: Path, tmp: Path) -> None:
     if problems:
         fail(check, "; ".join(problems))
     else:
-        ok(check, "a relative but existing locator is refused with exit 2, and the absolute "
-                  "shapes this platform defines are accepted")
+        ok(check, "a relative but existing locator is refused with exit 2 on both engine paths "
+                  "before any extraction, and the absolute shapes this platform defines are "
+                  "accepted")
 
 
 def control_not_started_is_2(sample: Path, tmp: Path) -> None:
@@ -293,16 +365,57 @@ def control_not_started_is_2(sample: Path, tmp: Path) -> None:
         ok(check, "an existing-but-unstartable candidate is exit 2 on both engine paths")
 
 
+def _stub_as_python(tmp: Path, stub: str) -> Path:
+    """A directory whose `python` IS the controllable stub, for PATH.
+
+    own-check.ps1 runs the reference as the literal command `python`; there is
+    no OWEN_PYTHON on this surface to redirect. Putting the stub here under
+    that name is what makes the REFERENCE's bytes choosable, which is the only
+    way to reach an agreement whose stderr is non-empty. A real `python -m
+    ownlang ownir` run over a healthy input writes nothing to stderr — measured
+    on both CI platforms, which reported `0 err` — so a fixture built from it
+    can never exercise the stderr half of the replay.
+    """
+    shim = tmp / "ps1-python-shim"
+    shim.mkdir(exist_ok=True)
+    dest = shim / ("python.exe" if os.name == "nt" else "python")
+    if not dest.is_file():
+        shutil.copy2(stub, dest)
+        if os.name != "nt":
+            dest.chmod(0o755)
+    return shim
+
+
 def control_agreement_replays_bytes(sample: Path, tmp: Path) -> None:
     """D4.1(a): on agreement the external result is the REFERENCE's — its raw
-    bytes, on both streams.
+    bytes, on BOTH streams.
 
-    Agreement is manufactured deliberately: the candidate is handed the exact
-    bytes the Python reference produces for this input, so the two engines
-    genuinely agree. That is the only way to reach this branch on Windows,
-    where a real candidate diverges from the reference on CRLF alone — and the
-    branch has to be right for when it becomes reachable, not merely for as
-    long as it is rare.
+    Two fixtures, because one of them could not carry the claim.
+
+    (a) A real `python -m ownlang ownir` reference, with the candidate handed
+        the exact bytes it produced, so the two engines genuinely agree. This
+        is the case that proves the replay is byte-faithful against the actual
+        reference implementation.
+
+    (b) A SYNTHETIC agreement in which both engines are the stub and the
+        fixture's stderr is deliberately non-empty.
+
+    (b) exists because (a) alone was not load-bearing and was reported as
+        though it were. The assertion on stderr was guarded by `if
+        ref.stderr`, and a healthy reference writes none: CI printed `184 out,
+        0 err` on Windows and `160 out, 0 err` on Linux, so the stderr half of
+        "both streams" was never compared on either platform while the control
+        said it had been. A guard that switches an assertion off exactly when
+        the data is ordinary is not a guard, it is a hole with a denominator
+        of zero — and this project does not get to spend a review cycle on
+        honest denominators and then ship one.
+
+    The fixture bytes are chosen to survive nothing: CRLF that a text pipeline
+    would rewrite, and multi-byte UTF-8 that a decode-and-re-encode would
+    normalise. stdout is compared exactly; stderr is compared as a SUFFIX,
+    because the extraction step ahead of the compare sends dotnet's build
+    chatter to stderr and that chatter is not the launcher's replay. The
+    suffix is still the whole fixture, byte for byte.
     """
     check = "ps1-agreement-replays"
     stub = stub_exe(tmp)
@@ -313,7 +426,10 @@ def control_agreement_replays_bytes(sample: Path, tmp: Path) -> None:
         skip(check, "no dotnet/python")
         return
 
-    # Extract once, then ask the reference what it says about those facts.
+    problems = []
+    reported = []
+
+    # --- (a) the real reference -------------------------------------------
     facts = tmp / "agree.facts.json"
     ex = subprocess.run(
         [bash_exe(), str(ROOT / "scripts/own-check.sh"),
@@ -329,37 +445,65 @@ def control_agreement_replays_bytes(sample: Path, tmp: Path) -> None:
         capture_output=True, check=False, cwd=str(ROOT),
         env={**os.environ, "PYTHONPATH": str(ROOT)})
 
-    env = {"OWEN_RUST_CORE": stub,
-           "STAGE1_STUB_EXIT": str(ref.returncode)}
     out_file = tmp / "ref.out.bin"
     err_file = tmp / "ref.err.bin"
     out_file.write_bytes(ref.stdout)
     err_file.write_bytes(ref.stderr)
-    env["STAGE1_STUB_STDOUT_FILE"] = str(out_file)
-    env["STAGE1_STUB_STDERR_FILE"] = str(err_file)
-
-    r = run_ps1(["-Engine", "compare", "-Format", "human", str(sample)], env=env)
+    r = run_ps1(["-Engine", "compare", "-Format", "human", str(sample)],
+                env={"OWEN_RUST_CORE": stub,
+                     "STAGE1_STUB_EXIT": str(ref.returncode),
+                     "STAGE1_STUB_STDOUT_FILE": str(out_file),
+                     "STAGE1_STUB_STDERR_FILE": str(err_file)})
     if r is None:
         skip(check, "no pwsh")
         return
     if r.returncode not in (0, 1):
-        skip(check, f"the engines did not agree, so the replay branch was not reached "
-                    f"(exit {r.returncode}) [{tail(r)}]")
+        skip(check, f"the engines did not agree over the real reference, so the replay branch "
+                    f"was not reached (exit {r.returncode}) [{tail(r)}]")
         return
-
-    problems = []
     if r.stdout != ref.stdout:
-        problems.append(f"stdout replay is not byte-faithful: {len(r.stdout)} bytes replayed vs "
-                        f"{len(ref.stdout)} from the reference")
-    if ref.stderr and r.stderr != ref.stderr:
-        problems.append(f"stderr replay is not byte-faithful: {len(r.stderr)} bytes replayed vs "
-                        f"{len(ref.stderr)} from the reference (a dropped stderr reads as a "
-                        "silent run)")
+        problems.append(f"real reference: stdout replay is not byte-faithful — {len(r.stdout)} "
+                        f"bytes replayed vs {len(ref.stdout)} from the reference")
+    reported.append(f"real reference {len(ref.stdout)} out")
+
+    # --- (b) the synthetic agreement, with stderr that is actually there ---
+    syn_out = b"OWN001  synthetic finding\r\n\xe2\x80\x94 em dash, CRLF above\n"
+    syn_err = b"own-cli: warning: synthetic diagnostic\r\n\xc2\xa0nbsp then LF\n"
+    syn_out_file = tmp / "syn.out.bin"
+    syn_err_file = tmp / "syn.err.bin"
+    syn_out_file.write_bytes(syn_out)
+    syn_err_file.write_bytes(syn_err)
+    shim = _stub_as_python(tmp, stub)
+    r2 = run_ps1(
+        ["-Engine", "compare", "-Format", "human", str(sample)],
+        env={"OWEN_RUST_CORE": stub,
+             "PATH": f"{shim}{os.pathsep}{os.environ.get('PATH', '')}",
+             "STAGE1_STUB_EXIT": "0",
+             "STAGE1_STUB_STDOUT_FILE": str(syn_out_file),
+             "STAGE1_STUB_STDERR_FILE": str(syn_err_file)})
+    if r2 is None:
+        skip(check, "no pwsh")
+        return
+    if r2.returncode not in (0, 1):
+        problems.append(f"synthetic: the engines did not agree (exit {r2.returncode}) — both "
+                        f"sides are the same stub over the same bytes, so this is the launcher's "
+                        f"comparison, not a real disagreement [{tail(r2)}]")
+    else:
+        if r2.stdout != syn_out:
+            problems.append(f"synthetic: stdout replay is not byte-faithful — {len(r2.stdout)} "
+                            f"bytes replayed vs {len(syn_out)} in the fixture")
+        if not r2.stderr.endswith(syn_err):
+            problems.append(
+                f"synthetic: stderr replay is not byte-faithful — the reference wrote "
+                f"{len(syn_err)} bytes and they are not the tail of the {len(r2.stderr)} bytes "
+                f"the launcher emitted (a dropped stderr reads as a silent run)")
+        reported.append(f"synthetic {len(syn_out)} out, {len(syn_err)} err")
+
     if problems:
         fail(check, "; ".join(problems))
     else:
-        ok(check, f"agreement replays the reference's raw bytes on both streams "
-                  f"({len(ref.stdout)} out, {len(ref.stderr)} err)")
+        ok(check, "agreement replays the reference's raw bytes on both streams "
+                  f"({'; '.join(reported)})")
 
 
 def control_failure_evidence_exists(sample: Path, tmp: Path) -> None:

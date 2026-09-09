@@ -133,9 +133,14 @@ internal static class RustCoreLocator
     /// <para>On Unix that is a real permission question, so it is asked of the
     /// file mode: any of the three execute bits. On Windows there is no
     /// execute bit — runnability is decided by the loader — so an existing
-    /// regular file is accepted and a genuinely broken image fails later, at
-    /// spawn, which is the D3.1 seam's other side and already maps to the
-    /// internal-error path.</para>
+    /// regular file is accepted here and a genuinely broken image is refused
+    /// later, at spawn.</para>
+    ///
+    /// <para>That later refusal is still D3.1's CONFIGURATION side, not the
+    /// internal-error path: EngineRunner raises RustCoreNotStartedException
+    /// and CheckCommand maps it to this class's ExitCode. A candidate that
+    /// never started never ran, so it cannot have misbehaved, and 5 would
+    /// blame Owen for the caller's setting.</para>
     /// </summary>
     private static bool IsExecutable(string path)
     {
@@ -153,10 +158,13 @@ internal static class RustCoreLocator
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
             or PlatformNotSupportedException)
         {
-            // Cannot read the mode: refuse rather than assume runnable. A
-            // false "yes" here would turn a configuration error into a spawn
-            // failure reported as an internal error, which loses D3.1's
-            // distinction between "could not select" and "ran and misbehaved".
+            // Cannot read the mode: refuse rather than assume runnable. Both
+            // answers reach the same exit code — a spawn failure is ExitCode
+            // too — so what a false "yes" costs is the DIAGNOSTIC and the
+            // moment it arrives: the caller is told the candidate "could not
+            // be started" instead of that it is not executable, after Owen has
+            // already paid for a full extraction. The preflight exists to say
+            // the true thing before doing the expensive thing.
             return false;
         }
     }
