@@ -32,9 +32,13 @@ namespace OwnSharp.Cli;
 ///
 /// <para><b>Known difference, not a defect.</b> On native Windows the Python
 /// reference encodes piped output as cp1252 with CRLF while the Rust candidate
-/// emits canonical UTF-8 (#262's Windows A/B/C). Compare will therefore report
-/// a real divergence there for non-ASCII output. That is the declared
-/// behaviour change being visible, which is the point of measuring bytes.</para>
+/// emits canonical UTF-8 with LF (#262's Windows A/B/C). Measured on a Windows
+/// runner, that makes compare diverge on EVERY run, not only on non-ASCII
+/// output: the line endings alone differ, so pure-ASCII findings already
+/// disagree byte for byte. This is the declared behaviour change being
+/// visible, which is exactly the point of comparing bytes rather than decoded
+/// text — a string comparison through one .NET encoding would have hidden
+/// it.</para>
 /// </summary>
 internal static class CompareMode
 {

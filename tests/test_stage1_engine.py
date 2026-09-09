@@ -604,10 +604,19 @@ def control_compare_same_input_and_extract_once(sample: Path, tmp: Path) -> None
 
     env = {"OWEN_RUST_CORE": core, "PATH": f"{shim_dir}{os.pathsep}{os.environ.get('PATH','')}"}
     r = run_own_check(["--engine", "compare", "--format", "human", "--", str(sample)], env=env)
-    if r.returncode not in (0, 1):
-        fail(once_check, f"compare over a healthy sample exited {r.returncode}: "
-                         f"{r.stderr.decode('utf-8', 'replace')[-400:]}")
-        fail(same_check, "compare did not reach agreement, so same-input could not be observed")
+    # 0/1 = agreement, 5 = divergence or execution failure. ALL THREE mean the
+    # compare ran, and the extraction happened before any of them, so the count
+    # below is measurable in every case.
+    #
+    # On native Windows a divergence here is EXPECTED, not a defect: the Python
+    # reference writes CRLF where the Rust core writes LF, so the two engines'
+    # bytes differ on every run — #262's declared Windows A/B/C behaviour
+    # change, measured. Requiring agreement on that platform would be requiring
+    # the parity #262 explicitly does not claim.
+    if r.returncode not in (0, 1, 5):
+        fail(once_check, f"compare over a healthy sample exited {r.returncode}, so it never "
+                         f"reached extraction [{tail(r)}]")
+        fail(same_check, "compare never ran, so same-input could not be observed")
         return
 
     lines = tally.read_text(encoding="utf-8").splitlines() if tally.exists() else []
@@ -633,7 +642,10 @@ def control_compare_same_input_and_extract_once(sample: Path, tmp: Path) -> None
     # digest the launcher attests in its evidence. If compare ever fed the two
     # engines different bytes, these two values part company.
     if os.name == "nt":
-        not_applicable(same_check, "needs a recording stub candidate; Unix-only (see above)")
+        not_applicable(same_check, "needs a recording stub candidate with a shebang; Unix-only. "
+                                   "The launcher code that materialises and verifies the two "
+                                   "engine inputs is platform-independent and is measured on the "
+                                   "Linux leg")
         return
     seen = tmp / "candidate-saw.sha256"
     recorder = tmp / "recording-core"

@@ -89,11 +89,18 @@ exit (`5`) with the raw status kept in the diagnostic report's
 `compare` is a development/CI seam for the migration, **not yet a promised
 public feature**. When the engines disagree — or when either fails — owen
 exits `5` with reproduction evidence rather than picking a winner: a reference
-and a candidate that disagree mean owen cannot honestly emit one answer. On
-native Windows the Python reference emits cp1252/CRLF where the Rust core
-emits canonical UTF-8, so `compare` will report a real divergence there for
-non-ASCII output; that is #262's declared Windows behaviour change being
-visible, not a defect.
+and a candidate that disagree mean owen cannot honestly emit one answer.
+
+**On native Windows `compare` diverges on every run**, and that is #262's
+declared Windows A/B/C behaviour change being visible rather than a defect.
+Measured on a Windows runner: the Python reference writes **CRLF** line
+endings where the Rust core writes LF, so the two engines' bytes differ even
+for pure-ASCII output — the encoding half (cp1252 vs canonical UTF-8, and the
+reference's occasional `UnicodeEncodeError`) is the further difference on
+non-ASCII output. Canonical/Linux reference parity is claimed and Rust
+cross-platform byte portability is claimed; native-Windows Python byte parity
+is explicitly **not**. Use `compare` against the Linux reference; on Windows,
+read a divergence as the recorded difference, not as a finding.
 
 Rollback is explicit: select `--engine python` (or simply stop passing
 `--engine`). Nothing about Stage 1 moves the public default.
