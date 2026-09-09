@@ -121,10 +121,13 @@ internal static class CompareMode
                     .RunRustAsync(rust, rustInput, format, severity, capture: true)
                     .ConfigureAwait(false);
             }
-            catch (Exception ex) when (ex is InvalidOperationException or IOException)
+            catch (EngineRunner.RustCoreNotStartedException ex)
             {
-                return Fail(args, rust, py, null,
-                    $"the Rust candidate could not be run: {ex.Message}", childExitCode: null);
+                // Same seam as `--engine rust`: a candidate that never started
+                // is a configuration error (exit 2), not a compare execution
+                // failure (exit 5). The compare never happened.
+                Console.Error.WriteLine(ex.Message);
+                return RustCoreLocator.ExitCode;
             }
 
             // --- D4.1 (c): execution failure ------------------------------

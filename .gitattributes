@@ -1,0 +1,16 @@
+# Shell scripts must arrive with LF endings on every platform.
+#
+# `scripts/own-check.sh` is executed by git-bash on Windows (#262 Stage 1's
+# engine controls run it there). A checkout with the Windows default
+# `core.autocrlf=true` would rewrite it to CRLF, and bash cannot run a script
+# whose every line ends in a stray carriage return — it fails immediately, with
+# an exit code that looks like the script's own. No job had ever run this
+# script on a Windows runner before, so the defect was latent rather than new.
+#
+# Deliberately NARROW. This repository has byte-sensitive evidence (fixtures,
+# goldens, recorded campaign results) whose exact bytes are the contract, and a
+# blanket `* text=auto` would put those bytes at the mercy of a checkout
+# setting. #260 carries "a researched .gitattributes for byte-sensitive
+# evidence" as its own hygiene tail; this rule covers executable shell scripts
+# only and takes no position on that wider question.
+*.sh text eol=lf

@@ -72,6 +72,17 @@ internal static class EngineRunner
     }
 
     /// <summary>
+    /// Thrown when the resolved candidate could not be STARTED. That is still
+    /// the locator's side of D3.1's seam: "bad locator / cannot select the
+    /// candidate → rc 2; candidate spawned → a legal engine result is the
+    /// normal contract, an unexpected child result → rc 5". A file that exists
+    /// but is not a runnable image is a configuration mistake, not Owen
+    /// failing internally — and on Windows it is the ONLY way to detect a
+    /// non-executable candidate at all, since there is no execute bit to test.
+    /// </summary>
+    public sealed class RustCoreNotStartedException(string message) : Exception(message);
+
+    /// <summary>
     /// Stage 2, the Rust candidate: the production executable `own-cli ownir`.
     ///
     /// <para>The argument vector mirrors the Python invocation exactly — same
@@ -98,7 +109,21 @@ internal static class EngineRunner
             psi.EnvironmentVariables["OWNLANG_DEBUG"] = "1";
         }
 
-        return await RunAsync(psi, capture, "the Rust core").ConfigureAwait(false);
+        try
+        {
+            return await RunAsync(psi, capture, "the Rust core").ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception
+            or IOException or InvalidOperationException or UnauthorizedAccessException)
+        {
+            // The candidate never started. Windows has no execute bit, so this
+            // is where a non-executable candidate is caught there; on Unix the
+            // locator's mode check catches it first and this is the backstop.
+            throw new RustCoreNotStartedException(
+                $"owen check: the candidate `own-cli` binary could not be started: " +
+                $"'{core.Path}' ({ex.Message}). Set {RustCoreLocator.EnvVar} to a runnable " +
+                $"`own-cli` executable. Owen did not fall back to Python.");
+        }
     }
 
     /// <summary>Start the child and collect its result. Capturing drains both

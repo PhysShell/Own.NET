@@ -98,6 +98,7 @@ EMPTY_CS = """namespace Nothing
 _FAILURES: list[tuple[str, str]] = []
 _PASSES: list[str] = []
 _SKIPS: list[tuple[str, str]] = []
+_NOT_APPLICABLE: list[tuple[str, str]] = []
 
 
 def fail(check: str, detail: str) -> None:
@@ -119,6 +120,22 @@ def skip(check: str, why: str) -> None:
         return
     _SKIPS.append((check, why))
     print(f"skip[{check}]: {why}")
+
+
+def not_applicable(check: str, why: str) -> None:
+    """A control that CANNOT exist on this platform, as opposed to one that
+    could not run here.
+
+    The difference is not bookkeeping. `skip()` means the toolchain was
+    missing, and under OWEN_STAGE1_REQUIRE that is a failure because the CI job
+    exists to supply it. This means the control is not a question this platform
+    can be asked — a synthetic candidate binary needs a shebang, and Windows
+    has none — so requiring it would only produce a red job that no amount of
+    correct code could turn green. It is still printed, and still counted
+    separately, so a control cannot quietly disappear behind it.
+    """
+    _NOT_APPLICABLE.append((check, why))
+    print(f"n/a[{check}]: {why}")
 
 
 # --- toolchain -------------------------------------------------------------
@@ -375,31 +392,61 @@ def control_rc70_is_not_a_verdict(sample: Path) -> None:
 
 def control_unexpected_rc_and_raw_retention(sample: Path, tmp: Path) -> None:
     """An unexpected child status maps to public 5, and the RAW status is
-    retained in the diagnostic report's typed `child_exit_code` (D5). Two
-    controls, one forced condition: the mapping and the retention fail
-    independently and are reported independently."""
+    retained in the diagnostic report's typed `child_exit_code` (D5).
+
+    The unexpected status is forced with #261's own `OWN_CLI_FAULT_ABORT` — an
+    uncatchable termination in the REAL candidate — rather than with a stub
+    that merely exits with a chosen number. That buys two things: the control
+    runs on Windows as well as Linux (a shebang stub does not), and what it
+    proves is a property of the binary the launcher will actually spawn. The
+    exact raw status is whatever the OS reports for an aborted process, which
+    differs by platform and is deliberately NOT contracted (#261's ruling); the
+    control measures it first and then requires the report to carry that same
+    value.
+    """
     map_check, keep_check = "unexpected-rc-maps-to-5", "raw-rc-retained"
-    if os.name == "nt":
-        skip(map_check, "stub candidate is Unix-only")
-        skip(keep_check, "stub candidate is Unix-only")
+    fault = rust_fault_core()
+    if fault is None:
+        skip(map_check, "no OWEN_STAGE1_RUST_FAULT")
+        skip(keep_check, "no OWEN_STAGE1_RUST_FAULT")
         return
-    stub = write_stub(tmp / "rc42-core", 42, stderr="forced unexpected status\n")
+
+    # What does an aborted candidate actually exit with here? Measured, not
+    # assumed — and if it lands inside the legal set the control cannot speak.
+    probe = subprocess.run([fault, "ownir", "--format", "human", str(tmp / "no-such-facts.json")],
+                           capture_output=True, check=False,
+                           env={**os.environ, "OWN_CLI_FAULT_ABORT": "1"})
+    # Two runtimes, two conventions for the same event: Python's subprocess
+    # reports a signal-killed child as the NEGATIVE signal number (-6 for
+    # SIGABRT), while .NET's Process.ExitCode — and every shell — reports
+    # 128 + signal (134). Neither is wrong; they describe the same death. The
+    # launcher records what .NET observed, so the expectation is translated
+    # into that convention rather than the launcher being asked to adopt
+    # Python's. On Windows there is no signal encoding and the code is already
+    # what both sides see.
+    raw = probe.returncode if probe.returncode >= 0 else 128 - probe.returncode
+    if raw in (0, 1, 2):
+        skip(map_check, f"the forced abort produced a legal engine exit ({raw})")
+        skip(keep_check, f"the forced abort produced a legal engine exit ({raw})")
+        return
+
     report = Path.home() / ".owen/diag/last-failure.json"
     if report.exists():
         report.unlink()
     r = run_owen(["--engine", "rust", "--format", "human", str(sample)],
-                 env={"OWEN_RUST_CORE": str(stub)})
+                 env={"OWEN_RUST_CORE": fault, "OWN_CLI_FAULT_ABORT": "1"})
     if r is None:
         skip(map_check, "no built launcher/dotnet")
         skip(keep_check, "no built launcher/dotnet")
         return
 
-    if r.returncode == 42:
-        fail(map_check, "an unexpected child rc 42 escaped as the public exit 42")
+    if r.returncode == raw:
+        fail(map_check, f"an unexpected child rc {raw} escaped as the public exit {raw}")
     elif r.returncode != 5:
-        fail(map_check, f"an unexpected child rc 42 surfaced as {r.returncode}, expected public 5")
+        fail(map_check,
+             f"an unexpected child rc {raw} surfaced as {r.returncode}, expected public 5")
     else:
-        ok(map_check, "an unexpected child rc 42 maps to public exit 5")
+        ok(map_check, f"an unexpected child rc {raw} maps to public exit 5")
 
     if not report.exists():
         fail(keep_check, "no diagnostic report was written for an unexpected child status")
@@ -412,16 +459,16 @@ def control_unexpected_rc_and_raw_retention(sample: Path, tmp: Path) -> None:
     if "child_exit_code" not in data:
         fail(keep_check, "the report has no `child_exit_code` field (D5)")
         return
-    if data["child_exit_code"] != 42:
-        fail(keep_check, f"`child_exit_code` is {data['child_exit_code']!r}, expected the raw 42")
-        return
     if not isinstance(data["child_exit_code"], int):
-        fail(keep_check, "`child_exit_code` is not a typed integer")
+        fail(keep_check, f"`child_exit_code` is {data['child_exit_code']!r}, not a typed integer")
+        return
+    if data["child_exit_code"] != raw:
+        fail(keep_check, f"`child_exit_code` is {data['child_exit_code']}, expected the raw {raw}")
         return
     if data.get("schema") != 2:
         fail(keep_check, f"the report schema is {data.get('schema')!r}, expected 2 (D5 bumped it)")
         return
-    ok(keep_check, "the raw 42 is retained as a typed child_exit_code, schema 2")
+    ok(keep_check, f"the raw {raw} is retained as a typed child_exit_code, schema 2")
 
 
 def control_no_selector_in_own_cli() -> None:
@@ -509,7 +556,16 @@ def control_compare_same_input_and_extract_once(sample: Path, tmp: Path) -> None
 
     lines = tally.read_text(encoding="utf-8").splitlines() if tally.exists() else []
     extractions = [ln for ln in lines if "OwnSharp.Extractor" in ln]
-    if len(extractions) != 1:
+    if not lines:
+        # The shim never intercepted anything, yet the compare itself
+        # succeeded — so `dotnet` was resolved past it (git-bash on Windows
+        # prefers `dotnet.exe` to an extensionless script). That is the
+        # INSTRUMENT failing, not the contract: reporting "0 extractions"
+        # would accuse the launcher of a fault the measurement cannot see.
+        not_applicable(once_check,
+                       "the PATH shim did not intercept `dotnet` on this platform, so extraction "
+                       "count could not be measured (the compare itself succeeded)")
+    elif len(extractions) != 1:
         fail(once_check,
              f"compare invoked the extractor {len(extractions)} times, expected exactly 1")
     else:
@@ -521,7 +577,7 @@ def control_compare_same_input_and_extract_once(sample: Path, tmp: Path) -> None
     # digest the launcher attests in its evidence. If compare ever fed the two
     # engines different bytes, these two values part company.
     if os.name == "nt":
-        skip(same_check, "recording stub is Unix-only")
+        not_applicable(same_check, "needs a recording stub candidate; Unix-only (see above)")
         return
     seen = tmp / "candidate-saw.sha256"
     recorder = tmp / "recording-core"
@@ -616,7 +672,10 @@ def control_compare_failure_and_divergence(sample: Path, tmp: Path) -> None:
     sub_check = "compare-no-substitution"
     if os.name == "nt":
         for c in (div_check, exec_check, sub_check):
-            skip(c, "stub candidate is Unix-only")
+            not_applicable(c, "needs a synthetic candidate with chosen output; a shebang stub "
+                              "is Unix-only, and the launcher cannot spawn a .cmd. The C# and "
+                              "bash logic under test is platform-independent and is measured on "
+                              "the Linux leg")
         return
     if not have_dotnet():
         for c in (div_check, exec_check, sub_check):
@@ -777,7 +836,10 @@ def run() -> int:
 
     print()
     print(f"stage-1 engine controls: {len(_PASSES)} passed, "
-          f"{len(_FAILURES)} failed, {len(_SKIPS)} skipped")
+          f"{len(_FAILURES)} failed, {len(_SKIPS)} skipped, "
+          f"{len(_NOT_APPLICABLE)} not applicable on this platform")
+    for name, why in _NOT_APPLICABLE:
+        print(f"    n/a {name}: {why}")
     if _SKIPS:
         print("  skipped (set OWEN_STAGE1_REQUIRE=1 to make these failures):")
         for name, why in _SKIPS:

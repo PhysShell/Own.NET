@@ -215,6 +215,16 @@ case "$engine" in
     "$rust_core" ownir "$facts" --format "$format" --severity "$severity"
     rc=$?
     set -e
+    # The candidate could not be STARTED at all: bash reports 126 for "found
+    # but not executable" and 127 for "not found". That is still the locator's
+    # side of D3.1's seam — cannot select the candidate — so it is a
+    # configuration error (2), not an internal failure (5). On Windows, where
+    # there is no execute bit to test up front, this is the ONLY place a
+    # non-runnable candidate can be caught.
+    if [[ "$rc" -eq 126 || "$rc" -eq 127 ]]; then
+      echo "own-check: the candidate \`own-cli\` binary could not be started: '$rust_core' (exit $rc). Set OWEN_RUST_CORE to a runnable \`own-cli\` executable. Owen did not fall back to Python." >&2
+      exit 2
+    fi
     # 0/1/2 are verdicts and pass through. Anything else — 70, a panic, a
     # signal death, an arbitrary 42 — is NOT a verdict: it takes the public
     # internal-error path (5) with the raw status named on stderr, and it never
@@ -284,6 +294,13 @@ ZERODOC
     # failure — checked before divergence, because two results are only
     # comparable once both exist. No engine's answer substitutes for the
     # other's failure.
+    # A candidate that never started is a configuration error, not a compare
+    # execution failure: the compare did not happen.
+    if [[ "$rs_rc" -eq 126 || "$rs_rc" -eq 127 ]]; then
+      echo "own-check: the candidate \`own-cli\` binary could not be started: '$rust_core' (exit $rs_rc). Set OWEN_RUST_CORE to a runnable \`own-cli\` executable. Owen did not fall back to Python." >&2
+      exit 2
+    fi
+
     py_legal=0; rs_legal=0
     [[ "$py_rc" -eq 0 || "$py_rc" -eq 1 || "$py_rc" -eq 2 ]] && py_legal=1
     [[ "$rs_rc" -eq 0 || "$rs_rc" -eq 1 || "$rs_rc" -eq 2 ]] && rs_legal=1

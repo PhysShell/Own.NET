@@ -180,9 +180,20 @@ internal static class CheckCommand
             // branches and nowhere else.
             if (engine == Engine.Rust)
             {
-                var rustOutcome = await EngineRunner
-                    .RunRustAsync(rustCore!, factsPath, format, severity, capture: false)
-                    .ConfigureAwait(false);
+                EngineOutcome rustOutcome;
+                try
+                {
+                    rustOutcome = await EngineRunner
+                        .RunRustAsync(rustCore!, factsPath, format, severity, capture: false)
+                        .ConfigureAwait(false);
+                }
+                catch (EngineRunner.RustCoreNotStartedException ex)
+                {
+                    // D3.1's seam: the candidate could not be STARTED, so this
+                    // is still "cannot select the candidate" — exit 2, not 5.
+                    Console.Error.WriteLine(ex.Message);
+                    return RustCoreLocator.ExitCode;
+                }
                 return MapRustChildStatus(rustOutcome.Rc, args, failOnFinding);
             }
 
