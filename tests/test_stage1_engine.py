@@ -652,9 +652,18 @@ def control_compare_failure_and_divergence(sample: Path, tmp: Path) -> None:
         elif "sha256" not in merged:
             div_problems.append(f"{where}: a compare divergence produced no reproduction "
                                 "evidence (no input digest)")
+        # D4.1 (b) is stricter than "do not prefer the candidate": when the
+        # engines disagree, NO engine's verdict is exposed as the authoritative
+        # result. Owen cannot honestly emit one answer while its reference and
+        # its candidate contradict each other, so falling back on "Python is
+        # the reference, trust it" is the same failure as trusting the
+        # candidate — it just feels safer.
         if b"a different answer" in r.stdout:
             sub_problems.append(f"{where}: the candidate's answer was exposed as the result of "
                                 "a diverging compare")
+        if b"OWN001" in r.stdout:
+            sub_problems.append(f"{where}: the reference's verdict was exposed as the result of "
+                                "a diverging compare — D4.1(b) exposes NEITHER engine's")
     if div_problems:
         fail(div_check, "; ".join(div_problems))
     else:
