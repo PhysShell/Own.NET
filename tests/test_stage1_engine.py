@@ -297,6 +297,15 @@ def control_bad_locator_is_2(sample: Path, tmp: Path) -> None:
                         ["dotnet", str(launcher_dll()), "check", "--engine", engine, str(sample)],
                         capture_output=True, env=e, cwd=str(ROOT), check=False)
                 where = f"{surface_name}/{engine}/{name}"
+                if name == "non-executable" and kind == "shell" and os.name == "nt":
+                    # Windows has no execute bit, and git-bash will happily run
+                    # a mode-644 file that carries a shebang — so "a
+                    # non-executable candidate" is not a state that can be
+                    # constructed for the shell surface there. It is a real
+                    # case for the LAUNCHER on Windows, where the candidate is
+                    # spawned as a Windows process and fails to start; that
+                    # half still runs and still expects exit 2.
+                    continue
                 if r.returncode != 2:
                     problems.append(f"{where}: exit {r.returncode}, expected 2 "
                                     "(not 3 — that is Python-specific; not 5 — that is an "
@@ -311,7 +320,17 @@ def control_bad_locator_is_2(sample: Path, tmp: Path) -> None:
     if problems:
         fail(check, "; ".join(problems))
     else:
-        ok(check, f"{len(cases) * 2 * len(surfaces)} invalid-locator cases all exit 2, no fallback")
+        # Counted, not assumed: the Windows shell surface skips one case that
+        # cannot exist there, and a control that reported a fixed number would
+        # be claiming coverage it did not have.
+        total = len(cases) * 2 * len(surfaces)
+        if os.name == "nt":
+            total -= 2  # the two engines' non-executable case, shell surface
+            not_applicable(check + "/shell-non-executable",
+                           "git-bash runs a mode-644 file with a shebang, so a non-executable "
+                           "candidate cannot be constructed for the shell surface on Windows; "
+                           "the launcher half of this case does run")
+        ok(check, f"{total} invalid-locator cases all exit 2, no fallback")
 
 
 def control_default_stays_python(sample: Path) -> None:
