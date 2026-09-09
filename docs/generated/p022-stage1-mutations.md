@@ -12,7 +12,7 @@ Definition: `docs/evidence/p022-stage1-1.json` (sha256 `b27b905145eec08d…`, 16
 
 | measure                                          | value |
 |--------------------------------------------------|---|
-| recorded at commit                               | `063ac628d8d417fa12c4b02f364b29c4324395bb` |
+| recorded at commit                               | `0f51868df54041b8a8ed2af1c8b0ce41838009c8` |
 | layers run (every one, for every mutation)       | `stage1` |
 | mutations                                        | 16 |
 | caught                                           | 16 |
