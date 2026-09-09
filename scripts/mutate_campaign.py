@@ -125,12 +125,18 @@ class Layer:
                  catcher is named by the CHECK it violated rather than by the
                  case that happened to trip first. A non-zero exit with no such
                  line is still a catch, recorded under a name that says so.
+
+    `env` adds variables to the layer's environment. It is part of the
+    DEFINITION, and therefore part of the recorded evidence, so a layer that
+    runs a narrowed subset of a harness says so where the campaign is read
+    rather than in a wrapper script the reader has to go find.
     """
 
     id: str
     cwd: str
     command: tuple[str, ...]
     parser: str
+    env: tuple[tuple[str, str], ...] = ()
 
 
 PARSERS = ("cargo", "python-fail")
@@ -279,8 +285,13 @@ def _layer(obj: object, where: str) -> Layer:
     parser = _str(obj, "parser", where)
     if parser not in PARSERS:
         raise CampaignError(f"{where}: unknown parser {parser!r} (one of {list(PARSERS)})")
+    raw_env = obj.get("env", {})
+    if not (isinstance(raw_env, dict)
+            and all(isinstance(k, str) and k and isinstance(v, str) for k, v in raw_env.items())):
+        raise CampaignError(f"{where}: 'env' must be an object of string names to string values")
     return Layer(id=_str(obj, "id", where), cwd=str(obj.get("cwd", ".")),
-                 command=tuple(str(c) for c in command), parser=parser)
+                 command=tuple(str(c) for c in command), parser=parser,
+                 env=tuple(sorted((str(k), str(v)) for k, v in raw_env.items())))
 
 
 def _target(data: dict[str, object], path: str) -> tuple[str | None, tuple[Layer, ...]]:
@@ -541,6 +552,7 @@ def _run_layer(layer: Layer) -> tuple[list[str], bool, list[str]]:
     # p022-shadow-acc-2. cargo and this repository's harnesses both emit UTF-8,
     # and `errors="replace"` means a stray byte costs one character rather than
     # the whole run.
+    env.update(dict(layer.env))
     r = subprocess.run(list(layer.command), cwd=os.path.join(ROOT, layer.cwd), env=env,
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                        text=True, encoding="utf-8", errors="replace")
@@ -851,8 +863,16 @@ def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
     control = Outcome(definition.control_id, outcome, tuple(catchers),
                       round(time.monotonic() - t0, 1), detail)
     print(f"  -> {outcome} ({len(catchers)} failing test(s))", flush=True)
+    for c in catchers:
+        print(f"       {c}", flush=True)
     if outcome != "survived":
-        raise CampaignError(f"the unmutated tree did not pass ({outcome}): the run is void")
+        # Name them here. A void run is the one message a reader cannot act on
+        # without the names: "1 failing test" sent two CI rounds looking for
+        # which check it was, and the runner knew all along.
+        raise CampaignError(
+            f"the unmutated tree did not pass ({outcome}): the run is void"
+            + (f" — failing: {', '.join(catchers)}" if catchers else "")
+            + (f" [{detail}]" if detail else ""))
     assert_tree_unchanged(baseline, "during the control run")
 
     outcomes: list[Outcome] = []
@@ -942,7 +962,11 @@ def write_result(result: Result, definition: Definition, path: str) -> None:
         doc["command"] = "cargo test -p <package> --no-fail-fast, for every workspace member"
     doc["control"] = _outcome_json(result.control)
     doc["mutations"] = [_outcome_json(o) for o in result.mutations]
-    with open(path, "w", encoding="utf-8") as f:
+    # newline="\n" explicitly: a campaign now runs on a Windows runner, and
+    # Python's text mode would write CRLF there. A result recorded on Windows
+    # has to be byte-identical to one recorded on Linux, or the evidence
+    # differs from itself by the platform that happened to take it.
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(doc, f, indent=2, ensure_ascii=False)
         f.write("\n")
 

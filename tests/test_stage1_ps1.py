@@ -1,0 +1,593 @@
+#!/usr/bin/env python3
+"""#262 Stage 1 — `scripts/own-check.ps1`'s engine contract, driven.
+
+Why this exists as its own harness. `tests/test_stage1_engine.py` drives the
+`owen` launcher and `own-check.sh`; the PowerShell surface was only ever
+touched by a CI smoke step (healthy `-Engine rust`, and a NONEXISTENT
+OWEN_RUST_CORE). That is real coverage, but it never reaches compare,
+agreement replay, an existing-but-unstartable candidate, or execution-failure
+evidence — which is exactly why three PowerShell defects sat green through a
+16/16 mutation campaign. Absence of a control is not evidence of correctness,
+and a campaign can only prove what some control actually observes.
+
+The controls here are the PowerShell halves of the ratified rulings:
+
+    ps1-absolute-locator      D3    a relative but existing locator is refused
+    ps1-not-started-is-2      D3.1  an existing file the loader will not start
+                                    is a configuration error (2), not 5
+    ps1-agreement-replays     D4.1a agreement replays the reference's RAW bytes
+                                    on BOTH streams, not a re-encoded stdout
+    ps1-failure-evidence      D4.1c the reproduction evidence it names still
+                                    exists after the process exits
+
+Platform. These drive `pwsh`, which runs on Linux too, and every control here
+is written to be platform-neutral so it can be developed and debugged
+anywhere. That convenience does NOT make a Linux run acceptable as evidence: a
+mutation whose target is `scripts/own-check.ps1` is only `caught` when a
+WINDOWS PowerShell catcher observes the mutant and fails. The campaign that
+owns these mutants therefore runs on a Windows runner
+(`.github/workflows/ci.yml`, the `stage1-windows-mutations` job), and a Linux run
+of this file is a developer convenience, never the record.
+
+Failures print `FAIL[<check>]: <detail>`; nothing stops at the first one.
+
+Run:  python tests/test_stage1_ps1.py
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+SAMPLE_CS = """using System;
+using System.IO;
+
+public class Leaky
+{
+    public void Run()
+    {
+        var s = new FileStream("x.txt", FileMode.OpenOrCreate);
+        Console.WriteLine(s.Length);
+    }
+}
+"""
+
+_FAILURES: list[tuple[str, str]] = []
+_PASSES: list[str] = []
+_SKIPS: list[tuple[str, str]] = []
+_NOT_APPLICABLE: list[tuple[str, str]] = []
+
+
+def fail(check: str, detail: str) -> None:
+    _FAILURES.append((check, detail))
+    print(f"FAIL[{check}]: {detail}")
+
+
+def ok(check: str, detail: str = "") -> None:
+    _PASSES.append(check)
+    print(f"ok[{check}]{': ' + detail if detail else ''}")
+
+
+def skip(check: str, why: str) -> None:
+    """Under OWEN_STAGE1_REQUIRE a skip is a failure: the job that sets it
+    exists to supply the toolchain, so a control that could not run there is a
+    denominator that quietly shrank."""
+    if os.environ.get("OWEN_STAGE1_REQUIRE") == "1":
+        fail(check, f"required control could not run: {why}")
+        return
+    _SKIPS.append((check, why))
+    print(f"skip[{check}]: {why}")
+
+
+def not_applicable(check: str, why: str) -> None:
+    """A control this platform cannot be asked, as distinct from one whose
+    toolchain is missing. Printed and counted, never silently dropped."""
+    _NOT_APPLICABLE.append((check, why))
+    print(f"n/a[{check}]: {why}")
+
+
+def tail(r: subprocess.CompletedProcess[bytes], limit: int = 400) -> str:
+    err = r.stderr.decode("utf-8", "replace").strip()
+    out = r.stdout.decode("utf-8", "replace").strip()
+    parts = []
+    if err:
+        parts.append(f"stderr: …{err[-limit:]}")
+    if out:
+        parts.append(f"stdout: …{out[-limit:]}")
+    return " | ".join(parts) or "(both streams empty)"
+
+
+# --- toolchain -------------------------------------------------------------
+
+
+def pwsh_exe() -> str | None:
+    return shutil.which("pwsh") or shutil.which("powershell")
+
+
+def rust_core() -> str | None:
+    p = os.environ.get("OWEN_RUST_CORE")
+    return p if p and Path(p).is_file() else None
+
+
+def stub_exe(tmp: Path) -> str | None:
+    """The controllable native candidate, shared with the other harness."""
+    supplied = os.environ.get("OWEN_STAGE1_STUB")
+    if supplied and Path(supplied).is_file():
+        return supplied
+    if shutil.which("rustc") is None:
+        return None
+    out = tmp / ("stage1-stub.exe" if os.name == "nt" else "stage1-stub")
+    if out.is_file():
+        return str(out)
+    r = subprocess.run(
+        ["rustc", "-O", str(ROOT / "tests/helpers/stage1_stub.rs"), "-o", str(out)],
+        capture_output=True, check=False)
+    return str(out) if r.returncode == 0 and out.is_file() else None
+
+
+def bash_exe() -> str:
+    """The bash that can actually run `own-check.sh`.
+
+    Two things this must survive on a Windows runner. `own-check.sh` cannot be
+    handed to CreateProcess — a .sh file is not a Win32 image, and Windows CI
+    raised exactly that (WinError 193) where the shebang had quietly carried it
+    on Linux. And `bash` on PATH there is C:\\Windows\\System32\\bash.exe, the WSL
+    launcher rather than a shell: with no distribution installed it exits 1
+    with a UTF-16 message about installing one, which arrives as a
+    plausible-looking script failure and is nothing of the kind.
+
+    A harness concern, not a product one: a Windows user runs own-check.sh from
+    a git-bash prompt, where `bash` is already the right one.
+    """
+    if os.name != "nt":
+        return "bash"
+    candidates = [
+        os.environ.get("SHELL"),
+        r"C:\Program Files\Git\bin\bash.exe",
+        r"C:\Program Files\Git\usr\bin\bash.exe",
+        shutil.which("bash"),
+    ]
+    for cand in candidates:
+        if cand and "system32" not in cand.lower() and Path(cand).is_file():
+            return cand
+    return "bash"
+
+
+def run_ps1(args: list[str], env: dict[str, str] | None = None,
+            cwd: str | None = None) -> subprocess.CompletedProcess[bytes] | None:
+    """Drive own-check.ps1, capturing RAW bytes — the replay contract is about
+    bytes, so the harness must not decode on the way in either."""
+    pwsh = pwsh_exe()
+    if pwsh is None:
+        return None
+    e = dict(os.environ)
+    e.update(env or {})
+    return subprocess.run(
+        [pwsh, "-NoLogo", "-NoProfile", "-File", str(ROOT / "scripts/own-check.ps1"), *args],
+        capture_output=True, env=e, cwd=cwd or str(ROOT), check=False)
+
+
+def _dotnet_tally_shim(tmp: Path) -> tuple[Path, Path] | None:
+    """A `dotnet` that records every invocation and then delegates to the real
+    one, so "the extractor never ran" can be MEASURED rather than assumed.
+
+    D3's locator check is a preflight: a validator that drifted to after
+    extraction would still exit 2, still name the absolute requirement, and
+    still emit no verdict — every assertion in the caller would stay green
+    while Owen had already spent a full Roslyn extraction on a candidate it
+    was about to refuse. The shared harness counts these invocations, but its
+    shim is a `#!` script installed only off Windows, so the PowerShell surface
+    had no counter at all on the one platform whose campaign is the record.
+
+    own-check.ps1 reaches dotnet through PowerShell's call operator, which
+    resolves through PATHEXT, so a `.cmd` is startable there. (The stub cannot
+    stand in here: this shim has to pass the real invocation through, not
+    answer it.)
+    """
+    real = shutil.which("dotnet")
+    if real is None:
+        return None
+    shim = tmp / "ps1-dotnet-shim"
+    shim.mkdir(exist_ok=True)
+    tally = tmp / "ps1-dotnet-invocations.log"
+    if tally.exists():
+        tally.unlink()
+    if os.name == "nt":
+        (shim / "dotnet.cmd").write_text(
+            "@echo off\r\n"
+            f'>>"{tally}" echo %*\r\n'
+            f'"{real}" %*\r\n'
+            "exit /b %ERRORLEVEL%\r\n",
+            encoding="utf-8")
+    else:
+        script = shim / "dotnet"
+        script.write_text(
+            "#!/usr/bin/env bash\n"
+            f'printf "%s\\n" "$*" >> {json.dumps(str(tally))}\n'
+            f'exec {json.dumps(real)} "$@"\n',
+            encoding="utf-8")
+        script.chmod(0o755)
+    return shim, tally
+
+
+# --- controls --------------------------------------------------------------
+
+
+def control_absolute_locator(sample: Path, tmp: Path) -> None:
+    """D3: a relative locator resolves against the working directory, so the
+    same variable would select different binaries from different places."""
+    check = "ps1-absolute-locator"
+    core = rust_core()
+    if core is None:
+        skip(check, "no OWEN_RUST_CORE")
+        return
+    workdir = tmp / "ps1-relative-cwd"
+    workdir.mkdir(exist_ok=True)
+    local = workdir / ("own-cli.exe" if os.name == "nt" else "own-cli")
+    shutil.copy2(core, local)
+    if os.name != "nt":
+        local.chmod(0o755)
+
+    problems = []
+    counted = _dotnet_tally_shim(tmp)
+    for engine in ("rust", "compare"):
+        env = {"OWEN_RUST_CORE": f".{os.sep}{local.name}"}
+        if counted is not None:
+            env["PATH"] = f"{counted[0]}{os.pathsep}{os.environ.get('PATH', '')}"
+        r = run_ps1(["-Engine", engine, "-Format", "human", str(sample)],
+                    env=env, cwd=str(workdir))
+        if r is None:
+            skip(check, "no pwsh")
+            return
+        merged = (r.stdout + r.stderr).decode("utf-8", "replace")
+        if r.returncode != 2:
+            problems.append(f"{engine}: exit {r.returncode}, expected 2 [{tail(r)}]")
+        elif "absolute" not in merged:
+            problems.append(f"{engine}: refused without naming the absolute requirement")
+        if b"OWN001" in r.stdout:
+            problems.append(f"{engine}: produced a verdict for a relative locator")
+
+    # The preflight assertion, over both engine paths at once: the EXTRACTOR
+    # never ran. A validator that drifted to after extraction still exits 2,
+    # still names the absolute requirement and still emits no verdict, so every
+    # other assertion above stays green while Owen spends a full Roslyn pass
+    # over the caller's tree on a candidate it is about to refuse.
+    #
+    # It counts extractor invocations, not every dotnet invocation, and the
+    # difference was measured rather than assumed: where pwsh is installed as a
+    # dotnet global tool — this container, for one — merely STARTING the shell
+    # invokes dotnet twice, so a count-everything assertion fails there and
+    # passes on a Windows runner where pwsh is a real executable. A control
+    # whose verdict turns on how the shell was packaged is not measuring Owen.
+    if counted is None:
+        problems.append("no dotnet on PATH, so 'the extractor never ran' could not be measured — "
+                        "this control's preflight half needs a counter, not an assumption")
+    else:
+        lines = counted[1].read_text(encoding="utf-8").splitlines() if counted[1].exists() else []
+        extractions = [ln for ln in lines if "OwnSharp.Extractor" in ln]
+        if extractions:
+            problems.append(f"the extractor ran {len(extractions)} time(s) before the locator was "
+                            f"rejected — validation drifted past the preflight "
+                            f"[{extractions[0][:100]}]")
+
+    # And the direction a "reject the relative one" assertion cannot see: an
+    # absolute locator must be ACCEPTED. own-check.sh shipped a validator that
+    # refused every drive-rooted path and still passed the negative half of
+    # this check on Linux. own-check.ps1 delegates to IsPathFullyQualified, so
+    # the same failure would look identical from outside; the assertion is on
+    # the REASON, and every path here is absent so each run stops at the same
+    # preflight without a spawn.
+    win = os.name == "nt"
+    shapes = [
+        (f".{os.sep}nope-own-cli", True, "explicitly relative"),
+        ("C:nope-own-cli.exe", True, "drive-RELATIVE: the drive's current directory"),
+        ("\\nope\\own-cli.exe", True, "root-relative: the current drive"),
+        ("C:/nope/own-cli.exe", not win, "drive-rooted, forward slashes"),
+        ("C:\\nope\\own-cli.exe", not win, "drive-rooted, backslashes"),
+        ("\\\\.\\C:\\nope\\own-cli.exe", not win, "UNC/device-rooted"),
+        (str(ROOT / "no-such-own-cli"), False, "this platform's own absolute form"),
+    ]
+    for locator, rejected_for_absoluteness, what in shapes:
+        r = run_ps1(["-Engine", "rust", "-Format", "human", str(sample)],
+                    env={"OWEN_RUST_CORE": locator})
+        if r is None:
+            skip(check, "no pwsh")
+            return
+        merged = (r.stdout + r.stderr).decode("utf-8", "replace")
+        got = "is not an absolute path" in merged
+        if got != rejected_for_absoluteness:
+            verdict = "refused it as not absolute" if got else "accepted its shape"
+            problems.append(f"'{locator}' ({what}) — {verdict}, expected the opposite "
+                            f"on {'Windows' if win else 'this POSIX host'}")
+
+    if problems:
+        fail(check, "; ".join(problems))
+    else:
+        ok(check, "a relative but existing locator is refused with exit 2 on both engine paths "
+                  "before any extraction, and the absolute shapes this platform defines are "
+                  "accepted")
+
+
+def control_not_started_is_2(sample: Path, tmp: Path) -> None:
+    """D3.1: a candidate that EXISTS but the loader will not start never got to
+    run, so it is on the locator's side of the seam — exit 2, not 5.
+
+    This is the case the CI smoke step could not reach: it used a NONEXISTENT
+    path, which `Test-Path` rejects long before any spawn.
+
+    It took two wrong answers to get here, and both were the production code
+    rather than the platform. I first declared this control Linux-N/A because
+    PowerShell there returned 0 and printed `xdg-open: no method available for
+    opening ...`; Windows CI then returned 0 with both streams empty, and the
+    job's own cleanup terminated an orphaned NOTEPAD. Same defect, two desktop
+    handlers: own-check.ps1 was ASKING THE PLATFORM TO OPEN the candidate
+    rather than spawning it, so the seam could not be reached anywhere and
+    Owen reported a clean, finding-free run having analysed nothing. With a
+    real spawn (UseShellExecute = $false) the start either succeeds or throws,
+    and the contract is answerable on both platforms — so this control is
+    required on both, and the N/A is gone.
+
+    The near-miss is worth keeping: on a developer container with no xdg-open
+    installed, this control PASSED, because the invocation failed and looked
+    exactly like a refusal. A verdict that turns on which desktop helper
+    happens to be installed is not measuring the contract.
+    """
+    check = "ps1-not-started-is-2"
+    unstartable = tmp / "not-a-program.txt"
+    unstartable.write_text("this is text, not an executable image\n", encoding="utf-8")
+
+    problems = []
+    for engine in ("rust", "compare"):
+        r = run_ps1(["-Engine", engine, "-Format", "human", str(sample)],
+                    env={"OWEN_RUST_CORE": str(unstartable.resolve())})
+        if r is None:
+            skip(check, "no pwsh")
+            return
+        merged = (r.stdout + r.stderr).decode("utf-8", "replace")
+        if r.returncode == 5:
+            problems.append(f"{engine}: exit 5 — a candidate that never started was reported as "
+                            "an internal failure instead of a configuration error")
+        elif r.returncode != 2:
+            problems.append(f"{engine}: exit {r.returncode}, expected 2 [{tail(r)}]")
+        elif "could not be started" not in merged:
+            problems.append(f"{engine}: exit 2 without saying the candidate could not be started")
+        if b"OWN001" in r.stdout:
+            problems.append(f"{engine}: produced a verdict — Python answered for the candidate")
+    if problems:
+        fail(check, "; ".join(problems))
+    else:
+        ok(check, "an existing-but-unstartable candidate is exit 2 on both engine paths")
+
+
+def _stub_as_python(tmp: Path, stub: str) -> Path:
+    """A directory whose `python` IS the controllable stub, for PATH.
+
+    own-check.ps1 runs the reference as the literal command `python`; there is
+    no OWEN_PYTHON on this surface to redirect. Putting the stub here under
+    that name is what makes the REFERENCE's bytes choosable, which is the only
+    way to reach an agreement whose stderr is non-empty. A real `python -m
+    ownlang ownir` run over a healthy input writes nothing to stderr — measured
+    on both CI platforms, which reported `0 err` — so a fixture built from it
+    can never exercise the stderr half of the replay.
+    """
+    shim = tmp / "ps1-python-shim"
+    shim.mkdir(exist_ok=True)
+    dest = shim / ("python.exe" if os.name == "nt" else "python")
+    if not dest.is_file():
+        shutil.copy2(stub, dest)
+        if os.name != "nt":
+            dest.chmod(0o755)
+    return shim
+
+
+def control_agreement_replays_bytes(sample: Path, tmp: Path) -> None:
+    """D4.1(a): on agreement the external result is the REFERENCE's — its raw
+    bytes, on BOTH streams.
+
+    Two fixtures, because one of them could not carry the claim.
+
+    (a) A real `python -m ownlang ownir` reference, with the candidate handed
+        the exact bytes it produced, so the two engines genuinely agree. This
+        is the case that proves the replay is byte-faithful against the actual
+        reference implementation.
+
+    (b) A SYNTHETIC agreement in which both engines are the stub and the
+        fixture's stderr is deliberately non-empty.
+
+    (b) exists because (a) alone was not load-bearing and was reported as
+        though it were. The assertion on stderr was guarded by `if
+        ref.stderr`, and a healthy reference writes none: CI printed `184 out,
+        0 err` on Windows and `160 out, 0 err` on Linux, so the stderr half of
+        "both streams" was never compared on either platform while the control
+        said it had been. A guard that switches an assertion off exactly when
+        the data is ordinary is not a guard, it is a hole with a denominator
+        of zero — and this project does not get to spend a review cycle on
+        honest denominators and then ship one.
+
+    The fixture bytes are chosen to survive nothing: CRLF that a text pipeline
+    would rewrite, and multi-byte UTF-8 that a decode-and-re-encode would
+    normalise. stdout is compared exactly; stderr is compared as a SUFFIX,
+    because the extraction step ahead of the compare sends dotnet's build
+    chatter to stderr and that chatter is not the launcher's replay. The
+    suffix is still the whole fixture, byte for byte.
+    """
+    check = "ps1-agreement-replays"
+    stub = stub_exe(tmp)
+    if stub is None:
+        skip(check, "no native stub (set OWEN_STAGE1_STUB or provide rustc)")
+        return
+    if shutil.which("dotnet") is None or shutil.which("python") is None:
+        skip(check, "no dotnet/python")
+        return
+
+    problems = []
+    reported = []
+
+    # --- (a) the real reference -------------------------------------------
+    facts = tmp / "agree.facts.json"
+    ex = subprocess.run(
+        [bash_exe(), str(ROOT / "scripts/own-check.sh"),
+         "--emit-facts", str(facts), "--", str(sample)],
+        capture_output=True, check=False, cwd=str(ROOT),
+        env={**os.environ, "PYTHONPATH": str(ROOT)})
+    if not facts.is_file():
+        skip(check, f"could not extract facts to drive the reference [{tail(ex)}]")
+        return
+    ref = subprocess.run(
+        ["python", "-m", "ownlang", "ownir", str(facts),
+         "--format", "human", "--severity", "error", "--verbosity", "normal"],
+        capture_output=True, check=False, cwd=str(ROOT),
+        env={**os.environ, "PYTHONPATH": str(ROOT)})
+
+    out_file = tmp / "ref.out.bin"
+    err_file = tmp / "ref.err.bin"
+    out_file.write_bytes(ref.stdout)
+    err_file.write_bytes(ref.stderr)
+    r = run_ps1(["-Engine", "compare", "-Format", "human", str(sample)],
+                env={"OWEN_RUST_CORE": stub,
+                     "STAGE1_STUB_EXIT": str(ref.returncode),
+                     "STAGE1_STUB_STDOUT_FILE": str(out_file),
+                     "STAGE1_STUB_STDERR_FILE": str(err_file)})
+    if r is None:
+        skip(check, "no pwsh")
+        return
+    if r.returncode not in (0, 1):
+        skip(check, f"the engines did not agree over the real reference, so the replay branch "
+                    f"was not reached (exit {r.returncode}) [{tail(r)}]")
+        return
+    if r.stdout != ref.stdout:
+        problems.append(f"real reference: stdout replay is not byte-faithful — {len(r.stdout)} "
+                        f"bytes replayed vs {len(ref.stdout)} from the reference")
+    reported.append(f"real reference {len(ref.stdout)} out")
+
+    # --- (b) the synthetic agreement, with stderr that is actually there ---
+    syn_out = b"OWN001  synthetic finding\r\n\xe2\x80\x94 em dash, CRLF above\n"
+    syn_err = b"own-cli: warning: synthetic diagnostic\r\n\xc2\xa0nbsp then LF\n"
+    syn_out_file = tmp / "syn.out.bin"
+    syn_err_file = tmp / "syn.err.bin"
+    syn_out_file.write_bytes(syn_out)
+    syn_err_file.write_bytes(syn_err)
+    shim = _stub_as_python(tmp, stub)
+    r2 = run_ps1(
+        ["-Engine", "compare", "-Format", "human", str(sample)],
+        env={"OWEN_RUST_CORE": stub,
+             "PATH": f"{shim}{os.pathsep}{os.environ.get('PATH', '')}",
+             "STAGE1_STUB_EXIT": "0",
+             "STAGE1_STUB_STDOUT_FILE": str(syn_out_file),
+             "STAGE1_STUB_STDERR_FILE": str(syn_err_file)})
+    if r2 is None:
+        skip(check, "no pwsh")
+        return
+    if r2.returncode not in (0, 1):
+        problems.append(f"synthetic: the engines did not agree (exit {r2.returncode}) — both "
+                        f"sides are the same stub over the same bytes, so this is the launcher's "
+                        f"comparison, not a real disagreement [{tail(r2)}]")
+    else:
+        if r2.stdout != syn_out:
+            problems.append(f"synthetic: stdout replay is not byte-faithful — {len(r2.stdout)} "
+                            f"bytes replayed vs {len(syn_out)} in the fixture")
+        if not r2.stderr.endswith(syn_err):
+            problems.append(
+                f"synthetic: stderr replay is not byte-faithful — the reference wrote "
+                f"{len(syn_err)} bytes and they are not the tail of the {len(r2.stderr)} bytes "
+                f"the launcher emitted (a dropped stderr reads as a silent run)")
+        reported.append(f"synthetic {len(syn_out)} out, {len(syn_err)} err")
+
+    if problems:
+        fail(check, "; ".join(problems))
+    else:
+        ok(check, "agreement replays the reference's raw bytes on both streams "
+                  f"({'; '.join(reported)})")
+
+
+def control_failure_evidence_exists(sample: Path, tmp: Path) -> None:
+    """D4.1(c): the reproduction evidence a failure NAMES has to survive it.
+
+    Pointing a reader at a directory and deleting it on the way out is worse
+    than naming nothing: the message reads as reproducible and is not.
+    """
+    check = "ps1-failure-evidence"
+    stub = stub_exe(tmp)
+    if stub is None:
+        skip(check, "no native stub (set OWEN_STAGE1_STUB or provide rustc)")
+        return
+    r = run_ps1(["-Engine", "compare", "-Format", "human", str(sample)],
+                env={"OWEN_RUST_CORE": stub, "STAGE1_STUB_EXIT": "42"})
+    if r is None:
+        skip(check, "no pwsh")
+        return
+    merged = (r.stdout + r.stderr).decode("utf-8", "replace")
+    if r.returncode != 5:
+        fail(check, f"a compare execution failure exited {r.returncode}, expected 5 [{tail(r)}]")
+        return
+
+    problems = []
+    if "42" not in merged:
+        problems.append("the raw candidate status is not retained in the diagnostic")
+    # Whatever the message advertises as evidence must still be there. A path
+    # is only acceptable if it survives; otherwise the message must carry the
+    # reproduction inline.
+    named = [tok.strip().rstrip(".,") for tok in merged.replace("\n", " ").split()
+             if ("owen-compare-" in tok)]
+    missing = [n for n in named if not Path(n).exists()]
+    if missing:
+        problems.append(f"names evidence that no longer exists after exit: {missing[:2]}")
+    if not named and "sha256" not in merged:
+        problems.append("names neither a surviving artifact directory nor an inline "
+                        "reproduction (input digest)")
+    if problems:
+        fail(check, "; ".join(problems))
+    else:
+        ok(check, "the advertised reproduction evidence survives the process")
+
+
+# --- harness ---------------------------------------------------------------
+
+
+def run() -> int:
+    if pwsh_exe() is None:
+        skip("ps1-harness", "no pwsh on this machine")
+        print("\nstage-1 ps1 controls: no PowerShell available")
+        return 1 if _FAILURES else 0
+
+    with tempfile.TemporaryDirectory(prefix="owen-stage1-ps1-") as td:
+        tmp = Path(td)
+        sample_dir = tmp / "sample"
+        sample_dir.mkdir()
+        (sample_dir / "Leak.cs").write_text(SAMPLE_CS, encoding="utf-8")
+
+        # No fail-fast, and that has to survive a control that RAISES. A
+        # harness bug here aborted the suite on Windows (own-check.sh handed
+        # straight to CreateProcess), so the two controls after it never ran
+        # and the campaign saw one nameless failure instead of a named check.
+        # An unexpected exception is this check's failure, reported like any
+        # other, and the rest of the suite still runs.
+        for name, control in (
+            ("ps1-absolute-locator", control_absolute_locator),
+            ("ps1-not-started-is-2", control_not_started_is_2),
+            ("ps1-agreement-replays", control_agreement_replays_bytes),
+            ("ps1-failure-evidence", control_failure_evidence_exists),
+        ):
+            try:
+                control(sample_dir, tmp)
+            except Exception as exc:  # a raise is this check's failure, not the suite's
+                fail(name, f"the control itself raised {type(exc).__name__}: {exc}")
+
+    print()
+    print(f"stage-1 ps1 controls: {len(_PASSES)} passed, {len(_FAILURES)} failed, "
+          f"{len(_SKIPS)} skipped, {len(_NOT_APPLICABLE)} not applicable on this platform")
+    for name, why in _SKIPS:
+        print(f"    skip {name}: {why}")
+    for name, why in _NOT_APPLICABLE:
+        print(f"    n/a  {name}: {why}")
+    return 1 if _FAILURES else 0
+
+
+if __name__ == "__main__":
+    sys.exit(run())

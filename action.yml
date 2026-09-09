@@ -32,6 +32,18 @@ inputs:
     description: "How findings are shown: error (default) or warning (advisory)."
     required: false
     default: "error"
+  engine:
+    description: >-
+      Which analysis engine runs (#262 Stage 1): python (the DEFAULT and the
+      reference), rust (the Rust core `own-cli ownir`), or compare (both over
+      one captured input, exposing the reference's result only when they agree
+      byte for byte). rust and compare require the candidate binary's absolute
+      path in the OWEN_RUST_CORE environment variable — the Action does no
+      discovery, so an unset or unusable OWEN_RUST_CORE is a configuration
+      error (exit 2) and never a silent fall back to Python. compare is a
+      development/CI seam for the migration, not yet a promised feature.
+    required: false
+    default: "python"
   fail-on-finding:
     description: >-
       Whether a FINDING fails the step. Default false: findings are published
@@ -89,10 +101,15 @@ runs:
         OWN_PATH: ${{ inputs.path }}
         OWN_FORMAT: ${{ inputs.format }}
         OWN_SEVERITY: ${{ inputs.severity }}
+        OWN_ENGINE: ${{ inputs.engine }}
         OWN_FAIL_ON_FINDING: ${{ inputs.fail-on-finding }}
         OWN_SARIF_FILE: ${{ inputs.sarif-file }}
         OWN_CONFIG: ${{ inputs.config }}
       run: |
+        # D2: the Action is one of the four launcher surfaces, but its
+        # engine-selection SEMANTICS are own-check.sh's — it delegates rather
+        # than re-implementing them, so the real fan-out is smaller than four
+        # and there is exactly one contract to keep true.
         check="${{ github.action_path }}/scripts/own-check.sh"
         # P-035: forward an explicit own.toml to own-check when the caller set one.
         # Passed as data via OWN_CONFIG (never interpolated into the script body).
@@ -112,7 +129,8 @@ runs:
           sarif="${OWN_SARIF_FILE:-$RUNNER_TEMP/owen.sarif}"
           set +e
           "$check" --root "${{ github.action_path }}" --format sarif \
-            --severity "$OWN_SEVERITY" "${config_args[@]}" --fail-on-finding -- "$OWN_PATH" > "$sarif"
+            --severity "$OWN_SEVERITY" --engine "$OWN_ENGINE" "${config_args[@]}" \
+            --fail-on-finding -- "$OWN_PATH" > "$sarif"
           rc=$?
           set -e
           echo "sarif-file=$sarif" >> "$GITHUB_OUTPUT"
@@ -143,7 +161,8 @@ runs:
         # action is allowed to negotiate about.
         set +e
         "$check" --root "${{ github.action_path }}" --format "$OWN_FORMAT" \
-          --severity "$OWN_SEVERITY" "${config_args[@]}" --fail-on-finding -- "$OWN_PATH"
+          --severity "$OWN_SEVERITY" --engine "$OWN_ENGINE" "${config_args[@]}" \
+          --fail-on-finding -- "$OWN_PATH"
         rc=$?
         set -e
         if [ "$rc" -ge 2 ]; then

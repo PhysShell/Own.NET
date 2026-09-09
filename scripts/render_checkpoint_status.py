@@ -134,6 +134,7 @@ COORD_MUTATIONS_MD = "p022-coord-mutations.md"
 MUTATIONS_MD = "p022-cp4-mutations.md"
 CLI_CENSUS_MD = "p022-cli-census.md"
 CLI_MUTATIONS_MD = "p022-cli-mutations.md"
+STAGE1_MUTATIONS_MD = "p022-stage1-mutations.md"
 SHADOW_CENSUS_MD = "p022-shadow-census.md"
 SHADOW_MUTATIONS_MD = "p022-shadow-mutations.md"
 SHADOW_SWEEP_MD = "p022-shadow-sweep.md"
@@ -183,6 +184,20 @@ COORD_CAMPAIGNS = (
 CLI_CAMPAIGNS = (
     ("261.B — `own-cli ownir`: the display policy, the CLI's SARIF bytes, the "
      "usage exit codes and the process contract", "p022-cli-1"),
+)
+# P-022 step 8 (#262) STAGE 1: the launcher's engine-selection contract. One
+# campaign, because the surface is one seam — the selector, the candidate
+# locator, the child-status mapping and the compare contract are read together
+# and fail together.
+STAGE1_CAMPAIGNS = (
+    ("Stage 1 — the launcher's `--engine` contract: the default, the candidate "
+     "locator, the Rust child status and the compare result contract",
+     "p022-stage1-1"),
+    ("Stage 1 — the surfaces only Windows can be asked about: `own-check.ps1`, "
+     "and the drive-rooted arm of the shell's locator classifier. Measured on "
+     "a WINDOWS runner, because a mutant of either is invisible to a Linux "
+     "catcher",
+     "p022-stage1-windows"),
 )
 SELF = "scripts/render_checkpoint_status.py"
 
@@ -1188,6 +1203,27 @@ def fragments() -> tuple[dict[str, str], list[str]]:
         CLI_CAMPAIGNS)
     out[CLI_MUTATIONS_MD] = cli
     problems.extend(f"mutation campaign {p}" for p in cli_problems)
+    stage1, stage1_problems = render_campaign_set(
+        "# P-022 step 8 (#262) Stage 1 — mutation campaigns",
+        "Stage 1 makes the Rust core SELECTABLE by the launcher while Python stays the "
+        "default and the reference. Every mutation below is a plausible MISREADING of "
+        "that contract rather than a syntactic accident: the default moved because the "
+        "cutover was read as already decided; Python resolved for every engine because "
+        "the old unconditional resolution looked harmless; 70 admitted to the verdict "
+        "set because both engines document it; an unexpected child status propagated "
+        "as itself because that looked like faithfulness; the shell falling back to "
+        "Python because answering the user looked helpful. Each would pass a reviewer "
+        "who had read the stage's summary instead of its rulings. Every mutation edits "
+        "a **production** launcher surface (P-022 discipline 2), and the single layer "
+        "REBUILDS the launcher before testing it — a mutated `.cs` file is otherwise "
+        "invisible to controls that drive a compiled binary — and runs every control "
+        "for every mutation with no fail-fast (discipline 3), under "
+        "`OWEN_STAGE1_REQUIRE=1` so a control that could not run is a failure rather "
+        "than a silently shrinking denominator. The counts are derived from the "
+        "recorded run by `scripts/mutate_campaign.summarize()`, never typed.",
+        STAGE1_CAMPAIGNS)
+    out[STAGE1_MUTATIONS_MD] = stage1
+    problems.extend(f"mutation campaign {p}" for p in stage1_problems)
     return out, problems
 
 
@@ -1233,8 +1269,8 @@ def main(argv: list[str]) -> int:
     if argv:
         print(f"checkpoint status fragments OK: {CENSUS_MD}, {CP1_CENSUS_MD}, "
               f"{COORD_CENSUS_MD}, {INVENTORY_MD}, {MUTATIONS_MD}, {CP5_MUTATIONS_MD}, "
-              f"{SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD}, {SHADOW_SWEEP_MD} in "
-              f"sync with the evidence")
+              f"{SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD}, {SHADOW_SWEEP_MD}, "
+              f"{STAGE1_MUTATIONS_MD} in sync with the evidence")
     return 0
 
 

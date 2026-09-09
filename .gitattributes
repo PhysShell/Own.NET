@@ -1,0 +1,25 @@
+# Shell scripts must arrive with LF endings on every platform.
+#
+# `scripts/own-check.sh` is executed by git-bash on Windows (#262 Stage 1's
+# engine controls run it there). A checkout with the Windows default
+# `core.autocrlf=true` would rewrite it to CRLF, and bash cannot run a script
+# whose every line ends in a stray carriage return — it fails immediately, with
+# an exit code that looks like the script's own. No job had ever run this
+# script on a Windows runner before, so the defect was latent rather than new.
+#
+# Deliberately NARROW. This repository has byte-sensitive evidence (fixtures,
+# goldens, recorded campaign results) whose exact bytes are the contract, and a
+# blanket `* text=auto` would put those bytes at the mercy of a checkout
+# setting. #260 carries "a researched .gitattributes for byte-sensitive
+# evidence" as its own hygiene tail; this rule covers executable shell scripts
+# only and takes no position on that wider question.
+*.sh text eol=lf
+
+# Campaign evidence is hashed BY BYTE, so it must not depend on a checkout
+# setting. `mutate_campaign.py` records the sha256 of the definition it ran,
+# and the gate refuses a result whose definition hash does not match. The
+# #262 Stage-1 Windows campaign runs on a windows-latest runner, where
+# `core.autocrlf=true` rewrote these files on checkout: the same definition
+# hashed 79ad1476f219 on Linux and 3dda13ce16d6 on Windows, and a run that
+# measured exactly the right tree was rejected as evidence for another tree.
+docs/evidence/*.json text eol=lf

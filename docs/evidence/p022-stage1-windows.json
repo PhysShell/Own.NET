@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "comment": "GENERATED-BY-HAND definition; the RESULT beside it is recorded by scripts/mutate_campaign.py --run on a WINDOWS runner and the counts are derived from it, never typed.",
+  "campaign": "p022-stage1-windows",
+  "description": "#262 Stage 1 — the surfaces whose contract only Windows can be asked about. `scripts/own-check.ps1` was driven by a CI smoke step but was absent from the adversarial control set, which is why three of its engine-contract defects survived a 16/16 campaign on the other surfaces: a campaign can only prove what some control observes. Beside it sits the Windows half of `scripts/own-check.sh`'s locator classifier, which the Linux campaign cannot reach at all — a drive-rooted path is absolute only where Windows resolves it, and a mutant of that arm is invisible on Linux whatever the runner reports. It also carries the spawn seam itself: a candidate must be STARTED, never handed to the platform to open, and the two desktop handlers that proved this — notepad and xdg-open — are why the seam was unreachable on either platform until it was fixed. Every mutation here is a plausible MISREADING rather than a syntactic accident.",
+  "layers": [
+    {
+      "id": "ps1",
+      "cwd": ".",
+      "parser": "python-fail",
+      "command": [
+        "python",
+        "tests/test_stage1_ps1.py"
+      ]
+    },
+    {
+      "id": "shapes",
+      "cwd": ".",
+      "parser": "python-fail",
+      "command": [
+        "python",
+        "tests/test_stage1_engine.py"
+      ],
+      "env": {
+        "OWEN_STAGE1_ONLY": "locator-shapes"
+      }
+    }
+  ],
+  "layers_comment": "WINDOWS-NATIVE BY CONTRACT. A mutation targeting scripts/own-check.ps1, or the Windows arm of scripts/own-check.sh's locator classifier, is only `caught` when a Windows catcher observes the mutant and fails; this campaign therefore runs on a windows-latest runner (.github/workflows/ci.yml, job `stage1-windows-mutations`). Running it on Linux would execute the mutated PowerShell under a different runtime and would leave the drive-rooted arm unreachable, so a Linux result is not evidence for these mutants and is never recorded as one. The `shapes` layer narrows tests/test_stage1_engine.py to its locator classification control: that control needs no candidate and no .NET, so the Windows leg stays a PowerShell-and-shell job rather than a second full build.",
+  "control": {
+    "id": "M00",
+    "description": "harness-honesty control: no mutation at all, which must report zero failing layers"
+  },
+  "mutations": [
+    {
+      "id": "P01",
+      "rule": "ps1-locator-must-be-absolute",
+      "description": "own-check.ps1 accepts a relative OWEN_RUST_CORE — Test-Path says the file is there, which is true and not the question D3 asks",
+      "target": "scripts/own-check.ps1",
+      "pattern": "    elseif \\(-not \\[System\\.IO\\.Path\\]::IsPathFullyQualified\\(\\$rustCore\\)\\) \\{",
+      "replacement": "    elseif ($false) {",
+      "expected_catchers": [
+        "ps1::ps1-absolute-locator"
+      ]
+    },
+    {
+      "id": "P02",
+      "rule": "ps1-not-started-is-configuration",
+      "description": "own-check.ps1 reports a candidate that never started as an internal failure — 'the engine blew up' read as Owen's bug rather than the caller's configuration, which is the exact side of D3.1's seam the old comment got backwards",
+      "target": "scripts/own-check.ps1",
+      "pattern": "            exit 2\n        \\}\n        # 0/1/2 are verdicts and pass through",
+      "replacement": "            exit 5\n        }\n        # 0/1/2 are verdicts and pass through",
+      "expected_catchers": [
+        "ps1::ps1-not-started-is-2"
+      ]
+    },
+    {
+      "id": "P03",
+      "rule": "ps1-agreement-replays-raw-bytes",
+      "description": "own-check.ps1 replays STDOUT through `Get-Content -Raw | Write-Output` — a decode-and-re-encode read as an echo. Scoped to stdout ONLY: it leaves the stderr replay intact, so it can be killed by nothing but the stdout half of the byte-faithfulness assertion. The earlier version of this mutation also emptied $errBytes, which meant its death proved only that stdout was checked and left 'both streams' as grammar",
+      "target": "scripts/own-check.ps1",
+      "pattern": "            \\$outBytes = \\[System\\.IO\\.File\\]::ReadAllBytes\\(\\(Join-Path \\$cmpDir \"python\\.out\"\\)\\)\n            \\$errBytes = \\[System\\.IO\\.File\\]::ReadAllBytes\\(\\(Join-Path \\$cmpDir \"python\\.err\"\\)\\)",
+      "replacement": "            Get-Content -LiteralPath (Join-Path $cmpDir \"python.out\") -Raw -ErrorAction SilentlyContinue | Write-Output\n            $outBytes = @()\n            $errBytes = [System.IO.File]::ReadAllBytes((Join-Path $cmpDir \"python.err\"))",
+      "expected_catchers": [
+        "ps1::ps1-agreement-replays"
+      ]
+    },
+    {
+      "id": "P04",
+      "rule": "ps1-failure-evidence-survives",
+      "description": "own-check.ps1 deletes the reproduction directory it just named — cleanup reads as tidiness, and the message that pointed at it is left describing something that no longer exists",
+      "target": "scripts/own-check.ps1",
+      "pattern": "                # reader at a path and then deleting it on the way out is worse\n                # than not naming one at all\\.\n                \\$keep = \\$true",
+      "replacement": "                # reader at a path and then deleting it on the way out is worse\n                # than not naming one at all.\n                $keep = $false",
+      "expected_catchers": [
+        "ps1::ps1-failure-evidence"
+      ]
+    },
+    {
+      "id": "P05",
+      "rule": "absolute-locator-is-accepted",
+      "description": "the shell's drive-rooted arm stops matching — this is the defect that actually shipped: `[/\\]` escapes the closing bracket, so the set is unterminated and matches NEITHER `C:/` nor `C:\\`, and every correct Windows locator was refused as 'not absolute' while every Linux control stayed green",
+      "target": "scripts/own-check.sh",
+      "pattern": "        \\[A-Za-z\\]:\\[/\\\\\\\\\\]\\*\\) is_absolute=1 ;;",
+      "replacement": "        [A-Za-z]:[/\\]*) is_absolute=1 ;;",
+      "expected_catchers": [
+        "shapes::locator-shapes"
+      ]
+    },
+    {
+      "id": "P06",
+      "rule": "absolute-locator-is-accepted",
+      "description": "own-check.ps1's absoluteness test is inverted — the over-rejection direction on this surface: every fully qualified locator is refused as 'not absolute' and every relative one is admitted, which no assertion that only feeds it a relative path can see",
+      "target": "scripts/own-check.ps1",
+      "pattern": "    elseif \\(-not \\[System\\.IO\\.Path\\]::IsPathFullyQualified\\(\\$rustCore\\)\\) \\{",
+      "replacement": "    elseif ([System.IO.Path]::IsPathFullyQualified($rustCore)) {",
+      "expected_catchers": [
+        "ps1::ps1-absolute-locator"
+      ]
+    },
+    {
+      "id": "P07",
+      "rule": "the-candidate-is-spawned-not-opened",
+      "description": "own-check.ps1 goes back to invoking the candidate with the call operator — 'PowerShell runs it either way, why the ceremony?'. It does not run it: it asks the platform to OPEN it, so a file the loader cannot start is handed to a desktop handler (notepad on Windows, xdg-open on Linux), the run exits 0 with empty streams, and Owen reports a clean finding-free analysis of nothing",
+      "target": "scripts/own-check.ps1",
+      "pattern": "    \\$psi\\.UseShellExecute = \\$false\n    \\$proc = \\[System\\.Diagnostics\\.Process\\]::Start\\(\\$psi\\)\n    \\$proc\\.WaitForExit\\(\\)\n    return \\$proc\\.ExitCode",
+      "replacement": "    & $FilePath @ArgumentList\n    return $LASTEXITCODE",
+      "expected_catchers": [
+        "ps1::ps1-not-started-is-2"
+      ]
+    },
+    {
+      "id": "P08",
+      "rule": "ps1-agreement-replays-raw-bytes",
+      "description": "own-check.ps1 drops the STDERR half of the agreement replay while leaving stdout byte-faithful — 'stderr is diagnostics, the result is stdout', which is how the original defect was written in the first place. It is the twin of P03 and exists because a single mutation that broke both streams could be killed by the stdout assertion alone: with this one, the stderr assertion is the only thing standing between the mutant and a green run",
+      "target": "scripts/own-check.ps1",
+      "pattern": "            if \\(\\$errBytes\\.Length -gt 0\\) \\{\n                \\$stderrStream = \\[System\\.Console\\]::OpenStandardError\\(\\)\n                \\$stderrStream\\.Write\\(\\$errBytes, 0, \\$errBytes\\.Length\\)\n                \\$stderrStream\\.Flush\\(\\)\n            \\}",
+      "replacement": "            # the result is stdout; stderr is only diagnostics",
+      "expected_catchers": [
+        "ps1::ps1-agreement-replays"
+      ]
+    },
+    {
+      "id": "P09",
+      "rule": "the-locator-is-a-preflight",
+      "description": "own-check.ps1 checks that the .NET toolchain answers before it validates the locator — 'fail on the missing tool first', which plenty of CLIs do. The rejection it then produces is still correct in every observable way: exit 2, the absolute requirement named, no verdict. What it loses is the POSITION: a decision reachable from one environment variable now happens behind an external process, and on the real path that process is a Roslyn extraction over the caller's whole tree. Nothing in this control caught that until it began counting child processes",
+      "target": "scripts/own-check.ps1",
+      "pattern": "    if \\(\\$problem -ne \"\"\\) \\{\n        # Windows has no execute bit",
+      "replacement": "    if ($problem -ne \"\") {\n        & dotnet run --project (Join-Path $Root \"frontend/roslyn/OwnSharp.Extractor\") -- @Paths 1>$null\n        # Windows has no execute bit",
+      "expected_catchers": [
+        "ps1::ps1-absolute-locator"
+      ]
+    }
+  ]
+}
