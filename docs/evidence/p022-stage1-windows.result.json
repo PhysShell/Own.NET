@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
+  "campaign": "p022-stage1-windows",
+  "definition": "docs/evidence/p022-stage1-windows.json",
+  "definition_sha256": "79ad1476f219239ecd4753d08dd8fd3ca018e17f35da368ba464196d1428aca0",
+  "source_commit": "1d649e99d9c9a8fac0913ac59fcbda94499479bb",
+  "dirty": false,
+  "recorded_at": "2026-09-09T07:09:15Z",
+  "layers": [
+    "ps1",
+    "shapes"
+  ],
+  "command": "every layer the definition declares, for every mutation",
+  "control": {
+    "id": "M00",
+    "outcome": "survived",
+    "catchers": [],
+    "elapsed_seconds": 66.6
+  },
+  "mutations": [
+    {
+      "id": "P01",
+      "outcome": "caught",
+      "catchers": [
+        "ps1::ps1-absolute-locator"
+      ],
+      "elapsed_seconds": 34.4
+    },
+    {
+      "id": "P02",
+      "outcome": "caught",
+      "catchers": [
+        "ps1::ps1-not-started-is-2"
+      ],
+      "elapsed_seconds": 26.4
+    },
+    {
+      "id": "P03",
+      "outcome": "caught",
+      "catchers": [
+        "ps1::ps1-agreement-replays"
+      ],
+      "elapsed_seconds": 24.1
+    },
+    {
+      "id": "P04",
+      "outcome": "caught",
+      "catchers": [
+        "ps1::ps1-failure-evidence"
+      ],
+      "elapsed_seconds": 24.9
+    },
+    {
+      "id": "P05",
+      "outcome": "caught",
+      "catchers": [
+        "shapes::locator-shapes"
+      ],
+      "elapsed_seconds": 24.2
+    },
+    {
+      "id": "P06",
+      "outcome": "caught",
+      "catchers": [
+        "ps1::ps1-absolute-locator",
+        "ps1::ps1-agreement-replays",
+        "ps1::ps1-failure-evidence",
+        "ps1::ps1-not-started-is-2"
+      ],
+      "elapsed_seconds": 17.0
+    },
+    {
+      "id": "P07",
+      "outcome": "caught",
+      "catchers": [
+        "ps1::ps1-not-started-is-2"
+      ],
+      "elapsed_seconds": 22.6
+    }
+  ]
+}

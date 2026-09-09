@@ -12,21 +12,16 @@ Definition: `docs/evidence/p022-stage1-1.json` (sha256 `c8bd2180f285a130…`, 21
 
 | measure                                          | value |
 |--------------------------------------------------|---|
-| recorded at commit                               | `0f51868df54041b8a8ed2af1c8b0ce41838009c8` |
+| recorded at commit                               | `1d649e99d9c9a8fac0913ac59fcbda94499479bb` |
 | layers run (every one, for every mutation)       | `stage1` |
 | mutations                                        | 21 |
-| caught                                           | 16 |
+| caught                                           | 21 |
 | survived                                         | 0 |
 | compile-error (no evidence either way)           | 0 |
 | invalid-mutation                                 | 0 |
 | runner-error                                     | 0 |
 | caught without every expected catcher            | none |
 | honesty control `M00` (unmutated tree must pass) | survived — as required |
-
-**This run is not evidence:**
-
-- the recorded result was taken over a different campaign definition (sha256 or campaign name differs) — re-run the campaign
-- result/definition mutation sets differ (missing ['M17', 'M18', 'M19', 'M20', 'M21'], unknown [])
 
 | id | rule | mutation | outcome | caught by |
 |---|---|---|---|---|
@@ -35,27 +30,48 @@ Definition: `docs/evidence/p022-stage1-1.json` (sha256 `c8bd2180f285a130…`, 21
 | M03 | 70-is-not-a-verdict | 70 is treated as a legal engine result — the shared internal-error code mistaken for part of the verdict contract because both engines document it | caught | `stage1::rc70-is-not-a-verdict`<br>`stage1::rust-failure-no-fallback` |
 | M04 | unexpected-rc-maps-to-5 | an unexpected Rust child status passes through as itself — 'propagate the child's exit code' read as faithfulness rather than as leaking a meaningless number to the caller | caught | `stage1::raw-rc-retained`<br>`stage1::rc70-is-not-a-verdict`<br>`stage1::rust-failure-no-fallback`<br>`stage1::unexpected-rc-maps-to-5` |
 | M05 | raw-rc-retained | the raw child status is dropped from the report — the human-readable cause already names the number, so the typed carrier looks redundant | caught | `stage1::raw-rc-retained` |
-| M06 | bad-locator-is-2-not-5 | an unusable OWEN_RUST_CORE is an internal error — a failure to start the engine read as Owen's own bug rather than the caller's configuration | caught | `stage1::bad-locator-is-2` |
-| M07 | bad-locator-is-2-not-3 | an unusable OWEN_RUST_CORE reuses exit 3 — 'no usable engine runtime' read as the same class as 'no usable Python', which it is not | caught | `stage1::bad-locator-is-2` |
+| M06 | bad-locator-is-2-not-5 | an unusable OWEN_RUST_CORE is an internal error — a failure to start the engine read as Owen's own bug rather than the caller's configuration | caught | `stage1::absolute-locator-only`<br>`stage1::bad-locator-is-2` |
+| M07 | bad-locator-is-2-not-3 | an unusable OWEN_RUST_CORE reuses exit 3 — 'no usable engine runtime' read as the same class as 'no usable Python', which it is not | caught | `stage1::absolute-locator-only`<br>`stage1::bad-locator-is-2` |
 | M08 | no-fallback-in-the-shell | the shell falls back to Python when the Rust core produces no verdict — 'be helpful, still give the user an answer', which is precisely the silent fallback every ruling forbids | caught | `stage1::rust-failure-no-fallback` |
-| M09 | shell-locator-is-2-not-3 | the shell reports an unusable OWEN_RUST_CORE as exit 3 — the Python-specific 'no usable runtime' code borrowed for the Rust candidate | caught | `stage1::bad-locator-is-2` |
+| M09 | shell-locator-is-2-not-3 | the shell reports an unusable OWEN_RUST_CORE as exit 3 — the Python-specific 'no usable runtime' code borrowed for the Rust candidate | caught | `stage1::absolute-locator-only`<br>`stage1::bad-locator-is-2` |
 | M10 | divergence-is-5 | a divergence exposes the reference's result — 'Python is still the reference, so trust it' read as a licence to answer while the two engines disagree | caught | `stage1::compare-no-substitution`<br>`stage1::compare-same-input`<br>`stage1::divergence-is-5` |
-| M11 | exec-failure-is-not-agreement | the execution-failure check is skipped — comparing the results first and treating a crashed engine as just another difference, which loses the distinction D4.1 draws between (b) and (c) | caught | `stage1::exec-failure-is-5` |
+| M11 | exec-failure-is-not-agreement | the execution-failure check is skipped — comparing the results first and treating a crashed engine as just another difference, which loses the distinction D4.1 draws between (b) and (c) | caught | `stage1::compare-failure-classified`<br>`stage1::exec-failure-is-5` |
 | M12 | zero-document-compare-fails | a document with no analysable unit is compared anyway — 'both engines agreed' read as a result rather than as a zero denominator | caught | `stage1::compare-zero-document` |
 | M13 | candidate-identity-recorded | the evidence records a placeholder candidate digest — the path already names the binary, so hashing it looks like belt-and-braces | caught | `stage1::candidate-identity` |
 | M14 | shell-compare-checks-stdout | the shell compare stops comparing stdout — the exit code read as the whole of 'the public result', dropping the bytes the user actually sees | caught | `stage1::compare-no-substitution`<br>`stage1::divergence-is-5` |
 | M15 | shell-divergence-is-5 | the shell reports a divergence as exit 1 — the 'something is wrong' tier reached for, when in public Owen 1 already means findings | caught | `stage1::divergence-is-5` |
 | M16 | shell-zero-document-fails | the shell's zero-document guard is dropped — an empty document read as a legitimately clean agreement | caught | `stage1::compare-zero-document` |
-| M17 | locator-must-be-absolute | the launcher accepts a relative OWEN_RUST_CORE — `GetFullPath` reads as 'it resolves the path for me', which it does: against whatever directory Owen happened to run in | **not recorded** | — |
-| M18 | shell-locator-must-be-absolute | the shell accepts a relative OWEN_RUST_CORE — the -f/-x tests look like they answer 'is this a usable binary', and they do, for whatever the current directory made of the path | **not recorded** | — |
-| M19 | compare-verdict-is-stated | the compare verdict is inferred from the Rust-child field again — `child_exit_code is null` reads as 'no engine crashed', but it is only ever about the RUST child, so a Python-only failure is stamped 'divergence' | **not recorded** | — |
-| M20 | absolute-locator-is-accepted | the shell's POSIX arm stops recognising an absolute path — the over-rejection direction of D3, where a validator that refuses EVERYTHING passes every 'reject the relative one' assertion and makes the tool unusable with a correct configuration | **not recorded** | — |
-| M21 | absolute-locator-is-accepted | the launcher's absoluteness test is inverted — the same over-rejection direction in the C# implementation: every fully qualified locator is refused as 'not absolute' and every relative one is admitted | **not recorded** | — |
+| M17 | locator-must-be-absolute | the launcher accepts a relative OWEN_RUST_CORE — `GetFullPath` reads as 'it resolves the path for me', which it does: against whatever directory Owen happened to run in | caught | `stage1::absolute-locator-only`<br>`stage1::locator-shapes` |
+| M18 | shell-locator-must-be-absolute | the shell accepts a relative OWEN_RUST_CORE — the -f/-x tests look like they answer 'is this a usable binary', and they do, for whatever the current directory made of the path | caught | `stage1::absolute-locator-only`<br>`stage1::locator-shapes` |
+| M19 | compare-verdict-is-stated | the compare verdict is inferred from the Rust-child field again — `child_exit_code is null` reads as 'no engine crashed', but it is only ever about the RUST child, so a Python-only failure is stamped 'divergence' | caught | `stage1::compare-failure-classified` |
+| M20 | absolute-locator-is-accepted | the shell's POSIX arm stops recognising an absolute path — the over-rejection direction of D3, where a validator that refuses EVERYTHING passes every 'reject the relative one' assertion and makes the tool unusable with a correct configuration | caught | `stage1::compare-extracts-once`<br>`stage1::compare-same-input`<br>`stage1::compare-zero-document`<br>`stage1::divergence-is-5`<br>`stage1::exec-failure-is-5`<br>`stage1::locator-shapes`<br>`stage1::rust-failure-no-fallback` |
+| M21 | absolute-locator-is-accepted | the launcher's absoluteness test is inverted — the same over-rejection direction in the C# implementation: every fully qualified locator is refused as 'not absolute' and every relative one is admitted | caught | `stage1::absolute-locator-only`<br>`stage1::candidate-identity`<br>`stage1::compare-failure-classified`<br>`stage1::compare-same-input`<br>`stage1::compare-zero-document`<br>`stage1::divergence-is-5`<br>`stage1::exec-failure-is-5`<br>`stage1::locator-shapes`<br>`stage1::raw-rc-retained`<br>`stage1::rc70-is-not-a-verdict`<br>`stage1::rust-actually-runs-rust`<br>`stage1::rust-failure-no-fallback`<br>`stage1::unexpected-rc-maps-to-5` |
 
 ## Stage 1 — the surfaces only Windows can be asked about: `own-check.ps1`, and the drive-rooted arm of the shell's locator classifier. Measured on a WINDOWS runner, because a mutant of either is invisible to a Linux catcher
 
-Campaign `p022-stage1-windows` — #262 Stage 1 — the surfaces whose contract only Windows can be asked about. `scripts/own-check.ps1` was driven by a CI smoke step but was absent from the adversarial control set, which is why three of its engine-contract defects survived a 16/16 campaign on the other surfaces: a campaign can only prove what some control observes. Beside it sits the Windows half of `scripts/own-check.sh`'s locator classifier, which the Linux campaign cannot reach at all — a drive-rooted path is absolute only where Windows resolves it, and a mutant of that arm is invisible on Linux whatever the runner reports. Every mutation here is a plausible MISREADING rather than a syntactic accident.
+Campaign `p022-stage1-windows` — #262 Stage 1 — the surfaces whose contract only Windows can be asked about. `scripts/own-check.ps1` was driven by a CI smoke step but was absent from the adversarial control set, which is why three of its engine-contract defects survived a 16/16 campaign on the other surfaces: a campaign can only prove what some control observes. Beside it sits the Windows half of `scripts/own-check.sh`'s locator classifier, which the Linux campaign cannot reach at all — a drive-rooted path is absolute only where Windows resolves it, and a mutant of that arm is invisible on Linux whatever the runner reports. It also carries the spawn seam itself: a candidate must be STARTED, never handed to the platform to open, and the two desktop handlers that proved this — notepad and xdg-open — are why the seam was unreachable on either platform until it was fixed. Every mutation here is a plausible MISREADING rather than a syntactic accident.
 
-Definition: `docs/evidence/p022-stage1-windows.json` (sha256 `eeca9e0d6910c849…`, 6 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-stage1-windows.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
+Definition: `docs/evidence/p022-stage1-windows.json` (sha256 `79ad1476f219239e…`, 7 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-stage1-windows.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
-**No recorded run** is committed (expected at `docs/evidence/p022-stage1-windows.result.json`): the campaign has a definition but no evidence. Nothing below is a number.
+| measure                                          | value |
+|--------------------------------------------------|---|
+| recorded at commit                               | `1d649e99d9c9a8fac0913ac59fcbda94499479bb` |
+| layers run (every one, for every mutation)       | `ps1`, `shapes` |
+| mutations                                        | 7 |
+| caught                                           | 7 |
+| survived                                         | 0 |
+| compile-error (no evidence either way)           | 0 |
+| invalid-mutation                                 | 0 |
+| runner-error                                     | 0 |
+| caught without every expected catcher            | none |
+| honesty control `M00` (unmutated tree must pass) | survived — as required |
+
+| id | rule | mutation | outcome | caught by |
+|---|---|---|---|---|
+| P01 | ps1-locator-must-be-absolute | own-check.ps1 accepts a relative OWEN_RUST_CORE — Test-Path says the file is there, which is true and not the question D3 asks | caught | `ps1::ps1-absolute-locator` |
+| P02 | ps1-not-started-is-configuration | own-check.ps1 reports a candidate that never started as an internal failure — 'the engine blew up' read as Owen's bug rather than the caller's configuration, which is the exact side of D3.1's seam the old comment got backwards | caught | `ps1::ps1-not-started-is-2` |
+| P03 | ps1-agreement-replays-raw-bytes | own-check.ps1 replays agreement through the object pipeline again, stdout only — `Get-Content | Write-Output` looks like an echo and is a decode-and-re-encode that also drops stderr | caught | `ps1::ps1-agreement-replays` |
+| P04 | ps1-failure-evidence-survives | own-check.ps1 deletes the reproduction directory it just named — cleanup reads as tidiness, and the message that pointed at it is left describing something that no longer exists | caught | `ps1::ps1-failure-evidence` |
+| P05 | absolute-locator-is-accepted | the shell's drive-rooted arm stops matching — this is the defect that actually shipped: `[/\]` escapes the closing bracket, so the set is unterminated and matches NEITHER `C:/` nor `C:\`, and every correct Windows locator was refused as 'not absolute' while every Linux control stayed green | caught | `shapes::locator-shapes` |
+| P06 | absolute-locator-is-accepted | own-check.ps1's absoluteness test is inverted — the over-rejection direction on this surface: every fully qualified locator is refused as 'not absolute' and every relative one is admitted, which no assertion that only feeds it a relative path can see | caught | `ps1::ps1-absolute-locator`<br>`ps1::ps1-agreement-replays`<br>`ps1::ps1-failure-evidence`<br>`ps1::ps1-not-started-is-2` |
+| P07 | the-candidate-is-spawned-not-opened | own-check.ps1 goes back to invoking the candidate with the call operator — 'PowerShell runs it either way, why the ceremony?'. It does not run it: it asks the platform to OPEN it, so a file the loader cannot start is handed to a desktop handler (notepad on Windows, xdg-open on Linux), the run exits 0 with empty streams, and Owen reports a clean finding-free analysis of nothing | caught | `ps1::ps1-not-started-is-2` |
