@@ -169,3 +169,93 @@ not merely by key shape.
 
 The ladder tracks its targets from 2 ms up. The 1 ms rung is the spawn floor and
 is kept, flagged, and read as a bound rather than a duration.
+
+
+---
+
+# Reading — decided by the table above, not by what would be convenient
+
+**Outcome: O2.** The ladder is stable exactly where the real Rust invocations
+wander. **An absolute floor must NOT be introduced**, and Round 6 has not found
+the cause.
+
+## What the ladder did
+
+Absolute median shift, per rung, over five A/B sessions each:
+
+| target | n=5 median | n=15 median | n=5 relative | n=15 relative |
+|---|---|---|---|---|
+| 1 ms *(floor)* | 0.056 ms | 0.066 ms | 0.0371 | 0.0464 |
+| 2 ms | 0.093 ms | 0.093 ms | 0.0472 | 0.0432 |
+| 4 ms | 0.098 ms | 0.071 ms | 0.0247 | 0.0176 |
+| 8 ms | 0.053 ms | 0.079 ms | 0.0067 | 0.0100 |
+| 16 ms | 0.125 ms | 0.093 ms | 0.0079 | 0.0058 |
+| 32 ms | 0.461 ms | 0.105 ms | 0.0142 | 0.0033 |
+| 64 ms | 0.459 ms | 0.357 ms | 0.0072 | 0.0056 |
+| 128 ms | 1.126 ms | 0.352 ms | 0.0089 | 0.0028 |
+
+A measurement-scale effect **is** visible: relative shift rises from ~0.006 at
+8–16 ms to ~0.04–0.05 at 1–2 ms, which is what a fixed cost divided by a
+shrinking denominator looks like. That much of O1's description is real.
+
+## Why it is O2 and not O1
+
+O1 required absolute drift to be **roughly constant across the ladder**. It is
+not: it grows from 0.056 ms to 1.126 ms at `n=5`, about twentyfold. O1's
+precondition fails, so the v2 envelope it would have licensed is not licensed.
+
+The decisive comparison is the one the whole round was built to make. In the
+2–10 ms band — the durations of every `rust` cell that has ever failed —
+27 A/B sessions of the synthetic ladder produced:
+
+| | |
+|---|---|
+| relative median shift, median | **0.0131** |
+| relative median shift, **worst of 27** | **0.1564** |
+| absolute drift, **worst of 27** | **0.3203 ms** |
+
+Against what the real failures required:
+
+| failing cell | observed | its median | absolute drift implied |
+|---|---|---|---|
+| `core-full-human\|rust\|cal-facts-small\|process-cold` | 0.396 | 3.12 ms | **1.23 ms** |
+| `core-usage\|rust\|cal-facts-tiny\|process-cold` | 0.516 | 2.49 ms | **1.29 ms** |
+| `core-full-sarif\|rust\|cal-facts-small\|warm` | 0.423 | 3.22 ms | **1.36 ms** |
+| `core-full-sarif\|rust\|cal-facts-tiny\|process-cold` | 0.508 | 2.93 ms | **1.49 ms** |
+| `core-full-sarif\|rust\|cal-facts-medium\|process-cold` | 0.478 | 9.22 ms | **4.41 ms** |
+
+The smallest drift any failing cell required is **1.23 ms**. The largest the
+ladder produced at those durations, across 27 sessions, is **0.32 ms** — short
+by a factor of **3.9**, and that is comparing a *worst case* against a
+*minimum*. The synthetic ladder never once crossed 0.35 anywhere, at any rung,
+at either repetition count.
+
+So short duration alone does not produce the instability. Something the real
+invocations do, and this helper does not, is producing it.
+
+## What this forecloses
+
+Reading the table charitably as O1 and fitting `A + R*t` anyway would produce an
+envelope **tighter** than 0.35 at these durations — the ladder's worst relative
+shift there is 0.156. It would reject the Rust cells more often, not fewer. The
+metrology cannot be used to loosen anything, which is worth stating plainly
+because that is the direction someone will eventually be tempted to take it.
+
+## The boundary of this conclusion
+
+The helper is a small compiled binary doing pure arithmetic: no file reads, no
+document parsing, no large dynamic image to load. `own-cli` is about 1.8 MB and
+opens files. The ladder therefore isolates **duration** and does not isolate
+**what a real invocation does**. Dynamic loading, page-cache state and file I/O
+remain unexamined, and one of them is the obvious next suspect.
+
+This is stated as a limit rather than buried, because O2's conclusion is
+"the cause is elsewhere", and a reader is entitled to know exactly how much
+elsewhere this round searched.
+
+## What does not change
+
+Per the preregistration and the owner's standing rulings: no absolute floor, no
+v2 envelope, `0.35` unmoved, no `T_min`/`N_min`/`N_max`, no threshold derived
+from any number above, and no calibration of record restored. Round 6 stops
+here and reports.

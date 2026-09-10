@@ -1,0 +1,6577 @@
+{
+  "schema": 1,
+  "tag": "CALIBRATION_ONLY",
+  "kind": "own.net/p022/round6-metrology",
+  "not_decision_evidence": "Variance characterisation of the instrument's timed interval. NO pass/fail tolerance is computed or applied here, and no value in this file may be used as a D7 threshold.",
+  "preregistration": "docs/notes/p022-263a-round6-preregistration.md",
+  "helper_sha256": "f937b36bd4dac422f88942b87ea9794e2c75a198a034917e6c02c0abad1c0cbd",
+  "spawn_floor_ms": 1.332,
+  "warmup_discards": 2,
+  "sessions_per_cell": 5,
+  "instrument_harness_digest": "2d6e52fe43529456c00249d967148035423f9bba938de7f9f0f960832c8e0a6a",
+  "instrument_tree_sha": "8c61a7b204a1dfde5c6b103d841c046882d83c84",
+  "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+  "timestamp_utc": "2026-09-10T16:32:31Z",
+  "cells": [
+    {
+      "target_ms": 1,
+      "iterations": 0,
+      "repetitions": 5,
+      "session": 0,
+      "a": {
+        "median_ns": 1238038,
+        "mad_ns": 35201,
+        "iqr_ns": 144612.5,
+        "min_ns": 1202837,
+        "max_ns": 1375732,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 1278132,
+        "mad_ns": 40623,
+        "iqr_ns": 125101.5,
+        "min_ns": 1237509,
+        "max_ns": 1400750,
+        "n": 5
+      },
+      "raw_a_ns": [
+        1375732,
+        1238038,
+        1236119,
+        1352449,
+        1202837
+      ],
+      "raw_b_ns": [
+        1345590,
+        1278132,
+        1400750,
+        1237509,
+        1258628
+      ],
+      "absolute_median_shift_ns": 40094,
+      "relative_median_shift": 0.03238511257328127,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.1826171875,
+          0.10302734375,
+          0.03125
+        ],
+        "voluntary_ctxt_switches": 12,
+        "nonvoluntary_ctxt_switches": 7,
+        "system_ctxt": 303133
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.1826171875,
+          0.10302734375,
+          0.03125
+        ],
+        "voluntary_ctxt_switches": 40,
+        "nonvoluntary_ctxt_switches": 7,
+        "system_ctxt": 303241
+      }
+    },
+    {
+      "target_ms": 1,
+      "iterations": 0,
+      "repetitions": 5,
+      "session": 1,
+      "a": {
+        "median_ns": 1489581,
+        "mad_ns": 40035,
+        "iqr_ns": 355414.5,
+        "min_ns": 1141137,
+        "max_ns": 1529616,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 1499611,
+        "mad_ns": 53044,
+        "iqr_ns": 219148.0,
+        "min_ns": 1213435,
+        "max_ns": 1553361,
+        "n": 5
+      },
+      "raw_a_ns": [
+        1514179,
+        1191829,
+        1141137,
+        1529616,
+        1489581
+      ],
+      "raw_b_ns": [
+        1213435,
+        1544937,
+        1499611,
+        1446567,
+        1553361
+      ],
+      "absolute_median_shift_ns": 10030,
+      "relative_median_shift": 0.006733437120908497,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.1826171875,
+          0.10302734375,
+          0.03125
+        ],
+        "voluntary_ctxt_switches": 40,
+        "nonvoluntary_ctxt_switches": 7,
+        "system_ctxt": 303245
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.1826171875,
+          0.10302734375,
+          0.03125
+        ],
+        "voluntary_ctxt_switches": 68,
+        "nonvoluntary_ctxt_switches": 7,
+        "system_ctxt": 303350
+      }
+    },
+    {
+      "target_ms": 1,
+      "iterations": 0,
+      "repetitions": 5,
+      "session": 2,
+      "a": {
+        "median_ns": 1629986,
+        "mad_ns": 51220,
+        "iqr_ns": 192530.5,
+        "min_ns": 1392419,
+        "max_ns": 1681206,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 1261155,
+        "mad_ns": 99178,
+        "iqr_ns": 317217.0,
+        "min_ns": 1161977,
+        "max_ns": 1513060,
+        "n": 5
+      },
+      "raw_a_ns": [
+        1681206,
+        1647163,
+        1550889,
+        1392419,
+        1629986
+      ],
+      "raw_b_ns": [
+        1261155,
+        1229151,
+        1512502,
+        1513060,
+        1161977
+      ],
+      "absolute_median_shift_ns": 368831,
+      "relative_median_shift": 0.22627863061400527,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.1826171875,
+          0.10302734375,
+          0.03125
+        ],
+        "voluntary_ctxt_switches": 68,
+        "nonvoluntary_ctxt_switches": 7,
+        "system_ctxt": 303350
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.1826171875,
+          0.10302734375,
+          0.03125
+        ],
+        "voluntary_ctxt_switches": 96,
+        "nonvoluntary_ctxt_switches": 7,
+        "system_ctxt": 303465
+      }
+    },
+    {
+      "target_ms": 1,
+      "iterations": 0,
+      "repetitions": 5,
+      "session": 3,
+      "a": {
+        "median_ns": 1481824,
+        "mad_ns": 24092,
+        "iqr_ns": 91431.5,
+        "min_ns": 1457732,
+        "max_ns": 1565816,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 1546840,
+        "mad_ns": 47049,
+        "iqr_ns": 165213.0,
+        "min_ns": 1411819,
+        "max_ns": 1593889,
+        "n": 5
+      },
+      "raw_a_ns": [
+        1467811,
+        1565816,
+        1457732,
+        1542590,
+        1481824
+      ],
+      "raw_b_ns": [
+        1411819,
+        1576967,
+        1593889,
+        1546840,
+        1428611
+      ],
+      "absolute_median_shift_ns": 65016,
+      "relative_median_shift": 0.04387565594834474,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.1826171875,
+          0.10302734375,
+          0.03125
+        ],
+        "voluntary_ctxt_switches": 96,
+        "nonvoluntary_ctxt_switches": 7,
+        "system_ctxt": 303465
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.1826171875,
+          0.10302734375,
+          0.03125
+        ],
+        "voluntary_ctxt_switches": 124,
+        "nonvoluntary_ctxt_switches": 7,
+        "system_ctxt": 303599
+      }
+    },
+    {
+      "target_ms": 1,
+      "iterations": 0,
+      "repetitions": 5,
+      "session": 4,
+      "a": {
+        "median_ns": 1520633,
+        "mad_ns": 65118,
+        "iqr_ns": 177656.0,
+        "min_ns": 1416534,
+        "max_ns": 1655807,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 1464228,
+        "mad_ns": 35389,
+        "iqr_ns": 105241.5,
+        "min_ns": 1428839,
+        "max_ns": 1550766,
+        "n": 5
+      },
+      "raw_a_ns": [
+        1655807,
+        1416534,
+        1520633,
+        1455515,
+        1571554
+      ],
+      "raw_b_ns": [
+        1464228,
+        1550766,
+        1522471,
+        1433915,
+        1428839
+      ],
+      "absolute_median_shift_ns": 56405,
+      "relative_median_shift": 0.037093105305487914,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.1826171875,
+          0.10302734375,
+          0.03125
+        ],
+        "voluntary_ctxt_switches": 124,
+        "nonvoluntary_ctxt_switches": 7,
+        "system_ctxt": 303599
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.1826171875,
+          0.10302734375,
+          0.03125
+        ],
+        "voluntary_ctxt_switches": 152,
+        "nonvoluntary_ctxt_switches": 8,
+        "system_ctxt": 303723
+      }
+    },
+    {
+      "target_ms": 1,
+      "iterations": 0,
+      "repetitions": 15,
+      "session": 0,
+      "a": {
+        "median_ns": 1239453,
+        "mad_ns": 100881,
+        "iqr_ns": 337038.0,
+        "min_ns": 1108076,
+        "max_ns": 1509309,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 1229306,
+        "mad_ns": 50651,
+        "iqr_ns": 105207.0,
+        "min_ns": 1132501,
+        "max_ns": 1312683,
+        "n": 15
+      },
+      "raw_a_ns": [
+        1138572,
+        1476546,
+        1310704,
+        1502893,
+        1139508,
+        1108076,
+        1507521,
+        1239453,
+        1368816,
+        1207717,
+        1169703,
+        1509309,
+        1116390,
+        1268444,
+        1158500
+      ],
+      "raw_b_ns": [
+        1239988,
+        1283862,
+        1154976,
+        1132501,
+        1201718,
+        1193810,
+        1181514,
+        1312683,
+        1229306,
+        1294574,
+        1250921,
+        1271235,
+        1178655,
+        1308242,
+        1152161
+      ],
+      "absolute_median_shift_ns": 10147,
+      "relative_median_shift": 0.008186675896544685,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.1826171875,
+          0.10302734375,
+          0.03125
+        ],
+        "voluntary_ctxt_switches": 152,
+        "nonvoluntary_ctxt_switches": 8,
+        "system_ctxt": 303724
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.1826171875,
+          0.10302734375,
+          0.03125
+        ],
+        "voluntary_ctxt_switches": 220,
+        "nonvoluntary_ctxt_switches": 8,
+        "system_ctxt": 303976
+      }
+    },
+    {
+      "target_ms": 1,
+      "iterations": 0,
+      "repetitions": 15,
+      "session": 1,
+      "a": {
+        "median_ns": 1385639,
+        "mad_ns": 57106,
+        "iqr_ns": 155073.0,
+        "min_ns": 1198081,
+        "max_ns": 1602526,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 1352984,
+        "mad_ns": 71789,
+        "iqr_ns": 167244.0,
+        "min_ns": 1174767,
+        "max_ns": 1619336,
+        "n": 15
+      },
+      "raw_a_ns": [
+        1257522,
+        1473143,
+        1602526,
+        1208785,
+        1394014,
+        1198081,
+        1442745,
+        1429218,
+        1380502,
+        1358148,
+        1577215,
+        1384462,
+        1385639,
+        1287672,
+        1400203
+      ],
+      "raw_b_ns": [
+        1261046,
+        1174767,
+        1403583,
+        1448439,
+        1313559,
+        1281195,
+        1575980,
+        1288030,
+        1619336,
+        1451000,
+        1304816,
+        1377173,
+        1247026,
+        1352984,
+        1389153
+      ],
+      "absolute_median_shift_ns": 32655,
+      "relative_median_shift": 0.02356674429631383,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.1826171875,
+          0.10302734375,
+          0.03125
+        ],
+        "voluntary_ctxt_switches": 220,
+        "nonvoluntary_ctxt_switches": 8,
+        "system_ctxt": 303976
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 288,
+        "nonvoluntary_ctxt_switches": 8,
+        "system_ctxt": 304245
+      }
+    },
+    {
+      "target_ms": 1,
+      "iterations": 0,
+      "repetitions": 15,
+      "session": 2,
+      "a": {
+        "median_ns": 1423167,
+        "mad_ns": 64781,
+        "iqr_ns": 244399.0,
+        "min_ns": 1267215,
+        "max_ns": 2276303,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 1357181,
+        "mad_ns": 72211,
+        "iqr_ns": 117641.0,
+        "min_ns": 1210889,
+        "max_ns": 4390127,
+        "n": 15
+      },
+      "raw_a_ns": [
+        1455355,
+        1367095,
+        1392916,
+        1602785,
+        1333564,
+        1782522,
+        2276303,
+        1871823,
+        1482789,
+        1267215,
+        1358386,
+        1439698,
+        1285362,
+        1423167,
+        1400787
+      ],
+      "raw_b_ns": [
+        1357181,
+        1284970,
+        4390127,
+        1481737,
+        1281495,
+        1881294,
+        1297155,
+        1328381,
+        1244924,
+        1210889,
+        1235692,
+        1363645,
+        1399136,
+        1364388,
+        1375722
+      ],
+      "absolute_median_shift_ns": 65986,
+      "relative_median_shift": 0.046365605723010725,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 288,
+        "nonvoluntary_ctxt_switches": 8,
+        "system_ctxt": 304245
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 356,
+        "nonvoluntary_ctxt_switches": 8,
+        "system_ctxt": 304503
+      }
+    },
+    {
+      "target_ms": 1,
+      "iterations": 0,
+      "repetitions": 15,
+      "session": 3,
+      "a": {
+        "median_ns": 1357817,
+        "mad_ns": 101732,
+        "iqr_ns": 226619.0,
+        "min_ns": 1179676,
+        "max_ns": 1699812,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 1277525,
+        "mad_ns": 110515,
+        "iqr_ns": 338655.0,
+        "min_ns": 1142056,
+        "max_ns": 1670739,
+        "n": 15
+      },
+      "raw_a_ns": [
+        1459549,
+        1584161,
+        1488010,
+        1411009,
+        1699812,
+        1356682,
+        1333875,
+        1560494,
+        1338152,
+        1208870,
+        1346580,
+        1597798,
+        1297109,
+        1179676,
+        1357817
+      ],
+      "raw_b_ns": [
+        1203713,
+        1277525,
+        1142056,
+        1341769,
+        1167010,
+        1192604,
+        1204770,
+        1384240,
+        1531259,
+        1658000,
+        1266151,
+        1670739,
+        1162758,
+        1472703,
+        1664605
+      ],
+      "absolute_median_shift_ns": 80292,
+      "relative_median_shift": 0.05913315270025342,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 356,
+        "nonvoluntary_ctxt_switches": 8,
+        "system_ctxt": 304503
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 424,
+        "nonvoluntary_ctxt_switches": 9,
+        "system_ctxt": 304769
+      }
+    },
+    {
+      "target_ms": 1,
+      "iterations": 0,
+      "repetitions": 15,
+      "session": 4,
+      "a": {
+        "median_ns": 1312269,
+        "mad_ns": 56224,
+        "iqr_ns": 120614.0,
+        "min_ns": 1173764,
+        "max_ns": 1807462,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 1187487,
+        "mad_ns": 36667,
+        "iqr_ns": 98585.0,
+        "min_ns": 1037892,
+        "max_ns": 1680008,
+        "n": 15
+      },
+      "raw_a_ns": [
+        1360983,
+        1606243,
+        1391785,
+        1807462,
+        1297434,
+        1328849,
+        1546941,
+        1302722,
+        1284718,
+        1255265,
+        1368493,
+        1271171,
+        1312269,
+        1173764,
+        1197272
+      ],
+      "raw_b_ns": [
+        1289077,
+        1345138,
+        1187487,
+        1162392,
+        1037892,
+        1090192,
+        1181381,
+        1680008,
+        1187995,
+        1095881,
+        1183169,
+        1223714,
+        1224154,
+        1260977,
+        1185994
+      ],
+      "absolute_median_shift_ns": 124782,
+      "relative_median_shift": 0.09508873561746868,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 424,
+        "nonvoluntary_ctxt_switches": 9,
+        "system_ctxt": 304769
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 492,
+        "nonvoluntary_ctxt_switches": 9,
+        "system_ctxt": 305017
+      }
+    },
+    {
+      "target_ms": 2,
+      "iterations": 460280,
+      "repetitions": 5,
+      "session": 0,
+      "a": {
+        "median_ns": 1960246,
+        "mad_ns": 59423,
+        "iqr_ns": 123140.0,
+        "min_ns": 1891266,
+        "max_ns": 2032939,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 2052750,
+        "mad_ns": 99549,
+        "iqr_ns": 187984.5,
+        "min_ns": 1921020,
+        "max_ns": 2196779,
+        "n": 5
+      },
+      "raw_a_ns": [
+        1891266,
+        2005430,
+        1960246,
+        2032939,
+        1900823
+      ],
+      "raw_b_ns": [
+        1921020,
+        2053411,
+        2052750,
+        1953201,
+        2196779
+      ],
+      "absolute_median_shift_ns": 92504,
+      "relative_median_shift": 0.04718999554137593,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 492,
+        "nonvoluntary_ctxt_switches": 9,
+        "system_ctxt": 305018
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 520,
+        "nonvoluntary_ctxt_switches": 9,
+        "system_ctxt": 305144
+      }
+    },
+    {
+      "target_ms": 2,
+      "iterations": 460280,
+      "repetitions": 5,
+      "session": 1,
+      "a": {
+        "median_ns": 1989273,
+        "mad_ns": 78054,
+        "iqr_ns": 201477.5,
+        "min_ns": 1833669,
+        "max_ns": 2067327,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 1940266,
+        "mad_ns": 27829,
+        "iqr_ns": 56232.0,
+        "min_ns": 1905804,
+        "max_ns": 1981761,
+        "n": 5
+      },
+      "raw_a_ns": [
+        2067327,
+        1857096,
+        1833669,
+        1989273,
+        2026393
+      ],
+      "raw_b_ns": [
+        1905804,
+        1981761,
+        1912437,
+        1948944,
+        1940266
+      ],
+      "absolute_median_shift_ns": 49007,
+      "relative_median_shift": 0.024635633218768868,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 520,
+        "nonvoluntary_ctxt_switches": 9,
+        "system_ctxt": 305144
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 548,
+        "nonvoluntary_ctxt_switches": 9,
+        "system_ctxt": 305253
+      }
+    },
+    {
+      "target_ms": 2,
+      "iterations": 460280,
+      "repetitions": 5,
+      "session": 2,
+      "a": {
+        "median_ns": 1949293,
+        "mad_ns": 21074,
+        "iqr_ns": 73275.5,
+        "min_ns": 1890482,
+        "max_ns": 1970367,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 1887838,
+        "mad_ns": 26516,
+        "iqr_ns": 90902.5,
+        "min_ns": 1861322,
+        "max_ns": 1971655,
+        "n": 5
+      },
+      "raw_a_ns": [
+        1902535,
+        1890482,
+        1970367,
+        1969201,
+        1949293
+      ],
+      "raw_b_ns": [
+        1958209,
+        1886737,
+        1887838,
+        1971655,
+        1861322
+      ],
+      "absolute_median_shift_ns": 61455,
+      "relative_median_shift": 0.03152681510681052,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 548,
+        "nonvoluntary_ctxt_switches": 9,
+        "system_ctxt": 305253
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 576,
+        "nonvoluntary_ctxt_switches": 9,
+        "system_ctxt": 305366
+      }
+    },
+    {
+      "target_ms": 2,
+      "iterations": 460280,
+      "repetitions": 5,
+      "session": 3,
+      "a": {
+        "median_ns": 2000410,
+        "mad_ns": 27660,
+        "iqr_ns": 142906.0,
+        "min_ns": 1964974,
+        "max_ns": 2217691,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 2110239,
+        "mad_ns": 18211,
+        "iqr_ns": 121059.5,
+        "min_ns": 1919111,
+        "max_ns": 2131698,
+        "n": 5
+      },
+      "raw_a_ns": [
+        1972750,
+        2005845,
+        2000410,
+        1964974,
+        2217691
+      ],
+      "raw_b_ns": [
+        1919111,
+        2131698,
+        2110239,
+        2128450,
+        2098918
+      ],
+      "absolute_median_shift_ns": 109829,
+      "relative_median_shift": 0.054903244834808865,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 576,
+        "nonvoluntary_ctxt_switches": 9,
+        "system_ctxt": 305366
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 604,
+        "nonvoluntary_ctxt_switches": 9,
+        "system_ctxt": 305478
+      }
+    },
+    {
+      "target_ms": 2,
+      "iterations": 460280,
+      "repetitions": 5,
+      "session": 4,
+      "a": {
+        "median_ns": 2047687,
+        "mad_ns": 84634,
+        "iqr_ns": 205016.5,
+        "min_ns": 1901306,
+        "max_ns": 2212462,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 2367963,
+        "mad_ns": 175528,
+        "iqr_ns": 454674.5,
+        "min_ns": 2039291,
+        "max_ns": 2634489,
+        "n": 5
+      },
+      "raw_a_ns": [
+        2132321,
+        2033444,
+        2047687,
+        2212462,
+        1901306
+      ],
+      "raw_b_ns": [
+        2367963,
+        2039291,
+        2192435,
+        2634489,
+        2506586
+      ],
+      "absolute_median_shift_ns": 320276,
+      "relative_median_shift": 0.15640866987972282,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 604,
+        "nonvoluntary_ctxt_switches": 9,
+        "system_ctxt": 305478
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 632,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 305604
+      }
+    },
+    {
+      "target_ms": 2,
+      "iterations": 460280,
+      "repetitions": 15,
+      "session": 0,
+      "a": {
+        "median_ns": 2123623,
+        "mad_ns": 111793,
+        "iqr_ns": 256765.0,
+        "min_ns": 1882322,
+        "max_ns": 2855217,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 2015043,
+        "mad_ns": 60938,
+        "iqr_ns": 122671.0,
+        "min_ns": 1901975,
+        "max_ns": 2136585,
+        "n": 15
+      },
+      "raw_a_ns": [
+        2855217,
+        2129129,
+        2115573,
+        2185207,
+        1994196,
+        2434205,
+        2172423,
+        2120991,
+        2196752,
+        1939987,
+        1882322,
+        2235416,
+        1939220,
+        1892058,
+        2123623
+      ],
+      "raw_b_ns": [
+        1945423,
+        2031536,
+        2014706,
+        1910709,
+        1901975,
+        2086233,
+        1954105,
+        2015043,
+        1975540,
+        2036357,
+        2007726,
+        2076776,
+        2036864,
+        2136585,
+        2114040
+      ],
+      "absolute_median_shift_ns": 108580,
+      "relative_median_shift": 0.05112960257070111,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 632,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 305606
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 700,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 305882
+      }
+    },
+    {
+      "target_ms": 2,
+      "iterations": 460280,
+      "repetitions": 15,
+      "session": 1,
+      "a": {
+        "median_ns": 2101672,
+        "mad_ns": 97620,
+        "iqr_ns": 217099.0,
+        "min_ns": 1893675,
+        "max_ns": 2314395,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 2074132,
+        "mad_ns": 102512,
+        "iqr_ns": 205948.0,
+        "min_ns": 1887984,
+        "max_ns": 2464388,
+        "n": 15
+      },
+      "raw_a_ns": [
+        2090534,
+        2048741,
+        2314395,
+        2103011,
+        2013982,
+        2209993,
+        2193098,
+        1982193,
+        2287540,
+        2199292,
+        2101672,
+        2110290,
+        1973839,
+        1964233,
+        1893675
+      ],
+      "raw_b_ns": [
+        1971620,
+        2464388,
+        1977305,
+        2257468,
+        1887984,
+        2011905,
+        2146791,
+        2348836,
+        2071835,
+        2217853,
+        2074132,
+        2208063,
+        2062534,
+        2211564,
+        2031104
+      ],
+      "absolute_median_shift_ns": 27540,
+      "relative_median_shift": 0.01310385255168266,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 700,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 305882
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 768,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 306185
+      }
+    },
+    {
+      "target_ms": 2,
+      "iterations": 460280,
+      "repetitions": 15,
+      "session": 2,
+      "a": {
+        "median_ns": 2177854,
+        "mad_ns": 117145,
+        "iqr_ns": 220965.0,
+        "min_ns": 1955031,
+        "max_ns": 2710138,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 1967133,
+        "mad_ns": 31314,
+        "iqr_ns": 234823.0,
+        "min_ns": 1864958,
+        "max_ns": 2462431,
+        "n": 15
+      },
+      "raw_a_ns": [
+        2202250,
+        2257031,
+        2058724,
+        2117486,
+        2294999,
+        1956851,
+        2177854,
+        1994041,
+        2214662,
+        2344336,
+        2036066,
+        2197576,
+        2710138,
+        2061739,
+        1955031
+      ],
+      "raw_b_ns": [
+        1888844,
+        1932862,
+        1967133,
+        1935819,
+        1954525,
+        1966343,
+        1940194,
+        1989681,
+        1984251,
+        1864958,
+        2288059,
+        2462431,
+        2170642,
+        1994745,
+        2309801
+      ],
+      "absolute_median_shift_ns": 210721,
+      "relative_median_shift": 0.09675625638816927,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 768,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 306185
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 836,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 306462
+      }
+    },
+    {
+      "target_ms": 2,
+      "iterations": 460280,
+      "repetitions": 15,
+      "session": 3,
+      "a": {
+        "median_ns": 2142063,
+        "mad_ns": 81735,
+        "iqr_ns": 175378.0,
+        "min_ns": 1894970,
+        "max_ns": 2561417,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 2049436,
+        "mad_ns": 86212,
+        "iqr_ns": 209871.0,
+        "min_ns": 1889455,
+        "max_ns": 2527311,
+        "n": 15
+      },
+      "raw_a_ns": [
+        2202905,
+        1894970,
+        2027527,
+        2168866,
+        2142063,
+        2168723,
+        2222068,
+        2426937,
+        2079198,
+        1988753,
+        2180803,
+        1931507,
+        2060328,
+        2561417,
+        2045088
+      ],
+      "raw_b_ns": [
+        1925777,
+        1889455,
+        1891487,
+        2049436,
+        2040541,
+        2016932,
+        2135648,
+        2066225,
+        2275840,
+        2017781,
+        2224986,
+        1922209,
+        2073293,
+        2527311,
+        2101215
+      ],
+      "absolute_median_shift_ns": 92627,
+      "relative_median_shift": 0.043241958803265826,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 836,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 306462
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 904,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 306735
+      }
+    },
+    {
+      "target_ms": 2,
+      "iterations": 460280,
+      "repetitions": 15,
+      "session": 4,
+      "a": {
+        "median_ns": 2020638,
+        "mad_ns": 76622,
+        "iqr_ns": 155824.0,
+        "min_ns": 1890499,
+        "max_ns": 2193687,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 1993052,
+        "mad_ns": 52317,
+        "iqr_ns": 135053.0,
+        "min_ns": 1825238,
+        "max_ns": 2179553,
+        "n": 15
+      },
+      "raw_a_ns": [
+        2116442,
+        2193687,
+        1925367,
+        1891112,
+        2066500,
+        2020638,
+        2041308,
+        2070244,
+        2066408,
+        2011155,
+        1910676,
+        1896024,
+        1890499,
+        1944016,
+        2063632
+      ],
+      "raw_b_ns": [
+        1960877,
+        1994591,
+        1940735,
+        2048250,
+        1977614,
+        2179553,
+        2029186,
+        1894440,
+        1865334,
+        1995302,
+        1825238,
+        1993052,
+        2071763,
+        2030088,
+        1895035
+      ],
+      "absolute_median_shift_ns": 27586,
+      "relative_median_shift": 0.013652123735176712,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 904,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 306735
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 972,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 307000
+      }
+    },
+    {
+      "target_ms": 4,
+      "iterations": 1838383,
+      "repetitions": 5,
+      "session": 0,
+      "a": {
+        "median_ns": 3958928,
+        "mad_ns": 26674,
+        "iqr_ns": 85081.5,
+        "min_ns": 3925728,
+        "max_ns": 4045440,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 4088085,
+        "mad_ns": 15720,
+        "iqr_ns": 113064.5,
+        "min_ns": 3999428,
+        "max_ns": 4197776,
+        "n": 5
+      },
+      "raw_a_ns": [
+        3958928,
+        3932254,
+        3925728,
+        3982705,
+        4045440
+      ],
+      "raw_b_ns": [
+        3999428,
+        4103805,
+        4076024,
+        4197776,
+        4088085
+      ],
+      "absolute_median_shift_ns": 129157,
+      "relative_median_shift": 0.032624235651671364,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 972,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 307002
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1000,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 307138
+      }
+    },
+    {
+      "target_ms": 4,
+      "iterations": 1838383,
+      "repetitions": 5,
+      "session": 1,
+      "a": {
+        "median_ns": 3962822,
+        "mad_ns": 63548,
+        "iqr_ns": 206173.0,
+        "min_ns": 3888673,
+        "max_ns": 4193232,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 4099746,
+        "mad_ns": 22959,
+        "iqr_ns": 76460.0,
+        "min_ns": 4076787,
+        "max_ns": 4184703,
+        "n": 5
+      },
+      "raw_a_ns": [
+        3899274,
+        3962822,
+        3888673,
+        4007061,
+        4193232
+      ],
+      "raw_b_ns": [
+        4083025,
+        4076787,
+        4099746,
+        4128029,
+        4184703
+      ],
+      "absolute_median_shift_ns": 136924,
+      "relative_median_shift": 0.03455214491087412,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1000,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 307138
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1028,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 307335
+      }
+    },
+    {
+      "target_ms": 4,
+      "iterations": 1838383,
+      "repetitions": 5,
+      "session": 2,
+      "a": {
+        "median_ns": 3957479,
+        "mad_ns": 45197,
+        "iqr_ns": 87825.5,
+        "min_ns": 3893531,
+        "max_ns": 4002676,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 4055338,
+        "mad_ns": 105647,
+        "iqr_ns": 226123.5,
+        "min_ns": 3928409,
+        "max_ns": 4220636,
+        "n": 5
+      },
+      "raw_a_ns": [
+        3957479,
+        4002676,
+        3893531,
+        3905084,
+        3971590
+      ],
+      "raw_b_ns": [
+        4109711,
+        4055338,
+        3949691,
+        3928409,
+        4220636
+      ],
+      "absolute_median_shift_ns": 97859,
+      "relative_median_shift": 0.024727610683467936,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1028,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 307335
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1056,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 307467
+      }
+    },
+    {
+      "target_ms": 4,
+      "iterations": 1838383,
+      "repetitions": 5,
+      "session": 3,
+      "a": {
+        "median_ns": 3949052,
+        "mad_ns": 8142,
+        "iqr_ns": 66386.0,
+        "min_ns": 3919071,
+        "max_ns": 4038509,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 3900214,
+        "mad_ns": 5481,
+        "iqr_ns": 84936.5,
+        "min_ns": 3894733,
+        "max_ns": 3987821,
+        "n": 5
+      },
+      "raw_a_ns": [
+        3954244,
+        3949052,
+        3940910,
+        3919071,
+        4038509
+      ],
+      "raw_b_ns": [
+        3987821,
+        3974856,
+        3900214,
+        3898071,
+        3894733
+      ],
+      "absolute_median_shift_ns": 48838,
+      "relative_median_shift": 0.01236701871740357,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1056,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 307467
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1084,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 307591
+      }
+    },
+    {
+      "target_ms": 4,
+      "iterations": 1838383,
+      "repetitions": 5,
+      "session": 4,
+      "a": {
+        "median_ns": 4009872,
+        "mad_ns": 20244,
+        "iqr_ns": 137265.5,
+        "min_ns": 3946457,
+        "max_ns": 4190714,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 3993843,
+        "mad_ns": 18031,
+        "iqr_ns": 99076.0,
+        "min_ns": 3860770,
+        "max_ns": 4011874,
+        "n": 5
+      },
+      "raw_a_ns": [
+        3989628,
+        4190714,
+        3946457,
+        4019902,
+        4009872
+      ],
+      "raw_b_ns": [
+        4011874,
+        3860770,
+        3993843,
+        3994258,
+        3947210
+      ],
+      "absolute_median_shift_ns": 16029,
+      "relative_median_shift": 0.003997384455164654,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1084,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 307591
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1112,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 307717
+      }
+    },
+    {
+      "target_ms": 4,
+      "iterations": 1838383,
+      "repetitions": 15,
+      "session": 0,
+      "a": {
+        "median_ns": 3970597,
+        "mad_ns": 67039,
+        "iqr_ns": 119079.0,
+        "min_ns": 3816196,
+        "max_ns": 4149385,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 4181643,
+        "mad_ns": 121959,
+        "iqr_ns": 260242.0,
+        "min_ns": 4000357,
+        "max_ns": 4497481,
+        "n": 15
+      },
+      "raw_a_ns": [
+        4003814,
+        4056701,
+        4149385,
+        4074953,
+        3870528,
+        4006156,
+        3903558,
+        3930764,
+        3887699,
+        4000127,
+        3931448,
+        3816196,
+        3970597,
+        3895411,
+        4014490
+      ],
+      "raw_b_ns": [
+        4016794,
+        4059684,
+        4000357,
+        4068674,
+        4002134,
+        4114837,
+        4022713,
+        4225978,
+        4437331,
+        4329543,
+        4181643,
+        4497481,
+        4282955,
+        4274328,
+        4273885
+      ],
+      "absolute_median_shift_ns": 211046,
+      "relative_median_shift": 0.05315220859734695,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1112,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 307723
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1180,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 308020
+      }
+    },
+    {
+      "target_ms": 4,
+      "iterations": 1838383,
+      "repetitions": 15,
+      "session": 1,
+      "a": {
+        "median_ns": 4075799,
+        "mad_ns": 112014,
+        "iqr_ns": 232079.0,
+        "min_ns": 3918012,
+        "max_ns": 4331355,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 4054062,
+        "mad_ns": 87823,
+        "iqr_ns": 257795.0,
+        "min_ns": 3939748,
+        "max_ns": 4535952,
+        "n": 15
+      },
+      "raw_a_ns": [
+        4187813,
+        4013771,
+        4195045,
+        3927714,
+        3918012,
+        4118126,
+        4193397,
+        4043112,
+        4099786,
+        4331355,
+        4075799,
+        3955734,
+        3933087,
+        4160041,
+        3985415
+      ],
+      "raw_b_ns": [
+        4104775,
+        3939748,
+        4008698,
+        3993835,
+        4155101,
+        4054062,
+        4007125,
+        4037757,
+        4529250,
+        4264920,
+        4166443,
+        4535952,
+        4331348,
+        3966239,
+        4048627
+      ],
+      "absolute_median_shift_ns": 21737,
+      "relative_median_shift": 0.005333187431470492,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1180,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 308020
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1248,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 308341
+      }
+    },
+    {
+      "target_ms": 4,
+      "iterations": 1838383,
+      "repetitions": 15,
+      "session": 2,
+      "a": {
+        "median_ns": 4247217,
+        "mad_ns": 195087,
+        "iqr_ns": 304914.0,
+        "min_ns": 3933124,
+        "max_ns": 4619493,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 4092346,
+        "mad_ns": 63176,
+        "iqr_ns": 143443.0,
+        "min_ns": 3957616,
+        "max_ns": 5348866,
+        "n": 15
+      },
+      "raw_a_ns": [
+        4257730,
+        4247217,
+        4052130,
+        4009189,
+        4254936,
+        4006138,
+        3960502,
+        3991065,
+        3933124,
+        4447376,
+        4327799,
+        4280193,
+        4619493,
+        4183010,
+        4311052
+      ],
+      "raw_b_ns": [
+        4135677,
+        4048314,
+        4155522,
+        4092346,
+        4738715,
+        4103600,
+        4012079,
+        3977029,
+        5348866,
+        4033335,
+        3988833,
+        3957616,
+        4215379,
+        4066389,
+        4142941
+      ],
+      "absolute_median_shift_ns": 154871,
+      "relative_median_shift": 0.036464112853193044,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1248,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 308343
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1316,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 308714
+      }
+    },
+    {
+      "target_ms": 4,
+      "iterations": 1838383,
+      "repetitions": 15,
+      "session": 3,
+      "a": {
+        "median_ns": 4066559,
+        "mad_ns": 103922,
+        "iqr_ns": 223867.0,
+        "min_ns": 3910327,
+        "max_ns": 4252639,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 4091474,
+        "mad_ns": 65614,
+        "iqr_ns": 112363.0,
+        "min_ns": 3935212,
+        "max_ns": 4537091,
+        "n": 15
+      },
+      "raw_a_ns": [
+        4056480,
+        3971444,
+        4070040,
+        3978616,
+        4193183,
+        3962637,
+        4162107,
+        3952598,
+        4178818,
+        4066559,
+        4252639,
+        3964669,
+        4188536,
+        3910327,
+        4249079
+      ],
+      "raw_b_ns": [
+        4085609,
+        4103259,
+        4069857,
+        4295387,
+        3935212,
+        4537091,
+        4319613,
+        4066368,
+        4122487,
+        4091474,
+        4083021,
+        4165912,
+        4025860,
+        4018432,
+        4178731
+      ],
+      "absolute_median_shift_ns": 24915,
+      "relative_median_shift": 0.006126801553844418,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1316,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 308714
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1384,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 309175
+      }
+    },
+    {
+      "target_ms": 4,
+      "iterations": 1838383,
+      "repetitions": 15,
+      "session": 4,
+      "a": {
+        "median_ns": 4044928,
+        "mad_ns": 65700,
+        "iqr_ns": 146834.0,
+        "min_ns": 3821989,
+        "max_ns": 4133018,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 3973607,
+        "mad_ns": 27445,
+        "iqr_ns": 90868.0,
+        "min_ns": 3871694,
+        "max_ns": 4146893,
+        "n": 15
+      },
+      "raw_a_ns": [
+        4133018,
+        3942417,
+        3979228,
+        4107598,
+        4059009,
+        3960764,
+        4112588,
+        4059925,
+        4120912,
+        4057650,
+        4021918,
+        3821989,
+        4044928,
+        3994532,
+        3926141
+      ],
+      "raw_b_ns": [
+        3955586,
+        4018386,
+        4146893,
+        4000920,
+        3895944,
+        3961118,
+        4001052,
+        4016523,
+        3871694,
+        3904548,
+        3967500,
+        3993560,
+        3973607,
+        3991724,
+        3910184
+      ],
+      "absolute_median_shift_ns": 71321,
+      "relative_median_shift": 0.017632205072624283,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1384,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 309175
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1452,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 309513
+      }
+    },
+    {
+      "target_ms": 8,
+      "iterations": 4594589,
+      "repetitions": 5,
+      "session": 0,
+      "a": {
+        "median_ns": 7830504,
+        "mad_ns": 20511,
+        "iqr_ns": 91169.0,
+        "min_ns": 7809993,
+        "max_ns": 7928505,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 7867983,
+        "mad_ns": 69917,
+        "iqr_ns": 236826.0,
+        "min_ns": 7789683,
+        "max_ns": 8125022,
+        "n": 5
+      },
+      "raw_a_ns": [
+        7928505,
+        7885594,
+        7809993,
+        7830504,
+        7821768
+      ],
+      "raw_b_ns": [
+        7789683,
+        7867983,
+        7799587,
+        7937900,
+        8125022
+      ],
+      "absolute_median_shift_ns": 37479,
+      "relative_median_shift": 0.004786281955797481,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1452,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 309513
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1480,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 309678
+      }
+    },
+    {
+      "target_ms": 8,
+      "iterations": 4594589,
+      "repetitions": 5,
+      "session": 1,
+      "a": {
+        "median_ns": 7880408,
+        "mad_ns": 85785,
+        "iqr_ns": 204406.0,
+        "min_ns": 7776277,
+        "max_ns": 8056046,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 7905422,
+        "mad_ns": 92022,
+        "iqr_ns": 256071.0,
+        "min_ns": 7813400,
+        "max_ns": 8108441,
+        "n": 5
+      },
+      "raw_a_ns": [
+        8056046,
+        7837150,
+        7966193,
+        7880408,
+        7776277
+      ],
+      "raw_b_ns": [
+        7856009,
+        7905422,
+        7813400,
+        8108441,
+        8073110
+      ],
+      "absolute_median_shift_ns": 25014,
+      "relative_median_shift": 0.003174201132733229,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1480,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 309678
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1508,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 309861
+      }
+    },
+    {
+      "target_ms": 8,
+      "iterations": 4594589,
+      "repetitions": 5,
+      "session": 2,
+      "a": {
+        "median_ns": 7905021,
+        "mad_ns": 97404,
+        "iqr_ns": 202027.5,
+        "min_ns": 7755653,
+        "max_ns": 8002425,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 7960065,
+        "mad_ns": 77538,
+        "iqr_ns": 477645.0,
+        "min_ns": 7757728,
+        "max_ns": 8631547,
+        "n": 5
+      },
+      "raw_a_ns": [
+        7919300,
+        7905021,
+        7762017,
+        8002425,
+        7755653
+      ],
+      "raw_b_ns": [
+        7960065,
+        8631547,
+        7963998,
+        7757728,
+        7882527
+      ],
+      "absolute_median_shift_ns": 55044,
+      "relative_median_shift": 0.0069631693578043625,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1508,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 309861
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1536,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 310008
+      }
+    },
+    {
+      "target_ms": 8,
+      "iterations": 4594589,
+      "repetitions": 5,
+      "session": 3,
+      "a": {
+        "median_ns": 7884370,
+        "mad_ns": 13699,
+        "iqr_ns": 198417.5,
+        "min_ns": 7778091,
+        "max_ns": 8153685,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 7936854,
+        "mad_ns": 108172,
+        "iqr_ns": 319366.0,
+        "min_ns": 7828682,
+        "max_ns": 8191597,
+        "n": 5
+      },
+      "raw_a_ns": [
+        7778091,
+        7870671,
+        7891912,
+        7884370,
+        8153685
+      ],
+      "raw_b_ns": [
+        7936854,
+        7828682,
+        8191597,
+        8163219,
+        7887402
+      ],
+      "absolute_median_shift_ns": 52484,
+      "relative_median_shift": 0.006656714487016718,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1536,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 310008
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1564,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 310165
+      }
+    },
+    {
+      "target_ms": 8,
+      "iterations": 4594589,
+      "repetitions": 5,
+      "session": 4,
+      "a": {
+        "median_ns": 8257941,
+        "mad_ns": 91568,
+        "iqr_ns": 950579.5,
+        "min_ns": 7996312,
+        "max_ns": 9726946,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 8316171,
+        "mad_ns": 79484,
+        "iqr_ns": 292393.0,
+        "min_ns": 8028122,
+        "max_ns": 8395655,
+        "n": 5
+      },
+      "raw_a_ns": [
+        8257941,
+        7996312,
+        9726946,
+        8166373,
+        8336898
+      ],
+      "raw_b_ns": [
+        8028122,
+        8316171,
+        8106704,
+        8395655,
+        8323957
+      ],
+      "absolute_median_shift_ns": 58230,
+      "relative_median_shift": 0.007051394530428348,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1564,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 310165
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1592,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 310350
+      }
+    },
+    {
+      "target_ms": 8,
+      "iterations": 4594589,
+      "repetitions": 15,
+      "session": 0,
+      "a": {
+        "median_ns": 8263922,
+        "mad_ns": 137750,
+        "iqr_ns": 291601.0,
+        "min_ns": 8082310,
+        "max_ns": 8690698,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 8060507,
+        "mad_ns": 121524,
+        "iqr_ns": 243624.0,
+        "min_ns": 7907725,
+        "max_ns": 8268710,
+        "n": 15
+      },
+      "raw_a_ns": [
+        8401672,
+        8690698,
+        8477299,
+        8595414,
+        8082310,
+        8294263,
+        8263922,
+        8097819,
+        8240164,
+        8094957,
+        8422063,
+        8186031,
+        8130462,
+        8224029,
+        8358880
+      ],
+      "raw_b_ns": [
+        8268710,
+        8143429,
+        8060507,
+        8114173,
+        7944786,
+        8267138,
+        8192744,
+        7938407,
+        8182031,
+        8041786,
+        7949073,
+        7907725,
+        8083705,
+        7908275,
+        7930664
+      ],
+      "absolute_median_shift_ns": 203415,
+      "relative_median_shift": 0.0246148257449671,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1592,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 310352
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1660,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 310841
+      }
+    },
+    {
+      "target_ms": 8,
+      "iterations": 4594589,
+      "repetitions": 15,
+      "session": 1,
+      "a": {
+        "median_ns": 8005860,
+        "mad_ns": 78716,
+        "iqr_ns": 219315.0,
+        "min_ns": 7855928,
+        "max_ns": 8349981,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 7914258,
+        "mad_ns": 69550,
+        "iqr_ns": 176179.0,
+        "min_ns": 7808948,
+        "max_ns": 8116566,
+        "n": 15
+      },
+      "raw_a_ns": [
+        8220166,
+        7927144,
+        7969218,
+        8149322,
+        8044906,
+        7945450,
+        7903617,
+        8005860,
+        8349981,
+        8056993,
+        8008413,
+        7875943,
+        7855928,
+        7930281,
+        8146459
+      ],
+      "raw_b_ns": [
+        7914258,
+        7880878,
+        8116566,
+        8086666,
+        7874608,
+        7844708,
+        7840661,
+        8020887,
+        7808948,
+        7957885,
+        8096032,
+        7960554,
+        7873019,
+        7836248,
+        7943664
+      ],
+      "absolute_median_shift_ns": 91602,
+      "relative_median_shift": 0.011441868831081232,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1660,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 310841
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1728,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 311239
+      }
+    },
+    {
+      "target_ms": 8,
+      "iterations": 4594589,
+      "repetitions": 15,
+      "session": 2,
+      "a": {
+        "median_ns": 7963969,
+        "mad_ns": 36214,
+        "iqr_ns": 355580.0,
+        "min_ns": 7757914,
+        "max_ns": 8324698,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 7884701,
+        "mad_ns": 38397,
+        "iqr_ns": 77636.0,
+        "min_ns": 7826829,
+        "max_ns": 8053840,
+        "n": 15
+      },
+      "raw_a_ns": [
+        7929660,
+        8279985,
+        7927755,
+        7924413,
+        8306989,
+        7949586,
+        8291005,
+        8285240,
+        8324698,
+        7963969,
+        7950996,
+        7978193,
+        7757914,
+        7990919,
+        7955233
+      ],
+      "raw_b_ns": [
+        7898042,
+        7902604,
+        7934354,
+        7849337,
+        7844081,
+        7884701,
+        7923098,
+        7845462,
+        8053840,
+        7845396,
+        7938451,
+        7870389,
+        7826829,
+        7894829,
+        7865672
+      ],
+      "absolute_median_shift_ns": 79268,
+      "relative_median_shift": 0.009953328547612378,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1728,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 311239
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1796,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 311660
+      }
+    },
+    {
+      "target_ms": 8,
+      "iterations": 4594589,
+      "repetitions": 15,
+      "session": 3,
+      "a": {
+        "median_ns": 8087453,
+        "mad_ns": 128895,
+        "iqr_ns": 294449.0,
+        "min_ns": 7869379,
+        "max_ns": 9367106,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 8090725,
+        "mad_ns": 91473,
+        "iqr_ns": 262519.0,
+        "min_ns": 7886670,
+        "max_ns": 8370886,
+        "n": 15
+      },
+      "raw_a_ns": [
+        8253007,
+        8348562,
+        9367106,
+        8035793,
+        7948060,
+        7966010,
+        8098765,
+        7948412,
+        8056228,
+        7958558,
+        7869379,
+        8461245,
+        8092687,
+        8109064,
+        8087453
+      ],
+      "raw_b_ns": [
+        8039797,
+        8004152,
+        8051961,
+        8261771,
+        8305923,
+        8090725,
+        8098136,
+        8114861,
+        8160806,
+        7923465,
+        7986258,
+        8370886,
+        7886670,
+        7999252,
+        8290505
+      ],
+      "absolute_median_shift_ns": 3272,
+      "relative_median_shift": 0.00040457731253585027,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1796,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 311660
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1864,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 312112
+      }
+    },
+    {
+      "target_ms": 8,
+      "iterations": 4594589,
+      "repetitions": 15,
+      "session": 4,
+      "a": {
+        "median_ns": 7838873,
+        "mad_ns": 72497,
+        "iqr_ns": 229025.0,
+        "min_ns": 7741020,
+        "max_ns": 8083922,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 7885718,
+        "mad_ns": 60854,
+        "iqr_ns": 125306.0,
+        "min_ns": 7760885,
+        "max_ns": 8121136,
+        "n": 15
+      },
+      "raw_a_ns": [
+        7876326,
+        8078165,
+        7931508,
+        7831138,
+        7892486,
+        7766376,
+        7838873,
+        7761401,
+        8005599,
+        8083922,
+        7776574,
+        7741020,
+        7821233,
+        8040584,
+        7800099
+      ],
+      "raw_b_ns": [
+        7959828,
+        7794409,
+        7872145,
+        7854611,
+        8028894,
+        7893670,
+        7862384,
+        8121136,
+        7834522,
+        8008974,
+        7760885,
+        7908072,
+        7820792,
+        7946572,
+        7885718
+      ],
+      "absolute_median_shift_ns": 46845,
+      "relative_median_shift": 0.005975986599094028,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1864,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 312112
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1932,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 312563
+      }
+    },
+    {
+      "target_ms": 16,
+      "iterations": 10107001,
+      "repetitions": 5,
+      "session": 0,
+      "a": {
+        "median_ns": 15968266,
+        "mad_ns": 76515,
+        "iqr_ns": 782395.5,
+        "min_ns": 15835867,
+        "max_ns": 17255298,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 15942303,
+        "mad_ns": 55001,
+        "iqr_ns": 164114.5,
+        "min_ns": 15887302,
+        "max_ns": 16103500,
+        "n": 5
+      },
+      "raw_a_ns": [
+        17255298,
+        15968266,
+        16037111,
+        15835867,
+        15891751
+      ],
+      "raw_b_ns": [
+        15887302,
+        15940765,
+        15942303,
+        16052796,
+        16103500
+      ],
+      "absolute_median_shift_ns": 25963,
+      "relative_median_shift": 0.0016259122937957071,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1932,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 312565
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1960,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 312814
+      }
+    },
+    {
+      "target_ms": 16,
+      "iterations": 10107001,
+      "repetitions": 5,
+      "session": 1,
+      "a": {
+        "median_ns": 15818136,
+        "mad_ns": 46419,
+        "iqr_ns": 193905.5,
+        "min_ns": 15720701,
+        "max_ns": 16058190,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 16013052,
+        "mad_ns": 151946,
+        "iqr_ns": 321617.0,
+        "min_ns": 15798757,
+        "max_ns": 16179771,
+        "n": 5
+      },
+      "raw_a_ns": [
+        16058190,
+        15864555,
+        15814233,
+        15818136,
+        15720701
+      ],
+      "raw_b_ns": [
+        15798757,
+        16013052,
+        15861106,
+        16123326,
+        16179771
+      ],
+      "absolute_median_shift_ns": 194916,
+      "relative_median_shift": 0.012322311554281743,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1960,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 312814
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1988,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 313095
+      }
+    },
+    {
+      "target_ms": 16,
+      "iterations": 10107001,
+      "repetitions": 5,
+      "session": 2,
+      "a": {
+        "median_ns": 15765067,
+        "mad_ns": 12415,
+        "iqr_ns": 146425.5,
+        "min_ns": 15744474,
+        "max_ns": 16024781,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 15906996,
+        "mad_ns": 32805,
+        "iqr_ns": 142515.5,
+        "min_ns": 15769696,
+        "max_ns": 15939801,
+        "n": 5
+      },
+      "raw_a_ns": [
+        15752652,
+        15765196,
+        15744474,
+        16024781,
+        15765067
+      ],
+      "raw_b_ns": [
+        15937466,
+        15822540,
+        15906996,
+        15939801,
+        15769696
+      ],
+      "absolute_median_shift_ns": 141929,
+      "relative_median_shift": 0.009002752731720074,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 1988,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 313095
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 2016,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 313306
+      }
+    },
+    {
+      "target_ms": 16,
+      "iterations": 10107001,
+      "repetitions": 5,
+      "session": 3,
+      "a": {
+        "median_ns": 15994171,
+        "mad_ns": 46379,
+        "iqr_ns": 171055.5,
+        "min_ns": 15770151,
+        "max_ns": 16062082,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 15986890,
+        "mad_ns": 117475,
+        "iqr_ns": 244191.0,
+        "min_ns": 15856906,
+        "max_ns": 16123813,
+        "n": 5
+      },
+      "raw_a_ns": [
+        15990370,
+        15770151,
+        16062082,
+        16040550,
+        15994171
+      ],
+      "raw_b_ns": [
+        15856906,
+        15986890,
+        16104365,
+        15882890,
+        16123813
+      ],
+      "absolute_median_shift_ns": 7281,
+      "relative_median_shift": 0.000455228345376575,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 2016,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 313306
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 2044,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 313618
+      }
+    },
+    {
+      "target_ms": 16,
+      "iterations": 10107001,
+      "repetitions": 5,
+      "session": 4,
+      "a": {
+        "median_ns": 15871057,
+        "mad_ns": 26959,
+        "iqr_ns": 107141.0,
+        "min_ns": 15844098,
+        "max_ns": 15958479,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 15745850,
+        "mad_ns": 44028,
+        "iqr_ns": 261911.0,
+        "min_ns": 15701822,
+        "max_ns": 16152431,
+        "n": 5
+      },
+      "raw_a_ns": [
+        15844098,
+        15853014,
+        15958479,
+        15952915,
+        15871057
+      ],
+      "raw_b_ns": [
+        15738941,
+        15812154,
+        16152431,
+        15701822,
+        15745850
+      ],
+      "absolute_median_shift_ns": 125207,
+      "relative_median_shift": 0.007889014575399736,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 2044,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 313618
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 2072,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 313874
+      }
+    },
+    {
+      "target_ms": 16,
+      "iterations": 10107001,
+      "repetitions": 15,
+      "session": 0,
+      "a": {
+        "median_ns": 15757831,
+        "mad_ns": 78636,
+        "iqr_ns": 177284.0,
+        "min_ns": 15623836,
+        "max_ns": 16677156,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 15723436,
+        "mad_ns": 91585,
+        "iqr_ns": 283139.0,
+        "min_ns": 15597886,
+        "max_ns": 16147675,
+        "n": 15
+      },
+      "raw_a_ns": [
+        15960592,
+        15757831,
+        15868215,
+        15779491,
+        15716839,
+        15679195,
+        16677156,
+        15730058,
+        15775832,
+        15856479,
+        15623836,
+        15686113,
+        15666314,
+        15668614,
+        15823884
+      ],
+      "raw_b_ns": [
+        15872158,
+        15688107,
+        15959310,
+        15913747,
+        15640828,
+        15651671,
+        15631851,
+        15697685,
+        15597886,
+        15723436,
+        15782297,
+        16147675,
+        15934810,
+        15659112,
+        16024620
+      ],
+      "absolute_median_shift_ns": 34395,
+      "relative_median_shift": 0.002182724259449159,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.40869140625,
+          0.1513671875,
+          0.04736328125
+        ],
+        "voluntary_ctxt_switches": 2072,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 313876
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2140,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 314459
+      }
+    },
+    {
+      "target_ms": 16,
+      "iterations": 10107001,
+      "repetitions": 15,
+      "session": 1,
+      "a": {
+        "median_ns": 15803205,
+        "mad_ns": 103300,
+        "iqr_ns": 187234.0,
+        "min_ns": 15668417,
+        "max_ns": 17516919,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 16124013,
+        "mad_ns": 308366,
+        "iqr_ns": 792567.0,
+        "min_ns": 15754896,
+        "max_ns": 18502396,
+        "n": 15
+      },
+      "raw_a_ns": [
+        15942364,
+        15809530,
+        15734267,
+        15762222,
+        15699905,
+        15668417,
+        15757822,
+        15940011,
+        15752777,
+        17516919,
+        16030337,
+        15803205,
+        15925172,
+        15766413,
+        15920639
+      ],
+      "raw_b_ns": [
+        15817288,
+        15912360,
+        15815647,
+        15754896,
+        15781550,
+        15812868,
+        17131841,
+        16314420,
+        16124013,
+        16091951,
+        18502396,
+        16608214,
+        16150441,
+        17639758,
+        16208560
+      ],
+      "absolute_median_shift_ns": 320808,
+      "relative_median_shift": 0.020300185943294413,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2140,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 314459
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2208,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 315095
+      }
+    },
+    {
+      "target_ms": 16,
+      "iterations": 10107001,
+      "repetitions": 15,
+      "session": 2,
+      "a": {
+        "median_ns": 15984200,
+        "mad_ns": 250386,
+        "iqr_ns": 635426.0,
+        "min_ns": 15720306,
+        "max_ns": 16916813,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 16077295,
+        "mad_ns": 131718,
+        "iqr_ns": 295577.0,
+        "min_ns": 15807559,
+        "max_ns": 17069359,
+        "n": 15
+      },
+      "raw_a_ns": [
+        16916813,
+        15720306,
+        16085667,
+        15853385,
+        16235575,
+        16288371,
+        16901541,
+        15739203,
+        15984200,
+        15733814,
+        16436033,
+        15800607,
+        15873839,
+        15961255,
+        16438919
+      ],
+      "raw_b_ns": [
+        15915297,
+        15807559,
+        15961375,
+        16054529,
+        16209013,
+        16685357,
+        16267731,
+        16021246,
+        17069359,
+        16256952,
+        16077796,
+        16077295,
+        15930333,
+        16167510,
+        16034625
+      ],
+      "absolute_median_shift_ns": 93095,
+      "relative_median_shift": 0.005824188886525444,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2208,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 315095
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2276,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 315678
+      }
+    },
+    {
+      "target_ms": 16,
+      "iterations": 10107001,
+      "repetitions": 15,
+      "session": 3,
+      "a": {
+        "median_ns": 15906887,
+        "mad_ns": 139899,
+        "iqr_ns": 390606.0,
+        "min_ns": 15647186,
+        "max_ns": 17100897,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 16212271,
+        "mad_ns": 147915,
+        "iqr_ns": 328925.0,
+        "min_ns": 15785067,
+        "max_ns": 17200697,
+        "n": 15
+      },
+      "raw_a_ns": [
+        15906887,
+        16229006,
+        16181633,
+        17100897,
+        15871249,
+        15758932,
+        15647186,
+        15735940,
+        15818876,
+        15904425,
+        16006102,
+        15766988,
+        16157594,
+        15919621,
+        15927461
+      ],
+      "raw_b_ns": [
+        15785067,
+        16640893,
+        15998139,
+        16310333,
+        16136558,
+        16212271,
+        16120610,
+        16393281,
+        16330281,
+        16064356,
+        16196730,
+        16251232,
+        17200697,
+        15832616,
+        16418985
+      ],
+      "absolute_median_shift_ns": 305384,
+      "relative_median_shift": 0.01919822527185866,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2276,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 315678
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2344,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 316323
+      }
+    },
+    {
+      "target_ms": 16,
+      "iterations": 10107001,
+      "repetitions": 15,
+      "session": 4,
+      "a": {
+        "median_ns": 15809419,
+        "mad_ns": 119647,
+        "iqr_ns": 331098.0,
+        "min_ns": 15664195,
+        "max_ns": 16420049,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 15886864,
+        "mad_ns": 155673,
+        "iqr_ns": 317804.0,
+        "min_ns": 15682107,
+        "max_ns": 16353117,
+        "n": 15
+      },
+      "raw_a_ns": [
+        15710283,
+        16047330,
+        15708039,
+        15912494,
+        16420049,
+        15992372,
+        15762397,
+        15668401,
+        15689772,
+        16043567,
+        15725038,
+        15816101,
+        15664195,
+        15809419,
+        16039137
+      ],
+      "raw_b_ns": [
+        15846162,
+        15867461,
+        16185798,
+        15929669,
+        15695224,
+        15745565,
+        16039787,
+        15682107,
+        15682356,
+        15773500,
+        16251989,
+        16063369,
+        15886864,
+        16042537,
+        16353117
+      ],
+      "absolute_median_shift_ns": 77445,
+      "relative_median_shift": 0.004898661993840508,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2344,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 316323
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2412,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 316974
+      }
+    },
+    {
+      "target_ms": 32,
+      "iterations": 21131826,
+      "repetitions": 5,
+      "session": 0,
+      "a": {
+        "median_ns": 32433311,
+        "mad_ns": 400706,
+        "iqr_ns": 3063756.5,
+        "min_ns": 32032605,
+        "max_ns": 37122942,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 31972528,
+        "mad_ns": 270736,
+        "iqr_ns": 865451.0,
+        "min_ns": 31701792,
+        "max_ns": 32684575,
+        "n": 5
+      },
+      "raw_a_ns": [
+        32433311,
+        37122942,
+        32032605,
+        33101930,
+        32064754
+      ],
+      "raw_b_ns": [
+        32681096,
+        31932977,
+        31701792,
+        31972528,
+        32684575
+      ],
+      "absolute_median_shift_ns": 460783,
+      "relative_median_shift": 0.01420709097507806,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2412,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 316975
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2440,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 317333
+      }
+    },
+    {
+      "target_ms": 32,
+      "iterations": 21131826,
+      "repetitions": 5,
+      "session": 1,
+      "a": {
+        "median_ns": 33422489,
+        "mad_ns": 935523,
+        "iqr_ns": 14393323.0,
+        "min_ns": 32486966,
+        "max_ns": 56590785,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 31820091,
+        "mad_ns": 25759,
+        "iqr_ns": 103039.0,
+        "min_ns": 31691930,
+        "max_ns": 31850653,
+        "n": 5
+      },
+      "raw_a_ns": [
+        32486966,
+        33422489,
+        56590785,
+        32713418,
+        37396245
+      ],
+      "raw_b_ns": [
+        31850653,
+        31691930,
+        31845850,
+        31798495,
+        31820091
+      ],
+      "absolute_median_shift_ns": 1602398,
+      "relative_median_shift": 0.04794370640678496,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2440,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 317333
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2468,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 317833
+      }
+    },
+    {
+      "target_ms": 32,
+      "iterations": 21131826,
+      "repetitions": 5,
+      "session": 2,
+      "a": {
+        "median_ns": 31785340,
+        "mad_ns": 37227,
+        "iqr_ns": 284783.0,
+        "min_ns": 31658229,
+        "max_ns": 32164968,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 31821547,
+        "mad_ns": 243591,
+        "iqr_ns": 748181.5,
+        "min_ns": 31411009,
+        "max_ns": 32518673,
+        "n": 5
+      },
+      "raw_a_ns": [
+        32164968,
+        31810940,
+        31748113,
+        31658229,
+        31785340
+      ],
+      "raw_b_ns": [
+        32065138,
+        31821547,
+        32518673,
+        31676439,
+        31411009
+      ],
+      "absolute_median_shift_ns": 36207,
+      "relative_median_shift": 0.0011391100425542089,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2468,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 317833
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2496,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 318212
+      }
+    },
+    {
+      "target_ms": 32,
+      "iterations": 21131826,
+      "repetitions": 5,
+      "session": 3,
+      "a": {
+        "median_ns": 32296533,
+        "mad_ns": 96897,
+        "iqr_ns": 511353.0,
+        "min_ns": 31816169,
+        "max_ns": 32393430,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 31823574,
+        "mad_ns": 115304,
+        "iqr_ns": 435680.5,
+        "min_ns": 31414744,
+        "max_ns": 32070176,
+        "n": 5
+      },
+      "raw_a_ns": [
+        31816169,
+        32393430,
+        32296533,
+        31892911,
+        32338356
+      ],
+      "raw_b_ns": [
+        31708270,
+        31924199,
+        31823574,
+        32070176,
+        31414744
+      ],
+      "absolute_median_shift_ns": 472959,
+      "relative_median_shift": 0.014644265376720157,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2496,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 318212
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2524,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 318574
+      }
+    },
+    {
+      "target_ms": 32,
+      "iterations": 21131826,
+      "repetitions": 5,
+      "session": 4,
+      "a": {
+        "median_ns": 31588549,
+        "mad_ns": 39536,
+        "iqr_ns": 376916.5,
+        "min_ns": 31335072,
+        "max_ns": 32035617,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 31627163,
+        "mad_ns": 57204,
+        "iqr_ns": 257133.0,
+        "min_ns": 31541557,
+        "max_ns": 31967974,
+        "n": 5
+      },
+      "raw_a_ns": [
+        32035617,
+        31549013,
+        31335072,
+        31602301,
+        31588549
+      ],
+      "raw_b_ns": [
+        31541557,
+        31627163,
+        31569959,
+        31657808,
+        31967974
+      ],
+      "absolute_median_shift_ns": 38614,
+      "relative_median_shift": 0.0012224049923913883,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2524,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 318574
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2552,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 319109
+      }
+    },
+    {
+      "target_ms": 32,
+      "iterations": 21131826,
+      "repetitions": 15,
+      "session": 0,
+      "a": {
+        "median_ns": 31834479,
+        "mad_ns": 246992,
+        "iqr_ns": 957739.0,
+        "min_ns": 31468253,
+        "max_ns": 33050814,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 31885023,
+        "mad_ns": 264760,
+        "iqr_ns": 1014391.0,
+        "min_ns": 31424908,
+        "max_ns": 32849406,
+        "n": 15
+      },
+      "raw_a_ns": [
+        31814965,
+        31620768,
+        31587487,
+        31586196,
+        31723685,
+        31850479,
+        31866803,
+        32161275,
+        31706885,
+        31468253,
+        31834479,
+        32578507,
+        33050814,
+        32642755,
+        33023415
+      ],
+      "raw_b_ns": [
+        31424908,
+        31557111,
+        31950768,
+        31774454,
+        31465203,
+        31647546,
+        31825284,
+        32149783,
+        32849406,
+        32713412,
+        32783502,
+        31885023,
+        32048139,
+        31836639,
+        32661937
+      ],
+      "absolute_median_shift_ns": 50544,
+      "relative_median_shift": 0.0015877124924833857,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.4560546875,
+          0.16552734375,
+          0.052734375
+        ],
+        "voluntary_ctxt_switches": 2552,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 319111
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5,
+          0.1796875,
+          0.05810546875
+        ],
+        "voluntary_ctxt_switches": 2620,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 320076
+      }
+    },
+    {
+      "target_ms": 32,
+      "iterations": 21131826,
+      "repetitions": 15,
+      "session": 1,
+      "a": {
+        "median_ns": 31830781,
+        "mad_ns": 129032,
+        "iqr_ns": 472719.0,
+        "min_ns": 31500995,
+        "max_ns": 32362649,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 31952460,
+        "mad_ns": 300188,
+        "iqr_ns": 753569.0,
+        "min_ns": 31624385,
+        "max_ns": 34106387,
+        "n": 15
+      },
+      "raw_a_ns": [
+        31915099,
+        32362649,
+        32266533,
+        31615282,
+        31701749,
+        31830781,
+        31917456,
+        31791627,
+        32268121,
+        31623530,
+        31757915,
+        31500995,
+        32174468,
+        31792582,
+        31856608
+      ],
+      "raw_b_ns": [
+        32116866,
+        31817500,
+        34106387,
+        32976825,
+        33092952,
+        32335326,
+        31808154,
+        32025277,
+        31708319,
+        31647863,
+        31785184,
+        31652272,
+        31952460,
+        32461888,
+        31624385
+      ],
+      "absolute_median_shift_ns": 121679,
+      "relative_median_shift": 0.0038226834585051495,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5,
+          0.1796875,
+          0.05810546875
+        ],
+        "voluntary_ctxt_switches": 2620,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 320076
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5,
+          0.1796875,
+          0.05810546875
+        ],
+        "voluntary_ctxt_switches": 2688,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 321065
+      }
+    },
+    {
+      "target_ms": 32,
+      "iterations": 21131826,
+      "repetitions": 15,
+      "session": 2,
+      "a": {
+        "median_ns": 31771175,
+        "mad_ns": 186628,
+        "iqr_ns": 385181.0,
+        "min_ns": 31545729,
+        "max_ns": 32289383,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 31876620,
+        "mad_ns": 177931,
+        "iqr_ns": 376644.0,
+        "min_ns": 31433719,
+        "max_ns": 32922832,
+        "n": 15
+      },
+      "raw_a_ns": [
+        31584547,
+        31609903,
+        31771175,
+        31751918,
+        31996785,
+        31926722,
+        31989265,
+        31993794,
+        31712625,
+        31545729,
+        31608613,
+        32091716,
+        31806219,
+        31547528,
+        32289383
+      ],
+      "raw_b_ns": [
+        32054551,
+        31717829,
+        32414940,
+        31790731,
+        32359885,
+        31711976,
+        31876620,
+        31677907,
+        31433719,
+        32042152,
+        31455749,
+        31958127,
+        31597820,
+        32026242,
+        32922832
+      ],
+      "absolute_median_shift_ns": 105445,
+      "relative_median_shift": 0.003318888898506272,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5,
+          0.1796875,
+          0.05810546875
+        ],
+        "voluntary_ctxt_switches": 2688,
+        "nonvoluntary_ctxt_switches": 10,
+        "system_ctxt": 321065
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5,
+          0.1796875,
+          0.05810546875
+        ],
+        "voluntary_ctxt_switches": 2756,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 322223
+      }
+    },
+    {
+      "target_ms": 32,
+      "iterations": 21131826,
+      "repetitions": 15,
+      "session": 3,
+      "a": {
+        "median_ns": 32104502,
+        "mad_ns": 426949,
+        "iqr_ns": 933446.0,
+        "min_ns": 31544188,
+        "max_ns": 35497908,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 32308758,
+        "mad_ns": 577212,
+        "iqr_ns": 1339654.0,
+        "min_ns": 31695217,
+        "max_ns": 33492467,
+        "n": 15
+      },
+      "raw_a_ns": [
+        32610999,
+        35497908,
+        32276274,
+        32217708,
+        31677553,
+        31979743,
+        32403597,
+        32104502,
+        31544188,
+        31689310,
+        31675559,
+        31626328,
+        31866931,
+        32620434,
+        33194330
+      ],
+      "raw_b_ns": [
+        33076331,
+        32896909,
+        33468903,
+        33492467,
+        32507055,
+        32308758,
+        32745592,
+        31731546,
+        31724212,
+        31895085,
+        33242726,
+        31736677,
+        31944883,
+        31878956,
+        31695217
+      ],
+      "absolute_median_shift_ns": 204256,
+      "relative_median_shift": 0.0063622229679812506,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5,
+          0.1796875,
+          0.05810546875
+        ],
+        "voluntary_ctxt_switches": 2756,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 322223
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5,
+          0.1796875,
+          0.05810546875
+        ],
+        "voluntary_ctxt_switches": 2824,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 323187
+      }
+    },
+    {
+      "target_ms": 32,
+      "iterations": 21131826,
+      "repetitions": 15,
+      "session": 4,
+      "a": {
+        "median_ns": 31742141,
+        "mad_ns": 115795,
+        "iqr_ns": 297136.0,
+        "min_ns": 31378442,
+        "max_ns": 32798193,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 31659736,
+        "mad_ns": 89128,
+        "iqr_ns": 196158.0,
+        "min_ns": 31555133,
+        "max_ns": 32977719,
+        "n": 15
+      },
+      "raw_a_ns": [
+        31742141,
+        31640188,
+        32347301,
+        32798193,
+        31776728,
+        31937324,
+        31512114,
+        31779436,
+        31664534,
+        31378442,
+        31702520,
+        31859206,
+        32119544,
+        31664344,
+        31626346
+      ],
+      "raw_b_ns": [
+        31659736,
+        31562492,
+        31728850,
+        31593898,
+        31711142,
+        31766766,
+        31555133,
+        31852756,
+        31570608,
+        31791677,
+        31564357,
+        31599326,
+        31744292,
+        31572626,
+        32977719
+      ],
+      "absolute_median_shift_ns": 82405,
+      "relative_median_shift": 0.0025960756711401415,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5,
+          0.1796875,
+          0.05810546875
+        ],
+        "voluntary_ctxt_switches": 2824,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 323187
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5400390625,
+          0.193359375,
+          0.0634765625
+        ],
+        "voluntary_ctxt_switches": 2892,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 324007
+      }
+    },
+    {
+      "target_ms": 64,
+      "iterations": 43181474,
+      "repetitions": 5,
+      "session": 0,
+      "a": {
+        "median_ns": 64759573,
+        "mad_ns": 593756,
+        "iqr_ns": 1368309.5,
+        "min_ns": 63522436,
+        "max_ns": 65353329,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 64362236,
+        "mad_ns": 422144,
+        "iqr_ns": 870563.5,
+        "min_ns": 63876493,
+        "max_ns": 65107541,
+        "n": 5
+      },
+      "raw_a_ns": [
+        63522436,
+        64759573,
+        63935837,
+        64841563,
+        65353329
+      ],
+      "raw_b_ns": [
+        64450171,
+        65107541,
+        63940092,
+        63876493,
+        64362236
+      ],
+      "absolute_median_shift_ns": 397337,
+      "relative_median_shift": 0.0061355716474535745,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5400390625,
+          0.193359375,
+          0.0634765625
+        ],
+        "voluntary_ctxt_switches": 2892,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 324009
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5400390625,
+          0.193359375,
+          0.0634765625
+        ],
+        "voluntary_ctxt_switches": 2920,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 324511
+      }
+    },
+    {
+      "target_ms": 64,
+      "iterations": 43181474,
+      "repetitions": 5,
+      "session": 1,
+      "a": {
+        "median_ns": 66808416,
+        "mad_ns": 580838,
+        "iqr_ns": 2065125.0,
+        "min_ns": 64878104,
+        "max_ns": 67389254,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 63200115,
+        "mad_ns": 97823,
+        "iqr_ns": 700689.5,
+        "min_ns": 63102292,
+        "max_ns": 64199457,
+        "n": 5
+      },
+      "raw_a_ns": [
+        67389254,
+        65272317,
+        66891417,
+        64878104,
+        66808416
+      ],
+      "raw_b_ns": [
+        63199972,
+        63102292,
+        63504186,
+        63200115,
+        64199457
+      ],
+      "absolute_median_shift_ns": 3608301,
+      "relative_median_shift": 0.05400967746339024,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5400390625,
+          0.193359375,
+          0.0634765625
+        ],
+        "voluntary_ctxt_switches": 2920,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 324511
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5400390625,
+          0.193359375,
+          0.0634765625
+        ],
+        "voluntary_ctxt_switches": 2948,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 325025
+      }
+    },
+    {
+      "target_ms": 64,
+      "iterations": 43181474,
+      "repetitions": 5,
+      "session": 2,
+      "a": {
+        "median_ns": 63891568,
+        "mad_ns": 390342,
+        "iqr_ns": 1710784.5,
+        "min_ns": 63501226,
+        "max_ns": 66180764,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 63888896,
+        "mad_ns": 108831,
+        "iqr_ns": 567862.5,
+        "min_ns": 63180197,
+        "max_ns": 64129848,
+        "n": 5
+      },
+      "raw_a_ns": [
+        66180764,
+        64308093,
+        63566062,
+        63501226,
+        63891568
+      ],
+      "raw_b_ns": [
+        63780065,
+        63180197,
+        63966139,
+        64129848,
+        63888896
+      ],
+      "absolute_median_shift_ns": 2672,
+      "relative_median_shift": 4.182085498355589e-05,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5400390625,
+          0.193359375,
+          0.0634765625
+        ],
+        "voluntary_ctxt_switches": 2948,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 325025
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5400390625,
+          0.193359375,
+          0.0634765625
+        ],
+        "voluntary_ctxt_switches": 2976,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 325540
+      }
+    },
+    {
+      "target_ms": 64,
+      "iterations": 43181474,
+      "repetitions": 5,
+      "session": 3,
+      "a": {
+        "median_ns": 63946266,
+        "mad_ns": 621917,
+        "iqr_ns": 1687740.5,
+        "min_ns": 63324349,
+        "max_ns": 65446836,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 63487508,
+        "mad_ns": 229008,
+        "iqr_ns": 675604.0,
+        "min_ns": 63257059,
+        "max_ns": 64284711,
+        "n": 5
+      },
+      "raw_a_ns": [
+        63324349,
+        65446836,
+        63946266,
+        64795088,
+        63542094
+      ],
+      "raw_b_ns": [
+        64284711,
+        63257059,
+        63582056,
+        63258500,
+        63487508
+      ],
+      "absolute_median_shift_ns": 458758,
+      "relative_median_shift": 0.0071741170938737844,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5400390625,
+          0.193359375,
+          0.0634765625
+        ],
+        "voluntary_ctxt_switches": 2976,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 325540
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5400390625,
+          0.193359375,
+          0.0634765625
+        ],
+        "voluntary_ctxt_switches": 3004,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 326038
+      }
+    },
+    {
+      "target_ms": 64,
+      "iterations": 43181474,
+      "repetitions": 5,
+      "session": 4,
+      "a": {
+        "median_ns": 63513202,
+        "mad_ns": 430138,
+        "iqr_ns": 1358853.0,
+        "min_ns": 63002619,
+        "max_ns": 65169008,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 64552599,
+        "mad_ns": 245319,
+        "iqr_ns": 641710.5,
+        "min_ns": 63991515,
+        "max_ns": 64831098,
+        "n": 5
+      },
+      "raw_a_ns": [
+        63513202,
+        63002619,
+        63392023,
+        65169008,
+        63943340
+      ],
+      "raw_b_ns": [
+        64307280,
+        64831098,
+        63991515,
+        64552599,
+        64751118
+      ],
+      "absolute_median_shift_ns": 1039397,
+      "relative_median_shift": 0.01636505430792168,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5400390625,
+          0.193359375,
+          0.0634765625
+        ],
+        "voluntary_ctxt_switches": 3004,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 326038
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5400390625,
+          0.193359375,
+          0.0634765625
+        ],
+        "voluntary_ctxt_switches": 3032,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 326783
+      }
+    },
+    {
+      "target_ms": 64,
+      "iterations": 43181474,
+      "repetitions": 15,
+      "session": 0,
+      "a": {
+        "median_ns": 63805318,
+        "mad_ns": 259570,
+        "iqr_ns": 553369.0,
+        "min_ns": 63284232,
+        "max_ns": 64768701,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 63653326,
+        "mad_ns": 241434,
+        "iqr_ns": 589114.0,
+        "min_ns": 63145814,
+        "max_ns": 64329271,
+        "n": 15
+      },
+      "raw_a_ns": [
+        64768701,
+        63284232,
+        63480443,
+        63491431,
+        63568150,
+        64106001,
+        63745656,
+        64099117,
+        63826664,
+        64717978,
+        63745132,
+        63948157,
+        63805318,
+        64025004,
+        63545748
+      ],
+      "raw_b_ns": [
+        63868366,
+        63780759,
+        63295446,
+        63271831,
+        63291317,
+        64193825,
+        63471830,
+        64329271,
+        63884560,
+        63470069,
+        63894760,
+        63653326,
+        63878647,
+        63370865,
+        63145814
+      ],
+      "absolute_median_shift_ns": 151992,
+      "relative_median_shift": 0.0023821211893340927,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5400390625,
+          0.193359375,
+          0.0634765625
+        ],
+        "voluntary_ctxt_switches": 3032,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 326783
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5771484375,
+          0.20703125,
+          0.06884765625
+        ],
+        "voluntary_ctxt_switches": 3100,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 327916
+      }
+    },
+    {
+      "target_ms": 64,
+      "iterations": 43181474,
+      "repetitions": 15,
+      "session": 1,
+      "a": {
+        "median_ns": 63414097,
+        "mad_ns": 103560,
+        "iqr_ns": 450505.0,
+        "min_ns": 62936189,
+        "max_ns": 64596709,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 63056964,
+        "mad_ns": 164716,
+        "iqr_ns": 384646.0,
+        "min_ns": 62892248,
+        "max_ns": 63670302,
+        "n": 15
+      },
+      "raw_a_ns": [
+        63310537,
+        64596709,
+        63445532,
+        63739371,
+        63414097,
+        63008536,
+        63417961,
+        63422610,
+        62974866,
+        63483473,
+        63473854,
+        63330226,
+        63023349,
+        63246180,
+        62936189
+      ],
+      "raw_b_ns": [
+        63555239,
+        63046063,
+        62954968,
+        62892248,
+        63010005,
+        63047356,
+        62902459,
+        63386930,
+        63010327,
+        63670302,
+        63356311,
+        63322926,
+        63056964,
+        63394651,
+        63509067
+      ],
+      "absolute_median_shift_ns": 357133,
+      "relative_median_shift": 0.005631760395484304,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5771484375,
+          0.20703125,
+          0.06884765625
+        ],
+        "voluntary_ctxt_switches": 3100,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 327916
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5771484375,
+          0.20703125,
+          0.06884765625
+        ],
+        "voluntary_ctxt_switches": 3168,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 329581
+      }
+    },
+    {
+      "target_ms": 64,
+      "iterations": 43181474,
+      "repetitions": 15,
+      "session": 2,
+      "a": {
+        "median_ns": 63786753,
+        "mad_ns": 367477,
+        "iqr_ns": 742161.0,
+        "min_ns": 62931021,
+        "max_ns": 66666126,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 63863864,
+        "mad_ns": 855918,
+        "iqr_ns": 2013673.0,
+        "min_ns": 63007946,
+        "max_ns": 65957057,
+        "n": 15
+      },
+      "raw_a_ns": [
+        63805617,
+        63368061,
+        63991652,
+        62931021,
+        64124742,
+        63432843,
+        64154230,
+        64278346,
+        66666126,
+        65092211,
+        63321709,
+        63412069,
+        63786753,
+        63436709,
+        63654624
+      ],
+      "raw_b_ns": [
+        65573306,
+        65662510,
+        63639691,
+        64787885,
+        63218729,
+        63007946,
+        63583996,
+        63863864,
+        64927547,
+        63412187,
+        65293003,
+        65957057,
+        65817161,
+        63631887,
+        63559633
+      ],
+      "absolute_median_shift_ns": 77111,
+      "relative_median_shift": 0.0012088873688240567,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.5771484375,
+          0.20703125,
+          0.06884765625
+        ],
+        "voluntary_ctxt_switches": 3168,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 329581
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.611328125,
+          0.22021484375,
+          0.07421875
+        ],
+        "voluntary_ctxt_switches": 3236,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 331154
+      }
+    },
+    {
+      "target_ms": 64,
+      "iterations": 43181474,
+      "repetitions": 15,
+      "session": 3,
+      "a": {
+        "median_ns": 64306835,
+        "mad_ns": 726284,
+        "iqr_ns": 1825130.0,
+        "min_ns": 63296185,
+        "max_ns": 66044928,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 65021541,
+        "mad_ns": 1287600,
+        "iqr_ns": 2859207.0,
+        "min_ns": 63251481,
+        "max_ns": 69261023,
+        "n": 15
+      },
+      "raw_a_ns": [
+        66044928,
+        65065710,
+        64780857,
+        64794803,
+        64306835,
+        63573040,
+        63296185,
+        64068721,
+        63774392,
+        65599522,
+        65941782,
+        65814388,
+        63809277,
+        63580551,
+        64016917
+      ],
+      "raw_b_ns": [
+        63570019,
+        65021541,
+        63733941,
+        63251481,
+        64022089,
+        64599486,
+        63353340,
+        64028077,
+        66593148,
+        69261023,
+        65213057,
+        68154354,
+        66969074,
+        65119608,
+        65914834
+      ],
+      "absolute_median_shift_ns": 714706,
+      "relative_median_shift": 0.011113997446772182,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.611328125,
+          0.22021484375,
+          0.07421875
+        ],
+        "voluntary_ctxt_switches": 3236,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 331154
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.611328125,
+          0.22021484375,
+          0.07421875
+        ],
+        "voluntary_ctxt_switches": 3304,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 333054
+      }
+    },
+    {
+      "target_ms": 64,
+      "iterations": 43181474,
+      "repetitions": 15,
+      "session": 4,
+      "a": {
+        "median_ns": 65007049,
+        "mad_ns": 823523,
+        "iqr_ns": 2765017.0,
+        "min_ns": 63761325,
+        "max_ns": 70340571,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 63861225,
+        "mad_ns": 459282,
+        "iqr_ns": 1369195.0,
+        "min_ns": 62825083,
+        "max_ns": 65213362,
+        "n": 15
+      },
+      "raw_a_ns": [
+        65793201,
+        64183526,
+        64354594,
+        64403887,
+        64049743,
+        64128518,
+        65395675,
+        66948543,
+        70340571,
+        65678008,
+        63761325,
+        64369484,
+        68717440,
+        68210978,
+        65007049
+      ],
+      "raw_b_ns": [
+        64486206,
+        63727428,
+        65213362,
+        63937353,
+        63957886,
+        64871662,
+        65064949,
+        63861225,
+        63420081,
+        64789276,
+        63515546,
+        63785339,
+        63401943,
+        62825083,
+        63263039
+      ],
+      "absolute_median_shift_ns": 1145824,
+      "relative_median_shift": 0.01762615005028147,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.611328125,
+          0.22021484375,
+          0.07421875
+        ],
+        "voluntary_ctxt_switches": 3304,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 333054
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.642578125,
+          0.2333984375,
+          0.07958984375
+        ],
+        "voluntary_ctxt_switches": 3372,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 334710
+      }
+    },
+    {
+      "target_ms": 128,
+      "iterations": 87280771,
+      "repetitions": 5,
+      "session": 0,
+      "a": {
+        "median_ns": 126207369,
+        "mad_ns": 233091,
+        "iqr_ns": 801337.5,
+        "min_ns": 125717311,
+        "max_ns": 126992145,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 126333396,
+        "mad_ns": 337827,
+        "iqr_ns": 1406634.5,
+        "min_ns": 125995569,
+        "max_ns": 127801150,
+        "n": 5
+      },
+      "raw_a_ns": [
+        126992145,
+        125717311,
+        126207369,
+        125974278,
+        126302119
+      ],
+      "raw_b_ns": [
+        126057216,
+        125995569,
+        126333396,
+        127064904,
+        127801150
+      ],
+      "absolute_median_shift_ns": 126027,
+      "relative_median_shift": 0.0009985708520712448,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.642578125,
+          0.2333984375,
+          0.07958984375
+        ],
+        "voluntary_ctxt_switches": 3372,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 334712
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.642578125,
+          0.2333984375,
+          0.07958984375
+        ],
+        "voluntary_ctxt_switches": 3400,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 335557
+      }
+    },
+    {
+      "target_ms": 128,
+      "iterations": 87280771,
+      "repetitions": 5,
+      "session": 1,
+      "a": {
+        "median_ns": 128098197,
+        "mad_ns": 1221054,
+        "iqr_ns": 2338890.0,
+        "min_ns": 126027096,
+        "max_ns": 129467792,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 125333183,
+        "mad_ns": 142727,
+        "iqr_ns": 4401454.0,
+        "min_ns": 125190456,
+        "max_ns": 131403406,
+        "n": 5
+      },
+      "raw_a_ns": [
+        128098197,
+        128082167,
+        129467792,
+        129319251,
+        126027096
+      ],
+      "raw_b_ns": [
+        127797952,
+        125190456,
+        125207994,
+        125333183,
+        131403406
+      ],
+      "absolute_median_shift_ns": 2765014,
+      "relative_median_shift": 0.021585112552364807,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.642578125,
+          0.2333984375,
+          0.07958984375
+        ],
+        "voluntary_ctxt_switches": 3400,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 335557
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.642578125,
+          0.2333984375,
+          0.07958984375
+        ],
+        "voluntary_ctxt_switches": 3428,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 336558
+      }
+    },
+    {
+      "target_ms": 128,
+      "iterations": 87280771,
+      "repetitions": 5,
+      "session": 2,
+      "a": {
+        "median_ns": 126161632,
+        "mad_ns": 226526,
+        "iqr_ns": 2138142.0,
+        "min_ns": 125723325,
+        "max_ns": 129586414,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 128039031,
+        "mad_ns": 598401,
+        "iqr_ns": 2042969.5,
+        "min_ns": 126355190,
+        "max_ns": 128637432,
+        "n": 5
+      },
+      "raw_a_ns": [
+        125935106,
+        126348301,
+        129586414,
+        126161632,
+        125723325
+      ],
+      "raw_b_ns": [
+        126572170,
+        128039031,
+        128637432,
+        128375867,
+        126355190
+      ],
+      "absolute_median_shift_ns": 1877399,
+      "relative_median_shift": 0.014880902935688086,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.642578125,
+          0.2333984375,
+          0.07958984375
+        ],
+        "voluntary_ctxt_switches": 3428,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 336558
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.67138671875,
+          0.24658203125,
+          0.0849609375
+        ],
+        "voluntary_ctxt_switches": 3456,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 337561
+      }
+    },
+    {
+      "target_ms": 128,
+      "iterations": 87280771,
+      "repetitions": 5,
+      "session": 3,
+      "a": {
+        "median_ns": 126311097,
+        "mad_ns": 771180,
+        "iqr_ns": 1509017.5,
+        "min_ns": 125539917,
+        "max_ns": 127478077,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 127437494,
+        "mad_ns": 1503048,
+        "iqr_ns": 3376019.5,
+        "min_ns": 125914597,
+        "max_ns": 130185310,
+        "n": 5
+      },
+      "raw_a_ns": [
+        125539917,
+        126311097,
+        126150260,
+        127478077,
+        127230135
+      ],
+      "raw_b_ns": [
+        127437494,
+        125934446,
+        130185310,
+        128415772,
+        125914597
+      ],
+      "absolute_median_shift_ns": 1126397,
+      "relative_median_shift": 0.008917640862544325,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.67138671875,
+          0.24658203125,
+          0.0849609375
+        ],
+        "voluntary_ctxt_switches": 3456,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 337561
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.67138671875,
+          0.24658203125,
+          0.0849609375
+        ],
+        "voluntary_ctxt_switches": 3484,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 338560
+      }
+    },
+    {
+      "target_ms": 128,
+      "iterations": 87280771,
+      "repetitions": 5,
+      "session": 4,
+      "a": {
+        "median_ns": 128689774,
+        "mad_ns": 629698,
+        "iqr_ns": 1698041.0,
+        "min_ns": 127383205,
+        "max_ns": 129319472,
+        "n": 5
+      },
+      "b": {
+        "median_ns": 128724759,
+        "mad_ns": 1512566,
+        "iqr_ns": 4302358.5,
+        "min_ns": 126509500,
+        "max_ns": 133299048,
+        "n": 5
+      },
+      "raw_a_ns": [
+        128856890,
+        127397075,
+        127383205,
+        129319472,
+        128689774
+      ],
+      "raw_b_ns": [
+        133299048,
+        129027362,
+        127212193,
+        126509500,
+        128724759
+      ],
+      "absolute_median_shift_ns": 34985,
+      "relative_median_shift": 0.0002718553223972559,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.67138671875,
+          0.24658203125,
+          0.0849609375
+        ],
+        "voluntary_ctxt_switches": 3484,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 338560
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.67138671875,
+          0.24658203125,
+          0.0849609375
+        ],
+        "voluntary_ctxt_switches": 3512,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 339844
+      }
+    },
+    {
+      "target_ms": 128,
+      "iterations": 87280771,
+      "repetitions": 15,
+      "session": 0,
+      "a": {
+        "median_ns": 126922609,
+        "mad_ns": 498894,
+        "iqr_ns": 1133078.0,
+        "min_ns": 125513393,
+        "max_ns": 128312474,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 125880666,
+        "mad_ns": 493582,
+        "iqr_ns": 1799815.0,
+        "min_ns": 125131337,
+        "max_ns": 130266668,
+        "n": 15
+      },
+      "raw_a_ns": [
+        125770898,
+        126714628,
+        126717750,
+        125513393,
+        126392084,
+        127651719,
+        126922609,
+        126732115,
+        127672536,
+        127033671,
+        126924527,
+        127556793,
+        127157834,
+        128312474,
+        126423715
+      ],
+      "raw_b_ns": [
+        127538141,
+        128055328,
+        127122627,
+        130266668,
+        125729714,
+        125880666,
+        125131337,
+        126848757,
+        126029514,
+        125577903,
+        125387084,
+        125475030,
+        125410022,
+        125751607,
+        127274845
+      ],
+      "absolute_median_shift_ns": 1041943,
+      "relative_median_shift": 0.008209278143659968,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.67138671875,
+          0.24658203125,
+          0.0849609375
+        ],
+        "voluntary_ctxt_switches": 3512,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 339844
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.69775390625,
+          0.25927734375,
+          0.09033203125
+        ],
+        "voluntary_ctxt_switches": 3580,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 344069
+      }
+    },
+    {
+      "target_ms": 128,
+      "iterations": 87280771,
+      "repetitions": 15,
+      "session": 1,
+      "a": {
+        "median_ns": 127249804,
+        "mad_ns": 786261,
+        "iqr_ns": 1940569.0,
+        "min_ns": 125062587,
+        "max_ns": 130048080,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 127101022,
+        "mad_ns": 989751,
+        "iqr_ns": 3236861.0,
+        "min_ns": 125657601,
+        "max_ns": 133347347,
+        "n": 15
+      },
+      "raw_a_ns": [
+        125062587,
+        127282212,
+        127901580,
+        126707994,
+        126711197,
+        129738423,
+        126296989,
+        126463543,
+        128477810,
+        128404112,
+        130048080,
+        126832157,
+        125858221,
+        127249804,
+        127870101
+      ],
+      "raw_b_ns": [
+        129366119,
+        127726977,
+        126129258,
+        126586897,
+        126058154,
+        128104771,
+        126111271,
+        127101022,
+        126308805,
+        126692117,
+        125657601,
+        130359707,
+        133347347,
+        130020388,
+        127703189
+      ],
+      "absolute_median_shift_ns": 148782,
+      "relative_median_shift": 0.0011692120170181165,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.69775390625,
+          0.25927734375,
+          0.09033203125
+        ],
+        "voluntary_ctxt_switches": 3580,
+        "nonvoluntary_ctxt_switches": 11,
+        "system_ctxt": 344069
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.72216796875,
+          0.27197265625,
+          0.095703125
+        ],
+        "voluntary_ctxt_switches": 3648,
+        "nonvoluntary_ctxt_switches": 13,
+        "system_ctxt": 368735
+      }
+    },
+    {
+      "target_ms": 128,
+      "iterations": 87280771,
+      "repetitions": 15,
+      "session": 2,
+      "a": {
+        "median_ns": 125983672,
+        "mad_ns": 402724,
+        "iqr_ns": 953551.0,
+        "min_ns": 125128615,
+        "max_ns": 130009314,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 126378770,
+        "mad_ns": 883473,
+        "iqr_ns": 3053581.0,
+        "min_ns": 124983187,
+        "max_ns": 129985271,
+        "n": 15
+      },
+      "raw_a_ns": [
+        130009314,
+        125656410,
+        125580948,
+        127089765,
+        125697538,
+        125682421,
+        125983995,
+        125972023,
+        125983672,
+        126174239,
+        126708603,
+        125203030,
+        125128615,
+        126609961,
+        126424081
+      ],
+      "raw_b_ns": [
+        125480974,
+        124983187,
+        128868978,
+        126603725,
+        126094217,
+        126378770,
+        125700977,
+        128754558,
+        128982112,
+        129985271,
+        128379454,
+        125495297,
+        126142938,
+        125834190,
+        127159278
+      ],
+      "absolute_median_shift_ns": 395098,
+      "relative_median_shift": 0.0031361048120585023,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.72216796875,
+          0.27197265625,
+          0.095703125
+        ],
+        "voluntary_ctxt_switches": 3648,
+        "nonvoluntary_ctxt_switches": 13,
+        "system_ctxt": 368736
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.74462890625,
+          0.2841796875,
+          0.1005859375
+        ],
+        "voluntary_ctxt_switches": 3716,
+        "nonvoluntary_ctxt_switches": 14,
+        "system_ctxt": 390412
+      }
+    },
+    {
+      "target_ms": 128,
+      "iterations": 87280771,
+      "repetitions": 15,
+      "session": 3,
+      "a": {
+        "median_ns": 127740715,
+        "mad_ns": 1531203,
+        "iqr_ns": 3061715.0,
+        "min_ns": 125267404,
+        "max_ns": 133923263,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 127934620,
+        "mad_ns": 817704,
+        "iqr_ns": 1757550.0,
+        "min_ns": 126819482,
+        "max_ns": 131996603,
+        "n": 15
+      },
+      "raw_a_ns": [
+        125267404,
+        126150508,
+        126292127,
+        126501048,
+        127740715,
+        128818206,
+        126532829,
+        127334999,
+        125855029,
+        130135023,
+        128409251,
+        129456275,
+        129353842,
+        129271918,
+        133923263
+      ],
+      "raw_b_ns": [
+        129701427,
+        128714888,
+        127680515,
+        128256560,
+        127228960,
+        127105625,
+        127934620,
+        127347106,
+        126819482,
+        129721565,
+        128752324,
+        126937799,
+        131996603,
+        128986510,
+        127546598
+      ],
+      "absolute_median_shift_ns": 193905,
+      "relative_median_shift": 0.001517957684830557,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.74462890625,
+          0.2841796875,
+          0.1005859375
+        ],
+        "voluntary_ctxt_switches": 3716,
+        "nonvoluntary_ctxt_switches": 14,
+        "system_ctxt": 390412
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.76513671875,
+          0.29638671875,
+          0.10546875
+        ],
+        "voluntary_ctxt_switches": 3784,
+        "nonvoluntary_ctxt_switches": 21,
+        "system_ctxt": 415060
+      }
+    },
+    {
+      "target_ms": 128,
+      "iterations": 87280771,
+      "repetitions": 15,
+      "session": 4,
+      "a": {
+        "median_ns": 126883004,
+        "mad_ns": 1220032,
+        "iqr_ns": 2918381.0,
+        "min_ns": 125313739,
+        "max_ns": 134833244,
+        "n": 15
+      },
+      "b": {
+        "median_ns": 126530912,
+        "mad_ns": 944674,
+        "iqr_ns": 1793291.0,
+        "min_ns": 125314185,
+        "max_ns": 129673307,
+        "n": 15
+      },
+      "raw_a_ns": [
+        127261894,
+        128702179,
+        128337235,
+        125313739,
+        125705793,
+        126883004,
+        128771574,
+        126295477,
+        126464791,
+        129559567,
+        134833244,
+        131622969,
+        125662972,
+        125853193,
+        126774502
+      ],
+      "raw_b_ns": [
+        127075243,
+        127731048,
+        128944179,
+        127211313,
+        125396538,
+        125586238,
+        127692872,
+        127516210,
+        126530912,
+        126341705,
+        125314185,
+        129673307,
+        126395347,
+        125949384,
+        125899581
+      ],
+      "absolute_median_shift_ns": 352092,
+      "relative_median_shift": 0.0027749343008934436,
+      "scheduler_before": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.76513671875,
+          0.29638671875,
+          0.10546875
+        ],
+        "voluntary_ctxt_switches": 3784,
+        "nonvoluntary_ctxt_switches": 21,
+        "system_ctxt": 415065
+      },
+      "scheduler_after": {
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "cpu_count": 4,
+        "loadavg": [
+          0.8642578125,
+          0.32470703125,
+          0.11572265625
+        ],
+        "voluntary_ctxt_switches": 3852,
+        "nonvoluntary_ctxt_switches": 27,
+        "system_ctxt": 440356
+      }
+    }
+  ]
+}
