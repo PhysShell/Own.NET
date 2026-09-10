@@ -4,9 +4,9 @@
   "not_decision_evidence": "CALIBRATION ONLY. These numbers validate the INSTRUMENT and are not evidence about either engine. They cannot choose a threshold, a budget, a repetition count or a comparison statistic; those are D7's, frozen before the decisive run. No decisive workload was timed or resource-sampled to produce this file.",
   "harness": {
     "version": 1,
-    "digest": "84b3e98fc4d900a97f9d5362ffca8d0459ab3b3ec239b17c6c24fde46690de72",
-    "warmup_discards": 2,
-    "calibration_repetitions": 5,
+    "digest": "2b36de7a7bc92943049de639722750ad3e972b7c46e1e1d0a7524832ba133379",
+    "warmup_discards": 3,
+    "calibration_repetitions": 15,
     "repetitions_note": "a CALIBRATION parameter for sizing the instrument, not the decisive N. The decisive N and its escalation ladder are preregistered by D7.",
     "seed": 20260910,
     "execution_order": [
@@ -56,9 +56,9 @@
     "gate_armed": false,
     "gate_reason": "no D7 attestation on disk: the freeze has not happened, so the gate is dormant by design and every decisive measurement is refused",
     "gate_observed": {
-      "harness_digest": "84b3e98fc4d900a97f9d5362ffca8d0459ab3b3ec239b17c6c24fde46690de72",
+      "harness_digest": "2b36de7a7bc92943049de639722750ad3e972b7c46e1e1d0a7524832ba133379",
       "workload_manifest_sha256": "ecfee52f905321ad143c280fe8f7f91b8fef4d0da66de9155aabd175c131ef8a",
-      "python_reference_commit": "889c285f602a69867e7555e2f07ce8bfee93997b"
+      "python_reference_commit": "ad4c3023e00b898645134abf6d768f0392e569e7"
     },
     "gate_requirements": [
       "the payload declares kind='own.net/p022/d7-freeze-attestation' and schema=1",
@@ -79,14 +79,14 @@
       "path": "/home/user/Own.NET/rust/target/release/own-cli",
       "sha256": "8f6c06dd7728fdc12663e03dd46b6e32c183656a2a9f9d05b05d1b0f3f9332fe",
       "bytes": 1841648,
-      "frozen_at": "2026-09-10T05:34:44Z",
-      "measurements_taken": 200
+      "frozen_at": "2026-09-10T07:01:13Z",
+      "measurements_taken": 600
     }
   },
   "provenance": {
-    "tree_sha": "889c285f602a69867e7555e2f07ce8bfee93997b",
+    "tree_sha": "ad4c3023e00b898645134abf6d768f0392e569e7",
     "tree_dirty": false,
-    "python_reference_commit": "889c285f602a69867e7555e2f07ce8bfee93997b",
+    "python_reference_commit": "ad4c3023e00b898645134abf6d768f0392e569e7",
     "python_interpreter": "3.11.15",
     "workload_manifest_sha256": "ecfee52f905321ad143c280fe8f7f91b8fef4d0da66de9155aabd175c131ef8a",
     "environment": {
@@ -102,27 +102,27 @@
       "runner_class": "local",
       "ci": false
     },
-    "timestamp_utc": "2026-09-10T05:37:50Z"
+    "timestamp_utc": "2026-09-10T07:09:02Z"
   },
   "regimes": {
     "process-cold": "a fresh process every iteration, no in-process warmup. The default: cheap, portable, and honestly named.",
-    "warm": "steady state after 2 DISCARDED iterations of the same cell. The process is still fresh each time; what is warm is the OS and filesystem cache.",
+    "warm": "steady state after 3 DISCARDED iterations of the same cell. The process is still fresh each time; what is warm is the OS and filesystem cache.",
     "machine-cold": "NOT CLAIMED here. It exists only behind a documented reset protocol (cache drop / reboot / fresh VM), and 'caches not pre-warmed' with no reset step means a different kind of cold on Windows than on Linux. A machine-cold claim without its reset protocol is inadmissible, so this instrument does not make one."
   },
   "noise": {
     "before": {
-      "median_ns": 21688749,
-      "iqr_ns": 236998.5,
-      "min_ns": 21484458,
-      "relative_iqr": 0.010927255417082839,
+      "median_ns": 21943341,
+      "iqr_ns": 709499.5,
+      "min_ns": 21525085,
+      "relative_iqr": 0.03233324861514935,
       "iterations": 25,
       "limit_relative_iqr": 0.35
     },
     "after": {
-      "median_ns": 22291445,
-      "iqr_ns": 341370.5,
-      "min_ns": 22068597,
-      "relative_iqr": 0.015313969103393702,
+      "median_ns": 22366329,
+      "iqr_ns": 474524.0,
+      "min_ns": 22010425,
+      "relative_iqr": 0.021215998387576252,
       "iterations": 25,
       "limit_relative_iqr": 0.35
     },
@@ -447,38 +447,58 @@
       ],
       "warmup_discarded": 0,
       "timing": {
-        "n": 5,
-        "median_ns": 2402212,
-        "min_ns": 2220654,
-        "mad_ns": 181558,
-        "iqr_ns": 622622.0,
-        "q1_ns": 2236813.5,
-        "q3_ns": 2859435.5
+        "n": 15,
+        "median_ns": 2371062,
+        "min_ns": 2199838,
+        "mad_ns": 152451,
+        "iqr_ns": 257142.0,
+        "q1_ns": 2270635.0,
+        "q3_ns": 2527777.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 25112576,
-        "min_bytes": 25112576,
+        "n": 15,
+        "median_bytes": 25047040,
+        "min_bytes": 25047040,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25112576.0,
-        "q3_bytes": 25112576.0
+        "q1_bytes": 25047040.0,
+        "q3_bytes": 25047040.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        2766290,
-        2402212,
-        2252973,
-        2952581,
-        2220654
+        2878471,
+        2523513,
+        2974770,
+        2688267,
+        2371499,
+        2527777,
+        2199838,
+        2390343,
+        2371062,
+        2327303,
+        2355149,
+        2216981,
+        2270635,
+        2217825,
+        2278119
       ],
       "raw_peak_rss_bytes": [
-        25112576,
-        25112576,
-        25112576,
-        25112576,
-        25112576
+        25047040,
+        25047040,
+        25047040,
+        25047040,
+        25047040,
+        25047040,
+        25047040,
+        25047040,
+        25047040,
+        25047040,
+        25047040,
+        25047040,
+        25047040,
+        25047040,
+        25047040
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -517,1400 +537,241 @@
       ],
       "warmup_discarded": 0,
       "timing": {
-        "n": 5,
-        "median_ns": 3021936396,
-        "min_ns": 2894163687,
-        "mad_ns": 36730123,
-        "iqr_ns": 134010020.5,
-        "q1_ns": 2918106239.5,
-        "q3_ns": 3052116260.0
+        "n": 15,
+        "median_ns": 3108392861,
+        "min_ns": 2964232292,
+        "mad_ns": 30464381,
+        "iqr_ns": 67445306.0,
+        "q1_ns": 3063826568.0,
+        "q3_ns": 3131271874.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 178626560,
-        "min_bytes": 178569216,
-        "mad_bytes": 57344,
-        "iqr_bytes": 342016.0,
-        "q1_bytes": 178583552.0,
-        "q3_bytes": 178925568.0
+        "n": 15,
+        "median_bytes": 178638848,
+        "min_bytes": 178159616,
+        "mad_bytes": 225280,
+        "iqr_bytes": 495616.0,
+        "q1_bytes": 178413568.0,
+        "q3_bytes": 178909184.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        2894163687,
-        3058666519,
-        2942048792,
-        3045566001,
-        3021936396
+        3174476810,
+        3131271874,
+        3117364795,
+        3136177026,
+        3056531385,
+        3111525364,
+        3108392861,
+        3065369030,
+        3102119487,
+        3118267163,
+        3063826568,
+        3152810165,
+        2979565802,
+        2964232292,
+        3077928480
       ],
       "raw_peak_rss_bytes": [
-        179073024,
-        178597888,
-        178778112,
-        178626560,
-        178569216
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-usage",
-      "engine": "python",
-      "workload": "cal-facts-tiny",
-      "regime": "warm",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "cli-usage-refusal"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          2
-        ],
-        "observed_exit_code": 2,
-        "evidence": "usage-help",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/usr/local/bin/python3",
-        "<...>"
-      ],
-      "exit_codes": [
-        2
-      ],
-      "warmup_discarded": 2,
-      "timing": {
-        "n": 5,
-        "median_ns": 80574858,
-        "min_ns": 73236021,
-        "mad_ns": 3746852,
-        "iqr_ns": 16994558.0,
-        "q1_ns": 75321862.0,
-        "q3_ns": 92316420.0
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25116672,
-        "min_bytes": 25116672,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25116672.0,
-        "q3_bytes": 25116672.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        77407703,
-        100311130,
-        84321710,
-        73236021,
-        80574858
-      ],
-      "raw_peak_rss_bytes": [
-        25116672,
-        25116672,
-        25116672,
-        25116672,
-        25116672
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-full-human",
-      "engine": "python",
-      "workload": "cal-facts-tiny",
-      "regime": "warm",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-human"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0,
-          1
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-human",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/usr/local/bin/python3",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 2,
-      "timing": {
-        "n": 5,
-        "median_ns": 104305770,
-        "min_ns": 95959675,
-        "mad_ns": 5822288,
-        "iqr_ns": 20303979.5,
-        "q1_ns": 98943969.5,
-        "q3_ns": 119247949.0
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25116672,
-        "min_bytes": 25116672,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25116672.0,
-        "q3_bytes": 25116672.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        95959675,
-        128367840,
-        101928264,
-        110128058,
-        104305770
-      ],
-      "raw_peak_rss_bytes": [
-        25116672,
-        25116672,
-        25116672,
-        25116672,
-        25116672
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "launcher-e2e",
-      "engine": "rust",
-      "workload": "cal-source-small",
-      "regime": "warm",
-      "phases": [
-        "process-startup-launcher",
-        "frontend-extraction",
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-human"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-human",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "bash",
-        "/home/user/Own.NET/scripts/own-check.sh",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 2,
-      "timing": {
-        "n": 5,
-        "median_ns": 3001148021,
-        "min_ns": 2876949910,
-        "mad_ns": 25848171,
-        "iqr_ns": 107086760.0,
-        "q1_ns": 2926124880.0,
-        "q3_ns": 3033211640.0
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 178642944,
-        "min_bytes": 178499584,
-        "mad_bytes": 143360,
-        "iqr_bytes": 425984.0,
-        "q1_bytes": 178536448.0,
-        "q3_bytes": 178962432.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        2876949910,
-        2975299850,
-        3060669502,
-        3005753778,
-        3001148021
-      ],
-      "raw_peak_rss_bytes": [
-        178573312,
-        178642944,
-        178962432,
-        178499584,
-        178962432
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-full-human",
-      "engine": "python",
-      "workload": "cal-facts-small",
-      "regime": "warm",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-human"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0,
-          1
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-human",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/usr/local/bin/python3",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 2,
-      "timing": {
-        "n": 5,
-        "median_ns": 100621291,
-        "min_ns": 98911493,
-        "mad_ns": 1709798,
-        "iqr_ns": 8689358.0,
-        "q1_ns": 99378877.5,
-        "q3_ns": 108068235.5
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25116672,
-        "min_bytes": 25116672,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25116672.0,
-        "q3_bytes": 25116672.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        98911493,
-        99846262,
-        100621291,
-        106084787,
-        110051684
-      ],
-      "raw_peak_rss_bytes": [
-        25116672,
-        25116672,
-        25116672,
-        25116672,
-        25116672
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-full-sarif",
-      "engine": "python",
-      "workload": "cal-facts-small",
-      "regime": "warm",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-sarif"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0,
-          1
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-sarif",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/usr/local/bin/python3",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 2,
-      "timing": {
-        "n": 5,
-        "median_ns": 109605767,
-        "min_ns": 106247833,
-        "mad_ns": 3357934,
-        "iqr_ns": 10708944.5,
-        "q1_ns": 107435439.5,
-        "q3_ns": 118144384.0
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25128960,
-        "min_bytes": 25128960,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25128960.0,
-        "q3_bytes": 25128960.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        108623046,
-        109605767,
-        117224864,
-        106247833,
-        119063904
-      ],
-      "raw_peak_rss_bytes": [
-        25128960,
-        25128960,
-        25128960,
-        25128960,
-        25128960
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-full-sarif",
-      "engine": "python",
-      "workload": "cal-facts-small",
-      "regime": "process-cold",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-sarif"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0,
-          1
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-sarif",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/usr/local/bin/python3",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 0,
-      "timing": {
-        "n": 5,
-        "median_ns": 116806692,
-        "min_ns": 106559572,
-        "mad_ns": 3407214,
-        "iqr_ns": 15017159.5,
-        "q1_ns": 109979525.0,
-        "q3_ns": 124996684.5
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25133056,
-        "min_bytes": 25133056,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25133056.0,
-        "q3_bytes": 25133056.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        113399478,
-        106559572,
-        118211566,
-        131781803,
-        116806692
-      ],
-      "raw_peak_rss_bytes": [
-        25133056,
-        25133056,
-        25133056,
-        25133056,
-        25133056
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "launcher-e2e",
-      "engine": "python",
-      "workload": "cal-source-medium",
-      "regime": "process-cold",
-      "phases": [
-        "process-startup-launcher",
-        "frontend-extraction",
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-human"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-human",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "bash",
-        "/home/user/Own.NET/scripts/own-check.sh",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 0,
-      "timing": {
-        "n": 5,
-        "median_ns": 3440222882,
-        "min_ns": 3319050968,
-        "mad_ns": 53412579,
-        "iqr_ns": 198107823.5,
-        "q1_ns": 3352930635.5,
-        "q3_ns": 3551038459.0
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 178528256,
-        "min_bytes": 178262016,
-        "mad_bytes": 126976,
-        "iqr_bytes": 557056.0,
-        "q1_bytes": 178331648.0,
-        "q3_bytes": 178888704.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        3643438865,
-        3440222882,
-        3386810303,
-        3319050968,
-        3458638053
-      ],
-      "raw_peak_rss_bytes": [
-        178262016,
-        179122176,
-        178655232,
-        178528256,
-        178401280
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-full-sarif",
-      "engine": "python",
-      "workload": "cal-facts-tiny",
-      "regime": "warm",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-sarif"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0,
-          1
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-sarif",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/usr/local/bin/python3",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 2,
-      "timing": {
-        "n": 5,
-        "median_ns": 104737790,
-        "min_ns": 101327182,
-        "mad_ns": 204839,
-        "iqr_ns": 2620823.0,
-        "q1_ns": 102258632.0,
-        "q3_ns": 104879455.0
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25133056,
-        "min_bytes": 25133056,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25133056.0,
-        "q3_bytes": 25133056.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        104816281,
-        104737790,
-        101327182,
-        104942629,
-        103190082
-      ],
-      "raw_peak_rss_bytes": [
-        25133056,
-        25133056,
-        25133056,
-        25133056,
-        25133056
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "launcher-e2e",
-      "engine": "rust",
-      "workload": "cal-source-medium",
-      "regime": "warm",
-      "phases": [
-        "process-startup-launcher",
-        "frontend-extraction",
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-human"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-human",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "bash",
-        "/home/user/Own.NET/scripts/own-check.sh",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 2,
-      "timing": {
-        "n": 5,
-        "median_ns": 3003079695,
-        "min_ns": 2878033495,
-        "mad_ns": 39902335,
-        "iqr_ns": 168179048.5,
-        "q1_ns": 2934449618.5,
-        "q3_ns": 3102628667.0
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 179011584,
-        "min_bytes": 178647040,
-        "mad_bytes": 110592,
-        "iqr_bytes": 382976.0,
-        "q1_bytes": 178690048.0,
-        "q3_bytes": 179073024.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        3003079695,
-        2990865742,
-        3162275304,
-        3042982030,
-        2878033495
-      ],
-      "raw_peak_rss_bytes": [
-        179011584,
-        178733056,
-        179122176,
-        179023872,
-        178647040
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-full-human",
-      "engine": "rust",
-      "workload": "cal-facts-small",
-      "regime": "process-cold",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-human"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0,
-          1
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-human",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/home/user/Own.NET/rust/target/release/own-cli",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 0,
-      "timing": {
-        "n": 5,
-        "median_ns": 2333714,
-        "min_ns": 2169593,
-        "mad_ns": 144661,
-        "iqr_ns": 346622.5,
-        "q1_ns": 2179323.0,
-        "q3_ns": 2525945.5
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25137152,
-        "min_bytes": 25137152,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25137152.0,
-        "q3_bytes": 25137152.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        2437100,
-        2614791,
-        2189053,
-        2333714,
-        2169593
-      ],
-      "raw_peak_rss_bytes": [
-        25137152,
-        25137152,
-        25137152,
-        25137152,
-        25137152
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-parse-refused",
-      "engine": "rust",
-      "workload": "cal-facts-refused",
-      "regime": "process-cold",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "ownir-door-refusal"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          2
-        ],
-        "observed_exit_code": 2,
-        "evidence": "door-refusal",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/home/user/Own.NET/rust/target/release/own-cli",
-        "<...>"
-      ],
-      "exit_codes": [
-        2
-      ],
-      "warmup_discarded": 0,
-      "timing": {
-        "n": 5,
-        "median_ns": 1730160,
-        "min_ns": 1698715,
-        "mad_ns": 31445,
-        "iqr_ns": 150670.5,
-        "q1_ns": 1710247.5,
-        "q3_ns": 1860918.0
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25141248,
-        "min_bytes": 25141248,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25141248.0,
-        "q3_bytes": 25141248.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        1730160,
-        1821194,
-        1721780,
-        1698715,
-        1900642
-      ],
-      "raw_peak_rss_bytes": [
-        25141248,
-        25141248,
-        25141248,
-        25141248,
-        25141248
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-full-sarif",
-      "engine": "python",
-      "workload": "cal-facts-medium",
-      "regime": "warm",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-sarif"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0,
-          1
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-sarif",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/usr/local/bin/python3",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 2,
-      "timing": {
-        "n": 5,
-        "median_ns": 113761731,
-        "min_ns": 110503382,
-        "mad_ns": 1823772,
-        "iqr_ns": 4876273.5,
-        "q1_ns": 111577209.5,
-        "q3_ns": 116453483.0
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25141248,
-        "min_bytes": 25141248,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25141248.0,
-        "q3_bytes": 25141248.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        110503382,
-        112651037,
-        117321463,
-        115585503,
-        113761731
-      ],
-      "raw_peak_rss_bytes": [
-        25141248,
-        25141248,
-        25141248,
-        25141248,
-        25141248
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-full-human",
-      "engine": "rust",
-      "workload": "cal-facts-medium",
-      "regime": "warm",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-human"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0,
-          1
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-human",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/home/user/Own.NET/rust/target/release/own-cli",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 2,
-      "timing": {
-        "n": 5,
-        "median_ns": 5600011,
-        "min_ns": 5323687,
-        "mad_ns": 153956,
-        "iqr_ns": 538749.5,
-        "q1_ns": 5384871.0,
-        "q3_ns": 5923620.5
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25141248,
-        "min_bytes": 25141248,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25141248.0,
-        "q3_bytes": 25141248.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        6132712,
-        5714529,
-        5600011,
-        5446055,
-        5323687
-      ],
-      "raw_peak_rss_bytes": [
-        25141248,
-        25141248,
-        25141248,
-        25141248,
-        25141248
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-usage",
-      "engine": "rust",
-      "workload": "cal-facts-tiny",
-      "regime": "warm",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "cli-usage-refusal"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          2
-        ],
-        "observed_exit_code": 2,
-        "evidence": "usage-help",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/home/user/Own.NET/rust/target/release/own-cli",
-        "<...>"
-      ],
-      "exit_codes": [
-        2
-      ],
-      "warmup_discarded": 2,
-      "timing": {
-        "n": 5,
-        "median_ns": 1720972,
-        "min_ns": 1715518,
-        "mad_ns": 5454,
-        "iqr_ns": 192108.5,
-        "q1_ns": 1717166.5,
-        "q3_ns": 1909275.0
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25141248,
-        "min_bytes": 25141248,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25141248.0,
-        "q3_bytes": 25141248.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        1955163,
-        1715518,
-        1718815,
-        1720972,
-        1863387
-      ],
-      "raw_peak_rss_bytes": [
-        25141248,
-        25141248,
-        25141248,
-        25141248,
-        25141248
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-full-human",
-      "engine": "rust",
-      "workload": "cal-facts-medium",
-      "regime": "process-cold",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-human"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0,
-          1
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-human",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/home/user/Own.NET/rust/target/release/own-cli",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 0,
-      "timing": {
-        "n": 5,
-        "median_ns": 5454654,
-        "min_ns": 5360182,
-        "mad_ns": 67997,
-        "iqr_ns": 295039.0,
-        "q1_ns": 5373419.5,
-        "q3_ns": 5668458.5
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25141248,
-        "min_bytes": 25141248,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25141248.0,
-        "q3_bytes": 25141248.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        5498076,
-        5838841,
-        5454654,
-        5386657,
-        5360182
-      ],
-      "raw_peak_rss_bytes": [
-        25141248,
-        25141248,
-        25141248,
-        25141248,
-        25141248
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-full-sarif",
-      "engine": "rust",
-      "workload": "cal-facts-small",
-      "regime": "warm",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-sarif"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0,
-          1
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-sarif",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/home/user/Own.NET/rust/target/release/own-cli",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 2,
-      "timing": {
-        "n": 5,
-        "median_ns": 2367528,
-        "min_ns": 2236483,
-        "mad_ns": 81740,
-        "iqr_ns": 177072.5,
-        "q1_ns": 2240187.5,
-        "q3_ns": 2417260.0
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25145344,
-        "min_bytes": 25145344,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25145344.0,
-        "q3_bytes": 25145344.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        2385252,
-        2449268,
-        2236483,
-        2367528,
-        2243892
-      ],
-      "raw_peak_rss_bytes": [
-        25145344,
-        25145344,
-        25145344,
-        25145344,
-        25145344
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-full-human",
-      "engine": "python",
-      "workload": "cal-facts-tiny",
-      "regime": "process-cold",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-human"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0,
-          1
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-human",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/usr/local/bin/python3",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 0,
-      "timing": {
-        "n": 5,
-        "median_ns": 99517682,
-        "min_ns": 99207999,
-        "mad_ns": 309683,
-        "iqr_ns": 1815576.0,
-        "q1_ns": 99292010.5,
-        "q3_ns": 101107586.5
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25145344,
-        "min_bytes": 25145344,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25145344.0,
-        "q3_bytes": 25145344.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        101726503,
-        99376022,
-        99517682,
-        100488670,
-        99207999
-      ],
-      "raw_peak_rss_bytes": [
-        25145344,
-        25145344,
-        25145344,
-        25145344,
-        25145344
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-full-human",
-      "engine": "rust",
-      "workload": "cal-facts-small",
-      "regime": "warm",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-human"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0,
-          1
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-human",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/home/user/Own.NET/rust/target/release/own-cli",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 2,
-      "timing": {
-        "n": 5,
-        "median_ns": 2212211,
-        "min_ns": 2159268,
-        "mad_ns": 31427,
-        "iqr_ns": 124630.5,
-        "q1_ns": 2170026.0,
-        "q3_ns": 2294656.5
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25145344,
-        "min_bytes": 25145344,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25145344.0,
-        "q3_bytes": 25145344.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        2356471,
-        2180784,
-        2159268,
-        2212211,
-        2232842
-      ],
-      "raw_peak_rss_bytes": [
-        25145344,
-        25145344,
-        25145344,
-        25145344,
-        25145344
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-usage",
-      "engine": "rust",
-      "workload": "cal-facts-tiny",
-      "regime": "process-cold",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "cli-usage-refusal"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          2
-        ],
-        "observed_exit_code": 2,
-        "evidence": "usage-help",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/home/user/Own.NET/rust/target/release/own-cli",
-        "<...>"
-      ],
-      "exit_codes": [
-        2
-      ],
-      "warmup_discarded": 0,
-      "timing": {
-        "n": 5,
-        "median_ns": 1729834,
-        "min_ns": 1656427,
-        "mad_ns": 32319,
-        "iqr_ns": 100956.0,
-        "q1_ns": 1676971.0,
-        "q3_ns": 1777927.0
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25145344,
-        "min_bytes": 25145344,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25145344.0,
-        "q3_bytes": 25145344.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        1697515,
-        1729834,
-        1734332,
-        1821522,
-        1656427
-      ],
-      "raw_peak_rss_bytes": [
-        25145344,
-        25145344,
-        25145344,
-        25145344,
-        25145344
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "launcher-e2e",
-      "engine": "python",
-      "workload": "cal-source-small",
-      "regime": "warm",
-      "phases": [
-        "process-startup-launcher",
-        "frontend-extraction",
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-human"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-human",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "bash",
-        "/home/user/Own.NET/scripts/own-check.sh",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 2,
-      "timing": {
-        "n": 5,
-        "median_ns": 3041304020,
-        "min_ns": 2984208583,
-        "mad_ns": 24491950,
-        "iqr_ns": 65741837.0,
-        "q1_ns": 3010323088.5,
-        "q3_ns": 3076064925.5
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 178782208,
-        "min_bytes": 178700288,
-        "mad_bytes": 28672,
-        "iqr_bytes": 88064.0,
-        "q1_bytes": 178735104.0,
-        "q3_bytes": 178823168.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        3041304020,
-        2984208583,
-        3086333881,
-        3065795970,
-        3036437594
-      ],
-      "raw_peak_rss_bytes": [
-        178782208,
-        178769920,
+        178728960,
+        178663424,
+        178159616,
+        178909184,
+        178622464,
+        178176000,
+        178413568,
+        178581504,
+        178638848,
+        178290688,
+        178978816,
         178835456,
-        178700288,
-        178810880
+        178970624,
+        178577408,
+        178913280
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-usage",
+      "engine": "python",
+      "workload": "cal-facts-tiny",
+      "regime": "warm",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "cli-usage-refusal"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          2
+        ],
+        "observed_exit_code": 2,
+        "evidence": "usage-help",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/usr/local/bin/python3",
+        "<...>"
+      ],
+      "exit_codes": [
+        2
+      ],
+      "warmup_discarded": 3,
+      "timing": {
+        "n": 15,
+        "median_ns": 78399949,
+        "min_ns": 74854718,
+        "mad_ns": 2861745,
+        "iqr_ns": 6594082.0,
+        "q1_ns": 75585422.0,
+        "q3_ns": 82179504.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25071616,
+        "min_bytes": 25071616,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25071616.0,
+        "q3_bytes": 25071616.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        74854718,
+        77572013,
+        74962722,
+        76045829,
+        78399949,
+        75585422,
+        78451890,
+        78107883,
+        83141050,
+        84196761,
+        86489061,
+        81261694,
+        75048298,
+        79798217,
+        82179504
+      ],
+      "raw_peak_rss_bytes": [
+        25071616,
+        25071616,
+        25071616,
+        25071616,
+        25071616,
+        25071616,
+        25071616,
+        25071616,
+        25071616,
+        25071616,
+        25071616,
+        25071616,
+        25071616,
+        25071616,
+        25071616
       ],
       "tag": "CALIBRATION_ONLY"
     },
     {
       "rung": "core-full-human",
+      "engine": "python",
+      "workload": "cal-facts-tiny",
+      "regime": "warm",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-human"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0,
+          1
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-human",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/usr/local/bin/python3",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 3,
+      "timing": {
+        "n": 15,
+        "median_ns": 100837206,
+        "min_ns": 97764237,
+        "mad_ns": 1070616,
+        "iqr_ns": 2502579.0,
+        "q1_ns": 99405243.0,
+        "q3_ns": 101907822.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25079808,
+        "min_bytes": 25079808,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25079808.0,
+        "q3_bytes": 25079808.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        100863398,
+        101847586,
+        99886946,
+        100837206,
+        99405243,
+        100669335,
+        101907822,
+        104130820,
+        101651770,
+        100172940,
+        103316713,
+        98297428,
+        97764237,
+        104851327,
+        98190297
+      ],
+      "raw_peak_rss_bytes": [
+        25079808,
+        25079808,
+        25079808,
+        25079808,
+        25079808,
+        25079808,
+        25079808,
+        25079808,
+        25079808,
+        25079808,
+        25079808,
+        25079808,
+        25079808,
+        25079808,
+        25079808
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "launcher-e2e",
       "engine": "rust",
-      "workload": "cal-facts-tiny",
+      "workload": "cal-source-small",
       "regime": "warm",
       "phases": [
+        "process-startup-launcher",
+        "frontend-extraction",
         "process-startup-core",
         "cli-argv-parse",
         "ownir-parse",
@@ -1921,8 +782,7 @@
       "observability": "composed",
       "outcome": {
         "expected_exit_codes": [
-          0,
-          1
+          0
         ],
         "observed_exit_code": 0,
         "evidence": "verdict-human",
@@ -1930,53 +790,74 @@
         "problems": []
       },
       "argv": [
-        "/home/user/Own.NET/rust/target/release/own-cli",
+        "bash",
+        "/home/user/Own.NET/scripts/own-check.sh",
         "<...>"
       ],
       "exit_codes": [
         0
       ],
-      "warmup_discarded": 2,
+      "warmup_discarded": 3,
       "timing": {
-        "n": 5,
-        "median_ns": 1859045,
-        "min_ns": 1811042,
-        "mad_ns": 22590,
-        "iqr_ns": 72989.0,
-        "q1_ns": 1823748.5,
-        "q3_ns": 1896737.5
+        "n": 15,
+        "median_ns": 3027612962,
+        "min_ns": 2858695139,
+        "mad_ns": 84803452,
+        "iqr_ns": 184198659.0,
+        "q1_ns": 2975978784.0,
+        "q3_ns": 3160177443.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 25149440,
-        "min_bytes": 25149440,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25149440.0,
-        "q3_bytes": 25149440.0
+        "n": 15,
+        "median_bytes": 178749440,
+        "min_bytes": 178221056,
+        "mad_bytes": 98304,
+        "iqr_bytes": 241664.0,
+        "q1_bytes": 178671616.0,
+        "q3_bytes": 178913280.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        1924709,
-        1811042,
-        1836455,
-        1868766,
-        1859045
+        2919070822,
+        2960949848,
+        2995066378,
+        2975978784,
+        3006414974,
+        2858695139,
+        3027612962,
+        3160177443,
+        3265956424,
+        3104844144,
+        3012457748,
+        3186386950,
+        3121944508,
+        3166078611,
+        3112416414
       ],
       "raw_peak_rss_bytes": [
-        25149440,
-        25149440,
-        25149440,
-        25149440,
-        25149440
+        178896896,
+        178782208,
+        178614272,
+        178913280,
+        179240960,
+        178671616,
+        178221056,
+        178679808,
+        178847744,
+        178749440,
+        179032064,
+        178708480,
+        178749440,
+        178655232,
+        179085312
       ],
       "tag": "CALIBRATION_ONLY"
     },
     {
       "rung": "core-full-human",
       "engine": "python",
-      "workload": "cal-facts-medium",
+      "workload": "cal-facts-small",
       "regime": "warm",
       "phases": [
         "process-startup-core",
@@ -2004,48 +885,68 @@
       "exit_codes": [
         0
       ],
-      "warmup_discarded": 2,
+      "warmup_discarded": 3,
       "timing": {
-        "n": 5,
-        "median_ns": 110306118,
-        "min_ns": 106003467,
-        "mad_ns": 1645385,
-        "iqr_ns": 4663676.5,
-        "q1_ns": 107186894.0,
-        "q3_ns": 111850570.5
+        "n": 15,
+        "median_ns": 105456657,
+        "min_ns": 100023736,
+        "mad_ns": 2261859,
+        "iqr_ns": 4908797.0,
+        "q1_ns": 102809719.0,
+        "q3_ns": 107718516.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 25153536,
-        "min_bytes": 25153536,
+        "n": 15,
+        "median_bytes": 25088000,
+        "min_bytes": 25088000,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25153536.0,
-        "q3_bytes": 25153536.0
+        "q1_bytes": 25088000.0,
+        "q3_bytes": 25088000.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        106003467,
-        111951503,
-        108370321,
-        110306118,
-        111749638
+        102809719,
+        105618241,
+        105456657,
+        100023736,
+        102425622,
+        102267786,
+        107718516,
+        104680327,
+        107239210,
+        125671861,
+        104401925,
+        104161743,
+        105843729,
+        109820058,
+        111547188
       ],
       "raw_peak_rss_bytes": [
-        25153536,
-        25153536,
-        25153536,
-        25153536,
-        25153536
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000
       ],
       "tag": "CALIBRATION_ONLY"
     },
     {
       "rung": "core-full-sarif",
       "engine": "python",
-      "workload": "cal-facts-tiny",
-      "regime": "process-cold",
+      "workload": "cal-facts-small",
+      "regime": "warm",
       "phases": [
         "process-startup-core",
         "cli-argv-parse",
@@ -2072,113 +973,65 @@
       "exit_codes": [
         0
       ],
-      "warmup_discarded": 0,
+      "warmup_discarded": 3,
       "timing": {
-        "n": 5,
-        "median_ns": 97779315,
-        "min_ns": 94788182,
-        "mad_ns": 2991133,
-        "iqr_ns": 14643689.0,
-        "q1_ns": 95141987.0,
-        "q3_ns": 109785676.0
+        "n": 15,
+        "median_ns": 104037081,
+        "min_ns": 101568885,
+        "mad_ns": 1960227,
+        "iqr_ns": 4784296.0,
+        "q1_ns": 102076854.0,
+        "q3_ns": 106861150.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 25153536,
-        "min_bytes": 25153536,
+        "n": 15,
+        "median_bytes": 25088000,
+        "min_bytes": 25088000,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25153536.0,
-        "q3_bytes": 25153536.0
+        "q1_bytes": 25088000.0,
+        "q3_bytes": 25088000.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        95495792,
-        108326021,
-        94788182,
-        97779315,
-        111245331
+        104977800,
+        108004663,
+        102145685,
+        104037081,
+        105403505,
+        106861150,
+        103404062,
+        101568885,
+        102076854,
+        101729229,
+        103923894,
+        105576498,
+        107093200,
+        119518311,
+        101877274
       ],
       "raw_peak_rss_bytes": [
-        25153536,
-        25153536,
-        25153536,
-        25153536,
-        25153536
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000,
+        25088000
       ],
       "tag": "CALIBRATION_ONLY"
     },
     {
       "rung": "core-full-sarif",
-      "engine": "python",
-      "workload": "cal-facts-medium",
-      "regime": "process-cold",
-      "phases": [
-        "process-startup-core",
-        "cli-argv-parse",
-        "ownir-parse",
-        "bridge-lowering",
-        "analysis",
-        "render-sarif"
-      ],
-      "observability": "composed",
-      "outcome": {
-        "expected_exit_codes": [
-          0,
-          1
-        ],
-        "observed_exit_code": 0,
-        "evidence": "verdict-sarif",
-        "valid": true,
-        "problems": []
-      },
-      "argv": [
-        "/usr/local/bin/python3",
-        "<...>"
-      ],
-      "exit_codes": [
-        0
-      ],
-      "warmup_discarded": 0,
-      "timing": {
-        "n": 5,
-        "median_ns": 106511986,
-        "min_ns": 105689485,
-        "mad_ns": 822501,
-        "iqr_ns": 1768292.0,
-        "q1_ns": 105946180.5,
-        "q3_ns": 107714472.5
-      },
-      "peak_rss": {
-        "n": 5,
-        "median_bytes": 25153536,
-        "min_bytes": 25153536,
-        "mad_bytes": 0,
-        "iqr_bytes": 0.0,
-        "q1_bytes": 25153536.0,
-        "q3_bytes": 25153536.0
-      },
-      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
-      "rss_unavailable_reason": "",
-      "raw_elapsed_ns": [
-        105689485,
-        106202876,
-        107683992,
-        107744953,
-        106511986
-      ],
-      "raw_peak_rss_bytes": [
-        25153536,
-        25153536,
-        25153536,
-        25153536,
-        25153536
-      ],
-      "tag": "CALIBRATION_ONLY"
-    },
-    {
-      "rung": "core-full-human",
       "engine": "python",
       "workload": "cal-facts-small",
       "regime": "process-cold",
@@ -2188,7 +1041,7 @@
         "ownir-parse",
         "bridge-lowering",
         "analysis",
-        "render-human"
+        "render-sarif"
       ],
       "observability": "composed",
       "outcome": {
@@ -2197,7 +1050,7 @@
           1
         ],
         "observed_exit_code": 0,
-        "evidence": "verdict-human",
+        "evidence": "verdict-sarif",
         "valid": true,
         "problems": []
       },
@@ -2210,44 +1063,242 @@
       ],
       "warmup_discarded": 0,
       "timing": {
-        "n": 5,
-        "median_ns": 97492258,
-        "min_ns": 96427868,
-        "mad_ns": 1064390,
-        "iqr_ns": 3414241.5,
-        "q1_ns": 96651032.5,
-        "q3_ns": 100065274.0
+        "n": 15,
+        "median_ns": 103908927,
+        "min_ns": 99995339,
+        "mad_ns": 2455750,
+        "iqr_ns": 4433108.0,
+        "q1_ns": 102284694.0,
+        "q3_ns": 106717802.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 25153536,
-        "min_bytes": 25153536,
+        "n": 15,
+        "median_bytes": 25096192,
+        "min_bytes": 25096192,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25153536.0,
-        "q3_bytes": 25153536.0
+        "q1_bytes": 25096192.0,
+        "q3_bytes": 25096192.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        96427868,
-        100249559,
-        96874197,
-        99880989,
-        97492258
+        106990432,
+        106364677,
+        99995339,
+        103509668,
+        105110292,
+        109469570,
+        109977469,
+        106717802,
+        103908927,
+        103359300,
+        102395141,
+        101591798,
+        102284694,
+        106378448,
+        101292656
       ],
       "raw_peak_rss_bytes": [
-        25153536,
-        25153536,
-        25153536,
-        25153536,
-        25153536
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192
       ],
       "tag": "CALIBRATION_ONLY"
     },
     {
       "rung": "launcher-e2e",
       "engine": "python",
+      "workload": "cal-source-medium",
+      "regime": "process-cold",
+      "phases": [
+        "process-startup-launcher",
+        "frontend-extraction",
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-human"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-human",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "bash",
+        "/home/user/Own.NET/scripts/own-check.sh",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 0,
+      "timing": {
+        "n": 15,
+        "median_ns": 3241640554,
+        "min_ns": 3090951255,
+        "mad_ns": 73318304,
+        "iqr_ns": 175758354.0,
+        "q1_ns": 3176418823.0,
+        "q3_ns": 3352177177.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 178876416,
+        "min_bytes": 178126848,
+        "mad_bytes": 155648,
+        "iqr_bytes": 495616.0,
+        "q1_bytes": 178462720.0,
+        "q3_bytes": 178958336.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        3090951255,
+        3173964693,
+        3425117946,
+        3297243789,
+        3184217835,
+        3176418823,
+        3223616890,
+        3314958858,
+        3496622429,
+        3352177177,
+        3416947311,
+        3227149931,
+        3135479139,
+        3241640554,
+        3317860047
+      ],
+      "raw_peak_rss_bytes": [
+        179109888,
+        179048448,
+        179032064,
+        178958336,
+        178954240,
+        178126848,
+        178257920,
+        178462720,
+        178896896,
+        178397184,
+        178745344,
+        178540544,
+        178876416,
+        178909184,
+        178782208
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-full-sarif",
+      "engine": "python",
+      "workload": "cal-facts-tiny",
+      "regime": "warm",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-sarif"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0,
+          1
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-sarif",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/usr/local/bin/python3",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 3,
+      "timing": {
+        "n": 15,
+        "median_ns": 110724248,
+        "min_ns": 103660586,
+        "mad_ns": 3159526,
+        "iqr_ns": 5944335.0,
+        "q1_ns": 106337743.0,
+        "q3_ns": 112282078.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25096192,
+        "min_bytes": 25096192,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25096192.0,
+        "q3_bytes": 25096192.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        110911935,
+        107768289,
+        103660586,
+        106288196,
+        117599358,
+        112037404,
+        110724248,
+        121603616,
+        104320185,
+        106337743,
+        107477858,
+        111562127,
+        107564722,
+        113391140,
+        112282078
+      ],
+      "raw_peak_rss_bytes": [
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "launcher-e2e",
+      "engine": "rust",
       "workload": "cal-source-medium",
       "regime": "warm",
       "phases": [
@@ -2278,40 +1329,1549 @@
       "exit_codes": [
         0
       ],
-      "warmup_discarded": 2,
+      "warmup_discarded": 3,
       "timing": {
-        "n": 5,
-        "median_ns": 3198614075,
-        "min_ns": 3141148833,
-        "mad_ns": 44185235,
-        "iqr_ns": 145075102.5,
-        "q1_ns": 3147788836.5,
-        "q3_ns": 3292863939.0
+        "n": 15,
+        "median_ns": 3143907830,
+        "min_ns": 2995709528,
+        "mad_ns": 54699642,
+        "iqr_ns": 130956299.0,
+        "q1_ns": 3059395642.0,
+        "q3_ns": 3190351941.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 178618368,
+        "n": 15,
+        "median_bytes": 178741248,
         "min_bytes": 178466816,
-        "mad_bytes": 151552,
-        "iqr_bytes": 577536.0,
-        "q1_bytes": 178503680.0,
-        "q3_bytes": 179081216.0
+        "mad_bytes": 122880,
+        "iqr_bytes": 192512.0,
+        "q1_bytes": 178573312.0,
+        "q3_bytes": 178765824.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        3347203564,
-        3238524314,
-        3154428840,
-        3141148833,
-        3198614075
+        2995709528,
+        3059054439,
+        3059395642,
+        3003814933,
+        3152312855,
+        3240120821,
+        3068714192,
+        3282662824,
+        3147334613,
+        3198607472,
+        3143907830,
+        3190351941,
+        3131407943,
+        3163728661,
+        3130741315
       ],
       "raw_peak_rss_bytes": [
         178466816,
-        179003392,
-        179159040,
         178540544,
-        178618368
+        178753536,
+        178765824,
+        178708480,
+        178573312,
+        178900992,
+        178761728,
+        178618368,
+        178495488,
+        178761728,
+        179138560,
+        178724864,
+        178741248,
+        179142656
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-full-human",
+      "engine": "rust",
+      "workload": "cal-facts-small",
+      "regime": "process-cold",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-human"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0,
+          1
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-human",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/home/user/Own.NET/rust/target/release/own-cli",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 0,
+      "timing": {
+        "n": 15,
+        "median_ns": 2323633,
+        "min_ns": 2202418,
+        "mad_ns": 48404,
+        "iqr_ns": 100351.0,
+        "q1_ns": 2265785.0,
+        "q3_ns": 2366136.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25096192,
+        "min_bytes": 25096192,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25096192.0,
+        "q3_bytes": 25096192.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        2269468,
+        2369009,
+        2259808,
+        2337402,
+        2275229,
+        2395579,
+        2348222,
+        2240192,
+        2330251,
+        2285604,
+        2202418,
+        2323633,
+        2609736,
+        2366136,
+        2265785
+      ],
+      "raw_peak_rss_bytes": [
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-parse-refused",
+      "engine": "rust",
+      "workload": "cal-facts-refused",
+      "regime": "process-cold",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "ownir-door-refusal"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          2
+        ],
+        "observed_exit_code": 2,
+        "evidence": "door-refusal",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/home/user/Own.NET/rust/target/release/own-cli",
+        "<...>"
+      ],
+      "exit_codes": [
+        2
+      ],
+      "warmup_discarded": 0,
+      "timing": {
+        "n": 15,
+        "median_ns": 1864929,
+        "min_ns": 1755686,
+        "mad_ns": 63448,
+        "iqr_ns": 542106.0,
+        "q1_ns": 1801481.0,
+        "q3_ns": 2343587.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25096192,
+        "min_bytes": 25096192,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25096192.0,
+        "q3_bytes": 25096192.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        1889976,
+        1874126,
+        2592468,
+        1877120,
+        1775119,
+        1799987,
+        2489306,
+        1801481,
+        1864929,
+        2398447,
+        1817211,
+        2343587,
+        1851145,
+        1848585,
+        1755686
+      ],
+      "raw_peak_rss_bytes": [
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-full-sarif",
+      "engine": "python",
+      "workload": "cal-facts-medium",
+      "regime": "warm",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-sarif"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0,
+          1
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-sarif",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/usr/local/bin/python3",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 3,
+      "timing": {
+        "n": 15,
+        "median_ns": 115097913,
+        "min_ns": 111792113,
+        "mad_ns": 1328083,
+        "iqr_ns": 3487324.0,
+        "q1_ns": 112872613.0,
+        "q3_ns": 116359937.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25096192,
+        "min_bytes": 25096192,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25096192.0,
+        "q3_bytes": 25096192.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        112467956,
+        115101522,
+        116625782,
+        111792113,
+        115966364,
+        116425996,
+        112872613,
+        113792618,
+        116359937,
+        112414552,
+        114401387,
+        115150804,
+        113521409,
+        121391348,
+        115097913
+      ],
+      "raw_peak_rss_bytes": [
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-full-human",
+      "engine": "rust",
+      "workload": "cal-facts-medium",
+      "regime": "warm",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-human"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0,
+          1
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-human",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/home/user/Own.NET/rust/target/release/own-cli",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 3,
+      "timing": {
+        "n": 15,
+        "median_ns": 6593533,
+        "min_ns": 6026175,
+        "mad_ns": 436979,
+        "iqr_ns": 2397380.0,
+        "q1_ns": 6203475.0,
+        "q3_ns": 8600855.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25096192,
+        "min_bytes": 25096192,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25096192.0,
+        "q3_bytes": 25096192.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        7090243,
+        6829458,
+        6542335,
+        6198181,
+        6026175,
+        6156554,
+        6593533,
+        7281261,
+        8603313,
+        6300658,
+        8831627,
+        6445394,
+        8839201,
+        6203475,
+        8600855
+      ],
+      "raw_peak_rss_bytes": [
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-usage",
+      "engine": "rust",
+      "workload": "cal-facts-tiny",
+      "regime": "warm",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "cli-usage-refusal"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          2
+        ],
+        "observed_exit_code": 2,
+        "evidence": "usage-help",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/home/user/Own.NET/rust/target/release/own-cli",
+        "<...>"
+      ],
+      "exit_codes": [
+        2
+      ],
+      "warmup_discarded": 3,
+      "timing": {
+        "n": 15,
+        "median_ns": 1797744,
+        "min_ns": 1670393,
+        "mad_ns": 75083,
+        "iqr_ns": 274076.0,
+        "q1_ns": 1723421.0,
+        "q3_ns": 1997497.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25096192,
+        "min_bytes": 25096192,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25096192.0,
+        "q3_bytes": 25096192.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        2215349,
+        1883135,
+        1795735,
+        2154788,
+        1774103,
+        1997497,
+        1806876,
+        1726175,
+        1841510,
+        1723421,
+        1670393,
+        1797744,
+        1679283,
+        1722661,
+        2175927
+      ],
+      "raw_peak_rss_bytes": [
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-full-human",
+      "engine": "rust",
+      "workload": "cal-facts-medium",
+      "regime": "process-cold",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-human"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0,
+          1
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-human",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/home/user/Own.NET/rust/target/release/own-cli",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 0,
+      "timing": {
+        "n": 15,
+        "median_ns": 5611527,
+        "min_ns": 5328102,
+        "mad_ns": 220830,
+        "iqr_ns": 517537.0,
+        "q1_ns": 5390946.0,
+        "q3_ns": 5908483.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25096192,
+        "min_bytes": 25096192,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25096192.0,
+        "q3_bytes": 25096192.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        6723809,
+        6255019,
+        5681009,
+        5968318,
+        5538263,
+        5908483,
+        5348025,
+        5600747,
+        5390946,
+        5832357,
+        5328102,
+        5635127,
+        5379438,
+        5611527,
+        5401918
+      ],
+      "raw_peak_rss_bytes": [
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-full-sarif",
+      "engine": "rust",
+      "workload": "cal-facts-small",
+      "regime": "warm",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-sarif"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0,
+          1
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-sarif",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/home/user/Own.NET/rust/target/release/own-cli",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 3,
+      "timing": {
+        "n": 15,
+        "median_ns": 2334904,
+        "min_ns": 2202439,
+        "mad_ns": 119441,
+        "iqr_ns": 266821.0,
+        "q1_ns": 2218966.0,
+        "q3_ns": 2485787.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25096192,
+        "min_bytes": 25096192,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25096192.0,
+        "q3_bytes": 25096192.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        2400019,
+        2334904,
+        2606187,
+        2485787,
+        2237093,
+        2595400,
+        2218966,
+        2693408,
+        2202439,
+        2323762,
+        2260590,
+        2215463,
+        2475554,
+        2207887,
+        2410166
+      ],
+      "raw_peak_rss_bytes": [
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-full-human",
+      "engine": "python",
+      "workload": "cal-facts-tiny",
+      "regime": "process-cold",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-human"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0,
+          1
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-human",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/usr/local/bin/python3",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 0,
+      "timing": {
+        "n": 15,
+        "median_ns": 103646361,
+        "min_ns": 99547832,
+        "mad_ns": 2258070,
+        "iqr_ns": 4771506.0,
+        "q1_ns": 101132925.0,
+        "q3_ns": 105904431.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25096192,
+        "min_bytes": 25096192,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25096192.0,
+        "q3_bytes": 25096192.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        99547832,
+        105904431,
+        101904432,
+        101132925,
+        101072634,
+        103646361,
+        110460610,
+        105316117,
+        102654571,
+        100131048,
+        102981285,
+        104639198,
+        112529227,
+        104560385,
+        110988672
+      ],
+      "raw_peak_rss_bytes": [
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192,
+        25096192
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-full-human",
+      "engine": "rust",
+      "workload": "cal-facts-small",
+      "regime": "warm",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-human"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0,
+          1
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-human",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/home/user/Own.NET/rust/target/release/own-cli",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 3,
+      "timing": {
+        "n": 15,
+        "median_ns": 2257527,
+        "min_ns": 2109100,
+        "mad_ns": 38201,
+        "iqr_ns": 102647.0,
+        "q1_ns": 2227000.0,
+        "q3_ns": 2329647.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25100288,
+        "min_bytes": 25100288,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25100288.0,
+        "q3_bytes": 25100288.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        2329647,
+        2295728,
+        2227000,
+        2251515,
+        2682970,
+        2251756,
+        2257527,
+        2260887,
+        2109100,
+        2358831,
+        2168961,
+        2227619,
+        2120638,
+        2341618,
+        2276310
+      ],
+      "raw_peak_rss_bytes": [
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-usage",
+      "engine": "rust",
+      "workload": "cal-facts-tiny",
+      "regime": "process-cold",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "cli-usage-refusal"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          2
+        ],
+        "observed_exit_code": 2,
+        "evidence": "usage-help",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/home/user/Own.NET/rust/target/release/own-cli",
+        "<...>"
+      ],
+      "exit_codes": [
+        2
+      ],
+      "warmup_discarded": 0,
+      "timing": {
+        "n": 15,
+        "median_ns": 1754058,
+        "min_ns": 1667818,
+        "mad_ns": 79542,
+        "iqr_ns": 209569.0,
+        "q1_ns": 1704444.0,
+        "q3_ns": 1914013.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25100288,
+        "min_bytes": 25100288,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25100288.0,
+        "q3_bytes": 25100288.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        1918873,
+        1896059,
+        1699976,
+        2175440,
+        1704444,
+        1914013,
+        1754058,
+        1674516,
+        1667818,
+        1712972,
+        1968948,
+        1713468,
+        1814839,
+        1753551,
+        1857836
+      ],
+      "raw_peak_rss_bytes": [
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "launcher-e2e",
+      "engine": "python",
+      "workload": "cal-source-small",
+      "regime": "warm",
+      "phases": [
+        "process-startup-launcher",
+        "frontend-extraction",
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-human"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-human",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "bash",
+        "/home/user/Own.NET/scripts/own-check.sh",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 3,
+      "timing": {
+        "n": 15,
+        "median_ns": 3084619536,
+        "min_ns": 2996665844,
+        "mad_ns": 55052717,
+        "iqr_ns": 109785686.0,
+        "q1_ns": 3031839531.0,
+        "q3_ns": 3141625217.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 178663424,
+        "min_bytes": 178229248,
+        "mad_bytes": 90112,
+        "iqr_bytes": 299008.0,
+        "q1_bytes": 178601984.0,
+        "q3_bytes": 178900992.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        3078411199,
+        3129686583,
+        3139672253,
+        3031839531,
+        3014072233,
+        3016006457,
+        3066716325,
+        3220133967,
+        3153981143,
+        3141625217,
+        3087848856,
+        3217707770,
+        3082042303,
+        3084619536,
+        2996665844
+      ],
+      "raw_peak_rss_bytes": [
+        178229248,
+        178556928,
+        178601984,
+        178843648,
+        178696192,
+        178573312,
+        178720768,
+        178900992,
+        178642944,
+        178950144,
+        178622464,
+        190017536,
+        178638848,
+        178663424,
+        179146752
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-full-human",
+      "engine": "rust",
+      "workload": "cal-facts-tiny",
+      "regime": "warm",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-human"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0,
+          1
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-human",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/home/user/Own.NET/rust/target/release/own-cli",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 3,
+      "timing": {
+        "n": 15,
+        "median_ns": 1910943,
+        "min_ns": 1834318,
+        "mad_ns": 32993,
+        "iqr_ns": 71149.0,
+        "q1_ns": 1883263.0,
+        "q3_ns": 1954412.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25100288,
+        "min_bytes": 25100288,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25100288.0,
+        "q3_bytes": 25100288.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        2055737,
+        1943936,
+        1929647,
+        1975034,
+        1954412,
+        1951925,
+        1910943,
+        1836208,
+        1889194,
+        1883263,
+        1903485,
+        1834318,
+        2019493,
+        1882859,
+        1904179
+      ],
+      "raw_peak_rss_bytes": [
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288,
+        25100288
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-full-human",
+      "engine": "python",
+      "workload": "cal-facts-medium",
+      "regime": "warm",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-human"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0,
+          1
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-human",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/usr/local/bin/python3",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 3,
+      "timing": {
+        "n": 15,
+        "median_ns": 115640789,
+        "min_ns": 109004971,
+        "mad_ns": 2414084,
+        "iqr_ns": 6148966.0,
+        "q1_ns": 113697150.0,
+        "q3_ns": 119846116.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25104384,
+        "min_bytes": 25104384,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25104384.0,
+        "q3_bytes": 25104384.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        113697150,
+        119351213,
+        147125859,
+        116201299,
+        114376854,
+        118547189,
+        115640789,
+        115528834,
+        113226705,
+        109004971,
+        119960916,
+        123494311,
+        119846116,
+        113771085,
+        113522355
+      ],
+      "raw_peak_rss_bytes": [
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-full-sarif",
+      "engine": "python",
+      "workload": "cal-facts-tiny",
+      "regime": "process-cold",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-sarif"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0,
+          1
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-sarif",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/usr/local/bin/python3",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 0,
+      "timing": {
+        "n": 15,
+        "median_ns": 100682592,
+        "min_ns": 95240639,
+        "mad_ns": 2707296,
+        "iqr_ns": 8035500.0,
+        "q1_ns": 97996058.0,
+        "q3_ns": 106031558.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25104384,
+        "min_bytes": 25104384,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25104384.0,
+        "q3_bytes": 25104384.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        97975296,
+        103028834,
+        95240639,
+        104302582,
+        97996058,
+        107657245,
+        100682592,
+        99834903,
+        100274751,
+        99358934,
+        97533131,
+        106031558,
+        107986907,
+        102243246,
+        134462510
+      ],
+      "raw_peak_rss_bytes": [
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-full-sarif",
+      "engine": "python",
+      "workload": "cal-facts-medium",
+      "regime": "process-cold",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-sarif"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0,
+          1
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-sarif",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/usr/local/bin/python3",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 0,
+      "timing": {
+        "n": 15,
+        "median_ns": 116918801,
+        "min_ns": 109517191,
+        "mad_ns": 4782018,
+        "iqr_ns": 11467782.0,
+        "q1_ns": 112136783.0,
+        "q3_ns": 123604565.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25104384,
+        "min_bytes": 25104384,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25104384.0,
+        "q3_bytes": 25104384.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        146541361,
+        152216322,
+        136974246,
+        111113628,
+        123604565,
+        115295324,
+        118525326,
+        117625176,
+        117209519,
+        112136783,
+        116918801,
+        111235211,
+        114093310,
+        114861270,
+        109517191
+      ],
+      "raw_peak_rss_bytes": [
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "core-full-human",
+      "engine": "python",
+      "workload": "cal-facts-small",
+      "regime": "process-cold",
+      "phases": [
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-human"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0,
+          1
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-human",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "/usr/local/bin/python3",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 0,
+      "timing": {
+        "n": 15,
+        "median_ns": 101413955,
+        "min_ns": 97639494,
+        "mad_ns": 2112057,
+        "iqr_ns": 3376216.0,
+        "q1_ns": 100173409.0,
+        "q3_ns": 103549625.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 25104384,
+        "min_bytes": 25104384,
+        "mad_bytes": 0,
+        "iqr_bytes": 0.0,
+        "q1_bytes": 25104384.0,
+        "q3_bytes": 25104384.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        105014323,
+        101620710,
+        98715293,
+        109098086,
+        100866694,
+        103526012,
+        101231637,
+        100173409,
+        103549625,
+        112060892,
+        99064197,
+        100871974,
+        102038889,
+        97639494,
+        101413955
+      ],
+      "raw_peak_rss_bytes": [
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384,
+        25104384
+      ],
+      "tag": "CALIBRATION_ONLY"
+    },
+    {
+      "rung": "launcher-e2e",
+      "engine": "python",
+      "workload": "cal-source-medium",
+      "regime": "warm",
+      "phases": [
+        "process-startup-launcher",
+        "frontend-extraction",
+        "process-startup-core",
+        "cli-argv-parse",
+        "ownir-parse",
+        "bridge-lowering",
+        "analysis",
+        "render-human"
+      ],
+      "observability": "composed",
+      "outcome": {
+        "expected_exit_codes": [
+          0
+        ],
+        "observed_exit_code": 0,
+        "evidence": "verdict-human",
+        "valid": true,
+        "problems": []
+      },
+      "argv": [
+        "bash",
+        "/home/user/Own.NET/scripts/own-check.sh",
+        "<...>"
+      ],
+      "exit_codes": [
+        0
+      ],
+      "warmup_discarded": 3,
+      "timing": {
+        "n": 15,
+        "median_ns": 3241154568,
+        "min_ns": 3061242111,
+        "mad_ns": 66632396,
+        "iqr_ns": 191777438.0,
+        "q1_ns": 3092792213.0,
+        "q3_ns": 3284569651.0
+      },
+      "peak_rss": {
+        "n": 15,
+        "median_bytes": 178794496,
+        "min_bytes": 178065408,
+        "mad_bytes": 155648,
+        "iqr_bytes": 315392.0,
+        "q1_bytes": 178638848.0,
+        "q3_bytes": 178954240.0
+      },
+      "rss_mechanism": "posix os.wait4 (ru_maxrss)",
+      "rss_unavailable_reason": "",
+      "raw_elapsed_ns": [
+        3343899980,
+        3279711655,
+        3255114833,
+        3267070481,
+        3307786964,
+        3229971478,
+        3199633030,
+        3087808666,
+        3061242111,
+        3074327745,
+        3092792213,
+        3169249998,
+        3321685075,
+        3284569651,
+        3241154568
+      ],
+      "raw_peak_rss_bytes": [
+        178855936,
+        178548736,
+        178274304,
+        179163136,
+        178728960,
+        178802688,
+        179052544,
+        178757632,
+        178638848,
+        178065408,
+        178954240,
+        178855936,
+        179036160,
+        178794496,
+        178745344
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2350,38 +2910,58 @@
       ],
       "warmup_discarded": 0,
       "timing": {
-        "n": 5,
-        "median_ns": 3061756114,
-        "min_ns": 2938790428,
-        "mad_ns": 101897763,
-        "iqr_ns": 296430824.0,
-        "q1_ns": 2957107454.0,
-        "q3_ns": 3253538278.0
+        "n": 15,
+        "median_ns": 2991435442,
+        "min_ns": 2923501072,
+        "mad_ns": 36146624,
+        "iqr_ns": 82125761.0,
+        "q1_ns": 2939608297.0,
+        "q3_ns": 3021734058.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 178892800,
-        "min_bytes": 178200576,
-        "mad_bytes": 372736,
-        "iqr_bytes": 5814272.0,
-        "q1_bytes": 178540544.0,
-        "q3_bytes": 184354816.0
+        "n": 15,
+        "median_bytes": 178847744,
+        "min_bytes": 176943104,
+        "mad_bytes": 184320,
+        "iqr_bytes": 602112.0,
+        "q1_bytes": 178425856.0,
+        "q3_bytes": 179027968.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        2975424480,
-        3163653877,
-        3343422679,
-        3061756114,
-        2938790428
+        2923501072,
+        3015710898,
+        2956344728,
+        2956190762,
+        3133755475,
+        3084849049,
+        3007637689,
+        2991435442,
+        2999533672,
+        3021734058,
+        2955288818,
+        2939608297,
+        2936604670,
+        2933958020,
+        3102625554
       ],
       "raw_peak_rss_bytes": [
-        179265536,
-        178892800,
-        189444096,
-        178880512,
-        178200576
+        178946048,
+        178966528,
+        178733056,
+        178847744,
+        176943104,
+        179372032,
+        179027968,
+        179093504,
+        178401280,
+        178262016,
+        179015680,
+        179032064,
+        178806784,
+        178425856,
+        178515968
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2418,38 +2998,58 @@
       ],
       "warmup_discarded": 0,
       "timing": {
-        "n": 5,
-        "median_ns": 5995102,
-        "min_ns": 5662403,
-        "mad_ns": 268553,
-        "iqr_ns": 1674012.5,
-        "q1_ns": 5798700.0,
-        "q3_ns": 7472712.5
+        "n": 15,
+        "median_ns": 5628594,
+        "min_ns": 5392391,
+        "mad_ns": 236203,
+        "iqr_ns": 748951.0,
+        "q1_ns": 5489048.0,
+        "q3_ns": 6237999.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 25157632,
-        "min_bytes": 25157632,
+        "n": 15,
+        "median_bytes": 25108480,
+        "min_bytes": 25108480,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25157632.0,
-        "q3_bytes": 25157632.0
+        "q1_bytes": 25108480.0,
+        "q3_bytes": 25108480.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        8681770,
-        6263655,
-        5662403,
-        5934997,
-        5995102
+        6237999,
+        6526742,
+        5880924,
+        6080539,
+        5628594,
+        6093922,
+        6732952,
+        5543819,
+        7027374,
+        5616194,
+        5573095,
+        5392391,
+        5418933,
+        5407623,
+        5489048
       ],
       "raw_peak_rss_bytes": [
-        25157632,
-        25157632,
-        25157632,
-        25157632,
-        25157632
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2484,40 +3084,60 @@
       "exit_codes": [
         0
       ],
-      "warmup_discarded": 2,
+      "warmup_discarded": 3,
       "timing": {
-        "n": 5,
-        "median_ns": 5853981,
-        "min_ns": 5724071,
-        "mad_ns": 129910,
-        "iqr_ns": 594105.0,
-        "q1_ns": 5765474.0,
-        "q3_ns": 6359579.0
+        "n": 15,
+        "median_ns": 5737212,
+        "min_ns": 5397359,
+        "mad_ns": 155989,
+        "iqr_ns": 364158.0,
+        "q1_ns": 5529043.0,
+        "q3_ns": 5893201.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 25161728,
-        "min_bytes": 25161728,
+        "n": 15,
+        "median_bytes": 25108480,
+        "min_bytes": 25108480,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25161728.0,
-        "q3_bytes": 25161728.0
+        "q1_bytes": 25108480.0,
+        "q3_bytes": 25108480.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        6334682,
-        5806877,
-        5853981,
-        5724071,
-        6384476
+        5419017,
+        5397359,
+        5529043,
+        5737212,
+        6156800,
+        5774310,
+        5782420,
+        5893201,
+        6098725,
+        5897600,
+        5695917,
+        5508669,
+        5610505,
+        5770278,
+        5702747
       ],
       "raw_peak_rss_bytes": [
-        25161728,
-        25161728,
-        25161728,
-        25161728,
-        25161728
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2549,40 +3169,60 @@
       "exit_codes": [
         2
       ],
-      "warmup_discarded": 2,
+      "warmup_discarded": 3,
       "timing": {
-        "n": 5,
-        "median_ns": 104827103,
-        "min_ns": 96750609,
-        "mad_ns": 2635826,
-        "iqr_ns": 7859891.5,
-        "q1_ns": 99470943.0,
-        "q3_ns": 107330834.5
+        "n": 15,
+        "median_ns": 101109916,
+        "min_ns": 97810704,
+        "mad_ns": 2443341,
+        "iqr_ns": 5202427.0,
+        "q1_ns": 98985578.0,
+        "q3_ns": 104188005.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 25161728,
-        "min_bytes": 25161728,
+        "n": 15,
+        "median_bytes": 25108480,
+        "min_bytes": 25108480,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25161728.0,
-        "q3_bytes": 25161728.0
+        "q1_bytes": 25108480.0,
+        "q3_bytes": 25108480.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        96750609,
-        107615970,
-        104827103,
-        102191277,
-        107045699
+        101109916,
+        103893045,
+        98859602,
+        105711924,
+        100705926,
+        98985578,
+        97810704,
+        101370963,
+        98536705,
+        103553257,
+        100902557,
+        104615322,
+        100613445,
+        109118776,
+        104188005
       ],
       "raw_peak_rss_bytes": [
-        25161728,
-        25161728,
-        25161728,
-        25161728,
-        25161728
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2615,38 +3255,58 @@
       ],
       "warmup_discarded": 0,
       "timing": {
-        "n": 5,
-        "median_ns": 75867020,
-        "min_ns": 73427211,
-        "mad_ns": 505575,
-        "iqr_ns": 3183086.5,
-        "q1_ns": 74581689.0,
-        "q3_ns": 77764775.5
+        "n": 15,
+        "median_ns": 77050743,
+        "min_ns": 74641346,
+        "mad_ns": 1244248,
+        "iqr_ns": 2597427.0,
+        "q1_ns": 75846503.0,
+        "q3_ns": 78443930.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 25161728,
-        "min_bytes": 25161728,
+        "n": 15,
+        "median_bytes": 25108480,
+        "min_bytes": 25108480,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25161728.0,
-        "q3_bytes": 25161728.0
+        "q1_bytes": 25108480.0,
+        "q3_bytes": 25108480.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        75867020,
-        75736167,
-        76372595,
-        73427211,
-        79156956
+        76759593,
+        81462944,
+        77050743,
+        80629082,
+        77696053,
+        78443930,
+        75489661,
+        83783518,
+        78294991,
+        78028949,
+        74723611,
+        76604932,
+        74641346,
+        76543363,
+        75846503
       ],
       "raw_peak_rss_bytes": [
-        25161728,
-        25161728,
-        25161728,
-        25161728,
-        25161728
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2685,38 +3345,58 @@
       ],
       "warmup_discarded": 0,
       "timing": {
-        "n": 5,
-        "median_ns": 3008653369,
-        "min_ns": 2899574817,
-        "mad_ns": 96882999,
-        "iqr_ns": 246754228.5,
-        "q1_ns": 2917689374.0,
-        "q3_ns": 3164443602.5
+        "n": 15,
+        "median_ns": 3095344340,
+        "min_ns": 2975021628,
+        "mad_ns": 97478847,
+        "iqr_ns": 196410953.0,
+        "q1_ns": 2997865493.0,
+        "q3_ns": 3194276446.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 178790400,
-        "min_bytes": 178475008,
-        "mad_bytes": 118784,
-        "iqr_bytes": 335872.0,
-        "q1_bytes": 178536448.0,
-        "q3_bytes": 178872320.0
+        "n": 15,
+        "median_bytes": 178737152,
+        "min_bytes": 178167808,
+        "mad_bytes": 229376,
+        "iqr_bytes": 417792.0,
+        "q1_bytes": 178421760.0,
+        "q3_bytes": 178839552.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        2899574817,
-        2935803931,
-        3105536368,
-        3223350837,
-        3008653369
+        3297355529,
+        3194940541,
+        2987687595,
+        2994696325,
+        3015930899,
+        3035969175,
+        3200176089,
+        3103006750,
+        3194276446,
+        3132247610,
+        3095344340,
+        2997865493,
+        2975021628,
+        3124707532,
+        3053256213
       ],
       "raw_peak_rss_bytes": [
-        178790400,
-        178475008,
-        178597888,
-        178835456,
-        178909184
+        178352128,
+        178507776,
+        178741248,
+        178737152,
+        179056640,
+        178978816,
+        178167808,
+        178421760,
+        178212864,
+        178511872,
+        178978816,
+        178737152,
+        178647040,
+        178782208,
+        178839552
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2753,38 +3433,58 @@
       ],
       "warmup_discarded": 0,
       "timing": {
-        "n": 5,
-        "median_ns": 1926506,
-        "min_ns": 1769663,
-        "mad_ns": 87156,
-        "iqr_ns": 180043.0,
-        "q1_ns": 1804506.5,
-        "q3_ns": 1984549.5
+        "n": 15,
+        "median_ns": 1870298,
+        "min_ns": 1782052,
+        "mad_ns": 59643,
+        "iqr_ns": 124017.0,
+        "q1_ns": 1810655.0,
+        "q3_ns": 1934672.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 25161728,
-        "min_bytes": 25161728,
+        "n": 15,
+        "median_bytes": 25108480,
+        "min_bytes": 25108480,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25161728.0,
-        "q3_bytes": 25161728.0
+        "q1_bytes": 25108480.0,
+        "q3_bytes": 25108480.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        1941284,
-        2027815,
-        1769663,
-        1926506,
-        1839350
+        1913035,
+        1986802,
+        1795013,
+        1877107,
+        1928389,
+        2022148,
+        1837689,
+        1870298,
+        1782052,
+        1807886,
+        1810655,
+        1848741,
+        2053606,
+        1827445,
+        1934672
       ],
       "raw_peak_rss_bytes": [
-        25161728,
-        25161728,
-        25161728,
-        25161728,
-        25161728
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480,
+        25108480
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2819,40 +3519,60 @@
       "exit_codes": [
         0
       ],
-      "warmup_discarded": 2,
+      "warmup_discarded": 3,
       "timing": {
-        "n": 5,
-        "median_ns": 1871782,
-        "min_ns": 1865972,
-        "mad_ns": 5810,
-        "iqr_ns": 181437.5,
-        "q1_ns": 1866708.0,
-        "q3_ns": 2048145.5
+        "n": 15,
+        "median_ns": 1841926,
+        "min_ns": 1804647,
+        "mad_ns": 28672,
+        "iqr_ns": 87577.0,
+        "q1_ns": 1814774.0,
+        "q3_ns": 1902351.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 25165824,
-        "min_bytes": 25165824,
+        "n": 15,
+        "median_bytes": 25124864,
+        "min_bytes": 25124864,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25165824.0,
-        "q3_bytes": 25165824.0
+        "q1_bytes": 25124864.0,
+        "q3_bytes": 25124864.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        1871782,
-        1867444,
-        1983629,
-        2112662,
-        1865972
+        1813254,
+        1814774,
+        1837464,
+        1920670,
+        2492189,
+        1840188,
+        1849515,
+        1806384,
+        1878689,
+        1804647,
+        1923249,
+        1821516,
+        1841926,
+        1841946,
+        1902351
       ],
       "raw_peak_rss_bytes": [
-        25165824,
-        25165824,
-        25165824,
-        25165824,
-        25165824
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2889,38 +3609,58 @@
       ],
       "warmup_discarded": 0,
       "timing": {
-        "n": 5,
-        "median_ns": 2056449,
-        "min_ns": 1842388,
-        "mad_ns": 84021,
-        "iqr_ns": 242900.0,
-        "q1_ns": 1864851.5,
-        "q3_ns": 2107751.5
+        "n": 15,
+        "median_ns": 1859183,
+        "min_ns": 1762883,
+        "mad_ns": 30410,
+        "iqr_ns": 64830.0,
+        "q1_ns": 1824763.0,
+        "q3_ns": 1889593.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 25165824,
-        "min_bytes": 25165824,
+        "n": 15,
+        "median_bytes": 25124864,
+        "min_bytes": 25124864,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25165824.0,
-        "q3_bytes": 25165824.0
+        "q1_bytes": 25124864.0,
+        "q3_bytes": 25124864.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        1887315,
-        2056449,
-        1842388,
-        2075033,
-        2140470
+        1878894,
+        1889593,
+        1773181,
+        1900137,
+        1842381,
+        1848562,
+        1859183,
+        1859158,
+        1824763,
+        1762883,
+        1871430,
+        1884764,
+        1928613,
+        1807667,
+        1972287
       ],
       "raw_peak_rss_bytes": [
-        25165824,
-        25165824,
-        25165824,
-        25165824,
-        25165824
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2954,38 +3694,58 @@
       ],
       "warmup_discarded": 0,
       "timing": {
-        "n": 5,
-        "median_ns": 96797049,
-        "min_ns": 94528697,
-        "mad_ns": 1043543,
-        "iqr_ns": 4136890.0,
-        "q1_ns": 95141101.5,
-        "q3_ns": 99277991.5
+        "n": 15,
+        "median_ns": 101421937,
+        "min_ns": 97038344,
+        "mad_ns": 2434286,
+        "iqr_ns": 6279252.0,
+        "q1_ns": 99486189.0,
+        "q3_ns": 105765441.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 25165824,
-        "min_bytes": 25165824,
+        "n": 15,
+        "median_bytes": 25124864,
+        "min_bytes": 25124864,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25165824.0,
-        "q3_bytes": 25165824.0
+        "q1_bytes": 25124864.0,
+        "q3_bytes": 25124864.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        101047565,
-        97508418,
-        96797049,
-        95753506,
-        94528697
+        97038344,
+        103159978,
+        98550064,
+        101239395,
+        98987651,
+        102431000,
+        99486189,
+        101421937,
+        100117033,
+        99635611,
+        105145506,
+        106272933,
+        105765441,
+        106918395,
+        122379388
       ],
       "raw_peak_rss_bytes": [
-        25165824,
-        25165824,
-        25165824,
-        25165824,
-        25165824
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -3022,38 +3782,58 @@
       ],
       "warmup_discarded": 0,
       "timing": {
-        "n": 5,
-        "median_ns": 108134678,
-        "min_ns": 104899433,
-        "mad_ns": 1819729,
-        "iqr_ns": 18614169.0,
-        "q1_ns": 105860286.5,
-        "q3_ns": 124474455.5
+        "n": 15,
+        "median_ns": 114140434,
+        "min_ns": 109816683,
+        "mad_ns": 1264054,
+        "iqr_ns": 4550118.0,
+        "q1_ns": 110786598.0,
+        "q3_ns": 115336716.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 25165824,
-        "min_bytes": 25165824,
+        "n": 15,
+        "median_bytes": 25124864,
+        "min_bytes": 25124864,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25165824.0,
-        "q3_bytes": 25165824.0
+        "q1_bytes": 25124864.0,
+        "q3_bytes": 25124864.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        106821140,
-        109954407,
-        108134678,
-        104899433,
-        138994504
+        115336716,
+        112876380,
+        115159807,
+        110786598,
+        109816683,
+        121836840,
+        114140434,
+        117292936,
+        115203482,
+        113749481,
+        110337661,
+        110685048,
+        113403701,
+        115643526,
+        114932713
       ],
       "raw_peak_rss_bytes": [
-        25165824,
-        25165824,
-        25165824,
-        25165824,
-        25165824
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -3085,40 +3865,60 @@
       "exit_codes": [
         2
       ],
-      "warmup_discarded": 2,
+      "warmup_discarded": 3,
       "timing": {
-        "n": 5,
-        "median_ns": 1787036,
-        "min_ns": 1723358,
-        "mad_ns": 21949,
-        "iqr_ns": 298417.5,
-        "q1_ns": 1748109.0,
-        "q3_ns": 2046526.5
+        "n": 15,
+        "median_ns": 1898041,
+        "min_ns": 1730547,
+        "mad_ns": 129370,
+        "iqr_ns": 629896.0,
+        "q1_ns": 1768671.0,
+        "q3_ns": 2398567.0
       },
       "peak_rss": {
-        "n": 5,
-        "median_bytes": 25174016,
-        "min_bytes": 25174016,
+        "n": 15,
+        "median_bytes": 25124864,
+        "min_bytes": 25124864,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25174016.0,
-        "q3_bytes": 25174016.0
+        "q1_bytes": 25124864.0,
+        "q3_bytes": 25124864.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        1808985,
-        1787036,
-        2284068,
-        1772860,
-        1723358
+        1898041,
+        1787254,
+        2398567,
+        1791508,
+        1736166,
+        2499826,
+        1730547,
+        1970668,
+        1732096,
+        1996618,
+        1768671,
+        2716775,
+        1883743,
+        1924904,
+        2399632
       ],
       "raw_peak_rss_bytes": [
-        25174016,
-        25174016,
-        25174016,
-        25174016,
-        25174016
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864,
+        25124864
       ],
       "tag": "CALIBRATION_ONLY"
     }
@@ -3127,11 +3927,20 @@
     "tag": "CALIBRATION_ONLY",
     "compared_cells": 40,
     "tolerance_relative": 0.35,
-    "tolerance_source": "the noise floor recorded by the earlier run, not a chosen number",
+    "tolerance_source": "REPRODUCIBILITY_MAX_MEDIAN_CHANGE, a fixed policy constant. It is CHOSEN, not derived from this run; what makes it admissible is that it was chosen before the runs it judges, and it is not adjusted after seeing which of them it rejects.",
     "cells_only_in_earlier": [],
     "cells_only_in_later": [],
     "cells_outside_tolerance": [],
     "cells_whose_outcome_changed": [],
+    "outcomes_reproduced": true,
+    "timings_reproduced": true,
     "reproduced": true
+  },
+  "admissibility": {
+    "outcomes_reproduced": true,
+    "timings_reproduced": true,
+    "environment_valid": true,
+    "admissible": true,
+    "note": "all three axes are required for a report of record. A run that fails timings_reproduced has not established WHY: a contended runner, a variable workload and an uncertain median estimate all look the same here."
   }
 }
