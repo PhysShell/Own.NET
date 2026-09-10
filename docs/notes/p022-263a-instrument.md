@@ -538,13 +538,42 @@ the failure mode is drift rather than a wrong line.
 The universe is now 8 metrics x 12 canonical decisive workloads x
 2 platforms x 2 regimes = **384** cells.
 
-**The names are provisional and this is the actual lesson.** `D7_PHASES` comes
-from the owner's review and the live #262 performance-gate list, not from the
-frozen file. The mapping between these ids and the frozen #262/#263-A vocabulary
-needs one explicit ratification, because the defect being fixed here is exactly
-what happens when an implementation label is left to become a normative contract
-by default. RSS and allocation deliberately stay per-cell policies rather than
-becoming a phase axis; the frozen schema already models them that way.
+**The names were provisional; they are now RATIFIED.** They were written down as
+provisional because the defect being fixed here is exactly what happens when an
+implementation label is left to become a normative contract by default.
+
+The owner has since ratified the mapping against the frozen
+`prompt-263A-measurement-design-4.md`, the final D7 brief and live #262, at exact
+head `0374793`:
+
+| ratified as a D7 metric | why |
+|---|---|
+| `process-startup-core`, `process-startup-launcher` | frozen #263-A makes child-core startup and public-launcher startup **two** metrics, not one |
+| `ownir-parse`, `bridge-lowering`, `analysis` | G3 performance phases named in the frozen text |
+| `render-human`, `render-sarif` | the frozen "CLI/SARIF rendering" item, as its two concrete surface metrics |
+| `end-to-end-csharp` | the whole user-visible rung, correctly separate from the attribution parts it contains |
+
+| ratified as NOT a D7 metric | why |
+|---|---|
+| `cli-argv-parse`, `cli-usage-refusal`, `ownir-door-refusal` | attribution taxonomy only |
+| `frontend-extraction` | diagnostic population B, excluded by the frozen #263-A itself |
+
+The denominator is ratified with them: **8 metrics x 12 canonical decisive
+workloads x 2 platforms x 2 regimes = 384**. The manifest carries 13 decisive
+entries, but `large-solution-control` is an alias of `oss-ShareX.sln`, so the
+canonical count is 12. Ratifying 384 does **not** mean 384 numeric budgets: an
+explicit `not_applicable` with a reason remains a legitimate decision for a
+cell. What it means is that the owner must now decide about each one rather than
+lose it between two lists.
+
+**The source comment still reads "NAMES ARE PROVISIONAL", deliberately.** At the
+commit that wrote it, they were. Editing it now would move the harness digest,
+stale both pairs and force an eleventh re-record — relabelling the fire
+extinguisher and re-calibrating the laboratory because of it. The ratification
+binds here, in the ledger, and to the exact head it was given at.
+
+RSS and allocation deliberately stay per-cell policies rather than becoming a
+phase axis; the frozen schema already models them that way.
 
 ### The manifest digest was hashing raw bytes
 
