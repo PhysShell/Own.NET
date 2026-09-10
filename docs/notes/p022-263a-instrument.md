@@ -480,10 +480,13 @@ neither is being treated as a result to bank.
 | first corrected attempt, `n=5` and `n=15` | both **passed** |
 | second corrected attempt (final filenames), `n=5` | **passed** |
 | second corrected attempt, `n=15` | **failed** — one cell, `core-full-sarif\|rust\|cal-facts-medium\|process-cold`, 0.361 |
+| third, under the D7 §6 / reference-identity repair, `n=5` and `n=15` | both **passed** |
 
-Running tally on this machine: `n=5` has failed twice and passed four times;
-`n=15` has failed twice and passed twice. Neither count reproduces reliably, and
-which one "works" depends on when it was run.
+Running tally on this machine: `n=5` has failed twice and passed five times;
+`n=15` has failed twice and passed three times. Neither count reproduces
+reliably, and which one "works" depends on when it was run. Every re-record was
+forced by a provenance repair, never sought for a better answer, and the ledger
+is kept in both directions for exactly that reason.
 
 **So no calibration of record is restored.** Re-running was authorised to repair
 provenance; promoting whichever pair happened to pass would be selection
