@@ -87,6 +87,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = ROOT / "docs/evidence/p022-263a-workloads.json"
 ATTESTATION = ROOT / "docs/evidence/p022-263a-d7-attestation.json"
+RATIFICATION = ROOT / "docs/evidence/p022-263a-d7-ratification.json"
 HARNESS_VERSION = 1
 
 CALIBRATION_ONLY = "CALIBRATION_ONLY"
@@ -135,20 +136,140 @@ def harness_digest() -> str:
 # --- identity: the C1/C2 gate (dormant) ------------------------------------
 
 
+# A D7 freeze attestation is not "a JSON file with the right numbers in it".
+# The values it pins — the harness digest, the manifest digest — are things
+# anyone holding this repository can compute in one line, so a verifier that
+# only compares them proves the instrument is the instrument and calls that a
+# freeze. It answers "is this the harness?" when the question is "did D7
+# happen?". Same defect this project keeps paying for: reading a proxy instead
+# of the thing.
+#
+# WHY TWO FILES. A payload cannot name the commit that contains it — the sha
+# would have to be inside the bytes being hashed into that sha. Self-reference
+# is not a detail to wave through; it is the reason detached signatures exist.
+# So the freeze is two objects, exactly as a signature is detached from what it
+# signs:
+#
+#   the PAYLOAD       what D7 froze: C1 instrument identities, C2 protocol.
+#                     Carries no commit reference at all, so it can be hashed.
+#   the RATIFICATION  the owner's act: names the payload's body hash and the
+#                     commit the payload is frozen at. Committed separately and
+#                     afterwards, so nothing needs to contain its own address.
+ATTESTATION_KIND = "own.net/p022/d7-freeze-attestation"
+RATIFICATION_KIND = "own.net/p022/d7-freeze-ratification"
+ATTESTATION_SCHEMA = 1
+# C1 — the instrument identities the freeze pins. Compared against observation.
+ATTESTATION_C1_KEYS = ("harness_digest", "workload_manifest_sha256", "python_reference_commit")
+# C2 — the decisive protocol D7 freezes. Checked for PRESENCE and never read:
+# these values are thresholds, and a #263-A artifact that quoted one would have
+# leaked the number this whole module exists to keep out.
+ATTESTATION_C2_KEYS = ("repetitions_ladder", "comparison_estimator", "thresholds")
+ATTESTATION_TOP_KEYS = ("kind", "schema", "payload_sha256", "c1", "c2")
+RATIFICATION_KEYS = ("kind", "schema", "owner", "payload_path", "payload_commit_sha",
+                     "ratified_payload_sha256", "signature")
+
+_HEX40 = re.compile(r"\A[0-9a-f]{40}\Z")
+_HEX64 = re.compile(r"\A[0-9a-f]{64}\Z")
+
+
+def _git_in(repo: Path, *args: str) -> tuple[int, str]:
+    """Run git inside a named repository. Always outside a measured interval.
+
+    Counted by the notary control: obligation (c) is that identity work never
+    bills the benchmark for its own cost, and the only way to know that is to
+    count the calls while a clock is running.
+    """
+    r = subprocess.run(["git", *args], capture_output=True, cwd=str(repo), check=False)
+    return r.returncode, r.stdout.decode("utf-8", "replace").strip()
+
+
+def attestation_body_sha256(payload: dict[str, object]) -> str:
+    """The payload's hash over its own canonical body.
+
+    Excludes ``payload_sha256`` — it cannot contain itself. Canonical JSON
+    rather than file bytes, so a checkout that rewrote line endings does not
+    read as a tampered freeze.
+    """
+    body = {k: v for k, v in payload.items() if k != "payload_sha256"}
+    return sha256_bytes(json.dumps(body, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+
+
+def _committed_blob_matches(repo: Path, rev: str, path_in_repo: str,
+                            on_disk: Path) -> tuple[bool, str]:
+    """Is this file, as git sees it, the blob committed at ``rev``:``path``?
+
+    ``git hash-object`` applies the same filters git would, so a CRLF checkout
+    on Windows compares equal to an LF blob instead of reading as tampering.
+    """
+    rc, committed = _git_in(repo, "rev-parse", "--verify", "--quiet", f"{rev}:{path_in_repo}")
+    if rc != 0 or not committed:
+        return False, f"nothing is committed at {path_in_repo!r} in {rev[:12]}"
+    rc, ondisk = _git_in(repo, "hash-object", "--", str(on_disk))
+    if rc != 0 or not ondisk:
+        return False, f"git could not hash {on_disk.name} on disk"
+    if ondisk != committed:
+        return False, (f"{on_disk.name} on disk ({ondisk[:12]}) is not the blob committed at "
+                       f"{rev[:12]} ({committed[:12]}): it was modified after it was frozen")
+    return True, committed
+
+
 @dataclass(frozen=True)
 class IdentityGate:
     """The C1/C2 domain. Present, verified, and — until D7 — unarmed.
 
-    Armed state is reached ONLY by a D7 attestation on disk that pins every
-    identity below. There is no flag, no environment variable and no code path
-    that arms it otherwise, because a gate that can be waved through is a
-    comment.
+    Armed state requires a D7 freeze that survives every check in ``load``.
+    There is no flag, no environment variable and no code path that arms it
+    otherwise, because a gate that can be waved through is a comment.
+
+    What arming costs, after this repair: the payload must be COMMITTED (its
+    working-tree bytes must equal the blob at the commit the ratification
+    names), self-consistent (a hash over its own frozen body), and carry both a
+    C1 and a C2 section; and a separately committed ratification must name that
+    exact body hash. Arming therefore moves from "write a file" to "land two
+    reviewed commits" — an owner-controlled, auditable act rather than a local
+    one.
+
+    What this does NOT prove, stated because an overstated safeguard is worse
+    than a missing one: git object identity is not a signature. Anyone with
+    write access to the repository can author both objects. Where the
+    ratification names a signing key the gate additionally requires
+    ``git verify-commit`` to pass on the commit that introduced the ratification
+    and to mention that key; where it declares ``"signature": "none"`` the gate
+    arms and RECORDS that arming was unsigned, so the report says exactly what
+    authorised the freeze instead of implying more than happened.
+
+    Arming stays DATA-ONLY: everything above is the content of two JSON files
+    and two git commits. No source patch, so the harness digest D7 freezes does
+    not move when the gate is armed — which is the whole reason this mechanism
+    is built now, dormant, rather than bolted on at #263-B.
     """
 
     armed: bool
     reason: str
     pinned: dict[str, str] = field(default_factory=dict)
     observed: dict[str, str] = field(default_factory=dict)
+
+    @staticmethod
+    def requirements() -> list[str]:
+        """What a freeze must satisfy, recorded in the report so the evidence
+        describes its own gate instead of asking a reader to trust this file."""
+        return [
+            f"the payload declares kind={ATTESTATION_KIND!r} and schema={ATTESTATION_SCHEMA}",
+            "the payload carries every top-level field: " + ", ".join(ATTESTATION_TOP_KEYS),
+            "the payload carries a complete C1 section: " + ", ".join(ATTESTATION_C1_KEYS),
+            "the payload carries a complete C2 section (presence only; the gate never reads a "
+            "single one of these values): " + ", ".join(ATTESTATION_C2_KEYS),
+            "payload_sha256 equals a hash recomputed over the payload's own canonical body",
+            "C1 matches the identities this process observes",
+            f"a ratification exists at {RATIFICATION.name}, declares kind={RATIFICATION_KIND!r}, "
+            "and carries: " + ", ".join(RATIFICATION_KEYS),
+            "ratified_payload_sha256 equals that same recomputed body hash",
+            "payload_commit_sha names a commit that exists, and the payload's working-tree bytes "
+            "are the blob at payload_path in that commit",
+            "the ratification is itself committed and unmodified in the working tree",
+            'signature is either an explicit "none" (recorded as unsigned) or a key that the '
+            "signature on the ratification's own commit verifies against",
+        ]
 
     @staticmethod
     def load(manifest_digest: str, reference_sha: str | None) -> IdentityGate:
@@ -163,19 +284,173 @@ class IdentityGate:
                 reason="no D7 attestation on disk: the freeze has not happened, so the gate is "
                        "dormant by design and every decisive measurement is refused",
                 observed=observed)
-        try:
-            att = json.loads(ATTESTATION.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as e:  # fail closed, never open
-            raise InstrumentError(f"a D7 attestation exists but cannot be read: {e}") from e
-        pinned = {k: str(att.get(k, "")) for k in observed}
-        mismatched = [k for k in observed if pinned[k] != observed[k]]
+
+        payload = _read_json_or_refuse(ATTESTATION, "D7 attestation")
+
+        # 1. Is this a D7 freeze payload at all, or merely a file that echoes
+        #    three computable values back? The discriminator is what makes that
+        #    question answerable at all.
+        if payload.get("kind") != ATTESTATION_KIND or payload.get("schema") != ATTESTATION_SCHEMA:
+            raise InstrumentError(
+                f"the file at {ATTESTATION.name} does not declare itself a D7 freeze attestation "
+                f"(kind={payload.get('kind')!r}, schema={payload.get('schema')!r}; expected "
+                f"{ATTESTATION_KIND!r} and {ATTESTATION_SCHEMA}). Matching identity values are "
+                "not a freeze: they are values anyone with this repository can compute.")
+
+        missing = [k for k in ATTESTATION_TOP_KEYS if k not in payload]
+        if missing:
+            raise InstrumentError(
+                "the D7 attestation is incomplete, missing: " + ", ".join(missing))
+
+        # 2. C1 must EXIST as a section before comparing it means anything.
+        c1 = payload["c1"]
+        if not isinstance(c1, dict) or [k for k in ATTESTATION_C1_KEYS if k not in c1]:
+            raise InstrumentError(
+                "the D7 attestation carries no complete C1 section (needs "
+                + ", ".join(ATTESTATION_C1_KEYS) + "): there is nothing to freeze the instrument "
+                "identity against")
+
+        # 3. C2 must exist too — presence only. Not one of these values is read
+        #    here, and none of them reaches a #263-A artifact.
+        c2 = payload["c2"]
+        if not isinstance(c2, dict) or [k for k in ATTESTATION_C2_KEYS if k not in c2]:
+            raise InstrumentError(
+                "the D7 attestation carries no complete C2 section (needs "
+                + ", ".join(ATTESTATION_C2_KEYS) + "): a freeze without the decisive protocol is "
+                "not a freeze")
+
+        # 4. The payload is self-consistent — one tamper-evident unit, rather
+        #    than a handful of fields each forgeable on its own.
+        body_sha = attestation_body_sha256(payload)
+        declared = str(payload["payload_sha256"])
+        if not _HEX64.match(declared):
+            raise InstrumentError(f"payload_sha256 is not a sha256: {declared[:24]!r}")
+        if declared != body_sha:
+            raise InstrumentError(
+                f"the D7 attestation does not hash to its own payload_sha256 (declared "
+                f"{declared[:12]}, recomputed {body_sha[:12]}): the body was edited after it was "
+                "frozen")
+
+        # 5. Only now is comparing C1 against observation meaningful.
+        mismatched = [k for k in ATTESTATION_C1_KEYS if str(c1[k]) != observed[k]]
         if mismatched:
             raise InstrumentError(
                 "the D7 attestation does not describe this instrument: "
-                + "; ".join(f"{k} pinned {pinned[k][:12]!r} but observed {observed[k][:12]!r}"
+                + "; ".join(f"{k} pinned {str(c1[k])[:12]!r} but observed {observed[k][:12]!r}"
                             for k in mismatched))
-        return IdentityGate(armed=True, reason="D7 attestation verified",
-                            pinned=pinned, observed=observed)
+
+        # 6. The owner's act. A payload on its own is a draft: it says what
+        #    would be frozen, not that anyone froze it.
+        if not RATIFICATION.is_file():
+            raise InstrumentError(
+                f"a D7 attestation is present but {RATIFICATION.name} is not: an unratified "
+                "payload is a draft, and a draft arms nothing")
+        rat = _read_json_or_refuse(RATIFICATION, "D7 ratification")
+        if rat.get("kind") != RATIFICATION_KIND or rat.get("schema") != ATTESTATION_SCHEMA:
+            raise InstrumentError(
+                f"the file at {RATIFICATION.name} does not declare itself a D7 freeze "
+                f"ratification (kind={rat.get('kind')!r}, schema={rat.get('schema')!r})")
+        missing = [k for k in RATIFICATION_KEYS if k not in rat]
+        if missing:
+            raise InstrumentError(
+                "the D7 ratification is incomplete, missing: " + ", ".join(missing))
+        if str(rat["ratified_payload_sha256"]) != body_sha:
+            raise InstrumentError(
+                f"the ratification is for a different payload (it ratifies "
+                f"{str(rat['ratified_payload_sha256'])[:12]}, this payload hashes to "
+                f"{body_sha[:12]})")
+
+        # 7. Git blob identity: the payload must be COMMITTED, and the bytes on
+        #    disk must be the bytes that were reviewed. An untracked payload, or
+        #    a tracked one edited afterwards, arms nothing.
+        commit = str(rat["payload_commit_sha"])
+        payload_path = str(rat["payload_path"])
+        if not _HEX40.match(commit):
+            raise InstrumentError(f"payload_commit_sha is not a full commit sha: {commit[:24]!r}")
+        repo = ATTESTATION.parent
+        rc, _ = _git_in(repo, "rev-parse", "--git-dir")
+        if rc != 0:
+            raise InstrumentError(
+                "the D7 freeze names a commit but is not inside a git repository, so its blob "
+                "identity cannot be verified. Fail-closed: unverifiable is not verified.")
+        rc, _ = _git_in(repo, "rev-parse", "--verify", "--quiet", f"{commit}^{{commit}}")
+        if rc != 0:
+            raise InstrumentError(
+                f"payload_commit_sha {commit[:12]} is not a commit in this repository")
+        good, detail = _committed_blob_matches(repo, commit, payload_path, ATTESTATION)
+        if not good:
+            raise InstrumentError(f"the D7 attestation is not the frozen blob: {detail}")
+        payload_blob = detail
+
+        # 8. And the ratification must itself be a committed, unmodified act —
+        #    otherwise "the owner ratified it" means "someone had a text editor".
+        rc, rat_commit = _git_in(repo, "log", "-1", "--format=%H", "--", str(RATIFICATION))
+        if rc != 0 or not _HEX40.match(rat_commit):
+            raise InstrumentError(
+                f"{RATIFICATION.name} is not committed in this repository: an uncommitted "
+                "ratification is a local edit, not an owner's act")
+        good, detail = _committed_blob_matches(repo, rat_commit, _repo_relative(repo, RATIFICATION),
+                                               RATIFICATION)
+        if not good:
+            raise InstrumentError(f"the D7 ratification is not its committed blob: {detail}")
+
+        # 9. Signature, if one is claimed. Absence must be DECLARED, so that an
+        #    unsigned freeze is a recorded choice and never an oversight.
+        signature = rat["signature"]
+        if signature == "none":
+            signed = ("unsigned (declared): arming rests on the committed ratification alone, "
+                      "which anyone with repository write access could author")
+        elif isinstance(signature, dict) and signature.get("key_id"):
+            key_id = str(signature["key_id"])
+            rc, out = _git_in(repo, "verify-commit", "--raw", rat_commit)
+            if rc != 0:
+                raise InstrumentError(
+                    f"the ratification claims key {key_id!r} but git could not verify a "
+                    f"signature on {rat_commit[:12]}")
+            if key_id not in out:
+                raise InstrumentError(
+                    f"the ratification commit {rat_commit[:12]} is signed, but not by the "
+                    f"claimed key {key_id!r}")
+            signed = f"signed by {key_id}"
+        else:
+            raise InstrumentError(
+                'the ratification\'s signature field must be either "none" (declaring the freeze '
+                "unsigned) or an object naming a key_id; it is neither, so what authorised this "
+                "freeze cannot be stated")
+
+        pinned = {
+            **{k: str(c1[k]) for k in ATTESTATION_C1_KEYS},
+            "payload_sha256": body_sha,
+            "payload_commit_sha": commit,
+            "payload_blob": payload_blob,
+            "ratified_by": str(rat["owner"]),
+            "ratification_commit": rat_commit,
+            "signature": signed,
+            # Presence, never values: a #263-A artifact must not carry a threshold.
+            "c2_fields_present": ", ".join(sorted(str(k) for k in c2)),
+        }
+        return IdentityGate(
+            armed=True,
+            reason=(f"D7 freeze verified: payload committed at {commit[:12]}, ratified at "
+                    f"{rat_commit[:12]}, {signed}"),
+            pinned=pinned, observed=observed)
+
+
+def _read_json_or_refuse(path: Path, what: str) -> dict[str, object]:
+    try:
+        obj = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:  # fail closed, never open
+        raise InstrumentError(f"a {what} exists but cannot be read: {e}") from e
+    if not isinstance(obj, dict):
+        raise InstrumentError(f"the {what} is not a JSON object")
+    return obj
+
+
+def _repo_relative(repo: Path, path: Path) -> str:
+    try:
+        return path.resolve().relative_to(Path(repo).resolve()).as_posix()
+    except ValueError:
+        return path.name
 
 
 @dataclass
@@ -447,14 +722,21 @@ class Rung:
 
 
 RUNGS: tuple[Rung, ...] = (
-    Rung("core-usage", "core", "none", ("process-startup-core",), "direct",
-         "A usage error: the process starts, reads argv, refuses, exits. No file is opened and "
-         "no analysis runs, so this interval IS core startup rather than containing it."),
+    Rung("core-usage", "core", "none", ("process-startup-core", "cli-argv-refusal"), "composed",
+         "The ladder FLOOR: the smallest real invocation the production surface allows — the "
+         "process starts, parses argv, finds no document, writes a usage refusal and exits. It "
+         "is a LOWER BOUND on core startup, not startup itself. argv handling and the refusal "
+         "message are inside this interval and cannot be separated out through the production "
+         "surface without instrumentation #263-A is not authorized to add. Calling it 'startup' "
+         "would let a later subtraction hand D7 a phase nobody measured."),
     Rung("core-parse-refused", "core", "facts-refused",
          ("process-startup-core", "ownir-parse"), "composed",
          "A document the strict door refuses on its version. The read and parse happen; bridge "
-         "and analysis never do. Subtracting core-usage leaves parse — a DERIVED view, labelled "
-         "as such, never presented as a direct measurement."),
+         "and analysis never do. Subtracting core-usage does NOT leave parse: it leaves the "
+         "ownir read+parse cost only under an assumption this instrument never measures — that "
+         "both invocations pay the same argv handling and comparably priced refusal rendering. "
+         "The difference is therefore a DERIVED bound, labelled as such, and never presented as "
+         "a direct measurement of parse."),
     Rung("core-full-human", "core", "facts",
          ("process-startup-core", "ownir-parse", "bridge-lowering", "analysis", "render-human"),
          "composed",
@@ -486,6 +768,8 @@ RUNGS: tuple[Rung, ...] = (
 # and which are not, without inferring it from a rung id.
 PHASES = {
     "process-startup-core": "user-visible? no — the child engine's own startup",
+    "cli-argv-refusal": "argv parsing and the usage-refusal message; unavoidably inside the "
+                        "floor rung, which is why that rung is a bound and not startup itself",
     "process-startup-launcher": "user-visible: what a caller waits for before anything happens",
     "ownir-parse": "the ownir document read and validate",
     "bridge-lowering": "facts -> Layer 2 -> core AST",
@@ -828,6 +1112,15 @@ def build_report(harness: Harness, cells: list[dict[str, object]],
             "gate_armed": harness.gate.armed,
             "gate_reason": harness.gate.reason,
             "gate_observed": harness.gate.observed,
+            # What a payload must survive to arm this gate, written into the
+            # evidence so the report describes its own verifier instead of
+            # asking a reader to take the harness on trust.
+            "gate_requirements": IdentityGate.requirements(),
+            # Empty while dormant. Never carries a C2 VALUE — only which C2
+            # fields were present — because a #263-A artifact that quoted a
+            # threshold would have leaked the number this module exists to
+            # keep out.
+            "gate_pinned": harness.gate.pinned,
             "session_candidate": {
                 "path": harness.session.path,
                 "sha256": harness.session.sha256,

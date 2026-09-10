@@ -8,12 +8,14 @@ exercising the mechanism rather than by reading its comments:
     perf-firewall-decisive     a decisive workload cannot reach a clock pre-D7
     perf-firewall-calibration  a calibration workload can (or the instrument is inert)
     perf-gate-dormant          the C1/C2 gate exists, is unarmed, and fails closed
-    perf-gate-arms-by-data     arming needs a JSON file, never a source patch
+    perf-gate-arms-by-data     arming needs committed data, never a source patch
+    perf-gate-payload-identity a damaged D7 freeze arms nothing, for its own reason
     perf-session-drift         a candidate that changes refuses the rest of the session
     perf-notary-outside        no digest is computed inside a measured interval
     perf-provenance-complete   every §9 field is present on a produced report
     perf-no-engine-comparison  the instrument emits no engine-comparison statistic
     perf-smoke-untimed         decisive smoke carries no timing slot at all
+    perf-phase-attribution     no interval claims to be a phase it merely contains
 
 Failures print `FAIL[<check>]: <detail>`; nothing stops at the first one.
 
@@ -123,67 +125,343 @@ def control_gate_dormant() -> None:
                 pass
             else:
                 problems.append("an unreadable attestation did not fail closed")
-            pb.ATTESTATION.write_text(json.dumps({"harness_digest": "wrong"}), encoding="utf-8")
+            # The exact shape the old verifier armed on. It is refused here for
+            # not declaring itself a freeze at all; that it ALSO carries the
+            # wrong identity is checked, against a real committed freeze, by
+            # perf-gate-payload-identity — one control per reason, so neither
+            # passes on the other's behalf.
+            pb.ATTESTATION.write_text(json.dumps({
+                "harness_digest": pb.harness_digest(),
+                "workload_manifest_sha256": digest,
+                "python_reference_commit": "",
+            }), encoding="utf-8")
             try:
                 pb.IdentityGate.load(digest, "")
-            except pb.InstrumentError:
-                pass
+            except pb.InstrumentError as e:
+                if "does not declare itself" not in str(e):
+                    problems.append(f"a bare identity echo was refused by the wrong check: {e}")
             else:
-                problems.append("an attestation describing a different instrument was accepted")
+                problems.append("a file echoing three computable values back was accepted as a "
+                                "D7 freeze")
         finally:
             pb.ATTESTATION = saved
 
     if problems:
         fail("perf-gate-dormant", "; ".join(problems))
     else:
-        ok("perf-gate-dormant", "the gate observes harness, manifest and reference identity, is "
-                                "unarmed, and refuses a malformed or mismatched attestation")
+        ok("perf-gate-dormant", "the gate observes harness, manifest and reference identity, "
+                                "is unarmed, and refuses both an unreadable file and a bare "
+                                "identity echo")
+
+
+# --- the C1/C2 freeze, built for real in a throwaway repository -------------
+
+
+def _git(repo: Path, *args: str) -> str:
+    import subprocess
+    r = subprocess.run(["git", "-c", "user.email=c@example.invalid", "-c", "user.name=control",
+                        *args], cwd=str(repo), capture_output=True, check=False)
+    if r.returncode != 0:
+        raise RuntimeError(f"git {' '.join(args)} failed: {r.stderr.decode('utf-8', 'replace')}")
+    return r.stdout.decode("utf-8", "replace").strip()
+
+
+def _valid_payload(c1: dict) -> dict:
+    payload = {
+        "kind": pb.ATTESTATION_KIND,
+        "schema": pb.ATTESTATION_SCHEMA,
+        "c1": dict(c1),
+        # Placeholders. The gate must never read a C2 VALUE, so what is written
+        # here is deliberately not a plausible threshold.
+        "c2": dict.fromkeys(pb.ATTESTATION_C2_KEYS, "<frozen by D7, never read by the gate>"),
+    }
+    payload["payload_sha256"] = pb.attestation_body_sha256(payload)
+    return payload
+
+
+def _build_freeze(repo: Path, c1: dict, break_: str = "") -> None:
+    """A real payload + ratification, committed in a real repository.
+
+    Each ``break_`` damages exactly ONE property, so a refusal can be matched
+    against the check that was supposed to catch it. A control where every
+    broken input is refused by the same over-broad check proves nothing about
+    the other checks.
+    """
+    repo.mkdir(parents=True, exist_ok=True)
+    _git(repo, "init", "-q")
+    att = repo / pb.ATTESTATION.name
+    rat = repo / pb.RATIFICATION.name
+
+    payload = _valid_payload(c1)
+    if break_ == "echo":
+        payload = dict(c1)                                   # the defect this repair removes
+    elif break_ == "no-c1":
+        payload.pop("c1")
+    elif break_ == "no-c2":
+        payload.pop("c2")
+    elif break_ == "partial-c1":
+        payload["c1"] = {pb.ATTESTATION_C1_KEYS[0]: c1[pb.ATTESTATION_C1_KEYS[0]]}
+    elif break_ == "partial-c2":
+        payload["c2"] = {pb.ATTESTATION_C2_KEYS[0]: "only one of them"}
+    elif break_ == "body-hash":
+        payload["payload_sha256"] = "0" * 64
+    elif break_ == "c1-mismatch":
+        payload["c1"]["harness_digest"] = "f" * 64
+        payload["payload_sha256"] = pb.attestation_body_sha256(
+            {k: v for k, v in payload.items() if k != "payload_sha256"})
+
+    att.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "freeze payload")
+    commit = _git(repo, "rev-parse", "HEAD")
+
+    if break_ == "no-ratification":
+        return
+
+    body = pb.attestation_body_sha256(payload) if "payload_sha256" in payload else "0" * 64
+    ratification = {
+        "kind": pb.RATIFICATION_KIND,
+        "schema": pb.ATTESTATION_SCHEMA,
+        "owner": "the owner",
+        "payload_path": att.name,
+        "payload_commit_sha": commit,
+        "ratified_payload_sha256": body,
+        "signature": "none",
+    }
+    if break_ == "ratifies-other":
+        ratification["ratified_payload_sha256"] = "a" * 64
+    elif break_ == "bad-commit":
+        ratification["payload_commit_sha"] = "0" * 40
+    elif break_ == "signature-undeclared":
+        ratification["signature"] = ""
+    elif break_ == "claims-key":
+        ratification["signature"] = {"key_id": "DEADBEEFCAFE"}
+
+    rat.write_text(json.dumps(ratification, indent=2) + "\n", encoding="utf-8")
+    if break_ == "ratification-uncommitted":
+        return
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "ratify the freeze")
+
+    if break_ == "reformatted":
+        # The one damage that reaches the blob check and nothing else: canonical
+        # JSON is indentation-blind, so the body hash, C1 and the ratification
+        # all still agree. Only git object identity can tell that the reviewed
+        # bytes were replaced. If this case is accepted, the blob check is
+        # decorative.
+        att.write_text(json.dumps(payload, indent=4) + "\n", encoding="utf-8")
+
+
+def _with_freeze(repo: Path, fn):
+    saved_a, saved_r = pb.ATTESTATION, pb.RATIFICATION
+    try:
+        pb.ATTESTATION = repo / pb.ATTESTATION.name
+        pb.RATIFICATION = repo / pb.RATIFICATION.name
+        return fn()
+    finally:
+        pb.ATTESTATION, pb.RATIFICATION = saved_a, saved_r
+
+
+# Each damaged freeze, and the phrase the check that owns it must produce.
+# Matching the catcher is the point: without it, one broad refusal masquerades
+# as ten working checks.
+_BROKEN_FREEZES = (
+    ("echo", "does not declare itself"),
+    ("no-c1", "incomplete, missing: c1"),
+    ("no-c2", "incomplete, missing: c2"),
+    ("partial-c1", "no complete C1 section"),
+    ("partial-c2", "no complete C2 section"),
+    ("body-hash", "does not hash to its own payload_sha256"),
+    ("c1-mismatch", "does not describe this instrument"),
+    ("no-ratification", "unratified payload is a draft"),
+    ("ratifies-other", "for a different payload"),
+    ("bad-commit", "not a commit in this repository"),
+    ("ratification-uncommitted", "not committed in this repository"),
+    ("reformatted", "modified after it was frozen"),
+    ("signature-undeclared", "signature field must be either"),
+    ("claims-key", "could not verify a signature"),
+)
+
+
+def control_gate_payload_identity() -> None:
+    """The gate verifies a D7 FREEZE, not a file that echoes computable values.
+
+    The defect this replaces armed on any JSON carrying three values every
+    holder of this repository can compute in one line — it proved the instrument
+    was the instrument and called that a freeze. Each case below damages exactly
+    one property of a real committed freeze and requires the refusal to name the
+    check that owns it.
+    """
+    _, digest = pb.load_manifest()
+    c1 = {"harness_digest": pb.harness_digest(), "workload_manifest_sha256": digest,
+          "python_reference_commit": ""}
+    problems = []
+    for break_, expected in _BROKEN_FREEZES:
+        with tempfile.TemporaryDirectory(prefix=f"perf-freeze-{break_}-") as td:
+            repo = Path(td) / "repo"
+            try:
+                _build_freeze(repo, c1, break_)
+            except RuntimeError as e:               # git itself unavailable
+                problems.append(f"{break_}: could not build the fixture ({e})")
+                continue
+
+            def run():
+                return pb.IdentityGate.load(digest, "")
+            try:
+                gate = _with_freeze(repo, run)
+            except pb.InstrumentError as e:
+                if expected not in str(e):
+                    problems.append(f"{break_}: refused, but by the wrong check — expected "
+                                    f"{expected!r}, got {str(e)[:140]!r}")
+            else:
+                if gate.armed:
+                    problems.append(f"{break_}: a damaged D7 freeze ARMED the gate; the check "
+                                    f"that should have said {expected!r} is not there")
+                else:
+                    problems.append(f"{break_}: neither armed nor refused — the gate went "
+                                    "dormant on a payload that exists, which hides the damage")
+    if problems:
+        fail("perf-gate-payload-identity", "; ".join(problems))
+    else:
+        ok("perf-gate-payload-identity",
+           f"{len(_BROKEN_FREEZES)} damaged freezes, each refused by the check that owns it "
+           "(kind, C1, C2, body hash, instrument match, ratification, commit, blob, signature)")
 
 
 def control_gate_arms_by_data() -> None:
-    """Arming is DATA, not a patch — and the harness digest does not move when it happens.
+    """Arming is DATA, not a patch — and the harness digest does not move.
 
     This is the obligation that stops #263-B from being a different instrument:
     if arming changed the digest D7 froze, the freeze would be void the moment
-    it was used.
+    it was used. The freeze here is REAL — committed objects in a throwaway
+    repository — because a fixture the production checks cannot see is not
+    evidence that the production checks pass.
     """
-    _, digest = pb.load_manifest()
+    workloads, digest = pb.load_manifest()
     before = pb.harness_digest()
-    saved = pb.ATTESTATION
+    c1 = {"harness_digest": before, "workload_manifest_sha256": digest,
+          "python_reference_commit": ""}
     problems = []
     with tempfile.TemporaryDirectory(prefix="perf-arm-") as td:
+        repo = Path(td) / "repo"
         try:
-            pb.ATTESTATION = Path(td) / "att.json"
-            pb.ATTESTATION.write_text(json.dumps({
-                "harness_digest": before,
-                "workload_manifest_sha256": digest,
-                "python_reference_commit": "",
-            }), encoding="utf-8")
+            _build_freeze(repo, c1)
+        except RuntimeError as e:
+            fail("perf-gate-arms-by-data", f"could not build a real freeze fixture: {e}")
+            return
+
+        def run():
             gate = pb.IdentityGate.load(digest, "")
-            if not gate.armed:
-                problems.append("a correct attestation did not arm the gate, so #263-B could "
-                                "never run at all")
             after = pb.harness_digest()
-            if after != before:
-                problems.append(f"arming moved the harness digest ({before[:12]} -> {after[:12]}): "
-                                "the armed instrument is a different instrument")
-            # And with the gate armed, the firewall must let a decisive workload through.
-            workloads, _ = pb.load_manifest()
-            h = _harness(Path(td), gate)
-            dec = next(w for w in workloads if w.decisive)
-            try:
-                h._assert_may_time(dec)
-            except pb.FirewallBreach:
-                problems.append("the gate armed but the firewall still refused: the gate would "
-                                "have no effect at #263-B")
-        finally:
-            pb.ATTESTATION = saved
+            return gate, after
+
+        try:
+            gate, after = _with_freeze(repo, run)
+        except pb.InstrumentError as e:
+            fail("perf-gate-arms-by-data", f"a VALID committed freeze was refused: {e}")
+            return
+
+        if not gate.armed:
+            problems.append("a valid freeze did not arm the gate, so #263-B could never run")
+        if after != before:
+            problems.append(f"arming moved the harness digest ({before[:12]} -> {after[:12]}): "
+                            "the armed instrument is a different instrument")
+        # Presence of C2, never its values: an armed gate must not become the
+        # channel that carries a threshold into a #263-A artifact.
+        leaked = [k for k, v in gate.pinned.items() if k.startswith("c2") and "never read" in v]
+        if leaked:
+            problems.append(f"the gate recorded C2 VALUES, not just field names: {leaked}")
+        if gate.pinned.get("c2_fields_present") != ", ".join(sorted(pb.ATTESTATION_C2_KEYS)):
+            problems.append("the gate did not record which C2 fields were present")
+        if "unsigned" not in gate.pinned.get("signature", ""):
+            problems.append("an unsigned freeze did not record itself as unsigned, so the report "
+                            "would imply more authority than the freeze carried")
+        # And with the gate armed, the firewall must let a decisive workload through.
+        h = _harness(Path(td), gate)
+        dec = next(w for w in workloads if w.decisive)
+        try:
+            h._assert_may_time(dec)
+        except pb.FirewallBreach:
+            problems.append("the gate armed but the firewall still refused: the gate would have "
+                            "no effect at #263-B")
     if problems:
         fail("perf-gate-arms-by-data", "; ".join(problems))
     else:
-        ok("perf-gate-arms-by-data", "a JSON attestation alone arms the gate, the harness digest "
-                                     "is unchanged by arming, and the firewall then opens")
+        ok("perf-gate-arms-by-data", "two committed JSON objects arm the gate with no source "
+                                     "patch, the harness digest is unchanged by arming, no C2 "
+                                     "value is recorded, and the firewall then opens")
 
+
+# --- phase attribution ------------------------------------------------------
+
+
+def control_phase_attribution() -> None:
+    """No interval claims to be a phase it merely contains.
+
+    The floor rung is a usage error: the process starts, parses argv, writes a
+    refusal and exits. Calling that interval `direct` startup would let a later
+    subtraction hand D7 a phase nobody measured — the interval contains argv
+    handling and refusal rendering, and the production surface cannot separate
+    them without instrumentation #263-A is not authorized to add.
+    """
+    problems = []
+    for r in pb.RUNGS:
+        undeclared = [p for p in r.phases if p not in pb.PHASES]
+        if undeclared:
+            problems.append(f"{r.id}: names phases absent from the vocabulary: {undeclared}")
+        if r.observability not in ("direct", "composed", "unavailable"):
+            problems.append(f"{r.id}: unknown observability {r.observability!r}")
+        if r.observability == "direct" and len(r.phases) != 1:
+            problems.append(f"{r.id}: claims a DIRECT measurement of {len(r.phases)} phases; a "
+                            "composed interval is not a direct one")
+        if r.observability == "composed" and len(r.phases) < 2:
+            problems.append(f"{r.id}: labelled composed but names {len(r.phases)} phase(s)")
+        # The floor: a core invocation that takes no input still runs the CLI
+        # front door, so it must say so.
+        if r.surface == "core" and r.needs == "none":
+            if "cli-argv-refusal" not in r.phases:
+                problems.append(f"{r.id}: the smallest core invocation still parses argv and "
+                                "renders a refusal, but does not name that phase")
+            if r.observability == "direct":
+                problems.append(f"{r.id}: the ladder floor is a LOWER BOUND on startup, not "
+                                "startup measured directly")
+    unused = sorted(set(pb.PHASES) - {p for r in pb.RUNGS for p in r.phases})
+    if unused:
+        problems.append(f"phases declared but measured by no rung: {unused}")
+
+    # The shipped evidence must agree with the shipped rung table. This is what
+    # makes "re-record after changing a rung" a gate rather than a promise.
+    report = ROOT / "docs/evidence/p022-263a-calibration.linux.json"
+    if not report.is_file():
+        problems.append(f"{report.name} is missing: the calibration evidence cannot be checked "
+                        "against the rung table it claims to describe")
+    else:
+        rep = json.loads(report.read_text(encoding="utf-8"))
+        by_id = {r.id: r for r in pb.RUNGS}
+        if rep.get("phases") != pb.PHASES:
+            problems.append(f"{report.name} records a different phase vocabulary than the "
+                            "instrument now defines: the report predates the rung table and "
+                            "must be re-recorded")
+        for cell in rep.get("cells", []):
+            rung = by_id.get(str(cell.get("rung")))
+            if rung is None:
+                problems.append(f"{report.name}: cell names unknown rung {cell.get('rung')!r}")
+                continue
+            if list(cell.get("phases", [])) != list(rung.phases):
+                problems.append(f"{report.name}: a {rung.id} cell claims phases "
+                                f"{cell.get('phases')} but the rung names {list(rung.phases)}")
+                break
+            if cell.get("observability") != rung.observability:
+                problems.append(f"{report.name}: a {rung.id} cell claims "
+                                f"{cell.get('observability')!r} observability but the rung is "
+                                f"{rung.observability!r}")
+                break
+    if problems:
+        fail("perf-phase-attribution", "; ".join(problems))
+    else:
+        ok("perf-phase-attribution", "every rung's phases are declared, observability matches "
+                                     "arity, the ladder floor is a bound rather than startup, "
+                                     "and the shipped report agrees with the rung table")
 
 def control_session_drift() -> None:
     """A candidate that changes mid-session refuses the remainder."""
@@ -222,31 +500,45 @@ def control_notary_outside_interval() -> None:
     is to count the calls while the clock is running.
     """
     problems = []
-    calls = {"n": 0}
+    calls = {"n": 0, "git": 0}
     real = pb.sha256_file
+    real_git = pb._git_in
 
     def counting(path: Path) -> tuple[str, int]:
         calls["n"] += 1
         return real(path)
+
+    # The gate now shells out to git for blob identity, so obligation (c) has a
+    # second way to be violated: a verifier that pays for itself out of the
+    # startup benchmark is a defect whether it spends the time hashing or
+    # forking.
+    def counting_git(repo, *args):
+        calls["git"] += 1
+        return real_git(repo, *args)
 
     with tempfile.TemporaryDirectory(prefix="perf-notary-") as td:
         tmp = Path(td)
         _, digest = pb.load_manifest()
         h = _harness(tmp, pb.IdentityGate.load(digest, ""))
         argv = [sys.executable, "-c", "pass"]
-        pb.sha256_file = counting  # type: ignore[assignment]
+        pb.sha256_file = counting        # type: ignore[assignment]
+        pb._git_in = counting_git        # type: ignore[assignment]
         try:
             h._run_once(argv, dict(os.environ), ROOT)
         finally:
-            pb.sha256_file = real  # type: ignore[assignment]
+            pb.sha256_file = real        # type: ignore[assignment]
+            pb._git_in = real_git        # type: ignore[assignment]
     if calls["n"]:
         problems.append(f"{calls['n']} digest(s) were computed inside the measured interval — "
                         "the notary is billing the benchmark for its own work")
+    if calls["git"]:
+        problems.append(f"{calls['git']} git invocation(s) ran inside the measured interval — "
+                        "identity verification is billing the benchmark for its own work")
     if problems:
         fail("perf-notary-outside", "; ".join(problems))
     else:
-        ok("perf-notary-outside", "a measured interval computes no digests; identity is verified "
-                                  "before the clock starts")
+        ok("perf-notary-outside", "a measured interval computes no digests and forks no git; "
+                                  "identity is verified before the clock starts")
 
 
 # --- what the instrument emits ---------------------------------------------
@@ -336,11 +628,13 @@ def run() -> int:
     control_firewall()
     control_gate_dormant()
     control_gate_arms_by_data()
+    control_gate_payload_identity()
     control_session_drift()
     control_notary_outside_interval()
     control_no_engine_comparison()
     control_smoke_untimed()
     control_provenance_complete()
+    control_phase_attribution()
     print()
     print(f"perf instrument controls: {len(_PASSES)} passed, {len(_FAILURES)} failed")
     return 1 if _FAILURES else 0

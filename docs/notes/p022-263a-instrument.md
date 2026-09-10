@@ -62,16 +62,27 @@ unavailable stages to be *marked*, not imputed.
 
 | rung | surface | interval contains | observability |
 |---|---|---|---|
-| `core-usage` | core | core startup + argv | **direct** — this interval *is* startup |
+| `core-usage` | core | core startup + argv parsing + usage refusal | composed — a **lower bound** on startup, not startup |
 | `core-parse-refused` | core | startup + read + parse + door refusal | composed |
 | `core-full-human` | core | startup + parse + bridge + analysis + human render | composed |
 | `core-full-sarif` | core | startup + parse + bridge + analysis + SARIF render | composed |
 | `launcher-extract` | launcher | launcher startup + Roslyn extraction | composed |
 | `launcher-e2e` | launcher | launcher startup + extraction + core + render | composed |
 
+**The ladder floor is a bound, not a phase.** `core-usage` is the smallest
+invocation the production surface allows: the process starts, parses argv, finds
+no document, writes a usage refusal and exits. Calling that interval "startup"
+would be convenient and wrong — argv handling and refusal rendering are inside
+it, and nothing in either production surface separates them out. So it is
+recorded as `composed` over `process-startup-core` + `cli-argv-refusal`, and
+what it gives D7 is a **lower bound** on core startup.
+
 **Derived views are labelled as derived and never presented as measurements.**
-`parse ≈ core-parse-refused − core-usage`. `core work ≈ launcher-e2e −
-launcher-extract`. `core-full-sarif − core-full-human` is a *renderer
+`core-parse-refused − core-usage` does *not* yield parse: it yields the ownir
+read+parse cost only under an assumption this instrument never measures — that
+both invocations pay the same argv handling and comparably priced refusal
+rendering. It is a derived **bound**. Likewise `core work ≈ launcher-e2e −
+launcher-extract`, and `core-full-sarif − core-full-human` is a *renderer
 difference*, which is not the same quantity as rendering in isolation.
 
 **`bridge-lowering` and `analysis` are not separately observable** through either
@@ -216,9 +227,38 @@ V1/V2/invalid-UTF-8 hygiene lands **before** the D7 freeze and #263-B.
 | | obligation | where it lives |
 |---|---|---|
 | (a) | the identity gate exists **now**, dormant | `IdentityGate`; built before the instrument is final, because D7's C1 freezes the harness digest and a gate added after that freeze makes this a different instrument |
-| (b) | arming is **data only** | a JSON attestation; the control proves the harness digest does not move when the gate arms, and that a correct attestation alone opens the firewall |
-| (c) | **fail-closed, before any measured interval** | identity verification completes and passes first; a control counts digest calls *inside* a measured interval and requires zero — a gate that pays for itself out of the startup benchmark is a defect wearing a safeguard's coat |
+| (b) | arming is **data only** | two committed JSON objects — a freeze payload and a detached ratification; no source patch, so the control proves the harness digest does not move when the gate arms and that the firewall then opens |
+| (c) | **fail-closed, before any measured interval** | identity verification completes and passes first; a control counts both digest computations and git invocations *inside* a measured interval and requires zero of each — a gate that pays for itself out of the startup benchmark is a defect wearing a safeguard's coat |
 | (d) | **two identity domains, kept apart** | the C1/C2 gate covers reference + harness + manifest + D7 payload; the **session** identity covers the candidate binary, frozen at session start, and its drift refuses the remainder of the session. The candidate is the thing under test, so it is not instrument identity |
+
+### What the gate actually verifies
+
+An attestation is not "a JSON file with the right numbers in it". The values a
+freeze pins — the harness digest, the manifest digest — are things anyone
+holding this repository can compute in one line, so a verifier that only
+compares them proves the instrument is the instrument and calls that a freeze.
+It answers *is this the harness?* when the question is *did D7 happen?*
+
+The freeze is therefore **two objects**, because a payload cannot name the
+commit that contains it — that sha would have to be inside the bytes hashed into
+it, and self-reference is the reason detached signatures exist:
+
+* the **payload** (`p022-263a-d7-attestation.json`) — what D7 froze: a C1
+  section of instrument identities and a C2 section of decisive protocol.
+  Carries no commit reference, so it can be hashed as a unit.
+* the **ratification** (`p022-263a-d7-ratification.json`) — the owner's act,
+  committed separately and afterwards: it names the payload's body hash and the
+  commit the payload is frozen at.
+
+Arming requires all of: a kind/schema discriminator; a complete C1 *and* a
+complete C2 section; a body hash the payload recomputes to; C1 matching observed
+identity; a ratification of *that* body hash; and git blob identity — the
+payload's working-tree bytes must be the blob at the commit the ratification
+names, and the ratification must itself be committed and unmodified. **C2 is
+checked for presence and never read**, because its values are thresholds and a
+#263-A artifact that quoted one would leak the number this module exists to keep
+out. Arming thus costs two reviewed commits rather than one text editor, and
+still moves no source, so the harness digest D7 freezes is untouched by it.
 
 ## 14. Known limitations, recorded rather than routed around
 
@@ -228,7 +268,21 @@ V1/V2/invalid-UTF-8 hygiene lands **before** the D7 freeze and #263-B.
    own track, not narrowed away.
 4. **`machine/cache-cold` is not claimed** (§6) — no reset protocol exists in
    the CI environments this instrument runs in.
-5. **A GitHub-hosted Windows runner is not reliably measurement-grade**, and
+5. **Git object identity is not a signature.** The gate raises arming from
+   "write a local file" to "land two reviewed, committed objects", which is an
+   auditable owner-controlled act — but anyone with repository write access
+   could author both. Where a ratification names a signing key the gate
+   additionally requires `git verify-commit` to pass on the ratification's own
+   commit and to mention that key; where it declares `"signature": "none"` the
+   gate arms and **records the freeze as unsigned**, so the report states what
+   authorised it instead of implying more.
+6. **The signature-accept path is not exercised by a control.** Its refusals
+   are: a claimed key on an unverifiable commit, and a signature field that is
+   neither an explicit `"none"` nor a key. Producing a genuinely signed commit
+   needs a key no CI job here holds, so the accepting direction is implemented
+   and untested — recorded rather than papered over with a mock that would only
+   prove the mock works.
+7. **A GitHub-hosted Windows runner is not reliably measurement-grade**, and
    the instrument established that on its first day — with a sharper result
    than "the runners are noisy".
 
