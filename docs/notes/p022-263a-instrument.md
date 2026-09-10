@@ -575,6 +575,56 @@ binds here, in the ledger, and to the exact head it was given at.
 RSS and allocation deliberately stay per-cell policies rather than becoming a
 phase axis; the frozen schema already models them that way.
 
+### The Python reference boundary, closed by observation
+
+`python_reference_commit` and `python_reference_tree` content-address exactly
+`PYTHON_REFERENCE_PATH` — `ownlang/`. That is only an honest identity if the
+reference's behaviour is confined to what it names. If the measured path read a
+schema, a rule table or a config from elsewhere in the repository, the reference
+could change behaviour without changing its own sha, which is the same defect
+class as an identity that names the checkout.
+
+Settled by observing rather than arguing. An audit hook records every file the
+reference OPENS and every process it spawns, on both render surfaces:
+
+| | human | sarif |
+|---|---|---|
+| repository files opened **outside** `ownlang/` | **0** | **0** |
+| processes spawned | **none** | **none** |
+| `ownlang/` modules loaded on the measured path | 18 | 18 |
+
+Three further routes were checked and are closed:
+
+- **Static imports.** `ownlang` imports the standard library and itself, nothing
+  else in the tree.
+- **Config.** `ownlang/config.py` states it explicitly: no auto-discovery, no
+  environment variables, no per-path overrides — a config enters only through an
+  explicit `--config`, which no rung passes. A file consulted-if-present would
+  be `stat`ed rather than opened and would slip past an audit; there is no such
+  file to slip.
+- **Subprocesses.** The `fix_*` repair pipeline does spawn processes, but none of
+  it is loaded on the measured path.
+
+`perf-reference-boundary` keeps this proven rather than asserted, and is
+mutation-verified in both directions: a probe that opens `pyproject.toml`, or
+spawns `/bin/true`, fails the control.
+
+#### The one residual, not fixed here
+
+`OWNLANG_DEBUG` is read by `ownlang/__main__.py`, and the instrument passes the
+ambient environment through unchanged. It affects only the internal-error path —
+on a successful run the branch is never taken, so it cannot alter analysis
+output — and when it does fire it returns 70, which no rung declares, so the
+outcome contract refuses the cell rather than timing it. It is therefore
+**fail-closed**, but it is still an uncontrolled input that the reference
+identity does not cover.
+
+The fix is to pin or record it in the instrument's environment. That edits
+`perf_baseline.py`, moves the harness digest and stales both pairs, so it is
+**recorded and not applied**: re-recording is not currently authorised, and this
+is worth batching with any other change that moves the digest rather than
+spending a re-record on it alone.
+
 ### The manifest digest was hashing raw bytes
 
 Round 3 content-addressed the harness digest and left `load_manifest()` hashing

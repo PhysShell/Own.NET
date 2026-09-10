@@ -7,6 +7,7 @@ exercising the mechanism rather than by reading its comments:
 
     perf-firewall-decisive     a decisive workload cannot reach a clock pre-D7
     perf-firewall-calibration  a calibration workload can (or the instrument is inert)
+    perf-reference-boundary    the Python reference reads nothing its identity misses
     perf-d7-phase-universe     D7's metrics are not the attribution taxonomy
     perf-gate-dormant          the C1/C2 gate exists, is unarmed, and fails closed
     perf-gate-arms-by-data     arming needs committed data, never a source patch
@@ -102,6 +103,82 @@ def control_firewall() -> None:
 
 
 # --- the two identity domains ----------------------------------------------
+
+
+_AUDIT_PROBE = """
+import runpy, sys, os, json
+opened, spawned = set(), []
+def hook(event, args):
+    if event == "open":
+        try: opened.add(os.fspath(args[0]))
+        except Exception: pass
+    elif event in ("subprocess.Popen", "os.exec", "os.posix_spawn"):
+        spawned.append(str(args[0]) if args else "?")
+sys.addaudithook(hook)
+out = sys.argv[3]
+sys.argv = ["ownlang", "ownir", sys.argv[1], "--format", sys.argv[2]]
+try:
+    runpy.run_module("ownlang", run_name="__main__", alter_sys=True)
+except SystemExit:
+    pass
+open(out, "w", encoding="utf-8").write(json.dumps({"opened": sorted(opened), "spawned": spawned}))
+"""
+
+
+def control_reference_boundary() -> None:
+    """The Python reference's behaviour is confined to the path its identity names.
+
+    `python_reference_commit` / `python_reference_tree` content-address exactly
+    `PYTHON_REFERENCE_PATH`. If the measured path read a schema, a rule table or
+    a config from anywhere else in the repository, that identity would be too
+    narrow: the reference could change behaviour without changing its own sha,
+    which is the same defect class as an identity that names the checkout.
+
+    Observed rather than argued: an audit hook records every file the reference
+    OPENS and every process it spawns, on both render surfaces.
+    """
+    import subprocess
+    problems = []
+    with tempfile.TemporaryDirectory(prefix="perf-refbound-") as td:
+        tmp = Path(td)
+        probe = tmp / "probe.py"
+        probe.write_text(_AUDIT_PROBE, encoding="utf-8")
+        workloads, _ = pb.load_manifest()
+        w = next(x for x in workloads if x.id == "cal-facts-tiny")
+        target = pb.materialize_calibration(w, tmp)
+        reference = str(ROOT / pb.PYTHON_REFERENCE_PATH)
+
+        for fmt in ("human", "sarif"):
+            out = tmp / f"audit-{fmt}.json"
+            env = dict(os.environ)
+            env["PYTHONPATH"] = str(ROOT)
+            r = subprocess.run([sys.executable, str(probe), str(target), fmt, str(out)],
+                               capture_output=True, env=env, cwd=str(ROOT), check=False)
+            if not out.is_file():
+                problems.append(f"{fmt}: the audit probe produced nothing "
+                                f"({r.stderr.decode('utf-8', 'replace')[:160]})")
+                continue
+            seen = json.loads(out.read_text(encoding="utf-8"))
+            escaped = [p for p in seen["opened"]
+                       if p.startswith(str(ROOT) + os.sep) and not p.startswith(reference + os.sep)]
+            if escaped:
+                problems.append(
+                    f"{fmt}: the reference opened {len(escaped)} repository file(s) outside "
+                    f"{pb.PYTHON_REFERENCE_PATH}/, so its identity is too narrow: "
+                    + ", ".join(sorted(p[len(str(ROOT)) + 1:] for p in escaped)[:4]))
+            if seen["spawned"]:
+                problems.append(f"{fmt}: the reference spawned {seen['spawned']}, whose identity "
+                                "no reference sha covers")
+            if not any(p.startswith(reference + os.sep) for p in seen["opened"]):
+                problems.append(f"{fmt}: the probe observed no reference file at all, so it was "
+                                "not exercising the reference and proves nothing")
+    if problems:
+        fail("perf-reference-boundary", "; ".join(problems))
+    else:
+        ok("perf-reference-boundary",
+           f"on both render surfaces the reference opens only files under "
+           f"{pb.PYTHON_REFERENCE_PATH}/ and spawns nothing, so the content-addressed reference "
+           "identity covers what the reference actually does")
 
 
 def control_d7_phase_universe() -> None:
@@ -1218,6 +1295,7 @@ def control_digest_platform_stable() -> None:
 
 def run() -> int:
     control_firewall()
+    control_reference_boundary()
     control_d7_phase_universe()
     control_gate_dormant()
     control_gate_arms_by_data()
