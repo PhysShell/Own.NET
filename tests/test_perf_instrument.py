@@ -157,8 +157,19 @@ def control_gate_dormant() -> None:
 
 
 def _git(repo: Path, *args: str) -> str:
+    """git in a throwaway repository, with background housekeeping OFF.
+
+    `git commit` normally spawns `gc --auto`, which keeps writing inside `.git`
+    after the commit returns. When the fixture is then torn down, `rmtree` can
+    race that process and die with "Directory not empty: .../.git" — which is
+    exactly what CI hit on the added anchor fixtures, since they commit more
+    often than the old ones did. The repository lives for one check and is
+    deleted; it has nothing to gain from housekeeping and everything to lose
+    from a background writer.
+    """
     import subprocess
     r = subprocess.run(["git", "-c", "user.email=c@example.invalid", "-c", "user.name=control",
+                        "-c", "gc.auto=0", "-c", "maintenance.auto=false",
                         *args], cwd=str(repo), capture_output=True, check=False)
     if r.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)} failed: {r.stderr.decode('utf-8', 'replace')}")
@@ -489,7 +500,8 @@ def control_gate_payload_identity() -> None:
     _, digest = pb.load_manifest()
     problems = []
     for break_, expected in _BROKEN_FREEZES:
-        with tempfile.TemporaryDirectory(prefix=f"perf-d7-{break_}-") as td:
+        with tempfile.TemporaryDirectory(prefix=f"perf-d7-{break_}-",
+                                         ignore_cleanup_errors=True) as td:
             repo = Path(td) / "repo"
             try:
                 _build_freeze(repo, digest, break_)
@@ -533,7 +545,8 @@ def control_gate_arms_by_data() -> None:
     workloads, digest = pb.load_manifest()
     before = pb.harness_digest()
     problems = []
-    with tempfile.TemporaryDirectory(prefix="perf-d7-arm-") as td:
+    with tempfile.TemporaryDirectory(prefix="perf-d7-arm-",
+                                     ignore_cleanup_errors=True) as td:
         repo = Path(td) / "repo"
         try:
             _build_freeze(repo, digest)
