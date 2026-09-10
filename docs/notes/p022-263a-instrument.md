@@ -228,16 +228,26 @@ V1/V2/invalid-UTF-8 hygiene lands **before** the D7 freeze and #263-B.
    own track, not narrowed away.
 4. **`machine/cache-cold` is not claimed** (§6) — no reset protocol exists in
    the CI environments this instrument runs in.
-5. **A GitHub-hosted Windows runner is not measurement-grade**, and the
-   instrument said so on its first CI run: the opening noise probe measured a
-   relative IQR of **1.807** against the 0.35 floor, with **0.870** drift
-   between the opening and closing probes. The harness stood up, produced a
-   complete and correctly-provenanced report, and then **refused the
-   environment** rather than reporting numbers taken on a machine that was not
-   holding still.
+5. **A GitHub-hosted Windows runner is not reliably measurement-grade**, and
+   the instrument established that on its first day — with a sharper result
+   than "the runners are noisy".
+
+   On **one commit**, two Windows runs minutes apart disagreed about their own
+   environment. The first refused it: relative IQR **1.807** against the 0.35
+   floor, with **0.870** drift between the opening and closing probes. The
+   second accepted it and completed a full 44-cell calibration that reproduced
+   within 0.35. Same commit, same runner class, opposite validity verdicts.
+
+   So the risk is not that a Windows measurement there would be noisy — it is
+   that whether it is *admissible at all* turns on scheduling luck. A decisive
+   session that started on the lucky run and continued into the unlucky one
+   would be half a measurement. The harness stood up in both cases, produced a
+   complete and correctly-provenanced report in both cases, and reported the
+   environment honestly in both cases.
 
    This is a result, not a defect, and it is one #263-B needs before it starts:
-   **the decisive Windows measurement will need a single-tenant machine.** The
+   **the decisive Windows measurement needs a single-tenant machine**, and D7
+   should not preregister a Windows protocol that assumes a hosted runner. The
    floor was deliberately *not* raised to make the run pass — an
    instrument-validity constant chosen after seeing which runs it rejects is a
    threshold fitted to a result, which is the entire failure mode this brief
