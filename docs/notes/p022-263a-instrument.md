@@ -94,8 +94,26 @@ invocation the production surface allows: the process starts, parses argv, finds
 no document, writes a usage refusal and exits. Calling that interval "startup"
 would be convenient and wrong — argv handling and refusal rendering are inside
 it, and nothing in either production surface separates them out. So it is
-recorded as `composed` over `process-startup-core` + `cli-argv-refusal`, and
+recorded as `composed` over `process-startup-core` + `cli-argv-parse` +
+`cli-usage-refusal`, and
 what it gives D7 is a **lower bound** on core startup.
+
+**A phase list means "this interval did these things".** One name once covered
+two actions — argv parsing *and* the usage refusal — and so appeared on three
+rungs that never write a usage refusal. The report copied that taxonomy
+faithfully and the control compared the two and agreed they matched, which is
+how a schema stays self-consistent while saying something false. The vocabulary
+now separates `cli-argv-parse` (every real core invocation), `cli-usage-refusal`
+(only the floor rung) and `ownir-door-refusal` (only the version-refused rung),
+and a refusal phase may appear only on the rung whose **outcome evidence proves
+that refusal happened** — `cli-usage-refusal` ⇔ `usage-help`,
+`ownir-door-refusal` ⇔ `door-refusal`, and neither on a rung that reaches a
+verdict.
+
+Applying the same rule the other way, `launcher-e2e` now also names
+`process-startup-core` and `cli-argv-parse`: the launcher spawns the core, so
+those actions are genuinely inside that interval and a complete list has to say
+so.
 
 **Derived views are labelled as derived and never presented as measurements.**
 `core-parse-refused − core-usage` does *not* yield parse: it yields the ownir

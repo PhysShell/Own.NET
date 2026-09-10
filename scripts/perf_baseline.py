@@ -788,7 +788,8 @@ class Rung:
 
 
 RUNGS: tuple[Rung, ...] = (
-    Rung("core-usage", "core", "none", ("process-startup-core", "cli-argv-refusal"), "composed",
+    Rung("core-usage", "core", "none",
+         ("process-startup-core", "cli-argv-parse", "cli-usage-refusal"), "composed",
          (2,), "usage-help",
          "The ladder FLOOR: the smallest real invocation the production surface allows — the "
          "process starts, parses argv, finds no document, writes a usage refusal and exits. It "
@@ -797,16 +798,18 @@ RUNGS: tuple[Rung, ...] = (
          "surface without instrumentation #263-A is not authorized to add. Calling it 'startup' "
          "would let a later subtraction hand D7 a phase nobody measured."),
     Rung("core-parse-refused", "core", "facts-refused",
-         ("process-startup-core", "cli-argv-refusal", "ownir-parse"), "composed",
-         (2,), "door-refusal",
+         ("process-startup-core", "cli-argv-parse", "ownir-parse", "ownir-door-refusal"),
+         "composed", (2,), "door-refusal",
          "A document the strict door refuses on its version. The read and parse happen; bridge "
          "and analysis never do. Subtracting core-usage does NOT leave parse: it leaves the "
          "ownir read+parse cost only under an assumption this instrument never measures — that "
-         "both invocations pay the same argv handling and comparably priced refusal rendering. "
+         "both invocations pay the same argv handling, and that cli-usage-refusal and "
+         "ownir-door-refusal cost the same. They are different phases writing different text on "
+         "different streams, so that second assumption is visibly an assumption. "
          "The difference is therefore a DERIVED bound, labelled as such, and never presented as "
          "a direct measurement of parse."),
     Rung("core-full-human", "core", "facts",
-         ("process-startup-core", "cli-argv-refusal", "ownir-parse", "bridge-lowering",
+         ("process-startup-core", "cli-argv-parse", "ownir-parse", "bridge-lowering",
           "analysis", "render-human"), "composed",
          (0, 1), "verdict-human",
          "The whole core path to the default surface. Exit 0 and exit 1 both mean a verdict was "
@@ -815,15 +818,16 @@ RUNGS: tuple[Rung, ...] = (
          "separately observable through the production surface and are recorded as members of "
          "this interval, not imputed from it."),
     Rung("core-full-sarif", "core", "facts",
-         ("process-startup-core", "cli-argv-refusal", "ownir-parse", "bridge-lowering",
+         ("process-startup-core", "cli-argv-parse", "ownir-parse", "bridge-lowering",
           "analysis", "render-sarif"), "composed",
          (0, 1), "verdict-sarif",
          "The same path to the SARIF surface. Against core-full-human it gives a renderer "
          "DIFFERENCE, which is not the same quantity as rendering in isolation and is never "
          "reported as if it were."),
     Rung("launcher-e2e", "launcher", "source",
-         ("process-startup-launcher", "frontend-extraction", "ownir-parse", "bridge-lowering",
-          "analysis", "render-human"), "composed",
+         ("process-startup-launcher", "frontend-extraction", "process-startup-core",
+          "cli-argv-parse", "ownir-parse", "bridge-lowering", "analysis",
+          "render-human"), "composed",
          (0,), "verdict-human",
          "The user-visible whole, through the production launcher with the engine explicitly "
          "selected. Each engine performs ITS OWN extraction: extraction is inside the elapsed "
@@ -897,8 +901,17 @@ def _evidence_problem(kind: str, out: str, err: str) -> str:
 # and which are not, without inferring it from a rung id.
 PHASES = {
     "process-startup-core": "user-visible? no — the child engine's own startup",
-    "cli-argv-refusal": "argv parsing and the usage-refusal message; unavoidably inside the "
-                        "floor rung, which is why that rung is a bound and not startup itself",
+    # Split, because one name for two actions put a phase in intervals that never
+    # performed it. Every real core invocation parses argv; only the floor rung
+    # writes a usage refusal, and only the version-refused rung writes a door
+    # refusal. A phase list has to mean "this interval did these things".
+    "cli-argv-parse": "the core CLI's argument handling, before any document is opened; present "
+                      "in every real core invocation",
+    "cli-usage-refusal": "the driver banner a core invocation with no document writes before "
+                         "exiting; unavoidably inside the floor rung, which is why that rung is "
+                         "a bound on startup and not startup itself",
+    "ownir-door-refusal": "the strict door's refusal message for a document it will not accept "
+                          "on its version",
     "process-startup-launcher": "user-visible: what a caller waits for before anything happens",
     "ownir-parse": "the ownir document read and validate",
     "bridge-lowering": "facts -> Layer 2 -> core AST",

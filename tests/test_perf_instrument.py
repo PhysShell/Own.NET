@@ -423,8 +423,31 @@ def control_phase_attribution() -> None:
     handling and refusal rendering, and the production surface cannot separate
     them without instrumentation #263-A is not authorized to add.
     """
+    # A refusal phase belongs to exactly the rung whose outcome PROVES that
+    # refusal happened. Without this the schema stayed internally consistent
+    # while saying something false: one bundled "argv parsing + usage refusal"
+    # phase sat on three rungs that never write a usage refusal, the report
+    # copied the same taxonomy faithfully, and a control that only compared the
+    # two agreed they matched. Two identical tables are not evidence; they are
+    # one claim written twice.
+    refusal_phase_evidence = {
+        "cli-usage-refusal": "usage-help",
+        "ownir-door-refusal": "door-refusal",
+    }
     problems = []
     for r in pb.RUNGS:
+        for phase, required in refusal_phase_evidence.items():
+            if phase in r.phases and r.evidence != required:
+                problems.append(f"{r.id}: claims {phase!r} but its outcome is proved by "
+                                f"{r.evidence!r}, which demonstrates no such refusal happened")
+            if r.evidence == required and phase not in r.phases:
+                problems.append(f"{r.id}: its outcome proves {required!r}, so the interval "
+                                f"contains {phase!r} and must name it")
+        # Stated separately as well as implied, because this is the exact shape
+        # the defect took: a refusal phase riding along on a successful rung.
+        if r.evidence.startswith("verdict") and any(p.endswith("-refusal") for p in r.phases):
+            problems.append(f"{r.id}: reaches a verdict, so no refusal phase belongs in it: "
+                            f"{[p for p in r.phases if p.endswith('-refusal')]}")
         undeclared = [p for p in r.phases if p not in pb.PHASES]
         if undeclared:
             problems.append(f"{r.id}: names phases absent from the vocabulary: {undeclared}")
@@ -437,10 +460,14 @@ def control_phase_attribution() -> None:
             problems.append(f"{r.id}: labelled composed but names {len(r.phases)} phase(s)")
         # The floor: a core invocation that takes no input still runs the CLI
         # front door, so it must say so.
+        # Every real core invocation parses argv, floor or not.
+        if r.surface == "core" and "cli-argv-parse" not in r.phases:
+            problems.append(f"{r.id}: a core invocation always parses argv but does not name "
+                            "that phase")
         if r.surface == "core" and r.needs == "none":
-            if "cli-argv-refusal" not in r.phases:
-                problems.append(f"{r.id}: the smallest core invocation still parses argv and "
-                                "renders a refusal, but does not name that phase")
+            if "cli-usage-refusal" not in r.phases:
+                problems.append(f"{r.id}: the smallest core invocation writes a usage refusal "
+                                "but does not name that phase")
             if r.observability == "direct":
                 problems.append(f"{r.id}: the ladder floor is a LOWER BOUND on startup, not "
                                 "startup measured directly")
@@ -485,9 +512,10 @@ def control_phase_attribution() -> None:
     if problems:
         fail("perf-phase-attribution", "; ".join(problems))
     else:
-        ok("perf-phase-attribution", "every rung's phases are declared, observability matches "
-                                     "arity, the ladder floor is a bound rather than startup, "
-                                     "and the shipped report agrees with the rung table")
+        ok("perf-phase-attribution", "every rung's phases are declared, a refusal phase "
+                                     "appears only where the outcome proves that refusal, the "
+                                     "ladder floor is a bound rather than startup, and the "
+                                     "shipped report agrees with the rung table")
 
 def control_session_drift() -> None:
     """A candidate that changes mid-session refuses the remainder."""
