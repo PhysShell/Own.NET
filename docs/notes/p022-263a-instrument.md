@@ -439,12 +439,17 @@ committed by the time the evidence ships, which is a different moment.
 
 ```
 clean source commit S
-  run A  -> scratch/A.json          (tree S, dirty false)
-  run B  --reproduce scratch/A.json -> scratch/B.json   (tree S, dirty false)
+  run A  -> scratch/<final-name-A>.json          (tree S, dirty false)
+  run B  --reproduce scratch/<final-name-A>.json
+         -> scratch/<final-name-B>.json          (tree S, dirty false)
   verify identity on every axis below
   copy A and B into the repository
   one evidence commit
 ```
+
+The scratch files must carry **their final committed names**: `earlier_run.path`
+records the basename it was handed, so a scratch name would leave run B pointing
+at a file that never ships.
 
 **`PAIR_IDENTITY_FIELDS`** — every axis two halves must share: `tree_sha`,
 `tree_dirty`, `python_reference_commit`, `workload_manifest_sha256`,
@@ -455,6 +460,43 @@ clean source commit S
 mismatched pair is not merely detectable afterwards — it cannot be made. The
 control is the second lock, checking the same axes on evidence that already
 exists.
+
+### What the corrected pairs actually showed
+
+Re-recording under the fixed procedure was required for provenance, not to
+obtain a different answer. It produced a different answer anyway, twice, and
+neither is being treated as a result to bank.
+
+| pair | outcome |
+|---|---|
+| first corrected attempt, `n=5` and `n=15` | both **passed** |
+| second corrected attempt (final filenames), `n=5` | **passed** |
+| second corrected attempt, `n=15` | **failed** — one cell, `core-full-sarif\|rust\|cal-facts-medium\|process-cold`, 0.361 |
+
+Running tally on this machine: `n=5` has failed twice and passed four times;
+`n=15` has failed twice and passed twice. Neither count reproduces reliably, and
+which one "works" depends on when it was run.
+
+**So no calibration of record is restored.** Re-running was authorised to repair
+provenance; promoting whichever pair happened to pass would be selection
+regardless of why the re-run happened, and by now the coin has been watched land
+enough times to know it is a coin. Both pairs ship as **sizing evidence**, pass
+and fail alike, and `p022-263a-calibration.linux.json` stays absent until the
+variance characterisation says what the measurement model should be.
+
+### Pre-contract artifacts, kept and quarantined
+
+The four artifacts committed before the pair-identity contract existed fail it
+by construction: their `earlier_run` blocks predate the fields it requires, and
+their halves genuinely were measured under two different reference commits.
+
+They are preserved **byte-identical** under `docs/evidence/historical/`, outside
+the glob the live controls scan. Not deleted, because they are the record of a
+real measurement and of the defect that produced it; not left in place, because
+a control that must exempt specific filenames is a control with a list of
+excuses. The alternative — an explicit exemption inside the check — was offered
+to the owner and this location was chosen pending any objection; the move is
+byte-preserving and trivially reversible.
 
 ### The escalation was spent, and it did not work
 
