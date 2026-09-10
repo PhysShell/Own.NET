@@ -41,9 +41,24 @@ universal protocols (dispose your `IDisposable`, unsubscribe your event);
 NDepend/CodeQL can query structure but have no barrier-sensitive obligation
 model; typestate research languages don't speak legacy C#. The niche is real:
 **barrier-sensitive, project-specific obligation checking for code review** —
-and the OwnAudit STS corpus already shows the shape in the wild (17k
-INPC findings, 8 recorded `IsLoaded` findings, `BrokerDataClasses` as the
-subscription-leak epicenter).
+and the OwnAudit STS material already shows the shape in the wild: real
+project-specific notification/lifecycle patterns, including `IsLoaded`-style
+consistency state, and a visible concentration of related findings in
+`BrokerDataClasses`.
+
+**Quantitative claims are intentionally omitted here** until they are derived
+reproducibly from a provenance-bound audit artifact. An earlier revision of this
+paragraph cited "17k INPC findings" and "8 recorded `IsLoaded` findings"; neither
+survives checking. `OwnAudit/sts_audit/` is not one canonical snapshot —
+`health-report.md` carries an empty commit field and `generated: ?`,
+`health-report.json` beside it is a different two-tool run bound to `59e284ba`,
+`PLAN.md` quotes a third set again, and the current STS-210 audit lives in
+`artifacts/`, which is not committed. The raw per-tool SARIF under `sts_audit/`
+is a fine measurement substrate, but a grep over it yields search hits across
+repeated runs and `_wpftmp` shadow projects, not findings. A count belongs here
+only once it names its source artifact, its selector version, and its result —
+and this proposal does not need one: the `IsLoaded` example above already
+establishes the semantic gap on its own.
 
 The same three verbs cover the whole family:
 
