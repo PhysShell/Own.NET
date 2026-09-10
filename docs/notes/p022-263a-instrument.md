@@ -402,6 +402,26 @@ unstable estimate rather than the distribution truly being that wide — and it 
 equally consistent with a quieter machine. One paired trial cannot separate
 them, and this note does not claim it did.
 
+**Then `n=5` reproduced too.** A subsequent `n=5` pair, taken under the shipped
+instrument, came back admissible on all three axes with nothing outside
+tolerance. So the original failure was **intermittent, not systematic**, and
+"n=5 is too few" is not merely unproven — it is now weakly contradicted. Both
+pairs are preserved: the `n=5` evidence in
+`docs/evidence/p022-263a-sizing-n5.linux.json`, deliberately named so it does
+*not* match the glob that identifies a report of record.
+
+So the sizing choice is **precautionary, not demonstrated**. The report of
+record uses `n=15` because a report of record should carry the better-estimated
+median — an argument that would have been just as true before any run went red,
+and one that does not depend on `n=15` having been the only green option. It was
+not: both counts reproduced. What `n=5` demonstrated is that its admissibility
+is luck-dependent on this machine, which is a reason to prefer more samples for
+the artifact and *not* evidence about the workload's intrinsic spread.
+
+CI keeps `n=5`. Its question is whether the instrument stands up, it may record
+`timings_reproduced: false` as a diagnostic, and tripling every leg's runtime to
+chase an artifact property it does not produce would buy nothing.
+
 **A record that was destroyed.** The specific `n=5` report that failed was
 discarded from the working tree before the preservation rule existed, because a
 control forbids committing a non-reproducing calibration and the reflex was to
