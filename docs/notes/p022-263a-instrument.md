@@ -600,9 +600,10 @@ neither is being treated as a result to bank.
 | second corrected attempt (final filenames), `n=5` | **passed** |
 | second corrected attempt, `n=15` | **failed** — one cell, `core-full-sarif\|rust\|cal-facts-medium\|process-cold`, 0.361 |
 | third, under the D7 §6 / reference-identity repair, `n=5` and `n=15` | both **passed** |
+| fourth, under the anchor / protocol repair, `n=5` and `n=15` | both **passed** |
 
-Running tally on this machine: `n=5` has failed twice and passed five times;
-`n=15` has failed twice and passed three times. Neither count reproduces
+Running tally on this machine: `n=5` has failed twice and passed six times;
+`n=15` has failed twice and passed four times. Neither count reproduces
 reliably, and which one "works" depends on when it was run. Every re-record was
 forced by a provenance repair, never sought for a better answer, and the ledger
 is kept in both directions for exactly that reason.
@@ -613,6 +614,15 @@ regardless of why the re-run happened, and by now the coin has been watched land
 enough times to know it is a coin. Both pairs ship as **sizing evidence**, pass
 and fail alike, and `p022-263a-calibration.linux.json` stays absent until the
 variance characterisation says what the measurement model should be.
+
+Four consecutive passes do not change that, and are worth being explicit about:
+the last two re-records were forced by the anchor and protocol repairs, which
+move the harness digest and therefore stale every pair recorded before them. A
+run that had to be redone for provenance is not a run that was chosen for its
+answer — but a tally in which the passes now outnumber the failures three to one
+is exactly where selection starts looking like evidence, which is why the
+failures stay in the ledger and in `docs/evidence/historical/` rather than being
+summarised away.
 
 ### Pre-contract artifacts, kept and quarantined
 
