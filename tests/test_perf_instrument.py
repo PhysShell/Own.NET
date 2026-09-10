@@ -69,7 +69,7 @@ def control_firewall() -> None:
     firewall, it is a broken instrument that happens to be safe.
     """
     workloads, digest = pb.load_manifest()
-    gate = pb.IdentityGate.load(digest, "")
+    gate = pb.IdentityGate.load(digest)
     decisive_admitted, calibration_refused = [], []
     with tempfile.TemporaryDirectory(prefix="perf-fw-") as td:
         h = _harness(Path(td), gate)
@@ -106,7 +106,7 @@ def control_firewall() -> None:
 def control_gate_dormant() -> None:
     """The gate is present and unarmed, and a malformed attestation fails CLOSED."""
     _, digest = pb.load_manifest()
-    gate = pb.IdentityGate.load(digest, "")
+    gate = pb.IdentityGate.load(digest)
     problems = []
     if gate.armed:
         problems.append("the gate is ARMED — #263-A must never ship a D7 attestation")
@@ -116,47 +116,44 @@ def control_gate_dormant() -> None:
         if key not in gate.observed:
             problems.append(f"the gate observes no {key}")
 
-    saved = pb.ATTESTATION
+    saved = pb.D7_PAYLOAD
     with tempfile.TemporaryDirectory(prefix="perf-gate-") as td:
         try:
-            pb.ATTESTATION = Path(td) / "att.json"
-            pb.ATTESTATION.write_text("{ this is not json", encoding="utf-8")
+            pb.D7_PAYLOAD = Path(td) / "payload.json"
+            pb.D7_PAYLOAD.write_text("{ this is not json", encoding="utf-8")
             try:
-                pb.IdentityGate.load(digest, "")
+                pb.IdentityGate.load(digest)
             except pb.InstrumentError:
                 pass
             else:
-                problems.append("an unreadable attestation did not fail closed")
-            # The exact shape the old verifier armed on. It is refused here for
-            # not declaring itself a freeze at all; that it ALSO carries the
-            # wrong identity is checked, against a real committed freeze, by
-            # perf-gate-payload-identity — one control per reason, so neither
-            # passes on the other's behalf.
-            pb.ATTESTATION.write_text(json.dumps({
-                "harness_digest": pb.harness_digest(),
-                "workload_manifest_sha256": digest,
-                "python_reference_commit": "",
-            }), encoding="utf-8")
+                problems.append("an unreadable D7 payload did not fail closed")
+            # The exact shape an older verifier armed on: computable values
+            # echoed back. It is refused here for not declaring itself a payload
+            # at all; the full §6 machinery is checked, against a real two-commit
+            # freeze, by perf-gate-payload-identity — one control per reason, so
+            # neither passes on the other's behalf.
+            pb.D7_PAYLOAD.write_text(json.dumps(
+                pb.IdentityGate.observe(digest)), encoding="utf-8")
             try:
-                pb.IdentityGate.load(digest, "")
+                pb.IdentityGate.load(digest)
             except pb.InstrumentError as e:
-                if "does not declare itself" not in str(e):
+                if "does not declare itself a D7 payload" not in str(e):
                     problems.append(f"a bare identity echo was refused by the wrong check: {e}")
             else:
-                problems.append("a file echoing three computable values back was accepted as a "
-                                "D7 freeze")
+                problems.append("a file echoing computable values back was accepted as a D7 "
+                                "freeze")
         finally:
-            pb.ATTESTATION = saved
+            pb.D7_PAYLOAD = saved
 
     if problems:
         fail("perf-gate-dormant", "; ".join(problems))
     else:
-        ok("perf-gate-dormant", "the gate observes harness, manifest and reference identity, "
+        ok("perf-gate-dormant", "the gate observes instrument, reference and workload identity, "
                                 "is unarmed, and refuses both an unreadable file and a bare "
                                 "identity echo")
 
 
-# --- the C1/C2 freeze, built for real in a throwaway repository -------------
+# --- the D7 freeze, built for real in a throwaway repository ----------------
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -168,170 +165,195 @@ def _git(repo: Path, *args: str) -> str:
     return r.stdout.decode("utf-8", "replace").strip()
 
 
-def _valid_payload(c1: dict) -> dict:
+def _canonical(obj: dict) -> str:
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"))
+
+
+def _valid_payload(observed: dict) -> dict:
     payload = {
-        "kind": pb.ATTESTATION_KIND,
-        "schema": pb.ATTESTATION_SCHEMA,
-        "c1": dict(c1),
-        # Placeholders. The gate must never read a C2 VALUE, so what is written
-        # here is deliberately not a plausible threshold.
-        "c2": dict.fromkeys(pb.ATTESTATION_C2_KEYS, "<frozen by D7, never read by the gate>"),
+        "kind": pb.D7_PAYLOAD_KIND,
+        "schema": pb.D7_SCHEMA,
+        # Deliberately not plausible thresholds: the gate must never read them.
+        **dict.fromkeys(pb.D7_PAYLOAD_PROTOCOL_KEYS, "<frozen by D7, never read by the gate>"),
+        **{k: observed[k] for k in pb.D7_PAYLOAD_BINDING_KEYS},
+        "ratification": {"owner": "the owner", "ratified_at": "2026-01-01T00:00:00Z",
+                         "signature": "none"},
     }
-    payload["payload_sha256"] = pb.attestation_body_sha256(payload)
     return payload
 
 
-def _build_freeze(repo: Path, c1: dict, break_: str = "") -> None:
-    """A real payload + ratification, committed in a real repository.
+def _build_freeze(repo: Path, observed: dict, break_: str = "") -> None:
+    """A real two-commit D7 freeze: C1 the payload, C2 a detached attestation in
+    a strictly later commit.
 
     Each ``break_`` damages exactly ONE property, so a refusal can be matched
-    against the check that was supposed to catch it. A control where every
-    broken input is refused by the same over-broad check proves nothing about
-    the other checks.
+    against the check that owns it. A control where every broken input is
+    refused by the same over-broad check proves nothing about the other checks.
     """
-    # NESTED, exactly as production stores them. The first version of these
-    # fixtures put both objects at the repository ROOT, where the verifier's
-    # wrong model — treating the file's own directory as the repository — is
-    # accidentally right. Every control agreed while no real freeze could ever
-    # have armed, because `<rev>:<path>` resolves from the tree root and the
-    # verifier was asking for a bare basename.
     repo.mkdir(parents=True, exist_ok=True)
     _git(repo, "init", "-q")
     nest = repo / "docs" / "evidence"
     nest.mkdir(parents=True, exist_ok=True)
-    att = nest / pb.ATTESTATION.name
-    rat = nest / pb.RATIFICATION.name
-    att_rel = f"docs/evidence/{att.name}"
+    pay = nest / pb.D7_PAYLOAD.name
+    att = nest / pb.D7_ATTESTATION.name
+    pay_rel = f"docs/evidence/{pay.name}"
 
-    payload = _valid_payload(c1)
+    payload = _valid_payload(observed)
     if break_ == "echo":
-        payload = dict(c1)                                   # the defect this repair removes
-    elif break_ == "no-c1":
-        payload.pop("c1")
-    elif break_ == "no-c2":
-        payload.pop("c2")
-    elif break_ == "partial-c1":
-        payload["c1"] = {pb.ATTESTATION_C1_KEYS[0]: c1[pb.ATTESTATION_C1_KEYS[0]]}
-    elif break_ == "partial-c2":
-        payload["c2"] = {pb.ATTESTATION_C2_KEYS[0]: "only one of them"}
-    elif break_ == "body-hash":
-        payload["payload_sha256"] = "0" * 64
-    elif break_ == "c1-mismatch":
-        payload["c1"]["harness_digest"] = "f" * 64
-        payload["payload_sha256"] = pb.attestation_body_sha256(
-            {k: v for k, v in payload.items() if k != "payload_sha256"})
-
-    att.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    _git(repo, "add", "-A")
-    _git(repo, "commit", "-q", "-m", "freeze payload")
-    commit = _git(repo, "rev-parse", "HEAD")
-
-    if break_ == "no-ratification":
-        return
-
-    body = pb.attestation_body_sha256(payload) if "payload_sha256" in payload else "0" * 64
-    ratification = {
-        "kind": pb.RATIFICATION_KIND,
-        "schema": pb.ATTESTATION_SCHEMA,
-        "owner": "the owner",
-        "payload_path": att_rel,
-        "payload_commit_sha": commit,
-        "ratified_payload_sha256": body,
-        "signature": "none",
-    }
-    if break_ == "basename-path":
-        # The exact shape the broken verifier would have accepted, and the shape
-        # a real repository never has.
-        ratification["payload_path"] = att.name
-    elif break_ == "other-path":
-        ratification["payload_path"] = "docs/evidence/some-other-file.json"
+        payload = {k: observed[k] for k in pb.D7_PAYLOAD_BINDING_KEYS}
+    elif break_ == "payload-incomplete":
+        payload.pop(pb.D7_PAYLOAD_PROTOCOL_KEYS[0])
+    elif break_ == "no-ratification":
+        payload["ratification"] = {"owner": "the owner"}
     elif break_ == "signed":
-        ratification["signature"] = {"key_id": "DEADBEEFCAFE"}
-    if break_ == "ratifies-other":
-        ratification["ratified_payload_sha256"] = "a" * 64
-    elif break_ == "bad-commit":
-        ratification["payload_commit_sha"] = "0" * 40
-    elif break_ == "signature-undeclared":
-        ratification["signature"] = ""
+        payload["ratification"]["signature"] = {"key_id": "DEADBEEF"}
+    elif break_ == "binding-mismatch":
+        payload["harness_digest"] = "f" * 64
 
-    rat.write_text(json.dumps(ratification, indent=2) + "\n", encoding="utf-8")
-    if break_ == "ratification-uncommitted":
-        return
+    # A base commit, so C1 is never the repository's root commit.
+    (repo / "README").write_text("base\n", encoding="utf-8")
     _git(repo, "add", "-A")
-    _git(repo, "commit", "-q", "-m", "ratify the freeze")
+    _git(repo, "commit", "-q", "-m", "base")
+    base = _git(repo, "rev-parse", "HEAD")
 
-    if break_ == "reformatted":
-        # The one damage that reaches the blob check and nothing else: canonical
-        # JSON is indentation-blind, so the body hash, C1 and the ratification
-        # all still agree. Only git object identity can tell that the reviewed
-        # bytes were replaced. If this case is accepted, the blob check is
-        # decorative.
-        att.write_text(json.dumps(payload, indent=4) + "\n", encoding="utf-8")
+    pay.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "C1: freeze the payload")
+    c1 = _git(repo, "rev-parse", "HEAD")
+    blob = _git(repo, "rev-parse", f"{c1}:{pay_rel}")
+
+    if break_ == "no-attestation":
+        return
+
+    exact = pb.sha256_bytes(pay.read_bytes())
+    attestation = {
+        "kind": pb.D7_ATTESTATION_KIND,
+        "schema": pb.D7_SCHEMA,
+        "payload_path": pay_rel,
+        "payload_commit_sha": c1,
+        "payload_blob_sha": blob,
+        "payload_sha256": exact,
+        "bindings": {k: payload.get(k) for k in pb.D7_PAYLOAD_BINDING_KEYS},
+        "ratification_binding": payload.get("ratification"),
+    }
+    if break_ == "att-kind":
+        attestation["kind"] = "own.net/p022/something-else"
+    elif break_ == "att-incomplete":
+        attestation.pop("payload_blob_sha")
+    elif break_ == "wrong-exact-hash":
+        attestation["payload_sha256"] = "0" * 64
+    elif break_ == "canonical-hash":
+        # The old scheme's hash: canonical JSON rather than the exact bytes §6
+        # names. It "identifies" the payload only up to reformatting, which is
+        # the opposite of what an attestation is for.
+        attestation["payload_sha256"] = pb.sha256_bytes(_canonical(payload).encode())
+    elif break_ == "wrong-path":
+        attestation["payload_path"] = "docs/evidence/some-other-file.json"
+    elif break_ == "bad-commit":
+        attestation["payload_commit_sha"] = "0" * 40
+    elif break_ == "wrong-blob-sha":
+        attestation["payload_blob_sha"] = "0" * 40
+    elif break_ == "rebound":
+        attestation["bindings"]["harness_digest"] = "e" * 64
+    elif break_ == "rat-binding":
+        attestation["ratification_binding"] = {"owner": "somebody else",
+                                               "ratified_at": "2026-01-01T00:00:00Z",
+                                               "signature": "none"}
+
+    att.write_text(json.dumps(attestation, indent=2) + "\n", encoding="utf-8")
+
+    if break_ == "att-uncommitted":
+        return
+    if break_ == "not-descendant":
+        # A branch that forked BEFORE C1, carrying both files. The payload's
+        # bytes still match the blob at C1, and C1 still exists — only the
+        # attestation's commit fails to descend from it.
+        payload_text = pay.read_text(encoding="utf-8")
+        att_text = att.read_text(encoding="utf-8")
+        _git(repo, "checkout", "-q", "-f", "-b", "sidebranch", base)
+        nest.mkdir(parents=True, exist_ok=True)
+        pay.write_text(payload_text, encoding="utf-8")
+        att.write_text(att_text, encoding="utf-8")
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-q", "-m", "C2 on a sibling branch")
+        return
+
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "C2: detached attestation")
+
+    if break_ == "payload-modified-after-commit":
+        # Same canonical content, different bytes, and the attestation updated to
+        # match the NEW exact hash — so only git blob identity can catch it.
+        pay.write_text(json.dumps(payload, indent=4) + "\n", encoding="utf-8")
+        attestation["payload_sha256"] = pb.sha256_bytes(pay.read_bytes())
+        att.write_text(json.dumps(attestation, indent=2) + "\n", encoding="utf-8")
 
 
 def _with_freeze(repo: Path, fn):
-    saved_a, saved_r = pb.ATTESTATION, pb.RATIFICATION
+    saved_p, saved_a = pb.D7_PAYLOAD, pb.D7_ATTESTATION
     try:
-        pb.ATTESTATION = repo / "docs" / "evidence" / pb.ATTESTATION.name
-        pb.RATIFICATION = repo / "docs" / "evidence" / pb.RATIFICATION.name
+        pb.D7_PAYLOAD = repo / "docs" / "evidence" / pb.D7_PAYLOAD.name
+        pb.D7_ATTESTATION = repo / "docs" / "evidence" / pb.D7_ATTESTATION.name
         return fn()
     finally:
-        pb.ATTESTATION, pb.RATIFICATION = saved_a, saved_r
+        pb.D7_PAYLOAD, pb.D7_ATTESTATION = saved_p, saved_a
 
 
 # Each damaged freeze, and the phrase the check that owns it must produce.
 # Matching the catcher is the point: without it, one broad refusal masquerades
-# as ten working checks.
+# as twenty working checks.
 _BROKEN_FREEZES = (
-    ("echo", "does not declare itself"),
-    ("no-c1", "incomplete, missing: c1"),
-    ("no-c2", "incomplete, missing: c2"),
-    ("partial-c1", "no complete C1 section"),
-    ("partial-c2", "no complete C2 section"),
-    ("body-hash", "does not hash to its own payload_sha256"),
-    ("c1-mismatch", "does not describe this instrument"),
-    ("no-ratification", "unratified payload is a draft"),
-    ("ratifies-other", "for a different payload"),
-    ("bad-commit", "not a commit in this repository"),
-    ("ratification-uncommitted", "not committed in this repository"),
-    ("reformatted", "modified after it was frozen"),
-    ("signature-undeclared", 'signature field must be exactly "none"'),
-    ("basename-path", "may not choose which file it is about"),
-    ("other-path", "may not choose which file it is about"),
-    ("signed", "Signed ratification is not part of the accepted contract"),
+    ("echo", "does not declare itself a D7 payload"),
+    ("payload-incomplete", "payload is incomplete, missing"),
+    ("no-ratification", "no complete ratification"),
+    ("signed", 'signature must be exactly "none"'),
+    ("binding-mismatch", "does not describe this instrument"),
+    ("no-attestation", "requires a DETACHED attestation"),
+    ("att-kind", "does not declare itself a D7 attestation"),
+    ("att-incomplete", "attestation is incomplete, missing"),
+    ("wrong-exact-hash", "exact bytes hash to"),
+    ("canonical-hash", "exact bytes hash to"),
+    ("wrong-path", "may not choose which file it is about"),
+    ("bad-commit", "is not a commit in this repository"),
+    ("wrong-blob-sha", "payload_blob_sha"),
+    ("payload-modified-after-commit", "modified after it was frozen"),
+    ("not-descendant", "not a descendant of the payload commit"),
+    ("att-uncommitted", "not committed in this repository"),
+    ("rebound", "re-binds values the payload froze differently"),
+    ("rat-binding", "ratifies something other than what was frozen"),
 )
 
 
 def control_gate_payload_identity() -> None:
-    """The gate verifies a D7 FREEZE, not a file that echoes computable values.
+    """The gate verifies the D7 freeze §6 defines, not a lookalike.
 
-    The defect this replaces armed on any JSON carrying three values every
-    holder of this repository can compute in one line — it proved the instrument
-    was the instrument and called that a freeze. Each case below damages exactly
-    one property of a real committed freeze and requires the refusal to name the
-    check that owns it.
+    §6 is two GIT COMMITS: an immutable payload commit, then a detached
+    attestation in a DESCENDANT commit naming that commit, that blob, and the
+    sha256 of the payload's exact bytes. An earlier implementation used the same
+    two letters for two sections inside one file — the word had changed
+    profession — and had no equivalent of payload_blob_sha, of exact-byte
+    hashing, or of the ancestry requirement at all.
     """
     _, digest = pb.load_manifest()
-    c1 = {"harness_digest": pb.harness_digest(), "workload_manifest_sha256": digest,
-          "python_reference_commit": ""}
+    observed = pb.IdentityGate.observe(digest)
     problems = []
     for break_, expected in _BROKEN_FREEZES:
-        with tempfile.TemporaryDirectory(prefix=f"perf-freeze-{break_}-") as td:
+        with tempfile.TemporaryDirectory(prefix=f"perf-d7-{break_}-") as td:
             repo = Path(td) / "repo"
             try:
-                _build_freeze(repo, c1, break_)
-            except RuntimeError as e:               # git itself unavailable
+                _build_freeze(repo, observed, break_)
+            except RuntimeError as e:
                 problems.append(f"{break_}: could not build the fixture ({e})")
                 continue
 
             def run():
-                return pb.IdentityGate.load(digest, "")
+                return pb.IdentityGate.load(digest)
             try:
                 gate = _with_freeze(repo, run)
             except pb.InstrumentError as e:
                 if expected not in str(e):
                     problems.append(f"{break_}: refused, but by the wrong check — expected "
-                                    f"{expected!r}, got {str(e)[:140]!r}")
+                                    f"{expected!r}, got {str(e)[:160]!r}")
             else:
                 if gate.armed:
                     problems.append(f"{break_}: a damaged D7 freeze ARMED the gate; the check "
@@ -343,8 +365,9 @@ def control_gate_payload_identity() -> None:
         fail("perf-gate-payload-identity", "; ".join(problems))
     else:
         ok("perf-gate-payload-identity",
-           f"{len(_BROKEN_FREEZES)} damaged freezes, each refused by the check that owns it "
-           "(kind, C1, C2, body hash, instrument match, ratification, commit, blob, signature)")
+           f"{len(_BROKEN_FREEZES)} damaged D7 freezes, each refused by the check that owns it "
+           "(payload shape, ratification, bindings, attestation shape, exact-byte hash, blob "
+           "sha, path, commit, ancestry, re-binding)")
 
 
 def control_gate_arms_by_data() -> None:
@@ -352,32 +375,30 @@ def control_gate_arms_by_data() -> None:
 
     This is the obligation that stops #263-B from being a different instrument:
     if arming changed the digest D7 froze, the freeze would be void the moment
-    it was used. The freeze here is REAL — committed objects in a throwaway
-    repository — because a fixture the production checks cannot see is not
-    evidence that the production checks pass.
+    it was used. The freeze here is REAL — two commits in a throwaway repository
+    — because a fixture the production checks cannot see is not evidence that
+    the production checks pass.
     """
     workloads, digest = pb.load_manifest()
     before = pb.harness_digest()
-    c1 = {"harness_digest": before, "workload_manifest_sha256": digest,
-          "python_reference_commit": ""}
+    observed = pb.IdentityGate.observe(digest)
     problems = []
-    with tempfile.TemporaryDirectory(prefix="perf-arm-") as td:
+    with tempfile.TemporaryDirectory(prefix="perf-d7-arm-") as td:
         repo = Path(td) / "repo"
         try:
-            _build_freeze(repo, c1)
+            _build_freeze(repo, observed)
         except RuntimeError as e:
             fail("perf-gate-arms-by-data", f"could not build a real freeze fixture: {e}")
             return
 
         def run():
-            gate = pb.IdentityGate.load(digest, "")
-            after = pb.harness_digest()
-            return gate, after
+            gate = pb.IdentityGate.load(digest)
+            return gate, pb.harness_digest()
 
         try:
             gate, after = _with_freeze(repo, run)
         except pb.InstrumentError as e:
-            fail("perf-gate-arms-by-data", f"a VALID committed freeze was refused: {e}")
+            fail("perf-gate-arms-by-data", f"a VALID two-commit D7 freeze was refused: {e}")
             return
 
         if not gate.armed:
@@ -385,17 +406,15 @@ def control_gate_arms_by_data() -> None:
         if after != before:
             problems.append(f"arming moved the harness digest ({before[:12]} -> {after[:12]}): "
                             "the armed instrument is a different instrument")
-        # Presence of C2, never its values: an armed gate must not become the
-        # channel that carries a threshold into a #263-A artifact.
-        leaked = [k for k, v in gate.pinned.items() if k.startswith("c2") and "never read" in v]
+        leaked = [k for k, v in gate.pinned.items() if "never read" in str(v)]
         if leaked:
-            problems.append(f"the gate recorded C2 VALUES, not just field names: {leaked}")
-        if gate.pinned.get("c2_fields_present") != ", ".join(sorted(pb.ATTESTATION_C2_KEYS)):
-            problems.append("the gate did not record which C2 fields were present")
-        if "unsigned" not in gate.pinned.get("signature", ""):
-            problems.append("an unsigned freeze did not record itself as unsigned, so the report "
-                            "would imply more authority than the freeze carried")
-        # And with the gate armed, the firewall must let a decisive workload through.
+            problems.append(f"the gate recorded frozen PROTOCOL VALUES, not just field names: "
+                            f"{leaked}")
+        if gate.pinned.get("protocol_fields_present") != ", ".join(
+                sorted(pb.D7_PAYLOAD_PROTOCOL_KEYS)):
+            problems.append("the gate did not record which protocol fields were present")
+        if gate.pinned.get("attestation_commit_sha") == gate.pinned.get("payload_commit_sha"):
+            problems.append("C1 and C2 were recorded as the same commit")
         h = _harness(Path(td), gate)
         dec = next(w for w in workloads if w.decisive)
         try:
@@ -406,12 +425,9 @@ def control_gate_arms_by_data() -> None:
     if problems:
         fail("perf-gate-arms-by-data", "; ".join(problems))
     else:
-        ok("perf-gate-arms-by-data", "two committed JSON objects arm the gate with no source "
-                                     "patch, the harness digest is unchanged by arming, no C2 "
-                                     "value is recorded, and the firewall then opens")
-
-
-# --- phase attribution ------------------------------------------------------
+        ok("perf-gate-arms-by-data", "two commits in order arm the gate with no source patch, "
+                                     "the harness digest is unchanged by arming, no frozen "
+                                     "protocol value is recorded, and the firewall then opens")
 
 
 def control_phase_attribution() -> None:
@@ -584,7 +600,7 @@ def control_notary_outside_interval() -> None:
     with tempfile.TemporaryDirectory(prefix="perf-notary-") as td:
         tmp = Path(td)
         _, digest = pb.load_manifest()
-        h = _harness(tmp, pb.IdentityGate.load(digest, ""))
+        h = _harness(tmp, pb.IdentityGate.load(digest))
         argv = [sys.executable, "-c", "pass"]
         pb.sha256_file = counting        # type: ignore[assignment]
         pb._git_in = counting_git        # type: ignore[assignment]
@@ -633,7 +649,7 @@ def control_smoke_untimed() -> None:
     workloads, digest = pb.load_manifest()
     problems = []
     with tempfile.TemporaryDirectory(prefix="perf-smoke-") as td:
-        h = _harness(Path(td), pb.IdentityGate.load(digest, ""))
+        h = _harness(Path(td), pb.IdentityGate.load(digest))
         for w in workloads:
             if not w.decisive:
                 continue
@@ -836,7 +852,7 @@ def control_rung_outcome() -> None:
         problems.append("an unknown evidence kind was silently accepted")
 
     with tempfile.TemporaryDirectory(prefix="perf-outcome-") as td:
-        h = _harness(Path(td), pb.IdentityGate.load(digest, ""))
+        h = _harness(Path(td), pb.IdentityGate.load(digest))
         launcher = next(r for r in pb.RUNGS if r.surface == "launcher")
         # Exactly the shape an absent toolchain produced.
         bad = h.verify_outcome(launcher, [sys.executable, "-c", "raise SystemExit(127)"],

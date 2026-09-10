@@ -277,44 +277,52 @@ V1/V2/invalid-UTF-8 hygiene lands **before** the D7 freeze and #263-B.
 
 ### What the gate actually verifies
 
-An attestation is not "a JSON file with the right numbers in it". The values a
-freeze pins — the harness digest, the manifest digest — are things anyone
-holding this repository can compute in one line, so a verifier that only
-compares them proves the instrument is the instrument and calls that a freeze.
-It answers *is this the harness?* when the question is *did D7 happen?*
+D7 §6 defines **two git commits**, not two sections of one file.
 
-The freeze is therefore **two objects**, because a payload cannot name the
-commit that contains it — that sha would have to be inside the bytes hashed into
-it, and self-reference is the reason detached signatures exist:
+| | |
+|---|---|
+| **C1** | the immutable payload commit — thresholds/rules/rollups, the Python reference sha, the #263-A tree sha, harness digest and version, the workload manifest digest, and the owner's ratification |
+| **C2** | a detached attestation in a **descendant** commit — the payload's commit sha, its blob sha, the sha256 of its **exact bytes**, the instrument/reference/workload bindings, and the ratification binding |
 
-* the **payload** (`p022-263a-d7-attestation.json`) — what D7 froze: a C1
-  section of instrument identities and a C2 section of decisive protocol.
-  Carries no commit reference, so it can be hashed as a unit.
-* the **ratification** (`p022-263a-d7-ratification.json`) — the owner's act,
-  committed separately and afterwards: it names the payload's body hash and the
-  commit the payload is frozen at.
+An earlier implementation used the same two letters for something else: `c1` and
+`c2` were sections *inside* one payload, with `c2` holding threshold values. The
+word had quietly changed profession, and an equivalent-looking scheme is not the
+frozen scheme. It had no equivalent at all of `payload_blob_sha`, of exact-byte
+hashing, or of the ancestry requirement.
 
-Arming requires all of: a kind/schema discriminator; a complete C1 *and* a
-complete C2 section; a body hash the payload recomputes to; C1 matching observed
-identity; a ratification of *that* body hash; a `payload_path` equal to the
-repository-relative path this instrument actually reads its payload from, so a
-ratification cannot choose which file it is about; and git blob identity — the
-payload's working-tree bytes must be the blob at the commit the ratification
-names, and the ratification must itself be committed and unmodified.
+The verifier now proves, in order: the payload declares its kind and schema and
+carries every required field; its protocol section is **present and never read**
+(those values are thresholds); its bindings equal what this process observes; a
+detached attestation exists, declares its own kind, and is complete; its
+`payload_sha256` equals the sha256 of the payload's **exact bytes**, not a
+canonical re-serialisation; its `payload_blob_sha` equals the payload's git blob
+at `payload_commit_sha`, and the working-tree bytes are that blob; its own
+commit is a **strict descendant** of the payload commit; and its bindings and
+ratification binding equal the payload's.
 
-Every path is resolved against the **git tree root**, obtained from
-`git rev-parse --show-toplevel`. This is load-bearing and was got wrong once:
-`<rev>:<path>` reads the path from the root of the tree, and only a path
-starting `./` or `../` is read relative to the current directory. Treating the
-payload's own directory as the repository produced a bare-basename lookup for a
-file that lives under `docs/evidence/`, so no production freeze could ever have
-armed — while every control passed, because the throwaway fixtures put both
-objects at the repository root, where the wrong model is accidentally right. The
-fixtures now use the production nested layout. **C2 is
-checked for presence and never read**, because its values are thresholds and a
-#263-A artifact that quoted one would leak the number this module exists to keep
-out. Arming thus costs two reviewed commits rather than one text editor, and
-still moves no source, so the harness digest D7 freezes is untouched by it.
+**One guard is defensive and untested.** A same-commit state — where the
+attestation's `payload_commit_sha` names the commit that contains the
+attestation — cannot be constructed with ordinary git, because the attestation
+would have to contain the sha of a commit whose sha depends on the attestation.
+The guard stays, because "cannot currently be built" is not "cannot exist", and
+it is recorded here as untested rather than faked with a mocked git.
+
+### The Python reference is not `HEAD`
+
+`python_reference_commit()` returned `git rev-parse HEAD`. That is not the
+reference; it is wherever the repository happens to be standing. Every commit
+moved it, evidence-only commits included, which is how run A and run B of one
+pair recorded two different "reference" identities while `ownlang` had not
+changed a byte.
+
+Worse at D7: the freeze creates a C1 commit and then a C2 commit, so a correctly
+executed freeze would itself invalidate the reference binding it had just
+written down. An alarm that counts its own installation as a break-in.
+
+The reference commit is now the last commit that **touched the reference
+source**, and a `python_reference_tree` records that source's content-addressed
+git tree object beside it. The commit sha names a label; the tree object shows
+two artifacts saw the same bytes. Both are in `PAIR_IDENTITY_FIELDS`.
 
 ### The harness digest names content, not a checkout
 
@@ -511,11 +519,18 @@ Both pairs reproduced their **outcomes** exactly and both environments were
 valid. Only the timings disagreed. Tripling the repetition count did not reduce
 the disagreement; it produced more of it.
 
-That is the predicted result, and it was predicted *before* the run: more
-samples tighten the uncertainty of the median **estimate**, they do not narrow
-the **intrinsic spread** of the distribution being sampled. The earlier reading
-of a single n=5 failure as "too few samples" was a hypothesis, and this is the
-evidence that refutes it.
+This outcome is consistent with the pre-run alternative that increasing N need
+not restore reproducibility when the dominant variability is not sampling
+uncertainty of the median. It falsifies the narrower operational hypothesis
+tested by the preregistered escalation: that moving from `n=5` to `n=15` would
+reliably produce an admissible calibration on this setup. It does **not**
+establish the cause of the remaining variability, nor distinguish intrinsic
+workload spread from between-run environmental variation.
+
+The earlier claim that this was "the predicted result, predicted before the run"
+said more than the evidence carries: nothing predicted that `n=15` would fail on
+three cells or fail worse than `n=5`. What was stated in advance was only the
+alternative above and the stop rule.
 
 **So the instrument currently has no admissible calibration of record**, and one
 is not manufactured by continuing to turn the knob. The escalation permitted was
