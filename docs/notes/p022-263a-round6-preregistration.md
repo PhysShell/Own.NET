@@ -149,16 +149,23 @@ anywhere in this round.
 
 ## Per-scale iteration counts (setup pass)
 
-*To be filled by the setup pass, before the measurement pass runs. Empty here
-because this document is committed first.*
+Filled by the setup pass at `8c61a7b`, before the measurement pass ran.
+Helper `f937b36bd4da`, spawn floor **1.332 ms**,
+689,052 iterations per ms. Recorded in
+`docs/evidence/round6/p022-263a-round6-scales.linux.json`, which lives in a
+subdirectory so it is outside the flat report-of-record glob by construction and
+not merely by key shape.
 
 | target ms | iterations | achieved median ms |
 |---|---|---|
-| 1 | | |
-| 2 | | |
-| 4 | | |
-| 8 | | |
-| 16 | | |
-| 32 | | |
-| 64 | | |
-| 128 | | |
+| 1 | 0 | 1.448 _(at/below spawn floor)_ |
+| 2 | 460,280 | 2.0128 |
+| 4 | 1,838,383 | 4.09 |
+| 8 | 4,594,589 | 8.499 |
+| 16 | 10,107,001 | 16.4963 |
+| 32 | 21,131,826 | 31.6907 |
+| 64 | 43,181,474 | 63.3262 |
+| 128 | 87,280,771 | 127.3134 |
+
+The ladder tracks its targets from 2 ms up. The 1 ms rung is the spawn floor and
+is kept, flagged, and read as a bound rather than a duration.

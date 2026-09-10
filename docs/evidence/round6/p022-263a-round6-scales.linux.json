@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "tag": "CALIBRATION_ONLY",
+  "kind": "own.net/p022/round6-scales",
+  "not_decision_evidence": "Setup pass. Fixes the helper's work per rung. No verdict, no tolerance, no threshold.",
+  "helper_sha256": "f937b36bd4dac422f88942b87ea9794e2c75a198a034917e6c02c0abad1c0cbd",
+  "helper_source": "scripts/round6/spin.c",
+  "spawn_floor_ms": 1.332,
+  "iterations_per_ms": 689051.5,
+  "warmup_discards": 2,
+  "rungs": [
+    {
+      "target_ms": 1,
+      "iterations": 0,
+      "achieved_median_ms": 1.448,
+      "at_or_below_spawn_floor": true
+    },
+    {
+      "target_ms": 2,
+      "iterations": 460280,
+      "achieved_median_ms": 2.0128,
+      "at_or_below_spawn_floor": false
+    },
+    {
+      "target_ms": 4,
+      "iterations": 1838383,
+      "achieved_median_ms": 4.09,
+      "at_or_below_spawn_floor": false
+    },
+    {
+      "target_ms": 8,
+      "iterations": 4594589,
+      "achieved_median_ms": 8.499,
+      "at_or_below_spawn_floor": false
+    },
+    {
+      "target_ms": 16,
+      "iterations": 10107001,
+      "achieved_median_ms": 16.4963,
+      "at_or_below_spawn_floor": false
+    },
+    {
+      "target_ms": 32,
+      "iterations": 21131826,
+      "achieved_median_ms": 31.6907,
+      "at_or_below_spawn_floor": false
+    },
+    {
+      "target_ms": 64,
+      "iterations": 43181474,
+      "achieved_median_ms": 63.3262,
+      "at_or_below_spawn_floor": false
+    },
+    {
+      "target_ms": 128,
+      "iterations": 87280771,
+      "achieved_median_ms": 127.3134,
+      "at_or_below_spawn_floor": false
+    }
+  ],
+  "scheduler": {
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "cpu_count": 4,
+    "loadavg": [
+      0.18505859375,
+      0.09912109375,
+      0.02880859375
+    ],
+    "voluntary_ctxt_switches": 224,
+    "nonvoluntary_ctxt_switches": 1,
+    "system_ctxt": 289350
+  },
+  "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+  "timestamp_utc": "2026-09-10T16:30:50Z"
+}
