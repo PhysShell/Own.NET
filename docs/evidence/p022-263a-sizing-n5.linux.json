@@ -4,7 +4,7 @@
   "not_decision_evidence": "CALIBRATION ONLY. These numbers validate the INSTRUMENT and are not evidence about either engine. They cannot choose a threshold, a budget, a repetition count or a comparison statistic; those are D7's, frozen before the decisive run. No decisive workload was timed or resource-sampled to produce this file.",
   "harness": {
     "version": 1,
-    "digest": "ee220f6ab49aeca1ce6e8ea3b6facc45e30425f96cd5a30b641a654caa7f217d",
+    "digest": "344e98137dad5e93d4d7adb737fbca2af1ad0c6fc017d51549f130cb88cba473",
     "warmup_discards": 2,
     "calibration_repetitions": 5,
     "repetitions_note": "a CALIBRATION parameter for sizing the instrument, not the decisive N. The decisive N and its escalation ladder are preregistered by D7.",
@@ -58,13 +58,14 @@
     "gate_observed": {
       "python_reference_commit": "20879db170e6edf1dfd18c0488e15d611f15e912",
       "python_reference_tree": "d6031f5ee384aafc4c7f92fe5c9ad2a63b144562",
-      "harness_digest": "ee220f6ab49aeca1ce6e8ea3b6facc45e30425f96cd5a30b641a654caa7f217d",
+      "harness_digest": "344e98137dad5e93d4d7adb737fbca2af1ad0c6fc017d51549f130cb88cba473",
       "harness_version": "1",
       "workload_manifest_sha256": "ecfee52f905321ad143c280fe8f7f91b8fef4d0da66de9155aabd175c131ef8a"
     },
     "gate_requirements": [
       "C1: a payload at p022-263a-d7-payload.json declaring kind='own.net/p022/d7-payload', carrying kind, schema, cells, rollups, instrument_anchor_commit, python_reference_commit, python_reference_tree, harness_digest, harness_version, workload_manifest_sha256, ratification",
-      "C1 carries a STRUCTURALLY COMPLETE preregistration: cells, rollups; each cell declares phase, workload_id, platform, regime and either bound, pass_fail_rule, inconclusive_band, repetition_ladder, comparison_statistic, rss_policy, allocation_policy (the ladder carrying initial_n, escalation_stages, transition_predicates, max_n, terminal_outcome) or an explicit not_applicable with a reason; roll-ups carry workload_class, phase, overall_g3. Values are never read",
+      "C1 carries a STRUCTURALLY COMPLETE preregistration: cells, rollups; each cell declares phase, workload_id, platform, regime and either bound, pass_fail_rule, inconclusive_band, repetition_ladder, comparison_statistic, rss_policy, allocation_policy (the ladder carrying initial_n, escalation_stages, transition_predicates, max_n, terminal_outcome) or an explicit not_applicable naming a reason in words; roll-ups carry workload_class, phase, overall_g3. Values are never read",
+      "C1 decides EVERY one of the 528 cells D7 covers — phase x workload_id x platform x regime over the frozen decisive manifest with aliases resolved — with no cell missing, unknown, or named twice",
       "C1 declares instrument_anchor_commit S, and the instrument AT S hashes to the harness_digest C1 froze; S is an ancestor of C1. The CURRENT position is never required to equal S, because by #263-B it cannot be",
       "C1's bindings equal what this process observes: python_reference_commit, python_reference_tree, harness_digest, harness_version, workload_manifest_sha256",
       "C2: a detached attestation at p022-263a-d7-attestation.json declaring kind='own.net/p022/d7-attestation', carrying kind, schema, payload_path, payload_commit_sha, payload_blob_sha, payload_sha256, bindings, ratification_binding",
@@ -79,12 +80,12 @@
       "path": "/home/user/Own.NET/rust/target/release/own-cli",
       "sha256": "8f6c06dd7728fdc12663e03dd46b6e32c183656a2a9f9d05b05d1b0f3f9332fe",
       "bytes": 1841648,
-      "frozen_at": "2026-09-10T13:50:31Z",
+      "frozen_at": "2026-09-10T14:39:55Z",
       "measurements_taken": 200
     }
   },
   "provenance": {
-    "tree_sha": "f8e7112addea27f90bc899baa50ba3efc3495736",
+    "tree_sha": "43b6a4a0552a884157931de64ab48efe407316b1",
     "tree_dirty": false,
     "python_reference_commit": "20879db170e6edf1dfd18c0488e15d611f15e912",
     "python_reference_tree": "d6031f5ee384aafc4c7f92fe5c9ad2a63b144562",
@@ -103,7 +104,7 @@
       "runner_class": "local",
       "ci": false
     },
-    "timestamp_utc": "2026-09-10T13:53:49Z"
+    "timestamp_utc": "2026-09-10T14:43:11Z"
   },
   "regimes": {
     "process-cold": "a fresh process every iteration, no in-process warmup. The default: cheap, portable, and honestly named.",
@@ -112,18 +113,18 @@
   },
   "noise": {
     "before": {
-      "median_ns": 22902940,
-      "iqr_ns": 1279279.5,
-      "min_ns": 21777609,
-      "relative_iqr": 0.05585656251992102,
+      "median_ns": 22153226,
+      "iqr_ns": 433859.5,
+      "min_ns": 21748279,
+      "relative_iqr": 0.019584483993437343,
       "iterations": 25,
       "limit_relative_iqr": 0.35
     },
     "after": {
-      "median_ns": 23007574,
-      "iqr_ns": 1084763.5,
-      "min_ns": 21844475,
-      "relative_iqr": 0.047148104359025424,
+      "median_ns": 23552819,
+      "iqr_ns": 1268874.0,
+      "min_ns": 22580628,
+      "relative_iqr": 0.053873551187227316,
       "iterations": 25,
       "limit_relative_iqr": 0.35
     },
@@ -449,37 +450,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 2491596,
-        "min_ns": 2357838,
-        "mad_ns": 133758,
-        "iqr_ns": 669712.0,
-        "q1_ns": 2382490.5,
-        "q3_ns": 3052202.5
+        "median_ns": 2503543,
+        "min_ns": 2400452,
+        "mad_ns": 93485,
+        "iqr_ns": 374511.0,
+        "q1_ns": 2405255.0,
+        "q3_ns": 2779766.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25522176,
-        "min_bytes": 25522176,
+        "median_bytes": 25776128,
+        "min_bytes": 25776128,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25522176.0,
-        "q3_bytes": 25522176.0
+        "q1_bytes": 25776128.0,
+        "q3_bytes": 25776128.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        3100402,
-        2491596,
-        3004003,
-        2407143,
-        2357838
+        3054108,
+        2503543,
+        2505424,
+        2400452,
+        2410058
       ],
       "raw_peak_rss_bytes": [
-        25522176,
-        25522176,
-        25522176,
-        25522176,
-        25522176
+        25776128,
+        25776128,
+        25776128,
+        25776128,
+        25776128
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -519,37 +520,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 3300779379,
-        "min_ns": 3222869927,
-        "mad_ns": 77909452,
-        "iqr_ns": 257649308.0,
-        "q1_ns": 3251623849.5,
-        "q3_ns": 3509273157.5
+        "median_ns": 3320293859,
+        "min_ns": 3195402673,
+        "mad_ns": 76470913,
+        "iqr_ns": 191710396.5,
+        "q1_ns": 3220307827.5,
+        "q3_ns": 3412018224.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 178692096,
-        "min_bytes": 178003968,
-        "mad_bytes": 356352,
-        "iqr_bytes": 837632.0,
-        "q1_bytes": 178333696.0,
-        "q3_bytes": 179171328.0
+        "median_bytes": 178065408,
+        "min_bytes": 177913856,
+        "mad_bytes": 151552,
+        "iqr_bytes": 653312.0,
+        "q1_bytes": 177932288.0,
+        "q3_bytes": 178585600.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        3610073356,
-        3408472959,
-        3280377772,
-        3300779379,
-        3222869927
+        3195402673,
+        3320293859,
+        3245212982,
+        3396764772,
+        3427271676
       ],
       "raw_peak_rss_bytes": [
-        179048448,
-        178692096,
-        178003968,
-        179294208,
-        178663424
+        177913856,
+        178065408,
+        178651136,
+        177950720,
+        178520064
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -583,37 +584,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 85882570,
-        "min_ns": 80950434,
-        "mad_ns": 4932136,
-        "iqr_ns": 10376333.0,
-        "q1_ns": 82405329.0,
-        "q3_ns": 92781662.0
+        "median_ns": 94222218,
+        "min_ns": 81584680,
+        "mad_ns": 12637538,
+        "iqr_ns": 32976528.0,
+        "q1_ns": 83935757.0,
+        "q3_ns": 116912285.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25640960,
-        "min_bytes": 25640960,
+        "median_bytes": 25890816,
+        "min_bytes": 25890816,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25640960.0,
-        "q3_bytes": 25640960.0
+        "q1_bytes": 25890816.0,
+        "q3_bytes": 25890816.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        92748552,
-        92814772,
-        85882570,
-        80950434,
-        83860224
+        94222218,
+        113656457,
+        81584680,
+        86286834,
+        120168113
       ],
       "raw_peak_rss_bytes": [
-        25640960,
-        25640960,
-        25640960,
-        25640960,
-        25640960
+        25890816,
+        25890816,
+        25890816,
+        25890816,
+        25890816
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -651,37 +652,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 121952481,
-        "min_ns": 110602962,
-        "mad_ns": 3755220,
-        "iqr_ns": 29689488.0,
-        "q1_ns": 114400111.5,
-        "q3_ns": 144089599.5
+        "median_ns": 124826700,
+        "min_ns": 113607555,
+        "mad_ns": 6424965,
+        "iqr_ns": 21509024.0,
+        "q1_ns": 116004645.0,
+        "q3_ns": 137513669.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25653248,
-        "min_bytes": 25653248,
+        "median_bytes": 25890816,
+        "min_bytes": 25890816,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25653248.0,
-        "q3_bytes": 25653248.0
+        "q1_bytes": 25890816.0,
+        "q3_bytes": 25890816.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        118197261,
-        125531619,
-        110602962,
-        162647580,
-        121952481
+        118401735,
+        131045263,
+        113607555,
+        124826700,
+        143982075
       ],
       "raw_peak_rss_bytes": [
-        25653248,
-        25653248,
-        25653248,
-        25653248,
-        25653248
+        25890816,
+        25890816,
+        25890816,
+        25890816,
+        25890816
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -721,37 +722,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 3271849615,
-        "min_ns": 3237109232,
-        "mad_ns": 34740383,
-        "iqr_ns": 129430312.0,
-        "q1_ns": 3243420794.0,
-        "q3_ns": 3372851106.0
+        "median_ns": 3279992915,
+        "min_ns": 3193839442,
+        "mad_ns": 51315667,
+        "iqr_ns": 116250639.0,
+        "q1_ns": 3203579365.0,
+        "q3_ns": 3319830004.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 178749440,
-        "min_bytes": 178421760,
-        "mad_bytes": 311296,
-        "iqr_bytes": 589824.0,
-        "q1_bytes": 178429952.0,
-        "q3_bytes": 179019776.0
+        "median_bytes": 178704384,
+        "min_bytes": 177655808,
+        "mad_bytes": 507904,
+        "iqr_bytes": 1839104.0,
+        "q1_bytes": 177926144.0,
+        "q3_bytes": 179765248.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        3237109232,
-        3271849615,
-        3423173739,
-        3322528473,
-        3249732356
+        3279992915,
+        3308351426,
+        3193839442,
+        3331308582,
+        3213319288
       ],
       "raw_peak_rss_bytes": [
-        178786304,
-        178421760,
-        178438144,
-        179253248,
-        178749440
+        178704384,
+        178917376,
+        178196480,
+        180613120,
+        177655808
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -789,37 +790,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 112681203,
-        "min_ns": 109015811,
-        "mad_ns": 1635265,
-        "iqr_ns": 4649174.0,
-        "q1_ns": 110485330.0,
-        "q3_ns": 115134504.0
+        "median_ns": 110353990,
+        "min_ns": 106323882,
+        "mad_ns": 976808,
+        "iqr_ns": 4724144.0,
+        "q1_ns": 108162195.5,
+        "q3_ns": 112886339.5
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25657344,
-        "min_bytes": 25657344,
+        "median_bytes": 25890816,
+        "min_bytes": 25890816,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25657344.0,
-        "q3_bytes": 25657344.0
+        "q1_bytes": 25890816.0,
+        "q3_bytes": 25890816.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        114316468,
-        115952540,
-        112681203,
-        111954849,
-        109015811
+        111330798,
+        110353990,
+        114441881,
+        106323882,
+        110000509
       ],
       "raw_peak_rss_bytes": [
-        25657344,
-        25657344,
-        25657344,
-        25657344,
-        25657344
+        25890816,
+        25890816,
+        25890816,
+        25890816,
+        25890816
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -857,37 +858,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 116595415,
-        "min_ns": 110394949,
-        "mad_ns": 3904269,
-        "iqr_ns": 7639189.0,
-        "q1_ns": 113469035.0,
-        "q3_ns": 121108224.0
+        "median_ns": 109017106,
+        "min_ns": 103024650,
+        "mad_ns": 2124136,
+        "iqr_ns": 6216321.5,
+        "q1_ns": 105443182.0,
+        "q3_ns": 111659503.5
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25657344,
-        "min_bytes": 25657344,
+        "median_bytes": 25894912,
+        "min_bytes": 25894912,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25657344.0,
-        "q3_bytes": 25657344.0
+        "q1_bytes": 25894912.0,
+        "q3_bytes": 25894912.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        116543121,
-        120499684,
-        121716764,
-        116595415,
-        110394949
+        103024650,
+        107861714,
+        111141242,
+        109017106,
+        112177765
       ],
       "raw_peak_rss_bytes": [
-        25657344,
-        25657344,
-        25657344,
-        25657344,
-        25657344
+        25894912,
+        25894912,
+        25894912,
+        25894912,
+        25894912
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -925,37 +926,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 122361883,
-        "min_ns": 115259854,
-        "mad_ns": 6969786,
-        "iqr_ns": 16058276.5,
-        "q1_ns": 115325975.5,
-        "q3_ns": 131384252.0
+        "median_ns": 113764507,
+        "min_ns": 110767033,
+        "mad_ns": 2997474,
+        "iqr_ns": 11967026.0,
+        "q1_ns": 111058709.0,
+        "q3_ns": 123025735.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25657344,
-        "min_bytes": 25657344,
+        "median_bytes": 25894912,
+        "min_bytes": 25894912,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25657344.0,
-        "q3_bytes": 25657344.0
+        "q1_bytes": 25894912.0,
+        "q3_bytes": 25894912.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        139554295,
-        123214209,
-        115392097,
-        115259854,
-        122361883
+        111350385,
+        113764507,
+        120443790,
+        125607680,
+        110767033
       ],
       "raw_peak_rss_bytes": [
-        25657344,
-        25657344,
-        25657344,
-        25657344,
-        25657344
+        25894912,
+        25894912,
+        25894912,
+        25894912,
+        25894912
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -995,37 +996,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 3348565337,
-        "min_ns": 3281587786,
-        "mad_ns": 50520725,
-        "iqr_ns": 187284460.0,
-        "q1_ns": 3291165837.5,
-        "q3_ns": 3478450297.5
+        "median_ns": 3276732792,
+        "min_ns": 3130554786,
+        "mad_ns": 21823955,
+        "iqr_ns": 237359553.5,
+        "q1_ns": 3201969441.0,
+        "q3_ns": 3439328994.5
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 177729536,
-        "min_bytes": 177369088,
-        "mad_bytes": 360448,
-        "iqr_bytes": 6531072.0,
-        "q1_bytes": 177420288.0,
-        "q3_bytes": 183951360.0
+        "median_bytes": 178552832,
+        "min_bytes": 177291264,
+        "mad_bytes": 634880,
+        "iqr_bytes": 1572864.0,
+        "q1_bytes": 177385472.0,
+        "q3_bytes": 178958336.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        3557814533,
-        3300743889,
-        3348565337,
-        3281587786,
-        3399086062
+        3298556747,
+        3580101242,
+        3276732792,
+        3130554786,
+        3273384096
       ],
       "raw_peak_rss_bytes": [
-        189784064,
-        177369088,
-        178118656,
-        177471488,
-        177729536
+        179187712,
+        178552832,
+        178728960,
+        177291264,
+        177479680
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -1063,37 +1064,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 106216816,
-        "min_ns": 99973447,
-        "mad_ns": 3267120,
-        "iqr_ns": 17995392.5,
-        "q1_ns": 101461571.5,
-        "q3_ns": 119456964.0
+        "median_ns": 103274663,
+        "min_ns": 100731492,
+        "mad_ns": 2543171,
+        "iqr_ns": 19944257.0,
+        "q1_ns": 101656177.5,
+        "q3_ns": 121600434.5
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25657344,
-        "min_bytes": 25657344,
+        "median_bytes": 25894912,
+        "min_bytes": 25894912,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25657344.0,
-        "q3_bytes": 25657344.0
+        "q1_bytes": 25894912.0,
+        "q3_bytes": 25894912.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        106216816,
-        108181562,
-        130732366,
-        102949696,
-        99973447
+        133102641,
+        110098228,
+        102580863,
+        103274663,
+        100731492
       ],
       "raw_peak_rss_bytes": [
-        25657344,
-        25657344,
-        25657344,
-        25657344,
-        25657344
+        25894912,
+        25894912,
+        25894912,
+        25894912,
+        25894912
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -1133,37 +1134,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 3219146310,
-        "min_ns": 3199860787,
-        "mad_ns": 19285523,
-        "iqr_ns": 36612343.0,
-        "q1_ns": 3209346780.5,
-        "q3_ns": 3245959123.5
+        "median_ns": 3079446003,
+        "min_ns": 3039412545,
+        "mad_ns": 40033458,
+        "iqr_ns": 171209066.0,
+        "q1_ns": 3044423474.5,
+        "q3_ns": 3215632540.5
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 178589696,
-        "min_bytes": 178040832,
-        "mad_bytes": 323584,
-        "iqr_bytes": 823296.0,
-        "q1_bytes": 178153472.0,
-        "q3_bytes": 178976768.0
+        "median_bytes": 178155520,
+        "min_bytes": 177487872,
+        "mad_bytes": 667648,
+        "iqr_bytes": 1517568.0,
+        "q1_bytes": 177516544.0,
+        "q3_bytes": 179034112.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        3218832774,
-        3199860787,
-        3239842568,
-        3252075679,
-        3219146310
+        3039412545,
+        3079446003,
+        3291435670,
+        3139829411,
+        3049434404
       ],
       "raw_peak_rss_bytes": [
-        178040832,
-        178266112,
-        178679808,
-        178589696,
-        179273728
+        177487872,
+        177545216,
+        179146752,
+        178921472,
+        178155520
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -1201,37 +1202,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 2766310,
-        "min_ns": 2616293,
-        "mad_ns": 150017,
-        "iqr_ns": 769409.0,
-        "q1_ns": 2655857.5,
-        "q3_ns": 3425266.5
+        "median_ns": 2300587,
+        "min_ns": 2191213,
+        "mad_ns": 109374,
+        "iqr_ns": 454739.0,
+        "q1_ns": 2230374.0,
+        "q3_ns": 2685113.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25657344,
-        "min_bytes": 25657344,
+        "median_bytes": 25899008,
+        "min_bytes": 25899008,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25657344.0,
-        "q3_bytes": 25657344.0
+        "q1_bytes": 25899008.0,
+        "q3_bytes": 25899008.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        2695422,
-        3155351,
-        3695182,
-        2766310,
-        2616293
+        2425762,
+        2269535,
+        2944464,
+        2300587,
+        2191213
       ],
       "raw_peak_rss_bytes": [
-        25657344,
-        25657344,
-        25657344,
-        25657344,
-        25657344
+        25899008,
+        25899008,
+        25899008,
+        25899008,
+        25899008
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -1266,37 +1267,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 1949600,
-        "min_ns": 1809222,
-        "mad_ns": 25241,
-        "iqr_ns": 244291.0,
-        "q1_ns": 1866790.5,
-        "q3_ns": 2111081.5
+        "median_ns": 1739422,
+        "min_ns": 1709229,
+        "mad_ns": 30193,
+        "iqr_ns": 150846.0,
+        "q1_ns": 1709460.5,
+        "q3_ns": 1860306.5
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25657344,
-        "min_bytes": 25657344,
+        "median_bytes": 25899008,
+        "min_bytes": 25899008,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25657344.0,
-        "q3_bytes": 25657344.0
+        "q1_bytes": 25899008.0,
+        "q3_bytes": 25899008.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        1949600,
-        1973228,
-        1924359,
-        1809222,
-        2248935
+        1739422,
+        1904400,
+        1709692,
+        1816213,
+        1709229
       ],
       "raw_peak_rss_bytes": [
-        25657344,
-        25657344,
-        25657344,
-        25657344,
-        25657344
+        25899008,
+        25899008,
+        25899008,
+        25899008,
+        25899008
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -1334,37 +1335,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 123257437,
-        "min_ns": 116666841,
-        "mad_ns": 3408994,
-        "iqr_ns": 8660372.0,
-        "q1_ns": 117059618.5,
-        "q3_ns": 125719990.5
+        "median_ns": 116072149,
+        "min_ns": 111903880,
+        "mad_ns": 1984113,
+        "iqr_ns": 4492059.0,
+        "q1_ns": 112995958.0,
+        "q3_ns": 117488017.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25657344,
-        "min_bytes": 25657344,
+        "median_bytes": 25899008,
+        "min_bytes": 25899008,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25657344.0,
-        "q3_bytes": 25657344.0
+        "q1_bytes": 25899008.0,
+        "q3_bytes": 25899008.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        124773550,
-        126666431,
-        123257437,
-        117452396,
-        116666841
+        116182214,
+        114088036,
+        118793820,
+        111903880,
+        116072149
       ],
       "raw_peak_rss_bytes": [
-        25657344,
-        25657344,
-        25657344,
-        25657344,
-        25657344
+        25899008,
+        25899008,
+        25899008,
+        25899008,
+        25899008
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -1402,37 +1403,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 6415978,
-        "min_ns": 6365583,
-        "mad_ns": 49987,
-        "iqr_ns": 190913.5,
-        "q1_ns": 6373682.0,
-        "q3_ns": 6564595.5
+        "median_ns": 6004226,
+        "min_ns": 5828718,
+        "mad_ns": 154383,
+        "iqr_ns": 987990.0,
+        "q1_ns": 5869859.0,
+        "q3_ns": 6857849.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25661440,
-        "min_bytes": 25661440,
+        "median_bytes": 25899008,
+        "min_bytes": 25899008,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25661440.0,
-        "q3_bytes": 25661440.0
+        "q1_bytes": 25899008.0,
+        "q3_bytes": 25899008.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        6663226,
-        6415978,
-        6465965,
-        6381781,
-        6365583
+        5828718,
+        5911000,
+        6004226,
+        6158609,
+        7557089
       ],
       "raw_peak_rss_bytes": [
-        25661440,
-        25661440,
-        25661440,
-        25661440,
-        25661440
+        25899008,
+        25899008,
+        25899008,
+        25899008,
+        25899008
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -1466,37 +1467,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 2044452,
-        "min_ns": 1838212,
-        "mad_ns": 92208,
-        "iqr_ns": 245426.5,
-        "q1_ns": 1884248.5,
-        "q3_ns": 2129675.0
+        "median_ns": 1752266,
+        "min_ns": 1702834,
+        "mad_ns": 49432,
+        "iqr_ns": 334953.5,
+        "q1_ns": 1720050.5,
+        "q3_ns": 2055004.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25661440,
-        "min_bytes": 25661440,
+        "median_bytes": 25903104,
+        "min_bytes": 25903104,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25661440.0,
-        "q3_bytes": 25661440.0
+        "q1_bytes": 25903104.0,
+        "q3_bytes": 25903104.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        2044452,
-        2122690,
-        2136660,
-        1930285,
-        1838212
+        1906995,
+        1737267,
+        1752266,
+        1702834,
+        2203013
       ],
       "raw_peak_rss_bytes": [
-        25661440,
-        25661440,
-        25661440,
-        25661440,
-        25661440
+        25903104,
+        25903104,
+        25903104,
+        25903104,
+        25903104
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -1534,37 +1535,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 6842168,
-        "min_ns": 6239367,
-        "mad_ns": 106923,
-        "iqr_ns": 787920.0,
-        "q1_ns": 6487306.0,
-        "q3_ns": 7275226.0
+        "median_ns": 5818889,
+        "min_ns": 5356595,
+        "mad_ns": 56856,
+        "iqr_ns": 310229.0,
+        "q1_ns": 5577892.0,
+        "q3_ns": 5888121.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25661440,
-        "min_bytes": 25661440,
+        "median_bytes": 25903104,
+        "min_bytes": 25903104,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25661440.0,
-        "q3_bytes": 25661440.0
+        "q1_bytes": 25903104.0,
+        "q3_bytes": 25903104.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        6918052,
-        6842168,
-        7632400,
-        6735245,
-        6239367
+        5900497,
+        5818889,
+        5875745,
+        5799189,
+        5356595
       ],
       "raw_peak_rss_bytes": [
-        25661440,
-        25661440,
-        25661440,
-        25661440,
-        25661440
+        25903104,
+        25903104,
+        25903104,
+        25903104,
+        25903104
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -1602,37 +1603,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 2475484,
-        "min_ns": 2414462,
-        "mad_ns": 61022,
-        "iqr_ns": 302384.5,
-        "q1_ns": 2444544.0,
-        "q3_ns": 2746928.5
+        "median_ns": 2261195,
+        "min_ns": 2188201,
+        "mad_ns": 35577,
+        "iqr_ns": 437932.5,
+        "q1_ns": 2206909.5,
+        "q3_ns": 2644842.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25661440,
-        "min_bytes": 25661440,
+        "median_bytes": 25903104,
+        "min_bytes": 25903104,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25661440.0,
-        "q3_bytes": 25661440.0
+        "q1_bytes": 25903104.0,
+        "q3_bytes": 25903104.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        2414462,
-        2718902,
-        2474626,
-        2774955,
-        2475484
+        2188201,
+        3003084,
+        2225618,
+        2261195,
+        2286600
       ],
       "raw_peak_rss_bytes": [
-        25661440,
-        25661440,
-        25661440,
-        25661440,
-        25661440
+        25903104,
+        25903104,
+        25903104,
+        25903104,
+        25903104
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -1670,37 +1671,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 104165069,
-        "min_ns": 103518185,
-        "mad_ns": 646884,
-        "iqr_ns": 4248144.0,
-        "q1_ns": 103738025.5,
-        "q3_ns": 107986169.5
+        "median_ns": 100305371,
+        "min_ns": 98488718,
+        "mad_ns": 1797754,
+        "iqr_ns": 6059691.0,
+        "q1_ns": 98498167.5,
+        "q3_ns": 104557858.5
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25661440,
-        "min_bytes": 25661440,
+        "median_bytes": 25911296,
+        "min_bytes": 25911296,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25661440.0,
-        "q3_bytes": 25661440.0
+        "q1_bytes": 25911296.0,
+        "q3_bytes": 25911296.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        103518185,
-        104893326,
-        104165069,
-        111079013,
-        103957866
+        98488718,
+        107031305,
+        102084412,
+        98507617,
+        100305371
       ],
       "raw_peak_rss_bytes": [
-        25661440,
-        25661440,
-        25661440,
-        25661440,
-        25661440
+        25911296,
+        25911296,
+        25911296,
+        25911296,
+        25911296
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -1738,37 +1739,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 2462951,
-        "min_ns": 2418710,
-        "mad_ns": 44241,
-        "iqr_ns": 205463.0,
-        "q1_ns": 2432437.5,
-        "q3_ns": 2637900.5
+        "median_ns": 2462874,
+        "min_ns": 2206587,
+        "mad_ns": 256287,
+        "iqr_ns": 836996.5,
+        "q1_ns": 2254269.0,
+        "q3_ns": 3091265.5
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25661440,
-        "min_bytes": 25661440,
+        "median_bytes": 25911296,
+        "min_bytes": 25911296,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25661440.0,
-        "q3_bytes": 25661440.0
+        "q1_bytes": 25911296.0,
+        "q3_bytes": 25911296.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        2446165,
-        2547746,
-        2418710,
-        2728055,
-        2462951
+        3107088,
+        2301951,
+        2462874,
+        3075443,
+        2206587
       ],
       "raw_peak_rss_bytes": [
-        25661440,
-        25661440,
-        25661440,
-        25661440,
-        25661440
+        25911296,
+        25911296,
+        25911296,
+        25911296,
+        25911296
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -1802,37 +1803,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 1876497,
-        "min_ns": 1768698,
-        "mad_ns": 44024,
-        "iqr_ns": 142203.0,
-        "q1_ns": 1808309.5,
-        "q3_ns": 1950512.5
+        "median_ns": 2207871,
+        "min_ns": 1749999,
+        "mad_ns": 307712,
+        "iqr_ns": 639265.5,
+        "q1_ns": 1771732.5,
+        "q3_ns": 2410998.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25661440,
-        "min_bytes": 25661440,
+        "median_bytes": 25911296,
+        "min_bytes": 25911296,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25661440.0,
-        "q3_bytes": 25661440.0
+        "q1_bytes": 25911296.0,
+        "q3_bytes": 25911296.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        1920521,
-        1847921,
-        1768698,
-        1876497,
-        1980504
+        2515583,
+        2207871,
+        1793466,
+        1749999,
+        2306413
       ],
       "raw_peak_rss_bytes": [
-        25661440,
-        25661440,
-        25661440,
-        25661440,
-        25661440
+        25911296,
+        25911296,
+        25911296,
+        25911296,
+        25911296
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -1872,37 +1873,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 3337728455,
-        "min_ns": 3056922315,
-        "mad_ns": 121995408,
-        "iqr_ns": 318041840.5,
-        "q1_ns": 3146600954.5,
-        "q3_ns": 3464642795.0
+        "median_ns": 3242496377,
+        "min_ns": 3236954010,
+        "mad_ns": 5542367,
+        "iqr_ns": 30469270.5,
+        "q1_ns": 3237257179.0,
+        "q3_ns": 3267726449.5
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 178524160,
-        "min_bytes": 174968832,
-        "mad_bytes": 188416,
-        "iqr_bytes": 2125824.0,
-        "q1_bytes": 176738304.0,
-        "q3_bytes": 178864128.0
+        "median_bytes": 178544640,
+        "min_bytes": 178475008,
+        "mad_bytes": 69632,
+        "iqr_bytes": 477184.0,
+        "q1_bytes": 178507776.0,
+        "q3_bytes": 178984960.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        3337728455,
-        3056922315,
-        3236279594,
-        3459723863,
-        3469561727
+        3267385325,
+        3268067574,
+        3242496377,
+        3237560348,
+        3236954010
       ],
       "raw_peak_rss_bytes": [
-        178507776,
-        174968832,
-        179015680,
-        178524160,
-        178712576
+        178544640,
+        179060736,
+        178540544,
+        178475008,
+        178909184
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -1940,37 +1941,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 2256213,
-        "min_ns": 1921579,
-        "mad_ns": 334634,
-        "iqr_ns": 695176.5,
-        "q1_ns": 2018216.5,
-        "q3_ns": 2713393.0
+        "median_ns": 2050430,
+        "min_ns": 1882391,
+        "mad_ns": 156903,
+        "iqr_ns": 379202.5,
+        "q1_ns": 1909672.5,
+        "q3_ns": 2288875.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25661440,
-        "min_bytes": 25661440,
+        "median_bytes": 25911296,
+        "min_bytes": 25911296,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25661440.0,
-        "q3_bytes": 25661440.0
+        "q1_bytes": 25911296.0,
+        "q3_bytes": 25911296.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        2690312,
-        2256213,
-        2114854,
-        2736474,
-        1921579
+        2207333,
+        2050430,
+        2370417,
+        1882391,
+        1936954
       ],
       "raw_peak_rss_bytes": [
-        25661440,
-        25661440,
-        25661440,
-        25661440,
-        25661440
+        25911296,
+        25911296,
+        25911296,
+        25911296,
+        25911296
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2008,37 +2009,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 123180200,
-        "min_ns": 116698735,
-        "mad_ns": 1640186,
-        "iqr_ns": 6544717.0,
-        "q1_ns": 118241559.5,
-        "q3_ns": 124786276.5
+        "median_ns": 116561592,
+        "min_ns": 112558305,
+        "mad_ns": 4003287,
+        "iqr_ns": 9227062.5,
+        "q1_ns": 114554228.5,
+        "q3_ns": 123781291.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25661440,
-        "min_bytes": 25661440,
+        "median_bytes": 25911296,
+        "min_bytes": 25911296,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25661440.0,
-        "q3_bytes": 25661440.0
+        "q1_bytes": 25911296.0,
+        "q3_bytes": 25911296.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        119784384,
-        124752167,
-        116698735,
-        124820386,
-        123180200
+        112558305,
+        116561592,
+        122221488,
+        125341094,
+        116550152
       ],
       "raw_peak_rss_bytes": [
-        25661440,
-        25661440,
-        25661440,
-        25661440,
-        25661440
+        25911296,
+        25911296,
+        25911296,
+        25911296,
+        25911296
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2076,37 +2077,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 110005972,
-        "min_ns": 104289073,
-        "mad_ns": 2807421,
-        "iqr_ns": 8909357.0,
-        "q1_ns": 106056527.0,
-        "q3_ns": 114965884.0
+        "median_ns": 109161993,
+        "min_ns": 107932837,
+        "mad_ns": 1229156,
+        "iqr_ns": 16403594.0,
+        "q1_ns": 108391656.0,
+        "q3_ns": 124795250.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25661440,
-        "min_bytes": 25661440,
+        "median_bytes": 25911296,
+        "min_bytes": 25911296,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25661440.0,
-        "q3_bytes": 25661440.0
+        "q1_bytes": 25911296.0,
+        "q3_bytes": 25911296.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        110005972,
-        104289073,
-        107823981,
-        112813393,
-        117118375
+        109161993,
+        108850475,
+        120892486,
+        128698014,
+        107932837
       ],
       "raw_peak_rss_bytes": [
-        25661440,
-        25661440,
-        25661440,
-        25661440,
-        25661440
+        25911296,
+        25911296,
+        25911296,
+        25911296,
+        25911296
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2144,37 +2145,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 121202416,
-        "min_ns": 115948288,
-        "mad_ns": 2009548,
-        "iqr_ns": 5010947.5,
-        "q1_ns": 117306960.0,
-        "q3_ns": 122317907.5
+        "median_ns": 123728887,
+        "min_ns": 120997136,
+        "mad_ns": 2489887,
+        "iqr_ns": 13892281.5,
+        "q1_ns": 121817524.0,
+        "q3_ns": 135709805.5
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25665536,
-        "min_bytes": 25665536,
+        "median_bytes": 25911296,
+        "min_bytes": 25911296,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25665536.0,
-        "q3_bytes": 25665536.0
+        "q1_bytes": 25911296.0,
+        "q3_bytes": 25911296.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        115948288,
-        123211964,
-        121423851,
-        121202416,
-        118665632
+        120997136,
+        126218774,
+        122637912,
+        145200837,
+        123728887
       ],
       "raw_peak_rss_bytes": [
-        25665536,
-        25665536,
-        25665536,
-        25665536,
-        25665536
+        25911296,
+        25911296,
+        25911296,
+        25911296,
+        25911296
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2212,37 +2213,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 103914683,
-        "min_ns": 102985196,
-        "mad_ns": 929487,
-        "iqr_ns": 6462948.5,
-        "q1_ns": 103415374.5,
-        "q3_ns": 109878323.0
+        "median_ns": 106649388,
+        "min_ns": 102216687,
+        "mad_ns": 1074126,
+        "iqr_ns": 4235486.5,
+        "q1_ns": 104355564.5,
+        "q3_ns": 108591051.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25673728,
-        "min_bytes": 25673728,
+        "median_bytes": 25911296,
+        "min_bytes": 25911296,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25673728.0,
-        "q3_bytes": 25673728.0
+        "q1_bytes": 25911296.0,
+        "q3_bytes": 25911296.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        103845553,
-        102985196,
-        103914683,
-        106858747,
-        112897899
+        106649388,
+        106494442,
+        107723514,
+        109458588,
+        102216687
       ],
       "raw_peak_rss_bytes": [
-        25673728,
-        25673728,
-        25673728,
-        25673728,
-        25673728
+        25911296,
+        25911296,
+        25911296,
+        25911296,
+        25911296
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2282,37 +2283,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 3297129377,
-        "min_ns": 3168066795,
-        "mad_ns": 54315025,
-        "iqr_ns": 136958919.0,
-        "q1_ns": 3205440573.5,
-        "q3_ns": 3342399492.5
+        "median_ns": 3268556211,
+        "min_ns": 3227586218,
+        "mad_ns": 40969993,
+        "iqr_ns": 207792633.0,
+        "q1_ns": 3242615836.5,
+        "q3_ns": 3450408469.5
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 179007488,
-        "min_bytes": 177295360,
-        "mad_bytes": 184320,
-        "iqr_bytes": 1296384.0,
-        "q1_bytes": 178059264.0,
-        "q3_bytes": 179355648.0
+        "median_bytes": 178745344,
+        "min_bytes": 178630656,
+        "mad_bytes": 90112,
+        "iqr_bytes": 243712.0,
+        "q1_bytes": 178657280.0,
+        "q3_bytes": 178900992.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        3312792340,
-        3242814352,
-        3372006645,
-        3168066795,
-        3297129377
+        3227586218,
+        3257645455,
+        3354451105,
+        3546365834,
+        3268556211
       ],
       "raw_peak_rss_bytes": [
-        179048448,
-        177295360,
-        179662848,
-        179007488,
-        178823168
+        178835456,
+        178966528,
+        178683904,
+        178745344,
+        178630656
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2352,37 +2353,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 3060339281,
-        "min_ns": 2982864440,
-        "mad_ns": 61301608,
-        "iqr_ns": 158138355.5,
-        "q1_ns": 3019258289.0,
-        "q3_ns": 3177396644.5
+        "median_ns": 2983649664,
+        "min_ns": 2950913382,
+        "mad_ns": 22050594,
+        "iqr_ns": 66988291.5,
+        "q1_ns": 2956256226.0,
+        "q3_ns": 3023244517.5
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 178573312,
-        "min_bytes": 178290688,
-        "mad_bytes": 204800,
-        "iqr_bytes": 391168.0,
-        "q1_bytes": 178327552.0,
-        "q3_bytes": 178718720.0
+        "median_bytes": 178450432,
+        "min_bytes": 174940160,
+        "mad_bytes": 786432,
+        "iqr_bytes": 3041280.0,
+        "q1_bytes": 176140288.0,
+        "q3_bytes": 179181568.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        2982864440,
-        3060339281,
-        3121640889,
-        3055652138,
-        3233152400
+        2961599070,
+        2983649664,
+        2950913382,
+        2995377496,
+        3051111539
       ],
       "raw_peak_rss_bytes": [
-        178659328,
-        178573312,
-        178364416,
-        178290688,
-        178778112
+        179236864,
+        178450432,
+        174940160,
+        177340416,
+        179126272
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2420,37 +2421,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 6642191,
-        "min_ns": 5771795,
-        "mad_ns": 380973,
-        "iqr_ns": 1361071.5,
-        "q1_ns": 6143672.0,
-        "q3_ns": 7504743.5
+        "median_ns": 5896979,
+        "min_ns": 5567027,
+        "mad_ns": 39456,
+        "iqr_ns": 446027.5,
+        "q1_ns": 5717047.0,
+        "q3_ns": 6163074.5
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25681920,
-        "min_bytes": 25681920,
+        "median_bytes": 25919488,
+        "min_bytes": 25919488,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25681920.0,
-        "q3_bytes": 25681920.0
+        "q1_bytes": 25919488.0,
+        "q3_bytes": 25919488.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        7023164,
-        7986323,
-        6515549,
-        6642191,
-        5771795
+        6389714,
+        5867067,
+        5896979,
+        5567027,
+        5936435
       ],
       "raw_peak_rss_bytes": [
-        25681920,
-        25681920,
-        25681920,
-        25681920,
-        25681920
+        25919488,
+        25919488,
+        25919488,
+        25919488,
+        25919488
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2488,37 +2489,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 6225631,
-        "min_ns": 5698231,
-        "mad_ns": 487687,
-        "iqr_ns": 1804756.5,
-        "q1_ns": 5758531.5,
-        "q3_ns": 7563288.0
+        "median_ns": 5476934,
+        "min_ns": 5358045,
+        "mad_ns": 118889,
+        "iqr_ns": 476680.5,
+        "q1_ns": 5402816.0,
+        "q3_ns": 5879496.5
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25686016,
-        "min_bytes": 25686016,
+        "median_bytes": 25927680,
+        "min_bytes": 25927680,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25686016.0,
-        "q3_bytes": 25686016.0
+        "q1_bytes": 25927680.0,
+        "q3_bytes": 25927680.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        5818832,
-        6713318,
-        6225631,
-        8413258,
-        5698231
+        6048178,
+        5447587,
+        5476934,
+        5710815,
+        5358045
       ],
       "raw_peak_rss_bytes": [
-        25686016,
-        25686016,
-        25686016,
-        25686016,
-        25686016
+        25927680,
+        25927680,
+        25927680,
+        25927680,
+        25927680
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2553,37 +2554,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 100800933,
-        "min_ns": 98584861,
-        "mad_ns": 653343,
-        "iqr_ns": 9965155.5,
-        "q1_ns": 99366225.5,
-        "q3_ns": 109331381.0
+        "median_ns": 99692930,
+        "min_ns": 94614839,
+        "mad_ns": 4284261,
+        "iqr_ns": 18829951.0,
+        "q1_ns": 95011754.0,
+        "q3_ns": 113841705.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25686016,
-        "min_bytes": 25686016,
+        "median_bytes": 25927680,
+        "min_bytes": 25927680,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25686016.0,
-        "q3_bytes": 25686016.0
+        "q1_bytes": 25927680.0,
+        "q3_bytes": 25927680.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        100147590,
-        117796824,
-        100865938,
-        98584861,
-        100800933
+        99692930,
+        103304116,
+        95408669,
+        94614839,
+        124379294
       ],
       "raw_peak_rss_bytes": [
-        25686016,
-        25686016,
-        25686016,
-        25686016,
-        25686016
+        25927680,
+        25927680,
+        25927680,
+        25927680,
+        25927680
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2617,37 +2618,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 76337355,
-        "min_ns": 74124379,
-        "mad_ns": 1751234,
-        "iqr_ns": 3909017.0,
-        "q1_ns": 74615206.0,
-        "q3_ns": 78524223.0
+        "median_ns": 74205854,
+        "min_ns": 71820998,
+        "mad_ns": 1145178,
+        "iqr_ns": 2972507.0,
+        "q1_ns": 72324636.5,
+        "q3_ns": 75297143.5
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25686016,
-        "min_bytes": 25686016,
+        "median_bytes": 25927680,
+        "min_bytes": 25927680,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25686016.0,
-        "q3_bytes": 25686016.0
+        "q1_bytes": 25927680.0,
+        "q3_bytes": 25927680.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        76337355,
-        74124379,
-        78088589,
-        78959857,
-        75106033
+        74205854,
+        75351032,
+        72828275,
+        71820998,
+        75243255
       ],
       "raw_peak_rss_bytes": [
-        25686016,
-        25686016,
-        25686016,
-        25686016,
-        25686016
+        25927680,
+        25927680,
+        25927680,
+        25927680,
+        25927680
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2687,37 +2688,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 3223810701,
-        "min_ns": 3179385186,
-        "mad_ns": 23113773,
-        "iqr_ns": 59942763.0,
-        "q1_ns": 3190041057.0,
-        "q3_ns": 3249983820.0
+        "median_ns": 3263445808,
+        "min_ns": 3134839748,
+        "mad_ns": 128606060,
+        "iqr_ns": 280844727.5,
+        "q1_ns": 3188397809.5,
+        "q3_ns": 3469242537.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 178827264,
-        "min_bytes": 178257920,
-        "mad_bytes": 221184,
-        "iqr_bytes": 520192.0,
-        "q1_bytes": 178432000.0,
-        "q3_bytes": 178952192.0
+        "median_bytes": 178466816,
+        "min_bytes": 178413568,
+        "mad_bytes": 53248,
+        "iqr_bytes": 727040.0,
+        "q1_bytes": 178436096.0,
+        "q3_bytes": 179163136.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        3200696928,
-        3256949838,
-        3179385186,
-        3243017802,
-        3223810701
+        3523557361,
+        3241955871,
+        3134839748,
+        3414927713,
+        3263445808
       ],
       "raw_peak_rss_bytes": [
-        178839552,
-        179064832,
-        178606080,
-        178257920,
-        178827264
+        178413568,
+        178458624,
+        179384320,
+        178941952,
+        178466816
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2755,37 +2756,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 2042251,
-        "min_ns": 1922783,
-        "mad_ns": 119468,
-        "iqr_ns": 551138.5,
-        "q1_ns": 1978828.0,
-        "q3_ns": 2529966.5
+        "median_ns": 2925240,
+        "min_ns": 2549851,
+        "mad_ns": 125304,
+        "iqr_ns": 347720.0,
+        "q1_ns": 2655997.0,
+        "q3_ns": 3003717.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25686016,
-        "min_bytes": 25686016,
+        "median_bytes": 25927680,
+        "min_bytes": 25927680,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25686016.0,
-        "q3_bytes": 25686016.0
+        "q1_bytes": 25927680.0,
+        "q3_bytes": 25927680.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        2042251,
-        2775725,
-        2034873,
-        1922783,
-        2284208
+        2762143,
+        3050544,
+        2925240,
+        2956890,
+        2549851
       ],
       "raw_peak_rss_bytes": [
-        25686016,
-        25686016,
-        25686016,
-        25686016,
-        25686016
+        25927680,
+        25927680,
+        25927680,
+        25927680,
+        25927680
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2823,37 +2824,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 2043634,
-        "min_ns": 1855736,
-        "mad_ns": 187898,
-        "iqr_ns": 618546.0,
-        "q1_ns": 1924683.5,
-        "q3_ns": 2543229.5
+        "median_ns": 2333303,
+        "min_ns": 2236408,
+        "mad_ns": 24894,
+        "iqr_ns": 185093.0,
+        "q1_ns": 2277553.0,
+        "q3_ns": 2462646.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25686016,
-        "min_bytes": 25686016,
+        "median_bytes": 25927680,
+        "min_bytes": 25927680,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25686016.0,
-        "q3_bytes": 25686016.0
+        "q1_bytes": 25927680.0,
+        "q3_bytes": 25927680.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        2536948,
-        2043634,
-        1993631,
-        2549511,
-        1855736
+        2358197,
+        2318698,
+        2333303,
+        2236408,
+        2567095
       ],
       "raw_peak_rss_bytes": [
-        25686016,
-        25686016,
-        25686016,
-        25686016,
-        25686016
+        25927680,
+        25927680,
+        25927680,
+        25927680,
+        25927680
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2891,37 +2892,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 2152471,
-        "min_ns": 1855089,
-        "mad_ns": 267686,
-        "iqr_ns": 680926.5,
-        "q1_ns": 1869937.0,
-        "q3_ns": 2550863.5
+        "median_ns": 2750025,
+        "min_ns": 2557097,
+        "mad_ns": 152256,
+        "iqr_ns": 346514.0,
+        "q1_ns": 2646061.0,
+        "q3_ns": 2992575.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25686016,
-        "min_bytes": 25686016,
+        "median_bytes": 25927680,
+        "min_bytes": 25927680,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25686016.0,
-        "q3_bytes": 25686016.0
+        "q1_bytes": 25927680.0,
+        "q3_bytes": 25927680.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        2152471,
-        2342751,
-        2758976,
-        1884785,
-        1855089
+        2557097,
+        2902281,
+        2735025,
+        2750025,
+        3082869
       ],
       "raw_peak_rss_bytes": [
-        25686016,
-        25686016,
-        25686016,
-        25686016,
-        25686016
+        25927680,
+        25927680,
+        25927680,
+        25927680,
+        25927680
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -2956,37 +2957,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 111297413,
-        "min_ns": 101574348,
-        "mad_ns": 2884126,
-        "iqr_ns": 10667582.0,
-        "q1_ns": 102540252.5,
-        "q3_ns": 113207834.5
+        "median_ns": 110726015,
+        "min_ns": 108037849,
+        "mad_ns": 2688166,
+        "iqr_ns": 6919647.5,
+        "q1_ns": 109284810.5,
+        "q3_ns": 116204458.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25686016,
-        "min_bytes": 25686016,
+        "median_bytes": 25927680,
+        "min_bytes": 25927680,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25686016.0,
-        "q3_bytes": 25686016.0
+        "q1_bytes": 25927680.0,
+        "q3_bytes": 25927680.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        101574348,
-        103506157,
-        114181539,
-        112234130,
-        111297413
+        108037849,
+        110726015,
+        115676299,
+        110531772,
+        116732617
       ],
       "raw_peak_rss_bytes": [
-        25686016,
-        25686016,
-        25686016,
-        25686016,
-        25686016
+        25927680,
+        25927680,
+        25927680,
+        25927680,
+        25927680
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -3024,37 +3025,37 @@
       "warmup_discarded": 0,
       "timing": {
         "n": 5,
-        "median_ns": 122275593,
-        "min_ns": 116690439,
-        "mad_ns": 3578681,
-        "iqr_ns": 8589304.5,
-        "q1_ns": 117693675.5,
-        "q3_ns": 126282980.0
+        "median_ns": 126487660,
+        "min_ns": 118533513,
+        "mad_ns": 4812148,
+        "iqr_ns": 13151800.5,
+        "q1_ns": 120104512.5,
+        "q3_ns": 133256313.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25686016,
-        "min_bytes": 25686016,
+        "median_bytes": 25927680,
+        "min_bytes": 25927680,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25686016.0,
-        "q3_bytes": 25686016.0
+        "q1_bytes": 25927680.0,
+        "q3_bytes": 25927680.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        118696912,
-        116690439,
-        125016774,
-        127549186,
-        122275593
+        118533513,
+        136780525,
+        121675512,
+        126487660,
+        129732101
       ],
       "raw_peak_rss_bytes": [
-        25686016,
-        25686016,
-        25686016,
-        25686016,
-        25686016
+        25927680,
+        25927680,
+        25927680,
+        25927680,
+        25927680
       ],
       "tag": "CALIBRATION_ONLY"
     },
@@ -3089,37 +3090,37 @@
       "warmup_discarded": 2,
       "timing": {
         "n": 5,
-        "median_ns": 1919621,
-        "min_ns": 1803725,
-        "mad_ns": 100418,
-        "iqr_ns": 310653.5,
-        "q1_ns": 1853760.0,
-        "q3_ns": 2164413.5
+        "median_ns": 2157699,
+        "min_ns": 1916596,
+        "mad_ns": 241103,
+        "iqr_ns": 611317.0,
+        "q1_ns": 1932109.0,
+        "q3_ns": 2543426.0
       },
       "peak_rss": {
         "n": 5,
-        "median_bytes": 25690112,
-        "min_bytes": 25690112,
+        "median_bytes": 25927680,
+        "min_bytes": 25927680,
         "mad_bytes": 0,
         "iqr_bytes": 0.0,
-        "q1_bytes": 25690112.0,
-        "q3_bytes": 25690112.0
+        "q1_bytes": 25927680.0,
+        "q3_bytes": 25927680.0
       },
       "rss_mechanism": "posix os.wait4 (ru_maxrss)",
       "rss_unavailable_reason": "",
       "raw_elapsed_ns": [
-        1803725,
-        2308788,
-        1919621,
-        1903795,
-        2020039
+        2618245,
+        1947622,
+        2468607,
+        1916596,
+        2157699
       ],
       "raw_peak_rss_bytes": [
-        25690112,
-        25690112,
-        25690112,
-        25690112,
-        25690112
+        25927680,
+        25927680,
+        25927680,
+        25927680,
+        25927680
       ],
       "tag": "CALIBRATION_ONLY"
     }
@@ -3128,14 +3129,14 @@
     "tag": "CALIBRATION_ONLY",
     "earlier_run": {
       "path": "p022-263a-sizing-n5-run-a.linux.json",
-      "sha256": "6c3d1de3e31c1bb90e1380759ad8e0224a807d023825be2929abc455e9bf8ca3",
-      "bytes": 79521,
-      "tree_sha": "f8e7112addea27f90bc899baa50ba3efc3495736",
+      "sha256": "e26b7b2fd4743ff5a70a034054cca547987f2197ebf8008044357f22c54514a7",
+      "bytes": 79714,
+      "tree_sha": "43b6a4a0552a884157931de64ab48efe407316b1",
       "tree_dirty": false,
       "python_reference_commit": "20879db170e6edf1dfd18c0488e15d611f15e912",
       "python_reference_tree": "d6031f5ee384aafc4c7f92fe5c9ad2a63b144562",
       "workload_manifest_sha256": "ecfee52f905321ad143c280fe8f7f91b8fef4d0da66de9155aabd175c131ef8a",
-      "harness_digest": "ee220f6ab49aeca1ce6e8ea3b6facc45e30425f96cd5a30b641a654caa7f217d",
+      "harness_digest": "344e98137dad5e93d4d7adb737fbca2af1ad0c6fc017d51549f130cb88cba473",
       "calibration_repetitions": 5,
       "warmup_discards": 2,
       "candidate_sha256": "8f6c06dd7728fdc12663e03dd46b6e32c183656a2a9f9d05b05d1b0f3f9332fe",
@@ -3146,17 +3147,23 @@
     "tolerance_source": "REPRODUCIBILITY_MAX_MEDIAN_CHANGE, a fixed policy constant. It is CHOSEN, not derived from this run; what makes it admissible is that it was chosen before the runs it judges, and it is not adjusted after seeing which of them it rejects.",
     "cells_only_in_earlier": [],
     "cells_only_in_later": [],
-    "cells_outside_tolerance": [],
+    "cells_outside_tolerance": [
+      {
+        "cell": "core-full-sarif|rust|cal-facts-tiny|process-cold",
+        "relative_change": 0.5077989333391063,
+        "tolerance": 0.35
+      }
+    ],
     "cells_whose_outcome_changed": [],
     "outcomes_reproduced": true,
-    "timings_reproduced": true,
-    "reproduced": true
+    "timings_reproduced": false,
+    "reproduced": false
   },
   "admissibility": {
     "outcomes_reproduced": true,
-    "timings_reproduced": true,
+    "timings_reproduced": false,
     "environment_valid": true,
-    "admissible": true,
+    "admissible": false,
     "note": "all three axes are required for a report of record. A run that fails timings_reproduced has not established WHY: a contended runner, a variable workload and an uncertain median estimate all look the same here."
   }
 }
