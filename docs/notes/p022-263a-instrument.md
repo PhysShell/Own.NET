@@ -324,6 +324,122 @@ source**, and a `python_reference_tree` records that source's content-addressed
 git tree object beside it. The commit sha names a label; the tree object shows
 two artifacts saw the same bytes. Both are in `PAIR_IDENTITY_FIELDS`.
 
+### The anchor is provenance, not the current position
+
+`IdentityGate.observe()` computed `instrument_tree_sha = git rev-parse HEAD` and
+C1 was required to equal it. That check can never pass in production, and the
+reason is written on the lifecycle itself:
+
+    S  (the accepted #263-A tree)
+      -> C1  the payload commit
+        -> C2  the detached attestation commit
+          -> #263-B runs here
+
+By the time #263-B runs, HEAD is at least C2. It is not S and cannot be made to
+be S. Writing the future C2 sha into C1 in advance is not a workaround, it is
+asking a content-addressed commit to contain a value that determines it.
+
+The defect is doubly embarrassing because the fix for its twin is three lines
+away and argued in full: `python_reference_commit()` stopped being
+`git rev-parse HEAD` in the previous round precisely because "a correctly
+executed freeze would itself invalidate the reference binding it had just
+written down". The same sentence was true of `instrument_tree_sha` and it went
+unread.
+
+So the anchor is now **declared by C1 and proved by content**:
+
+| | |
+|---|---|
+| declared | `instrument_anchor_commit` — S, the accepted #263-A source commit |
+| proved | the instrument **at S** hashes to the `harness_digest` C1 froze |
+| proved | S is an ancestor of C1 |
+| never required | that HEAD equal S, C1 or C2 |
+
+The rest of the chain was already proved: C1 is a strict ancestor of C2, and C2
+is located by `git log` in HEAD's own history. So `S <= C1 < C2 <= HEAD` falls
+out without asserting a position anywhere. Because the workload manifest is one
+of the `INSTRUMENT_SOURCES`, proving the harness digest at S also proves the
+manifest at S — there is no second anchor check to write and no second anchor
+check to get wrong.
+
+`harness_digest()` reads the working tree and `harness_digest_at()` reads git
+blobs at a commit, and the anchor proof compares one against the other. They
+therefore share **one** formula, `_harness_digest_from`. Two implementations of
+"the same" formula would make that proof a comparison of two functions, and
+their agreement would mean nothing.
+
+#### Why the fixtures could not see it
+
+`_build_freeze` committed a README and two JSON files into a throwaway
+repository, and took `observed` from the **real** one. The payload was therefore
+built from the same HEAD the gate then compared it against, and the single thing
+the production lifecycle does between acceptance and #263-B — move HEAD past S —
+could not happen. The fixture isolated production from exactly the effect it
+existed to check, which is the third time in this PR that a green control has
+proved only what it was asked to prove.
+
+The fixture now commits the real `INSTRUMENT_SOURCES` at S, does ordinary work,
+freezes C1 and C2, and then **keeps committing**. `perf-gate-arms-by-data`
+asserts that the anchor, C1, C2 and HEAD are four distinct commits, so if the
+fixture ever stops reproducing a moving repository the control says so instead
+of quietly passing. Reinstating `anchor must equal HEAD` makes a valid freeze be
+refused, which is the regression test for the original defect.
+
+### A preregistration is not three strings
+
+C1's protocol was three key names checked for presence, and the fixture that
+proved the check worked armed the gate with
+
+    thresholds = "<frozen by D7, never read by the gate>"
+    rules      = "<frozen by D7, never read by the gate>"
+    rollups    = "<frozen by D7, never read by the gate>"
+
+Two immaculate git commits, three celebratory strings, and the decisive firewall
+opens.
+
+The gate still must never **read** a threshold — a #263-A artifact that quoted
+one would leak the number this module exists to keep out — but that says nothing
+about whether the preregistration is *there*. Those are different questions and
+only one of them was being asked. C1 now has to carry, per cell:
+
+| | |
+|---|---|
+| `dimensions` | `phase`, `workload_id`, `platform`, `regime` — all four |
+| the rule | `bound`, `pass_fail_rule`, `inconclusive_band`, `comparison_statistic`, `rss_policy`, `allocation_policy` |
+| `repetition_ladder` | `initial_n`, `escalation_stages`, `transition_predicates`, `max_n`, `terminal_outcome` |
+| or | an explicit `not_applicable` **with a stated reason** |
+
+and roll-ups at all three preregistered levels: `workload_class`, `phase`,
+`overall_g3`. A bare `not_applicable: true` is refused, because it is a way of
+writing "no rule" that reads like a rule.
+
+`_present()` inspects presence and container shape only. A blank string, an
+empty list and an empty object are structurally absent however confidently they
+are typed. Nothing compares, orders, or records a value, so no threshold can
+leak through the verifier — and the fixture's own cells are filled with
+deliberately non-production placeholders, because a fixture that only passed
+with plausible *numbers* would prove the gate reads thresholds.
+
+Every message names the field it is about, so each of the ten new damaged
+freezes is matched to the check that owns it. One broad "malformed protocol"
+refusal would let a dozen missing checks hide behind a single passing case.
+
+**Not implemented, and recorded rather than guessed:** the gate does not check
+that the cell set is *complete* against the instrument's own dimensions. Doing
+that needs the decisive cell population, which is #263-B's business and not
+knowable here; a completeness check written from a guess would be a threshold
+decision wearing a schema's coat.
+
+### The manifest digest was hashing raw bytes
+
+Round 3 content-addressed the harness digest and left `load_manifest()` hashing
+raw bytes two hundred lines away — the same defect with a different variable
+name, on a value C1 also freezes. `.gitattributes` pins the manifest to LF, but
+an attribute only governs files git checks out under it; a zip download or a
+clone predating the rule still differs. Normalization now lives in one function,
+`normalized_text`, that every identity uses. The value is unchanged on Linux, so
+this closes a Windows exposure without moving any number.
+
 ### The harness digest names content, not a checkout
 
 D7's C1 will freeze the harness digest, and #263-B runs on **both** platforms,
@@ -459,10 +575,13 @@ The scratch files must carry **their final committed names**: `earlier_run.path`
 records the basename it was handed, so a scratch name would leave run B pointing
 at a file that never ships.
 
-**`PAIR_IDENTITY_FIELDS`** — every axis two halves must share: `tree_sha`,
-`tree_dirty`, `python_reference_commit`, `workload_manifest_sha256`,
-`harness_digest`, `calibration_repetitions`, `warmup_discards`,
-`candidate_sha256`, `candidate_bytes`.
+**`PAIR_IDENTITY_FIELDS`** — the 10 axes two halves
+must share: `tree_sha`, `tree_dirty`, `python_reference_commit`, `python_reference_tree`, `workload_manifest_sha256`, `harness_digest`, `calibration_repetitions`, `warmup_discards`, `candidate_sha256`, `candidate_bytes`.
+
+An earlier revision of this paragraph listed nine and omitted
+`python_reference_tree`, which the code had carried since the reference identity
+was separated from HEAD. A prose inventory of a tuple is a second copy of that
+tuple, and the second copy is the one that goes stale.
 
 `reproduce()` **refuses** to produce a verdict when any of them differ, so a
 mismatched pair is not merely detectable afterwards — it cannot be made. The

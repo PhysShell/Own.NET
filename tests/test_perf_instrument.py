@@ -169,36 +169,138 @@ def _canonical(obj: dict) -> str:
     return json.dumps(obj, sort_keys=True, separators=(",", ":"))
 
 
-def _valid_payload(observed: dict) -> dict:
-    payload = {
+def _protocol_cell(phase: str, workload: str, platform: str, regime: str,
+                   na: bool = False) -> dict:
+    """One preregistered cell.
+
+    Every value is a deliberately non-production placeholder. A fixture that
+    only passed with plausible NUMBERS would be proving that the gate reads
+    thresholds, which is the one thing it must never do. What is being checked
+    is that the preregistration is STRUCTURALLY there.
+    """
+    dims = {"phase": phase, "workload_id": workload, "platform": platform, "regime": regime}
+    if na:
+        return {"dimensions": dims,
+                "not_applicable": "<reason frozen by D7: no allocation counter here>"}
+    return {
+        "dimensions": dims,
+        "bound": "<budget frozen by D7>",
+        "pass_fail_rule": "<rule frozen by D7>",
+        "inconclusive_band": "<band frozen by D7>",
+        "repetition_ladder": dict.fromkeys(pb.D7_LADDER_KEYS, "<frozen by D7>"),
+        "comparison_statistic": "<statistic frozen by D7>",
+        "rss_policy": "<rss treatment frozen by D7>",
+        "allocation_policy": "<allocation treatment frozen by D7>",
+    }
+
+
+def _valid_payload(observed: dict, anchor: str) -> dict:
+    return {
         "kind": pb.D7_PAYLOAD_KIND,
         "schema": pb.D7_SCHEMA,
-        # Deliberately not plausible thresholds: the gate must never read them.
-        **dict.fromkeys(pb.D7_PAYLOAD_PROTOCOL_KEYS, "<frozen by D7, never read by the gate>"),
+        "cells": {
+            "core-full-sarif|rust|cal-facts-small|process-cold": _protocol_cell(
+                "render-sarif", "cal-facts-small", "linux", "process-cold"),
+            "core-usage|rust|cal-facts-tiny|warm": _protocol_cell(
+                "process-startup-core", "cal-facts-tiny", "windows", "warm"),
+            "core-full-human|python|cal-facts-small|process-cold": _protocol_cell(
+                "render-human", "cal-facts-small", "linux", "process-cold", na=True),
+        },
+        "rollups": dict.fromkeys(pb.D7_ROLLUP_LEVELS, "<roll-up frozen by D7>"),
+        pb.D7_PAYLOAD_ANCHOR: anchor,
         **{k: observed[k] for k in pb.D7_PAYLOAD_BINDING_KEYS},
         "ratification": {"owner": "the owner", "ratified_at": "2026-01-01T00:00:00Z",
                          "signature": "none"},
     }
-    return payload
 
 
-def _build_freeze(repo: Path, observed: dict, break_: str = "") -> None:
-    """A real two-commit D7 freeze: C1 the payload, C2 a detached attestation in
-    a strictly later commit.
+def _seed_instrument(repo: Path) -> str:
+    """Commit S — the accepted #263-A instrument, in a checkout of its own.
+
+    The old fixture committed a README and two JSON files and took ``observed``
+    from the REAL repository. So the one thing the production lifecycle does
+    between acceptance and #263-B — move HEAD past S — could not happen here,
+    and the gate's ``instrument_tree_sha = git rev-parse HEAD`` check compared
+    the real repository's HEAD against a payload built from that same HEAD. The
+    fixture isolated production from precisely the effect it existed to check.
+    """
+    repo.mkdir(parents=True, exist_ok=True)
+    _git(repo, "init", "-q")
+    for src in pb.INSTRUMENT_SOURCES:
+        dst = repo / pb._instrument_rel(src)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(src.read_bytes())
+    ref = repo / pb.PYTHON_REFERENCE_PATH / "reference.py"
+    ref.parent.mkdir(parents=True, exist_ok=True)
+    ref.write_text("# stands in for the Python reference source\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "S: the accepted #263-A instrument")
+    return _git(repo, "rev-parse", "HEAD")
+
+
+def _commit_file(repo: Path, rel: str, text: str, message: str) -> str:
+    path = repo / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", message)
+    return _git(repo, "rev-parse", "HEAD")
+
+
+def _build_freeze(repo: Path, manifest_digest: str, break_: str = "") -> dict:
+    """A real D7 lifecycle: S, ordinary work, C1, C2, then more ordinary work.
+
+    Returns what the gate should observe in THIS repository. The commits after
+    C2 are the point: at #263-B the repository has moved on, and a gate that
+    demanded HEAD equal the accepted tree could never arm.
 
     Each ``break_`` damages exactly ONE property, so a refusal can be matched
     against the check that owns it. A control where every broken input is
     refused by the same over-broad check proves nothing about the other checks.
     """
-    repo.mkdir(parents=True, exist_ok=True)
-    _git(repo, "init", "-q")
+    anchor = _seed_instrument(repo)
     nest = repo / "docs" / "evidence"
-    nest.mkdir(parents=True, exist_ok=True)
     pay = nest / pb.D7_PAYLOAD.name
     att = nest / pb.D7_ATTESTATION.name
     pay_rel = f"docs/evidence/{pay.name}"
+    self_rel = pb._instrument_rel(pb.SELF)
 
-    payload = _valid_payload(observed)
+    if break_ == "anchor-content-drift":
+        # A commit that HAS the instrument sources and IS an ancestor of C1,
+        # but whose instrument is not the one the freeze describes.
+        real = (repo / self_rel).read_bytes()
+        anchor = _commit_file(repo, self_rel, "# a different instrument\n", "drifted instrument")
+        (repo / self_rel).write_bytes(real)
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-q", "-m", "restore the instrument")
+    elif break_ in ("anchor-missing-sources", "anchor-not-ancestor"):
+        # A commit off to the side, so it is not an ancestor of C1.
+        head = _git(repo, "rev-parse", "HEAD")
+        _git(repo, "checkout", "-q", "--orphan", "sidelined")
+        _git(repo, "rm", "-rq", "--cached", ".")
+        for stray in ("docs", "scripts", pb.PYTHON_REFERENCE_PATH):
+            if (repo / stray).exists():
+                import shutil
+                shutil.rmtree(repo / stray)
+        if break_ == "anchor-not-ancestor":
+            # Same instrument content, so only ancestry can catch it.
+            for src in pb.INSTRUMENT_SOURCES:
+                dst = repo / pb._instrument_rel(src)
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                dst.write_bytes(src.read_bytes())
+        (repo / "unrelated").write_text("not the instrument\n", encoding="utf-8")
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-q", "-m", "a commit that is not the accepted instrument")
+        anchor = _git(repo, "rev-parse", "HEAD")
+        _git(repo, "checkout", "-q", "-f", head)
+        _git(repo, "checkout", "-q", "-B", "main")
+
+    # Ordinary work between acceptance and the freeze, so S is never the tip.
+    _commit_file(repo, "docs/notes/unrelated.md", "work after acceptance\n", "ordinary work")
+
+    observed = pb.IdentityGate.observe(manifest_digest, repo)
+    payload = _valid_payload(observed, anchor)
+
     if break_ == "echo":
         payload = {k: observed[k] for k in pb.D7_PAYLOAD_BINDING_KEYS}
     elif break_ == "payload-incomplete":
@@ -209,13 +311,38 @@ def _build_freeze(repo: Path, observed: dict, break_: str = "") -> None:
         payload["ratification"]["signature"] = {"key_id": "DEADBEEF"}
     elif break_ == "binding-mismatch":
         payload["harness_digest"] = "f" * 64
+    elif break_ == "anchor-not-hex":
+        payload[pb.D7_PAYLOAD_ANCHOR] = "the commit we all agreed on"
+    elif break_ == "anchor-not-a-commit":
+        payload[pb.D7_PAYLOAD_ANCHOR] = "0" * 40
+    elif break_ == "proto-stub":
+        # The exact shape the previous fixture called valid.
+        for k in pb.D7_PAYLOAD_PROTOCOL_KEYS:
+            payload[k] = "<frozen by D7, never read by the gate>"
+    elif break_.startswith("proto-"):
+        cells = payload["cells"]
+        first = cells["core-full-sarif|rust|cal-facts-small|process-cold"]
+        if break_ == "proto-no-ladder":
+            first.pop("repetition_ladder")
+        elif break_ == "proto-ladder-incomplete":
+            first["repetition_ladder"].pop("escalation_stages")
+        elif break_ == "proto-no-statistic":
+            first.pop("comparison_statistic")
+        elif break_ == "proto-no-inconclusive":
+            first.pop("inconclusive_band")
+        elif break_ == "proto-no-dimension":
+            first["dimensions"].pop("platform")
+        elif break_ == "proto-na-without-reason":
+            cells["core-full-human|python|cal-facts-small|process-cold"]["not_applicable"] = ""
+        elif break_ == "proto-rollup-workload-class":
+            payload["rollups"].pop("workload_class")
+        elif break_ == "proto-rollup-phase":
+            payload["rollups"].pop("phase")
+        elif break_ == "proto-rollup-overall":
+            payload["rollups"].pop("overall_g3")
 
-    # A base commit, so C1 is never the repository's root commit.
-    (repo / "README").write_text("base\n", encoding="utf-8")
-    _git(repo, "add", "-A")
-    _git(repo, "commit", "-q", "-m", "base")
-    base = _git(repo, "rev-parse", "HEAD")
-
+    before_c1 = _git(repo, "rev-parse", "HEAD")
+    nest.mkdir(parents=True, exist_ok=True)
     pay.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "C1: freeze the payload")
@@ -223,7 +350,7 @@ def _build_freeze(repo: Path, observed: dict, break_: str = "") -> None:
     blob = _git(repo, "rev-parse", f"{c1}:{pay_rel}")
 
     if break_ == "no-attestation":
-        return
+        return observed
 
     exact = pb.sha256_bytes(pay.read_bytes())
     attestation = {
@@ -263,23 +390,27 @@ def _build_freeze(repo: Path, observed: dict, break_: str = "") -> None:
     att.write_text(json.dumps(attestation, indent=2) + "\n", encoding="utf-8")
 
     if break_ == "att-uncommitted":
-        return
+        return observed
     if break_ == "not-descendant":
         # A branch that forked BEFORE C1, carrying both files. The payload's
         # bytes still match the blob at C1, and C1 still exists — only the
         # attestation's commit fails to descend from it.
         payload_text = pay.read_text(encoding="utf-8")
         att_text = att.read_text(encoding="utf-8")
-        _git(repo, "checkout", "-q", "-f", "-b", "sidebranch", base)
+        _git(repo, "checkout", "-q", "-f", "-b", "sidebranch", before_c1)
         nest.mkdir(parents=True, exist_ok=True)
         pay.write_text(payload_text, encoding="utf-8")
         att.write_text(att_text, encoding="utf-8")
         _git(repo, "add", "-A")
         _git(repo, "commit", "-q", "-m", "C2 on a sibling branch")
-        return
+        return observed
 
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "C2: detached attestation")
+
+    # #263-B does not run at C2. The repository keeps moving, and the gate has
+    # to survive that or the freeze is void the moment it is used.
+    _commit_file(repo, "docs/notes/after-the-freeze.md", "the work goes on\n", "post-freeze work")
 
     if break_ == "payload-modified-after-commit":
         # Same canonical content, different bytes, and the attestation updated to
@@ -287,6 +418,7 @@ def _build_freeze(repo: Path, observed: dict, break_: str = "") -> None:
         pay.write_text(json.dumps(payload, indent=4) + "\n", encoding="utf-8")
         attestation["payload_sha256"] = pb.sha256_bytes(pay.read_bytes())
         att.write_text(json.dumps(attestation, indent=2) + "\n", encoding="utf-8")
+    return observed
 
 
 def _with_freeze(repo: Path, fn):
@@ -303,11 +435,30 @@ def _with_freeze(repo: Path, fn):
 # Matching the catcher is the point: without it, one broad refusal masquerades
 # as twenty working checks.
 _BROKEN_FREEZES = (
+    # C1 shape and ratification
     ("echo", "does not declare itself a D7 payload"),
     ("payload-incomplete", "payload is incomplete, missing"),
     ("no-ratification", "no complete ratification"),
     ("signed", 'signature must be exactly "none"'),
     ("binding-mismatch", "does not describe this instrument"),
+    # The instrument anchor: provenance, proved by content
+    ("anchor-not-hex", "is not a full commit sha"),
+    ("anchor-not-a-commit", "is not a commit in this repository"),
+    ("anchor-missing-sources", "does not contain the instrument sources"),
+    ("anchor-content-drift", "names a different instrument"),
+    ("anchor-not-ancestor", "is not an ancestor of the payload commit"),
+    # The frozen protocol: structure verified, values never read
+    ("proto-stub", "cells must be a non-empty object"),
+    ("proto-no-ladder", "missing: repetition_ladder"),
+    ("proto-ladder-incomplete", "repetition_ladder is missing: escalation_stages"),
+    ("proto-no-statistic", "missing: comparison_statistic"),
+    ("proto-no-inconclusive", "missing: inconclusive_band"),
+    ("proto-no-dimension", "is missing dimension(s): platform"),
+    ("proto-na-without-reason", "not_applicable with no stated reason"),
+    ("proto-rollup-workload-class", "missing preregistered level(s): workload_class"),
+    ("proto-rollup-phase", "missing preregistered level(s): phase"),
+    ("proto-rollup-overall", "missing preregistered level(s): overall_g3"),
+    # C2 shape, hashes, git object identity and ancestry
     ("no-attestation", "requires a DETACHED attestation"),
     ("att-kind", "does not declare itself a D7 attestation"),
     ("att-incomplete", "attestation is incomplete, missing"),
@@ -324,6 +475,7 @@ _BROKEN_FREEZES = (
 )
 
 
+
 def control_gate_payload_identity() -> None:
     """The gate verifies the D7 freeze §6 defines, not a lookalike.
 
@@ -335,13 +487,12 @@ def control_gate_payload_identity() -> None:
     hashing, or of the ancestry requirement at all.
     """
     _, digest = pb.load_manifest()
-    observed = pb.IdentityGate.observe(digest)
     problems = []
     for break_, expected in _BROKEN_FREEZES:
         with tempfile.TemporaryDirectory(prefix=f"perf-d7-{break_}-") as td:
             repo = Path(td) / "repo"
             try:
-                _build_freeze(repo, observed, break_)
+                _build_freeze(repo, digest, break_)
             except RuntimeError as e:
                 problems.append(f"{break_}: could not build the fixture ({e})")
                 continue
@@ -381,12 +532,11 @@ def control_gate_arms_by_data() -> None:
     """
     workloads, digest = pb.load_manifest()
     before = pb.harness_digest()
-    observed = pb.IdentityGate.observe(digest)
     problems = []
     with tempfile.TemporaryDirectory(prefix="perf-d7-arm-") as td:
         repo = Path(td) / "repo"
         try:
-            _build_freeze(repo, observed)
+            _build_freeze(repo, digest)
         except RuntimeError as e:
             fail("perf-gate-arms-by-data", f"could not build a real freeze fixture: {e}")
             return
@@ -415,6 +565,25 @@ def control_gate_arms_by_data() -> None:
             problems.append("the gate did not record which protocol fields were present")
         if gate.pinned.get("attestation_commit_sha") == gate.pinned.get("payload_commit_sha"):
             problems.append("C1 and C2 were recorded as the same commit")
+
+        # The lifecycle, asserted rather than assumed. S -> C1 -> C2 -> work,
+        # and #263-B runs at the tip. The previous gate compared the accepted
+        # tree against `git rev-parse HEAD`, which by this point equals none of
+        # them, so a correct freeze could never have armed. If these three ever
+        # collapse to one value the fixture has stopped reproducing production
+        # and this control is worthless again.
+        head = _git(repo, "rev-parse", "HEAD")
+        anchor = gate.pinned.get(pb.D7_PAYLOAD_ANCHOR)
+        c1 = gate.pinned.get("payload_commit_sha")
+        c2 = gate.pinned.get("attestation_commit_sha")
+        if len({head, anchor, c1, c2}) != 4:
+            problems.append(f"the fixture did not exercise a moving repository: anchor="
+                            f"{str(anchor)[:8]} c1={str(c1)[:8]} c2={str(c2)[:8]} "
+                            f"head={head[:8]} — a gate can pass this without surviving #263-B")
+        if gate.pinned.get("instrument_at_anchor_digest") != before:
+            problems.append("the gate did not prove the instrument AT the anchor: it recorded "
+                            f"{str(gate.pinned.get('instrument_at_anchor_digest'))[:12]} for a "
+                            f"harness whose digest is {before[:12]}")
         h = _harness(Path(td), gate)
         dec = next(w for w in workloads if w.decisive)
         try:

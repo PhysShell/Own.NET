@@ -81,6 +81,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -131,6 +132,21 @@ def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+_CRLF = b"\r\n"
+_LF = b"\n"
+
+
+def normalized_text(data: bytes) -> bytes:
+    """Line endings normalized, so identity is content and not checkout policy.
+
+    One function, because every identity D7 freezes has to agree about what the
+    same content means. Round 3 fixed the harness digest and left
+    ``load_manifest`` hashing raw bytes two hundred lines away, which is the
+    same defect with a different variable name.
+    """
+    return data.replace(_CRLF, _LF)
+
+
 def sha256_text_file(path: Path) -> tuple[str, int]:
     """Hash a TEXT file by its content, with line endings normalized.
 
@@ -152,23 +168,64 @@ def sha256_text_file(path: Path) -> tuple[str, int]:
     Raw ``sha256_file`` stays raw: the candidate binary is bytes, and
     normalizing a binary would be a different kind of wrong.
     """
-    data = path.read_bytes().replace(b"\r\n", b"\n")
+    data = normalized_text(path.read_bytes())
     return sha256_bytes(data), len(data)
+
+
+SELF = Path(__file__).resolve()
+
+# The files whose CONTENT is the instrument. The manifest is in here on
+# purpose: it means proving the harness digest at a commit also proves the
+# workload manifest at that commit, so there is no second anchor check to write
+# and no second anchor check to get wrong.
+INSTRUMENT_SOURCES: tuple[Path, ...] = (SELF, MANIFEST)
+
+
+def _instrument_rel(path: Path) -> str:
+    """Repository-relative path, so the same source can be read out of any
+    checkout of this repository rather than only out of this one."""
+    return path.relative_to(ROOT).as_posix()
+
+
+def _harness_digest_from(parts: Sequence[tuple[str, bytes]]) -> str:
+    """The digest formula, written ONCE.
+
+    ``harness_digest`` reads the working tree and ``harness_digest_at`` reads
+    git blobs at a commit. The D7 anchor proof compares one against the other,
+    so if these were two implementations of "the same" formula the proof would
+    be comparing two functions and calling their agreement meaningful.
+    """
+    lines = [f"{name}:{sha256_bytes(normalized_text(data))}" for name, data in parts]
+    return sha256_bytes("\n".join(lines).encode("utf-8"))
 
 
 def harness_digest() -> str:
     """The instrument's own identity: this file plus the frozen manifest.
 
-    D7's C1 will freeze this value. It deliberately does NOT include the
-    candidate binary or any attestation: the candidate is the thing under test,
-    and an attestation that changed the digest it attests to could never be
-    written down.
+    D7's C1 freezes this value. It deliberately does NOT include the candidate
+    binary or any attestation: the candidate is the thing under test, and an
+    attestation that changed the digest it attests to could never be written
+    down.
     """
-    parts = []
-    for p in (Path(__file__).resolve(), MANIFEST):
-        digest, _ = sha256_text_file(p)
-        parts.append(f"{p.name}:{digest}")
-    return sha256_bytes("\n".join(parts).encode("utf-8"))
+    return _harness_digest_from([(p.name, p.read_bytes()) for p in INSTRUMENT_SOURCES])
+
+
+def harness_digest_at(repo: Path, commit: str) -> str | None:
+    """The same identity, computed from the instrument as it existed AT a commit.
+
+    This is what makes the D7 anchor a provenance claim rather than a position
+    assertion: C1 names the accepted #263-A commit S, and the gate proves that
+    the instrument at S really is the instrument whose digest C1 froze. ``None``
+    means S does not contain the instrument at all, which is a refusal, not a
+    pass.
+    """
+    parts: list[tuple[str, bytes]] = []
+    for src in INSTRUMENT_SOURCES:
+        rc, data = _git_bytes(repo, "show", f"{commit}:{_instrument_rel(src)}")
+        if rc != 0:
+            return None
+        parts.append((src.name, data))
+    return _harness_digest_from(parts)
 
 
 # --- identity: the D7 C1/C2 gate (dormant) ---------------------------------
@@ -195,16 +252,48 @@ D7_ATTESTATION_KIND = "own.net/p022/d7-attestation"  # C2
 
 D7_SCHEMA = 1
 
-# C1 content. `thresholds`, `rules` and `rollups` are checked for PRESENCE and
-# never read: they are the decisive protocol, and a #263-A artifact that quoted
-# one would leak the number this module exists to keep out.
-D7_PAYLOAD_PROTOCOL_KEYS = ("thresholds", "rules", "rollups")
+# C1 content.
+#
+# The gate must never READ a threshold: a #263-A artifact that quoted one would
+# leak the number this module exists to keep out. It does not follow that the
+# gate may ignore whether a preregistration is THERE. The previous version
+# checked three key names for presence, and its own fixture armed the gate with
+#
+#     thresholds = "<frozen by D7, never read by the gate>"
+#     rules      = "<frozen by D7, never read by the gate>"
+#     rollups    = "<frozen by D7, never read by the gate>"
+#
+# — two immaculate git commits, three celebratory strings, and the decisive
+# firewall opens. Structure is verified; values are never read, compared,
+# ordered or echoed.
+D7_PAYLOAD_PROTOCOL_KEYS = ("cells", "rollups")
+
+# Per D7: every (phase x workload-id x platform x regime) cell carries a
+# budget/regression bound, a pass/fail rule, an inconclusive band, a repetition
+# ladder with its stopping rule, a comparison statistic, and RSS/allocation
+# treatment — or says in so many words that it does not apply.
+D7_CELL_DIMENSIONS = ("phase", "workload_id", "platform", "regime")
+D7_CELL_RULE_KEYS = ("bound", "pass_fail_rule", "inconclusive_band", "repetition_ladder",
+                     "comparison_statistic", "rss_policy", "allocation_policy")
+D7_LADDER_KEYS = ("initial_n", "escalation_stages", "transition_predicates", "max_n",
+                  "terminal_outcome")
+D7_CELL_NA_KEY = "not_applicable"
+
+# Preregistered roll-ups, cell -> phase -> overall.
+D7_ROLLUP_LEVELS = ("workload_class", "phase", "overall_g3")
+
+# The accepted #263-A source commit S. DECLARED by C1 and PROVED by content —
+# it is deliberately not in D7_PAYLOAD_BINDING_KEYS, because those are compared
+# against what this process observes and S is precisely the thing that must NOT
+# equal the current position.
+D7_PAYLOAD_ANCHOR = "instrument_anchor_commit"
+
 D7_PAYLOAD_BINDING_KEYS = (
-    "python_reference_commit", "python_reference_tree", "instrument_tree_sha",
+    "python_reference_commit", "python_reference_tree",
     "harness_digest", "harness_version", "workload_manifest_sha256",
 )
-D7_PAYLOAD_KEYS = ("kind", "schema", *D7_PAYLOAD_PROTOCOL_KEYS, *D7_PAYLOAD_BINDING_KEYS,
-                   "ratification")
+D7_PAYLOAD_KEYS = ("kind", "schema", *D7_PAYLOAD_PROTOCOL_KEYS, D7_PAYLOAD_ANCHOR,
+                   *D7_PAYLOAD_BINDING_KEYS, "ratification")
 D7_RATIFICATION_KEYS = ("owner", "ratified_at", "signature")
 
 # C2 content.
@@ -213,6 +302,84 @@ D7_ATTESTATION_KEYS = ("kind", "schema", "payload_path", "payload_commit_sha",
                        "ratification_binding")
 
 _HEX40 = re.compile(r"\A[0-9a-f]{40}\Z")
+
+
+def _present(value: object) -> bool:
+    """Is this field THERE — without asking what it says.
+
+    A blank string, an empty list and an empty object are all structurally
+    absent however confidently they are typed. Nothing here compares, orders or
+    records a value, so a threshold cannot leak through this function.
+    """
+    if isinstance(value, str):
+        return value.strip() != ""
+    if isinstance(value, (list, tuple, dict)):
+        return len(value) > 0
+    return value is not None
+
+
+def _d7_protocol_problems(payload: dict[str, object]) -> list[str]:
+    """Does C1 carry a preregistration D7 would recognise?
+
+    Every problem names the field it is about, so a control can match a damaged
+    freeze against the check that owns it. One broad "malformed protocol"
+    refusal would let a dozen missing checks hide behind a single passing case.
+    """
+    problems: list[str] = []
+
+    cells = payload.get("cells")
+    if not isinstance(cells, dict) or not cells:
+        problems.append(
+            "cells must be a non-empty object keyed by cell id, one entry per "
+            "(" + " x ".join(D7_CELL_DIMENSIONS) + ")")
+    else:
+        for cid, spec in sorted(cells.items(), key=lambda kv: str(kv[0])):
+            where = f"cell {str(cid)!r}"
+            if not isinstance(spec, dict):
+                problems.append(f"{where} is not an object")
+                continue
+
+            dims = spec.get("dimensions")
+            if not isinstance(dims, dict):
+                problems.append(f"{where} declares no dimensions object")
+            else:
+                absent = [d for d in D7_CELL_DIMENSIONS if not _present(dims.get(d))]
+                if absent:
+                    problems.append(f"{where} is missing dimension(s): " + ", ".join(absent))
+
+            if D7_CELL_NA_KEY in spec:
+                # An explicit N/A is a preregistered decision and needs a stated
+                # reason. A bare `not_applicable: true` is a way of writing
+                # "no rule" that reads like a rule.
+                if not _present(spec.get(D7_CELL_NA_KEY)):
+                    problems.append(f"{where} is marked {D7_CELL_NA_KEY} with no stated reason")
+                continue
+
+            absent = [k for k in D7_CELL_RULE_KEYS if not _present(spec.get(k))]
+            if absent:
+                problems.append(
+                    f"{where} carries neither a complete rule nor an explicit "
+                    f"{D7_CELL_NA_KEY} — missing: " + ", ".join(absent))
+
+            ladder = spec.get("repetition_ladder")
+            if _present(ladder):
+                if not isinstance(ladder, dict):
+                    problems.append(f"{where} repetition_ladder is not an object")
+                else:
+                    gaps = [k for k in D7_LADDER_KEYS if not _present(ladder.get(k))]
+                    if gaps:
+                        problems.append(
+                            f"{where} repetition_ladder is missing: " + ", ".join(gaps))
+
+    rollups = payload.get("rollups")
+    if not isinstance(rollups, dict):
+        problems.append("rollups must be an object carrying the preregistered levels "
+                        + ", ".join(D7_ROLLUP_LEVELS))
+    else:
+        absent = [lv for lv in D7_ROLLUP_LEVELS if not _present(rollups.get(lv))]
+        if absent:
+            problems.append("rollups is missing preregistered level(s): " + ", ".join(absent))
+    return problems
 _HEX64 = re.compile(r"\A[0-9a-f]{64}\Z")
 
 
@@ -225,6 +392,17 @@ def _git_in(repo: Path, *args: str) -> tuple[int, str]:
     """
     r = subprocess.run(["git", *args], capture_output=True, cwd=str(repo), check=False)
     return r.returncode, r.stdout.decode("utf-8", "replace").strip()
+
+
+def _git_bytes(repo: Path, *args: str) -> tuple[int, bytes]:
+    """Like ``_git_in`` but returns RAW stdout.
+
+    ``git show <commit>:<path>`` produces file content, and content must not be
+    decoded-and-stripped on its way to a hash: stripping a trailing newline
+    would make a file hash differently depending on which reader found it.
+    """
+    r = subprocess.run(["git", *args], capture_output=True, cwd=str(repo), check=False)
+    return r.returncode, r.stdout
 
 
 def _committed_blob_matches(repo: Path, rev: str, path_in_repo: str,
@@ -274,13 +452,26 @@ class IdentityGate:
     observed: dict[str, str] = field(default_factory=dict)
 
     @staticmethod
-    def observe(manifest_digest: str) -> dict[str, str]:
-        """What this process can see about itself, for C1 to be checked against."""
-        rc, tree = _git_in(ROOT, "rev-parse", "HEAD")
+    def observe(manifest_digest: str, root: Path = ROOT) -> dict[str, str]:
+        """What this process can see about itself, for C1 to be checked against.
+
+        These are the values C1 must EQUAL, so every one of them has to be
+        stable across the freeze that writes C1 and C2. ``instrument_tree_sha =
+        git rev-parse HEAD`` used to be in here and was none of those things:
+        the real lifecycle is
+
+            S (accepted #263-A tree) -> C1 -> C2 -> #263-B runs
+
+        so by the time #263-B runs, HEAD is at least C2 and can never equal S.
+        A freeze that satisfied this check would have to name a future
+        content-addressed commit sha inside the commit that determines it, and
+        git is not moved by human ingenuity. The instrument anchor is now
+        DECLARED by C1 and proved by content — see ``harness_digest_at`` — and
+        the current position is not asserted at all.
+        """
         return {
-            "python_reference_commit": python_reference_commit(),
-            "python_reference_tree": python_reference_tree(),
-            "instrument_tree_sha": tree if rc == 0 else "",
+            "python_reference_commit": python_reference_commit(root),
+            "python_reference_tree": python_reference_tree(root),
             "harness_digest": harness_digest(),
             "harness_version": str(HARNESS_VERSION),
             "workload_manifest_sha256": manifest_digest,
@@ -293,8 +484,15 @@ class IdentityGate:
         return [
             f"C1: a payload at {D7_PAYLOAD.name} declaring kind={D7_PAYLOAD_KIND!r}, carrying "
             + ", ".join(D7_PAYLOAD_KEYS),
-            "C1 carries the frozen protocol (" + ", ".join(D7_PAYLOAD_PROTOCOL_KEYS)
-            + ") — checked for PRESENCE and never read",
+            "C1 carries a STRUCTURALLY COMPLETE preregistration: " + ", ".join(
+                D7_PAYLOAD_PROTOCOL_KEYS) + "; each cell declares "
+            + ", ".join(D7_CELL_DIMENSIONS) + " and either " + ", ".join(D7_CELL_RULE_KEYS)
+            + " (the ladder carrying " + ", ".join(D7_LADDER_KEYS) + ") or an explicit "
+            + D7_CELL_NA_KEY + " with a reason; roll-ups carry "
+            + ", ".join(D7_ROLLUP_LEVELS) + ". Values are never read",
+            f"C1 declares {D7_PAYLOAD_ANCHOR} S, and the instrument AT S hashes to the "
+            "harness_digest C1 froze; S is an ancestor of C1. The CURRENT position is never "
+            "required to equal S, because by #263-B it cannot be",
             "C1's bindings equal what this process observes: "
             + ", ".join(D7_PAYLOAD_BINDING_KEYS),
             f"C2: a detached attestation at {D7_ATTESTATION.name} declaring "
@@ -309,7 +507,13 @@ class IdentityGate:
 
     @staticmethod
     def load(manifest_digest: str, reference_sha: str | None = None) -> IdentityGate:
-        observed = IdentityGate.observe(manifest_digest)
+        # Observe the repository the freeze actually lives in. When those are
+        # two different repositories the gate would verify one and describe the
+        # other, which is how the fixtures used to pass while production could
+        # never have armed.
+        freeze_root = _repo_root(D7_PAYLOAD)
+        root = freeze_root or ROOT
+        observed = IdentityGate.observe(manifest_digest, root)
         if not D7_PAYLOAD.is_file():
             return IdentityGate(
                 armed=False,
@@ -378,9 +582,16 @@ class IdentityGate:
                 f"the D7 attestation attests payload_sha256 {declared[:12]} but the payload's "
                 f"exact bytes hash to {exact[:12]}")
 
+        # --- the frozen protocol: structure verified, values never read ----
+        shape = _d7_protocol_problems(payload)
+        if shape:
+            raise InstrumentError(
+                "the D7 payload does not carry a preregistration §6 would recognise: "
+                + "; ".join(shape) + ". The gate never reads a threshold VALUE, but a "
+                "freeze whose protocol is structurally empty is not a freeze.")
+
         # --- git identity: repo, blob, commit, ancestry --------------------
-        root = _repo_root(D7_PAYLOAD)
-        if root is None:
+        if freeze_root is None:
             raise InstrumentError(
                 "the D7 freeze names commits but is not inside a git repository, so its object "
                 "identity cannot be verified. Fail-closed: unverifiable is not verified.")
@@ -401,6 +612,44 @@ class IdentityGate:
         if rc != 0:
             raise InstrumentError(
                 f"payload_commit_sha {c1[:12]} is not a commit in this repository")
+
+        # --- the instrument anchor: provenance, not current position -------
+        #
+        # C1 declares S, the accepted #263-A source commit. The gate proves S
+        # rather than comparing it to wherever the repository is standing:
+        #
+        #   S exists, and contains the instrument
+        #   the instrument AT S hashes to the harness_digest C1 froze
+        #   S is an ancestor of C1
+        #
+        # and the rest of the chain is already proved below: C1 is a strict
+        # ancestor of C2, and C2 is found by `git log` in HEAD's history. So
+        # S <= C1 < C2 <= HEAD without ever requiring HEAD to equal anything.
+        anchor = str(payload[D7_PAYLOAD_ANCHOR])
+        if not _HEX40.match(anchor):
+            raise InstrumentError(
+                f"{D7_PAYLOAD_ANCHOR} is not a full commit sha: {anchor[:24]!r}")
+        rc, _ = _git_in(root, "rev-parse", "--verify", "--quiet", f"{anchor}^{{commit}}")
+        if rc != 0:
+            raise InstrumentError(
+                f"{D7_PAYLOAD_ANCHOR} {anchor[:12]} is not a commit in this repository")
+        digest_at_anchor = harness_digest_at(root, anchor)
+        if digest_at_anchor is None:
+            raise InstrumentError(
+                f"{D7_PAYLOAD_ANCHOR} {anchor[:12]} does not contain the instrument sources ("
+                + ", ".join(_instrument_rel(src) for src in INSTRUMENT_SOURCES)
+                + "): it cannot be the accepted #263-A commit")
+        if digest_at_anchor != str(payload["harness_digest"]):
+            raise InstrumentError(
+                f"the instrument at {D7_PAYLOAD_ANCHOR} {anchor[:12]} hashes to "
+                f"{digest_at_anchor[:12]}, but C1 froze harness_digest "
+                f"{str(payload['harness_digest'])[:12]}: the anchor names a different "
+                "instrument than the one the freeze describes")
+        rc, _ = _git_in(root, "merge-base", "--is-ancestor", anchor, c1)
+        if rc != 0:
+            raise InstrumentError(
+                f"{D7_PAYLOAD_ANCHOR} {anchor[:12]} is not an ancestor of the payload commit "
+                f"{c1[:12]}: a freeze cannot precede the instrument it freezes")
 
         rc, blob_at_c1 = _git_in(root, "rev-parse", "--verify", "--quiet", f"{c1}:{canonical}")
         if rc != 0 or not blob_at_c1:
@@ -459,6 +708,8 @@ class IdentityGate:
                 "the D7 attestation's ratification_binding does not equal the payload's "
                 "ratification: the attestation ratifies something other than what was frozen")
 
+        _cells = payload["cells"]
+        _cell_count = len(_cells) if isinstance(_cells, dict) else 0
         pinned = {
             **{k: str(payload[k]) for k in D7_PAYLOAD_BINDING_KEYS},
             "payload_commit_sha": c1,
@@ -469,8 +720,14 @@ class IdentityGate:
             "ratified_at": str(rat["ratified_at"]),
             "signature": "unsigned (declared): two committed objects, which anyone with "
                          "repository write access could author",
-            # Presence, never values: a #263-A artifact must not carry a threshold.
+            D7_PAYLOAD_ANCHOR: anchor,
+            "instrument_at_anchor_digest": digest_at_anchor,
+            # SHAPE, never values: a #263-A artifact must not carry a threshold.
+            # Counts describe how much preregistration was found; they say
+            # nothing about what any of it says.
             "protocol_fields_present": ", ".join(sorted(D7_PAYLOAD_PROTOCOL_KEYS)),
+            "protocol_cells_specified": str(_cell_count),
+            "protocol_rollup_levels": ", ".join(D7_ROLLUP_LEVELS),
         }
         return IdentityGate(
             armed=True,
@@ -728,7 +985,11 @@ def load_manifest() -> tuple[list[Workload], str]:
     ids = [w.id for w in out]
     if len(set(ids)) != len(ids):
         raise InstrumentError(f"the workload manifest has duplicate ids: {ids}")
-    return out, sha256_bytes(raw)
+    # Normalized, like every other identity D7 freezes. `.gitattributes` pins
+    # this file to LF, but an attribute only governs files git checks out under
+    # it: a zip download or a clone predating the rule still differs, and C1
+    # freezes this value.
+    return out, sha256_bytes(normalized_text(raw))
 
 
 def materialize_calibration(w: Workload, tmp: Path) -> Path:
@@ -1296,7 +1557,7 @@ def _rung_accepts(rung: Rung, w: Workload) -> bool:
 PYTHON_REFERENCE_PATH = "ownlang"
 
 
-def python_reference_commit() -> str:
+def python_reference_commit(root: Path = ROOT) -> str:
     """§12: the decisive measurement and the G3 correctness evidence must name the
     SAME Python reference state, by commit SHA.
 
@@ -1312,11 +1573,11 @@ def python_reference_commit() -> str:
     The reference commit is now the last commit that TOUCHED the reference
     source. It moves when ownlang moves and at no other time.
     """
-    rc, out = _git_in(ROOT, "log", "-1", "--format=%H", "--", PYTHON_REFERENCE_PATH)
+    rc, out = _git_in(root, "log", "-1", "--format=%H", "--", PYTHON_REFERENCE_PATH)
     return out if rc == 0 else ""
 
 
-def python_reference_tree() -> str:
+def python_reference_tree(root: Path = ROOT) -> str:
     """The reference's CONTENT identity: the git tree object of ownlang.
 
     Content-addressed, so it is identical across two checkouts that hold the
@@ -1324,7 +1585,7 @@ def python_reference_tree() -> str:
     as a cross-check — a commit sha alone cannot show that two artifacts saw the
     same bytes, only that they named the same label.
     """
-    rc, out = _git_in(ROOT, "rev-parse", f"HEAD:{PYTHON_REFERENCE_PATH}")
+    rc, out = _git_in(root, "rev-parse", f"HEAD:{PYTHON_REFERENCE_PATH}")
     return out if rc == 0 else ""
 
 
