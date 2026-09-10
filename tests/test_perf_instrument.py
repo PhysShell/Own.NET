@@ -477,12 +477,23 @@ def control_phase_attribution() -> None:
 
     # The shipped evidence must agree with the shipped rung table. This is what
     # makes "re-record after changing a rung" a gate rather than a promise.
-    report = ROOT / "docs/evidence/p022-263a-calibration.linux.json"
-    if not report.is_file():
-        problems.append(f"{report.name} is missing: the calibration evidence cannot be checked "
-                        "against the rung table it claims to describe")
-    else:
-        rep = json.loads(report.read_text(encoding="utf-8"))
+    # EVERY committed calibration artifact, found structurally rather than by a
+    # hardcoded path: records and exploratory sizing evidence alike must agree
+    # with the rung table they describe. Naming one file meant the check went
+    # blind the moment a run failed and the record was withheld — exactly when
+    # the remaining evidence most needs checking.
+    artifacts = []
+    for cand in sorted((ROOT / "docs/evidence").glob("p022-263a-*.json")):
+        try:
+            doc = json.loads(cand.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(doc, dict) and "rungs" in doc and "cells" in doc:
+            artifacts.append((cand, doc))
+    if not artifacts:
+        problems.append("no calibration artifact is committed at all, so the rung table "
+                        "describes nothing that was ever measured")
+    for report, rep in artifacts:
         by_id = {r.id: r for r in pb.RUNGS}
         shipped_rungs = [{"id": r.id, "surface": r.surface, "phases": list(r.phases),
                           "observability": r.observability, "expect_rc": list(r.expect_rc),
@@ -655,7 +666,32 @@ def control_provenance_complete() -> None:
         ok("perf-provenance-complete", "no calibration report is committed yet; the shape is "
                                        "checked when one is")
         return
-    problems = []
+    problems: list[str] = []
+    # Pair integrity applies to EVERY committed artifact carrying a
+    # reproducibility verdict, not only to reports of record. Exploratory
+    # sizing evidence makes a claim about two runs too, and a claim whose
+    # other half was never committed cannot be recomputed by anyone.
+    for cand in sorted(Path(ROOT / "docs/evidence").glob("p022-263a-*.json")):
+        try:
+            doc = json.loads(cand.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        repro_any = (doc or {}).get("reproducibility")
+        if not isinstance(repro_any, dict):
+            continue
+        e = repro_any.get("earlier_run") or {}
+        if not e.get("path") or not e.get("sha256"):
+            problems.append(f"{cand.name}: carries a reproducibility verdict but names no "
+                            "earlier run, so the verdict rests on uncommitted data")
+            continue
+        mate = cand.parent / str(e["path"])
+        if not mate.is_file():
+            problems.append(f"{cand.name}: names earlier run {e['path']!r}, "
+                            "not committed beside it")
+        elif pb.sha256_bytes(mate.read_bytes()) != e["sha256"]:
+            problems.append(f"{cand.name}: the committed {e['path']} does not hash to the value "
+                            "its verdict was computed against")
+
     for path in committed:
         rep = json.loads(path.read_text(encoding="utf-8"))
         if rep.get("tag") != pb.CALIBRATION_ONLY:

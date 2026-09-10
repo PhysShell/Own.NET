@@ -410,13 +410,53 @@ unstable estimate rather than the distribution truly being that wide — and it 
 equally consistent with a quieter machine. One paired trial cannot separate
 them, and this note does not claim it did.
 
-**Then `n=5` reproduced too.** A subsequent `n=5` pair, taken under the shipped
-instrument, came back admissible on all three axes with nothing outside
-tolerance. So the original failure was **intermittent, not systematic**, and
-"n=5 is too few" is not merely unproven — it is now weakly contradicted. Both
-pairs are preserved: the `n=5` evidence in
-`docs/evidence/p022-263a-sizing-n5.linux.json`, deliberately named so it does
+**`n=5` is intermittent.** Across four observed `n=5` pairs it has now failed
+twice and passed twice. So the original failure was neither a one-off nor a
+systematic insufficiency: on this machine an `n=5` pair reproduces about half
+the time. Both halves of the final failing pair are committed in
+`docs/evidence/p022-263a-sizing-n5*.linux.json`, deliberately named so they do
 *not* match the glob that identifies a report of record.
+
+### The escalation was spent, and it did not work
+
+`n=15` failed too — and failed **worse**.
+
+| pair | cells outside `REPRODUCIBILITY_MAX_MEDIAN_CHANGE` | worst |
+|---|---|---|
+| `n=5` | 1 of 40 | `core-full-sarif\|rust\|cal-facts-medium\|process-cold`, 0.478 |
+| `n=15` | 3 of 40 | `core-usage\|rust\|cal-facts-tiny\|process-cold`, 0.516 |
+
+Both pairs reproduced their **outcomes** exactly and both environments were
+valid. Only the timings disagreed. Tripling the repetition count did not reduce
+the disagreement; it produced more of it.
+
+That is the predicted result, and it was predicted *before* the run: more
+samples tighten the uncertainty of the median **estimate**, they do not narrow
+the **intrinsic spread** of the distribution being sampled. The earlier reading
+of a single n=5 failure as "too few samples" was a hypothesis, and this is the
+evidence that refutes it.
+
+**So the instrument currently has no admissible calibration of record**, and one
+is not manufactured by continuing to turn the knob. The escalation permitted was
+exactly one step, `5 → 15`, with a mandatory stop on failure. It failed. There
+is no `n=25`, no `n=45`, and `0.35` does not move — a tolerance adjusted after
+seeing which runs it rejects is a threshold fitted to a result, which is the one
+thing this instrument exists to prevent.
+
+What is committed instead is all four halves of both failed pairs, as
+exploratory evidence, on clean trees, each run B naming its run A by path and
+sha256 so the verdicts can be recomputed rather than trusted. The report of
+record is **withdrawn**, not replaced: `p022-263a-calibration.linux.json` is
+deleted rather than left certifying a superseded instrument.
+
+**An observation, offered as a finding and not acted on.** Every cell that
+failed in either pair is a `rust` cell with a median between 2.5 ms and 9.2 ms.
+The Python cells, whose medians run 76–111 ms, held. A single *relative*
+tolerance is applied uniformly across cells spanning roughly fifty-fold in
+absolute duration, and it bites first where the durations are smallest. Whether
+the policy should be magnitude-aware is a **measurement-design decision for the
+owner**, taken with these numbers visible — which is precisely why this
+paragraph proposes nothing.
 
 **Why 15, stated correctly.** Not "because a report of record should carry the
 better-estimated median" — that argument does not pick 15. It picks 25, then
