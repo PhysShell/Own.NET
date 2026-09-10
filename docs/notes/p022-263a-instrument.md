@@ -619,11 +619,48 @@ outcome contract refuses the cell rather than timing it. It is therefore
 **fail-closed**, but it is still an uncontrolled input that the reference
 identity does not cover.
 
-The fix is to pin or record it in the instrument's environment. That edits
-`perf_baseline.py`, moves the harness digest and stales both pairs, so it is
-**recorded and not applied**: re-recording is not currently authorised, and this
-is worth batching with any other change that moves the digest rather than
-spending a re-record on it alone.
+**Since fixed, batched with the mypy work** — both edits move the harness digest,
+so doing them together costs one staleness event instead of two.
+`REFERENCE_ENV_PINNED_UNSET` names the variables the reference reads that its
+content-addressed identity does not cover, and every measured invocation clears
+them. The same reference source can no longer behave two ways depending on the
+shell it was launched from.
+
+### The instrument is type-checked now
+
+`scripts/perf_baseline.py` was outside `mypy`'s file list, so "Success, 43 files"
+never covered the file that produces the numbers. It is in the list now — 44
+files — and passes `--strict`.
+
+The 42 errors it exposed were almost entirely one root cause: values parsed from
+JSON are `object`, and the code called `.get()`, `int()` or `float()` on them
+behind `x or {}` idioms with `# type: ignore` comments that had drifted to the
+wrong error codes. Four narrowing helpers — `_as_obj`, `_as_list`, `_as_int`,
+`_as_float` — say it once, to the reader and the checker at the same time.
+
+They narrow in the **fail-closed** direction. A non-object where an object
+belongs becomes empty, so the caller's own completeness check refuses it, rather
+than raising an `AttributeError` three frames from the cause. `_as_int` and
+`_as_float` reject `bool` for the same reason `_present` does: a yes/no is not a
+measurement.
+
+Six errors were not narrowing at all: `ctypes.windll` and `Popen._handle` exist
+on Windows and are absent from the stubs mypy checks against on Linux. Those
+carry targeted `type: ignore[attr-defined]` comments — one API each, with the
+reason recorded — rather than a blanket suppression that would also hide the
+next real defect.
+
+**No control changed and none was weakened**: 15/15 throughout, and the full
+suite stayed green at every step, which is the only reason to believe a
+mechanical rewrite of this size did not quietly alter behaviour.
+
+### Both pairs are stale, and are not re-recorded
+
+The digest moved from `2d6e52fe4352` to `6713e7300c7c`, so all four committed
+halves now describe an instrument that no longer exists. They are **left in
+place**: re-recording is a measurement, and new measurements are not currently
+authorised. The evidence is stale and says so rather than being quietly
+refreshed.
 
 ### The manifest digest was hashing raw bytes
 

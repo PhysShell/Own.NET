@@ -443,6 +443,41 @@ _HEX40 = re.compile(r"\A[0-9a-f]{40}\Z")
 _HEX64 = re.compile(r"\A[0-9a-f]{64}\Z")
 
 
+def _as_obj(value: object) -> dict[str, object]:
+    """Narrow a JSON value to an object, or to an empty one.
+
+    Every reader here parses JSON, so mypy sees `object` and the code was
+    littered with `x.get(k) or {}` plus a `type: ignore` that had drifted to the
+    wrong error code. This says the same thing once, and says it to the type
+    checker as well as the reader.
+
+    A non-object where an object belongs becomes empty rather than raising, so
+    the caller's own completeness check refuses it. That is the fail-closed
+    direction: a malformed report should be REFUSED by the rule that reads it,
+    not crash with an AttributeError three frames away from the cause.
+    """
+    return value if isinstance(value, dict) else {}
+
+
+def _as_list(value: object) -> list[object]:
+    """Narrow a JSON value to an array, or to an empty one. See ``_as_obj``."""
+    return list(value) if isinstance(value, list) else []
+
+
+def _as_int(value: object, default: int = 0) -> int:
+    """Narrow a JSON value to an int. `bool` is rejected: it is not a count."""
+    if isinstance(value, bool):
+        return default
+    return value if isinstance(value, int) else default
+
+
+def _as_float(value: object, default: float = 0.0) -> float:
+    """Narrow a JSON value to a float. See ``_as_obj``."""
+    if isinstance(value, bool):
+        return default
+    return float(value) if isinstance(value, (int, float)) else default
+
+
 def _present(value: object) -> bool:
     """Is this field THERE — without asking what it says.
 
@@ -1206,7 +1241,7 @@ def materialize_calibration(w: Workload, tmp: Path) -> Path:
         p.write_text(json.dumps({"ownir_version": 999_999, "module": w.id}), encoding="utf-8")
         return p
     if gen == "facts":
-        scale = int(w.spec.get("scale", 1))
+        scale = _as_int(w.spec.get("scale", 1), 1)
         doc = {
             "ownir_version": 0,
             "module": w.id,
@@ -1222,7 +1257,7 @@ def materialize_calibration(w: Workload, tmp: Path) -> Path:
         p.write_text(json.dumps(doc), encoding="utf-8")
         return p
     if gen == "csharp":
-        scale = int(w.spec.get("scale", 1))
+        scale = _as_int(w.spec.get("scale", 1), 1)
         d = tmp / w.id
         d.mkdir(parents=True, exist_ok=True)
         for i in range(scale):
@@ -1446,8 +1481,8 @@ def invalidation_reasons(before: dict[str, object], after: dict[str, object]) ->
         rel = probe.get("relative_iqr")
         if rel is None:
             out.append(f"noise probe {label}: no median, so the floor is unknown")
-        elif float(rel) > NOISE_PROBE_MAX_RELATIVE_IQR:
-            out.append(f"noise probe {label}: relative IQR {float(rel):.3f} exceeds the "
+        elif _as_float(rel) > NOISE_PROBE_MAX_RELATIVE_IQR:
+            out.append(f"noise probe {label}: relative IQR {_as_float(rel):.3f} exceeds the "
                        f"{NOISE_PROBE_MAX_RELATIVE_IQR} floor — a contended or throttling runner")
     b, a = before.get("median_ns"), after.get("median_ns")
     if isinstance(b, (int, float)) and isinstance(a, (int, float)) and b:
@@ -1585,6 +1620,14 @@ class Harness:
         env = dict(os.environ)
         env["PYTHONPATH"] = str(ROOT)
         env["OWEN_RUST_CORE"] = str(self.candidate)
+        # The reference reads OWNLANG_DEBUG, and inheriting the ambient value
+        # would make an uncontrolled input part of what is measured. It only
+        # affects the internal-error path, so it cannot change analysis output
+        # on a successful run — but an identity that content-addresses ownlang/
+        # does not cover an environment variable, so the measurement pins it
+        # rather than inheriting whatever the operator happened to export.
+        for uncontrolled in REFERENCE_ENV_PINNED_UNSET:
+            env.pop(uncontrolled, None)
         if rung.surface == "core":
             base = ([sys.executable, "-m", "ownlang", "ownir"] if engine == "python"
                     else [str(self.candidate), "ownir"])
@@ -1662,14 +1705,14 @@ class Harness:
             samples.append(self._run_once(argv, env, cwd))
             self.session.measurements_taken += 1
 
-        rcs = sorted({int(s["rc"]) for s in samples})  # type: ignore[arg-type]
+        rcs = sorted({_as_int(s["rc"]) for s in samples})
         # Every timed sample must also land on a declared code. The untimed
         # verification proved the rung CAN do its work; this proves each timed
         # iteration actually did.
         stray = [c for c in rcs if c not in rung.expect_rc]
         if stray:
             outcome = {**outcome, "valid": False,
-                       "problems": [*list(outcome["problems"]),  # type: ignore[list-item]
+                       "problems": [*_as_list(outcome["problems"]),
                                     f"timed iterations exited {stray}, outside "
                                     f"{sorted(rung.expect_rc)}"]}
         cell = {
@@ -1680,15 +1723,15 @@ class Harness:
                      else [*argv[:2], "<...>"]),
             "exit_codes": rcs,
             "warmup_discarded": len(discarded),
-            "timing": summarize([int(s["elapsed_ns"]) for s in samples]),  # type: ignore[arg-type]
+            "timing": summarize([_as_int(s["elapsed_ns"]) for s in samples]),
             "peak_rss": summarize(
-                [int(s["peak_rss_bytes"]) for s in samples if s["peak_rss_bytes"] is not None],
+                [_as_int(s["peak_rss_bytes"]) for s in samples if s["peak_rss_bytes"] is not None],
                 unit="bytes"),
             "rss_mechanism": self.rss.mechanism,
             "rss_unavailable_reason": next(
                 (str(s["rss_unavailable_reason"]) for s in samples
                  if s["peak_rss_bytes"] is None and s["rss_unavailable_reason"]), ""),
-            "raw_elapsed_ns": [int(s["elapsed_ns"]) for s in samples],  # §9: raw retained
+            "raw_elapsed_ns": [_as_int(s["elapsed_ns"]) for s in samples],  # §9: raw retained
             "raw_peak_rss_bytes": [s["peak_rss_bytes"] for s in samples],
             "tag": CALIBRATION_ONLY,
         }
@@ -1756,6 +1799,11 @@ def _rung_accepts(rung: Rung, w: Workload) -> bool:
 # The Python reference source. Its identity is a property of THIS directory, not
 # of the repository's current position.
 PYTHON_REFERENCE_PATH = "ownlang"
+
+# Environment inputs the reference reads that its content-addressed identity
+# does NOT cover. Cleared for every measured invocation so the same reference
+# source cannot behave two ways depending on the shell it was launched from.
+REFERENCE_ENV_PINNED_UNSET = ("OWNLANG_DEBUG",)
 
 
 def python_reference_commit(root: Path = ROOT) -> str:
@@ -1883,12 +1931,14 @@ def build_report(harness: Harness, cells: list[dict[str, object]],
         # This block is the verdict on that, separate from whether the machine
         # was quiet enough (that is "noise" above).
         "outcomes": {
-            "valid": all((c.get("outcome") or {}).get("valid") for c in cells),
+            "valid": all(_as_obj(c.get("outcome")).get("valid") for c in cells),
             "cells_timed": sum(1 for c in cells if c.get("timing")),
-            "cells_refused": sum(1 for c in cells if not (c.get("outcome") or {}).get("valid")),
+            "cells_refused": sum(1 for c in cells if not _as_obj(c.get("outcome")).get("valid")),
             "problems": [f"{c['rung']}|{c['engine']}|{c['workload']}|{c['regime']}: "
-                         + "; ".join((c.get("outcome") or {}).get("problems") or [])
-                         for c in cells if not (c.get("outcome") or {}).get("valid")],
+                         + "; ".join(
+                             str(x) for x in
+                             _as_list(_as_obj(c.get("outcome")).get("problems")))
+                         for c in cells if not _as_obj(c.get("outcome")).get("valid")],
             "contract": {r.id: {"expected_exit_codes": sorted(r.expect_rc),
                                 "evidence": r.evidence} for r in RUNGS},
         },
@@ -1983,20 +2033,20 @@ PAIR_IDENTITY_FIELDS = (
 
 
 def _pair_identity(report: dict[str, object]) -> dict[str, object]:
-    prov = report.get("provenance") or {}
-    harn = report.get("harness") or {}
-    cand = ((report.get("identity") or {}).get("session_candidate") or {})  # type: ignore[union-attr]
+    prov = _as_obj(report.get("provenance"))
+    harn = _as_obj(report.get("harness"))
+    cand = (_as_obj(report.get("identity")).get("session_candidate") or {})
     return {
-        "tree_sha": str(prov.get("tree_sha", "")),                    # type: ignore[union-attr]
-        "tree_dirty": prov.get("tree_dirty"),                         # type: ignore[union-attr]
-        "python_reference_commit": str(prov.get("python_reference_commit", "")),  # type: ignore[union-attr]
-        "python_reference_tree": str(prov.get("python_reference_tree", "")),  # type: ignore[union-attr]
-        "workload_manifest_sha256": str(prov.get("workload_manifest_sha256", "")),  # type: ignore[union-attr]
-        "harness_digest": str(harn.get("digest", "")),                # type: ignore[union-attr]
-        "calibration_repetitions": harn.get("calibration_repetitions"),  # type: ignore[union-attr]
-        "warmup_discards": harn.get("warmup_discards"),               # type: ignore[union-attr]
-        "candidate_sha256": str(cand.get("sha256", "")),
-        "candidate_bytes": cand.get("bytes"),
+        "tree_sha": str(prov.get("tree_sha", "")),
+        "tree_dirty": prov.get("tree_dirty"),
+        "python_reference_commit": str(prov.get("python_reference_commit", "")),
+        "python_reference_tree": str(prov.get("python_reference_tree", "")),
+        "workload_manifest_sha256": str(prov.get("workload_manifest_sha256", "")),
+        "harness_digest": str(harn.get("digest", "")),
+        "calibration_repetitions": harn.get("calibration_repetitions"),
+        "warmup_discards": harn.get("warmup_discards"),
+        "candidate_sha256": str(_as_obj(cand).get("sha256", "")),
+        "candidate_bytes": _as_obj(cand).get("bytes"),
     }
 
 
@@ -2038,21 +2088,27 @@ def reproduce(previous: Path, current: dict[str, object]) -> dict[str, object]:
     # same constant taking a detour through JSON and arriving disguised as a
     # measurement.
     tol = REPRODUCIBILITY_MAX_MEDIAN_CHANGE
-    old_cells = {(c["rung"], c["engine"], c["workload"], c["regime"]): c
-                 for c in old.get("cells", [])}
-    new_cells = {(c["rung"], c["engine"], c["workload"], c["regime"]): c
-                 for c in current.get("cells", [])}
+    def _by_cell(doc: dict[str, object]) -> dict[tuple[str, str, str, str], dict[str, object]]:
+        out: dict[tuple[str, str, str, str], dict[str, object]] = {}
+        for raw in _as_list(doc.get("cells")):
+            c = _as_obj(raw)
+            out[(str(c["rung"]), str(c["engine"]),
+                 str(c["workload"]), str(c["regime"]))] = c
+        return out
+
+    old_cells = _by_cell(old)
+    new_cells = _by_cell(current)
     missing = sorted(set(old_cells) - set(new_cells))
     added = sorted(set(new_cells) - set(old_cells))
-    disagreed = []
+    disagreed: list[dict[str, object]] = []
     outcome_changed = []
     for key in sorted(set(old_cells) & set(new_cells)):
         # Outcome identity first. Two runs that agree to the nanosecond while
         # exiting differently did not reproduce a measurement, they reproduced a
         # coincidence — and if both ran the wrong path, agreeing about it is the
         # worst possible reassurance.
-        oa = old_cells[key].get("outcome") or {}
-        ob = new_cells[key].get("outcome") or {}
+        oa = _as_obj(old_cells[key].get("outcome"))
+        ob = _as_obj(new_cells[key].get("outcome"))
         if oa.get("observed_exit_code") != ob.get("observed_exit_code") or \
                 bool(oa.get("valid")) != bool(ob.get("valid")):
             outcome_changed.append({
@@ -2062,14 +2118,17 @@ def reproduce(previous: Path, current: dict[str, object]) -> dict[str, object]:
             continue
         if not ob.get("valid"):
             continue          # an invalid cell was never timed; nothing to compare
-        a = (old_cells[key].get("timing") or {}).get("median_ns")
-        b = (new_cells[key].get("timing") or {}).get("median_ns")
+        a = _as_float(_as_obj(old_cells[key].get("timing")).get("median_ns"))
+        b = _as_float(_as_obj(new_cells[key].get("timing")).get("median_ns"))
         if not a or not b:
-            disagreed.append({"cell": "|".join(key), "why": "a run produced no median"})
+            disagreed.append({"cell": "|".join(key),
+                              "why": "a run produced no median"})
             continue
         rel = abs(b - a) / a
         if rel > tol:
-            disagreed.append({"cell": "|".join(key), "relative_change": rel, "tolerance": tol})
+            entry: dict[str, object] = {"cell": "|".join(key),
+                                        "relative_change": rel, "tolerance": tol}
+            disagreed.append(entry)
     return {
         "tag": CALIBRATION_ONLY,
         # Run A, named and hashed. Both halves of the pair are committed, so the
@@ -2245,15 +2304,17 @@ def main(argv: list[str] | None = None) -> int:
     # The three axes, together, decide whether this report may be evidence of
     # record. A CI leg proving the instrument stands up may pass without them;
     # a committed calibration may not.
-    rep_block = report.get("reproducibility")
+    rep_block = _as_obj(report.get("reproducibility"))
+    noise_block = _as_obj(report.get("noise"))
+    invalidated = bool(noise_block.get("invalidated"))
     report["admissibility"] = {
-        "outcomes_reproduced": (rep_block or {}).get("outcomes_reproduced"),
-        "timings_reproduced": (rep_block or {}).get("timings_reproduced"),
-        "environment_valid": not report["noise"]["invalidated"],  # type: ignore[index]
+        "outcomes_reproduced": rep_block.get("outcomes_reproduced"),
+        "timings_reproduced": rep_block.get("timings_reproduced"),
+        "environment_valid": not invalidated,
         "admissible": bool(rep_block
                            and rep_block.get("outcomes_reproduced")
                            and rep_block.get("timings_reproduced")
-                           and not report["noise"]["invalidated"]),  # type: ignore[index]
+                           and not invalidated),
         "note": ("all three axes are required for a report of record. A run that fails "
                  "timings_reproduced has not established WHY: a contended runner, a variable "
                  "workload and an uncertain median estimate all look the same here."),
@@ -2265,17 +2326,18 @@ def main(argv: list[str] | None = None) -> int:
         print(f"wrote {a.out} ({len(cells)} cells, {CALIBRATION_ONLY})")
     else:
         print(text)
-    outcomes = report["outcomes"]  # type: ignore[index]
-    if not outcomes["valid"]:  # type: ignore[index]
+    outcomes = _as_obj(report["outcomes"])
+    if not outcomes["valid"]:
         print("CALIBRATION REFUSED — cells whose invocation did not do the rung's work:",
               file=sys.stderr)
-        for problem in outcomes["problems"]:  # type: ignore[index]
+        for problem in _as_list(outcomes["problems"]):
             print(f"  {problem}", file=sys.stderr)
         print("These were not timed. A report that summarised them would be measuring the "
               "wrong path and calling the agreement reproducibility.", file=sys.stderr)
         return 1
-    if report["noise"]["invalidated"]:  # type: ignore[index]
-        print("RUN INVALIDATED: " + "; ".join(report["noise"]["invalidation_reasons"]),  # type: ignore[index]
+    if invalidated:
+        print("RUN INVALIDATED: "
+              + "; ".join(str(r) for r in _as_list(noise_block.get("invalidation_reasons"))),
               file=sys.stderr)
         return 1
     rep = report.get("reproducibility")
