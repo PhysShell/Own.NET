@@ -114,6 +114,39 @@ number in a D7 acceptance rule.
 - A written reading against O1/O2/O3, decided by the table above rather than by
   what would be convenient.
 
+## Amendment 1 — the helper is compiled, recorded before any measurement
+
+Made after the plan was committed and **before any measurement pass ran**, for a
+reason the plan should have anticipated and did not.
+
+The instrument's timed interval includes **process spawn**. Measured on this
+machine:
+
+| | median |
+|---|---|
+| `python3 -c pass` | 11.8 ms |
+| `/bin/true` | 1.14 ms |
+
+A Python helper therefore cannot reach the 1, 2, 4 or 8 ms rungs at all — its
+floor sits above half the ladder. The helper is consequently written in **C**
+(`scripts/round6/spin.c`), compiled once with `-O2`, and identified by the
+sha256 of the resulting binary, which the measurement pass re-checks against the
+setup pass. C is neither Rust nor Python product code, so the exclusion the
+owner ratified is unaffected.
+
+**The 1 ms rung sits at or below the spawn floor** (~1.25 ms for the compiled
+helper). It is kept rather than dropped, and the setup pass marks it
+`at_or_below_spawn_floor`. That is a datum, not a defect: it bounds what any
+*relative* tolerance can possibly mean at that scale, which is close to the
+question this round is asking.
+
+Timing goes through `perf_baseline.Harness._run_once` — the instrument's own
+interval, `perf_counter_ns` around `Popen` and `wait4` — rather than a
+re-implementation. Round 6 exists to characterise that interval, and a lookalike
+would characterise a different one while the resemblance did the arguing. No
+workload is ever passed to the firewall, and no decisive workload appears
+anywhere in this round.
+
 ## Per-scale iteration counts (setup pass)
 
 *To be filled by the setup pass, before the measurement pass runs. Empty here
