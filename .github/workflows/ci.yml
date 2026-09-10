@@ -2894,6 +2894,95 @@ jobs:
           [ "$rc" -ne 0 ] || { echo "FAIL: a broken candidate exited 0"; exit 1; }
           echo "OK: a broken candidate is a visible failure (exit $rc), never a Python rescue"
 
+  # #263-A — the performance measurement INSTRUMENT, calibrated. Not a
+  # baseline: this job proves the instrument stands up, on both platforms, and
+  # that it refuses to measure anything decisive before the D7 freeze.
+  #
+  # It publishes no engine comparison and can publish none: the harness holds
+  # one engine's samples per cell and refuses a report carrying a comparison
+  # key. What it asserts here is that the refusal is real, not that Rust is
+  # anything.
+  perf-instrument:
+    name: "#263-A measurement instrument (CALIBRATION_ONLY)"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build the production own-cli candidate
+        working-directory: rust
+        run: cargo build -p own-cli --release
+      - name: The instrument's own selftest (no measurement taken)
+        run: python scripts/perf_baseline.py --selftest
+      - name: The instrument controls (firewall, both identity domains, provenance)
+        run: python tests/test_perf_instrument.py
+      # Decisive workloads: availability and pins only. No clock, no resource
+      # sampling — this step is what "enumerated, hashed, availability-checked"
+      # looks like when it is the only thing permitted.
+      - name: Decisive workloads — non-timed structural smoke
+        run: python scripts/perf_baseline.py --smoke-decisive
+      - name: Calibrate, twice, and check the run reproduces itself
+        run: |
+          ext=""
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then ext=".exe"; fi
+          export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli$ext"
+          python scripts/perf_baseline.py --calibrate --repeat 5 --warmup 2 \
+            --out "$RUNNER_TEMP/cal-1.json"
+          python scripts/perf_baseline.py --calibrate --repeat 5 --warmup 2 \
+            --reproduce "$RUNNER_TEMP/cal-1.json" --out "$RUNNER_TEMP/cal-2.json"
+      - name: The calibration holds — and measured nothing decisive
+        run: |
+          python - "$RUNNER_TEMP/cal-2.json" <<'PY'
+          import json, sys
+          rep = json.load(open(sys.argv[1], encoding="utf-8"))
+          man = json.load(open("docs/evidence/p022-263a-workloads.json", encoding="utf-8"))
+          decisive = {w["id"] for w in man["decisive"]}
+          problems = []
+          if rep.get("tag") != "CALIBRATION_ONLY":
+              problems.append("the report is not tagged CALIBRATION_ONLY")
+          if rep["identity"]["gate_armed"]:
+              problems.append("the D7 gate is ARMED — #263-A must never ship an attestation")
+          timed = sorted({c["workload"] for c in rep["cells"]} & decisive)
+          if timed:
+              problems.append(f"DECISIVE workloads were timed: {timed}")
+          if rep["noise"]["invalidated"]:
+              problems.append(f"the run was invalidated: {rep['noise']['invalidation_reasons']}")
+          if not rep["reproducibility"]["reproduced"]:
+              problems.append(f"the run did not reproduce: "
+                              f"{rep['reproducibility']['cells_outside_tolerance']}")
+          if not all(c.get("raw_elapsed_ns") for c in rep["cells"]):
+              problems.append("a cell kept no raw per-iteration data")
+          rss = {c["rss_mechanism"] for c in rep["cells"]}
+          if rss == {"none"}:
+              problems.append("no named RSS mechanism was available, so §8 was skipped entirely")
+          print("\n".join(problems) if problems else
+                f"instrument OK: {len(rep['cells'])} calibration cells, "
+                f"{rep['reproducibility']['compared_cells']} reproduced within "
+                f"{rep['reproducibility']['tolerance_relative']}, RSS via {sorted(rss)}, "
+                f"gate dormant, 0 decisive workloads timed")
+          sys.exit(1 if problems else 0)
+          PY
+      - name: Upload the calibration reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: perf-calibration-${{ matrix.os }}
+          path: ${{ runner.temp }}/cal-*.json
+
   # P-014 Tier B: external-reference resolution. The SAME sample, run two ways, must give two
   # verdicts — proving the extractor binds a THIRD-PARTY event only when its DLL is referenced:
   #   A (no refs)        -> ObservableObject is an error type -> OWN050 (honest skip), no leak
