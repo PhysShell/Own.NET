@@ -1502,6 +1502,22 @@ def reproduce(previous: Path, current: dict[str, object]) -> dict[str, object]:
         "cells_only_in_later": ["|".join(k) for k in added],
         "cells_outside_tolerance": disagreed,
         "cells_whose_outcome_changed": outcome_changed,
+        # Two different claims, deliberately not merged.
+        #
+        # The INSTRUMENT reproduces when both runs did the same work: the same
+        # cells exist and each one's outcome is identical. That is a property of
+        # this harness and a disagreement is a defect in it.
+        #
+        # The ENVIRONMENT reproduces when the timings agree within the policy.
+        # That is a property of the MACHINE. A hosted runner whose medians move
+        # while every outcome stays identical has told us something true about
+        # itself, and reporting it as a broken instrument loses exactly the
+        # signal #263-B needs when it chooses where to run.
+        #
+        # The tolerance is untouched by this split. Nothing here widens 0.35;
+        # what changes is which of the two questions a disagreement answers.
+        "instrument_reproduced": not (missing or added or outcome_changed),
+        "environment_reproduced": not disagreed,
         "reproduced": not (missing or added or disagreed or outcome_changed),
     }
 
@@ -1647,9 +1663,17 @@ def main(argv: list[str] | None = None) -> int:
               file=sys.stderr)
         return 1
     rep = report.get("reproducibility")
-    if isinstance(rep, dict) and not rep["reproduced"]:
-        print(f"NOT REPRODUCED: outside tolerance {rep['cells_outside_tolerance']}; "
-              f"outcome changed {rep['cells_whose_outcome_changed']}", file=sys.stderr)
+    if isinstance(rep, dict) and not rep["instrument_reproduced"]:
+        print(f"THE INSTRUMENT DID NOT REPRODUCE ITSELF: cells only in the earlier run "
+              f"{rep['cells_only_in_earlier']}, only in the later run "
+              f"{rep['cells_only_in_later']}, outcome changed "
+              f"{rep['cells_whose_outcome_changed']}", file=sys.stderr)
+        return 1
+    if isinstance(rep, dict) and not rep["environment_reproduced"]:
+        print(f"ENVIRONMENT NOT MEASUREMENT-GRADE: every outcome was identical, but these "
+              f"medians moved outside the run's own noise floor: "
+              f"{rep['cells_outside_tolerance']}. Recorded, not repaired: this is a property "
+              "of the machine, and the tolerance is not raised to hide it.", file=sys.stderr)
         return 1
     return 0
 

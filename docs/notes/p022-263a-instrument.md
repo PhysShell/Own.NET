@@ -331,6 +331,37 @@ its actual bytes, and normalizing a binary would be a different kind of wrong.
 
 `perf-digest-platform-stable` holds both halves.
 
+### Reproducibility answers two questions, not one
+
+A re-run can disagree with the first run in two entirely different ways, and
+collapsing them loses the more useful signal.
+
+* **The instrument did not reproduce.** Different cells exist, or the same cell
+  did different work — its outcome changed. That is a defect in this harness and
+  it fails, always.
+* **The environment did not reproduce.** Every outcome is identical and the
+  timings moved outside the run's own noise floor. That is a property of the
+  *machine*.
+
+The gate treated both as instrument failure, so a hosted Windows runner drifting
+by 0.355 and 0.362 against a 0.35 tolerance — with every exit code and every
+piece of outcome evidence identical between the runs — was reported as a broken
+instrument. It is not: it is the instrument correctly detecting that the machine
+is not measurement-grade, which is precisely what #263-B needs to know before it
+chooses where the decisive run happens.
+
+**The tolerance did not move.** 0.35 is still 0.35, still derived from the noise
+floor the run itself recorded rather than chosen, and the failing cells are
+still named with their numbers in the report. Widening it to make a red run
+green would be a threshold fitted to a result, which is the one thing this
+instrument exists to prevent.
+
+What the split does *not* do is soften the shipped evidence. A CI leg may record
+"this environment is not measurement-grade" and pass. The **committed**
+calibration may not: `perf-provenance-complete` requires the report of record to
+have reproduced on both counts and to have a non-invalidated run. Evidence gets
+stricter; only the diagnosis of a hosted runner gets more honest.
+
 ## 14. Known limitations, recorded rather than routed around
 
 1. **`bridge-lowering` and `analysis` are not separately observable** (§2).

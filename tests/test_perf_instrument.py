@@ -678,6 +678,23 @@ def control_provenance_complete() -> None:
         if not (rep.get("outcomes") or {}).get("valid"):
             problems.append(f"{path.name}: was recorded with cells whose invocation did not do "
                             "the rung's work")
+        # CI legs may record "this environment is not measurement-grade" — that
+        # is a true statement about a hosted runner and not a defect. COMMITTED
+        # evidence may not: a report that ships as the calibration of record has
+        # to come from a machine that reproduced itself, on both counts.
+        repro = rep.get("reproducibility")
+        if repro is None:
+            problems.append(f"{path.name}: ships with no reproducibility check, so nothing says "
+                            "a second run on that machine agreed with it")
+        elif not repro.get("reproduced"):
+            problems.append(
+                f"{path.name}: ships as the calibration of record but did not reproduce "
+                f"(instrument {repro.get('instrument_reproduced')}, environment "
+                f"{repro.get('environment_reproduced')}): "
+                f"{repro.get('cells_outside_tolerance')}{repro.get('cells_whose_outcome_changed')}")
+        if (rep.get("noise") or {}).get("invalidated"):
+            problems.append(f"{path.name}: ships as the calibration of record but its own run "
+                            "was invalidated as not measurement-grade")
         for i, cell in enumerate(rep.get("cells", [])):
             if not cell.get("raw_elapsed_ns"):
                 problems.append(f"{path.name}: cell {i} kept no raw per-iteration data")

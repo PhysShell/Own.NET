@@ -3013,10 +3013,25 @@ jobs:
               repro = rep.get("reproducibility")
               if repro is None:
                   verdict = "valid run; no reproducibility check was requested"
-              elif not repro["reproduced"]:
-                  problems.append(f"a VALID run did not reproduce itself: "
-                                  f"{repro['cells_outside_tolerance']}")
-                  verdict = "valid run, did not reproduce"
+              elif not repro["instrument_reproduced"]:
+                  # The harness disagreed with ITSELF: different cells, or the
+                  # same cell doing different work. That is a defect here.
+                  problems.append(
+                      f"the instrument did not reproduce itself: only in the earlier run "
+                      f"{repro['cells_only_in_earlier']}, only in the later "
+                      f"{repro['cells_only_in_later']}, outcome changed "
+                      f"{repro['cells_whose_outcome_changed']}")
+                  verdict = "the INSTRUMENT did not reproduce"
+              elif not repro["environment_reproduced"]:
+                  # Every outcome identical, timings moved. That is the machine,
+                  # not the harness — and it is the single most useful thing this
+                  # job can tell #263-B about where the decisive run may happen.
+                  # Recorded, never repaired by widening the tolerance.
+                  verdict = ("instrument reproduced itself; ENVIRONMENT is not "
+                             "measurement-grade: medians outside the run's own noise floor at "
+                             + "; ".join(f"{c['cell']} moved {c.get('relative_change'):.3f} "
+                                         f"against {c.get('tolerance')}"
+                                         for c in repro["cells_outside_tolerance"]))
               else:
                   verdict = (f"valid run; {repro['compared_cells']} cells reproduced within "
                              f"{repro['tolerance_relative']}")
