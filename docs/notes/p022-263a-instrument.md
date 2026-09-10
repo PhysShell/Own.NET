@@ -719,9 +719,10 @@ neither is being treated as a result to bank.
 | fourth, under the anchor / protocol repair, `n=5` and `n=15` | both **passed** |
 | fifth, under the N/A / completeness repair, `n=5` | **failed** — one cell, `core-full-sarif\|rust\|cal-facts-tiny\|process-cold`, 0.508 |
 | fifth, `n=15` | **passed** |
+| sixth, under the D7-vocabulary repair, `n=5` and `n=15` | both **passed** |
 
-Running tally on this machine: `n=5` has failed three times and passed six times;
-`n=15` has failed twice and passed five times. Neither count reproduces
+Running tally on this machine: `n=5` has failed three times and passed seven
+times; `n=15` has failed twice and passed six times. Neither count reproduces
 reliably, and which one "works" depends on when it was run. Every re-record was
 forced by a provenance repair, never sought for a better answer, and the ledger
 is kept in both directions for exactly that reason.
@@ -740,8 +741,12 @@ of the caution so much as a demonstration of what it was about: the streak was
 never evidence of anything, and neither is its ending. Across the whole history,
 **five distinct cells** have fallen outside tolerance at least once — every one
 of them a `rust` cell with a median under 10 ms — while `n=5` stands at three
-failures against six passes and `n=15` at two against five. The run that fails
+failures against seven passes and `n=15` at two against six. The run that fails
 is not the run that is wrong.
+
+Six attempts in, the sequence reads pass, pass, fail, pass, fail, pass for `n=5`.
+Nothing about that is a trend, and the ledger exists so that no revision of this
+note can quietly become one.
 
 The failures stay in the ledger and in `docs/evidence/historical/` rather than
 being summarised away, and the failing `n=5` pair from this round ships exactly
