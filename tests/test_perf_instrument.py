@@ -700,6 +700,53 @@ def control_provenance_complete() -> None:
                                 f"{axis}={adm.get(axis)!r}; a report of record needs all three")
         if not adm.get("admissible"):
             problems.append(f"{path.name}: is not marked admissible")
+
+        # WARMUP is not a sizing knob. It moved from 2 to 3 alongside a
+        # repetitions escalation that had been authorised on its own, which
+        # turned one permitted knob into two turned after seeing which runs went
+        # red. Repetitions may differ from the default (that is the sanctioned
+        # escalation); warmup may not.
+        # A report of record names the tree it measured. With a dirty tree that
+        # sha names something other than what was on disk, so it names nothing.
+        # Both halves are held to it: run A written into the working tree before
+        # run B measures is exactly how a pair acquires dirty provenance.
+        if (rep.get("provenance") or {}).get("tree_dirty"):
+            problems.append(f"{path.name}: recorded on a DIRTY tree, so its tree_sha does not "
+                            "identify what was measured")
+        warm = (rep.get("harness") or {}).get("warmup_discards")
+        if warm != pb.DEFAULT_WARMUP_DISCARDS:
+            problems.append(f"{path.name}: recorded with warmup_discards={warm}, but the policy "
+                            f"default is {pb.DEFAULT_WARMUP_DISCARDS}. Warmup is not a sizing "
+                            "knob; changing it is a deliberate policy edit, not a flag")
+
+        # BOTH halves of the pair, or "reproduced" cannot be recomputed from
+        # committed evidence — only the program that already reached the verdict
+        # would know run A's numbers.
+        earlier = (repro or {}).get("earlier_run") or {}
+        if not earlier.get("path") or not earlier.get("sha256"):
+            problems.append(f"{path.name}: names no earlier run, so its reproducibility verdict "
+                            "rests on data that was never committed")
+        else:
+            mate = path.parent / str(earlier["path"])
+            if not mate.is_file():
+                problems.append(f"{path.name}: names earlier run {earlier['path']!r}, which is "
+                                "not committed beside it")
+            else:
+                got = pb.sha256_bytes(mate.read_bytes())
+                if got != earlier["sha256"]:
+                    problems.append(f"{path.name}: the committed {earlier['path']} hashes "
+                                    f"{got[:12]} but the verdict was computed against "
+                                    f"{str(earlier['sha256'])[:12]}")
+                if earlier.get("tree_dirty"):
+                    problems.append(f"{path.name}: its earlier run was recorded on a dirty tree")
+                for field in ("harness_digest", "calibration_repetitions", "warmup_discards"):
+                    a = earlier.get(field)
+                    b = ((rep.get("harness") or {}).get("digest") if field == "harness_digest"
+                         else (rep.get("harness") or {}).get(field))
+                    if a != b:
+                        problems.append(f"{path.name}: run A and run B disagree on {field} "
+                                        f"({a!r} vs {b!r}); a pair measured under different "
+                                        "settings is not a reproducibility check")
         for i, cell in enumerate(rep.get("cells", [])):
             if not cell.get("raw_elapsed_ns"):
                 problems.append(f"{path.name}: cell {i} kept no raw per-iteration data")

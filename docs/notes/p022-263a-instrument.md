@@ -212,9 +212,15 @@ reporting the noise as if it were the subject. The floor is an
 nothing whatever about either engine.
 
 **Reproducibility** (§9) is checked by re-running and comparing each cell's
-median against the earlier run, to a tolerance taken from the **noise floor the
-earlier run itself recorded** — so the check tightens on a quiet machine instead
-of being a number somebody liked.
+median against the earlier run, to `REPRODUCIBILITY_MAX_MEDIAN_CHANGE`. That is
+a **chosen** policy constant, not one derived from the run: this section used to
+claim it came from "the noise floor the earlier run itself recorded" and so
+"tightens on a quiet machine", and neither was true — the recorded limit *was*
+the constant, and it never tightened. What makes it admissible is that it was
+chosen before the runs it judges. See §7 for the three policies it was split
+into. **Both halves of every pair are committed**, and run B records run A's
+path and sha256, so the verdict can be recomputed from evidence rather than
+trusted.
 
 ## 9. Peak RSS
 
@@ -392,7 +398,9 @@ So the escalation was bounded **in advance**:
 
 1. `n=15` is the only permitted sizing escalation from the observed `n=5`.
 2. `REPRODUCIBILITY_MAX_MEDIAN_CHANGE` does not move.
-3. The failing `n=5` evidence is preserved as exploratory, non-admissible.
+3. The `n=5` evidence is preserved as exploratory, non-admissible — with the
+   caveat in the paragraph below: the *original failing artifact was destroyed*,
+   and what is preserved is a fresh pair.
 4. If `n=15` also fails `timings_reproduced`, **stop** — no 25, no 45, no
    turning the knob until CI is green.
 
@@ -410,25 +418,28 @@ pairs are preserved: the `n=5` evidence in
 `docs/evidence/p022-263a-sizing-n5.linux.json`, deliberately named so it does
 *not* match the glob that identifies a report of record.
 
-So the sizing choice is **precautionary, not demonstrated**. The report of
-record uses `n=15` because a report of record should carry the better-estimated
-median — an argument that would have been just as true before any run went red,
-and one that does not depend on `n=15` having been the only green option. It was
-not: both counts reproduced. What `n=5` demonstrated is that its admissibility
-is luck-dependent on this machine, which is a reason to prefer more samples for
-the artifact and *not* evidence about the workload's intrinsic spread.
+**Why 15, stated correctly.** Not "because a report of record should carry the
+better-estimated median" — that argument does not pick 15. It picks 25, then
+100, and then whichever number the budget runs out at. `n=15` is used because
+the owner's review, **given before any result was seen**, permitted exactly one
+bounded escalation from the observed `n=5` to `n=15`, with every policy constant
+unchanged and a mandatory stop if it failed. That `n=15` then came back green is
+a **result**, not the reason it was chosen. The distinction is the whole
+difference between a preregistered step and a knob turned until CI agreed.
 
 CI keeps `n=5`. Its question is whether the instrument stands up, it may record
 `timings_reproduced: false` as a diagnostic, and tripling every leg's runtime to
 chase an artifact property it does not produce would buy nothing.
 
-**A record that was destroyed.** The specific `n=5` report that failed was
-discarded from the working tree before the preservation rule existed, because a
-control forbids committing a non-reproducing calibration and the reflex was to
-revert. Its numbers survive above and in this PR's history; the file does not.
-The exploratory evidence committed alongside this note is a *fresh* `n=5` pair
-taken under the shipped instrument, not the run that prompted the change. Saying
-so is cheaper than pretending the provenance is tidier than it is.
+**A record that was destroyed — stated without a euphemism.** The original
+failing `n=5` artifact is **lost**. It was discarded from the working tree
+before the preservation rule existed, because a control forbids committing a
+non-reproducing calibration and the reflex was to revert. What is committed is a
+**fresh** `n=5` pair taken under the shipped instrument; it is *not* the run
+that prompted the design change. The original observations survive only as
+narrative — in this note and in the PR's history — and narrative is not
+evidence. A hole in provenance is not a portal to the past, and this document
+will not describe it as one.
 
 ## 14. Known limitations, recorded rather than routed around
 

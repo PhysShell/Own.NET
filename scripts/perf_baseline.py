@@ -92,6 +92,17 @@ HARNESS_VERSION = 1
 
 CALIBRATION_ONLY = "CALIBRATION_ONLY"
 
+# Calibration knobs, named so a control can read them.
+#
+# Repetitions is the sanctioned sizing knob: an owner-bounded escalation may
+# raise it for a report of record. WARMUP IS NOT. It was changed from 2 to 3
+# alongside a repetitions escalation that had been authorised on its own, which
+# turned one permitted knob into two turned after seeing which runs went red.
+# A committed calibration must use this default; changing it is a deliberate
+# policy edit in one place, not a flag someone passes.
+DEFAULT_CALIBRATION_REPETITIONS = 5
+DEFAULT_WARMUP_DISCARDS = 2
+
 
 class InstrumentError(RuntimeError):
     """The instrument refuses to proceed. Always fail-closed, never a warning."""
@@ -1474,11 +1485,21 @@ def reproduce(previous: Path, current: dict[str, object]) -> dict[str, object]:
 
     Not byte-identical — a report carries timestamps and an execution order, and
     demanding byte equality would only prove the clock was frozen. What must
-    agree is each cell's median, to within the machine's own measured wobble.
-    The tolerance is the noise floor the run itself recorded, so the check
-    tightens on a quiet machine instead of being a number somebody liked.
+    agree is each cell's median, within REPRODUCIBILITY_MAX_MEDIAN_CHANGE.
+
+    That tolerance is a CHOSEN policy constant. This docstring used to say it was
+    "the noise floor the run itself recorded", so the check "tightens on a quiet
+    machine" — both false. It never tightened: the recorded limit was the same
+    constant, read back out of JSON and returning disguised as a measurement.
+    What makes the constant admissible is that it was chosen before the runs it
+    judges, not that it was derived from them.
+
+    The EARLIER run's identity is recorded in the result. A verdict of
+    "reproduced" that names only one of the two runs cannot be recomputed by
+    anyone but the program that already reached it.
     """
-    old = json.loads(previous.read_text(encoding="utf-8"))
+    raw_previous = previous.read_bytes()
+    old = json.loads(raw_previous.decode("utf-8"))
     # The POLICY constant, named for the quantity it bounds. Previously this read
     # the probe's recorded limit back out of the earlier report, which is the
     # same constant taking a detour through JSON and arriving disguised as a
@@ -1518,6 +1539,18 @@ def reproduce(previous: Path, current: dict[str, object]) -> dict[str, object]:
             disagreed.append({"cell": "|".join(key), "relative_change": rel, "tolerance": tol})
     return {
         "tag": CALIBRATION_ONLY,
+        # Run A, named and hashed. Both halves of the pair are committed, so the
+        # verdict below can be recomputed from evidence instead of trusted.
+        "earlier_run": {
+            "path": previous.name,
+            "sha256": sha256_bytes(raw_previous),
+            "bytes": len(raw_previous),
+            "tree_sha": str((old.get("provenance") or {}).get("tree_sha", "")),
+            "tree_dirty": (old.get("provenance") or {}).get("tree_dirty"),
+            "harness_digest": str((old.get("harness") or {}).get("digest", "")),
+            "calibration_repetitions": (old.get("harness") or {}).get("calibration_repetitions"),
+            "warmup_discards": (old.get("harness") or {}).get("warmup_discards"),
+        },
         "compared_cells": len(set(old_cells) & set(new_cells)),
         "tolerance_relative": tol,
         "tolerance_source": ("REPRODUCIBILITY_MAX_MEDIAN_CHANGE, a fixed policy constant. It is "
@@ -1610,9 +1643,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--calibrate", action="store_true")
     ap.add_argument("--smoke-decisive", action="store_true")
     ap.add_argument("--candidate", default=os.environ.get("OWEN_RUST_CORE", ""))
-    ap.add_argument("--repeat", type=int, default=5,
+    ap.add_argument("--repeat", type=int, default=DEFAULT_CALIBRATION_REPETITIONS,
                     help="CALIBRATION repetitions per cell. Not the decisive N.")
-    ap.add_argument("--warmup", type=int, default=2, help="discarded warmup iterations")
+    ap.add_argument("--warmup", type=int, default=DEFAULT_WARMUP_DISCARDS,
+                    help="discarded warmup iterations")
     ap.add_argument("--seed", type=int, default=20260910)
     ap.add_argument("--out", default="")
     ap.add_argument("--reproduce", default="",
