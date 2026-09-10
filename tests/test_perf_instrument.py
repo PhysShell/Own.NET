@@ -17,6 +17,7 @@ exercising the mechanism rather than by reading its comments:
     perf-smoke-untimed         decisive smoke carries no timing slot at all
     perf-phase-attribution     no interval claims to be a phase it merely contains
     perf-rung-outcome          a cell is timed only if the invocation did the work
+    perf-digest-platform-stable the harness identity is content, not the checkout
 
 Failures print `FAIL[<check>]: <detail>`; nothing stops at the first one.
 
@@ -733,6 +734,45 @@ def control_rung_outcome() -> None:
                                 "production floor invocation is accepted")
 
 
+def control_digest_platform_stable() -> None:
+    """The instrument's identity is its CONTENT, not the checkout it arrived in.
+
+    D7's C1 freezes the harness digest and #263-B runs on both platforms, so a
+    digest that moves with line endings would arm a freeze on one platform and
+    refuse it on the other. It did: the same tree hashed af32f04ddbad on Linux
+    and 51ef2ca2422a on a Windows runner, where core.autocrlf rewrote the
+    instrument source on checkout. Nothing in the harness noticed until a
+    control compared the shipped report's digest against the running one.
+    """
+    problems = []
+    with tempfile.TemporaryDirectory(prefix="perf-eol-") as td:
+        lf = Path(td) / "lf.py"
+        crlf = Path(td) / "crlf.py"
+        body = "one\ntwo\nthree\n"
+        lf.write_bytes(body.encode())
+        crlf.write_bytes(body.replace("\n", "\r\n").encode())
+
+        if pb.sha256_text_file(lf)[0] != pb.sha256_text_file(crlf)[0]:
+            problems.append("the text digest still moves with line endings, so the same "
+                            "instrument has two identities and a frozen C1 fits only one "
+                            "of them")
+        # And the raw hasher must stay raw: the candidate binary is bytes, and
+        # a hasher that normalized them would be a different kind of wrong.
+        if pb.sha256_file(lf)[0] == pb.sha256_file(crlf)[0]:
+            problems.append("sha256_file normalized its input; the candidate binary's "
+                            "identity must be its actual bytes")
+        blob = Path(td) / "bin"
+        blob.write_bytes(b"\x00\r\n\x01")
+        if pb.sha256_file(blob)[0] != pb.sha256_bytes(b"\x00\r\n\x01"):
+            problems.append("sha256_file does not hash a binary verbatim")
+    if problems:
+        fail("perf-digest-platform-stable", "; ".join(problems))
+    else:
+        ok("perf-digest-platform-stable", "the harness digest is content-addressed and "
+                                          "survives a CRLF checkout, while the candidate "
+                                          "binary is still hashed byte for byte")
+
+
 def run() -> int:
     control_firewall()
     control_gate_dormant()
@@ -745,6 +785,7 @@ def run() -> int:
     control_provenance_complete()
     control_phase_attribution()
     control_rung_outcome()
+    control_digest_platform_stable()
     print()
     print(f"perf instrument controls: {len(_PASSES)} passed, {len(_FAILURES)} failed")
     return 1 if _FAILURES else 0

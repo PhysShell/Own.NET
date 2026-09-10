@@ -118,6 +118,31 @@ def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def sha256_text_file(path: Path) -> tuple[str, int]:
+    """Hash a TEXT file by its content, with line endings normalized.
+
+    The harness digest must name the INSTRUMENT, not the checkout it came from.
+    A Windows checkout with ``core.autocrlf=true`` stores the same source with
+    CRLF, so a raw-byte digest gives one instrument two identities — and D7's C1
+    freezes that value, so a freeze would arm on one platform and refuse on the
+    other while #263-B has to run on both. Caught by CI: the same tree hashed
+    af32f04ddbad on Linux and 51ef2ca2422a on Windows.
+
+    This repository already knows the defect class — ``.gitattributes`` pins
+    ``docs/evidence/*.json`` to LF because campaign definition hashes hit it
+    first — but an attribute only governs files git checks out under it. A file
+    already in a working tree, a zip download, or a contributor whose clone
+    predates the rule all still differ. An identity that D7 will freeze should
+    depend on content, so it is normalized here rather than delegated to a
+    checkout setting.
+
+    Raw ``sha256_file`` stays raw: the candidate binary is bytes, and
+    normalizing a binary would be a different kind of wrong.
+    """
+    data = path.read_bytes().replace(b"\r\n", b"\n")
+    return sha256_bytes(data), len(data)
+
+
 def harness_digest() -> str:
     """The instrument's own identity: this file plus the frozen manifest.
 
@@ -128,7 +153,7 @@ def harness_digest() -> str:
     """
     parts = []
     for p in (Path(__file__).resolve(), MANIFEST):
-        digest, _ = sha256_file(p)
+        digest, _ = sha256_text_file(p)
         parts.append(f"{p.name}:{digest}")
     return sha256_bytes("\n".join(parts).encode("utf-8"))
 

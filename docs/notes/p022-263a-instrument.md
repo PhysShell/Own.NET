@@ -292,6 +292,27 @@ checked for presence and never read**, because its values are thresholds and a
 out. Arming thus costs two reviewed commits rather than one text editor, and
 still moves no source, so the harness digest D7 freezes is untouched by it.
 
+### The harness digest names content, not a checkout
+
+D7's C1 will freeze the harness digest, and #263-B runs on **both** platforms,
+so that value has to be the same on both. It was not. The same tree hashed
+`af32f04ddbad` on Linux and `51ef2ca2422a` on a Windows runner, where
+`core.autocrlf` rewrote the instrument source on checkout — one instrument with
+two identities, and a frozen C1 that would arm on one platform and refuse on the
+other.
+
+This repository already knew the defect class: `.gitattributes` pins
+`docs/evidence/*.json` to LF because the mutation campaigns' definition hashes
+hit it first, which is exactly why the *workload manifest* digest matched across
+platforms while the *harness* digest did not. But an attribute only governs
+files git checks out under it — a working tree that predates the rule, a zip
+download, or a contributor with a different config all still differ. So the
+digest normalizes line endings itself rather than delegating its identity to a
+checkout setting. `sha256_file` stays raw: the candidate binary's identity is
+its actual bytes, and normalizing a binary would be a different kind of wrong.
+
+`perf-digest-platform-stable` holds both halves.
+
 ## 14. Known limitations, recorded rather than routed around
 
 1. **`bridge-lowering` and `analysis` are not separately observable** (§2).
