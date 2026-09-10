@@ -502,6 +502,50 @@ argued that completeness "needs the decisive cell population" and recorded it as
 not implementable — that was wrong, and it was wrong in the convenient
 direction.
 
+### The completeness check proved the wrong set
+
+The previous round built the expected universe from `PHASES`. That is the
+**attribution** taxonomy — it answers "what did this timed interval contain", so
+a rung can be described honestly. It is not D7's vocabulary, and using one as
+the other produced a universe that was wrong in both directions at once:
+
+| | |
+|---|---|
+| demanded | a preregistered rule for `cli-argv-parse`, `cli-usage-refusal`, `ownir-door-refusal` and `frontend-extraction` on every workload, platform and regime |
+| omitted | the **end-to-end C# run**, one of the metrics the G3 verdict weighs most, which has no entry in `PHASES` at all because it is a *rung*, not a part |
+
+The code had already said so and was not listened to. The accept fixture keyed
+its not-applicable slice on `phase == "frontend-extraction"`, auto-excusing all
+48 of those cells — the instrument admitting they were never D7's business while
+the universe went on requiring them. A check that manufactures an obligation and
+then ceremonially forgives it is not a check, it is paperwork.
+
+`D7_PHASES` is now separate from `PHASES`, and the relationship between them is
+**data**, not coincidence:
+
+| set | meaning |
+|---|---|
+| `D7_PHASES` | the 8 G3 cutover metrics a rule is preregistered for |
+| `D7_NON_METRIC_PHASES` | attribution components that are **not** gates, each with the reason recorded |
+| `D7_METRICS_WITHOUT_PHASE` | a D7 metric with no single attribution phase — `end-to-end-csharp` is the launcher-e2e rung's whole interval |
+
+`d7_vocabulary_problems()` enforces that every attribution phase is either
+promoted to a metric or explicitly excluded **with a reason**. Neither is a
+default, so a phase added to `PHASES` later cannot silently join or silently
+miss the D7 universe. It runs in `--selftest` as well as in a control, because
+the failure mode is drift rather than a wrong line.
+
+The universe is now 8 metrics x 12 canonical decisive workloads x
+2 platforms x 2 regimes = **384** cells.
+
+**The names are provisional and this is the actual lesson.** `D7_PHASES` comes
+from the owner's review and the live #262 performance-gate list, not from the
+frozen file. The mapping between these ids and the frozen #262/#263-A vocabulary
+needs one explicit ratification, because the defect being fixed here is exactly
+what happens when an implementation label is left to become a normative contract
+by default. RSS and allocation deliberately stay per-cell policies rather than
+becoming a phase axis; the frozen schema already models them that way.
+
 ### The manifest digest was hashing raw bytes
 
 Round 3 content-addressed the harness digest and left `load_manifest()` hashing

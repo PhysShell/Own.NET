@@ -282,6 +282,94 @@ D7_CELL_NA_KEY = "not_applicable"
 # Preregistered roll-ups, cell -> phase -> overall.
 D7_ROLLUP_LEVELS = ("workload_class", "phase", "overall_g3")
 
+# --- D7's measurement vocabulary, which is NOT the attribution taxonomy ----
+#
+# PHASES answers "what did this timed interval CONTAIN", so an instrument rung
+# can be attributed honestly. D7_PHASES names the G3 cutover METRICS the owner
+# preregisters a rule for. The two overlap heavily, which is exactly why using
+# one as the other went unnoticed: building the universe from `sorted(PHASES)`
+# demanded a preregistered rule for `cli-argv-parse` on every workload, platform
+# and regime, while the user-visible end-to-end C# run — one of the metrics
+# carrying the most weight in the G3 verdict — was not in the universe at all.
+#
+# The fixture said so out loud and was not listened to: it auto-marked all 48
+# `frontend-extraction` cells not-applicable. The code already knew they were
+# not D7's business and required them anyway.
+#
+# NAMES ARE PROVISIONAL. This set comes from the owner's review and the live
+# #262 performance-gate list, not from the frozen file, and the mapping between
+# these ids and the frozen #262/#263-A vocabulary needs one explicit
+# ratification. That is the whole lesson of this defect: an implementation
+# label became a normative contract because nobody wrote down which it was.
+D7_PHASES = (
+    "process-startup-core",
+    "process-startup-launcher",
+    "ownir-parse",
+    "bridge-lowering",
+    "analysis",
+    "render-human",
+    "render-sarif",
+    "end-to-end-csharp",
+)
+
+# Real parts of real intervals that are NOT G3 metrics. Kept as DATA with the
+# reason attached, so an exclusion is a reviewable decision rather than
+# something that quietly fell off a list.
+D7_NON_METRIC_PHASES = {
+    "cli-argv-parse":
+        "argument handling present in every real core invocation; an attribution "
+        "component, never a gate of its own",
+    "cli-usage-refusal":
+        "the driver banner the floor rung writes; it exists to make that rung a "
+        "BOUND on startup, not a metric",
+    "ownir-door-refusal":
+        "the strict door's refusal message; a correctness surface, not a "
+        "performance gate",
+    "frontend-extraction":
+        "diagnostic: recorded, and NOT D7-gated unless the owner separately "
+        "ratifies it",
+}
+
+# A D7 metric with no single attribution phase: the user-visible whole is the
+# launcher-e2e rung's ENTIRE interval, which PHASES can only describe as parts.
+D7_METRICS_WITHOUT_PHASE = {
+    "end-to-end-csharp":
+        "the launcher-e2e rung end to end — launcher startup, extraction, core "
+        "startup, parse, analysis and render as one user-visible number",
+}
+
+
+def d7_vocabulary_problems() -> list[str]:
+    """The two vocabularies must stay explicitly related, forever.
+
+    Checked at selftest as well as by a control, because the failure mode is
+    drift: someone adds a phase to PHASES and the D7 universe silently grows or
+    silently does not. Every attribution phase must be either promoted to a D7
+    metric or explicitly excluded with a reason. Neither is a default.
+    """
+    problems: list[str] = []
+    for name in D7_PHASES:
+        if name in D7_NON_METRIC_PHASES:
+            problems.append(f"{name} is both a D7 metric and excluded from D7")
+        if name not in PHASES and name not in D7_METRICS_WITHOUT_PHASE:
+            problems.append(
+                f"D7 metric {name} is neither an attribution phase nor declared as a metric "
+                "that has no single phase")
+    for name in D7_NON_METRIC_PHASES:
+        if name not in PHASES:
+            problems.append(f"{name} is excluded from D7 but is not an attribution phase either")
+    for name in D7_METRICS_WITHOUT_PHASE:
+        if name not in D7_PHASES:
+            problems.append(f"{name} is declared a metric without a phase but is not a D7 metric")
+    unclassified = [p for p in PHASES
+                    if p not in D7_PHASES and p not in D7_NON_METRIC_PHASES]
+    if unclassified:
+        problems.append(
+            "attribution phases neither promoted to a D7 metric nor explicitly excluded: "
+            + ", ".join(sorted(unclassified)))
+    return problems
+
+
 # D7's own vocabulary for the two axes the running process does not enumerate.
 # The expected universe covers BOTH platforms wherever the gate runs, because
 # #263-B runs on both and C1 freezes decisions for both; a linux gate that only
@@ -304,7 +392,12 @@ def canonical_workload_id(w: Workload) -> str:
 
 
 def expected_d7_cells() -> tuple[tuple[str, str, str, str], ...]:
-    """Every (phase, workload_id, platform, regime) D7 has to decide about.
+    """Every (D7 metric, workload_id, platform, regime) D7 has to decide about.
+
+    The first axis is ``D7_PHASES``, the G3 cutover metrics — NOT ``PHASES``,
+    which is the attribution taxonomy for what a timed interval contains. An
+    earlier revision used the latter, and so required a preregistered rule for
+    argv parsing while omitting the end-to-end C# metric entirely.
 
     Enumeration only — ids and taxonomy, never content and never a clock. The
     brief permits enumerating, hashing and availability-checking decisive
@@ -321,7 +414,7 @@ def expected_d7_cells() -> tuple[tuple[str, str, str, str], ...]:
     ids = sorted({canonical_workload_id(w) for w in workloads if w.decisive})
     return tuple(
         (phase, wid, platform, regime)
-        for phase in sorted(PHASES)
+        for phase in sorted(D7_PHASES)
         for wid in ids
         for platform in D7_PLATFORMS
         for regime in D7_REGIMES
@@ -2030,6 +2123,11 @@ def selftest() -> int:
         problems.append("the manifest declares no decisive workloads")
     if not any(not w.decisive for w in workloads):
         problems.append("the manifest declares no calibration workloads")
+
+    # D7's metrics and the attribution taxonomy must stay explicitly related.
+    # Checked here and not only in a control, because the failure mode is drift:
+    # a phase added to PHASES later must be classified, never defaulted.
+    problems.extend(d7_vocabulary_problems())
 
     gate = IdentityGate.load(digest, python_reference_commit())
     if gate.armed:

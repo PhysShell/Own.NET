@@ -7,6 +7,7 @@ exercising the mechanism rather than by reading its comments:
 
     perf-firewall-decisive     a decisive workload cannot reach a clock pre-D7
     perf-firewall-calibration  a calibration workload can (or the instrument is inert)
+    perf-d7-phase-universe     D7's metrics are not the attribution taxonomy
     perf-gate-dormant          the C1/C2 gate exists, is unarmed, and fails closed
     perf-gate-arms-by-data     arming needs committed data, never a source patch
     perf-gate-payload-identity a damaged D7 freeze arms nothing, for its own reason
@@ -101,6 +102,56 @@ def control_firewall() -> None:
 
 
 # --- the two identity domains ----------------------------------------------
+
+
+def control_d7_phase_universe() -> None:
+    """D7's metrics are not the instrument's attribution taxonomy.
+
+    `PHASES` says what a timed interval CONTAINS. `D7_PHASES` says what the
+    owner preregisters a rule for. Building the universe from the former
+    demanded a rule for argv parsing on all 48 workload/platform/regime
+    combinations while omitting the end-to-end C# metric altogether — and the
+    fixture had been auto-marking every `frontend-extraction` cell
+    not-applicable, which is the code saying out loud that those cells were
+    never D7's.
+    """
+    problems = []
+    for name in ("cli-argv-parse", "cli-usage-refusal", "ownir-door-refusal",
+                 "frontend-extraction"):
+        if name in pb.D7_PHASES:
+            problems.append(f"{name} is an attribution component, not a G3 metric, but it is "
+                            "in D7_PHASES")
+        if name not in pb.D7_NON_METRIC_PHASES:
+            problems.append(f"{name} is not in D7_PHASES and carries no recorded reason for "
+                            "being excluded; an exclusion has to be a decision, not an absence")
+    if "end-to-end-csharp" not in pb.D7_PHASES:
+        problems.append("the user-visible end-to-end C# run is not a D7 metric, though it is "
+                        "one of the numbers the G3 verdict weighs most")
+
+    # The universe must be built from the D7 vocabulary, not the other one.
+    axis = {c[0] for c in pb.expected_d7_cells()}
+    if axis != set(pb.D7_PHASES):
+        problems.append(f"expected_d7_cells() enumerates {sorted(axis)}, which is not D7_PHASES")
+    stray = axis & set(pb.D7_NON_METRIC_PHASES)
+    if stray:
+        problems.append(f"the D7 universe contains attribution-only phases: {sorted(stray)}")
+
+    problems.extend(pb.d7_vocabulary_problems())
+
+    workloads, _ = pb.load_manifest()
+    ids = {pb.canonical_workload_id(w) for w in workloads if w.decisive}
+    want = len(pb.D7_PHASES) * len(ids) * len(pb.D7_PLATFORMS) * len(pb.D7_REGIMES)
+    if len(pb.expected_d7_cells()) != want:
+        problems.append(f"the universe is {len(pb.expected_d7_cells())} cells, not the "
+                        f"{want} its own axes describe")
+    if problems:
+        fail("perf-d7-phase-universe", "; ".join(problems))
+    else:
+        ok("perf-d7-phase-universe",
+           f"{len(pb.D7_PHASES)} G3 metrics x {len(ids)} canonical decisive workloads x "
+           f"{len(pb.D7_PLATFORMS)} platforms x {len(pb.D7_REGIMES)} regimes = "
+           f"{len(pb.expected_d7_cells())} cells; every attribution phase is either promoted "
+           "or excluded with a recorded reason, and no attribution-only phase is gated")
 
 
 def control_gate_dormant() -> None:
@@ -216,8 +267,14 @@ def _valid_payload(observed: dict, anchor: str) -> dict:
     """
     cells = {}
     for phase, wid, platform, regime in pb.expected_d7_cells():
+        # One slice marked not-applicable so the accept direction exercises both
+        # shapes a cell may take. WHICH slice is the fixture's arbitrary choice
+        # and asserts nothing about D7 — the previous fixture keyed this on
+        # `frontend-extraction`, which was the code quietly admitting those
+        # cells were never D7's while the universe demanded them anyway.
         cells[f"{phase}|{wid}|{platform}|{regime}"] = _protocol_cell(
-            phase, wid, platform, regime, na=(phase == "frontend-extraction"))
+            phase, wid, platform, regime,
+            na=(phase == "bridge-lowering" and platform == "windows"))
     return {
         "kind": pb.D7_PAYLOAD_KIND,
         "schema": pb.D7_SCHEMA,
@@ -372,6 +429,12 @@ def _build_freeze(repo: Path, manifest_digest: str, break_: str = "") -> dict:
             cells[na_id]["bound"] = "<budget frozen by D7>"
         elif break_ == "proto-missing-cell":
             cells.pop(_a_rule_cell(payload))
+        elif break_ == "proto-attribution-phase":
+            # An attribution component dressed as a G3 metric. Refused because
+            # it is not in the universe, which is the whole point of the
+            # universe being D7's vocabulary rather than the instrument's.
+            cells["cli-argv-parse|repo-samples|linux|warm"] = _protocol_cell(
+                "cli-argv-parse", "repo-samples", "linux", "warm")
         elif break_ == "proto-unknown-cell":
             cells["invented|not-a-workload|linux|warm"] = _protocol_cell(
                 "invented", "not-a-workload", "linux", "warm")
@@ -511,6 +574,7 @@ _BROKEN_FREEZES = (
     ("proto-na-and-rule", "applicable and inapplicable at once"),
     ("proto-missing-cell", "does not decide every D7 cell"),
     ("proto-unknown-cell", "not a cell D7 covers"),
+    ("proto-attribution-phase", "not a cell D7 covers"),
     ("proto-duplicate-cell", "name the same D7 cell twice"),
     ("proto-rollup-workload-class", "missing preregistered level(s): workload_class"),
     ("proto-rollup-phase", "missing preregistered level(s): phase"),
@@ -1154,6 +1218,7 @@ def control_digest_platform_stable() -> None:
 
 def run() -> int:
     control_firewall()
+    control_d7_phase_universe()
     control_gate_dormant()
     control_gate_arms_by_data()
     control_gate_payload_identity()
