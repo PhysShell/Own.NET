@@ -228,3 +228,21 @@ V1/V2/invalid-UTF-8 hygiene lands **before** the D7 freeze and #263-B.
    own track, not narrowed away.
 4. **`machine/cache-cold` is not claimed** (§6) — no reset protocol exists in
    the CI environments this instrument runs in.
+5. **A GitHub-hosted Windows runner is not measurement-grade**, and the
+   instrument said so on its first CI run: the opening noise probe measured a
+   relative IQR of **1.807** against the 0.35 floor, with **0.870** drift
+   between the opening and closing probes. The harness stood up, produced a
+   complete and correctly-provenanced report, and then **refused the
+   environment** rather than reporting numbers taken on a machine that was not
+   holding still.
+
+   This is a result, not a defect, and it is one #263-B needs before it starts:
+   **the decisive Windows measurement will need a single-tenant machine.** The
+   floor was deliberately *not* raised to make the run pass — an
+   instrument-validity constant chosen after seeing which runs it rejects is a
+   threshold fitted to a result, which is the entire failure mode this brief
+   exists to prevent.
+
+   CI therefore asks the two questions separately: *did the harness stand up
+   and report honestly* (a gate, on both platforms) and *is this environment
+   measurement-grade* (recorded per run, and allowed to be "no").
