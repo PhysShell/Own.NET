@@ -198,64 +198,121 @@ A measurement-scale effect **is** visible: relative shift rises from ~0.006 at
 8–16 ms to ~0.04–0.05 at 1–2 ms, which is what a fixed cost divided by a
 shrinking denominator looks like. That much of O1's description is real.
 
-## Why it is O2 and not O1
+## Formal outcome: O3 (inconclusive). Descriptively O2-like.
 
-O1 required absolute drift to be **roughly constant across the ladder**. It is
-not: it grows from 0.056 ms to 1.126 ms at `n=5`, about twentyfold. O1's
-precondition fails, so the v2 envelope it would have licensed is not licensed.
+**This section was rewritten after the owner's review rejected a formal O2
+verdict. The rejection was correct and the original reading is withdrawn.** The
+dataset is untouched and was not re-run; only the interpretation changes.
 
-The decisive comparison is the one the whole round was built to make. In the
-2–10 ms band — the durations of every `rust` cell that has ever failed —
-27 A/B sessions of the synthetic ladder produced:
+The formal outcome is **O3 — inconclusive**, on the plan's own terms:
 
-| | |
-|---|---|
-| relative median shift, median | **0.0131** |
-| relative median shift, **worst of 27** | **0.1564** |
-| absolute drift, **worst of 27** | **0.3203 ms** |
+> The dataset is descriptively O2-like, but the preregistration did not
+> operationalise the O1/O2 boundary tightly enough to support a formal O2
+> verdict; therefore the preregistered outcome is conservatively O3. The
+> observed separation is retained as exploratory calibration evidence and may
+> motivate a separately preregistered follow-up.
 
-Against what the real failures required:
+### Three ways the original reading exceeded its own plan
+
+**1. It consulted `0.35`, which the plan forbade in as many words.** The
+preregistration says "No pass/fail tolerance is computed, applied, or reported
+... `0.35` is not consulted." The withdrawn reading nonetheless observed that the
+ladder "never once crossed 0.35" and used that as part of the argument. The
+measurement driver never reads `0.35`, so the **dataset is uncontaminated** —
+what failed was the interpretation, not the collection.
+
+**2. O1 and O2 were never operationalised as numbers.** "Roughly constant" and
+"stable at 2–8 ms" were written as English, not as decision rules. The
+quantities that later did the deciding — a twentyfold growth in absolute drift,
+0.3203 ms against 1.23 ms, a factor of 3.9 — were all chosen *after* seeing the
+data. They are legitimate **descriptive findings** and they are not a
+preregistered boundary. "O2, read off the preregistered table" was therefore a
+stronger claim than the plan could support, and it is withdrawn.
+
+**3. The `A + R*t` fit was performed in a branch that did not license it.** The
+plan permits deriving `A` and `R` **only under O1**. The withdrawn reading
+selected O2 and then reported the outcome of fitting anyway, comparing the
+resulting envelope to `0.35`. Even though no coefficients were published, the
+analysis was run where the plan did not allow it. It is quarantined below.
+
+### What the numbers descriptively show
+
+Stated as observations, licensing nothing:
+
+- Absolute drift is **not** constant across the ladder. It grows from 0.056 ms
+  to 1.126 ms at `n=5`, roughly twentyfold. This is why O1's own precondition,
+  as written, does not hold — that much is a direct reading of the plan's text
+  rather than a post-hoc rule.
+- A measurement-scale effect is visible: relative shift rises from ~0.006 at
+  8–16 ms to ~0.04–0.05 at 1–2 ms, the shape of a fixed cost over a shrinking
+  denominator.
+- In the 2–10 ms band, across 27 A/B sessions, the ladder's worst absolute drift
+  was **0.3203 ms** and its median relative shift **0.0131**.
+- The historical failures in that band implied absolute drifts of 1.23, 1.29,
+  1.36, 1.49 and 4.41 ms.
 
 | failing cell | observed | its median | absolute drift implied |
 |---|---|---|---|
-| `core-full-human\|rust\|cal-facts-small\|process-cold` | 0.396 | 3.12 ms | **1.23 ms** |
-| `core-usage\|rust\|cal-facts-tiny\|process-cold` | 0.516 | 2.49 ms | **1.29 ms** |
-| `core-full-sarif\|rust\|cal-facts-small\|warm` | 0.423 | 3.22 ms | **1.36 ms** |
-| `core-full-sarif\|rust\|cal-facts-tiny\|process-cold` | 0.508 | 2.93 ms | **1.49 ms** |
-| `core-full-sarif\|rust\|cal-facts-medium\|process-cold` | 0.478 | 9.22 ms | **4.41 ms** |
+| `core-full-human\|rust\|cal-facts-small\|process-cold` | 0.396 | 3.12 ms | 1.23 ms |
+| `core-usage\|rust\|cal-facts-tiny\|process-cold` | 0.516 | 2.49 ms | 1.29 ms |
+| `core-full-sarif\|rust\|cal-facts-small\|warm` | 0.423 | 3.22 ms | 1.36 ms |
+| `core-full-sarif\|rust\|cal-facts-tiny\|process-cold` | 0.508 | 2.93 ms | 1.49 ms |
+| `core-full-sarif\|rust\|cal-facts-medium\|process-cold` | 0.478 | 9.22 ms | 4.41 ms |
 
-The smallest drift any failing cell required is **1.23 ms**. The largest the
-ladder produced at those durations, across 27 sessions, is **0.32 ms** — short
-by a factor of **3.9**, and that is comparing a *worst case* against a
-*minimum*. The synthetic ladder never once crossed 0.35 anywhere, at any rung,
-at either repetition count.
+The separation between those two groups is large. **It is a reason to keep
+looking, not a verdict.** A pure short-duration effect looks insufficient to
+explain the failures, and that is the finding worth carrying forward.
 
-So short duration alone does not produce the instability. Something the real
-invocations do, and this helper does not, is producing it.
+## POST-HOC — NOT PART OF THE PREREGISTERED OUTCOME — NOT POLICY INPUT
 
-## What this forecloses
+Quarantined rather than deleted, because deleting an analysis that was actually
+performed would be its own kind of dishonesty.
 
-Reading the table charitably as O1 and fitting `A + R*t` anyway would produce an
-envelope **tighter** than 0.35 at these durations — the ladder's worst relative
-shift there is 0.156. It would reject the Rust cells more often, not fewer. The
-metrology cannot be used to loosen anything, which is worth stating plainly
-because that is the direction someone will eventually be tempted to take it.
+Fitting `A + R*t` to this dataset produces an envelope **tighter** than 0.35 at
+these durations. It would reject the Rust cells more often, not fewer.
+
+This is recorded solely so nobody later reaches for the metrology expecting it
+to loosen something. It is **not** evidence for any outcome, it was run in a
+branch the plan did not license, and **no coefficient from it may enter any
+policy, threshold or envelope.**
 
 ## The boundary of this conclusion
 
 The helper is a small compiled binary doing pure arithmetic: no file reads, no
 document parsing, no large dynamic image to load. `own-cli` is about 1.8 MB and
 opens files. The ladder therefore isolates **duration** and does not isolate
-**what a real invocation does**. Dynamic loading, page-cache state and file I/O
-remain unexamined, and one of them is the obvious next suspect.
+**what a real invocation does**.
 
-This is stated as a limit rather than buried, because O2's conclusion is
-"the cause is elsewhere", and a reader is entitled to know exactly how much
-elsewhere this round searched.
+**A correction to the original next-suspect list, from the owner.** That list
+led with file I/O. It should not have: one of the historical failures is
+`core-usage|rust|cal-facts-tiny|process-cold`, and that rung **never opens an
+OwnIR document at all** — it starts the Rust core, parses argv, and writes a
+usage refusal. Input-document I/O is therefore **not a necessary condition** for
+the instability, and the round's own evidence said so while the reading looked
+past it.
+
+The candidates that survive, roughly in order of how cheaply they can be cut:
+
+| candidate | why |
+|---|---|
+| executable/library mapping and page faults | `own-cli` is ~1.8 MB; the helper is a few KB |
+| dynamic loader / runtime startup | present in a real binary, absent here |
+| scheduler: context switches, CPU migration | recorded as a signal in this round but never analysed as a cause |
+| CPU-time against wall-time | separates "the machine was busy" from "the work took longer" |
+| the output/refusal path | the one thing `core-usage` does that the helper does not |
+
+**`core-usage` is where the next round should start**: it is the minimal real
+Rust process path, it has already produced a witness, and it removes document
+parsing from the picture entirely. That is a place to cut causes rather than
+re-measure the whole menagerie.
 
 ## What does not change
 
 Per the preregistration and the owner's standing rulings: no absolute floor, no
 v2 envelope, `0.35` unmoved, no `T_min`/`N_min`/`N_max`, no threshold derived
-from any number above, and no calibration of record restored. Round 6 stops
-here and reports.
+from any number above, and no calibration of record restored. The dataset is
+**not** re-run — its provenance is sound and re-running it to obtain a tidier
+verdict would be precisely the move this instrument exists to prevent.
+
+Round 6 stops here, formally inconclusive, with a sharper next question than it
+started with.
