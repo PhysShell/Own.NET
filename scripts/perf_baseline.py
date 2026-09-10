@@ -1518,6 +1518,46 @@ def summarize(samples: list[int], unit: str = "ns") -> dict[str, object]:
     return out
 
 
+# --- the kernel's per-child accounting -------------------------------------
+
+# What wait4's rusage carries out of one interval, beside peak RSS. These are
+# POSIX-only: they come from wait4 and Windows offers nothing that means the
+# same thing, so off POSIX every one of them is None WITH A REASON. A reported
+# zero minor-fault count for a platform that was never asked would be the most
+# confident possible lie, and a downstream median over such zeros would look
+# exactly like a measurement.
+ACCOUNTING_FIELDS: tuple[str, ...] = (
+    "cpu_user_ns",
+    "cpu_system_ns",
+    "minor_faults",
+    "major_faults",
+    "voluntary_context_switches",
+    "involuntary_context_switches",
+)
+
+# Which of them are durations, so no summary ever labels a fault count "ns".
+ACCOUNTING_UNITS: dict[str, str] = {
+    "cpu_user_ns": "ns",
+    "cpu_system_ns": "ns",
+    "minor_faults": "count",
+    "major_faults": "count",
+    "voluntary_context_switches": "count",
+    "involuntary_context_switches": "count",
+}
+
+_NS_PER_SECOND = 1_000_000_000
+
+
+def rusage_seconds_to_ns(seconds: float) -> int:
+    """ru_utime / ru_stime arrive as float seconds; everything else here is ns.
+
+    Rounded, not truncated. Truncation biases every sample the same direction,
+    and a systematic half-tick bias is both harder to see and worse to reason
+    about than a symmetric one of the same size.
+    """
+    return round(seconds * _NS_PER_SECOND)
+
+
 # --- the single place a clock starts ---------------------------------------
 
 
@@ -1556,10 +1596,18 @@ class Harness:
     # -- one measured interval ---------------------------------------------
 
     def _run_once(self, argv: list[str], env: dict[str, str], cwd: Path) -> dict[str, object]:
-        """Spawn, time, and read peak RSS. Nothing hashed, nothing verified here.
+        """Spawn, time, and read the kernel's accounting for that one child.
 
         Every identity check has already run and passed by the time this is
         called: the notary's cost belongs outside the interval it protects.
+
+        The interval is unchanged in meaning from the version that produced
+        every number already committed to this repository: t0, Popen, wait4,
+        elapsed. The rusage fields are parsed AFTER the clock stops, so widening
+        what is recorded does not widen what is measured. The two lines between
+        wait4 and elapsed were inside the interval before and are deliberately
+        left inside: moving them would tighten it, and a tightened interval
+        silently un-compares every future number against every recorded one.
         """
         wrapped, sidecar = self.rss.wrap(argv, self.tmp)
         job = None
@@ -1567,6 +1615,9 @@ class Harness:
             job = ctypes.windll.kernel32.CreateJobObjectW(None, None)  # type: ignore[attr-defined]
         peak: int | None = None
         why = ""
+        # Absent until measured — never zero until measured.
+        accounting: dict[str, int | None] = dict.fromkeys(ACCOUNTING_FIELDS)
+        accounting_why = ""
         t0 = time.perf_counter_ns()
         proc = subprocess.Popen(wrapped, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                 env=env, cwd=str(cwd))
@@ -1579,19 +1630,34 @@ class Harness:
             proc.returncode = os.waitstatus_to_exitcode(status)
             rc = proc.returncode
             elapsed = time.perf_counter_ns() - t0
+            # --- the clock is stopped; everything below is bookkeeping -------
             peak = int(ru.ru_maxrss) * self.rss.maxrss_unit_bytes
+            accounting = {
+                "cpu_user_ns": rusage_seconds_to_ns(ru.ru_utime),
+                "cpu_system_ns": rusage_seconds_to_ns(ru.ru_stime),
+                "minor_faults": int(ru.ru_minflt),
+                "major_faults": int(ru.ru_majflt),
+                "voluntary_context_switches": int(ru.ru_nvcsw),
+                "involuntary_context_switches": int(ru.ru_nivcsw),
+            }
         else:
             rc = proc.wait()
             elapsed = time.perf_counter_ns() - t0
             peak = self.rss.read(sidecar)
             if peak is None and job:
                 peak, why = self.rss.read_windows_peak(job)
+            accounting_why = (
+                "per-child CPU, fault and context-switch accounting comes from os.wait4's "
+                f"rusage, which is not available here (platform {sys.platform!r}, RSS "
+                f"mechanism {self.rss.mechanism!r}); these fields were not measured")
         if job:
             ctypes.windll.kernel32.CloseHandle(job)  # type: ignore[attr-defined]
         if sidecar is not None and sidecar.is_file():
             sidecar.unlink()
         return {"elapsed_ns": elapsed, "rc": rc, "peak_rss_bytes": peak,
-                "rss_unavailable_reason": why or (self.rss.reason if peak is None else "")}
+                "rss_unavailable_reason": why or (self.rss.reason if peak is None else ""),
+                **accounting,
+                "accounting_unavailable_reason": accounting_why}
 
     # -- non-timed structural smoke (permitted on decisive workloads) ------
 
@@ -1691,7 +1757,8 @@ class Harness:
                 "argv": ([*argv[:1], "<...>"] if rung.surface == "core"
                          else [*argv[:2], "<...>"]),
                 "outcome": outcome,
-                "timing": None, "peak_rss": None, "raw_elapsed_ns": [],
+                "timing": None, "peak_rss": None, "accounting": None,
+                "raw_elapsed_ns": [], "raw_accounting": [],
                 "not_timed_because": "the rung did not do its work; measuring it would time "
                                      "the wrong path",
                 "tag": CALIBRATION_ONLY,
@@ -1731,8 +1798,19 @@ class Harness:
             "rss_unavailable_reason": next(
                 (str(s["rss_unavailable_reason"]) for s in samples
                  if s["peak_rss_bytes"] is None and s["rss_unavailable_reason"]), ""),
+            # Summarized over the samples that HAVE the field. Where the
+            # platform offers no rusage every one of these is {"n": 0} and the
+            # reason below says why — an absence that reads as an absence,
+            # rather than a median of zeros that reads as a flat measurement.
+            "accounting": {name: summarize(
+                [_as_int(s[name]) for s in samples if s[name] is not None],
+                unit=ACCOUNTING_UNITS[name]) for name in ACCOUNTING_FIELDS},
+            "accounting_unavailable_reason": next(
+                (str(s["accounting_unavailable_reason"]) for s in samples
+                 if s["accounting_unavailable_reason"]), ""),
             "raw_elapsed_ns": [_as_int(s["elapsed_ns"]) for s in samples],  # §9: raw retained
             "raw_peak_rss_bytes": [s["peak_rss_bytes"] for s in samples],
+            "raw_accounting": [{name: s[name] for name in ACCOUNTING_FIELDS} for s in samples],
             "tag": CALIBRATION_ONLY,
         }
         return cell

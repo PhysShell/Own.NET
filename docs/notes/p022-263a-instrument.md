@@ -236,6 +236,11 @@ Where nothing is available the value is `null` **with a reason**, so a silent
 absence can never be read as a measured zero. Allocation counts are not yet
 captured — recorded as owed on population B's track rather than quietly dropped.
 
+On POSIX the same `wait4` call also carries the child's CPU split, fault counts
+and context-switch counts. Those are now kept rather than discarded — see *The
+interval kept its meaning and gave up its secrets* — under the same rule: off
+POSIX they are `null` with a reason, never zero.
+
 ## 10. The CALIBRATION_ONLY firewall
 
 Every calibration result is tagged `CALIBRATION_ONLY`, is not decision evidence,
@@ -654,10 +659,74 @@ next real defect.
 suite stayed green at every step, which is the only reason to believe a
 mechanical rewrite of this size did not quietly alter behaviour.
 
+### The interval kept its meaning and gave up its secrets
+
+`Harness._run_once` reaped every child through `os.wait4`, which hands back the
+kernel's complete per-child accounting, and then read one field of it. The other
+six — user CPU, system CPU, minor faults, major faults, voluntary and
+involuntary context switches — were fetched and dropped on the floor.
+
+That mattered because those six are exactly the fields that separate the
+candidate explanations Round 7 exists to separate. A wall-clock difference with
+no CPU difference and a context-switch difference is a scheduler story; the same
+wall-clock difference with a matching CPU difference is a work story. Without
+the accounting, both look identical and the round can only report that something
+got slower.
+
+They are kept now, under four constraints, each of them a way the change could
+have been made wrong:
+
+| constraint | why |
+|---|---|
+| `ru_utime` / `ru_stime` **rounded** to nanoseconds | everything else in the harness is ns; truncation would bias every sample the same direction, and a systematic half-tick error survives averaging in a way a symmetric one does not |
+| the interval **unchanged in meaning** | `t0`, `Popen`, `wait4`, `elapsed`, exactly as before. The rusage is parsed after the clock stops |
+| the two pre-existing lines between `wait4` and `elapsed` **left where they were** | moving them would tighten the interval. A tightened interval silently un-compares every future number against every recorded one, which is a worse defect than the slightly loose interval it would fix |
+| off POSIX, `null` **with a reason** | there is no Windows equivalent that means the same thing. A reported `0` minor-fault count for a platform nobody asked would be the most confident possible lie, and a median over such zeros would look exactly like a flat measurement |
+
+The fields reach the report too, not just the private Round 7 driver. A cell
+carries `accounting` (summarized per field, in `ns` for the two durations and in
+`count` for the four counters), `accounting_unavailable_reason`, and
+`raw_accounting` per iteration. A harness that collected the accounting and then
+dropped it one layer up would be the same defect wearing a different hat.
+
+**`perf-child-accounting`** is the sixteenth control, and it checks the claim
+that would otherwise be invisible: that the parse sits outside the clock. It
+does that by making the parse expensive — `os.wait4` is wrapped so every rusage
+field costs 10 ms to read — and then asking whether `elapsed_ns` grew. If the
+harness read seven fields inside its own stopwatch, it would bill 70 ms of its
+own bookkeeping to the process it was measuring, and the check would see it.
+
+Seven mutations were run against the finished control, each caught by the check
+that owns it:
+
+| mutation | caught by |
+|---|---|
+| `ru_utime` returned unconverted, in seconds | `cpu_user_ns = 0` for a child burning tens of milliseconds |
+| `int()` instead of `round()` in the conversion | the conversion table, at the nanosecond |
+| the rusage parsed before `elapsed` | 174 µs outside the interval against 49 ms of deliberate delay |
+| zeros instead of `None` on the non-POSIX path | six fields present where none was measured |
+| the cell dropping `accounting` again | a cell carrying no accounting slot |
+| a field name colliding with `elapsed_ns` | the row-key collision check |
+| a field with no declared unit | the `ACCOUNTING_FIELDS` / `ACCOUNTING_UNITS` symmetric difference |
+
+The last two are worth their own line, because the first version of them did not
+work. Both faults make `measure_cell` raise `KeyError` partway through a cell, so
+the control appended its finding to a list and then died two steps later — CI
+would have shown a traceback naming the crash site and no `FAIL` line naming the
+cause. The checks are terminal now: they report and return before reaching the
+code their own subject breaks. A check that cannot survive long enough to speak
+is not a check, which is the same lesson as the last several, arriving from a
+direction I had not been watching.
+
+The non-POSIX branch is exercised on Linux by forcing the RSS mechanism, which
+drives the real branch of the real function. It is **not** a Windows test and
+the control says so; what it proves is that the absence path states an absence.
+
 ### Both pairs are stale, and are not re-recorded
 
-The digest moved from `2d6e52fe4352` to `6713e7300c7c`, so all four committed
-halves now describe an instrument that no longer exists. They are **left in
+The digest moved from `2d6e52fe4352` to `6713e7300c7c`, and again to
+`562a7f7232da` under the accounting change described above, so all four committed
+halves describe an instrument that no longer exists. They are **left in
 place**: re-recording is a measurement, and new measurements are not currently
 authorised. The evidence is stale and says so rather than being quietly
 refreshed.

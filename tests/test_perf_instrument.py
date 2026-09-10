@@ -14,6 +14,7 @@ exercising the mechanism rather than by reading its comments:
     perf-gate-payload-identity a damaged D7 freeze arms nothing, for its own reason
     perf-session-drift         a candidate that changes refuses the rest of the session
     perf-notary-outside        no digest is computed inside a measured interval
+    perf-child-accounting      the kernel's per-child accounting, in ns, outside the clock
     perf-provenance-complete   every §9 field is present on a produced report
     perf-no-engine-comparison  the instrument emits no engine-comparison statistic
     perf-smoke-untimed         decisive smoke carries no timing slot at all
@@ -32,6 +33,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -992,6 +994,209 @@ def control_notary_outside_interval() -> None:
                                   "identity is verified before the clock starts")
 
 
+class _SlowRusage:
+    """A rusage whose every field costs 10 ms to read.
+
+    The point is not to slow anything down. It is that the harness claims to
+    parse rusage AFTER the clock stops, and the only way to check a claim about
+    where code sits relative to an interval is to make that code expensive and
+    look at whether the interval grew.
+    """
+
+    _WATCHED = ("ru_maxrss", "ru_utime", "ru_stime", "ru_minflt",
+                "ru_majflt", "ru_nvcsw", "ru_nivcsw")
+    DELAY_S = 0.010
+
+    def __init__(self, real: object, log: list[str]) -> None:
+        self._real = real
+        self._log = log
+
+    def __getattr__(self, name: str) -> object:
+        if name in self._WATCHED:
+            self._log.append(name)
+            time.sleep(self.DELAY_S)
+        return getattr(self._real, name)
+
+
+def control_child_accounting() -> None:
+    """The kernel's per-child accounting: real, in nanoseconds, and off the clock.
+
+    Round 7 asks which of a real process's costs a synthetic one does not have,
+    and the fields that separate the candidates -- CPU split, faults, context
+    switches -- were being read from wait4 and thrown away. Four things have to
+    hold at once, and each is exercised rather than asserted:
+
+      * on POSIX every field arrives, as an integer, from THIS child;
+      * seconds are converted to nanoseconds, not passed through;
+      * off POSIX the fields are absent WITH A REASON, never zero;
+      * the parse happens after the interval closes, not inside it.
+
+    The last is the one that would be invisible: a harness that read seven
+    rusage fields inside its own stopwatch would report the cost of its own
+    bookkeeping as the cost of the process it was measuring.
+    """
+    problems = []
+    posix = hasattr(os, "wait4")
+
+    # (0) Two structural hazards, both of which would surface only mid-run.
+    # The accounting is spread into the sample row, so a field named like an
+    # existing key would silently overwrite the thing it collided with.
+    reserved = {"elapsed_ns", "rc", "peak_rss_bytes", "rss_unavailable_reason",
+                "accounting_unavailable_reason"}
+    collide = sorted(reserved & set(pb.ACCOUNTING_FIELDS))
+    if collide:
+        problems.append(f"accounting fields {collide} collide with the sample row's own keys "
+                        "and would overwrite them where the row is assembled")
+    # And a field with no declared unit raises KeyError inside measure_cell --
+    # that is, in the middle of a measurement, which is the worst place to
+    # discover a typo in a constant.
+    unpriced = sorted(set(pb.ACCOUNTING_FIELDS) ^ set(pb.ACCOUNTING_UNITS))
+    if unpriced:
+        problems.append(f"ACCOUNTING_FIELDS and ACCOUNTING_UNITS disagree about {unpriced}; a "
+                        "field with no declared unit fails inside a measurement")
+    if problems:
+        # Terminal on purpose. Either fault makes measure_cell raise KeyError
+        # partway through a cell, and a control that runs on into that dies with
+        # a traceback naming the crash site rather than a FAIL line naming the
+        # cause. The first version of this check did exactly that.
+        fail("perf-child-accounting", "; ".join(problems))
+        return
+
+    # (1) The conversion itself, before any process is involved. A truncating
+    # conversion biases every sample the same direction, which is the kind of
+    # error that survives averaging.
+    for seconds, want, wrong in (
+            (1.0, 1_000_000_000, "seconds are passed through unconverted"),
+            (0.5, 500_000_000, "the scale is wrong"),
+            (0.000_000_5, 500, "sub-microsecond time is truncated away"),
+            (0.012_345_678_9, 12_345_679, "rounding loses more than a nanosecond")):
+        got = pb.rusage_seconds_to_ns(seconds)
+        if got != want:
+            problems.append(f"rusage_seconds_to_ns({seconds}) = {got}, want {want}: {wrong}")
+
+    with tempfile.TemporaryDirectory(prefix="perf-acct-") as td:
+        tmp = Path(td)
+        _, digest = pb.load_manifest()
+        h = _harness(tmp, pb.IdentityGate.load(digest))
+        # A child that unmistakably burns CPU, so "did we convert to ns" has a
+        # visible answer. python -c pass would spend so little that a
+        # seconds-vs-nanoseconds mistake could hide behind rounding.
+        busy = [sys.executable, "-c", "sum(range(3_000_000))"]
+
+        if posix:
+            row = h._run_once(busy, dict(os.environ), ROOT)
+            missing = [f for f in pb.ACCOUNTING_FIELDS if row.get(f) is None]
+            if missing:
+                problems.append(f"POSIX run produced no {missing}; wait4 hands these back and "
+                                "the harness is dropping them again")
+            elif row.get("accounting_unavailable_reason"):
+                problems.append("POSIX run reported the accounting both present and unavailable")
+            else:
+                user = int(row["cpu_user_ns"])          # type: ignore[arg-type]
+                system = int(row["cpu_system_ns"])      # type: ignore[arg-type]
+                elapsed = int(row["elapsed_ns"])        # type: ignore[arg-type]
+                # Seconds left unconverted would round to 0 here; this child
+                # burns tens of milliseconds of user time.
+                if user < 1_000_000:
+                    problems.append(f"cpu_user_ns = {user} for a child that burns tens of "
+                                    "milliseconds — the unit is seconds, not nanoseconds")
+                # And not scaled the other way: the child is single-threaded, so
+                # its CPU time cannot exceed its wall time.
+                if user + system > elapsed * 2:
+                    problems.append(f"cpu_user_ns + cpu_system_ns = {user + system} exceeds "
+                                    f"2x elapsed_ns = {elapsed} for a single-threaded child")
+                if int(row["minor_faults"]) <= 0:      # type: ignore[arg-type]
+                    problems.append("minor_faults is 0 for a real process — the accounting is "
+                                    "not this child's")
+                for f in pb.ACCOUNTING_FIELDS:
+                    if not isinstance(row[f], int) or isinstance(row[f], bool):
+                        problems.append(f"{f} is {type(row[f]).__name__}, not an int")
+
+            # (2) The parse is outside the interval. Made expensive on purpose:
+            # if the rusage were read before the clock stopped, elapsed_ns would
+            # swallow the delay and the difference below would vanish.
+            log: list[str] = []
+            real_wait4 = os.wait4
+
+            def slow_wait4(pid: int, options: int) -> tuple[int, int, object]:
+                got_pid, status, ru = real_wait4(pid, options)
+                return got_pid, status, _SlowRusage(ru, log)
+
+            os.wait4 = slow_wait4                      # type: ignore[assignment]
+            try:
+                before = time.perf_counter_ns()
+                slow = h._run_once([sys.executable, "-c", "pass"], dict(os.environ), ROOT)
+                total = time.perf_counter_ns() - before
+            finally:
+                os.wait4 = real_wait4                  # type: ignore[assignment]
+
+            unread = [f for f in _SlowRusage._WATCHED if f not in log]
+            if unread:
+                problems.append(f"the harness never read {unread} from rusage, so the delay "
+                                "check below proves nothing")
+            outside = total - int(slow["elapsed_ns"])  # type: ignore[arg-type]
+            budget = int(len(_SlowRusage._WATCHED) * _SlowRusage.DELAY_S * 1e9 * 0.7)
+            if outside < budget:
+                problems.append(
+                    f"only {outside} ns of the call sat outside the measured interval, against "
+                    f"{len(log)} deliberately slow rusage reads costing at least {budget} ns: "
+                    "the accounting is being parsed inside the clock and billed to the child")
+
+        # (3) The non-POSIX branch, driven on this machine. This is not a
+        # Windows test and does not claim to be one: it drives the real
+        # non-POSIX path of the real function, which is where a Windows run
+        # would land, and checks that absence is stated rather than zeroed.
+        probe = pb.RssProbe()
+        probe.mechanism = "none"
+        probe.reason = "forced non-POSIX path for the accounting control"
+        h2 = pb.Harness(gate=h.gate, session=h.session, rss=probe, tmp=tmp,
+                        candidate=h.candidate, warmup_discards=0, repetitions=1, seed=1)
+        off = h2._run_once([sys.executable, "-c", "pass"], dict(os.environ), ROOT)
+        zeroed = [f for f in pb.ACCOUNTING_FIELDS if off.get(f) is not None]
+        if zeroed:
+            problems.append(f"without wait4 the harness still produced values for {zeroed}; "
+                            "unmeasured accounting must be null, and a zero fault count would "
+                            "read downstream as a flat measurement")
+        reason = str(off.get("accounting_unavailable_reason") or "")
+        if not reason:
+            problems.append("the accounting is absent with no reason given, which is exactly "
+                            "how a silent absence becomes a measured zero")
+        elif "wait4" not in reason:
+            problems.append(f"the absence reason does not name the missing mechanism: {reason!r}")
+
+        # (4) A cell must carry the fields out, or _run_once collects them for
+        # nobody. Whichever path the cell takes, the slots exist.
+        workloads, _ = pb.load_manifest()
+        floor = next(r for r in pb.RUNGS if r.needs == "none")
+        w = next(x for x in workloads if not x.decisive and pb._rung_accepts(floor, x))
+        cell = h.measure_cell(floor, "python", w, None, "process-cold")
+        for key in ("accounting", "raw_accounting"):
+            if key not in cell:
+                problems.append(f"a cell carries no {key!r}: the accounting stops at _run_once")
+        acct = cell.get("accounting")
+        if cell.get("timing") is not None and posix:
+            if not isinstance(acct, dict):
+                problems.append("a timed cell summarized no accounting")
+            else:
+                empty = [f for f in pb.ACCOUNTING_FIELDS
+                         if not isinstance(acct.get(f), dict) or acct[f].get("n") != h.repetitions]
+                if empty:
+                    problems.append(f"a timed POSIX cell summarized {empty} over no samples")
+                for name, unit in (("cpu_user_ns", "ns"), ("minor_faults", "count")):
+                    row_ = acct.get(name)
+                    if isinstance(row_, dict) and f"median_{unit}" not in row_:
+                        problems.append(f"{name} is not summarized in {unit}: "
+                                        f"{sorted(row_)}")
+
+    if problems:
+        fail("perf-child-accounting", "; ".join(problems))
+    else:
+        ok("perf-child-accounting", "wait4's CPU, fault and context-switch counters reach the "
+                                    "report in nanoseconds and integers, are parsed after the "
+                                    "clock stops, and are null with a stated reason where the "
+                                    "platform has no wait4")
+
+
 # --- what the instrument emits ---------------------------------------------
 
 
@@ -1302,6 +1507,7 @@ def run() -> int:
     control_gate_payload_identity()
     control_session_drift()
     control_notary_outside_interval()
+    control_child_accounting()
     control_no_engine_comparison()
     control_smoke_untimed()
     control_provenance_complete()
