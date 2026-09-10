@@ -16,6 +16,7 @@ exercising the mechanism rather than by reading its comments:
     perf-no-engine-comparison  the instrument emits no engine-comparison statistic
     perf-smoke-untimed         decisive smoke carries no timing slot at all
     perf-phase-attribution     no interval claims to be a phase it merely contains
+    perf-rung-outcome          a cell is timed only if the invocation did the work
 
 Failures print `FAIL[<check>]: <detail>`; nothing stops at the first one.
 
@@ -187,10 +188,19 @@ def _build_freeze(repo: Path, c1: dict, break_: str = "") -> None:
     broken input is refused by the same over-broad check proves nothing about
     the other checks.
     """
+    # NESTED, exactly as production stores them. The first version of these
+    # fixtures put both objects at the repository ROOT, where the verifier's
+    # wrong model — treating the file's own directory as the repository — is
+    # accidentally right. Every control agreed while no real freeze could ever
+    # have armed, because `<rev>:<path>` resolves from the tree root and the
+    # verifier was asking for a bare basename.
     repo.mkdir(parents=True, exist_ok=True)
     _git(repo, "init", "-q")
-    att = repo / pb.ATTESTATION.name
-    rat = repo / pb.RATIFICATION.name
+    nest = repo / "docs" / "evidence"
+    nest.mkdir(parents=True, exist_ok=True)
+    att = nest / pb.ATTESTATION.name
+    rat = nest / pb.RATIFICATION.name
+    att_rel = f"docs/evidence/{att.name}"
 
     payload = _valid_payload(c1)
     if break_ == "echo":
@@ -223,19 +233,25 @@ def _build_freeze(repo: Path, c1: dict, break_: str = "") -> None:
         "kind": pb.RATIFICATION_KIND,
         "schema": pb.ATTESTATION_SCHEMA,
         "owner": "the owner",
-        "payload_path": att.name,
+        "payload_path": att_rel,
         "payload_commit_sha": commit,
         "ratified_payload_sha256": body,
         "signature": "none",
     }
+    if break_ == "basename-path":
+        # The exact shape the broken verifier would have accepted, and the shape
+        # a real repository never has.
+        ratification["payload_path"] = att.name
+    elif break_ == "other-path":
+        ratification["payload_path"] = "docs/evidence/some-other-file.json"
+    elif break_ == "signed":
+        ratification["signature"] = {"key_id": "DEADBEEFCAFE"}
     if break_ == "ratifies-other":
         ratification["ratified_payload_sha256"] = "a" * 64
     elif break_ == "bad-commit":
         ratification["payload_commit_sha"] = "0" * 40
     elif break_ == "signature-undeclared":
         ratification["signature"] = ""
-    elif break_ == "claims-key":
-        ratification["signature"] = {"key_id": "DEADBEEFCAFE"}
 
     rat.write_text(json.dumps(ratification, indent=2) + "\n", encoding="utf-8")
     if break_ == "ratification-uncommitted":
@@ -255,8 +271,8 @@ def _build_freeze(repo: Path, c1: dict, break_: str = "") -> None:
 def _with_freeze(repo: Path, fn):
     saved_a, saved_r = pb.ATTESTATION, pb.RATIFICATION
     try:
-        pb.ATTESTATION = repo / pb.ATTESTATION.name
-        pb.RATIFICATION = repo / pb.RATIFICATION.name
+        pb.ATTESTATION = repo / "docs" / "evidence" / pb.ATTESTATION.name
+        pb.RATIFICATION = repo / "docs" / "evidence" / pb.RATIFICATION.name
         return fn()
     finally:
         pb.ATTESTATION, pb.RATIFICATION = saved_a, saved_r
@@ -278,8 +294,10 @@ _BROKEN_FREEZES = (
     ("bad-commit", "not a commit in this repository"),
     ("ratification-uncommitted", "not committed in this repository"),
     ("reformatted", "modified after it was frozen"),
-    ("signature-undeclared", "signature field must be either"),
-    ("claims-key", "could not verify a signature"),
+    ("signature-undeclared", 'signature field must be exactly "none"'),
+    ("basename-path", "may not choose which file it is about"),
+    ("other-path", "may not choose which file it is about"),
+    ("signed", "Signed ratification is not part of the accepted contract"),
 )
 
 
@@ -438,6 +456,13 @@ def control_phase_attribution() -> None:
     else:
         rep = json.loads(report.read_text(encoding="utf-8"))
         by_id = {r.id: r for r in pb.RUNGS}
+        shipped_rungs = [{"id": r.id, "surface": r.surface, "phases": list(r.phases),
+                          "observability": r.observability, "expect_rc": list(r.expect_rc),
+                          "evidence": r.evidence, "why": r.why} for r in pb.RUNGS]
+        if rep.get("rungs") != shipped_rungs:
+            problems.append(f"{report.name} records a different rung table than the instrument "
+                            "now defines (ids, phases, expected exit codes or evidence have "
+                            "moved): the report predates the instrument and must be re-recorded")
         if rep.get("phases") != pb.PHASES:
             problems.append(f"{report.name} records a different phase vocabulary than the "
                             "instrument now defines: the report predates the rung table and "
@@ -609,6 +634,21 @@ def control_provenance_complete() -> None:
         for outer, inner in required:
             if inner not in (rep.get(outer) or {}):
                 problems.append(f"{path.name}: missing {outer}.{inner}")
+        # Presence is not agreement. A report can carry a harness digest and a
+        # manifest digest that belong to some earlier tree and still tick every
+        # "field is present" box, which makes it a receipt rather than evidence.
+        if rep.get("harness", {}).get("digest") != pb.harness_digest():
+            problems.append(
+                f"{path.name}: records harness digest "
+                f"{str(rep.get('harness', {}).get('digest'))[:12]} but the shipped instrument is "
+                f"{pb.harness_digest()[:12]} — it certifies a tree that is no longer here and "
+                "must be re-recorded")
+        if rep.get("provenance", {}).get("workload_manifest_sha256") != pb.load_manifest()[1]:
+            problems.append(f"{path.name}: records a workload manifest digest that is not the "
+                            "shipped manifest's")
+        if not (rep.get("outcomes") or {}).get("valid"):
+            problems.append(f"{path.name}: was recorded with cells whose invocation did not do "
+                            "the rung's work")
         for i, cell in enumerate(rep.get("cells", [])):
             if not cell.get("raw_elapsed_ns"):
                 problems.append(f"{path.name}: cell {i} kept no raw per-iteration data")
@@ -620,8 +660,77 @@ def control_provenance_complete() -> None:
         fail("perf-provenance-complete", "; ".join(problems))
     else:
         ok("perf-provenance-complete",
-           f"{len(committed)} committed calibration report(s) carry every §9 field, retain raw "
-           "per-iteration data, and were taken with the gate dormant")
+           f"{len(committed)} committed calibration report(s) carry every §9 field, name the "
+           "SHIPPED harness and manifest digests, retain raw per-iteration data, carry only "
+           "valid-outcome cells, and were taken with the gate dormant")
+
+
+# --- rung outcomes ----------------------------------------------------------
+
+
+def control_rung_outcome() -> None:
+    """A cell is a measurement only if the invocation did the rung's work.
+
+    The instrument once timed twelve command-not-found exits and reported them
+    as reproduced: with no .NET on PATH the launcher rungs died at 127 before
+    running anything, and nothing looked at the exit code. Both directions are
+    checked here, because a contract that refuses everything is not a contract,
+    it is a broken instrument that happens to be safe.
+    """
+    problems = []
+    _, digest = pb.load_manifest()
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(ROOT)
+
+    # Structural: no rung may declare command-not-found a success, and every
+    # rung must name codes and an evidence kind the checker knows.
+    for r in pb.RUNGS:
+        if not r.expect_rc:
+            problems.append(f"{r.id}: declares no expected exit code, so any exit would pass")
+        if 127 in r.expect_rc:
+            problems.append(f"{r.id}: declares 127 (command-not-found) as doing its job")
+        try:
+            pb._evidence_problem(r.evidence, "ownir", "")
+        except pb.InstrumentError:
+            problems.append(f"{r.id}: names evidence kind {r.evidence!r} the checker cannot check")
+    try:
+        pb._evidence_problem("no-such-evidence", "", "")
+    except pb.InstrumentError:
+        pass
+    else:
+        problems.append("an unknown evidence kind was silently accepted")
+
+    with tempfile.TemporaryDirectory(prefix="perf-outcome-") as td:
+        h = _harness(Path(td), pb.IdentityGate.load(digest, ""))
+        launcher = next(r for r in pb.RUNGS if r.surface == "launcher")
+        # Exactly the shape an absent toolchain produced.
+        bad = h.verify_outcome(launcher, [sys.executable, "-c", "raise SystemExit(127)"],
+                               env, ROOT)
+        if bad["valid"]:
+            problems.append("a 127 exit was accepted as a launcher measurement — the defect that "
+                            "let 12 command-not-found cells be reported as reproduced")
+        elif not any("127" in str(x) for x in bad["problems"]):
+            problems.append("the refusal does not name the command-not-found exit")
+
+        # A process that exits on a DECLARED code but produced no verdict is
+        # still not a measurement: the exit code alone is not the contract.
+        silent = h.verify_outcome(launcher, [sys.executable, "-c", "pass"], env, ROOT)
+        if silent["valid"]:
+            problems.append("an invocation that exited 0 with no verdict was accepted; the "
+                            "evidence check is doing nothing")
+
+        # And the healthy direction, on the real production surface.
+        floor = next(r for r in pb.RUNGS if r.needs == "none")
+        good = h.verify_outcome(floor, [sys.executable, "-m", "ownlang", "ownir"], env, ROOT)
+        if not good["valid"]:
+            problems.append(f"the real floor invocation was refused: {good['problems']}")
+
+    if problems:
+        fail("perf-rung-outcome", "; ".join(problems))
+    else:
+        ok("perf-rung-outcome", "every rung declares exit codes and checkable evidence, 127 is "
+                                "never success, a silent zero-exit is refused, and the real "
+                                "production floor invocation is accepted")
 
 
 def run() -> int:
@@ -635,6 +744,7 @@ def run() -> int:
     control_smoke_untimed()
     control_provenance_complete()
     control_phase_attribution()
+    control_rung_outcome()
     print()
     print(f"perf instrument controls: {len(_PASSES)} passed, {len(_FAILURES)} failed")
     return 1 if _FAILURES else 0

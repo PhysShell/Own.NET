@@ -66,8 +66,28 @@ unavailable stages to be *marked*, not imputed.
 | `core-parse-refused` | core | startup + read + parse + door refusal | composed |
 | `core-full-human` | core | startup + parse + bridge + analysis + human render | composed |
 | `core-full-sarif` | core | startup + parse + bridge + analysis + SARIF render | composed |
-| `launcher-extract` | launcher | launcher startup + Roslyn extraction | composed |
 | `launcher-e2e` | launcher | launcher startup + extraction + core + render | composed |
+
+Each rung also declares the **exit codes that mean it did its job** and a
+post-condition proving it: `core-usage` 2 with the driver banner on stdout and
+nothing on stderr; `core-parse-refused` 2 with the refusal on stderr and nothing
+on stdout; `core-full-*` 0 or 1 (1 is "leaks found", not a failure) with a
+rendered verdict; `launcher-e2e` 0 with a verdict. The post-condition runs
+**once, untimed, with output captured**, so its cost never reaches a benchmark.
+A cell whose invocation did not do the rung's work **is not timed at all** and
+the calibration is refused.
+
+**`launcher-extract` was withdrawn.** It invoked the launcher with
+`--emit-facts` and was documented as "no core runs, so this isolates the
+frontend stage". The launcher says otherwise: `--emit-facts` copies the
+intermediate facts and then Stage 2 runs the engine anyway. The interval
+therefore contained the whole pipeline while recording itself as launcher
+startup plus extraction — the same defect as the old `core-usage` label, one
+level up. Isolating launcher-scoped extraction would need either a production
+launcher change or a direct extractor invocation, and a direct extractor process
+is *not* the launcher's extraction stage. So it is recorded **unavailable**
+rather than invented, and `frontend-extraction` stays measured as a member of
+`launcher-e2e`.
 
 **The ladder floor is a bound, not a phase.** `core-usage` is the smallest
 invocation the production surface allows: the process starts, parses argv, finds
@@ -81,9 +101,9 @@ what it gives D7 is a **lower bound** on core startup.
 `core-parse-refused − core-usage` does *not* yield parse: it yields the ownir
 read+parse cost only under an assumption this instrument never measures — that
 both invocations pay the same argv handling and comparably priced refusal
-rendering. It is a derived **bound**. Likewise `core work ≈ launcher-e2e −
-launcher-extract`, and `core-full-sarif − core-full-human` is a *renderer
-difference*, which is not the same quantity as rendering in isolation.
+rendering. It is a derived **bound**. Likewise `core-full-sarif −
+core-full-human` is a *renderer difference*, which is not the same quantity as
+rendering in isolation.
 
 **`bridge-lowering` and `analysis` are not separately observable** through either
 production surface. They are recorded as members of the `core-full-*` interval.
@@ -227,7 +247,7 @@ V1/V2/invalid-UTF-8 hygiene lands **before** the D7 freeze and #263-B.
 | | obligation | where it lives |
 |---|---|---|
 | (a) | the identity gate exists **now**, dormant | `IdentityGate`; built before the instrument is final, because D7's C1 freezes the harness digest and a gate added after that freeze makes this a different instrument |
-| (b) | arming is **data only** | two committed JSON objects — a freeze payload and a detached ratification; no source patch, so the control proves the harness digest does not move when the gate arms and that the firewall then opens |
+| (b) | arming is **data only** | two committed JSON objects — a freeze payload and a detached ratification; no source patch, so the control proves the harness digest does not move when the gate arms and that the firewall then opens. Fixtures use the **production nested layout**, because the first set put both objects at the repository root, where a wrong path model is accidentally right |
 | (c) | **fail-closed, before any measured interval** | identity verification completes and passes first; a control counts both digest computations and git invocations *inside* a measured interval and requires zero of each — a gate that pays for itself out of the startup benchmark is a defect wearing a safeguard's coat |
 | (d) | **two identity domains, kept apart** | the C1/C2 gate covers reference + harness + manifest + D7 payload; the **session** identity covers the candidate binary, frozen at session start, and its drift refuses the remainder of the session. The candidate is the thing under test, so it is not instrument identity |
 
@@ -252,9 +272,21 @@ it, and self-reference is the reason detached signatures exist:
 
 Arming requires all of: a kind/schema discriminator; a complete C1 *and* a
 complete C2 section; a body hash the payload recomputes to; C1 matching observed
-identity; a ratification of *that* body hash; and git blob identity — the
+identity; a ratification of *that* body hash; a `payload_path` equal to the
+repository-relative path this instrument actually reads its payload from, so a
+ratification cannot choose which file it is about; and git blob identity — the
 payload's working-tree bytes must be the blob at the commit the ratification
-names, and the ratification must itself be committed and unmodified. **C2 is
+names, and the ratification must itself be committed and unmodified.
+
+Every path is resolved against the **git tree root**, obtained from
+`git rev-parse --show-toplevel`. This is load-bearing and was got wrong once:
+`<rev>:<path>` reads the path from the root of the tree, and only a path
+starting `./` or `../` is read relative to the current directory. Treating the
+payload's own directory as the repository produced a bare-basename lookup for a
+file that lives under `docs/evidence/`, so no production freeze could ever have
+armed — while every control passed, because the throwaway fixtures put both
+objects at the repository root, where the wrong model is accidentally right. The
+fixtures now use the production nested layout. **C2 is
 checked for presence and never read**, because its values are thresholds and a
 #263-A artifact that quoted one would leak the number this module exists to keep
 out. Arming thus costs two reviewed commits rather than one text editor, and
@@ -268,20 +300,20 @@ still moves no source, so the harness digest D7 freezes is untouched by it.
    own track, not narrowed away.
 4. **`machine/cache-cold` is not claimed** (§6) — no reset protocol exists in
    the CI environments this instrument runs in.
-5. **Git object identity is not a signature.** The gate raises arming from
-   "write a local file" to "land two reviewed, committed objects", which is an
-   auditable owner-controlled act — but anyone with repository write access
-   could author both. Where a ratification names a signing key the gate
-   additionally requires `git verify-commit` to pass on the ratification's own
-   commit and to mention that key; where it declares `"signature": "none"` the
-   gate arms and **records the freeze as unsigned**, so the report states what
-   authorised it instead of implying more.
-6. **The signature-accept path is not exercised by a control.** Its refusals
-   are: a claimed key on an unverifiable commit, and a signature field that is
-   neither an explicit `"none"` nor a key. Producing a genuinely signed commit
-   needs a key no CI job here holds, so the accepting direction is implemented
-   and untested — recorded rather than papered over with a mock that would only
-   prove the mock works.
+5. **Git object identity is not a signature, and signed ratification is not
+   offered.** The gate raises arming from "write a local file" to "land two
+   reviewed, committed objects" — auditable and owner-controlled — but anyone
+   with repository write access could author both. It therefore requires
+   `"signature": "none"` and **records the freeze as unsigned**. A signed mode
+   was written and withdrawn: it read `git verify-commit --raw` from stdout when
+   git writes that status to **stderr**, so a correctly signed commit would have
+   verified cryptographically and then been refused for not naming its own key.
+   No control caught it, because no environment this runs in holds a signing
+   key. An advertised path that is observably wrong is worse than an absent one,
+   so it is absent until there is a key and a control exercising **acceptance**.
+6. **Launcher-scoped extraction isolation is unavailable** (§2) — recorded
+   rather than imputed, after the `--emit-facts` interval turned out to contain
+   the whole pipeline.
 7. **A GitHub-hosted Windows runner is not reliably measurement-grade**, and
    the instrument established that on its first day — with a sharper result
    than "the runners are noisy".
@@ -289,7 +321,7 @@ still moves no source, so the harness digest D7 freezes is untouched by it.
    On **one commit**, two Windows runs minutes apart disagreed about their own
    environment. The first refused it: relative IQR **1.807** against the 0.35
    floor, with **0.870** drift between the opening and closing probes. The
-   second accepted it and completed a full 44-cell calibration that reproduced
+   second accepted it and completed a full calibration that reproduced
    within 0.35. Same commit, same runner class, opposite validity verdicts.
 
    So the risk is not that a Windows measurement there would be noisy — it is

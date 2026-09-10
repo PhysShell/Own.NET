@@ -231,12 +231,13 @@ class IdentityGate:
 
     What this does NOT prove, stated because an overstated safeguard is worse
     than a missing one: git object identity is not a signature. Anyone with
-    write access to the repository can author both objects. Where the
-    ratification names a signing key the gate additionally requires
-    ``git verify-commit`` to pass on the commit that introduced the ratification
-    and to mention that key; where it declares ``"signature": "none"`` the gate
-    arms and RECORDS that arming was unsigned, so the report says exactly what
-    authorised the freeze instead of implying more than happened.
+    write access to the repository can author both objects. The gate therefore
+    requires ``"signature": "none"`` and RECORDS the freeze as unsigned, so the
+    report says exactly what authorised it. A signed mode is deliberately NOT
+    accepted here: the first attempt read ``git verify-commit --raw`` from
+    stdout when git writes that status to stderr, and no control could catch it
+    because no environment this runs in holds a signing key. An advertised path
+    that is observably wrong is worse than an absent one.
 
     Arming stays DATA-ONLY: everything above is the content of two JSON files
     and two git commits. No source patch, so the harness digest D7 freezes does
@@ -264,11 +265,13 @@ class IdentityGate:
             f"a ratification exists at {RATIFICATION.name}, declares kind={RATIFICATION_KIND!r}, "
             "and carries: " + ", ".join(RATIFICATION_KEYS),
             "ratified_payload_sha256 equals that same recomputed body hash",
+            "payload_path is exactly the repository-relative path this instrument reads its "
+            "payload from — a ratification may not choose which file it is about",
             "payload_commit_sha names a commit that exists, and the payload's working-tree bytes "
-            "are the blob at payload_path in that commit",
+            "are the blob at that path, resolved from the git TREE ROOT, in that commit",
             "the ratification is itself committed and unmodified in the working tree",
-            'signature is either an explicit "none" (recorded as unsigned) or a key that the '
-            "signature on the ratification's own commit verifies against",
+            'signature is exactly "none", recorded as unsigned; signed ratification is not part '
+            "of this version's accepted contract",
         ]
 
     @staticmethod
@@ -362,61 +365,73 @@ class IdentityGate:
 
         # 7. Git blob identity: the payload must be COMMITTED, and the bytes on
         #    disk must be the bytes that were reviewed. An untracked payload, or
-        #    a tracked one edited afterwards, arms nothing.
+        #    a tracked one edited afterwards, arms nothing. Every path below is
+        #    resolved against the TREE ROOT, because that is what git means by
+        #    ``<rev>:<path>``.
         commit = str(rat["payload_commit_sha"])
-        payload_path = str(rat["payload_path"])
         if not _HEX40.match(commit):
             raise InstrumentError(f"payload_commit_sha is not a full commit sha: {commit[:24]!r}")
-        repo = ATTESTATION.parent
-        rc, _ = _git_in(repo, "rev-parse", "--git-dir")
-        if rc != 0:
+        root = _repo_root(ATTESTATION)
+        if root is None:
             raise InstrumentError(
                 "the D7 freeze names a commit but is not inside a git repository, so its blob "
                 "identity cannot be verified. Fail-closed: unverifiable is not verified.")
-        rc, _ = _git_in(repo, "rev-parse", "--verify", "--quiet", f"{commit}^{{commit}}")
+        canonical = _repo_relative(root, ATTESTATION)
+        rat_path = _repo_relative(root, RATIFICATION)
+        if canonical is None or rat_path is None:
+            raise InstrumentError(
+                "the D7 freeze objects are not inside the git repository that contains them")
+        # The ratification names which blob it ratifies. Letting it name any path
+        # would let it point at some other file that happens to hold the same
+        # bytes, so the path is pinned to where this instrument actually reads
+        # its payload from.
+        if str(rat["payload_path"]) != canonical:
+            raise InstrumentError(
+                f"the ratification ratifies {str(rat['payload_path'])!r}, but this instrument "
+                f"reads its payload from {canonical!r}: a ratification may not choose which "
+                "file it is about")
+        rc, _ = _git_in(root, "rev-parse", "--verify", "--quiet", f"{commit}^{{commit}}")
         if rc != 0:
             raise InstrumentError(
                 f"payload_commit_sha {commit[:12]} is not a commit in this repository")
-        good, detail = _committed_blob_matches(repo, commit, payload_path, ATTESTATION)
+        good, detail = _committed_blob_matches(root, commit, canonical, ATTESTATION)
         if not good:
             raise InstrumentError(f"the D7 attestation is not the frozen blob: {detail}")
         payload_blob = detail
 
         # 8. And the ratification must itself be a committed, unmodified act —
         #    otherwise "the owner ratified it" means "someone had a text editor".
-        rc, rat_commit = _git_in(repo, "log", "-1", "--format=%H", "--", str(RATIFICATION))
+        rc, rat_commit = _git_in(root, "log", "-1", "--format=%H", "--", rat_path)
         if rc != 0 or not _HEX40.match(rat_commit):
             raise InstrumentError(
                 f"{RATIFICATION.name} is not committed in this repository: an uncommitted "
                 "ratification is a local edit, not an owner's act")
-        good, detail = _committed_blob_matches(repo, rat_commit, _repo_relative(repo, RATIFICATION),
-                                               RATIFICATION)
+        good, detail = _committed_blob_matches(root, rat_commit, rat_path, RATIFICATION)
         if not good:
             raise InstrumentError(f"the D7 ratification is not its committed blob: {detail}")
 
-        # 9. Signature, if one is claimed. Absence must be DECLARED, so that an
-        #    unsigned freeze is a recorded choice and never an oversight.
+        # 9. Signature. #263-A accepts exactly ONE value here: an explicit
+        #    "none", recorded as unsigned.
+        #
+        #    A signed mode was implemented and is now withdrawn rather than
+        #    advertised. It read ``git verify-commit --raw`` from stdout, and
+        #    git writes that raw status to STDERR — so a correctly signed commit
+        #    would have verified cryptographically and then been refused for not
+        #    naming its own key. Nothing caught it, because no control could
+        #    produce a signed commit: no key exists in any environment this runs
+        #    in. An advertised path that is observably written wrong is worse
+        #    than an absent one, so it is absent. Implementing it means a real
+        #    signing key and a control that exercises the ACCEPT direction, and
+        #    that is a separate change.
         signature = rat["signature"]
-        if signature == "none":
-            signed = ("unsigned (declared): arming rests on the committed ratification alone, "
-                      "which anyone with repository write access could author")
-        elif isinstance(signature, dict) and signature.get("key_id"):
-            key_id = str(signature["key_id"])
-            rc, out = _git_in(repo, "verify-commit", "--raw", rat_commit)
-            if rc != 0:
-                raise InstrumentError(
-                    f"the ratification claims key {key_id!r} but git could not verify a "
-                    f"signature on {rat_commit[:12]}")
-            if key_id not in out:
-                raise InstrumentError(
-                    f"the ratification commit {rat_commit[:12]} is signed, but not by the "
-                    f"claimed key {key_id!r}")
-            signed = f"signed by {key_id}"
-        else:
+        if signature != "none":
             raise InstrumentError(
-                'the ratification\'s signature field must be either "none" (declaring the freeze '
-                "unsigned) or an object naming a key_id; it is neither, so what authorised this "
-                "freeze cannot be stated")
+                'the ratification\'s signature field must be exactly "none" for this version of '
+                "the instrument. Signed ratification is not part of the accepted contract: it "
+                "would need a real signing key and a control that exercises acceptance, neither "
+                "of which exists here, and a signature check nothing can test is not a check.")
+        signed = ("unsigned (declared): arming rests on the committed ratification alone, which "
+                  "anyone with repository write access could author")
 
         pinned = {
             **{k: str(c1[k]) for k in ATTESTATION_C1_KEYS},
@@ -446,11 +461,35 @@ def _read_json_or_refuse(path: Path, what: str) -> dict[str, object]:
     return obj
 
 
-def _repo_relative(repo: Path, path: Path) -> str:
+def _repo_root(inside: Path) -> Path | None:
+    """The Git TREE ROOT, asked of git rather than guessed from a parent directory.
+
+    This is load-bearing and was got wrong once. ``<rev>:<path>`` resolves the
+    path from the root of the tree; only a path starting ``./`` or ``../`` is
+    read relative to the current directory. Treating the file's own directory as
+    the repository therefore produced ``<rev>:p022-...json`` for a file that
+    actually lives at ``docs/evidence/p022-...json`` — a lookup that fails for
+    every real layout, so no production freeze could ever have armed. The
+    throwaway fixtures put both objects at the root of their repository, where
+    the wrong model happens to be right, so every control agreed.
+    """
+    rc, out = _git_in(inside if inside.is_dir() else inside.parent,
+                      "rev-parse", "--show-toplevel")
+    if rc != 0 or not out:
+        return None
+    return Path(out)
+
+
+def _repo_relative(repo: Path, path: Path) -> str | None:
+    """Path as git names it: relative to the TREE ROOT, forward slashes.
+
+    None when the file is outside the repository — a case that must refuse
+    rather than silently degrade to a basename.
+    """
     try:
         return path.resolve().relative_to(Path(repo).resolve()).as_posix()
     except ValueError:
-        return path.name
+        return None
 
 
 @dataclass
@@ -718,11 +757,14 @@ class Rung:
     needs: str            # "none" | "facts" | "facts-refused" | "source"
     phases: tuple[str, ...]
     observability: str    # what this interval can and cannot say
+    expect_rc: tuple[int, ...]   # the exit codes that mean THIS RUNG DID ITS JOB
+    evidence: str                # the post-condition proving it, checked untimed
     why: str
 
 
 RUNGS: tuple[Rung, ...] = (
     Rung("core-usage", "core", "none", ("process-startup-core", "cli-argv-refusal"), "composed",
+         (2,), "usage-help",
          "The ladder FLOOR: the smallest real invocation the production surface allows — the "
          "process starts, parses argv, finds no document, writes a usage refusal and exits. It "
          "is a LOWER BOUND on core startup, not startup itself. argv handling and the refusal "
@@ -730,7 +772,8 @@ RUNGS: tuple[Rung, ...] = (
          "surface without instrumentation #263-A is not authorized to add. Calling it 'startup' "
          "would let a later subtraction hand D7 a phase nobody measured."),
     Rung("core-parse-refused", "core", "facts-refused",
-         ("process-startup-core", "ownir-parse"), "composed",
+         ("process-startup-core", "cli-argv-refusal", "ownir-parse"), "composed",
+         (2,), "door-refusal",
          "A document the strict door refuses on its version. The read and parse happen; bridge "
          "and analysis never do. Subtracting core-usage does NOT leave parse: it leaves the "
          "ownir read+parse cost only under an assumption this instrument never measures — that "
@@ -738,30 +781,91 @@ RUNGS: tuple[Rung, ...] = (
          "The difference is therefore a DERIVED bound, labelled as such, and never presented as "
          "a direct measurement of parse."),
     Rung("core-full-human", "core", "facts",
-         ("process-startup-core", "ownir-parse", "bridge-lowering", "analysis", "render-human"),
-         "composed",
-         "The whole core path to the default surface. bridge-lowering and analysis are not "
+         ("process-startup-core", "cli-argv-refusal", "ownir-parse", "bridge-lowering",
+          "analysis", "render-human"), "composed",
+         (0, 1), "verdict-human",
+         "The whole core path to the default surface. Exit 0 and exit 1 both mean a verdict was "
+         "produced — 1 is 'leaks found', not a failure — and any other code means this interval "
+         "timed something that is not the analysis path. bridge-lowering and analysis are not "
          "separately observable through the production surface and are recorded as members of "
          "this interval, not imputed from it."),
     Rung("core-full-sarif", "core", "facts",
-         ("process-startup-core", "ownir-parse", "bridge-lowering", "analysis", "render-sarif"),
-         "composed",
+         ("process-startup-core", "cli-argv-refusal", "ownir-parse", "bridge-lowering",
+          "analysis", "render-sarif"), "composed",
+         (0, 1), "verdict-sarif",
          "The same path to the SARIF surface. Against core-full-human it gives a renderer "
          "DIFFERENCE, which is not the same quantity as rendering in isolation and is never "
          "reported as if it were."),
-    Rung("launcher-extract", "launcher", "source",
-         ("process-startup-launcher", "frontend-extraction"), "composed",
-         "The launcher stopping after extraction (--emit-facts). No core runs, so this isolates "
-         "the frontend stage of the user-visible path — #263's extraction phase, recorded and, "
-         "per the brief, NOT a D7 gate."),
     Rung("launcher-e2e", "launcher", "source",
          ("process-startup-launcher", "frontend-extraction", "ownir-parse", "bridge-lowering",
           "analysis", "render-human"), "composed",
+         (0,), "verdict-human",
          "The user-visible whole, through the production launcher with the engine explicitly "
          "selected. Each engine performs ITS OWN extraction: extraction is inside the elapsed "
          "time, because an end-to-end number that shares one extraction between engines is a "
          "core comparison wearing an end-to-end hat."),
 )
+
+def _evidence_problem(kind: str, out: str, err: str) -> str:
+    """"" when the rung demonstrably did its job; otherwise why not.
+
+    Each check reads what the invocation actually produced. Measured, not
+    assumed: the exit codes and streams below were probed against both engines
+    before being written down.
+    """
+    if kind == "usage-help":
+        # Both engines print their driver banner to STDOUT and leave stderr
+        # empty; that split is what distinguishes an argv refusal from a door
+        # refusal, since both exit 2. The banner does NOT contain the word
+        # "usage" — the first version of this check asserted it did and refused
+        # every healthy floor cell, which is the same assume-instead-of-measure
+        # habit the check exists to catch. What it does contain, in both
+        # engines, is the name of the subcommand that was invoked.
+        if "ownir" not in out.lower():
+            return ("stdout does not name the subcommand, so this was not the argv refusal it "
+                    "claims to time")
+        if err.strip():
+            return f"the usage path wrote to stderr ({err.strip()[:80]!r}); something else failed"
+        return ""
+    if kind == "door-refusal":
+        if out.strip():
+            return "the strict door printed a verdict on stdout; the document was not refused"
+        if "error:" not in err.lower():
+            return f"no refusal on stderr ({err.strip()[:80]!r}); the door did not refuse this"
+        return ""
+    if kind == "verdict-human":
+        if not out.strip():
+            return "no verdict on stdout: the pipeline did not reach a rendered result"
+        return ""
+    if kind == "verdict-sarif":
+        try:
+            doc = json.loads(out)
+        except json.JSONDecodeError:
+            return "stdout is not JSON, so the SARIF renderer did not produce a document"
+        if not isinstance(doc, dict) or "runs" not in doc:
+            return "stdout is JSON but carries no SARIF 'runs', so this is not a SARIF verdict"
+        return ""
+    raise InstrumentError(f"unknown rung evidence kind {kind!r}")
+
+
+# WITHDRAWN: a `launcher-extract` rung claiming to stop after extraction.
+#
+# It invoked the launcher with `--emit-facts` and was documented as "no core
+# runs, so this isolates the frontend stage". That is false, and the launcher
+# says so itself: --emit-facts copies the intermediate facts and then Stage 2
+# runs the engine anyway, so the interval actually contained launcher startup,
+# extraction, core startup, parse, lowering, analysis AND rendering while
+# recording itself as launcher startup plus extraction. That is precisely the
+# defect the core-usage repair was about — an interval naming itself after a
+# subset of what it contains — and a local run with no .NET on PATH hid it by
+# failing at 127 before Stage 2 was ever reached.
+#
+# The honest options were to change the production launcher (out of scope here)
+# or to measure the extractor process directly (a different surface, and a
+# direct extractor invocation is not the launcher's extraction stage). So
+# launcher-scoped extraction isolation is recorded as UNAVAILABLE instead of
+# being invented. frontend-extraction remains measured as a member of the
+# launcher-e2e interval.
 
 # Phases named by #262's Performance-gates, plus the frontend stage the brief
 # adds as a diagnostic. Recorded here so a reader can see which are gate phases
@@ -953,8 +1057,8 @@ class Harness:
 
     # -- cells and the seeded interleave -----------------------------------
 
-    def argv_for(self, rung: Rung, engine: str, target: Path | None,
-                 out_facts: Path | None) -> tuple[list[str], dict[str, str], Path]:
+    def argv_for(self, rung: Rung, engine: str,
+                 target: Path | None) -> tuple[list[str], dict[str, str], Path]:
         env = dict(os.environ)
         env["PYTHONPATH"] = str(ROOT)
         env["OWEN_RUST_CORE"] = str(self.candidate)
@@ -969,18 +1073,63 @@ class Harness:
         # launcher surface — the production shell entry point, both engines
         sh = str(ROOT / "scripts/own-check.sh")
         assert target is not None
-        if rung.id == "launcher-extract":
-            assert out_facts is not None
-            return [_bash(), sh, "--emit-facts", str(out_facts), "--", str(target)], env, ROOT
         return [_bash(), sh, "--engine", engine, "--format", "human", "--", str(target)], env, ROOT
+
+    def verify_outcome(self, rung: Rung, argv: list[str], env: dict[str, str],
+                       cwd: Path) -> dict[str, object]:
+        """Did this rung actually do the work it claims to time? Asked ONCE, untimed.
+
+        The instrument previously recorded whatever the process did and summarised
+        it. With no .NET on PATH the launcher rungs exited 127 before doing
+        anything at all, and 12 of 44 cells reproducibly measured a
+        command-not-found path while the report called them reproduced. An exit
+        code nobody checked is not a measurement, it is a number.
+
+        This runs outside every measured interval — with output captured, which
+        the timed path deliberately does not do — so its cost never reaches a
+        benchmark.
+        """
+        r = subprocess.run(argv, capture_output=True, env=env, cwd=str(cwd), check=False,
+                           timeout=1800)
+        out = r.stdout.decode("utf-8", "replace")
+        err = r.stderr.decode("utf-8", "replace")
+        problems = []
+        if r.returncode not in rung.expect_rc:
+            problems.append(
+                f"exit {r.returncode}, but {rung.id} does its job only at "
+                f"{sorted(rung.expect_rc)}"
+                + (" — 127 is command-not-found, so the rung never ran"
+                   if r.returncode == 127 else ""))
+        why = _evidence_problem(rung.evidence, out, err)
+        if why:
+            problems.append(why)
+        return {"expected_exit_codes": sorted(rung.expect_rc), "observed_exit_code": r.returncode,
+                "evidence": rung.evidence, "valid": not problems, "problems": problems}
 
     def measure_cell(self, rung: Rung, engine: str, w: Workload, target: Path | None,
                      regime: str) -> dict[str, object]:
         """One (rung x engine x workload x regime) cell. Identity first, clock second."""
         self._assert_may_time(w)
         self.session.reverify()          # outside every interval, by construction
-        out_facts = self.tmp / f"emit-{w.id}.json" if rung.id == "launcher-extract" else None
-        argv, env, cwd = self.argv_for(rung, engine, target, out_facts)
+        argv, env, cwd = self.argv_for(rung, engine, target)
+
+        # Outcome BEFORE clock. A cell whose invocation did not do the rung's
+        # work is not timed at all: timing a failure path and reporting its
+        # dispersion is how 12 command-not-found cells once passed as a
+        # reproduced calibration.
+        outcome = self.verify_outcome(rung, argv, env, cwd)
+        if not outcome["valid"]:
+            return {
+                "rung": rung.id, "engine": engine, "workload": w.id, "regime": regime,
+                "phases": list(rung.phases), "observability": rung.observability,
+                "argv": ([*argv[:1], "<...>"] if rung.surface == "core"
+                         else [*argv[:2], "<...>"]),
+                "outcome": outcome,
+                "timing": None, "peak_rss": None, "raw_elapsed_ns": [],
+                "not_timed_because": "the rung did not do its work; measuring it would time "
+                                     "the wrong path",
+                "tag": CALIBRATION_ONLY,
+            }
 
         discarded = []
         for _ in range(self.warmup_discards if regime == "warm" else 0):
@@ -991,9 +1140,19 @@ class Harness:
             self.session.measurements_taken += 1
 
         rcs = sorted({int(s["rc"]) for s in samples})  # type: ignore[arg-type]
+        # Every timed sample must also land on a declared code. The untimed
+        # verification proved the rung CAN do its work; this proves each timed
+        # iteration actually did.
+        stray = [c for c in rcs if c not in rung.expect_rc]
+        if stray:
+            outcome = {**outcome, "valid": False,
+                       "problems": [*list(outcome["problems"]),  # type: ignore[list-item]
+                                    f"timed iterations exited {stray}, outside "
+                                    f"{sorted(rung.expect_rc)}"]}
         cell = {
             "rung": rung.id, "engine": engine, "workload": w.id, "regime": regime,
             "phases": list(rung.phases), "observability": rung.observability,
+            "outcome": outcome,
             "argv": ([*argv[:1], "<...>"] if rung.surface == "core"
                      else [*argv[:2], "<...>"]),
             "exit_codes": rcs,
@@ -1030,8 +1189,7 @@ class Harness:
             for w in workloads:
                 if not _rung_accepts(rung, w):
                     continue
-                engines = ["extractor"] if rung.id == "launcher-extract" else ["python", "rust"]
-                for engine in engines:
+                for engine in ("python", "rust"):
                     for regime in ("process-cold", "warm"):
                         cells.append((rung, engine, w, regime))
 
@@ -1154,12 +1312,33 @@ def build_report(harness: Harness, cells: list[dict[str, object]],
                   "invalidated": bool(invalid), "invalidation_reasons": invalid},
         "phases": PHASES,
         "rungs": [{"id": r.id, "surface": r.surface, "phases": list(r.phases),
-                   "observability": r.observability, "why": r.why} for r in RUNGS],
+                   "observability": r.observability, "expect_rc": list(r.expect_rc),
+                   "evidence": r.evidence, "why": r.why} for r in RUNGS],
         "unobservable_phases": {
             "bridge-lowering": "not separately observable through either engine's production "
                                "surface; recorded as a member of the core-full-* interval.",
             "analysis": "same — isolating it would need production instrumentation, which "
                         "#263-A is not authorized to add.",
+            "frontend-extraction (launcher-scoped isolation)":
+                "UNAVAILABLE. The launcher's --emit-facts copies the intermediate facts and then "
+                "runs the engine anyway, so an interval built on it contains the whole pipeline "
+                "and cannot isolate extraction. Isolating it would need either a production "
+                "launcher change or a direct extractor invocation, which is a different surface "
+                "and not the launcher's extraction stage. Recorded as unavailable rather than "
+                "invented; frontend-extraction is still measured as a member of launcher-e2e.",
+        },
+        # A cell is only a measurement if the invocation did the rung's work.
+        # This block is the verdict on that, separate from whether the machine
+        # was quiet enough (that is "noise" above).
+        "outcomes": {
+            "valid": all((c.get("outcome") or {}).get("valid") for c in cells),
+            "cells_timed": sum(1 for c in cells if c.get("timing")),
+            "cells_refused": sum(1 for c in cells if not (c.get("outcome") or {}).get("valid")),
+            "problems": [f"{c['rung']}|{c['engine']}|{c['workload']}|{c['regime']}: "
+                         + "; ".join((c.get("outcome") or {}).get("problems") or [])
+                         for c in cells if not (c.get("outcome") or {}).get("valid")],
+            "contract": {r.id: {"expected_exit_codes": sorted(r.expect_rc),
+                                "evidence": r.evidence} for r in RUNGS},
         },
         "workload_populations": {
             "decisive": [w.id for w in workloads if w.decisive],
@@ -1251,9 +1430,25 @@ def reproduce(previous: Path, current: dict[str, object]) -> dict[str, object]:
     missing = sorted(set(old_cells) - set(new_cells))
     added = sorted(set(new_cells) - set(old_cells))
     disagreed = []
+    outcome_changed = []
     for key in sorted(set(old_cells) & set(new_cells)):
-        a = old_cells[key]["timing"].get("median_ns")
-        b = new_cells[key]["timing"].get("median_ns")
+        # Outcome identity first. Two runs that agree to the nanosecond while
+        # exiting differently did not reproduce a measurement, they reproduced a
+        # coincidence — and if both ran the wrong path, agreeing about it is the
+        # worst possible reassurance.
+        oa = old_cells[key].get("outcome") or {}
+        ob = new_cells[key].get("outcome") or {}
+        if oa.get("observed_exit_code") != ob.get("observed_exit_code") or \
+                bool(oa.get("valid")) != bool(ob.get("valid")):
+            outcome_changed.append({
+                "cell": "|".join(key),
+                "earlier": {"exit": oa.get("observed_exit_code"), "valid": oa.get("valid")},
+                "later": {"exit": ob.get("observed_exit_code"), "valid": ob.get("valid")}})
+            continue
+        if not ob.get("valid"):
+            continue          # an invalid cell was never timed; nothing to compare
+        a = (old_cells[key].get("timing") or {}).get("median_ns")
+        b = (new_cells[key].get("timing") or {}).get("median_ns")
         if not a or not b:
             disagreed.append({"cell": "|".join(key), "why": "a run produced no median"})
             continue
@@ -1268,7 +1463,8 @@ def reproduce(previous: Path, current: dict[str, object]) -> dict[str, object]:
         "cells_only_in_earlier": ["|".join(k) for k in missing],
         "cells_only_in_later": ["|".join(k) for k in added],
         "cells_outside_tolerance": disagreed,
-        "reproduced": not (missing or added or disagreed),
+        "cells_whose_outcome_changed": outcome_changed,
+        "reproduced": not (missing or added or disagreed or outcome_changed),
     }
 
 
@@ -1399,13 +1595,23 @@ def main(argv: list[str] | None = None) -> int:
         print(f"wrote {a.out} ({len(cells)} cells, {CALIBRATION_ONLY})")
     else:
         print(text)
+    outcomes = report["outcomes"]  # type: ignore[index]
+    if not outcomes["valid"]:  # type: ignore[index]
+        print("CALIBRATION REFUSED — cells whose invocation did not do the rung's work:",
+              file=sys.stderr)
+        for problem in outcomes["problems"]:  # type: ignore[index]
+            print(f"  {problem}", file=sys.stderr)
+        print("These were not timed. A report that summarised them would be measuring the "
+              "wrong path and calling the agreement reproducibility.", file=sys.stderr)
+        return 1
     if report["noise"]["invalidated"]:  # type: ignore[index]
         print("RUN INVALIDATED: " + "; ".join(report["noise"]["invalidation_reasons"]),  # type: ignore[index]
               file=sys.stderr)
         return 1
     rep = report.get("reproducibility")
     if isinstance(rep, dict) and not rep["reproduced"]:
-        print(f"NOT REPRODUCED: {rep['cells_outside_tolerance']}", file=sys.stderr)
+        print(f"NOT REPRODUCED: outside tolerance {rep['cells_outside_tolerance']}; "
+              f"outcome changed {rep['cells_whose_outcome_changed']}", file=sys.stderr)
         return 1
     return 0
 

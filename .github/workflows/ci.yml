@@ -2977,6 +2977,18 @@ jobs:
               problems.append(f"DECISIVE workloads were timed: {timed}")
           if not rep["cells"]:
               problems.append("the harness produced no cells")
+          # A cell is a measurement only if the invocation did the rung's work.
+          # Without this the gate happily passed a report in which 12 of 44
+          # cells were command-not-found exits, timed and called reproduced.
+          outcomes = rep.get("outcomes") or {}
+          if not outcomes.get("valid"):
+              problems.append(
+                  "cells whose invocation did not do the rung's work: "
+                  + "; ".join(outcomes.get("problems") or ["(none recorded)"]))
+          if outcomes.get("cells_timed") != len(rep["cells"]):
+              problems.append(
+                  f"{len(rep['cells']) - (outcomes.get('cells_timed') or 0)} cell(s) were not "
+                  "timed, so this report does not cover the whole ladder")
           if not all(c.get("raw_elapsed_ns") for c in rep["cells"]):
               problems.append("a cell kept no raw per-iteration data")
           rss = sorted({c["rss_mechanism"] for c in rep["cells"]})
