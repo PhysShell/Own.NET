@@ -1480,6 +1480,42 @@ def engine_comparison_problems(report: dict[str, object]) -> list[str]:
     return problems
 
 
+# Everything two halves of a pair must agree on. A "reproduced" verdict compares
+# one run against another; if they were measured against different source, a
+# different reference, a different candidate binary or a different workload
+# manifest, the comparison is between two different experiments and the word
+# means nothing.
+#
+# This list is why it exists: run A and run B once diverged on tree_sha and
+# python_reference_commit, because A was COMMITTED before B was measured and
+# python_reference_commit() is `git rev-parse HEAD`. Committing evidence between
+# the halves moved the recorded reference identity while ownlang had not
+# changed at all. The procedure is now: measure both halves on ONE clean commit,
+# writing outside the repository, verify identity, then commit both together.
+PAIR_IDENTITY_FIELDS = (
+    "tree_sha", "tree_dirty", "python_reference_commit", "workload_manifest_sha256",
+    "harness_digest", "calibration_repetitions", "warmup_discards",
+    "candidate_sha256", "candidate_bytes",
+)
+
+
+def _pair_identity(report: dict[str, object]) -> dict[str, object]:
+    prov = report.get("provenance") or {}
+    harn = report.get("harness") or {}
+    cand = ((report.get("identity") or {}).get("session_candidate") or {})  # type: ignore[union-attr]
+    return {
+        "tree_sha": str(prov.get("tree_sha", "")),                    # type: ignore[union-attr]
+        "tree_dirty": prov.get("tree_dirty"),                         # type: ignore[union-attr]
+        "python_reference_commit": str(prov.get("python_reference_commit", "")),  # type: ignore[union-attr]
+        "workload_manifest_sha256": str(prov.get("workload_manifest_sha256", "")),  # type: ignore[union-attr]
+        "harness_digest": str(harn.get("digest", "")),                # type: ignore[union-attr]
+        "calibration_repetitions": harn.get("calibration_repetitions"),  # type: ignore[union-attr]
+        "warmup_discards": harn.get("warmup_discards"),               # type: ignore[union-attr]
+        "candidate_sha256": str(cand.get("sha256", "")),
+        "candidate_bytes": cand.get("bytes"),
+    }
+
+
 def reproduce(previous: Path, current: dict[str, object]) -> dict[str, object]:
     """§9: a second run on the same environment reproduces the first WITHIN §7's policy.
 
@@ -1500,6 +1536,19 @@ def reproduce(previous: Path, current: dict[str, object]) -> dict[str, object]:
     """
     raw_previous = previous.read_bytes()
     old = json.loads(raw_previous.decode("utf-8"))
+
+    # Fail-closed BEFORE comparing anything. A mismatched pair should not be
+    # producible, not merely detectable afterwards by a control reading the
+    # shipped files.
+    mine, theirs = _pair_identity(current), _pair_identity(old)
+    differ = [k for k in PAIR_IDENTITY_FIELDS if mine[k] != theirs[k]]
+    if differ:
+        raise InstrumentError(
+            "the two halves of this pair were not measured under one identity, so comparing "
+            "them would compare two different experiments: "
+            + "; ".join(f"{k} {theirs[k]!r} then {mine[k]!r}" for k in differ)
+            + ". Measure both halves on one clean commit, writing outside the repository, and "
+              "commit them together.")
     # The POLICY constant, named for the quantity it bounds. Previously this read
     # the probe's recorded limit back out of the earlier report, which is the
     # same constant taking a detour through JSON and arriving disguised as a
@@ -1545,11 +1594,7 @@ def reproduce(previous: Path, current: dict[str, object]) -> dict[str, object]:
             "path": previous.name,
             "sha256": sha256_bytes(raw_previous),
             "bytes": len(raw_previous),
-            "tree_sha": str((old.get("provenance") or {}).get("tree_sha", "")),
-            "tree_dirty": (old.get("provenance") or {}).get("tree_dirty"),
-            "harness_digest": str((old.get("harness") or {}).get("digest", "")),
-            "calibration_repetitions": (old.get("harness") or {}).get("calibration_repetitions"),
-            "warmup_discards": (old.get("harness") or {}).get("warmup_discards"),
+            **_pair_identity(old),
         },
         "compared_cells": len(set(old_cells) & set(new_cells)),
         "tolerance_relative": tol,

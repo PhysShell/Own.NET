@@ -417,6 +417,45 @@ the time. Both halves of the final failing pair are committed in
 `docs/evidence/p022-263a-sizing-n5*.linux.json`, deliberately named so they do
 *not* match the glob that identifies a report of record.
 
+### A pair is one experiment, or it is two
+
+Run A and run B once diverged on `tree_sha` **and** `python_reference_commit`,
+because A was *committed* before B was measured and `python_reference_commit()`
+is `git rev-parse HEAD`. Committing evidence between the halves moved the
+recorded reference identity while `ownlang` had not changed at all — a direct
+breach of the single-reference rule (§12) produced by the procedure rather than
+by the code.
+
+The pair-integrity check did not catch it: it compared harness digest,
+repetitions and warmup, and said nothing about the reference or the **candidate
+binary**. Those pairs happened to use one candidate, but nothing required it, so
+a future pair could have compared two different binaries and reported
+`reproduced: true`.
+
+**The procedure.** Both halves are measured on ONE clean source commit, written
+*outside* the repository, verified, and only then copied in and committed
+together. There is no need for A to be committed before B is measured; A must be
+committed by the time the evidence ships, which is a different moment.
+
+```
+clean source commit S
+  run A  -> scratch/A.json          (tree S, dirty false)
+  run B  --reproduce scratch/A.json -> scratch/B.json   (tree S, dirty false)
+  verify identity on every axis below
+  copy A and B into the repository
+  one evidence commit
+```
+
+**`PAIR_IDENTITY_FIELDS`** — every axis two halves must share: `tree_sha`,
+`tree_dirty`, `python_reference_commit`, `workload_manifest_sha256`,
+`harness_digest`, `calibration_repetitions`, `warmup_discards`,
+`candidate_sha256`, `candidate_bytes`.
+
+`reproduce()` **refuses** to produce a verdict when any of them differ, so a
+mismatched pair is not merely detectable afterwards — it cannot be made. The
+control is the second lock, checking the same axes on evidence that already
+exists.
+
 ### The escalation was spent, and it did not work
 
 `n=15` failed too — and failed **worse**.

@@ -773,16 +773,17 @@ def control_provenance_complete() -> None:
                     problems.append(f"{path.name}: the committed {earlier['path']} hashes "
                                     f"{got[:12]} but the verdict was computed against "
                                     f"{str(earlier['sha256'])[:12]}")
-                if earlier.get("tree_dirty"):
-                    problems.append(f"{path.name}: its earlier run was recorded on a dirty tree")
-                for field in ("harness_digest", "calibration_repetitions", "warmup_discards"):
-                    a = earlier.get(field)
-                    b = ((rep.get("harness") or {}).get("digest") if field == "harness_digest"
-                         else (rep.get("harness") or {}).get(field))
+                # Every axis a pair must share, checked on the shipped files.
+                # The harness refuses a mismatched pair at measurement time; this
+                # is the second lock, on evidence that already exists.
+                mine = pb._pair_identity(rep)
+                for field in pb.PAIR_IDENTITY_FIELDS:
+                    a, b = earlier.get(field), mine.get(field)
                     if a != b:
                         problems.append(f"{path.name}: run A and run B disagree on {field} "
                                         f"({a!r} vs {b!r}); a pair measured under different "
-                                        "settings is not a reproducibility check")
+                                        "source, reference, candidate or settings is not a "
+                                        "reproducibility check")
         for i, cell in enumerate(rep.get("cells", [])):
             if not cell.get("raw_elapsed_ns"):
                 problems.append(f"{path.name}: cell {i} kept no raw per-iteration data")
