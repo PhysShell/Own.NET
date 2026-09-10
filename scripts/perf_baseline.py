@@ -929,7 +929,27 @@ NOISE_PROBE_ITERATIONS = 25
 # An INSTRUMENT-VALIDITY constant, not a performance budget. It says how much
 # the machine may wobble before a measurement taken on it means nothing; it
 # says nothing whatever about either engine, and it is not a D7 threshold.
-NOISE_FLOOR_MAX_RELATIVE_IQR = 0.35
+# THREE policies, three different statistical quantities, one historical value.
+#
+# A single constant used to play all three roles, and the report claimed the
+# reproducibility tolerance was "the noise floor recorded by the earlier run,
+# not a chosen number". That was false twice over: the recorded limit IS this
+# constant, so reading it back is reading the constant, and nothing about it
+# tightens on a quiet machine. It is chosen. It was chosen before any of the
+# runs that later failed against it, which is the only thing that makes it
+# admissible at all.
+#
+# They are separated here so each can be argued about on its own terms. The
+# VALUE is deliberately unchanged on this PR: moving a number after seeing which
+# runs it rejects is a threshold fitted to a result, and that decision is not
+# this change's to make.
+NOISE_PROBE_MAX_RELATIVE_IQR = 0.35        # dispersion WITHIN one probe
+NOISE_PROBE_MAX_DRIFT = 0.35               # opening probe vs closing probe
+REPRODUCIBILITY_MAX_MEDIAN_CHANGE = 0.35   # one cell's median, run A vs run B
+
+# Retained under its old name because the report records it and older evidence
+# reads it back. It is the probe dispersion limit and nothing else.
+NOISE_FLOOR_MAX_RELATIVE_IQR = NOISE_PROBE_MAX_RELATIVE_IQR
 
 
 def noise_probe() -> dict[str, object]:
@@ -961,13 +981,13 @@ def invalidation_reasons(before: dict[str, object], after: dict[str, object]) ->
         rel = probe.get("relative_iqr")
         if rel is None:
             out.append(f"noise probe {label}: no median, so the floor is unknown")
-        elif float(rel) > NOISE_FLOOR_MAX_RELATIVE_IQR:
+        elif float(rel) > NOISE_PROBE_MAX_RELATIVE_IQR:
             out.append(f"noise probe {label}: relative IQR {float(rel):.3f} exceeds the "
-                       f"{NOISE_FLOOR_MAX_RELATIVE_IQR} floor — a contended or throttling runner")
+                       f"{NOISE_PROBE_MAX_RELATIVE_IQR} floor — a contended or throttling runner")
     b, a = before.get("median_ns"), after.get("median_ns")
     if isinstance(b, (int, float)) and isinstance(a, (int, float)) and b:
         drift = abs(a - b) / b
-        if drift > NOISE_FLOOR_MAX_RELATIVE_IQR:
+        if drift > NOISE_PROBE_MAX_DRIFT:
             out.append(f"the machine drifted {drift:.3f} between the opening and closing probes")
     return out
 
@@ -1459,8 +1479,11 @@ def reproduce(previous: Path, current: dict[str, object]) -> dict[str, object]:
     tightens on a quiet machine instead of being a number somebody liked.
     """
     old = json.loads(previous.read_text(encoding="utf-8"))
-    tol = float(old.get("noise", {}).get("before", {}).get("limit_relative_iqr")
-                or NOISE_FLOOR_MAX_RELATIVE_IQR)
+    # The POLICY constant, named for the quantity it bounds. Previously this read
+    # the probe's recorded limit back out of the earlier report, which is the
+    # same constant taking a detour through JSON and arriving disguised as a
+    # measurement.
+    tol = REPRODUCIBILITY_MAX_MEDIAN_CHANGE
     old_cells = {(c["rung"], c["engine"], c["workload"], c["regime"]): c
                  for c in old.get("cells", [])}
     new_cells = {(c["rung"], c["engine"], c["workload"], c["regime"]): c
@@ -1497,27 +1520,35 @@ def reproduce(previous: Path, current: dict[str, object]) -> dict[str, object]:
         "tag": CALIBRATION_ONLY,
         "compared_cells": len(set(old_cells) & set(new_cells)),
         "tolerance_relative": tol,
-        "tolerance_source": "the noise floor recorded by the earlier run, not a chosen number",
+        "tolerance_source": ("REPRODUCIBILITY_MAX_MEDIAN_CHANGE, a fixed policy constant. It is "
+                             "CHOSEN, not derived from this run; what makes it admissible is that "
+                             "it was chosen before the runs it judges, and it is not adjusted "
+                             "after seeing which of them it rejects."),
         "cells_only_in_earlier": ["|".join(k) for k in missing],
         "cells_only_in_later": ["|".join(k) for k in added],
         "cells_outside_tolerance": disagreed,
         "cells_whose_outcome_changed": outcome_changed,
-        # Two different claims, deliberately not merged.
+        # TWO axes here, a third alongside in the report's admissibility block.
         #
-        # The INSTRUMENT reproduces when both runs did the same work: the same
-        # cells exist and each one's outcome is identical. That is a property of
-        # this harness and a disagreement is a defect in it.
+        # outcomes_reproduced — both runs did the same work: the same cells
+        #   exist and each one's outcome is identical. A disagreement is a defect
+        #   in THIS HARNESS.
+        # timings_reproduced — the medians agree within the policy. A
+        #   disagreement says the numbers did not settle, and does NOT by itself
+        #   say why: it can be a contended runner, a genuinely variable
+        #   workload, or a median estimate that is simply uncertain at this
+        #   repetition count. Naming it "the environment" would be asserting one
+        #   of three causes without evidence.
+        # environment_valid — the noise probe's own verdict, recorded in the
+        #   report's noise block and carried into admissibility.
         #
-        # The ENVIRONMENT reproduces when the timings agree within the policy.
-        # That is a property of the MACHINE. A hosted runner whose medians move
-        # while every outcome stays identical has told us something true about
-        # itself, and reporting it as a broken instrument loses exactly the
-        # signal #263-B needs when it chooses where to run.
+        # `reproduced` keeps the meaning it has always had: everything agreed.
+        # It is the conjunction of the two axes above, NOT a renamed subset —
+        # a red result must not vanish because a word changed profession.
         #
-        # The tolerance is untouched by this split. Nothing here widens 0.35;
-        # what changes is which of the two questions a disagreement answers.
-        "instrument_reproduced": not (missing or added or outcome_changed),
-        "environment_reproduced": not disagreed,
+        # The tolerance is untouched by this split.
+        "outcomes_reproduced": not (missing or added or outcome_changed),
+        "timings_reproduced": not disagreed,
         "reproduced": not (missing or added or disagreed or outcome_changed),
     }
 
@@ -1643,6 +1674,23 @@ def main(argv: list[str] | None = None) -> int:
     if a.reproduce:
         report["reproducibility"] = reproduce(Path(a.reproduce), report)
 
+    # The three axes, together, decide whether this report may be evidence of
+    # record. A CI leg proving the instrument stands up may pass without them;
+    # a committed calibration may not.
+    rep_block = report.get("reproducibility")
+    report["admissibility"] = {
+        "outcomes_reproduced": (rep_block or {}).get("outcomes_reproduced"),
+        "timings_reproduced": (rep_block or {}).get("timings_reproduced"),
+        "environment_valid": not report["noise"]["invalidated"],  # type: ignore[index]
+        "admissible": bool(rep_block
+                           and rep_block.get("outcomes_reproduced")
+                           and rep_block.get("timings_reproduced")
+                           and not report["noise"]["invalidated"]),  # type: ignore[index]
+        "note": ("all three axes are required for a report of record. A run that fails "
+                 "timings_reproduced has not established WHY: a contended runner, a variable "
+                 "workload and an uncertain median estimate all look the same here."),
+    }
+
     text = json.dumps(report, indent=2, ensure_ascii=False) + "\n"
     if a.out:
         Path(a.out).write_text(text, encoding="utf-8")
@@ -1663,17 +1711,18 @@ def main(argv: list[str] | None = None) -> int:
               file=sys.stderr)
         return 1
     rep = report.get("reproducibility")
-    if isinstance(rep, dict) and not rep["instrument_reproduced"]:
+    if isinstance(rep, dict) and not rep["outcomes_reproduced"]:
         print(f"THE INSTRUMENT DID NOT REPRODUCE ITSELF: cells only in the earlier run "
               f"{rep['cells_only_in_earlier']}, only in the later run "
               f"{rep['cells_only_in_later']}, outcome changed "
               f"{rep['cells_whose_outcome_changed']}", file=sys.stderr)
         return 1
-    if isinstance(rep, dict) and not rep["environment_reproduced"]:
-        print(f"ENVIRONMENT NOT MEASUREMENT-GRADE: every outcome was identical, but these "
-              f"medians moved outside the run's own noise floor: "
-              f"{rep['cells_outside_tolerance']}. Recorded, not repaired: this is a property "
-              "of the machine, and the tolerance is not raised to hide it.", file=sys.stderr)
+    if isinstance(rep, dict) and not rep["timings_reproduced"]:
+        print(f"TIMINGS DID NOT REPRODUCE: every outcome was identical, but these medians moved "
+              f"outside the policy: {rep['cells_outside_tolerance']}. This does not say why — a "
+              "contended runner, a variable workload and an uncertain median estimate are "
+              "indistinguishable from here. Recorded, and the tolerance is not raised to hide "
+              "it.", file=sys.stderr)
         return 1
     return 0
 

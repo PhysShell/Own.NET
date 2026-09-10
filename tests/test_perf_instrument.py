@@ -689,12 +689,17 @@ def control_provenance_complete() -> None:
         elif not repro.get("reproduced"):
             problems.append(
                 f"{path.name}: ships as the calibration of record but did not reproduce "
-                f"(instrument {repro.get('instrument_reproduced')}, environment "
-                f"{repro.get('environment_reproduced')}): "
+                f"(outcomes {repro.get('outcomes_reproduced')}, timings "
+                f"{repro.get('timings_reproduced')}): "
                 f"{repro.get('cells_outside_tolerance')}{repro.get('cells_whose_outcome_changed')}")
-        if (rep.get("noise") or {}).get("invalidated"):
-            problems.append(f"{path.name}: ships as the calibration of record but its own run "
-                            "was invalidated as not measurement-grade")
+        # All three axes, checked on the shipped artifact rather than inferred.
+        adm = rep.get("admissibility") or {}
+        for axis in ("outcomes_reproduced", "timings_reproduced", "environment_valid"):
+            if not adm.get(axis):
+                problems.append(f"{path.name}: ships as the calibration of record with "
+                                f"{axis}={adm.get(axis)!r}; a report of record needs all three")
+        if not adm.get("admissible"):
+            problems.append(f"{path.name}: is not marked admissible")
         for i, cell in enumerate(rep.get("cells", [])):
             if not cell.get("raw_elapsed_ns"):
                 problems.append(f"{path.name}: cell {i} kept no raw per-iteration data")

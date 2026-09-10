@@ -3013,7 +3013,7 @@ jobs:
               repro = rep.get("reproducibility")
               if repro is None:
                   verdict = "valid run; no reproducibility check was requested"
-              elif not repro["instrument_reproduced"]:
+              elif not repro["outcomes_reproduced"]:
                   # The harness disagreed with ITSELF: different cells, or the
                   # same cell doing different work. That is a defect here.
                   problems.append(
@@ -3022,13 +3022,14 @@ jobs:
                       f"{repro['cells_only_in_later']}, outcome changed "
                       f"{repro['cells_whose_outcome_changed']}")
                   verdict = "the INSTRUMENT did not reproduce"
-              elif not repro["environment_reproduced"]:
-                  # Every outcome identical, timings moved. That is the machine,
-                  # not the harness — and it is the single most useful thing this
-                  # job can tell #263-B about where the decisive run may happen.
-                  # Recorded, never repaired by widening the tolerance.
-                  verdict = ("instrument reproduced itself; ENVIRONMENT is not "
-                             "measurement-grade: medians outside the run's own noise floor at "
+              elif not repro["timings_reproduced"]:
+                  # Every outcome identical, medians moved. This job's question
+                  # is whether the instrument stands up, and it did. WHY the
+                  # numbers did not settle is not established here: a contended
+                  # runner, a variable workload and an uncertain median estimate
+                  # are indistinguishable from this vantage point. Recorded as a
+                  # diagnostic, never repaired by widening the tolerance.
+                  verdict = ("outcomes reproduced; TIMINGS did not (cause not established): "
                              + "; ".join(f"{c['cell']} moved {c.get('relative_change'):.3f} "
                                          f"against {c.get('tolerance')}"
                                          for c in repro["cells_outside_tolerance"]))

@@ -331,36 +331,84 @@ its actual bytes, and normalizing a binary would be a different kind of wrong.
 
 `perf-digest-platform-stable` holds both halves.
 
-### Reproducibility answers two questions, not one
+### Reproducibility answers three questions, not one
 
-A re-run can disagree with the first run in two entirely different ways, and
-collapsing them loses the more useful signal.
+A re-run can disagree with the first run in ways that mean completely different
+things, and one verdict cannot carry them.
 
-* **The instrument did not reproduce.** Different cells exist, or the same cell
-  did different work — its outcome changed. That is a defect in this harness and
-  it fails, always.
-* **The environment did not reproduce.** Every outcome is identical and the
-  timings moved outside the run's own noise floor. That is a property of the
-  *machine*.
+* **`outcomes_reproduced`** — both runs did the same work: the same cells exist
+  and every outcome is identical. A disagreement is a defect in **this harness**
+  and always fails.
+* **`timings_reproduced`** — the medians agree within the policy. A
+  disagreement says the numbers did not settle. It does **not** say why: a
+  contended runner, a genuinely variable workload, and a median estimate that is
+  simply uncertain at this repetition count are indistinguishable from here.
+  Calling it "the environment" would assert one of three causes without
+  evidence, which is exactly what an earlier draft of this section did.
+* **`environment_valid`** — the noise probe's own verdict.
 
-The gate treated both as instrument failure, so a hosted Windows runner drifting
-by 0.355 and 0.362 against a 0.35 tolerance — with every exit code and every
-piece of outcome evidence identical between the runs — was reported as a broken
-instrument. It is not: it is the instrument correctly detecting that the machine
-is not measurement-grade, which is precisely what #263-B needs to know before it
-chooses where the decisive run happens.
+`reproducibility.reproduced` keeps the meaning it has always had: everything
+agreed. It is the conjunction, **not** a renamed subset. A red result must never
+disappear because a word changed profession.
 
-**The tolerance did not move.** 0.35 is still 0.35, still derived from the noise
-floor the run itself recorded rather than chosen, and the failing cells are
-still named with their numbers in the report. Widening it to make a red run
-green would be a threshold fitted to a result, which is the one thing this
-instrument exists to prevent.
+All three are required for a report of **record**. A CI leg exists to prove the
+instrument stands up, so it may pass while recording `timings_reproduced: false`
+as a diagnostic — but the committed calibration may not, and
+`perf-provenance-complete` checks all three on the shipped artifact.
 
-What the split does *not* do is soften the shipped evidence. A CI leg may record
-"this environment is not measurement-grade" and pass. The **committed**
-calibration may not: `perf-provenance-complete` requires the report of record to
-have reproduced on both counts and to have a non-invalidated run. Evidence gets
-stricter; only the diagnosis of a hosted runner gets more honest.
+### Three policy constants, one historical value
+
+One constant played three roles, and the report claimed the reproducibility
+tolerance was "the noise floor recorded by the earlier run, not a chosen
+number". That was false twice over: the recorded limit *is* that constant, so
+reading it back was reading the constant through a JSON detour, and nothing
+about it tightened on a quiet machine.
+
+| policy | bounds |
+|---|---|
+| `NOISE_PROBE_MAX_RELATIVE_IQR` | dispersion **within** one probe |
+| `NOISE_PROBE_MAX_DRIFT` | opening probe **against** closing probe |
+| `REPRODUCIBILITY_MAX_MEDIAN_CHANGE` | one cell's median, run A **against** run B |
+
+These are three different statistical quantities. They are separated so each can
+be argued about on its own terms. **The value is 0.35 for all three and is
+deliberately unchanged**: it is *chosen*, and what makes it admissible is that
+it was chosen before the runs it judges and is not adjusted after seeing which
+of them it rejects.
+
+### Calibration sizing: one pre-registered experiment
+
+At 5 calibration repetitions a run failed `timings_reproduced` on exactly one
+cell of forty — `core-full-human|rust|cal-facts-medium|warm`, median 7.57 ms,
+IQR 3.06 ms, so its own observed relative spread was **0.404** against a 0.35
+tolerance, and it was the only cell in the run whose spread exceeded it.
+
+The obvious reading — "too few samples" — is a **hypothesis, not a proof**. More
+samples reduce the uncertainty of the *median estimate*; they do not reduce the
+*intrinsic* spread of the workload's distribution. If that distribution really
+is ~40% wide, it stays ~40% wide at any repetition count.
+
+So the escalation was bounded **in advance**:
+
+1. `n=15` is the only permitted sizing escalation from the observed `n=5`.
+2. `REPRODUCIBILITY_MAX_MEDIAN_CHANGE` does not move.
+3. The failing `n=5` evidence is preserved as exploratory, non-admissible.
+4. If `n=15` also fails `timings_reproduced`, **stop** — no 25, no 45, no
+   turning the knob until CI is green.
+
+`n=15` reproduced on all three axes, and the largest observed relative IQR fell
+from 0.404 to 0.128. That is *consistent with* the n=5 spread having been an
+unstable estimate rather than the distribution truly being that wide — and it is
+equally consistent with a quieter machine. One paired trial cannot separate
+them, and this note does not claim it did.
+
+**A record that was destroyed.** The specific `n=5` report that failed was
+discarded from the working tree before the preservation rule existed, because a
+control forbids committing a non-reproducing calibration and the reflex was to
+revert. Its numbers survive above and in this PR's history; the file does not.
+The exploratory evidence committed alongside this note is a *fresh* `n=5` pair
+taken under the shipped instrument, not the run that prompted the change. Saying
+so is cheaper than pretending the provenance is tidier than it is.
 
 ## 14. Known limitations, recorded rather than routed around
 
