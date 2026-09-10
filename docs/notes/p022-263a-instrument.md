@@ -424,11 +424,83 @@ Every message names the field it is about, so each of the ten new damaged
 freezes is matched to the check that owns it. One broad "malformed protocol"
 refusal would let a dozen missing checks hide behind a single passing case.
 
-**Not implemented, and recorded rather than guessed:** the gate does not check
-that the cell set is *complete* against the instrument's own dimensions. Doing
-that needs the decisive cell population, which is #263-B's business and not
-knowable here; a completeness check written from a guess would be a threshold
-decision wearing a schema's coat.
+**Completeness was recorded here as not implementable, and that was wrong.** See
+the next section: the decisive population is knowable before the freeze, and
+checking that every cell was decided selects nothing.
+
+### `not_applicable: true` was accepted, and the PR said it was not
+
+`_present()` returned `value is not None` for anything that was not a string,
+list or dict. In Python a `bool` is an `int`, so:
+
+    _present(True)  -> True
+    _present(False) -> True
+
+Both `{"not_applicable": true}` and `{"not_applicable": false}` passed a check
+whose entire purpose was to demand a **stated reason**. The PR description
+asserted that a bare `true` was refused. It was not, and I had written that
+sentence without testing it — a claim about a guard, published, untested, in the
+same document that argues a green gate proves only what it was asked to prove.
+
+Two repairs, because the boolean hole is a class and not an instance:
+
+- `_present()` now rejects `bool` outright, checked **before** `int` since a
+  bool is one. A yes/no is never a preregistered decision, for any field.
+- `not_applicable` must be a **non-empty string**. A reason in words, or the
+  cell is not decided.
+
+And a cell may no longer be both: carrying `not_applicable` alongside any rule
+field is refused, because a preregistration that is simultaneously applicable
+and inapplicable is not a decision, it is a superposition.
+
+### A payload that decided half a percent of the experiment
+
+The verifier checked every cell it was handed and never asked whether it had
+been handed them all. D7 does not say "at least one well-formed cell"; it says
+**for every applicable (phase × workload-id × platform × cold/warm regime)
+cell**. So a payload with one immaculate cell and three roll-up strings passed.
+
+The old fixture demonstrated the hole rather than catching it: `_valid_payload`
+carried three synthetic cells and armed the gate.
+
+`expected_d7_cells()` now enumerates the universe from data the instrument
+already holds:
+
+| axis | source | count |
+|---|---|---|
+| phase | the frozen `PHASES` taxonomy | 11 |
+| workload id | the frozen decisive manifest, **aliases resolved** | 12 |
+| platform | `D7_PLATFORMS` | 2 |
+| regime | `D7_REGIMES` | 2 |
+| | **cells D7 must decide** | **528** |
+
+The gate refuses a payload with any cell **missing**, any cell **unknown**, or
+any dimension tuple named **twice**. Each expected cell needs a complete rule or
+an explicit `not_applicable` with a reason.
+
+Three things this deliberately does *not* do. It does not read a value, so no
+threshold passes through it. It does not decide applicability — the payload does
+that, and the gate only proves the owner decided *something* about every cell.
+And it does not enumerate over the running platform: the universe covers **both**
+platforms wherever the gate runs, because #263-B runs on both and a Linux gate
+demanding only Linux cells would let half the experiment through unfrozen.
+
+**The alias earns no second vote.** `large-solution-control` is `alias_of`
+`oss-ShareX.sln` — the same path at the same pin, declared under its own id
+because #262's gate names it, and recorded as an alias precisely so it is never
+counted twice in a denominator. `canonical_workload_id()` resolves it, so the
+two ids are one cell; a payload naming both for the same phase/platform/regime
+is refused as a duplicate. A completeness check that missed this would have
+turned a double-counting safeguard into a double-counting machine.
+
+**Why this is knowable before the freeze, and not a threshold decision.** The
+brief permits enumerating, hashing and availability-checking decisive workloads
+before D7 and forbids only performance exposure. It has to permit it: if the
+decisive population were not known before D7, D7 could not be written. Nothing
+here selects a budget, an `N`, or a tolerance. An earlier revision of this note
+argued that completeness "needs the decisive cell population" and recorded it as
+not implementable — that was wrong, and it was wrong in the convenient
+direction.
 
 ### The manifest digest was hashing raw bytes
 

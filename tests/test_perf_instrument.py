@@ -206,23 +206,40 @@ def _protocol_cell(phase: str, workload: str, platform: str, regime: str,
 
 
 def _valid_payload(observed: dict, anchor: str) -> dict:
+    """A payload that decides EVERY cell D7 covers.
+
+    The previous fixture carried three synthetic cells and passed, which is the
+    defect it was supposed to be evidence against: a structural gate that never
+    asks whether all the cells are there accepts a preregistration covering half
+    a percent of the experiment. One slice is marked not-applicable on purpose,
+    so the accept direction exercises both shapes a cell is allowed to take.
+    """
+    cells = {}
+    for phase, wid, platform, regime in pb.expected_d7_cells():
+        cells[f"{phase}|{wid}|{platform}|{regime}"] = _protocol_cell(
+            phase, wid, platform, regime, na=(phase == "frontend-extraction"))
     return {
         "kind": pb.D7_PAYLOAD_KIND,
         "schema": pb.D7_SCHEMA,
-        "cells": {
-            "core-full-sarif|rust|cal-facts-small|process-cold": _protocol_cell(
-                "render-sarif", "cal-facts-small", "linux", "process-cold"),
-            "core-usage|rust|cal-facts-tiny|warm": _protocol_cell(
-                "process-startup-core", "cal-facts-tiny", "windows", "warm"),
-            "core-full-human|python|cal-facts-small|process-cold": _protocol_cell(
-                "render-human", "cal-facts-small", "linux", "process-cold", na=True),
-        },
+        "cells": cells,
         "rollups": dict.fromkeys(pb.D7_ROLLUP_LEVELS, "<roll-up frozen by D7>"),
         pb.D7_PAYLOAD_ANCHOR: anchor,
         **{k: observed[k] for k in pb.D7_PAYLOAD_BINDING_KEYS},
         "ratification": {"owner": "the owner", "ratified_at": "2026-01-01T00:00:00Z",
                          "signature": "none"},
     }
+
+
+def _a_rule_cell(payload: dict) -> str:
+    """The id of a cell carrying a rule, chosen deterministically."""
+    return next(k for k, v in sorted(payload["cells"].items())
+                if pb.D7_CELL_NA_KEY not in v)
+
+
+def _an_na_cell(payload: dict) -> str:
+    """The id of a cell marked not-applicable, chosen deterministically."""
+    return next(k for k, v in sorted(payload["cells"].items())
+                if pb.D7_CELL_NA_KEY in v)
 
 
 def _seed_instrument(repo: Path) -> str:
@@ -332,19 +349,42 @@ def _build_freeze(repo: Path, manifest_digest: str, break_: str = "") -> dict:
             payload[k] = "<frozen by D7, never read by the gate>"
     elif break_.startswith("proto-"):
         cells = payload["cells"]
-        first = cells["core-full-sarif|rust|cal-facts-small|process-cold"]
+        rule = cells[_a_rule_cell(payload)]
+        na_id = _an_na_cell(payload)
         if break_ == "proto-no-ladder":
-            first.pop("repetition_ladder")
+            rule.pop("repetition_ladder")
         elif break_ == "proto-ladder-incomplete":
-            first["repetition_ladder"].pop("escalation_stages")
+            rule["repetition_ladder"].pop("escalation_stages")
         elif break_ == "proto-no-statistic":
-            first.pop("comparison_statistic")
+            rule.pop("comparison_statistic")
         elif break_ == "proto-no-inconclusive":
-            first.pop("inconclusive_band")
+            rule.pop("inconclusive_band")
         elif break_ == "proto-no-dimension":
-            first["dimensions"].pop("platform")
+            rule["dimensions"].pop("platform")
         elif break_ == "proto-na-without-reason":
-            cells["core-full-human|python|cal-facts-small|process-cold"]["not_applicable"] = ""
+            cells[na_id][pb.D7_CELL_NA_KEY] = ""
+        elif break_ == "proto-na-true":
+            # The exact escape hatch the PR body claimed was refused and was not.
+            cells[na_id][pb.D7_CELL_NA_KEY] = True
+        elif break_ == "proto-na-false":
+            cells[na_id][pb.D7_CELL_NA_KEY] = False
+        elif break_ == "proto-na-and-rule":
+            cells[na_id]["bound"] = "<budget frozen by D7>"
+        elif break_ == "proto-missing-cell":
+            cells.pop(_a_rule_cell(payload))
+        elif break_ == "proto-unknown-cell":
+            cells["invented|not-a-workload|linux|warm"] = _protocol_cell(
+                "invented", "not-a-workload", "linux", "warm")
+        elif break_ == "proto-duplicate-cell":
+            # The ShareX alias, added beside the id it aliases. The manifest
+            # declares the alias so the pair is never counted twice; a
+            # completeness check that missed this would hand ShareX two votes.
+            twin = next(k for k, v in sorted(cells.items())
+                        if v.get("dimensions", {}).get("workload_id") == "oss-ShareX.sln"
+                        and pb.D7_CELL_NA_KEY not in v)
+            spec = json.loads(json.dumps(cells[twin]))
+            spec["dimensions"]["workload_id"] = "large-solution-control"
+            cells[twin.replace("oss-ShareX.sln", "large-solution-control")] = spec
         elif break_ == "proto-rollup-workload-class":
             payload["rollups"].pop("workload_class")
         elif break_ == "proto-rollup-phase":
@@ -466,6 +506,12 @@ _BROKEN_FREEZES = (
     ("proto-no-inconclusive", "missing: inconclusive_band"),
     ("proto-no-dimension", "is missing dimension(s): platform"),
     ("proto-na-without-reason", "not_applicable with no stated reason"),
+    ("proto-na-true", "not_applicable with no stated reason"),
+    ("proto-na-false", "not_applicable with no stated reason"),
+    ("proto-na-and-rule", "applicable and inapplicable at once"),
+    ("proto-missing-cell", "does not decide every D7 cell"),
+    ("proto-unknown-cell", "not a cell D7 covers"),
+    ("proto-duplicate-cell", "name the same D7 cell twice"),
     ("proto-rollup-workload-class", "missing preregistered level(s): workload_class"),
     ("proto-rollup-phase", "missing preregistered level(s): phase"),
     ("proto-rollup-overall", "missing preregistered level(s): overall_g3"),
@@ -529,8 +575,9 @@ def control_gate_payload_identity() -> None:
     else:
         ok("perf-gate-payload-identity",
            f"{len(_BROKEN_FREEZES)} damaged D7 freezes, each refused by the check that owns it "
-           "(payload shape, ratification, bindings, attestation shape, exact-byte hash, blob "
-           "sha, path, commit, ancestry, re-binding)")
+           "(payload shape, ratification, bindings, anchor content and ancestry, protocol "
+           "completeness, missing/unknown/duplicated cells, boolean N/A, attestation shape, "
+           "exact-byte hash, blob sha, path, commit, ancestry, re-binding)")
 
 
 def control_gate_arms_by_data() -> None:

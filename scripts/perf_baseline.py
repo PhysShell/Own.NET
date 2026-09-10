@@ -282,6 +282,51 @@ D7_CELL_NA_KEY = "not_applicable"
 # Preregistered roll-ups, cell -> phase -> overall.
 D7_ROLLUP_LEVELS = ("workload_class", "phase", "overall_g3")
 
+# D7's own vocabulary for the two axes the running process does not enumerate.
+# The expected universe covers BOTH platforms wherever the gate runs, because
+# #263-B runs on both and C1 freezes decisions for both; a linux gate that only
+# demanded linux cells would let half the experiment through unfrozen.
+D7_PLATFORMS = ("linux", "windows")
+D7_REGIMES = ("process-cold", "warm")
+
+
+def canonical_workload_id(w: Workload) -> str:
+    """An alias resolves to the id it aliases.
+
+    ``large-solution-control`` and ``oss-ShareX.sln`` are the same path at the
+    same pin; the manifest declares the alias precisely so the pair is never
+    counted twice in a denominator. A completeness check that treated them as
+    two cells would turn that safeguard into a machine for giving ShareX two
+    votes.
+    """
+    alias = w.spec.get("alias_of")
+    return str(alias) if alias else w.id
+
+
+def expected_d7_cells() -> tuple[tuple[str, str, str, str], ...]:
+    """Every (phase, workload_id, platform, regime) D7 has to decide about.
+
+    Enumeration only — ids and taxonomy, never content and never a clock. The
+    brief permits enumerating, hashing and availability-checking decisive
+    workloads before the freeze and forbids only performance exposure, which is
+    what makes this knowable now. It has to be knowable now: if the decisive
+    population were not known before D7, D7 could not be written.
+
+    Applicability is expressed by the payload, not here. Every cell in this
+    universe must carry either a complete rule or an explicit `not_applicable`
+    with a reason, so the gate proves the owner DECIDED about each one without
+    ever deciding anything itself.
+    """
+    workloads, _ = load_manifest()
+    ids = sorted({canonical_workload_id(w) for w in workloads if w.decisive})
+    return tuple(
+        (phase, wid, platform, regime)
+        for phase in sorted(PHASES)
+        for wid in ids
+        for platform in D7_PLATFORMS
+        for regime in D7_REGIMES
+    )
+
 # The accepted #263-A source commit S. DECLARED by C1 and PROVED by content —
 # it is deliberately not in D7_PAYLOAD_BINDING_KEYS, because those are compared
 # against what this process observes and S is precisely the thing that must NOT
@@ -302,6 +347,7 @@ D7_ATTESTATION_KEYS = ("kind", "schema", "payload_path", "payload_commit_sha",
                        "ratification_binding")
 
 _HEX40 = re.compile(r"\A[0-9a-f]{40}\Z")
+_HEX64 = re.compile(r"\A[0-9a-f]{64}\Z")
 
 
 def _present(value: object) -> bool:
@@ -310,7 +356,15 @@ def _present(value: object) -> bool:
     A blank string, an empty list and an empty object are all structurally
     absent however confidently they are typed. Nothing here compares, orders or
     records a value, so a threshold cannot leak through this function.
+
+    A BOOLEAN is rejected outright. `true` is a yes/no, never a preregistered
+    decision, and the previous version returned True for it — so
+    ``not_applicable: true`` sailed through a check whose whole purpose was to
+    demand a stated reason, and ``not_applicable: false`` did too. `bool` is
+    checked before `int` because in Python a bool IS an int.
     """
+    if isinstance(value, bool):
+        return False
     if isinstance(value, str):
         return value.strip() != ""
     if isinstance(value, (list, tuple, dict)):
@@ -321,9 +375,15 @@ def _present(value: object) -> bool:
 def _d7_protocol_problems(payload: dict[str, object]) -> list[str]:
     """Does C1 carry a preregistration D7 would recognise?
 
-    Every problem names the field it is about, so a control can match a damaged
-    freeze against the check that owns it. One broad "malformed protocol"
-    refusal would let a dozen missing checks hide behind a single passing case.
+    Two questions, and the second is the one that was missing. Is each cell
+    given well formed — and are ALL the cells given? A payload with one
+    immaculate cell and three roll-up strings satisfied the first and said
+    nothing about 527 others.
+
+    Every problem names the field or cell it is about, so a control can match a
+    damaged freeze against the check that owns it. One broad "malformed
+    protocol" refusal would let a dozen missing checks hide behind a single
+    passing case.
     """
     problems: list[str] = []
 
@@ -332,44 +392,89 @@ def _d7_protocol_problems(payload: dict[str, object]) -> list[str]:
         problems.append(
             "cells must be a non-empty object keyed by cell id, one entry per "
             "(" + " x ".join(D7_CELL_DIMENSIONS) + ")")
-    else:
-        for cid, spec in sorted(cells.items(), key=lambda kv: str(kv[0])):
-            where = f"cell {str(cid)!r}"
-            if not isinstance(spec, dict):
-                problems.append(f"{where} is not an object")
-                continue
+        return problems
 
-            dims = spec.get("dimensions")
-            if not isinstance(dims, dict):
-                problems.append(f"{where} declares no dimensions object")
-            else:
-                absent = [d for d in D7_CELL_DIMENSIONS if not _present(dims.get(d))]
-                if absent:
-                    problems.append(f"{where} is missing dimension(s): " + ", ".join(absent))
+    workloads, _ = load_manifest()
+    canonical = {w.id: canonical_workload_id(w) for w in workloads}
+    identities: dict[tuple[str, str, str, str], list[str]] = {}
+    dimensions_sound = True
 
-            if D7_CELL_NA_KEY in spec:
-                # An explicit N/A is a preregistered decision and needs a stated
-                # reason. A bare `not_applicable: true` is a way of writing
-                # "no rule" that reads like a rule.
-                if not _present(spec.get(D7_CELL_NA_KEY)):
-                    problems.append(f"{where} is marked {D7_CELL_NA_KEY} with no stated reason")
-                continue
+    for cid, spec in sorted(cells.items(), key=lambda kv: str(kv[0])):
+        where = f"cell {str(cid)!r}"
+        if not isinstance(spec, dict):
+            problems.append(f"{where} is not an object")
+            dimensions_sound = False
+            continue
 
-            absent = [k for k in D7_CELL_RULE_KEYS if not _present(spec.get(k))]
+        dims = spec.get("dimensions")
+        if not isinstance(dims, dict):
+            problems.append(f"{where} declares no dimensions object")
+            dimensions_sound = False
+        else:
+            absent = [d for d in D7_CELL_DIMENSIONS if not _present(dims.get(d))]
             if absent:
-                problems.append(
-                    f"{where} carries neither a complete rule nor an explicit "
-                    f"{D7_CELL_NA_KEY} — missing: " + ", ".join(absent))
+                problems.append(f"{where} is missing dimension(s): " + ", ".join(absent))
+                dimensions_sound = False
+            else:
+                wid = str(dims["workload_id"])
+                identity = (str(dims["phase"]), canonical.get(wid, wid),
+                            str(dims["platform"]), str(dims["regime"]))
+                identities.setdefault(identity, []).append(str(cid))
 
-            ladder = spec.get("repetition_ladder")
-            if _present(ladder):
-                if not isinstance(ladder, dict):
-                    problems.append(f"{where} repetition_ladder is not an object")
-                else:
-                    gaps = [k for k in D7_LADDER_KEYS if not _present(ladder.get(k))]
-                    if gaps:
-                        problems.append(
-                            f"{where} repetition_ladder is missing: " + ", ".join(gaps))
+        has_rule = [k for k in D7_CELL_RULE_KEYS if k in spec]
+        if D7_CELL_NA_KEY in spec:
+            reason = spec.get(D7_CELL_NA_KEY)
+            if not isinstance(reason, str) or not reason.strip():
+                # `true` is a yes/no. An explicit N/A is a preregistered
+                # DECISION and has to say why, or "not applicable" is just a
+                # shorter way of writing "no rule" that reads like a rule.
+                problems.append(
+                    f"{where} is marked {D7_CELL_NA_KEY} with no stated reason: it must be a "
+                    "non-empty string, not a boolean")
+            if has_rule:
+                problems.append(
+                    f"{where} is both {D7_CELL_NA_KEY} and carries a rule ("
+                    + ", ".join(sorted(has_rule)) + "): a cell cannot be applicable and "
+                    "inapplicable at once")
+            continue
+
+        absent = [k for k in D7_CELL_RULE_KEYS if not _present(spec.get(k))]
+        if absent:
+            problems.append(
+                f"{where} carries neither a complete rule nor an explicit "
+                f"{D7_CELL_NA_KEY} — missing: " + ", ".join(absent))
+
+        ladder = spec.get("repetition_ladder")
+        if _present(ladder):
+            if not isinstance(ladder, dict):
+                problems.append(f"{where} repetition_ladder is not an object")
+            else:
+                gaps = [k for k in D7_LADDER_KEYS if not _present(ladder.get(k))]
+                if gaps:
+                    problems.append(
+                        f"{where} repetition_ladder is missing: " + ", ".join(gaps))
+
+    # Completeness. Only meaningful once every cell has an identity to compare;
+    # otherwise a malformed dimension would be reported twice, once as itself
+    # and once as a hole it did not make.
+    if dimensions_sound:
+        expected = set(expected_d7_cells())
+        for identity, names in sorted(identities.items()):
+            if len(names) > 1:
+                problems.append(
+                    "cells " + ", ".join(repr(n) for n in names) + " name the same D7 cell twice ("
+                    + " x ".join(identity) + "); an alias does not earn a second vote")
+        unknown = sorted(i for i in identities if i not in expected)
+        if unknown:
+            problems.append(
+                f"{len(unknown)} of {len(identities)} cells are not a cell D7 covers, first: "
+                + " x ".join(unknown[0]))
+        missing = sorted(expected - set(identities))
+        if missing:
+            problems.append(
+                f"the payload does not decide every D7 cell: {len(missing)} of {len(expected)} "
+                "are absent, first: " + " x ".join(missing[0])
+                + ". Every cell needs a rule or an explicit " + D7_CELL_NA_KEY)
 
     rollups = payload.get("rollups")
     if not isinstance(rollups, dict):
@@ -380,7 +485,6 @@ def _d7_protocol_problems(payload: dict[str, object]) -> list[str]:
         if absent:
             problems.append("rollups is missing preregistered level(s): " + ", ".join(absent))
     return problems
-_HEX64 = re.compile(r"\A[0-9a-f]{64}\Z")
 
 
 def _git_in(repo: Path, *args: str) -> tuple[int, str]:
@@ -488,8 +592,11 @@ class IdentityGate:
                 D7_PAYLOAD_PROTOCOL_KEYS) + "; each cell declares "
             + ", ".join(D7_CELL_DIMENSIONS) + " and either " + ", ".join(D7_CELL_RULE_KEYS)
             + " (the ladder carrying " + ", ".join(D7_LADDER_KEYS) + ") or an explicit "
-            + D7_CELL_NA_KEY + " with a reason; roll-ups carry "
+            + D7_CELL_NA_KEY + " naming a reason in words; roll-ups carry "
             + ", ".join(D7_ROLLUP_LEVELS) + ". Values are never read",
+            f"C1 decides EVERY one of the {len(expected_d7_cells())} cells D7 covers — "
+            + " x ".join(D7_CELL_DIMENSIONS) + " over the frozen decisive manifest with "
+            "aliases resolved — with no cell missing, unknown, or named twice",
             f"C1 declares {D7_PAYLOAD_ANCHOR} S, and the instrument AT S hashes to the "
             "harness_digest C1 froze; S is an ancestor of C1. The CURRENT position is never "
             "required to equal S, because by #263-B it cannot be",
@@ -727,6 +834,7 @@ class IdentityGate:
             # nothing about what any of it says.
             "protocol_fields_present": ", ".join(sorted(D7_PAYLOAD_PROTOCOL_KEYS)),
             "protocol_cells_specified": str(_cell_count),
+            "protocol_cells_required": str(len(expected_d7_cells())),
             "protocol_rollup_levels": ", ".join(D7_ROLLUP_LEVELS),
         }
         return IdentityGate(
