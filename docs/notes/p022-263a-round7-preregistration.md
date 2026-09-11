@@ -518,12 +518,38 @@ median across the ten sessions.
 | attribution | rule |
 |---|---|
 | the work genuinely took longer | median `\|Δ(cpu_user_ns + cpu_system_ns)\|` ≥ `0.5 ×` median `\|Δ elapsed_ns\|` for that arm |
-| scheduler | median `\|Δ elapsed_ns\|` ≥ `2 ×` median `\|Δ(cpu_user_ns + cpu_system_ns)\|` **and** median `\|Δ(voluntary + involuntary context switches)\|` ≥ `2 ×` arm A's |
-| faults / mapping | median `\|Δ(minor_faults + major_faults)\|` ≥ `2 ×` arm A's |
+| scheduler | median `\|Δ elapsed_ns\|` ≥ `2 ×` median `\|Δ(cpu_user_ns + cpu_system_ns)\|` **and** median `\|Δ(voluntary + involuntary context switches)\|` **> 0** **and** ≥ `2 ×` arm A's |
+| faults / mapping | median `\|Δ(minor_faults + major_faults)\|` **> 0** **and** ≥ `2 ×` arm A's |
+
+applied only when median `\|Δ elapsed_ns\|` **> 0** for that arm.
 
 More than one may fire. None firing is itself a reportable result: it would mean
 the drift is visible in wall time and in none of the accounting the kernel
 offers, which is worth knowing.
+
+### The zero-versus-zero hole, corrected
+
+Every rule above is a ratio against a quantity that can itself be zero, and
+`0 ≥ 2 × 0` is true. As originally written, a cell where **nothing moved** —
+zero wall drift, zero CPU delta, zero context switches, zero faults — fired
+**all three** mechanisms: a confident attribution of a drift that does not
+exist. The owner found it by reading the rule rather than by running it.
+
+Two of the three guards are the owner's, stated as ratified: the context-switch
+predicate and the fault predicate each now require a **strictly positive**
+median before the ratio is consulted.
+
+The third is mine and is flagged as such: attribution is applied only when the
+arm's median `|Δ elapsed_ns|` is **> 0**. The `work` rule degenerates the same
+way (`0 ≥ 0.5 × 0`) and the owner's two guards do not cover it. This
+precondition is the smallest statement that makes all three refuse the null case
+coherently — if there is no wall-clock drift there is nothing to attribute — and
+it cannot change any outcome in which a drift actually exists. It is an addition
+to the ratified table and the owner may strike it.
+
+This hole never fired in the recorded round: `process-cold` classified P4 and
+`warm` P5, and neither licenses any attribution, so the committed reading is
+**byte-identical** before and after the correction. It was latent, not active.
 
 ## Explicitly forbidden
 

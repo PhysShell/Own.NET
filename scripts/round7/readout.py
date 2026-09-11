@@ -208,12 +208,32 @@ def attribution(halves: dict[tuple[str, int, int, str, str], list[dict[str, obje
                                           ACCOUNTING_SUMS["context_switches"]))
     a_faults = _median(signed_session_deltas(halves, regime, n, "A", ACCOUNTING_SUMS["faults"]))
 
+    # Every rule below is a ratio against something that can itself be zero, and
+    # `0 >= 2 * 0` is true. Without these guards all three mechanisms fire on a
+    # cell where NOTHING moved -- a confident attribution of a drift that does
+    # not exist. The owner found it by reading the rule; a control now drives it.
     fired = []
+    if elapsed <= 0:
+        # No wall-clock drift means there is no elevation to attribute. This
+        # precondition is not in the ratified table; it is the smallest thing
+        # that makes all three rules refuse the null case coherently, and it
+        # cannot change any outcome where a drift actually exists.
+        return {
+            "arm": arm, "n": n,
+            "median_abs_delta": {"elapsed_ns": elapsed, "cpu_ns": cpu,
+                                 "context_switches": ctx, "faults": faults},
+            "arm_a_reference": {"context_switches": a_ctx, "faults": a_faults},
+            "fired": [],
+            "reading": ("median |delta elapsed| is zero: there is no drift to "
+                        "attribute, so no mechanism fires. Attributing a "
+                        "mechanism to a drift of zero would be a verdict about "
+                        "nothing"),
+        }
     if cpu >= 0.5 * elapsed:
         fired.append("work")
-    if elapsed >= 2 * cpu and ctx >= 2 * a_ctx:
+    if elapsed >= 2 * cpu and ctx > 0 and ctx >= 2 * a_ctx:
         fired.append("scheduler")
-    if faults >= 2 * a_faults:
+    if faults > 0 and faults >= 2 * a_faults:
         fired.append("faults")
     return {
         "arm": arm, "n": n,

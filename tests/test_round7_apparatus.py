@@ -1063,7 +1063,100 @@ def control_readout() -> None:
         if not reading["outcome"]["regime_split"]:                               # type: ignore[index]
             problems.append("a cold/warm difference was not reported as a split")
 
-    # Fail-closed, four ways. Each would otherwise produce a median over
+    # The zero-versus-zero hole. Every mechanism rule is a ratio against a
+    # quantity that can itself be zero, and `0 >= 2 * 0` is true, so a cell
+    # where NOTHING moved once fired all three mechanisms at once: a confident
+    # attribution of a drift that does not exist.
+    still = {}
+    for regime in cl.REGIMES:
+        for n in cl.REPETITION_COUNTS:
+            for arm in ro.ARMS:
+                for session in range(1, ro.SESSIONS + 1):
+                    for half in ro.HALVES:
+                        still[(regime, n, session, arm, half)] = [{
+                            "elapsed_ns": 1_000_000.0, "rc": ro.EXPECTED_RC[arm],
+                            "cpu_user_ns": 0, "cpu_system_ns": 0,
+                            "minor_faults": 0, "major_faults": 0,
+                            "voluntary_context_switches": 0,
+                            "involuntary_context_switches": 0}]
+    try:
+        null_row = ro.attribution(still, cl.REGIMES[0], cl.REPETITION_COUNTS[0], "C")
+    except Exception as exc:
+        problems.append(f"the null-evidence attribution raised {type(exc).__name__}: {exc}")
+    else:
+        if null_row["fired"]:
+            problems.append("a cell where nothing moved attributed "
+                            f"{null_row['fired']} -- every delta is zero and "
+                            "0 >= 2 * 0 is true, so the rules fired on no evidence")
+
+    # The case that actually exercises the two RATIFIED guards: wall time moved
+    # but not one kernel counter did. The precondition above does not fire here,
+    # so `ctx >= 2 * a_ctx` and `faults >= 2 * a_faults` are reached with both
+    # sides at zero. Without `> 0` they report scheduler AND faults/mapping --
+    # the exact opposite of the truth, which is that the drift is visible in
+    # wall time and in none of the accounting the kernel offers.
+    #
+    # The first version of this control missed all of that: its only degenerate
+    # case had zero wall drift, so the precondition returned first and the two
+    # guards were never reached. Three mutations removing them came back green.
+    wall_only = {k: [dict(r) for r in v] for k, v in still.items()}
+    for key, rows in wall_only.items():
+        if key[3] == "C" and key[4] == "second":
+            for r in rows:
+                r["elapsed_ns"] = 3_000_000.0
+    try:
+        wall_row = ro.attribution(wall_only, cl.REGIMES[0], cl.REPETITION_COUNTS[0], "C")
+    except Exception as exc:
+        problems.append(f"the wall-only attribution raised {type(exc).__name__}: {exc}")
+    else:
+        if wall_row["fired"]:
+            problems.append(
+                f"wall time moved and no kernel counter did, yet the table attributed "
+                f"{wall_row['fired']}; both ratios compare zero against zero, and "
+                "0 >= 2 * 0 is true")
+
+    # ... and a real signal must still fire, or the guards above would pass just
+    # as well against a mechanism table that had been switched off entirely.
+    moved = {k: [dict(r) for r in v] for k, v in still.items()}
+    for (_regime, _n, _session, arm, half), rows in moved.items():
+        if arm == "C" and half == "second":
+            for r in rows:
+                r["elapsed_ns"] = 3_000_000.0
+                r["minor_faults"] = 500
+    try:
+        live_row = ro.attribution(moved, cl.REGIMES[0], cl.REPETITION_COUNTS[0], "C")
+    except Exception as exc:
+        problems.append(f"the live-signal attribution raised {type(exc).__name__}: {exc}")
+    else:
+        if "faults" not in live_row["fired"]:
+            problems.append(f"a real fault signal did not fire: {live_row['fired']} "
+                            f"from {live_row['median_abs_delta']}")
+
+    # Arm A must be the reference it claims to be. Above, arm A has zero faults,
+    # so `>= 2 * a_faults` holds however the rule is written; a mutation dropping
+    # the reference entirely came back green. Here arm A faults MORE than half of
+    # what arm C does, so the ratio is what decides and the rule must stay shut.
+    baseline = {k: [dict(r) for r in v] for k, v in still.items()}
+    for key, rows in baseline.items():
+        if key[4] == "second":
+            for r in rows:
+                r["elapsed_ns"] = 3_000_000.0
+                if key[3] == "C":
+                    r["minor_faults"] = 500
+                elif key[3] == "A":
+                    r["minor_faults"] = 400        # C is 500, so C < 2 x A
+    try:
+        ref_row = ro.attribution(baseline, cl.REGIMES[0], cl.REPETITION_COUNTS[0], "C")
+    except Exception as exc:
+        problems.append(f"the arm-A-reference attribution raised {type(exc).__name__}: {exc}")
+    else:
+        if "faults" in ref_row["fired"]:
+            problems.append(
+                f"arm C's fault delta {ref_row['median_abs_delta']['faults']} is below "
+                f"twice arm A's {ref_row['arm_a_reference']['faults']}, yet faults/mapping "
+                "fired; the rule is not consulting arm A as its reference")
+
+    # Fail-closed, five ways. Each would otherwise produce a median over
     # whatever survived and call it the preregistered D.
     healthy = _synthetic({r: dict.fromkeys(cl.REPETITION_COUNTS, (1.0, 3.0, 6.0))
                           for r in cl.REGIMES})
@@ -1178,8 +1271,10 @@ def control_readout() -> None:
                              "shut on P4 and P5; five malformed datasets are refused; the "
                              "committed dataset holds 2400 retained samples (1600 rc 0, "
                              "800 rc 2) which with 240 warmup discards accounts for every "
-                             "planned spawn; and the committed reading is reproduced "
-                             "exactly from the committed dataset")
+                             "planned spawn; a cell where nothing moved attributes no "
+                             "mechanism while a real fault signal still fires; and the "
+                             "committed reading is reproduced exactly from the committed "
+                             "dataset")
 
 
 def run() -> int:

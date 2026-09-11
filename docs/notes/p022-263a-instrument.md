@@ -1125,6 +1125,42 @@ provenance than code that starts the stopwatch**. And `N_max` is gone; a finite
 frozen ladder already ends somewhere, and a second maximum expresses nothing but
 a future argument about which one wins.
 
+### Zero is greater than or equal to twice zero
+
+The owner reviewed a head eight commits behind and reported three execution
+blockers that were already closed, plus one defect that was entirely real and
+still in current code. The stale items were stale; the live one was live. Both
+halves of that sentence matter, and the second is why a review of an old head is
+still worth reading line by line rather than dismissing by SHA.
+
+Every mechanism-attribution rule is a ratio against a quantity that can itself be
+zero, and `0 >= 2 * 0` is true. A cell where **nothing moved** — zero wall drift,
+zero CPU delta, zero context switches, zero faults — fired **all three**
+mechanisms: a confident attribution of a drift that does not exist. Found by
+reading the rule, not by running it.
+
+Two guards are the owner's, ratified: the context-switch and fault predicates now
+require a strictly positive median before the ratio is consulted. The third is
+mine and flagged as an addition they may strike: attribution applies only when
+the arm's wall-clock delta is positive, because `work` degenerates the same way
+and their two guards do not reach it.
+
+**The control then missed three of the five mutations.** Its only degenerate case
+had zero wall drift, so the new precondition returned before either ratified
+guard was reached; removing them changed nothing and the suite stayed green. The
+case that actually exercises them is the interesting one anyway — **wall time
+moved and not one kernel counter did** — which the preregistration already names
+as a reportable result, and which the unguarded rules reported as scheduler *and*
+faults, the exact opposite of the truth. A sixth mutation then showed arm A's
+reference was never consulted either, because the live-signal case left arm A at
+zero, so `>= 2 * a_faults` held however the rule was written. Eight mutations now
+come back with findings.
+
+The hole never fired in the recorded round: `process-cold` was P4 and `warm` P5,
+neither licenses an attribution, and the committed reading is byte-identical
+before and after. It was latent, and a latent wrong answer is still a wrong
+answer waiting for the first dataset that asks.
+
 ### Both pairs are stale, and are not re-recorded
 
 The digest moved from `2d6e52fe4352` to `6713e7300c7c`, and again to
