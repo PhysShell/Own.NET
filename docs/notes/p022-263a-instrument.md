@@ -990,6 +990,59 @@ Nothing moved as a result. No threshold, no budget, no floor, no envelope,
 for P4 or P5 in a regime is "stop after reporting; neither licenses a policy
 change", and both regimes hit it.
 
+### The gate was never a missing file
+
+The owner accepted Round 7 and then declined to accept #263-A, for a reason
+worth recording carefully: the blockage is **not** an absent artifact named
+`calibration-of-record`. §13 of the frozen brief asks for an instrument, a
+`CALIBRATION_ONLY` validation report and a fresh exact-head PASS, and all three
+exist. But §7 requires a mechanical noise and outlier policy fixed in advance
+plus a determinism check, and §9 says a second run on the same environment must
+reproduce within that policy or the instrument is **not yet frozen**.
+
+This repository's own evidence says it does not: the sizing pairs do not
+reproduce reliably, and `n=5` has passed and failed here in no pattern. Reading
+§13 and treating §9 as decorative would have been a very human way through the
+gate — produce the JSON with the right name and declare victory — and it is
+precisely the move twelve rounds were spent dismantling. We do not need a file.
+We need an instrument that says compatible things twice.
+
+`docs/notes/p022-263a-calibration-policy-proposal.md` is the authorised
+no-clock answer, and it contains **no numbers on purpose**. Six constants are
+named, given units, and left empty, in a table that exists so a later invented
+value is visible.
+
+Three things in it are load-bearing.
+
+**The incumbent comparison is not symmetric.** `reproduce()` computes
+`|m_B − m_A| / m_A`, dividing by whichever run was recorded first. For tolerance
+`T` and ratio `r = m_B / m_A` the forward direction refuses above `1 + T` and the
+reversed direction above `1 / (1 − T)`, so for **every** positive `T` there is a
+band `1 + T < r < 1/(1 − T)` where the verdict depends on run order and nothing
+else. That is algebra about the form, not a number, and it was verified
+exhaustively rather than asserted. No committed verdict is known to sit in that
+band, and the proposal deliberately does **not** go looking: searching recorded
+pairs for one that flips is selection on outcome wearing a lab coat. The
+replacement compares `|Δ|` against a bound evaluated at the **midpoint** of the
+two medians, which removes the asymmetry by construction.
+
+**The constants must be fitted to dispersion, never to pass/fail labels.** This
+is the whole firewall. "Which historical pairs should have passed" is a label
+applied after the outcomes were seen; a tolerance fitted to those labels is
+tolerance shopping completed in one step, guaranteed to ratify the history it
+came from and to predict nothing. A bound fitted to the instrument's own
+observed variation as a function of duration is a claim a fresh pair can
+falsify.
+
+**N is chosen before the validation pair, not by escalating until it passes.**
+"The smallest N at which the pair reproduces" is the same shopping move with
+better manners: it turns the stop rule into a starting gun. N is predicted once
+from the fitted dispersion model, committed, and tested exactly once.
+
+And the rule that makes the rest mean anything: **on a failed holdout the
+constants are not adjusted.** Not widened, not refitted, not re-estimated with
+the new data folded in. The policy goes back to the owner as failed.
+
 ### Both pairs are stale, and are not re-recorded
 
 The digest moved from `2d6e52fe4352` to `6713e7300c7c`, and again to
