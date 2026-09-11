@@ -35,6 +35,8 @@ files = [
   "scripts/round7/classify.py",
   "scripts/round7/elfread.py",
   "scripts/round7/preflight.py",
+  "scripts/round7/schedule.py",
+  "scripts/round7/runner.py",
   "scripts/mutate_campaign.py",
   "scripts/shadow_compare.py",
   "scripts/render_checkpoint_status.py",

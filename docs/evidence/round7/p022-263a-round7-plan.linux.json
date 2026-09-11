@@ -1,0 +1,412 @@
+{
+  "tag": "CALIBRATION_ONLY",
+  "mode": "plan",
+  "timestamp_utc": "2026-09-11T04:51:26Z",
+  "work_binding": {
+    "iterations": 460280,
+    "helper_sha256": "f937b36bd4dac422f88942b87ea9794e2c75a198a034917e6c02c0abad1c0cbd",
+    "round6_achieved_median_ms": 2.0128,
+    "source": "docs/evidence/round6/p022-263a-round6-scales.linux.json",
+    "target_rung_ms": 2
+  },
+  "preflight": {
+    "checks": {
+      "B1": {
+        "pass": true,
+        "symbol_size": 1626024,
+        "section": ".rodata",
+        "section_size": 1626056,
+        "why": "own_round7_padding is 1626024 bytes in .rodata (1626056 bytes)"
+      },
+      "B2": {
+        "pass": true,
+        "section": ".rodata",
+        "segment_vaddr": 8192,
+        "segment_memsz": 1626276,
+        "segment_flags": 4,
+        "why": "the padding lies in SHF_ALLOC section .rodata, wholly inside the PT_LOAD at 0x2000 (1626276 bytes mapped)"
+      },
+      "B3": {
+        "pass": true,
+        "arm_b_mapped_bytes": 1628917,
+        "arm_c_mapped_bytes": 1628892,
+        "delta_bytes": 25,
+        "page_bytes": 4096,
+        "arm_b_file_bytes": 1642152,
+        "arm_c_file_bytes": 1841648,
+        "why": "arm B maps 1628917 bytes against arm C's 1628892, a difference of +25 bytes"
+      },
+      "B4": {
+        "pass": true,
+        "test": "raw-bytes",
+        "size": 107,
+        "sha256": "69126786004d1e128458c1054e6a67a2534397146cf8a4f0d5e838b18fc70797",
+        "why": "main is 107 bytes and byte-identical in both arms; the disassembly fallback was not needed"
+      }
+    },
+    "failed": []
+  },
+  "frozen_arms": {
+    "A": {
+      "role": "A",
+      "name": "arm-a",
+      "sha256": "f937b36bd4dac422f88942b87ea9794e2c75a198a034917e6c02c0abad1c0cbd",
+      "file_bytes": 15960
+    },
+    "B": {
+      "role": "B",
+      "name": "arm-b",
+      "sha256": "0bd6ecc40dfc5c51fbda073fe248d90f6378257e701909d274ea294a742d3c5f",
+      "file_bytes": 1642152
+    },
+    "C": {
+      "role": "C",
+      "name": "rust/target/release/own-cli",
+      "sha256": "8f6c06dd7728fdc12663e03dd46b6e32c183656a2a9f9d05b05d1b0f3f9332fe",
+      "file_bytes": 1841648
+    }
+  },
+  "schedule": {
+    "seed": "0xf937b36bd4dac422",
+    "seed_source": "first 16 hex digits of helper_sha256 in docs/evidence/round6/p022-263a-round6-scales.linux.json",
+    "design": "blocked randomisation; block = (regime, n, session)",
+    "blocks": 40,
+    "halves": 240,
+    "regimes": [
+      "process-cold",
+      "warm"
+    ],
+    "repetition_counts": [
+      5,
+      15
+    ],
+    "sessions_per_cell": 10,
+    "planned_order": [
+      {
+        "block": "process-cold|n5|s9",
+        "arm_order": [
+          "C",
+          "A",
+          "B"
+        ]
+      },
+      {
+        "block": "warm|n5|s10",
+        "arm_order": [
+          "C",
+          "A",
+          "B"
+        ]
+      },
+      {
+        "block": "warm|n5|s9",
+        "arm_order": [
+          "A",
+          "C",
+          "B"
+        ]
+      },
+      {
+        "block": "warm|n5|s4",
+        "arm_order": [
+          "A",
+          "B",
+          "C"
+        ]
+      },
+      {
+        "block": "process-cold|n5|s4",
+        "arm_order": [
+          "B",
+          "A",
+          "C"
+        ]
+      },
+      {
+        "block": "warm|n15|s8",
+        "arm_order": [
+          "B",
+          "C",
+          "A"
+        ]
+      },
+      {
+        "block": "warm|n15|s2",
+        "arm_order": [
+          "B",
+          "A",
+          "C"
+        ]
+      },
+      {
+        "block": "warm|n5|s2",
+        "arm_order": [
+          "A",
+          "B",
+          "C"
+        ]
+      },
+      {
+        "block": "process-cold|n5|s5",
+        "arm_order": [
+          "C",
+          "B",
+          "A"
+        ]
+      },
+      {
+        "block": "process-cold|n15|s10",
+        "arm_order": [
+          "C",
+          "A",
+          "B"
+        ]
+      },
+      {
+        "block": "process-cold|n5|s6",
+        "arm_order": [
+          "B",
+          "A",
+          "C"
+        ]
+      },
+      {
+        "block": "process-cold|n15|s9",
+        "arm_order": [
+          "C",
+          "B",
+          "A"
+        ]
+      },
+      {
+        "block": "process-cold|n15|s7",
+        "arm_order": [
+          "C",
+          "B",
+          "A"
+        ]
+      },
+      {
+        "block": "warm|n15|s6",
+        "arm_order": [
+          "A",
+          "C",
+          "B"
+        ]
+      },
+      {
+        "block": "process-cold|n15|s2",
+        "arm_order": [
+          "C",
+          "A",
+          "B"
+        ]
+      },
+      {
+        "block": "process-cold|n5|s7",
+        "arm_order": [
+          "C",
+          "A",
+          "B"
+        ]
+      },
+      {
+        "block": "process-cold|n5|s1",
+        "arm_order": [
+          "A",
+          "C",
+          "B"
+        ]
+      },
+      {
+        "block": "warm|n5|s7",
+        "arm_order": [
+          "C",
+          "B",
+          "A"
+        ]
+      },
+      {
+        "block": "warm|n15|s9",
+        "arm_order": [
+          "C",
+          "B",
+          "A"
+        ]
+      },
+      {
+        "block": "process-cold|n15|s6",
+        "arm_order": [
+          "B",
+          "A",
+          "C"
+        ]
+      },
+      {
+        "block": "process-cold|n5|s10",
+        "arm_order": [
+          "B",
+          "C",
+          "A"
+        ]
+      },
+      {
+        "block": "warm|n5|s8",
+        "arm_order": [
+          "A",
+          "C",
+          "B"
+        ]
+      },
+      {
+        "block": "process-cold|n15|s5",
+        "arm_order": [
+          "A",
+          "B",
+          "C"
+        ]
+      },
+      {
+        "block": "warm|n15|s3",
+        "arm_order": [
+          "B",
+          "C",
+          "A"
+        ]
+      },
+      {
+        "block": "process-cold|n15|s1",
+        "arm_order": [
+          "B",
+          "C",
+          "A"
+        ]
+      },
+      {
+        "block": "process-cold|n5|s2",
+        "arm_order": [
+          "C",
+          "A",
+          "B"
+        ]
+      },
+      {
+        "block": "process-cold|n5|s8",
+        "arm_order": [
+          "B",
+          "C",
+          "A"
+        ]
+      },
+      {
+        "block": "process-cold|n15|s3",
+        "arm_order": [
+          "C",
+          "B",
+          "A"
+        ]
+      },
+      {
+        "block": "warm|n15|s7",
+        "arm_order": [
+          "C",
+          "B",
+          "A"
+        ]
+      },
+      {
+        "block": "warm|n5|s5",
+        "arm_order": [
+          "C",
+          "B",
+          "A"
+        ]
+      },
+      {
+        "block": "process-cold|n15|s4",
+        "arm_order": [
+          "A",
+          "B",
+          "C"
+        ]
+      },
+      {
+        "block": "process-cold|n5|s3",
+        "arm_order": [
+          "B",
+          "C",
+          "A"
+        ]
+      },
+      {
+        "block": "warm|n5|s3",
+        "arm_order": [
+          "B",
+          "C",
+          "A"
+        ]
+      },
+      {
+        "block": "warm|n15|s10",
+        "arm_order": [
+          "C",
+          "A",
+          "B"
+        ]
+      },
+      {
+        "block": "warm|n15|s5",
+        "arm_order": [
+          "C",
+          "B",
+          "A"
+        ]
+      },
+      {
+        "block": "warm|n5|s6",
+        "arm_order": [
+          "B",
+          "C",
+          "A"
+        ]
+      },
+      {
+        "block": "warm|n15|s4",
+        "arm_order": [
+          "B",
+          "A",
+          "C"
+        ]
+      },
+      {
+        "block": "warm|n15|s1",
+        "arm_order": [
+          "A",
+          "B",
+          "C"
+        ]
+      },
+      {
+        "block": "process-cold|n15|s8",
+        "arm_order": [
+          "B",
+          "A",
+          "C"
+        ]
+      },
+      {
+        "block": "warm|n5|s1",
+        "arm_order": [
+          "A",
+          "B",
+          "C"
+        ]
+      }
+    ],
+    "tag": "CALIBRATION_ONLY"
+  },
+  "planned_process_spawns": 2640,
+  "stop_conditions": [],
+  "verdict": "PLAN ONLY. Arms built, B1-B4 passed on these exact bytes, identities frozen, execution order fixed. No clock was started and none is authorised: the calibration pass is a separate decision.",
+  "measurements": null
+}

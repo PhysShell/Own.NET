@@ -781,6 +781,59 @@ emitted through inline asm with empty flags really is absent from every
 all — gcc marked the custom section `SHF_ALLOC` anyway and B2 passed it
 correctly — which is why the mutation was checked before being believed.
 
+### The execution contract, and a defect that keeps coming back
+
+The Round 7 apparatus classified correctly and measured nothing, which turned
+out to be three different silences. The owner's implementation review passed the
+code and then asked what the design still did not say: **which bytes get timed,
+in what order, doing how much work.**
+
+**Which bytes.** The committed preflight proves properties of specific sha256s.
+Any runner that preflighted, dropped its temporary directory, rebuilt and then
+measured would be proving things about one pair of arms and timing a different
+pair with the same filenames. `runner.py` is therefore one transaction — bind,
+build once, preflight *those* files, freeze sha256 and byte length, then time
+*those same* files with identity re-verified before every block and after the
+last, all outside the clock.
+
+**In what order.** The preregistration fixed session and half counts and said
+nothing about order, which is enough to lose the whole round: all of A, then all
+of B, then all of C, and an hour of machine drift becomes "the effect of the
+real binary" — a result that would have survived every other check in the PR.
+Blocked randomisation now: 40 blocks of `(regime, n, session)`, all three arms
+inside each block with an arm's halves adjacent, arm order and block order both
+deterministically shuffled, seed and planned and actual order all recorded.
+
+The seed is `0xf937b36bd4dac422`, the first 16 hex digits of the Round 6
+helper's sha256. Not a number I picked: a literal of my own would be equally
+deterministic and strictly less auditable, since nothing but my word would stop
+me re-rolling it until the printed order looked tidy. A control compares the
+constant against the committed artifact.
+
+**How much work.** "The Round 6 helper at its 2 ms rung" was prose. It is now
+read from the ladder that established it — 460280 iterations — with a stop
+condition requiring arm A's sha256 to equal that file's `helper_sha256`. Arm A
+as built already **is** that helper, byte for byte, so nothing needed
+recalibrating. If a future build differs the round stops rather than hunting for
+a new iteration count, which would be a knob turned after authorisation.
+
+**Nine mutations, and the third recurrence of one defect.** Eight came back with
+a finding that named the cause. The ninth — hard-coding the work count instead of
+binding it — exited non-zero with no `FAIL` line, because the control crashed
+before reporting. That is the same shape recorded twice already.
+
+It was caught this time because the mutation runner itself was changed to demand
+a `FAIL` line rather than a non-zero exit, having been fooled by exactly this
+twice. The crash then exposed a genuine defect rather than a test artifact:
+`bind_work` called `Path.relative_to(ROOT)` and raised `ValueError` on any ladder
+outside the repository, which is precisely what a fixture passes it. Both were
+fixed: the path now falls back to a bare name, and the control reports an
+unexpected raise instead of dying on it.
+
+The lesson has now cost three rounds, and the durable fix was not another
+resolution to be careful. It was making the tool that scores mutations unable to
+accept silence as success.
+
 ### Both pairs are stale, and are not re-recorded
 
 The digest moved from `2d6e52fe4352` to `6713e7300c7c`, and again to

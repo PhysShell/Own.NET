@@ -1,13 +1,15 @@
 # Round 7 — what a real invocation does that a synthetic one does not
 
-**STATUS: RATIFIED DESIGN. APPARATUS BUILT. B1–B4 PREFLIGHT PASSED.
-NO ROUND 7 MEASUREMENT IS AUTHORISED AND NONE EXISTS.**
+**STATUS: RATIFIED DESIGN. APPARATUS BUILT. B1–B4 PASSED. PLAN-MODE DRY RUN
+DONE. NO ROUND 7 MEASUREMENT IS AUTHORISED AND NONE EXISTS.**
 
-Amended twice. The first review ruled **CHANGES REQUIRED** and decided four
-design questions. The second ruled **PASS WITH ONE MECHANICAL CORRECTION**,
-ratified a narrower zero rule than the one proposed here, and authorised
-building the apparatus and running the structural preflight — and nothing with a
-clock in it.
+Amended three times. The first review ruled **CHANGES REQUIRED** and decided
+four design questions. The second ruled **PASS WITH ONE MECHANICAL CORRECTION**
+and ratified a narrower zero rule than the one proposed here. The third reviewed
+the implementation, ruled it **PASS**, and then found what the design still did
+not say: which bytes get timed, in what order, doing how much work. Those three
+gaps are closed below. Timing remains **NO-GO** pending a check of exactly these
+bindings.
 
 **Tag:** `CALIBRATION_ONLY`. No decisive workload, no threshold, no budget, no
 D7 freeze. `0.35` is not consulted anywhere in this round, including in the
@@ -250,6 +252,95 @@ independent sessions per (arm, n, regime)**.
 Ten sessions rather than Round 6's five because this round compares arms against
 each other, not a single arm against a memory.
 
+`schedule.process_spawns()` **computes** 2640 from the plan, and a control
+compares the two. A number quoted in a document and calculated nowhere is a
+number that drifts the first time anything around it changes.
+
+## The execution contract
+
+The design said what to measure and what the numbers would mean. It did not say
+which bytes get timed, in what order, or doing how much work — three holes that
+no amount of correct classification would have covered.
+
+### Which bytes: one transaction, not two
+
+`scripts/round7/runner.py` does this and nothing else:
+
+    bind work iterations to the Round 6 2 ms rung
+            ↓
+    build arm A and arm B ONCE
+            ↓
+    B1–B4 on THOSE EXACT FILES
+            ↓
+    freeze sha256 and byte length of A, B and C
+            ↓
+    [plan mode returns here, before any clock]
+            ↓
+    time THOSE SAME FILES, re-verifying identity before every block
+            ↓
+    re-verify identity after the last block
+
+The committed preflight proves properties of specific bytes. A runner that
+preflighted, discarded its temporary directory, rebuilt and then measured would
+prove things about one pair of arms and time a different pair sharing their
+names — this project's oldest and most familiar defect, wearing a lab coat.
+
+Identity is re-verified **before every block and after the last**: 41 checks,
+all outside the clock, against the alternative of discovering mid-dataset that
+something rebuilt an arm underneath the round.
+
+**Plan mode is not a flag that skips the timing loop.** It returns before the
+timing function is reachable, and `round7-execution-contract` counts calls to
+that function rather than believing this paragraph. Under a mutation that
+deletes the early return, the count comes back 240.
+
+### In what order: blocked randomisation, seeded before the data
+
+The previous draft fixed how many sessions and halves and said nothing about
+order. Run every A, then every B, then every C, and a machine that drifts over
+an hour hands back a beautiful "effect of the real binary" — a result that would
+survive every other check in this document.
+
+The ratified schedule:
+
+| | |
+|---|---|
+| block | `(regime, n, session)` — 2 × 2 × 10 = **40 blocks** |
+| within a block | all three arms run, each arm's two halves **adjacent**, arm order deterministically shuffled |
+| across blocks | block order deterministically shuffled |
+| seed | fixed and committed before any measurement |
+| recorded | seed, planned order, **and actual order** |
+
+Blocked rather than a Latin square: drift is spread across arms instead of
+aligning with them, and every block contains all three arms, so a within-block
+comparison is never a comparison across an hour of machine time.
+
+**The seed is `0xf937b36bd4dac422`** — the first 16 hex digits of the Round 6
+helper's sha256, as committed in
+`docs/evidence/round6/p022-263a-round6-scales.linux.json` rounds before this one
+existed. A literal I invented would be equally deterministic and strictly less
+auditable: nothing but my word would stop me re-rolling it until the order
+looked tidy. A control checks the constant against that artifact, and catches a
+substituted seed.
+
+### Doing how much work: bound to the ladder, not to memory
+
+The draft said "the Round 6 C helper, at its 2 ms rung" and left the number in
+prose. It is now read from the artifact that established it:
+
+| | |
+|---|---|
+| iterations | **460280** |
+| source | `docs/evidence/round6/p022-263a-round6-scales.linux.json`, 2 ms rung |
+| Round 6 achieved | 2.0128 ms |
+| stop condition | arm A's sha256 must equal that file's `helper_sha256` |
+
+Arm A as built **is** the Round 6 helper — `f937b36bd4dac422…`, byte-identical,
+so nothing needed recalibrating. If a future build ever differs, the round
+**stops**. It does not go looking for a fresh iteration count that lands near
+2 ms; that would be calibrating a new knob after authorisation, which is the
+move this round exists to forbid.
+
 ## The overlap that made the previous outcome table unreadable
 
 The owner found that the previous table's P1 and P4 could both fire on the same
@@ -404,13 +495,16 @@ offers, which is worth knowing.
 
 ## Authorisation state
 
-**Authorised and done:** both amendments; the `_run_once` extension; the
-apparatus; the B1–B4 structural preflight; controls and mutations; CI.
+**Authorised and done:** all three amendments; the `_run_once` extension; the
+apparatus; the B1–B4 structural preflight; the execution contract, schedule and
+work binding; the **plan-mode dry run**; controls and mutations; CI.
 
-**Not authorised:** any Round 7 timing or resource measurement — the calibration
-pass itself; re-recording the sizing pairs; a calibration of record; the D7
+**Not authorised:** the Round 7 calibration pass itself — any timing or resource
+measurement; re-recording the sizing pairs; a calibration of record; the D7
 freeze; #263-B; merge; Stage 3; Stage 4.
 
-The next step is a short exact-head implementation review. If it finds no new
-methodological change, the decision after it is GO or NO-GO on the measurements
-themselves.
+The plan-mode record is committed at
+`docs/evidence/round7/p022-263a-round7-plan.linux.json`: arms built, B1–B4
+passed on those bytes, identities frozen, 40 blocks and 240 halves fixed, zero
+clocks started. The next decision is GO or NO-GO on the measurements, after a
+check of these three bindings.

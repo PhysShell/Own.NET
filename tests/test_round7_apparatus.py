@@ -10,6 +10,8 @@ than by reading them:
     round7-boundaries           every rule's exact edge lands where it was ratified
     round7-regime-reading       n-disagreement is P5; a cold/warm split is not
     round7-preflight            B1-B4 pass on healthy arms and each refuses its own damage
+    round7-schedule             the execution order is blocked, seeded, and replayable
+    round7-execution-contract   plan mode starts no clock; the timed bytes are the preflighted ones
 
 The exclusivity control matters most. The previous draft's outcome table let one
 dataset satisfy two contradictory verdicts, and nothing in the process that
@@ -25,6 +27,7 @@ Run:  python tests/test_round7_apparatus.py
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
@@ -38,6 +41,8 @@ sys.path.insert(0, str(ROOT / "scripts" / "round7"))
 
 import classify as cl  # noqa: E402
 import preflight as pf  # noqa: E402
+import runner as rn  # noqa: E402
+import schedule as sch  # noqa: E402
 from elfread import Elf64  # noqa: E402
 
 _FAILURES: list[tuple[str, str]] = []
@@ -420,12 +425,227 @@ def _gcc(args: list[str], problems: list[str]) -> None:
                         + r.stderr.decode("utf-8", "replace")[:200])
 
 
+# --- the execution contract ------------------------------------------------
+
+
+def control_schedule() -> None:
+    """The order arms run in is fixed before the data, and replayable after it.
+
+    The preregistration fixed how many sessions and halves and said nothing
+    about order. Run every A, then every B, then every C, and machine drift
+    becomes "the effect of the real binary" -- a result that would survive every
+    other check in this PR.
+    """
+    problems = []
+    blocks = sch.blocks()
+    halves = sch.planned_halves()
+
+    # (1) The design, counted rather than described.
+    want_blocks = len(sch.REGIMES) * len(sch.REPETITION_COUNTS) * sch.SESSIONS
+    if len(blocks) != want_blocks:
+        problems.append(f"{len(blocks)} blocks, want {want_blocks} (2 regimes x 2 counts "
+                        f"x {sch.SESSIONS} sessions)")
+    if len(halves) != want_blocks * 6:
+        problems.append(f"{len(halves)} halves, want {want_blocks * 6}")
+    cells = [b.key for b in blocks]
+    if len(set(cells)) != len(cells):
+        problems.append("a (regime, n, session) cell appears twice in the schedule")
+    expected_cells = {f"{r}|n{n}|s{s}" for r in sch.REGIMES
+                      for n in sch.REPETITION_COUNTS for s in range(1, sch.SESSIONS + 1)}
+    if set(cells) != expected_cells:
+        problems.append(f"the schedule does not cover the design: missing "
+                        f"{sorted(expected_cells - set(cells))[:3]}")
+
+    # (2) Every block runs all three arms, with each arm's halves ADJACENT.
+    for b in blocks:
+        if sorted(b.arm_order) != sorted(sch.ARMS):
+            problems.append(f"block {b.key} runs {b.arm_order}, not all three arms")
+            break
+        seq = [(h.arm, h.half) for h in b.halves]
+        for i in range(0, len(seq), 2):
+            if seq[i][1] != "first" or seq[i + 1][1] != "second" or seq[i][0] != seq[i + 1][0]:
+                problems.append(f"block {b.key} splits an arm's halves: {seq}")
+                break
+
+    # (3) Shuffled, not merely claimed to be. A constant arm order, or a block
+    # order equal to the generated order, would satisfy every check above.
+    if len({b.arm_order for b in blocks}) < 2:
+        problems.append(f"every block uses the same arm order {blocks[0].arm_order}: "
+                        "the within-block shuffle is doing nothing, and drift would "
+                        "align with arms exactly as if nothing were shuffled")
+    generated = [f"{r}|n{n}|s{s}" for r in sch.REGIMES
+                 for n in sch.REPETITION_COUNTS for s in range(1, sch.SESSIONS + 1)]
+    if cells == generated:
+        problems.append("the block order is the generation order; the outer shuffle is "
+                        "doing nothing and all of process-cold would run before all warm")
+
+    # (4) Deterministic, and sensitive to the seed. A schedule nobody can replay
+    # is a fond memory; one that ignores its seed is not randomised at all.
+    if [b.key for b in sch.blocks()] != cells:
+        problems.append("two calls with the same seed produced different orders")
+    other = [b.key for b in sch.blocks(seed=sch.SCHEDULE_SEED ^ 0xFFFF)]
+    if other == cells:
+        problems.append("a different seed produced an identical order; the seed is "
+                        "decorative")
+
+    # (5) The seed is the Round 6 helper's, not a number I chose. Checked
+    # against the committed artifact rather than against the comment claiming it.
+    scales = json.loads((ROOT / "docs/evidence/round6/p022-263a-round6-scales.linux.json")
+                        .read_text(encoding="utf-8"))
+    want_seed = int(scales["helper_sha256"][:16], 16)
+    if sch.SCHEDULE_SEED != want_seed:
+        problems.append(f"the seed 0x{sch.SCHEDULE_SEED:016x} is not the Round 6 helper's "
+                        f"0x{want_seed:016x}: it is a number someone picked, and nothing "
+                        "stops it being re-picked until the order looks tidy")
+
+    # (6) The spawn count is computed from the plan, not quoted from prose.
+    spawns = sch.process_spawns(warmup_discards=2)
+    if spawns != 2640:
+        problems.append(f"the plan spawns {spawns} processes; the preregistration says "
+                        "2640, and a quoted number nothing computes is one that drifts")
+
+    if problems:
+        fail("round7-schedule", "; ".join(problems))
+    else:
+        ok("round7-schedule", f"{len(blocks)} blocks x 6 halves = {len(halves)}, every "
+                              f"(regime, n, session) exactly once, each arm's halves "
+                              f"adjacent, {len({b.arm_order for b in blocks})} distinct arm "
+                              f"orders, replayable from the seed and different without it; "
+                              f"{spawns} planned spawns computed from the plan")
+
+
+def control_execution_contract() -> None:
+    """Plan mode starts no clock, and the timed bytes are the preflighted bytes."""
+    problems = []
+
+    # (1) The work binding reads Round 6's ladder rather than remembering it.
+    binding = rn.bind_work()
+    if binding.iterations != 460280:
+        problems.append(f"the 2 ms rung binds {binding.iterations} iterations, not 460280")
+    if not binding.helper_sha256:
+        problems.append("the binding carries no helper sha256, so arm A cannot be checked "
+                        "against the ladder that gave it its iteration count")
+    # And it refuses a ladder that cannot supply one, rather than inventing a count.
+    with tempfile.TemporaryDirectory(prefix="round7-bind-") as td:
+        bad = Path(td) / "scales.json"
+        bad.write_text(json.dumps({"helper_sha256": "x", "rungs": [{"target_ms": 4}]}),
+                       encoding="utf-8")
+        try:
+            rn.bind_work(bad)
+        except rn.ExecutionContractBreach:
+            pass
+        except Exception as exc:
+            # Reported, not raised. A control that dies here exits non-zero with
+            # no FAIL line, which reads as "caught" to a mutation runner counting
+            # exit codes and as nothing at all to a human reading CI.
+            problems.append(f"bind_work raised {type(exc).__name__} instead of refusing a "
+                            f"ladder with no 2 ms rung: {exc}")
+        else:
+            problems.append("a ladder with no 2 ms rung was accepted; the arms' work would "
+                            "be whatever the runner felt like")
+
+    if sys.platform != "linux" or shutil.which("gcc") is None:
+        if problems:
+            fail("round7-execution-contract", "; ".join(problems))
+        else:
+            ok("round7-execution-contract", f"the work binding reads 460280 from Round 6's "
+                                            f"ladder and refuses one without a 2 ms rung; "
+                                            f"the arm-identity half needs ELF arms and is "
+                                            f"skipped on {sys.platform}")
+        return
+
+    candidate = ROOT / "rust/target/release/own-cli"
+    if not candidate.is_file():
+        ok("round7-execution-contract", "the work binding holds; arm C is not built here, "
+                                        "so the identity freeze was not exercised")
+        return
+
+    with tempfile.TemporaryDirectory(prefix="round7-exec-") as td:
+        tmp = Path(td)
+        # (2) Plan mode starts no clock. COUNTED, at the one function that can.
+        calls = {"n": 0}
+        real = rn.time_half
+
+        def counting(*a: object, **k: object) -> dict[str, object]:
+            calls["n"] += 1
+            return real(*a, **k)                        # type: ignore[arg-type]
+
+        rn.time_half = counting                         # type: ignore[assignment]
+        try:
+            record = rn.run(candidate, tmp / "arms", measure=False)
+        finally:
+            rn.time_half = real                         # type: ignore[assignment]
+        if calls["n"]:
+            problems.append(f"plan mode called the timing function {calls['n']} times; it "
+                            "must return before the clock is reachable at all")
+        if record["measurements"] is not None:
+            problems.append("plan mode produced measurements")
+        if record["stop_conditions"]:
+            problems.append(f"plan mode stopped: {record['stop_conditions']}")
+
+        # (3) The freeze covers all three arms with sha256 AND byte length.
+        frozen = record["frozen_arms"]
+        if not isinstance(frozen, dict) or set(frozen) != {"A", "B", "C"}:
+            problems.append(f"the identity freeze covers {frozen} rather than all three arms")
+        else:
+            for role, row in frozen.items():
+                if not row.get("sha256") or not row.get("file_bytes"):
+                    problems.append(f"arm {role}'s freeze lacks a sha256 or a byte length")
+
+        # (4) A byte changed after the freeze is refused. Actually changed, on
+        # disk, not simulated: this is the defect the whole transaction exists
+        # to prevent, and a fixture that edited a dict would prove nothing.
+        prepared = rn.prepare(candidate, tmp / "arms2")
+        arm_b = prepared.frozen["B"].path
+        arm_b.write_bytes(arm_b.read_bytes() + b"\x00")
+        try:
+            rn.verify_identities(prepared.frozen, "after a deliberate tamper")
+        except rn.ExecutionContractBreach as exc:
+            if "changed since the freeze" not in str(exc):
+                problems.append(f"the refusal does not say what happened: {exc}")
+        else:
+            problems.append("an arm rebuilt after the freeze was accepted for timing — the "
+                            "preflight would prove properties of bytes that are gone")
+        # And a deleted arm, which is the rebuild-in-a-temp-dir case exactly.
+        arm_b.unlink()
+        try:
+            rn.verify_identities(prepared.frozen, "after a deliberate delete")
+        except rn.ExecutionContractBreach:
+            pass
+        else:
+            problems.append("a missing arm was accepted for timing")
+
+        # (5) Arm A must BE the Round 6 helper, by sha, or the round stops.
+        # Both directions: the real arm accepted, a stand-in refused by name.
+        if not prepared.binding_ok:
+            problems.append(f"arm A does not match the Round 6 helper: "
+                            f"{prepared.binding_problem}")
+        ok_, why_ = rn.check_binding("0" * 64, binding)
+        if ok_:
+            problems.append("a binary that is not the Round 6 helper was accepted as arm "
+                            "A; 460280 iterations would then mean whatever that binary "
+                            "happens to do, not 2 ms")
+        elif "do not re-derive" not in why_:
+            problems.append(f"the binding refusal does not forbid re-deriving a count: {why_}")
+
+    if problems:
+        fail("round7-execution-contract", "; ".join(problems))
+    else:
+        ok("round7-execution-contract", "plan mode calls the timing function zero times; "
+                                        "the freeze carries sha256 and byte length for all "
+                                        "three arms; a tampered or deleted arm is refused "
+                                        "by name; and arm A is byte-identical to Round 6's "
+                                        "2 ms helper")
+
+
 def run() -> int:
     control_outcome_exclusivity()
     control_zero_guard()
     control_boundaries()
     control_regime_reading()
     control_preflight()
+    control_schedule()
+    control_execution_contract()
     print()
     print(f"round 7 apparatus controls: {len(_PASSES)} passed, {len(_FAILURES)} failed")
     return 1 if _FAILURES else 0

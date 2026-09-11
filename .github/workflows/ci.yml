@@ -2937,6 +2937,16 @@ jobs:
       # produced it would have noticed.
       - name: Round 7 apparatus controls (outcome exclusivity, zero guard, B1-B4)
         run: python tests/test_round7_apparatus.py
+      # Plan mode builds the arms, preflights THOSE bytes, freezes their
+      # identities and fixes the execution order — then returns before the
+      # timing function is reachable. Linux only: the arms are ELF binaries.
+      - name: Round 7 runner — plan mode, no clock started
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          python scripts/round7/runner.py \
+            --candidate "$PWD/rust/target/release/own-cli" \
+            --plan --build-dir "$RUNNER_TEMP/round7-arms" \
+            --out "$RUNNER_TEMP/round7-plan.json"
       # Decisive workloads: availability and pins only. No clock, no resource
       # sampling — this step is what "enumerated, hashed, availability-checked"
       # looks like when it is the only thing permitted.
