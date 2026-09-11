@@ -13,6 +13,7 @@ than by reading them:
     round7-schedule             the execution order is blocked, seeded, and replayable
     round7-execution-contract   plan mode starts no clock; the timed bytes are the preflighted ones
     round7-outcome-contract     every spawn, warmups included, did the work its arm exists to do
+    round7-durable-refusal      an invalid run leaves a black box, not just a traceback
 
 The exclusivity control matters most. The previous draft's outcome table let one
 dataset satisfy two contradictory verdicts, and nothing in the process that
@@ -700,13 +701,17 @@ def control_outcome_contract() -> None:
         try:
             rn.time_half(h, half, argv, env, cwd, repetitions=5, discards=2)
         except rn.OutcomeContractBreach as exc:
-            s0 = exc.strays[0]
-            if s0["kind"] != "sample" or s0["observed_rc"] != bad_rc:
+            s0 = exc.stray
+            if s0["spawn_kind"] != "sample" or s0["observed_rc"] != bad_rc:
                 problems.append(f"a sample exiting {bad_rc} was recorded as {s0}")
-            for field in ("block", "arm", "half", "kind", "index", "observed_rc"):
+            for field in ("block", "arm", "half", "spawn_kind", "index", "observed_rc"):
                 if field not in s0:
                     problems.append(f"the stray record omits {field!r}: "
                                     "'something exited wrong somewhere' is not a record")
+            # And nothing kept spawning after the breach was known.
+            if h.spawns != 4:
+                problems.append(f"{h.spawns} spawns after a breach at spawn 4; the half "
+                                "kept running processes whose numbers nobody may use")
         else:
             problems.append(f"arm C exiting {bad_rc} was accepted as a calibration "
                             "sample — exactly the shape that timed 12 "
@@ -718,8 +723,8 @@ def control_outcome_contract() -> None:
     try:
         rn.time_half(h, half, argv, env, cwd, repetitions=5, discards=2)
     except rn.OutcomeContractBreach as exc:
-        if exc.strays[0]["kind"] != "warmup" or exc.strays[0]["index"] != 1:
-            problems.append(f"the failing warmup was misrecorded: {exc.strays[0]}")
+        if exc.stray["spawn_kind"] != "warmup" or exc.stray["index"] != 1:
+            problems.append(f"the failing warmup was misrecorded: {exc.stray}")
     else:
         problems.append("a warmup discard that failed was ignored; a discarded iteration "
                         "still proves the process is broken")
@@ -816,6 +821,158 @@ def control_outcome_contract() -> None:
                                       "where exit 2 alone is not sufficient")
 
 
+def control_durable_refusal() -> None:
+    """An invalid run writes a black box. Checked from OUTSIDE, on the filesystem.
+
+    `round7-outcome-contract` proves the runner refuses. It proves it by reading
+    the exception object, which is the same mistake as scoring a mutation by its
+    exit code: the refusal happened, and nothing survived to say so. Until this
+    control existed, a stray exit on half 239 produced a traceback, no `--out`
+    file, and nothing to investigate.
+
+    So this one never looks at an exception. It drives `main()` and then reads
+    the filesystem: the file exists, the exit code is non-zero, the record says
+    `run_valid: false`, `measurements` is null, and the abort names the exact
+    spawn or the exact arm.
+    """
+    if sys.platform != "linux" or shutil.which("gcc") is None:
+        ok("round7-durable-refusal", f"skipped on {sys.platform}: driving the runner "
+                                     "needs the ELF arms it builds with gcc")
+        return
+    candidate = ROOT / "rust/target/release/own-cli"
+    if not candidate.is_file():
+        ok("round7-durable-refusal", "arm C is not built here, so the runner could not "
+                                     "be driven to a refusal")
+        return
+
+    problems = []
+
+    def drive(out: Path, build: Path) -> int:
+        """Run the runner, turning an escaping exception into a finding.
+
+        Without this catch, the exact defect this control exists to detect --
+        a breach escaping `run()` -- kills the control instead of being reported
+        by it. That is the fifth appearance of crash-instead-of-finding in this
+        PR, and the first inside the control written to catch that very shape.
+        Returning 1 lets the checks below report the missing file as the finding
+        it is.
+        """
+        argv = ["runner.py", "--candidate", str(candidate), "--measure",
+                "--build-dir", str(build), "--out", str(out)]
+        real_argv = sys.argv
+        sys.argv = argv
+        try:
+            return rn.main()
+        except Exception as exc:
+            problems.append(f"the runner let {type(exc).__name__} escape instead of "
+                            f"recording it: {str(exc)[:120]}")
+            return 1
+        finally:
+            sys.argv = real_argv
+
+    def check(label: str, out: Path, code: int, want_kind: str,
+              must_name: list[str]) -> None:
+        if not out.is_file():
+            problems.append(f"{label}: the runner refused and wrote NO record — the "
+                            "refusal is a traceback and nothing else")
+            return
+        if code == 0:
+            problems.append(f"{label}: exit code 0 for an invalid run")
+        rec = json.loads(out.read_text(encoding="utf-8"))
+        if rec.get("run_valid") is not False:
+            problems.append(f"{label}: run_valid is {rec.get('run_valid')!r}, not False")
+        if rec.get("measurements") is not None:
+            problems.append(f"{label}: an invalid run carries measurements")
+        abort = rec.get("abort")
+        if not isinstance(abort, dict):
+            problems.append(f"{label}: no abort block")
+            return
+        if abort.get("kind") != want_kind:
+            problems.append(f"{label}: abort kind {abort.get('kind')!r}, want {want_kind!r}")
+        missing = [k for k in must_name if k not in abort]
+        if missing:
+            problems.append(f"{label}: the abort does not name {missing}; "
+                            f"it says only {sorted(abort)}")
+        if "verdict" not in rec or "INVALID" not in str(rec["verdict"]):
+            problems.append(f"{label}: the verdict does not say INVALID")
+        for key in ("timing", "classification", "outcome"):
+            if key in rec and key not in ("outcome_preflight",):
+                problems.append(f"{label}: an invalid run carries {key!r}")
+
+    with tempfile.TemporaryDirectory(prefix="round7-durable-") as td:
+        tmp = Path(td)
+
+        # (1) A stray exit code. time_half is replaced so NO real timing happens:
+        #     the point is the refusal path, not the clock, and no Round 7
+        #     measurement is authorised.
+        out1 = tmp / "stray.json"
+        real_time_half = rn.time_half
+
+        def raising(*a: object, **k: object) -> dict[str, object]:
+            raise rn.OutcomeContractBreach(
+                {"block": "warm|n5|s3", "arm": "C", "half": "second",
+                 "spawn_kind": "sample", "index": 4, "observed_rc": 127,
+                 "expected_rc": 2})
+
+        rn.time_half = raising                          # type: ignore[assignment]
+        try:
+            code1 = drive(out1, tmp / "arms1")
+        finally:
+            rn.time_half = real_time_half                # type: ignore[assignment]
+        check("stray exit", out1, code1, "outcome-contract",
+              ["arm", "block", "half", "spawn_kind", "index", "observed_rc", "expected_rc"])
+
+        # (2) Identity drift mid-run, DETECTED for real: the arm's bytes are
+        #     actually changed on disk and the real verifier notices.
+        out2 = tmp / "drift.json"
+        real_verify = rn.verify_identities
+        state = {"tampered": False}
+
+        def tamper_then_verify(frozen: dict[str, object], when: str) -> None:
+            if not state["tampered"]:
+                state["tampered"] = True
+                arm_b = frozen["B"].path                 # type: ignore[attr-defined]
+                arm_b.write_bytes(arm_b.read_bytes() + b"\x00")
+            real_verify(frozen, when)                    # type: ignore[arg-type]
+
+        rn.verify_identities = tamper_then_verify        # type: ignore[assignment]
+        try:
+            code2 = drive(out2, tmp / "arms2")
+        finally:
+            rn.verify_identities = real_verify           # type: ignore[assignment]
+        check("identity drift", out2, code2, "identity-contract",
+              ["arm", "when", "expected_sha256", "observed_sha256"])
+
+        # (3) The healthy path still reports itself valid, or this control would
+        #     pass just as well against a runner that called everything invalid.
+        out3 = tmp / "plan.json"
+        argv = ["runner.py", "--candidate", str(candidate), "--plan",
+                "--build-dir", str(tmp / "arms3"), "--out", str(out3)]
+        real_argv = sys.argv
+        sys.argv = argv
+        try:
+            code3 = rn.main()
+        finally:
+            sys.argv = real_argv
+        if code3 != 0 or not out3.is_file():
+            problems.append(f"a healthy plan run exited {code3} or wrote no record")
+        else:
+            rec3 = json.loads(out3.read_text(encoding="utf-8"))
+            if rec3.get("run_valid") is not True:
+                problems.append(f"a healthy plan run reports run_valid "
+                                f"{rec3.get('run_valid')!r}")
+            if "abort" in rec3:
+                problems.append("a healthy plan run carries an abort block")
+
+    if problems:
+        fail("round7-durable-refusal", "; ".join(problems))
+    else:
+        ok("round7-durable-refusal", "a stray exit and a real mid-run identity drift each "
+                                     "leave a written record with run_valid false, null "
+                                     "measurements, and an abort naming the exact spawn or "
+                                     "arm; a healthy run still reports itself valid")
+
+
 def run() -> int:
     control_outcome_exclusivity()
     control_zero_guard()
@@ -825,6 +982,7 @@ def run() -> int:
     control_schedule()
     control_execution_contract()
     control_outcome_contract()
+    control_durable_refusal()
     print()
     print(f"round 7 apparatus controls: {len(_PASSES)} passed, {len(_FAILURES)} failed")
     return 1 if _FAILURES else 0

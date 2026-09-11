@@ -59,25 +59,54 @@ TAG = "CALIBRATION_ONLY"
 
 
 class ExecutionContractBreach(Exception):
-    """The round was asked to measure something it did not preflight."""
+    """The round was asked to measure something it did not preflight.
+
+    Every breach carries structured `detail` so the abort record names the exact
+    spawn or the exact arm, rather than a sentence someone would have to parse.
+    One base class and one catch boundary: an invalid run leaves the same shaped
+    black box whichever contract it broke.
+    """
+
+    kind = "execution-contract"
+
+    def detail(self) -> dict[str, object]:
+        return {}
 
 
 class OutcomeContractBreach(ExecutionContractBreach):
     """A timed process did not do the work its arm exists to do.
 
-    Carries every stray spawn — arm, block, half, whether it was a warmup
-    discard or a counted sample, its index, and the exit code observed — because
-    "something exited wrong somewhere" is not a record anyone can act on.
+    Raised on the FIRST stray, not after finishing the half. Once a contract
+    breach is known, spawning more processes measures nothing anyone may use.
     """
 
-    def __init__(self, strays: list[dict[str, object]]) -> None:
-        self.strays = strays
-        first = strays[0]
+    kind = "outcome-contract"
+
+    def __init__(self, stray: dict[str, object]) -> None:
+        self.stray = stray
         super().__init__(
-            f"{len(strays)} spawn(s) exited outside their arm's contract, first at "
-            f"{first['block']} {first['arm']}/{first['half']} {first['kind']} "
-            f"#{first['index']}: rc {first['observed_rc']}, expected "
-            f"{first['expected_rc']}. The run is INVALID and is not classified.")
+            f"{stray['block']} {stray['arm']}/{stray['half']} {stray['spawn_kind']} "
+            f"#{stray['index']} exited {stray['observed_rc']}, expected "
+            f"{stray['expected_rc']}. The run is INVALID and is not classified.")
+
+    def detail(self) -> dict[str, object]:
+        return dict(self.stray)
+
+
+class IdentityContractBreach(ExecutionContractBreach):
+    """An arm's bytes moved, or vanished, after the freeze."""
+
+    kind = "identity-contract"
+
+    def __init__(self, when: str, role: str, expected: str, observed: str,
+                 why: str) -> None:
+        self.when, self.role = when, role
+        self.expected, self.observed = expected, observed
+        super().__init__(f"{when}: arm {role} — {why}")
+
+    def detail(self) -> dict[str, object]:
+        return {"when": self.when, "arm": self.role,
+                "expected_sha256": self.expected, "observed_sha256": self.observed}
 
 
 # --- P0: a timed process must have done the work its arm exists to do --------
@@ -154,15 +183,17 @@ def verify_identities(frozen: dict[str, ArmIdentity], when: str) -> None:
     """
     for role, want in frozen.items():
         if not want.path.is_file():
-            raise ExecutionContractBreach(
-                f"{when}: arm {role} ({want.path.name}) no longer exists; the bytes "
-                "that passed B1-B4 are gone and nothing may be timed against them")
+            raise IdentityContractBreach(
+                when, role, want.sha256, "",
+                f"{want.path.name} no longer exists; the bytes that passed B1-B4 are "
+                "gone and nothing may be timed against them")
         got = _identity(role, want.path)
         if got.sha256 != want.sha256 or got.bytes_ != want.bytes_:
-            raise ExecutionContractBreach(
-                f"{when}: arm {role} changed since the freeze — {want.sha256[:12]} "
-                f"({want.bytes_} bytes) became {got.sha256[:12]} ({got.bytes_} bytes). "
-                "The preflight proved properties of bytes that are no longer here.")
+            raise IdentityContractBreach(
+                when, role, want.sha256, got.sha256,
+                f"changed since the freeze — {want.sha256[:12]} ({want.bytes_} bytes) "
+                f"became {got.sha256[:12]} ({got.bytes_} bytes). The preflight proved "
+                "properties of bytes that are no longer here.")
 
 
 @dataclass(frozen=True)
@@ -396,38 +427,56 @@ def time_half(harness: object, half: sch.Half, argv: list[str], env: dict[str, s
     """
     run_once = harness._run_once                       # type: ignore[attr-defined]
     expected = EXPECTED_RC[half.arm]
-    strays: list[dict[str, object]] = []
 
-    def _check(row: dict[str, object], kind: str, index: int) -> dict[str, object]:
+    def _check(row: dict[str, object], spawn_kind: str, index: int) -> dict[str, object]:
         if int(row["rc"]) != expected:                  # type: ignore[call-overload]
-            strays.append({"block": f"{half.regime}|n{half.n}|s{half.session}",
-                           "arm": half.arm, "half": half.half, "kind": kind,
-                           "index": index, "observed_rc": row["rc"],
-                           "expected_rc": expected})
+            # Immediately. Finishing the half after a known breach would spawn
+            # more processes to produce numbers nobody is allowed to use.
+            raise OutcomeContractBreach(
+                {"block": f"{half.regime}|n{half.n}|s{half.session}", "arm": half.arm,
+                 "half": half.half, "spawn_kind": spawn_kind, "index": index,
+                 "observed_rc": row["rc"], "expected_rc": expected})
         return row
 
     for i in range(discards):
         _check(run_once(argv, env, cwd), "warmup", i)
     samples = [_check(run_once(argv, env, cwd), "sample", i) for i in range(repetitions)]
-    if strays:
-        raise OutcomeContractBreach(strays)
     return {"half": half.key, "expected_rc": expected, "samples": samples}
 
 
 # --- the pass ----------------------------------------------------------------
 
 
+def _invalid(base: dict[str, object], exc: ExecutionContractBreach) -> dict[str, object]:
+    """Turn a refusal into a durable record. The black box, not just the crash.
+
+    An exception that escapes to a traceback proves the runner refused and
+    leaves nothing behind to say so: no file, no abort, nothing to investigate
+    at 3am. That is the same shape as a control that dies before reporting,
+    which this project keeps rediscovering — here with the measurement runner
+    itself playing the part.
+    """
+    return {**base, "run_valid": False, "measurements": None,
+            "abort": {"kind": exc.kind, "reason": str(exc), **exc.detail()},
+            "verdict": f"INVALID / STOP ({exc.kind}): {exc}"}
+
+
 def run(candidate: Path, build_dir: Path, measure: bool) -> dict[str, object]:
-    prepared = prepare(candidate, build_dir)
+    base: dict[str, object] = {
+        "tag": TAG, "mode": "measure" if measure else "plan",
+        "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    try:
+        prepared = prepare(candidate, build_dir)
+    except ExecutionContractBreach as exc:
+        # Even a breach before the arms exist leaves a record.
+        return _invalid(base, exc)
     plan = sch.plan()
     spawns = sch.process_spawns(warmup_discards=WARMUP_DISCARDS)
 
     stop = prepared.stop_conditions
 
     record: dict[str, object] = {
-        "tag": TAG,
-        "mode": "measure" if measure else "plan",
-        "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        **base,
         "work_binding": prepared.binding.as_dict(),
         "preflight": {"checks": prepared.checks, "failed": prepared.preflight_failed},
         "outcome_preflight": prepared.outcome.as_dict(),
@@ -440,6 +489,7 @@ def run(candidate: Path, build_dir: Path, measure: bool) -> dict[str, object]:
     if stop:
         record["verdict"] = "STOP: " + "; ".join(stop)
         record["measurements"] = None
+        record["run_valid"] = False
         return record
 
     if not measure:
@@ -450,13 +500,32 @@ def run(candidate: Path, build_dir: Path, measure: bool) -> dict[str, object]:
             "frozen, execution order fixed. No clock was started and none is "
             "authorised: the calibration pass is a separate decision.")
         record["measurements"] = None
+        record["run_valid"] = True
         return record
 
-    record.update(_measure(prepared, candidate))
+    # The one boundary. Whichever contract breaks — a stray exit code, an arm
+    # whose bytes moved — the run ends INVALID and says so in a file.
+    partial: list[dict[str, object]] = []
+    order: list[str] = []
+    try:
+        record.update(_measure(prepared, candidate, partial, order))
+        record["run_valid"] = True
+    except ExecutionContractBreach as exc:
+        record = _invalid(record, exc)
+        record["partial_measurements"] = {
+            "not_evidence": True,
+            "why_not_evidence": "the run was refused before it finished; these halves "
+                                "are kept for investigation and must never be read as "
+                                "data, classified, or compared against anything",
+            "halves_completed": len(partial),
+            "actual_order": order,
+            "halves": partial,
+        }
     return record
 
 
-def _measure(prepared: Prepared, candidate: Path) -> dict[str, object]:
+def _measure(prepared: Prepared, candidate: Path, results: list[dict[str, object]],
+             actual_order: list[str]) -> dict[str, object]:
     """The timing pass. Identity is re-verified before every block and after the last."""
     import perf_baseline as pb
 
@@ -473,7 +542,6 @@ def _measure(prepared: Prepared, candidate: Path) -> dict[str, object]:
     argv_for = {r: _argv_for(r, frozen, prepared.binding) for r in ("A", "B", "C")}
     env = measurement_env()
 
-    results, actual_order = [], []
     for block in sch.blocks():
         verify_identities(frozen, f"before block {block.key}")
         discards = WARMUP_DISCARDS if block.regime == "warm" else 0
@@ -501,6 +569,8 @@ def main() -> int:
 
     record = run(args.candidate.resolve(), args.build_dir, measure=args.measure)
     blob = json.dumps(record, indent=2)
+    # Written on every path, refusals included. A runner that only produces a
+    # file when it succeeds has no way to tell anyone why it did not.
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(blob + "\n", encoding="utf-8")
@@ -508,7 +578,7 @@ def main() -> int:
         print(record["verdict"])
     else:
         print(blob)
-    return 1 if record["stop_conditions"] else 0
+    return 0 if record.get("run_valid") and not record.get("stop_conditions") else 1
 
 
 if __name__ == "__main__":

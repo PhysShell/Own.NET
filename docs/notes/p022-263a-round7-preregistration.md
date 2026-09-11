@@ -379,6 +379,44 @@ Only the exit code is read inside the interval. Capturing stdout there would
 change what the interval measures, which is precisely why the rich contract runs
 once, untimed, and the timed samples check rc alone.
 
+### And a refusal has to leave a black box
+
+Refusing correctly is not the same as recording the refusal. The breach escaped
+`run()`, so `main()` never reached its own `--out` write: 239 halves measured, a
+stray exit on the 240th, a traceback, and **no file at all**. Nothing to
+investigate, nothing to show anyone.
+
+The control was no better. It read `exc.strays` out of the exception object and
+called that "recorded" — the in-memory sibling of scoring a mutation by its exit
+code, and the same lesson this PR keeps paying for: read the thing, not a proxy
+for it.
+
+One boundary handles every `ExecutionContractBreach`, outcome and identity
+alike, and writes:
+
+    run_valid: false
+    measurements: null
+    verdict: INVALID / STOP (<kind>)
+    abort:
+      kind: outcome-contract | identity-contract
+      arm, block, half, spawn_kind, index, observed_rc, expected_rc
+      (identity: when, expected_sha256, observed_sha256)
+
+Halves already completed are kept as `partial_measurements`, flagged
+`not_evidence: true` with the reason attached. They exist for investigation and
+may never be read as data, classified, or compared against anything.
+
+`time_half` now raises on the **first** stray rather than finishing the half.
+Once a breach is known, more spawns only produce numbers nobody may use.
+
+`round7-durable-refusal` never looks at an exception. It drives the runner to a
+forced stray and to a **real** mid-run identity drift — arm B's bytes genuinely
+changed on disk, caught by the real verifier — and then reads the filesystem:
+the file exists, the exit code is non-zero, `run_valid` is false, `measurements`
+is null, and the abort names the exact spawn or arm. It also checks a healthy
+run still calls itself valid, so the control cannot pass by calling everything
+invalid.
+
 ## The overlap that made the previous outcome table unreadable
 
 The owner found that the previous table's P1 and P4 could both fire on the same

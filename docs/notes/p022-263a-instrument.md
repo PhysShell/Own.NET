@@ -882,6 +882,41 @@ lesson is getting expensive to keep relearning: a control is not evidence that
 something works, it is a claim that needs its own adversary — and the cheapest
 adversary available is a mutation runner that will not accept silence.
 
+### Refusing correctly is not the same as recording the refusal
+
+The Round 7 runner refused a bad run properly and then lost the evidence. The
+breach escaped `run()`, so `main()` never reached its own `--out` write: 239
+halves measured, a stray exit on the last one, a traceback, and no file. The
+instrument fell down the stairs gracefully and left no black box.
+
+The control was the same mistake one level up. It read `exc.strays` from the
+exception object and called that "recorded with arm, block, half and index" —
+in memory, where nobody at 3am can find it. It is the same family as scoring a
+mutation by its exit code: read the thing, not a proxy for it — and this is the
+first time the measurement runner itself played the part.
+
+One boundary now catches every `ExecutionContractBreach` and writes
+`run_valid: false`, null `measurements`, and a structured `abort` naming either
+the exact spawn (arm, block, half, warmup-or-sample, index, observed and
+expected rc) or the exact arm (when, expected and observed sha256). Completed
+halves survive as `partial_measurements`, flagged `not_evidence` with the reason
+attached. `time_half` raises on the first stray instead of finishing the half.
+
+`round7-durable-refusal` never inspects an exception. It drives the runner to a
+forced stray and to a real mid-run identity drift, then reads the filesystem.
+
+**And it crashed on its own first mutation.** Removing the try/except — the
+original defect, restored — let the breach escape through `rn.main()` and kill
+the control instead of being reported by it. Fifth appearance of the same shape,
+this time inside the control written to detect that shape. The mutation runner's
+insistence on a `FAIL` line is the only reason it was visible. `drive()` now
+converts an escaping exception into a finding.
+
+Seven mutations, all caught with a finding: the original escape, exit 0 on an
+invalid run, measurements retained, `run_valid` never falsified, the abort
+reduced to prose, identity drift losing its kind, and a half that keeps spawning
+after a breach is known.
+
 ### Both pairs are stale, and are not re-recorded
 
 The digest moved from `2d6e52fe4352` to `6713e7300c7c`, and again to

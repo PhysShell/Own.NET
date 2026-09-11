@@ -1,7 +1,7 @@
 {
   "tag": "CALIBRATION_ONLY",
   "mode": "plan",
-  "timestamp_utc": "2026-09-11T05:24:25Z",
+  "timestamp_utc": "2026-09-11T06:32:25Z",
   "work_binding": {
     "iterations": 460280,
     "helper_sha256": "f937b36bd4dac422f88942b87ea9794e2c75a198a034917e6c02c0abad1c0cbd",
@@ -445,5 +445,6 @@
   "planned_process_spawns": 2640,
   "stop_conditions": [],
   "verdict": "PLAN ONLY. Arms built, B1-B4 passed on these exact bytes, identities frozen, execution order fixed. No clock was started and none is authorised: the calibration pass is a separate decision.",
-  "measurements": null
+  "measurements": null,
+  "run_valid": true
 }
