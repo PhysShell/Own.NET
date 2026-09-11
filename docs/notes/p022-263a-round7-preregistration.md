@@ -1,12 +1,13 @@
 # Round 7 — what a real invocation does that a synthetic one does not
 
-**STATUS: AMENDED DRAFT. NOT AUTHORISED TO EXECUTE. NOT EXECUTED. No Round 7
-measurement exists.**
+**STATUS: RATIFIED DESIGN. APPARATUS BUILT. B1–B4 PREFLIGHT PASSED.
+NO ROUND 7 MEASUREMENT IS AUTHORISED AND NONE EXISTS.**
 
-Amended under the owner's Round 7 review, which ruled **CHANGES REQUIRED** and
-decided four design questions the previous draft had left open. What is
-authorised right now is this amendment and the instrument change it names —
-**not the round**. Execution remains a separate authorisation.
+Amended twice. The first review ruled **CHANGES REQUIRED** and decided four
+design questions. The second ruled **PASS WITH ONE MECHANICAL CORRECTION**,
+ratified a narrower zero rule than the one proposed here, and authorised
+building the apparatus and running the structural preflight — and nothing with a
+clock in it.
 
 **Tag:** `CALIBRATION_ONLY`. No decisive workload, no threshold, no budget, no
 D7 freeze. `0.35` is not consulted anywhere in this round, including in the
@@ -22,12 +23,32 @@ reading — that was Round 6's defect and it is not repeated.
 | measure `process-cold` only, or both regimes | **BOTH** | *Regimes*, classified separately |
 | run Round 7 now | **NO** | this status block |
 
-Two further rulings, neither of them a question I had asked:
+Four further rulings, none of them a question I had asked:
 
 - Arm B's claim was too strong and is weakened, with a structural preflight
   added. See *Arm B claims less than it did*.
 - The previous draft's outcome table was not mutually exclusive. See
-  *The overlap that made this round unreadable*.
+  *The overlap that made the previous outcome table unreadable*.
+- The draft's claim about which witnesses exist was false. See *Correction: the
+  witnesses are not all `process-cold`*.
+- The degenerate-zero guard proposed here was wrong in both directions: the
+  overlap algebra is narrower than claimed, and the guard was wider. The ratified
+  rule keys on `A` alone. See *The degenerate-zero guard, as ratified*.
+
+## The apparatus
+
+| file | what it is |
+|---|---|
+| `scripts/round7/classify.py` | the **one** implementation of P1–P5 and the zero-A guard. Pure: numbers in, an outcome out, no files and no clock. Nothing else in the round may restate the rules — a second copy is a second opinion, and the reading would then be able to choose |
+| `scripts/round7/elfread.py` | a minimal ELF64 reader, so the preflight reads program and section headers rather than grepping a tool's prose about them |
+| `scripts/round7/pad.c` | arm B's inert image, and only that: no function, no code, never referenced by the work |
+| `scripts/round7/preflight.py` | builds the three arms and runs B1–B4. No clock, and none may be added |
+| `tests/test_round7_apparatus.py` | five controls, run in CI |
+
+Arm A and arm B are linked from **the same `spin.o`**. Compiling the work twice
+and comparing would test the compiler's determinism; linking one object into
+both binaries removes the question instead of answering it, and B4 then checks
+the only thing left that could differ — what the linker did.
 
 ## What Round 6 left
 
@@ -237,11 +258,32 @@ data: `D(A)=1, D(B)=3, D(C)=1.4` satisfies P4 (`D(C) ≤ 1.5·D(A)`) and P1
 that a check must read the thing, and I preregistered the numbers and forgot to
 preregister the logic.
 
-The ratified replacement below is mutually exclusive. Evaluated pairwise, every
-overlap between two rules reduces to `D(A) ≤ 0` or `D(B) ≤ 0`, and `D` is a
-median of absolute differences, so the only surviving cases are `D(A) = 0` or
-`D(B) = 0` exactly — see the degenerate-zero guard, which is flagged as an
-addition and not yet ratified.
+### And then I got the replacement's algebra wrong too
+
+The previous revision of this section claimed that "every overlap between two
+rules reduces to `D(A) = 0` or `D(B) = 0`". The owner did the algebra properly
+and it does not. The claim "I checked every pair" was again stronger than the
+checking behind it.
+
+**Overlap occurs only when `A = 0` AND `B = 0` together.** In particular:
+
+| pair | what the constraints force |
+|---|---|
+| P4 ∩ P1 | empty for all inputs: P4 needs `C ≤ 1.5A`, P1 needs `C > 1.5A` |
+| P1 ∩ P2 | forces `A = 0`, then `B = 0`, then `C = 0`, contradicting P1's `C > 1.5A` — **empty** |
+| P1 ∩ P3 | forces `B = 0`, then `A = 0` and `C = 0`, contradicting `C > 1.5A` — **empty** |
+| P4 ∩ P2 | `A = B = C = 0` |
+| P4 ∩ P3 | `A = B = C = 0` |
+| P2 ∩ P3 | `A = B = 0`, with `C` free |
+
+So **P1 is disjoint from every other rule unconditionally**, the zero case
+included. The overlaps that remain all need `A` and `B` to be zero together.
+
+This is no longer asserted. `round7-outcome-exclusivity` evaluates the rules
+over 50,653 exact rational triples and reports which pairs overlap and where;
+the same census is handed the previous draft's P1 and must report it broken,
+because a control that has only ever seen correct input is a control nobody has
+tested.
 
 ## Outcome set, as ratified by the owner
 
@@ -264,20 +306,33 @@ old names asserted more than arm B can see.
 two counts disagree, that regime's outcome is **P5**. Disagreement *between*
 regimes is reported as a cache/state-sensitivity signal, not as P5.
 
-### Proposed addition, NOT YET RATIFIED — the degenerate-zero guard
+### The degenerate-zero guard, as ratified
 
-> If `D(A) = 0` or `D(B) = 0` at either repetition count in a regime, that
-> regime's outcome is **P5**.
+> For each regime: if `D(A) = 0` at **either** repetition count, that regime's
+> outcome is **P5**.
 
-Reason: at `D(A) = 0` the rules P4 and P2, P1 and P2, and P2 and P3 stop being
-disjoint, and at `D(B) = 0` P1 and P3 stop being disjoint. A drift of exactly
-zero across ten sessions of nanosecond medians would mean the instrument's
-resolution, not the phenomenon. The guard closes the only remaining overlap
-without touching any ratified number.
+`A` only. Not `A` or `B`, which is what the previous revision proposed and the
+owner rejected.
 
-**This is an addition to a ratified outcome set and is marked as one.** It is
-put to the owner rather than folded in quietly. The round does not run until it
-is ruled on, either way.
+**The guard is not what makes the set disjoint.** The algebra above shows the
+overlaps need `A = 0` and `B = 0` together, so a rule keyed on `A` alone is
+already more conservative than exclusivity requires. The guard exists for a
+metrological reason instead: `A` is the **multiplicative reference** for the
+whole scheme. `1.5A`, `3A` and `6A` mean something only as multiples of a
+baseline that has a size. At `A = 0` any positive `B` or `C` is infinitely
+larger than the baseline, and the rules go on classifying — definitely, and
+meaninglessly.
+
+**`B = 0` has no such property and is not a refusal.** `A = 1, B = 0, C = 4` is
+a clean **P2**: the padded arm shows no excess and the real binary does. That is
+one of the cleanest results this round is capable of producing, and the rejected
+guard would have deleted it by hand.
+
+**No epsilon.** A tolerance like `A < 0.01 ms` would instantly become a new
+absolute threshold with no preregistered basis for its value, which is the exact
+move this round forbids. Exact zero is a structural degenerate case, not another
+knob. `round7-zero-guard` checks both halves: `A = 0` at either count refuses,
+and a tiny but non-zero `A` still classifies.
 
 ### Why ratios and not absolute milliseconds
 
@@ -334,8 +389,14 @@ offers, which is worth knowing.
 ## Deliverables
 
 - The three arm binaries' sha256s, file sizes and summed `PT_LOAD` `p_memsz`,
-  recorded before the measurement pass.
-- The B1–B4 preflight results, recorded as data, pass or fail.
+  recorded before the measurement pass. **Done** —
+  `docs/evidence/round7/p022-263a-round7-preflight.linux.json`.
+- The B1–B4 preflight results, recorded as data, pass or fail. **Done**: all four
+  pass. The padding is 1,626,024 bytes in `.rodata`, inside the `PT_LOAD` at
+  `0x2000`; arm B maps 1,628,917 bytes against arm C's 1,628,892, a difference of
+  **+25 bytes** against a 4,096-byte allowance; and `main` is 107 bytes and
+  byte-identical in both arms, so B4 decided on raw bytes and the disassembly
+  fallback was not needed.
 - A committed dataset with every raw observation and every accounting field, per
   half, per session, per regime, per repetition count.
 - A reading that names which rule fired in each regime, quoting the arithmetic,
@@ -343,13 +404,13 @@ offers, which is worth knowing.
 
 ## Authorisation state
 
-**Authorised now:** this amendment; the `_run_once` extension; controls and
-mutations for the accounting fields; selftests and normal CI.
+**Authorised and done:** both amendments; the `_run_once` extension; the
+apparatus; the B1–B4 structural preflight; controls and mutations; CI.
 
-**Not authorised:** any Round 7 timing or resource measurement; re-recording the
-sizing pairs; a calibration of record; the D7 freeze; #263-B; merge; Stage 3;
-Stage 4.
+**Not authorised:** any Round 7 timing or resource measurement — the calibration
+pass itself; re-recording the sizing pairs; a calibration of record; the D7
+freeze; #263-B; merge; Stage 3; Stage 4.
 
-The B1–B4 preflight is structural — it reads linked ELFs and runs no clock — but
-it is part of the round and is not run ahead of the round's authorisation
-either.
+The next step is a short exact-head implementation review. If it finds no new
+methodological change, the decision after it is GO or NO-GO on the measurements
+themselves.
