@@ -1043,6 +1043,52 @@ And the rule that makes the rest mean anything: **on a failed holdout the
 constants are not adjusted.** Not widened, not refitted, not re-estimated with
 the new data folded in. The policy goes back to the owner as failed.
 
+### A reasonable statistical plan is not a computable function
+
+The owner ruled the policy proposal CHANGES REQUIRED with four P0 findings, and
+the sentence that explains all four is theirs: the gap between a reasonable
+statistical plan and a single computable function is where people hide knobs.
+
+The verdict universe contradicted itself — three verdicts declared, a fourth
+used — and the holdout branch depended on the missing one. The fitting corpus
+mixed instruments, allowing constants to be calibrated from stale halves and
+museum pieces recorded under superseded harness identities. The fit said "a
+quantile at level `q`" without saying how intercept and slope come out of data,
+and claimed `q` was fixed by the procedure that consumes it, which is circular.
+And `N` selection required predicting dispersion at a given `N` using a model
+with no `N` in it, which works beautifully until someone asks where the
+prediction came from.
+
+Two things learned while fixing them.
+
+**The tie-break is load-bearing.** Specifying the fit as a non-negative linear
+quantile regression solved by exact vertex enumeration is only single-valued if
+ties are resolved by a stated rule, because a quantile regression optimum need
+not be unique — a whole face of the polyhedron can attain it. Over three hundred
+random datasets the optimum was non-unique in thirty-four, and the tied solutions
+disagreed in the intercept by a wide margin. Without a tie-break, two correct
+implementations return materially different constants and both are entitled to
+say they followed the document. The rule is now stated, with a principle it can
+be checked against: **a tie is never resolved in the direction that makes the
+gate easier to pass.** The vertex-enumeration claim itself was verified against
+grid search before being written down, rather than asserted.
+
+**There is no admissible fitting corpus today, and saying so is the finding.**
+Applying the firewall honestly to what this repository holds leaves everything as
+*form* evidence and nothing as numeric training data under the current harness
+identity. Round 7 measured a process-shape A/B/C experiment, not a repeated
+calibration population; the same stopwatch does not make it the same statistical
+population. So the path forward gains two separately authorised measurements —
+one training collection, one holdout — instead of constants squeezed out of the
+museum exhibit.
+
+The other repair worth naming: `N` is now a **stratum**, not a parameter. Giving
+the model a closed-form `N` dependence would import the assumption that the
+dominant variability is sampling uncertainty of the median, which is exactly what
+Round 6 declined to establish and named as its own alternative. A functional form
+nobody has evidence for is not a repair, it is missing knowledge in mathematical
+notation.
+
 ### Both pairs are stale, and are not re-recorded
 
 The digest moved from `2d6e52fe4352` to `6713e7300c7c`, and again to

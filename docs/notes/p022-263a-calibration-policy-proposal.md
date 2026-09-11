@@ -1,149 +1,160 @@
-# P-022 / #263-A — calibration reproducibility policy, PROPOSAL
+# P-022 / #263-A — calibration reproducibility policy, PROPOSAL (revision 2)
 
 **Status: PROPOSAL. Nothing here is ratified, and nothing here is a number.**
 
 This document freezes the *mechanism* by which two calibration runs are judged
-to agree. It deliberately contains no constant values. Every quantity that will
-eventually carry a number is named, given units and a sign convention, and left
-empty, because a document that fixes a mechanism and a value in the same breath
-is a document where the value was chosen by whoever was holding the pen.
+to agree. It contains no constant values. Every quantity that will eventually
+carry a number is named, given units and a sign convention, and left empty,
+because a document that fixes a mechanism and a value in the same breath is a
+document where the value was chosen by whoever was holding the pen.
 
-No clock authority is claimed or implied. No measurement is proposed here.
+No clock authority is claimed or implied. No implementation authority is claimed.
+No measurement is proposed here.
+
+## Revision 2 — what the owner's review changed
+
+Revision 1 was ruled **CHANGES REQUIRED** with four P0 findings and one P1. The
+form was ratified in principle; the mechanism was not, because a reasonable
+statistical plan is not the same object as a single computable function, and the
+space between those two is where knobs hide.
+
+| finding | fixed in |
+|---|---|
+| P0 — the verdict universe contradicted itself: §1 declared three verdicts, §2.5 used a fourth | §1, §2.4, §2.5, §4, §8 — the set is now **four-way** throughout |
+| P0 — the numeric training corpus mixed instruments: stale halves and `historical/` artifacts belong to superseded harness and identity contracts | §3.1 — a hard current-harness firewall, and §3.5, which states the uncomfortable consequence |
+| P0 — the fit of `A_abs`/`R_rel`/`q`/`M` was under-specified: two reasonable people could implement it differently and both claim to have followed the document | §3.2 and §3.3 — empirical and design constants separated, and a complete enumerable algorithm |
+| P0 — `N` selection was mathematically undefined: the model has no `N` in it | §3.4 — per-`N` envelopes and a deterministic selection rule |
+| P1 — §6.3 inherited constants without naming their provenance | §6.3 — the source artifact, the digest that covers it, and why this policy may not touch them |
+
+Three things are **not** reopened, because the owner ratified them in principle
+and reopening a settled choice is its own kind of drift: the symmetric midpoint
+comparison, the hybrid absolute-plus-relative form, and the no-`K` aggregation.
 
 ## Why this document exists, in the frozen brief's own terms
 
-#263-A §13 asks for an instrument, a `CALIBRATION_ONLY` validation report and a
-fresh exact-head PASS. The instrument exists and passes. But §7 requires a
-mechanical noise and outlier policy fixed **in advance**, together with a
-determinism check, and §9 says that a second run on the same environment must
-reproduce within that policy — otherwise the instrument is **not yet frozen**.
+§13 asks for an instrument, a `CALIBRATION_ONLY` validation report and a fresh
+exact-head PASS. All three exist. But §7 requires a mechanical noise and outlier
+policy fixed **in advance** together with a determinism check, and §9 says a
+second run on the same environment must reproduce within that policy — otherwise
+the instrument is **not yet frozen**.
 
-The repository's own record says plainly that this is not satisfied: the
-committed sizing pairs do not reproduce reliably, the report-of-record glob is
-empty, and `n=5` has passed and failed on this machine in no pattern. Reading
-§13 while treating §9 as a decorative paragraph would be a very human way
-through the gate, and dismantling exactly that move is what the last twelve
-rounds were for.
-
-So the blockage is not a missing file with the right name. **We need an
-instrument that says compatible things twice**, and a written, mechanical
-definition of "compatible" that was fixed before it was applied.
+The repository's own record says it does not: the committed sizing pairs do not
+reproduce reliably, the report-of-record glob is empty, and `n=5` has passed and
+failed on this machine in no pattern. The blockage is therefore not a missing
+file with the right name. **We need an instrument that says compatible things
+twice**, and a mechanical definition of "compatible" fixed before it is applied.
 
 ## 1. The object of admissibility
 
 The policy decides exactly one question, about exactly one kind of input:
 
 > Given **two calibration runs** of the **same instrument** on the **same
-> environment** over the **same cell universe**, is the pair
-> `reproducible`, `inconclusive`, or `invalid`?
+> environment** over the **same cell universe**, is the pair `reproducible`,
+> `not-reproducible`, `inconclusive`, or `invalid`?
 
 It does **not** decide whether any engine is fast enough, whether a change is a
 regression, or whether any workload meets any budget. Those are D7 questions and
-§6 keeps them in a different document, behind a different freeze. See §7 below,
-which states the separation as a rule rather than a hope.
+§7 keeps them behind a different freeze.
 
-The three verdicts are not interchangeable:
+### The verdict set is four-way, at both levels
+
+The same four names apply to a **cell** and to a **run pair**, and no other name
+may appear anywhere in the policy, the implementation, or a report.
 
 | verdict | meaning |
 |---|---|
-| `reproducible` | the two runs agree within the frozen policy; the instrument is behaving as an instrument |
-| `inconclusive` | the runs are comparable and their agreement is neither clearly inside nor clearly outside the policy |
-| `invalid` | the two runs are **not comparable**, so no statement about agreement is available at all |
+| `reproducible` | comparable, and the observed change is within the frozen inner bound |
+| `not-reproducible` | comparable, and the observed change is outside the frozen **outer** bound |
+| `inconclusive` | comparable, and the change lies between the inner and outer bounds |
+| `invalid` | **not comparable**; no statement about agreement is available at all |
 
 `invalid` is not a bad score. It is a refusal to score, and it must never be
-reported as a failure to reproduce — an incomparable pair says nothing about
-the instrument, and calling it a failure would invite fixing it by re-running.
+reported as a failure to reproduce — an incomparable pair says nothing about the
+instrument, and calling it a failure invites fixing it by re-running.
+
+`not-reproducible` is the statistical failure. Keeping it distinct from `invalid`
+is what lets §4's holdout branch mean something: only one of those two outcomes
+is evidence about the instrument.
 
 ## 2. The frozen form
 
 ### 2.1 Statistic and granularity
 
-- **Granularity: the cell.** A cell is the existing four-part identity
-  `(rung, engine, workload, regime)`. No coarser unit, so a well-behaved cell
-  cannot average away a badly behaved one; no finer unit, so nothing new has to
-  be recorded.
-- **Statistic: the cell's median** of its retained samples, in nanoseconds —
-  the quantity the instrument already computes and commits as `median_ns`.
-- **Retention** is governed by §6 below and by nothing else.
+- **Granularity: the cell** — the existing four-part identity
+  `(rung, engine, workload, regime)`. No coarser, so a well-behaved cell cannot
+  average away a badly behaved one; no finer, so nothing new must be recorded.
+- **Statistic: the cell's median** of its retained samples, in nanoseconds — the
+  quantity the instrument already computes and commits as `median_ns`.
+- **Retention** is governed by §6 and by nothing else.
 
 ### 2.2 The comparison must be symmetric, and today it is not
 
-Reproducibility is a **symmetric relation**: if run A agrees with run B, run B
-agrees with run A. The incumbent rule is not symmetric. It computes
-
-    rel = |m_B − m_A| / m_A
-
-dividing by whichever run happens to have been recorded first. For a tolerance
-`T` and a ratio `r = m_B / m_A`, the forward direction refuses when `r > 1 + T`
-and the reversed direction refuses when `r > 1 / (1 − T)`. Since
-`1 / (1 − T) > 1 + T` for every `T > 0`, there is always a non-empty band
+Reproducibility is a **symmetric relation**. The incumbent rule is not. It
+computes `|m_B − m_A| / m_A`, dividing by whichever run happened to be recorded
+first. For tolerance `T` and ratio `r = m_B / m_A`, the forward direction refuses
+when `r > 1 + T` and the reversed direction when `r > 1 / (1 − T)`. Since
+`1/(1 − T) > 1 + T` for every `T > 0`, there is always a non-empty band
 
     1 + T  <  r  <  1 / (1 − T)
 
 in which **the verdict depends on which run was recorded first**. That is a
-structural property of the form, true for any positive tolerance, and it does
-not depend on the incumbent constant's value.
+property of the form, true for every positive tolerance, independent of the
+incumbent constant's value, and verified exhaustively rather than asserted.
 
-Nothing in the committed record turns on this — no verdict has been shown to sit
-in that band — and this document does not go looking, because hunting through
-recorded pairs for one that flips is selection on outcome wearing a lab coat. It
-is reported as a defect of the *form*, and the replacement form removes it by
-construction.
+No committed verdict is known to sit in that band, and this document deliberately
+does **not** go looking: hunting through recorded pairs for one that flips is
+selection on outcome wearing a lab coat.
 
-**The proposed comparison is symmetric in both terms:**
+**The replacement is symmetric in both terms:**
 
-    Δ(c)      = |m_B(c) − m_A(c)|                     the observed change
-    t(c)      = (m_A(c) + m_B(c)) / 2                 the reference duration
-    bound(t)  = A_abs + R_rel · t                     the admissible change
+    Δ(c)      = |m_B(c) − m_A(c)|                 the observed change
+    t(c)      = (m_A(c) + m_B(c)) / 2             the reference duration
+    bound(t)  = A_abs + R_rel · t                 the inner bound
 
-`t` is the midpoint precisely so that swapping the runs changes nothing. Using
-either run alone reintroduces the asymmetry; using the minimum would make the
-bound depend on which run was slower, which is the same disease.
+`t` is the midpoint precisely so that swapping the runs changes nothing. Either
+run alone reintroduces the asymmetry; the minimum makes the bound depend on which
+run was slower, which is the same disease.
 
 ### 2.3 Why hybrid, and the honesty cost of saying so
 
 A purely relative bound applies one fraction across a population spanning three
 orders of magnitude. Round 6's exploratory reading — formally **O3,
-inconclusive**, licensing nothing — observed that relative shift rises sharply
-at the short end of the ladder while absolute drift does not stay constant
-either. Round 7 then showed that a minimal real-process witness does not
-reproduce the historical instability at all.
+inconclusive**, licensing nothing — observed that relative shift rises sharply at
+the short end while absolute drift does not stay constant either.
 
 So the hybrid form is **chosen on data that has already been seen**. That is
-permitted for choosing a *form* and forbidden for fixing *constants*, and it is
-the whole reason §4's holdout firewall exists. This document states the
-dependency rather than hiding it: if the form is wrong, the holdout is what will
-say so, and the response to a failed holdout is §4, not a better fit.
+permitted for choosing a *form* and forbidden for fixing *constants*, which is
+the entire reason §3.1's firewall and §4's holdout exist. If the form is wrong,
+the holdout is what will say so, and the response is §4, not a better fit.
 
 `A_abs` carries nanoseconds. `R_rel` is dimensionless. Neither has a value here.
 
-### 2.4 The three-way per-cell rule, and its inequalities
+### 2.4 The per-cell rule, and its inequalities
 
-    Δ(c) ≤ bound(t(c))                  →  cell reproducible
-    Δ(c) >  M · bound(t(c))             →  cell NOT reproducible
-    otherwise                           →  cell inconclusive
+    cell invalid (see §6.4)              →  cell `invalid`
+    Δ(c) ≤ bound(t(c))                   →  cell `reproducible`
+    Δ(c) >  M · bound(t(c))              →  cell `not-reproducible`
+    otherwise                            →  cell `inconclusive`
 
-with `M > 1` a single dimensionless widening factor. One factor rather than a
-second independent pair of constants, because every extra constant is another
-place a result can be steered.
+with `M > 1` a single dimensionless widening factor defining the outer bound. One
+factor rather than a second independent pair of constants, because every extra
+constant is another place a result can be steered.
 
 The inequalities are fixed here and are not adjustable: the reproducible branch
 is **inclusive** (`≤`) and the refusing branch is **strict** (`>`). A value
-landing exactly on a boundary is therefore decided by the written rule and never
-by a rounding direction.
-
-Comparisons are performed in exact rational arithmetic, as `classify.py` already
-does, so that an edge is decided by the rule rather than by binary floating
-point.
+landing exactly on a boundary is decided by the written rule, never by a rounding
+direction. All comparisons are performed in **exact rational arithmetic**, as
+`classify.py` already does, so an edge is decided by the rule rather than by
+binary floating point.
 
 ### 2.5 Aggregation: precedence, never counting
 
 A run pair's verdict is determined by strict precedence over its cells:
 
-1. any cell `invalid`, or any pair-level invalidating condition in §6 → **pair `invalid`**
-2. else any cell **not reproducible** → **pair NOT reproducible**
-3. else any cell `inconclusive` → **pair `inconclusive`**
-4. else → **pair `reproducible`**
+1. any cell `invalid`, or any pair-level invalidating condition in §6 → pair **`invalid`**
+2. else any cell `not-reproducible` → pair **`not-reproducible`**
+3. else any cell `inconclusive` → pair **`inconclusive`**
+4. else → pair **`reproducible`**
 
 **There is deliberately no tolerated-failure count.** A rule of the form "at most
 `K` cells may fail" introduces a constant whose only function is to decide how
@@ -151,187 +162,366 @@ much disagreement to forgive, and it will be adjusted the first time `K + 1`
 cells fail. The multiplicity problem this creates is real and is named rather
 than solved by a knob: requiring every cell to agree over a large universe is a
 strict family-wise condition, and the correct response is a bound that honestly
-describes the instrument's own dispersion, not a budget of permitted failures.
-If that proves impossible, the honest outcome is a failed policy under §4 and a
+describes the instrument's own dispersion, not a budget of permitted failures. If
+that proves impossible, the honest outcome is a failed policy under §4 and a
 conversation with the owner, not a `K` that grows until the gate opens.
 
 ## 3. How the constants will be obtained
 
-### 3.1 Design evidence and validation evidence are different corpora
+### 3.1 Three corpora, and a firewall between them
 
-**Design / training evidence** — already-seen calibration data, admissible for
-choosing the form and fitting the constants:
+**Form evidence** — already-seen data. It may motivate or select the model
+**form** and **may not contribute numerically to any fitted constant**:
 
-- the Round 6 ladder and its full dataset
-- the Round 7 dataset, every retained observation and accounting field
+- the Round 6 ladder and dataset
+- the Round 7 dataset
 - the four committed sizing halves, stale and marked stale
 - the preserved pre-contract artifacts under `docs/evidence/historical/`
 
-**Validation evidence** — does not exist yet, is specified in §4, and may not be
-drawn from anything above.
+**Numeric fitting corpus** — must satisfy **all** of:
 
-Using the training corpus to fit the constants and then citing the same corpus as
-independent evidence that the policy works is the single move this document
-exists to make impossible.
+- produced under the **exact current harness digest**
+- produced under the **current identity contract**
+- produced under the **current outcome contract**
+- drawn from a **named calibration-only workload universe**, named in the
+  training preregistration before collection, containing no decisive workload
 
-### 3.2 The fit consumes dispersion, never pass/fail labels
+**Validation corpus** — fresh, **disjoint** from the fitting corpus, collected
+only **after** the constants are frozen and committed.
 
-This is the load-bearing rule of the whole proposal.
+Why the firewall is drawn at the harness digest and not at "it came out of the
+same stopwatch": Round 7 is a process-shape A/B/C experiment, not a repeated
+calibration population; the stale halves were recorded under superseded harness
+identities. Measuring soup with a thermometer does not calibrate it for a child.
+A number came out, technically.
 
-The constants must be fitted to **the instrument's own observed variation as a
-function of duration**, and to nothing else. They must **not** be fitted to
-which historical pairs anyone believes should have passed.
+Using the fitting corpus to fit and then citing it as independent evidence that
+the policy works is the single move this document exists to make impossible.
 
-The reason is that "which pairs should have passed" is a label applied after the
-outcomes were seen. Fitting a tolerance to such labels is tolerance shopping
-performed in a single step, and it would produce a constant that is guaranteed to
-ratify the history it was derived from while predicting nothing.
+### 3.2 Two kinds of constants, with different origins
 
-Fitting to dispersion has no such property: the bound describes how much this
-instrument moves when measuring the same thing twice, which is a claim about the
-instrument that a fresh pair can falsify.
+Revision 1 put all six in one table, which hid the fact that they come from
+different places. `q` in particular cannot be "fixed by the fitting procedure",
+because `q` is what *tells* the fitting procedure which quantile to estimate;
+saying otherwise was circular.
 
-Concretely, the preregistered fitting procedure must state, before it is run:
+**Empirical constants** — derived from the fitting corpus by the deterministic
+estimator in §3.3:
 
-- the exact subset of the training corpus it consumes, by committed file and sha256
-- the response variable — observed `|Δ|` between comparable repeated measurements
-- the predictor — the reference duration `t`
-- the model — the `bound(t) = A_abs + R_rel · t` form frozen in §2
-- the estimator — a **quantile** of the dispersion at level `q`, so the bound is
-  an explicit coverage statement about the instrument rather than a best fit
-- that the procedure is **deterministic**: same inputs, same constants, no seed,
-  no manual adjustment, no re-run
-- that its output is committed **before** any validation pair is recorded
+| name | unit | meaning |
+|---|---|---|
+| `A_abs` | nanoseconds | the duration-independent part of the inner bound |
+| `R_rel` | dimensionless | the duration-proportional part |
 
-`q` is a constant and has no value here.
+**Design constants** — **owner decisions**, ratified with a stated rationale, and
+**frozen before the fitting corpus is collected**, not merely before the fit.
+Freezing them only before the fit would still let them be chosen to flatter data
+already in hand.
 
-### 3.3 Choosing N without escalating until it passes
+| name | unit | what it decides |
+|---|---|---|
+| `q` | quantile level in `(0, 1)` | which quantile of the instrument's dispersion the inner bound claims to cover |
+| `M` | dimensionless, `> 1` | the width of the inconclusive band, as the outer bound's multiple of the inner |
+| `R_runs` | count, `≥ 2` | how many repeated runs per cell the fitting corpus collects |
+| the `N` ladder | ordered counts | the repetition counts the instrument may use |
+| `N_max` | count | the ladder's mandatory stop |
+| `G` | dimensionless, `≥ 0` | the diminishing-returns margin used by §3.4 to select `N` |
 
-The policy also fixes how the repetition count `N` is selected, and this is where
-the obvious mistake lives.
+No design constant may be derived from the fitting corpus, and none has a value
+here.
 
-**Forbidden:** "N is the smallest count at which the pair reproduces." That is
-literally escalate-until-pass, and it converts the stop rule into a starting gun.
+### 3.3 The empirical fit, specified as a single computable function
 
-**Required:** `N` is chosen **before** the validation pair, from the fitted
-dispersion model, as the smallest count on a preregistered ladder whose
-*predicted* dispersion falls within `bound(t)` for every cell. The prediction is
-made once, from training evidence, and committed. The validation pair then tests
-that choice exactly once.
+The response and predictor, fixed:
 
-If the validation pair fails, `N` is **not** increased. §4 applies.
+- the fitting corpus yields, per cell, `R_runs` runs in recorded order
+- an **observation** is a **consecutive** run pair `(k, k+1)`, giving `R_runs − 1`
+  observations per cell. Consecutive rather than all pairs, because all-pairs
+  observations are not independent and would silently over-weight cells, and
+  because a second run following a first is exactly what §9 tests
+- for each observation: `y = |m_{k+1} − m_k|` and `t = (m_k + m_{k+1}) / 2`,
+  the same `Δ` and `t` that §2.2 uses at verdict time
+- **within one ladder rung, the observations from every cell in the named
+  universe `U` are pooled into a single fit.** One envelope per rung, not one per
+  cell: a per-cell envelope would have as many constant pairs as cells and would
+  fit each cell's own noise, which is how a bound stops being a bound
+- all arithmetic is exact rational
 
-The ladder's values and its maximum are constants and have no values here.
+Given the frozen `q`, the constants are the solution of a **non-negative linear
+quantile regression**:
+
+    minimise    L(a, r) = Σ_i ρ_q( y_i − (a + r · t_i) )
+    subject to  a ≥ 0 ,  r ≥ 0
+    where       ρ_q(u) = q · u        for u ≥ 0
+                ρ_q(u) = (q − 1) · u  for u < 0
+
+A bound must not be negative anywhere on the duration range, which is what the
+two constraints say.
+
+**The solution is found by exact vertex enumeration, not by a numerical solver.**
+A floating-point LP solver is not reproducible across platforms or library
+versions, and this policy must produce identical constants from identical bytes
+on Linux and on Windows. The objective is piecewise-linear and convex and the
+feasible region is a polyhedron, so an optimum is attained where **two** of the
+following conditions are active:
+
+- a residual condition `a + r · t_i = y_i` for some observation `i`
+- the bound `a = 0`
+- the bound `r = 0`
+
+The candidate set is therefore finite and enumerable:
+
+1. for every pair of observations `i < j` with `t_i ≠ t_j`, the line through both:
+   `r = (y_j − y_i) / (t_j − t_i)`, `a = y_i − r · t_i`
+2. for every observation with `t_i ≠ 0`, the point `a = 0`, `r = y_i / t_i`
+3. for every observation, the point `r = 0`, `a = y_i`
+4. the corner `a = 0`, `r = 0`
+
+Candidates violating `a ≥ 0` or `r ≥ 0` are discarded. `L` is evaluated exactly
+at each survivor and the minimum is taken.
+
+**The tie-break is load-bearing, not ceremony.** The optimum of a quantile
+regression need not be unique — an entire face of the polyhedron can attain it.
+Over three hundred randomly generated datasets, the optimum was non-unique in
+thirty-four of them, and the tied solutions disagreed in the intercept by a wide
+margin. Without a stated tie-break, two correct implementations of this document
+would return materially different constants and both would be entitled to say
+they followed it. That is precisely the defect this revision exists to remove.
+
+**Tie-break, in order:** among all minimisers, take the smallest `A_abs`; among
+those, the smallest `R_rel`.
+
+The governing principle, stated so the rule can be checked against it rather than
+merely obeyed: **a tie is never resolved in the direction that makes the gate
+easier to pass.** Both components select the tighter bound.
+
+**Fail-closed conditions of the fit**, each refusing rather than guessing:
+
+- fewer than two distinct `t` values in the corpus → the two-parameter model is
+  not identifiable; refuse
+- any observation with a non-finite or negative `y` → refuse; `y` is an absolute
+  difference and cannot be negative
+- an empty candidate set after the feasibility filter → refuse
+
+### 3.4 Selecting `N`, with `N` actually in the model
+
+Revision 1 required choosing the smallest `N` whose *predicted dispersion* fell
+within `bound(t)`, while the model `A_abs + R_rel · t` contains no `N` at all.
+There was nothing to predict with. The finding is accepted without reservation.
+
+**The rejected repair** is to give the model a closed-form `N`-dependence — a
+`1/√N` term, say. That would import the assumption that the dominant variability
+is sampling uncertainty of the median, which is exactly the proposition Round 6
+declined to establish and named as its own alternative. A functional form nobody
+has evidence for is not a repair; it is the same missing knowledge written in
+mathematical notation.
+
+**The adopted repair:** `N` enters as a **stratum**, not a parameter.
+
+- the fitting corpus is collected at **every** `N` on the preregistered ladder
+- §3.3 is run **independently per `N`**, yielding one frozen envelope per rung:
+  `E_N(t) = A_abs(N) + R_rel(N) · t`
+- define each cell's reference duration at that rung as the **median of that
+  cell's `R_runs` recorded medians**, written `t_c(N)`. A cell has several
+  medians in the fitting corpus, so "the cell's duration" is otherwise not a
+  single number, and a rule that does not say which one is a rule two
+  implementations will answer differently
+- define the scalar width of a rung over the named calibration workload universe
+  `U`:
+
+      W(N) = Σ over c in U of E_N( t_c(N) )
+
+- let `W_min` be the smallest `W(N)` over the ladder
+- **select the smallest `N` on the ladder with `W(N) ≤ (1 + G) · W_min`**
+
+This is deterministic, consumes only the fitting corpus, and never touches
+validation data. It is well defined: the rung achieving `W_min` always satisfies
+the inequality for any `G ≥ 0`, so a selection always exists and there is no
+undefined branch.
+
+It also cannot become escalate-until-pass. `N` is fixed **before** the validation
+pair exists, from training evidence alone, and is not revisited afterwards. The
+forbidden rule — "the smallest `N` at which the pair reproduces" — turns the stop
+rule into a starting gun, and is why this section exists in this form.
+
+`A_abs(N)`, `R_rel(N)` and the selected `N` are all committed together before §4
+begins.
+
+### 3.5 The uncomfortable consequence: no admissible fitting corpus exists today
+
+§3.1's firewall, applied honestly to what this repository holds, says that
+**there is currently no admissible numerical fitting corpus** for this policy
+under the current harness identity. Everything on hand is form evidence.
+
+This is a normal outcome, not a setback, and the response is not to squeeze
+constants out of the museum exhibit in `historical/`.
+
+The required sequence, each step a separate owner decision:
+
+```text
+1. ratify this mechanism                      (docs only; this document)
+2. ratify the design constants q, M, R_runs,
+   the N ladder, N_max, G                     (owner decision; no data consulted)
+3. preregister and authorise ONE
+   calibration-only training collection       (a measurement; NOT authorised here)
+4. fit per §3.3 per rung, select N per §3.4,
+   freeze and commit the constants            (deterministic; no new data)
+5. commit the validation protocol             (before any validation data exists)
+6. run ONE fresh holdout pair                 (a measurement; NOT authorised here)
+7. verdict per §4
+```
+
+Steps 3 and 6 are measurements and neither is authorised by this document. Step 2
+precedes step 3 deliberately: design constants chosen after seeing the training
+corpus would be design constants chosen to flatter it.
 
 ## 4. The holdout firewall
 
-After the mechanism is frozen and the constants are frozen by §3, and **before**
-any validation measurement exists, a validation protocol is committed that fixes:
+After the mechanism is frozen, the design constants are ratified, and the
+empirical constants are frozen by §3.3 and §3.4, and **before** any validation
+measurement exists, a validation protocol is committed fixing:
 
 - the environment, by the recorded fingerprint of §6.5
 - the cell universe
-- `N` and the warmup discards
+- the selected `N` and the warmup discards
 - that the pair is **exactly two runs**, recorded back to back
-- that both halves are committed, pass or fail
+- that both halves are committed, whatever the verdict
 - the verdict procedure, which is §2 applied mechanically
 
 Then it is run **once**.
 
-    validation pair reproducible   →  §7's gate may proceed
-    validation pair inconclusive   →  reported as inconclusive; the gate does NOT open
-    validation pair not reproducible → FAILED POLICY, returned to the owner
-    validation pair invalid        →  the pair was not comparable; diagnose the
-                                      incomparability, do not rescore it
+| holdout verdict | consequence |
+|---|---|
+| `reproducible` | §8's gate may proceed |
+| `inconclusive` | reported as inconclusive; the gate does **not** open |
+| `not-reproducible` | **FAILED POLICY**, returned to the owner with the evidence |
+| `invalid` | the pair was not comparable; diagnose the incomparability, do **not** rescore it |
 
-**On a failure, the constants are not adjusted.** Not widened, not refitted, not
-"re-estimated with the new data included". The policy is returned to the owner as
-failed, with the evidence, and the next step is a design decision they make.
-Refitting after seeing the holdout is tolerance shopping in a good suit, and it
-is the exact failure mode this entire PR was built to prevent.
+**On `not-reproducible` the constants are not adjusted.** Not widened, not
+refitted, not re-estimated with the new data folded in. Refitting after seeing
+the holdout is tolerance shopping in a good suit, and it is the exact failure
+mode this entire PR was built to prevent.
 
-A second validation pair requires a separate authorisation, and a policy that
+A second validation pair requires separate authorisation, and a policy that
 needed several attempts must say so in its own record.
 
-## 5. What the instrument already fixes, and is carried forward unchanged
+## 5. What the instrument already fixes, carried forward unchanged
 
-Stated so that the §7 contract below is complete rather than implied:
-
-- **Warmup discards** are a policy default enforced by a control, not a knob, and
-  the `warm` regime's discards are not retained in the dataset because discarding
-  them is what the regime is.
+- **Warmup discards** are a policy default, not a knob. The source comment records
+  why: warmup was once moved from two to three alongside a repetitions escalation
+  that had been authorised on its own, turning one permitted knob into two turned
+  after seeing which runs went red.
 - **Pair identity** is the existing ten-axis contract, and a mismatch raises
   rather than reporting a verdict.
-- **Outcome identity precedes timing.** Two runs that agree to the nanosecond
-  while exiting differently reproduced a coincidence, not a measurement.
+- **Outcome identity precedes timing.** Two runs agreeing to the nanosecond while
+  exiting differently reproduced a coincidence, not a measurement.
 - **Both halves of a pair are committed**, each naming the other, so a verdict can
   be recomputed instead of trusted.
 
 ## 6. The complete §7 contract
 
-Every item below must carry an explicit decision, including an explicit "none".
-A silently absent policy is the thing §7 forbids.
+Every item carries an explicit decision, including an explicit "none". A silently
+absent policy is the thing §7 forbids.
 
 ### 6.1 Warmup discards
 
 Per regime, fixed in advance, enforced by a control, not tunable per run. The
-current values are already policy and are carried forward.
+current values are already policy and are carried forward unchanged.
 
 ### 6.2 Trimming and winsorizing: **none**
 
-Stated as an explicit decision, not an omission. No trimmed mean, no winsorizing,
-no outlier rejection of any kind on retained samples.
+An explicit decision, not an omission. No trimmed mean, no winsorizing, no
+outlier rejection of any kind on retained samples.
 
 Every trimming rule carries a constant — how much to cut — and that constant is a
-place to steer the result from. The statistic is already the median, which is
-robust without discarding anything, and a sample that is genuinely wrong is the
-business of §6.4's invalidating conditions, which refuse the run rather than
-quietly improving it.
+place to steer from. The statistic is already the median, robust without
+discarding anything, and a sample that is genuinely wrong is the business of
+§6.4's invalidating conditions, which refuse the run rather than quietly
+improving it.
 
-### 6.3 Noise floor
+### 6.3 Noise floor, and the provenance of its inherited constants
 
-The existing opening and closing noise probes are carried forward as
-**run-invalidating conditions**, not as reproducibility conditions. They bound
-dispersion within one probe and drift between the opening and closing probes.
-They are different statistical quantities from the reproducibility bound and are
-not refitted by §3; this document does not propose new values for them.
+The opening and closing noise probes are carried forward as **run-invalidating
+conditions**, not as reproducibility conditions. They bound dispersion within one
+probe and drift between the opening and closing probes. They are different
+statistical quantities from the reproducibility bound and are **not** refitted by
+§3.
 
-### 6.4 Run-invalidating conditions
+**Provenance, stated exactly**, because "carried forward" in a document that
+claims to contain no numbers otherwise invites the later question of whether
+these were new constants or merely already lying about:
 
-A run is `invalid`, and is never scored for reproducibility, when any of:
+- **Where they live:** `NOISE_PROBE_MAX_RELATIVE_IQR` and `NOISE_PROBE_MAX_DRIFT`
+  in `scripts/perf_baseline.py`, together with `DEFAULT_WARMUP_DISCARDS` and
+  `DEFAULT_CALIBRATION_REPETITIONS`.
+- **What covers them:** the content-addressed **harness digest**, `562a7f7232da`
+  at this head. Those constants are part of the hashed instrument sources, so the
+  digest is a commitment to their values.
+- **Who froze them:** they are incumbent ratified policy, in force before this
+  document existed, and D7's C1 freezes the harness digest that covers them.
+- **Why this policy may not change them:** changing any of them **moves the
+  harness digest**, which stales every pair ever recorded against the old value
+  and un-compares every future number from every recorded one. A reproducibility
+  policy that silently re-based the instrument while defining reproducibility
+  would be worse than no policy.
+
+This document therefore **inherits** them and does not introduce, re-derive or
+propose values for them. Their retirement or replacement is a separate owner
+decision with its own re-record cost, and is out of scope here.
+
+### 6.4 Invalidating conditions, at two levels
+
+§2.4 and §2.5 both consume this section, and they consume different halves of it,
+so both are stated.
+
+**Cell-level — the cell is `invalid` and is never scored:**
+
+- the cell's recorded outcome is not valid in either run
+- the two runs disagree about the cell's observed exit code or outcome validity;
+  they did not measure the same thing, so their durations are not comparable
+- the cell produced no median in either run
+- the cell is present in one run and absent from the other
+
+**Pair-level — the whole pair is `invalid`, whatever its cells say:**
 
 - an identity contract breach — the candidate, the arms, or the harness digest
-  moved during the run
+  moved during either run
 - an outcome contract breach — any spawn exited outside its declared contract
 - a noise probe outside §6.3
-- a required cell missing, unknown, or named twice
+- an environment fingerprint mismatch under §6.5
+- a required cell missing, unknown, or named twice in either run
 - a recorded field absent where the platform should have produced it
 
-Each condition must name itself in the record, with the cell or spawn that
-triggered it, and the run must leave a durable artifact saying so.
+Each condition names itself in the record, with the cell or spawn that triggered
+it, and the run leaves a durable artifact saying so.
 
 ### 6.5 Same environment
 
 A pair is comparable only if both halves carry the identical **environment
-fingerprint**: the existing ten pair-identity axes, plus the recorded machine and
+fingerprint**: the existing ten pair-identity axes plus the recorded machine and
 OS identity.
 
-A fingerprint mismatch makes the pair `invalid`, **never** "not reproducible".
+A fingerprint mismatch makes the pair `invalid`, **never** `not-reproducible`.
 The instrument cannot cryptographically prove two runs happened on one machine;
 it can record what it observed, and it must refuse rather than guess.
 
-A GitHub-hosted Windows runner is already recorded as not measurement-grade —
-two runs minutes apart on one commit disagreed about their own environment — so
-the validation environment must be named explicitly in §4's protocol.
+A GitHub-hosted Windows runner is already recorded as not measurement-grade — two
+runs minutes apart on one commit disagreed about their own environment — so the
+environment must be named explicitly in §4's protocol and in step 3's training
+preregistration.
 
 ### 6.6 Determinism and the re-run rule
 
 The verdict function is pure: same two committed reports in, same verdict out,
-recomputable by anyone from the committed evidence. No clock, no network, no
+recomputable by anyone from committed evidence. No clock, no network, no
 filesystem state, no randomness.
+
+The **fitting** procedure is equally pure: same corpus bytes in, same
+`(A_abs, R_rel)` out, on any platform, by §3.3's exact enumeration and tie-break.
 
 §9's re-run rule is satisfied by §4's validation pair and by nothing else. In
 particular it is **not** satisfied by any pair already in the repository, all of
-which predate this policy.
+which predate this policy and most of which predate the current harness identity.
 
 ## 7. Separation from D7, stated as a rule
 
@@ -342,7 +532,7 @@ which predate this policy.
 | which `N` the instrument uses | any G3 metric's pass or fail |
 | when a run is invalid | anything about a decisive workload |
 
-Three consequences, binding:
+Three binding consequences:
 
 1. No constant defined by this policy may be read by, copied into, or derived
    from any D7 threshold, and none may be used as one.
@@ -350,47 +540,65 @@ Three consequences, binding:
    instrument, not the result.
 3. The incumbent reproducibility constant is **not** carried forward by
    assumption. It remains in force until §3 freezes a replacement and §4
-   validates it; at that point its retirement is an owner decision, recorded.
+   validates it; its retirement is then an owner decision, recorded.
 
 ## 8. The gate
 
 ```text
-policy mechanism frozen            (this document, ratified)
+policy mechanism frozen                     (this document, ratified)
         ↓
-constants frozen by preregistered calibration procedure    (§3, no holdout data)
+design constants ratified                   (§3.2; before any corpus is collected)
         ↓
-validation protocol committed                              (§4, before measuring)
+training collection preregistered + authorised + run   (§3.5 step 3)
         ↓
-fresh validation pair, run once
+empirical constants frozen, N selected      (§3.3, §3.4; deterministic)
         ↓
-reproducible under §7 contract?
-   yes                          no / inconclusive
-    ↓                                   ↓
-#263-A PASS                      owner decision / redesign
-                                 (constants are NOT adjusted)
+validation protocol committed               (§4; before any validation data)
+        ↓
+ONE fresh validation pair
+        ↓
+verdict under §2 and the §6 contract
+   reproducible          inconclusive / not-reproducible / invalid
+        ↓                              ↓
+   #263-A PASS              owner decision / redesign
+                            (constants are NOT adjusted)
 ```
 
-## 9. Every deferred constant, with no value
+## 9. Every constant, with no value
 
-| name | unit | what it bounds | fixed by |
-|---|---|---|---|
-| `A_abs` | nanoseconds | the duration-independent part of the admissible change | §3.2 |
-| `R_rel` | dimensionless | the duration-proportional part | §3.2 |
-| `q` | quantile level | the coverage the bound claims over the instrument's dispersion | §3.2 |
-| `M` | dimensionless, `> 1` | the width of the inconclusive band | §3.2 |
-| the `N` ladder | counts | the repetition counts the instrument may use | §3.3 |
-| `N_max` | count | the ladder's mandatory stop | §3.3 |
+**Empirical — output of §3.3, one pair per ladder rung:**
 
-Six names, no numbers. If a later revision of this document contains a value that
-did not come from §3's procedure, that value was invented, and this table is
+| name | unit | fixed by |
+|---|---|---|
+| `A_abs(N)` | nanoseconds | §3.3, from the fitting corpus at rung `N` |
+| `R_rel(N)` | dimensionless | §3.3, from the fitting corpus at rung `N` |
+
+**Design — owner decisions under §3.2, frozen before any corpus is collected:**
+
+| name | unit | fixed by |
+|---|---|---|
+| `q` | quantile level in `(0, 1)` | owner ratification |
+| `M` | dimensionless, `> 1` | owner ratification |
+| `R_runs` | count, `≥ 2` | owner ratification |
+| the `N` ladder | ordered counts | owner ratification |
+| `N_max` | count | owner ratification |
+| `G` | dimensionless, `≥ 0` | owner ratification |
+
+**Inherited — not set, not re-derived, not proposed here:** the noise-probe
+limits, the warmup discards and the default calibration repetitions, all covered
+by harness digest `562a7f7232da` per §6.3.
+
+No numbers. If a later revision contains a value that did not come from §3.3 or
+from a recorded owner ratification, that value was invented, and these tables are
 where it will be visible.
 
 ## 10. What this proposal does not do
 
-It does not authorise any measurement, any re-record of the stale sizing pairs,
-any calibration of record, the D7 freeze, #263-B, merge, Stage 3 or Stage 4. It
-does not move the incumbent constants. It does not claim the instrument is
-frozen — that is precisely what it is a plan to find out.
+It does not authorise any measurement — not the training collection of §3.5 step
+3, not the validation pair of §4. It does not authorise an implementation. It
+does not re-record the stale sizing pairs, promote a calibration of record,
+freeze D7, unblock #263-B, merge, or start Stage 3 or Stage 4. It does not move
+any incumbent constant.
 
-It is a mechanism awaiting ratification, and every number it will eventually need
-is still missing on purpose.
+It does not claim the instrument is frozen. It is a plan to find out, and every
+number it will eventually need is still missing on purpose.
