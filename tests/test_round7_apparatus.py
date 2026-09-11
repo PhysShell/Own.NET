@@ -14,6 +14,7 @@ than by reading them:
     round7-execution-contract   plan mode starts no clock; the timed bytes are the preflighted ones
     round7-outcome-contract     every spawn, warmups included, did the work its arm exists to do
     round7-durable-refusal      an invalid run leaves a black box, not just a traceback
+    round7-readout              the reading is the preregistered D, and it is reproducible
 
 The exclusivity control matters most. The previous draft's outcome table let one
 dataset satisfy two contradictory verdicts, and nothing in the process that
@@ -45,6 +46,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import classify as cl  # noqa: E402
 import perf_baseline as pb  # noqa: E402
 import preflight as pf  # noqa: E402
+import readout as ro  # noqa: E402
 import runner as rn  # noqa: E402
 import schedule as sch  # noqa: E402
 from elfread import Elf64  # noqa: E402
@@ -973,6 +975,172 @@ def control_durable_refusal() -> None:
                                      "arm; a healthy run still reports itself valid")
 
 
+def _synthetic(by_regime: dict[str, dict[int, tuple[float, float, float]]]
+               ) -> dict[str, object]:
+    """A dataset whose D(arm, n, regime) is exactly the triple asked for.
+
+    Every sample in a half carries the same value, so median(half) is that value
+    and |median(second) - median(first)| is the requested drift in every session.
+    A control that fed the readout real numbers could only check that it did
+    something; this checks that it did the preregistered thing.
+    """
+    measurements: list[dict[str, object]] = []
+    for regime, by_n in by_regime.items():
+        for n, triple in by_n.items():
+            for arm, drift in zip(ro.ARMS, triple, strict=True):
+                for session in range(1, ro.SESSIONS + 1):
+                    for half in ro.HALVES:
+                        value = 1_000_000.0 + (drift if half == "second" else 0.0)
+                        measurements.append({
+                            "half": f"{regime}|n{n}|s{session}|{arm}|{half}",
+                            "samples": [{"elapsed_ns": value, "rc": ro.EXPECTED_RC[arm],
+                                         "cpu_user_ns": 0, "cpu_system_ns": 0,
+                                         "minor_faults": 0, "major_faults": 0,
+                                         "voluntary_context_switches": 0,
+                                         "involuntary_context_switches": 0}
+                                        for _ in range(n)]})
+    return {"run_valid": True, "measurements": measurements}
+
+
+def control_readout() -> None:
+    """The reading computes the preregistered D and nothing else.
+
+    Two halves. First, synthetic datasets whose drift triples are known exactly,
+    so the rule that fires is known in advance -- this caught the author's own
+    arithmetic before the measurement pass ran, the third time in this PR that a
+    hand-checked boundary was wrong. Second, and the one that matters after the
+    fact: the committed reading must be REPRODUCIBLE from the committed dataset.
+    A reading nobody can recompute is a reading that has to be trusted, and this
+    round exists precisely because trusting a reading is not a method.
+    """
+    problems = []
+
+    # Each triple holds at both counts in both regimes, so the outcome is the
+    # rule that fires. The comments quote the clause that decides.
+    cases = [
+        ((1.0, 3.0, 6.0), "P3"),      # B >= 3A and C >= 2B
+        ((1.0, 1.0, 4.0), "P2"),      # B <= 1.5A and C >= 3A
+        ((1.0, 3.0, 3.0), "P1"),      # C > 1.5A, B >= 3A, (2/3)B <= C <= 1.5B
+        ((1.0, 3.0, 1.4), "P4"),      # C <= 1.5A
+        ((0.0, 3.0, 4.0), "P5"),      # the zero-A guard
+        ((1.0, 2.0, 2.0), "P5"),      # no rule fires
+    ]
+    for triple, want in cases:
+        record = _synthetic({r: dict.fromkeys(cl.REPETITION_COUNTS, triple)
+                             for r in cl.REGIMES})
+        try:
+            reading = ro.read(record)
+        except Exception as exc:
+            problems.append(f"{triple} raised {type(exc).__name__}: {exc}")
+            continue
+        for regime in cl.REGIMES:
+            got = reading["outcome"]["per_regime"][regime]["outcome"]   # type: ignore[index]
+            if got != want:
+                problems.append(f"D={triple} in {regime} read as {got}, want {want}")
+        # The mechanism table is applied only after an outcome fires. P4 and P5
+        # fire no rule and name no elevated arm, so an attribution there would be
+        # an analysis the preregistration does not license.
+        applied = reading["mechanism_attribution"][cl.REGIMES[0]]["applied"]  # type: ignore[index]
+        if applied is not bool(ro.ELEVATED_BY_OUTCOME[want]):
+            problems.append(f"{want}: attribution applied={applied}, "
+                            f"want {bool(ro.ELEVATED_BY_OUTCOME[want])}")
+
+    # Disagreement across counts inside one regime is P5; a cold/warm difference
+    # is a reported split, not P5.
+    split = _synthetic({"process-cold": {5: (1.0, 3.0, 6.0), 15: (1.0, 1.0, 4.0)},
+                        "warm": dict.fromkeys(cl.REPETITION_COUNTS, (1.0, 1.0, 4.0))})
+    try:
+        reading = ro.read(split)
+    except Exception as exc:
+        # A reading that dies here is a traceback, not a finding. This control
+        # exists to report, and a control that crashes reports nothing.
+        problems.append(f"the split case raised {type(exc).__name__}: {exc}")
+    else:
+        if reading["outcome"]["per_regime"]["process-cold"]["outcome"] != "P5":  # type: ignore[index]
+            problems.append("P3 at n=5 and P2 at n=15 did not become P5")
+        if reading["outcome"]["per_regime"]["warm"]["outcome"] != "P2":          # type: ignore[index]
+            problems.append("warm did not classify P2")
+        if not reading["outcome"]["regime_split"]:                               # type: ignore[index]
+            problems.append("a cold/warm difference was not reported as a split")
+
+    # Fail-closed, four ways. Each would otherwise produce a median over
+    # whatever survived and call it the preregistered D.
+    healthy = _synthetic({r: dict.fromkeys(cl.REPETITION_COUNTS, (1.0, 3.0, 6.0))
+                          for r in cl.REGIMES})
+    refusals: list[tuple[str, dict[str, object]]] = []
+
+    invalid = {"run_valid": False, "measurements": None, "abort": {"kind": "outcome-contract"}}
+    refusals.append(("an invalid run", invalid))
+
+    # An invalid run whose halves are nonetheless complete and well-formed. This
+    # isolates the run_valid gate: the case above is refused by the missing
+    # measurements list whether that gate exists or not, so on its own it proves
+    # nothing about the gate it appears to test.
+    invalid_but_complete = json.loads(json.dumps(healthy))
+    invalid_but_complete["run_valid"] = False
+    invalid_but_complete["abort"] = {"kind": "identity-contract", "arm": "B"}
+    refusals.append(("an invalid run carrying a complete set of halves", invalid_but_complete))
+
+    stray = json.loads(json.dumps(healthy))
+    stray["measurements"][0]["samples"][0]["rc"] = 127
+    refusals.append(("a stray exit code", stray))
+
+    missing = json.loads(json.dumps(healthy))
+    missing["measurements"].pop()
+    refusals.append(("a missing half", missing))
+
+    short = json.loads(json.dumps(healthy))
+    short["measurements"][0]["samples"].pop()
+    refusals.append(("a half with too few samples", short))
+
+    for label, bad in refusals:
+        try:
+            ro.read(bad)
+        except ro.ReadoutRefused:
+            pass
+        except Exception as exc:
+            problems.append(f"{label} raised {type(exc).__name__} instead of "
+                            f"ReadoutRefused: {exc}")
+        else:
+            problems.append(f"{label} was read instead of refused")
+
+    # And the part that cannot be faked: the committed reading must come back
+    # out of the committed dataset.
+    dataset = ROOT / "docs/evidence/round7/p022-263a-round7-dataset.linux.json"
+    committed = ROOT / "docs/evidence/round7/p022-263a-round7-reading.linux.json"
+    if dataset.is_file() and committed.is_file():
+        try:
+            recomputed = ro.read(json.loads(dataset.read_text(encoding="utf-8")))
+        except Exception as exc:
+            problems.append(f"the committed dataset would not read: "
+                            f"{type(exc).__name__}: {exc}")
+        else:
+            # Compared as SERIALISED json, which is what was committed: read()
+            # keys repetition counts by int and json keys them by string, so an
+            # object-to-parsed-object comparison would report a difference that
+            # exists only in Python and miss any that does not.
+            got = json.loads(json.dumps(recomputed))
+            want = json.loads(committed.read_text(encoding="utf-8"))
+            if got != want:
+                differing = sorted(k for k in set(got) | set(want)
+                                   if got.get(k) != want.get(k))
+                problems.append("the committed reading is NOT what the committed dataset "
+                                f"produces; sections differing: {differing}")
+    else:
+        problems.append("the Round 7 dataset or reading is missing, so the reading "
+                        "could not be recomputed from the evidence it claims to read")
+
+    if problems:
+        fail("round7-readout", "; ".join(problems))
+    else:
+        ok("round7-readout", "D is the median across sessions of |median(second half) - "
+                             "median(first half)| on elapsed_ns; every ratified rule fires "
+                             "on a triple built to trigger it; the mechanism table stays "
+                             "shut on P4 and P5; five malformed datasets are refused; and "
+                             "the committed reading is reproduced exactly from the "
+                             "committed dataset")
+
+
 def run() -> int:
     control_outcome_exclusivity()
     control_zero_guard()
@@ -983,6 +1151,7 @@ def run() -> int:
     control_execution_contract()
     control_outcome_contract()
     control_durable_refusal()
+    control_readout()
     print()
     print(f"round 7 apparatus controls: {len(_PASSES)} passed, {len(_FAILURES)} failed")
     return 1 if _FAILURES else 0

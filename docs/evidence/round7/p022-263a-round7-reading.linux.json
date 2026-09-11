@@ -1,0 +1,245 @@
+{
+  "tag": "CALIBRATION_ONLY",
+  "readout_of": "docs/evidence/round7/p022-263a-round7-dataset.linux.json",
+  "D_definition": "D(arm, n, regime) = median across the 10 sessions of |median(second half) - median(first half)| on elapsed_ns",
+  "drift": {
+    "process-cold": {
+      "5": {
+        "A": {
+          "D_ns": 62289.5,
+          "D_ms": 0.0622895,
+          "per_session_delta_ns": [
+            116862.0,
+            10765.0,
+            36524.0,
+            78394.0,
+            260357.0,
+            75203.0,
+            32735.0,
+            139764.0,
+            26933.0,
+            49376.0
+          ]
+        },
+        "B": {
+          "D_ns": 33730.0,
+          "D_ms": 0.03373,
+          "per_session_delta_ns": [
+            49272.0,
+            76269.0,
+            89290.0,
+            18171.0,
+            37960.0,
+            25174.0,
+            29500.0,
+            7227.0,
+            3172.0,
+            159851.0
+          ]
+        },
+        "C": {
+          "D_ns": 51744.5,
+          "D_ms": 0.0517445,
+          "per_session_delta_ns": [
+            167438.0,
+            14911.0,
+            7845.0,
+            84091.0,
+            142027.0,
+            81553.0,
+            108769.0,
+            5690.0,
+            10458.0,
+            21936.0
+          ]
+        }
+      },
+      "15": {
+        "A": {
+          "D_ns": 32098.5,
+          "D_ms": 0.0320985,
+          "per_session_delta_ns": [
+            34903.0,
+            97633.0,
+            300.0,
+            4652.0,
+            29294.0,
+            107094.0,
+            111136.0,
+            19808.0,
+            7247.0,
+            35897.0
+          ]
+        },
+        "B": {
+          "D_ns": 51700.5,
+          "D_ms": 0.0517005,
+          "per_session_delta_ns": [
+            29741.0,
+            45517.0,
+            41915.0,
+            121708.0,
+            11830.0,
+            25501.0,
+            57884.0,
+            113564.0,
+            118611.0,
+            73937.0
+          ]
+        },
+        "C": {
+          "D_ns": 34346.5,
+          "D_ms": 0.0343465,
+          "per_session_delta_ns": [
+            24931.0,
+            23197.0,
+            25489.0,
+            43204.0,
+            75148.0,
+            11475.0,
+            103689.0,
+            8257.0,
+            145950.0,
+            125942.0
+          ]
+        }
+      }
+    },
+    "warm": {
+      "5": {
+        "A": {
+          "D_ns": 50943.0,
+          "D_ms": 0.050943,
+          "per_session_delta_ns": [
+            1653.0,
+            54154.0,
+            26564.0,
+            47732.0,
+            37647.0,
+            102206.0,
+            475534.0,
+            43947.0,
+            80264.0,
+            130913.0
+          ]
+        },
+        "B": {
+          "D_ns": 44278.0,
+          "D_ms": 0.044278,
+          "per_session_delta_ns": [
+            16922.0,
+            328252.0,
+            34961.0,
+            82621.0,
+            124083.0,
+            32517.0,
+            4119.0,
+            133663.0,
+            53595.0,
+            11745.0
+          ]
+        },
+        "C": {
+          "D_ns": 49386.0,
+          "D_ms": 0.049386,
+          "per_session_delta_ns": [
+            380.0,
+            27265.0,
+            240078.0,
+            37550.0,
+            61222.0,
+            235186.0,
+            12857.0,
+            24290.0,
+            149697.0,
+            230348.0
+          ]
+        }
+      },
+      "15": {
+        "A": {
+          "D_ns": 24307.0,
+          "D_ms": 0.024307,
+          "per_session_delta_ns": [
+            40802.0,
+            18505.0,
+            27209.0,
+            113508.0,
+            53209.0,
+            45536.0,
+            6726.0,
+            4228.0,
+            5845.0,
+            21405.0
+          ]
+        },
+        "B": {
+          "D_ns": 48420.0,
+          "D_ms": 0.04842,
+          "per_session_delta_ns": [
+            100214.0,
+            56586.0,
+            18789.0,
+            512.0,
+            40254.0,
+            9524.0,
+            141962.0,
+            66131.0,
+            88503.0,
+            31564.0
+          ]
+        },
+        "C": {
+          "D_ns": 90280.5,
+          "D_ms": 0.0902805,
+          "per_session_delta_ns": [
+            109364.0,
+            18961.0,
+            104538.0,
+            38083.0,
+            76023.0,
+            183992.0,
+            185287.0,
+            435985.0,
+            32483.0,
+            7700.0
+          ]
+        }
+      }
+    }
+  },
+  "outcome": {
+    "per_regime": {
+      "process-cold": {
+        "outcome": "P4",
+        "why": "P4 held at n=5 and n=15: the witness did not reproduce",
+        "per_count": {
+          "5": "P4",
+          "15": "P4"
+        }
+      },
+      "warm": {
+        "outcome": "P5",
+        "why": "n=5 classified P4 and n=15 classified P5; a rule must hold at both counts within a regime to fire",
+        "per_count": {
+          "5": "P4",
+          "15": "P5"
+        }
+      }
+    },
+    "regime_split": true,
+    "regime_split_reading": "process-cold classified P4 and warm classified P5. This is a cache- and state-sensitivity signal, NOT P5: both regimes spawn a fresh process per iteration and differ only in whether the first two are discarded.",
+    "tag": "CALIBRATION_ONLY"
+  },
+  "mechanism_attribution": {
+    "process-cold": {
+      "applied": false,
+      "why": "process-cold classified P4; the preregistration applies the mechanism table only after an outcome fires and only to the arm that rule names as elevated"
+    },
+    "warm": {
+      "applied": false,
+      "why": "warm classified P5; the preregistration applies the mechanism table only after an outcome fires and only to the arm that rule names as elevated"
+    }
+  },
+  "not_derived": "no threshold, budget, floor or envelope is derived from any number here; 0.35 is not consulted, reported or compared against; no session was dropped and no run was repeated"
+}

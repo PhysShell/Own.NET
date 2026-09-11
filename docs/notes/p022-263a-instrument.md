@@ -917,6 +917,48 @@ invalid run, measurements retained, `run_valid` never falsified, the abort
 reduced to prose, identity drift losing its kind, and a half that keeps spawning
 after a breach is known.
 
+### The instrument measured something, and the answer is "not here"
+
+Twelve review rounds built an apparatus to make one measurement honest. The
+measurement ran once, on the exact head the owner pinned it to, and the formal
+outcome is **(process-cold P4, warm P5)**: the witness did not reproduce in the
+cold regime, and the warm regime declines to say.
+
+240 halves, 2640 spawns, every exit code contracted and checked, zero strays,
+zero identity drift. Half-to-half drift across all three arms landed between
+0.024 ms and 0.090 ms. Arm C cleared the P4 boundary in exactly one of the four
+cells, `warm` at n=15, and a rule must hold at both counts to fire.
+
+**The reading was written before the data existed**, and that is checkable
+rather than asserted. `scripts/round7/readout.py` was authored, selftested and
+its sha256 recorded — `0f14be8a491d` — before the clock started; the committed
+file differs only by lint and type-checking changes, and produces a **byte
+identical** reading from the same dataset. `round7-readout` recomputes the
+committed reading from the committed dataset on every CI run, because a reading
+nobody can recompute is a reading that has to be trusted.
+
+It earned its keep immediately. The synthetic cases caught the author's own
+boundary arithmetic *again* — `(A, B, C) = (1, 3, 4)` was asserted to be P3 and
+is a clean P1, because `C >= 2B` needs `C >= 6` — the third time in this PR a
+hand-checked edge was wrong and a control found it. Then nine mutations found
+two more holes: a refusal case that appeared to test the `run_valid` gate but
+was actually refused one line earlier by the missing-measurements check, proving
+nothing about the gate it named; and a reading that died with a `KeyError`
+instead of refusing when a repetition count went missing. Sixth appearance of
+crash-instead-of-finding. `read()` now refuses by name, and the control reports
+an escaping exception rather than being killed by it.
+
+**The mechanism table was not applied.** P4 fires no elevation and P5 fires no
+rule, so neither regime licenses an attribution; the reading records the refusal
+and its reason in both. The temptation to look anyway — the numbers are right
+there, and `warm` n=15 has a C/A of 3.7 — is precisely what the preregistration
+exists to overrule. A P5 that gets analysed until it says something is not a P5.
+
+Nothing moved as a result. No threshold, no budget, no floor, no envelope,
+`0.35` not consulted, no session dropped, no re-run. The preregistered stop rule
+for P4 or P5 in a regime is "stop after reporting; neither licenses a policy
+change", and both regimes hit it.
+
 ### Both pairs are stale, and are not re-recorded
 
 The digest moved from `2d6e52fe4352` to `6713e7300c7c`, and again to

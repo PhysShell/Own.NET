@@ -569,20 +569,96 @@ offers, which is worth knowing.
 - A reading that names which rule fired in each regime, quoting the arithmetic,
   and nothing beyond it.
 
+## The pass ran. The formal outcome is (P4, P5).
+
+The owner authorised **one** `CALIBRATION_ONLY` pass, pinned literally to head
+`7ad4a0b627d95221cfbb9831847eec7288a8daef`, with no automatic retries under any
+failure. It ran once, at 07:03 UTC on 2026-09-11, on that head with a clean
+tree, and came back `run_valid: true`: 240 halves, 2640 spawns, no stray exit
+code, no identity drift, no stop condition.
+
+### D(arm, n, regime), in milliseconds
+
+| regime | n | D(A) | D(B) | D(C) | C/A | B/A |
+|---|---|---|---|---|---|---|
+| `process-cold` | 5 | 0.0623 | 0.0337 | 0.0517 | 0.83 | 0.54 |
+| `process-cold` | 15 | 0.0321 | 0.0517 | 0.0343 | 1.07 | 1.61 |
+| `warm` | 5 | 0.0509 | 0.0443 | 0.0494 | 0.97 | 0.87 |
+| `warm` | 15 | 0.0243 | 0.0484 | 0.0903 | 3.71 | 1.99 |
+
+### Which rule fired, with the arithmetic
+
+**`process-cold` is P4 at both counts — the witness did not reproduce.**
+
+    n=5    C = 0.0517 <= 1.5 x 0.0623 = 0.0935   ->  P4
+    n=15   C = 0.0343 <= 1.5 x 0.0321 = 0.0482   ->  P4
+
+P4 held at n=5 and n=15, so the regime is **P4**.
+
+**`warm` is P5 — the counts disagree.**
+
+    n=5    C = 0.0494 <= 1.5 x 0.0509 = 0.0764   ->  P4
+    n=15   C = 0.0903 >  1.5 x 0.0243 = 0.0365   ->  not P4
+           B = 0.0484 <  3   x 0.0243 = 0.0729   ->  not P1, not P3
+           B = 0.0484 >  1.5 x 0.0243 = 0.0365   ->  not P2
+                                                 ->  P5
+
+A rule must hold at both counts within a regime to fire. P4 at n=5 and P5 at
+n=15 is disagreement, so the regime is **P5**.
+
+The cold/warm difference is reported as a **split**, not collapsed to P5: both
+regimes spawn a fresh process per iteration and differ only in whether the first
+two are discarded.
+
+### The mechanism table was not applied, and that is the rule working
+
+P4 fires no elevation and P5 fires no rule, so neither regime licenses an
+attribution. The reading records that refusal in both regimes with its reason
+rather than reporting a table nobody asked for. Attribution after a P5 would be
+an analysis the preregistration does not license, and it is exactly the kind of
+"the numbers are suggestive, let me just look" move this round forbids.
+
+### Stop rules, applied
+
+> **P4** or **P5** in a regime: stop after reporting for that regime. Neither
+> licenses a policy change.
+
+Both regimes hit that rule. The round stops here. No policy value moved, no
+threshold was derived, `0.35` was not consulted, no session was dropped, and the
+pass was not repeated. There is no second pass and none is authorised.
+
+### What this does and does not establish
+
+It establishes that on **this** machine, at **this** work size, with the arms
+and schedule fixed in this document, the `n=5`/`n=15` half-to-half drift is
+0.024–0.090 ms across all three arms, and that the C-against-A ratio does not
+clear the P4 boundary in `process-cold` at either count.
+
+It does **not** establish why the historical Owen cells failed, does not
+exonerate image mapping or page faults, and does not license reading `warm`'s
+n=15 numbers as a trend. One cell out of four sitting above the P4 boundary is
+what P5 means, and P5 means the round declines to say.
+
+The reading is committed at
+`docs/evidence/round7/p022-263a-round7-reading.linux.json` and the raw dataset,
+every observation and every accounting field, at
+`docs/evidence/round7/p022-263a-round7-dataset.linux.json`.
+
 ## Authorisation state
 
 **Authorised and done:** all four amendments; the `_run_once` extension; the
 apparatus; the B1–B4 structural preflight; the execution contract, schedule and
 work binding; the **outcome contract**, timed and untimed; the **plan-mode dry
-run**; controls and mutations; CI.
+run**; the **single `CALIBRATION_ONLY` measurement pass**; the preregistered
+reading; controls and mutations; CI.
 
-**Not authorised:** the Round 7 calibration pass itself — any timing or resource
-measurement; re-recording the sizing pairs; a calibration of record; the D7
-freeze; #263-B; merge; Stage 3; Stage 4.
+**Not authorised:** a second measurement pass, for any reason including a
+failed first one; re-recording the sizing pairs; a calibration of record; the
+D7 freeze; #263-B; merge; Stage 3; Stage 4.
 
 The plan-mode record is committed at
 `docs/evidence/round7/p022-263a-round7-plan.linux.json`: arms built, B1–B4
 passed on those bytes, identities frozen, the untimed outcome preflight passed
 for all three arms (A 0, B 0, C 2 with evidence), 40 blocks and 240 halves
-fixed, zero clocks started. The next decision is GO or NO-GO on the measurements, after a
-check of these three bindings.
+fixed, zero clocks started. The measurement pass that followed it is recorded
+beside it.
