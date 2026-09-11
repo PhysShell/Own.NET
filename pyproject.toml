@@ -38,10 +38,11 @@ files = [
   "scripts/round7/schedule.py",
   "scripts/round7/runner.py",
   "scripts/round7/readout.py",
+  "scripts/calibration/policy.py",
   "scripts/mutate_campaign.py",
   "scripts/shadow_compare.py",
   "scripts/render_checkpoint_status.py",
 ]
-mypy_path = ["tests", "scripts", "scripts/round7"]
+mypy_path = ["tests", "scripts", "scripts/round7", "scripts/calibration"]
 explicit_package_bases = true
 strict = true

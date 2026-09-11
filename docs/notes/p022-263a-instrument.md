@@ -1161,6 +1161,49 @@ neither licenses an attribution, and the committed reading is byte-identical
 before and after. It was latent, and a latent wrong answer is still a wrong
 answer waiting for the first dataset that asks.
 
+### Step 2: a policy that cannot hold a number
+
+The owner ratified the calibration mechanism and the `median |Δ elapsed| > 0`
+precondition I had flagged as mine to strike, on the grounds that `work` has the
+same structural zero-hole and the value is structural rather than empirical: if
+the quantity being explained is zero, attribution has no subject.
+
+Two mechanical corrections landed first. "No constant defaults" had named only
+the constants that appear in a formula, leaving `R_runs` and the `N` ladder free
+to be hard-coded without contradicting a word of it — and those two decide corpus
+cardinality and `N` selection outright. All five now travel in one immutable
+`DesignConstants`, required, no default. And representation is split by kind:
+rationals as reduced pairs, counts as integers, so nobody has to work out whether
+`N = 15` is the integer or the pair `(15, 1)`.
+
+`scripts/calibration/policy.py` is step 2 of the ratified twelve-step sequence,
+written before any training corpus exists. It holds **no values**: nine controls
+check that mechanically, including one that walks every callable the module
+defines and refuses any default that is not absent or `None`.
+
+Seventeen mutations, and the last four were the instructive ones.
+
+**Two assertions were too weak rather than the code being right.** A mutation
+flipping the tie-break came back green because the fitting corpus had a unique
+optimum, so the rule was never exercised. A mutation deleting the fitter's
+boundary candidates came back green because the control asserted only that the
+result was non-negative — and the collapsed answer, the corner `(0, 0)`, is
+non-negative and wrong. Both are now decided by a corpus that forces the issue: a
+falling corpus whose every pair-line has negative slope, so the optimum can only
+sit on a boundary, and a corpus with two genuine minimisers.
+
+**And one rule could not be exercised at all.** The tie-break's second key only
+matters when two minimisers share an intercept, which no natural corpus here
+produces. Rather than leave it unverified or invent a corpus to force it, the
+rule is now a named function and is tested as a rule. A canonicalisation that
+nothing checks is a convention, not a guarantee.
+
+The first version of the no-defaults control also reported ten findings about
+`dataclass(frozen=False)`, because it walked everything in the module's namespace
+rather than what the module defines. A control measuring the wrong thing is
+cheaper to write than one measuring the right thing, which is why it keeps
+happening.
+
 ### Both pairs are stale, and are not re-recorded
 
 The digest moved from `2d6e52fe4352` to `6713e7300c7c`, and again to

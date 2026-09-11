@@ -2937,6 +2937,12 @@ jobs:
       # produced it would have noticed.
       - name: Round 7 apparatus controls (outcome exclusivity, zero guard, B1-B4)
         run: python tests/test_round7_apparatus.py
+      # The calibration policy is pure: no clock, no files, no randomness, and no
+      # constant values at all. It is step 2 of the ratified sequence, written
+      # before any training corpus exists, so every claim it makes is checkable
+      # here on both platforms and none of it needs a measurement.
+      - name: Calibration policy controls (no defaults, symmetry, exact fit)
+        run: python tests/test_calibration_policy.py
       # Plan mode builds the arms, preflights THOSE bytes, freezes their
       # identities and fixes the execution order — then returns before the
       # timing function is reachable. Linux only: the arms are ELF binaries.

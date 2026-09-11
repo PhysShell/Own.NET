@@ -1,4 +1,4 @@
-# P-022 / #263-A — calibration reproducibility policy, PROPOSAL (revision 3)
+# P-022 / #263-A — calibration reproducibility policy, PROPOSAL (revision 4)
 
 **Status: PROPOSAL. Nothing here is ratified, and nothing here is a number.**
 
@@ -10,6 +10,26 @@ document where the value was chosen by whoever was holding the pen.
 
 No clock authority is claimed or implied. No implementation authority is claimed.
 No measurement is proposed here.
+
+## Revision 4 — what the owner's third review changed
+
+Revision 3 was ruled **PASS WITH TWO MECHANICAL CORRECTIONS**, with the
+statistical architecture **RATIFIED**. The owner also **ratified the
+`median |Δ elapsed| > 0` precondition** that revision 3 had flagged as an
+addition they might strike: without it the `work` rule has the same structural
+zero-hole (`0 ≥ 0.5 × 0`) and reports a CPU mechanism where no wall-clock drift
+exists at all. The value is structural, not empirical: if the quantity being
+explained is zero, mechanism attribution has no subject.
+
+| finding | fixed in |
+|---|---|
+| P0 — "no constant defaults" named only `q`, `M`, `G`, `A_abs`, `R_rel` as required arguments, so an implementation could hard-code `R_runs` or the `N` ladder without contradicting the sentence | §3.6 — one immutable `DesignConstants` carrying **all five** design constants, required, no defaults |
+| P1 — §3.2 required every design constant in canonical *rational* form, but `R_runs` and the ladder's elements are semantically **counts** | §2.6 — representation split by kind: rationals as reduced pairs, counts as canonical integers |
+
+Nothing else is reopened. The owner ratified the symmetric midpoint comparison,
+the hybrid envelope, the exact quantile regression, the pooled fitting, the
+four-way semantics, the no-`K` aggregation, the holdout firewall and the per-`N`
+stratification with deterministic `N` selection as **settled**.
 
 ## Revision 3 — what the owner's second review changed
 
@@ -214,6 +234,21 @@ Binding consequences:
 - `A_abs` is a rational count of nanoseconds in the same canonical form. It is
   not rounded to an integer: rounding it would be an undeclared adjustment to a
   bound, in whichever direction the rounding happened to go
+
+**Counts are not rationals, and are not written as though they were.** Revision 3
+required *every* design constant in the reduced-pair form, which would have left
+a reader working out whether `N = 15` is the pair `(15, 1)` or the integer `15`.
+Representation is therefore fixed **by kind**:
+
+| quantity | canonical form |
+|---|---|
+| `q`, `M`, `G` | reduced rational pair, denominator `> 0` |
+| `A_abs(N)`, `R_rel(N)` | reduced rational pair, denominator `> 0` |
+| `R_runs` | a canonical **integer**, `≥ 2` |
+| the `N` ladder | a finite, ordered list of canonical **positive integers** |
+
+This is a serialization and provenance correction. It changes no statistic, no
+rule and no boundary.
 
 ## 3. How the constants will be obtained
 
@@ -463,9 +498,35 @@ The required sequence, each numbered step a separate owner decision:
 12. four-way verdict per §4
 ```
 
-Step 2 carries **no constant defaults**: the fitter and the verdict function take
-`q`, `M`, `G`, `A_abs` and `R_rel` as required arguments with no fallback value,
-so the code physically cannot carry a number that no one ratified.
+Step 2 carries **no constant defaults**, and that has to cover the whole design
+set rather than the constants that happen to appear in a formula. Revision 3
+named only `q`, `M`, `G`, `A_abs` and `R_rel`, which left an implementation free
+to hard-code `R_runs` or the `N` ladder without contradicting a word of it — and
+those two decide the corpus cardinality and the `N` selection outright. That is
+precisely the steering surface this section exists to remove.
+
+**All five design constants travel together in one immutable object**, required,
+with no default anywhere:
+
+```text
+DesignConstants
+    q          reduced rational pair,  0 < numerator < denominator
+    M          reduced rational pair,  numerator > denominator > 0
+    R_runs     canonical integer,      >= 2
+    N_ladder   finite ordered list of canonical positive integers
+    G          reduced rational pair,  numerator >= 0
+```
+
+Who consumes what, so that no argument is carried merely for symmetry:
+
+- the **fitter** uses and validates `q`, `R_runs` and `N_ladder`
+- the **selector** uses `G`
+- the **verdict** uses `M`
+- `A_abs(N)` and `R_rel(N)` are the fitter's **empirical outputs** and the
+  verdict's **required inputs**; they are never design constants and never
+  carry a default either
+
+No dormant parameters are added for the sake of a tidy signature.
 
 Steps 7 and 11 are measurements and neither is authorised by this document.
 Step 5 precedes step 6 deliberately: design constants chosen after seeing the
