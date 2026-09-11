@@ -1,4 +1,4 @@
-# P-022 / #263-A — calibration reproducibility policy, PROPOSAL (revision 2)
+# P-022 / #263-A — calibration reproducibility policy, PROPOSAL (revision 3)
 
 **Status: PROPOSAL. Nothing here is ratified, and nothing here is a number.**
 
@@ -11,7 +11,25 @@ document where the value was chosen by whoever was holding the pen.
 No clock authority is claimed or implied. No implementation authority is claimed.
 No measurement is proposed here.
 
-## Revision 2 — what the owner's review changed
+## Revision 3 — what the owner's second review changed
+
+Revision 2 was ruled **PASS WITH MECHANICAL CORRECTIONS**: the statistical
+architecture accepted, the mechanism not yet ratified, on two P0 findings and two
+P1.
+
+| finding | fixed in |
+|---|---|
+| P0 — exact arithmetic never said how a design constant is *written down*, so one implementation could read a decimal as a float and another as a rational | §2.6 — a canonical exact-rational representation, and a refusal for anything else |
+| P0 — the sequence let the implementation be written after the training data existed, which is a steering surface even with the prose frozen | §3.6 — the implementation, its controls and its frozen digest all precede the training collection |
+| P1 — the tie-break rationale claimed more than the rule guarantees | §3.3 — the claim is **withdrawn** with a counterexample; the rule stands as canonicalisation only |
+| P1 — `N_max` duplicated the last element of a finite frozen ladder and could contradict it | removed throughout; the ladder's last element **is** the mandatory stop |
+
+Nothing else is reopened. The owner ratified the symmetric midpoint comparison,
+the hybrid form, the quantile regression, the pooling, the four-way semantics,
+the no-`K` aggregation, the holdout firewall and the per-`N` stratification as
+settled, and reopening a settled choice is its own kind of drift.
+
+## Revision 2 — what the owner's first review changed
 
 Revision 1 was ruled **CHANGES REQUIRED** with four P0 findings and one P1. The
 form was ratified in principle; the mechanism was not, because a reasonable
@@ -26,8 +44,7 @@ space between those two is where knobs hide.
 | P0 — `N` selection was mathematically undefined: the model has no `N` in it | §3.4 — per-`N` envelopes and a deterministic selection rule |
 | P1 — §6.3 inherited constants without naming their provenance | §6.3 — the source artifact, the digest that covers it, and why this policy may not touch them |
 
-Three things are **not** reopened, because the owner ratified them in principle
-and reopening a settled choice is its own kind of drift: the symmetric midpoint
+Three things were **not** reopened in revision 2 either: the symmetric midpoint
 comparison, the hybrid absolute-plus-relative form, and the no-`K` aggregation.
 
 ## Why this document exists, in the frozen brief's own terms
@@ -166,6 +183,38 @@ describes the instrument's own dispersion, not a budget of permitted failures. I
 that proves impossible, the honest outcome is a failed policy under §4 and a
 conversation with the owner, not a `K` that grows until the gate opens.
 
+### 2.6 How a constant is written down
+
+Revision 2 insisted on exact rational arithmetic and then left the constants as
+"a dimensionless number", which settles nothing: a value written as a decimal —
+say `0.95`, used here only as an illustration and not as a proposed value — is
+read by one implementation as a binary float and by another as `19/20`, and the
+two then disagree on every boundary case. That is a particularly silly gap in a document that already
+refused a floating-point LP solver on exactness grounds.
+
+**Every rational quantity in this policy — design constant, empirical constant,
+and every intermediate — is represented canonically as a pair of integers:**
+
+    numerator, denominator
+    denominator > 0
+    gcd(|numerator|, denominator) = 1
+
+The reduced form with a positive denominator is unique, so the representation is
+itself canonical and two implementations cannot disagree about what was frozen.
+
+Binding consequences:
+
+- a constant is **committed as that integer pair**, never as a decimal string and
+  never as a float
+- reading, writing or comparing any of these quantities through a binary
+  floating-point value is a **refusal**, not a rounding difference
+- the admissible ranges are expressed on the pair: `q` in `(0, 1)` means
+  `0 < numerator < denominator`; `M > 1` means `numerator > denominator > 0`;
+  `G ≥ 0` means `numerator ≥ 0`
+- `A_abs` is a rational count of nanoseconds in the same canonical form. It is
+  not rounded to an integer: rounding it would be an undeclared adjustment to a
+  bound, in whichever direction the rounding happened to go
+
 ## 3. How the constants will be obtained
 
 ### 3.1 Three corpora, and a firewall between them
@@ -223,12 +272,12 @@ already in hand.
 | `q` | quantile level in `(0, 1)` | which quantile of the instrument's dispersion the inner bound claims to cover |
 | `M` | dimensionless, `> 1` | the width of the inconclusive band, as the outer bound's multiple of the inner |
 | `R_runs` | count, `≥ 2` | how many repeated runs per cell the fitting corpus collects |
-| the `N` ladder | ordered counts | the repetition counts the instrument may use |
-| `N_max` | count | the ladder's mandatory stop |
+| the `N` ladder | a **finite**, ordered, frozen list of counts | the repetition counts the instrument may use; **its last element is the mandatory stop**, and there is no separate maximum — a second knob there would express nothing but a future argument about which maximum wins |
 | `G` | dimensionless, `≥ 0` | the diminishing-returns margin used by §3.4 to select `N` |
 
-No design constant may be derived from the fitting corpus, and none has a value
-here.
+No design constant may be derived from the fitting corpus, none has a value here,
+and each is written in the canonical exact-rational form of §2.6 when it is
+eventually ratified.
 
 ### 3.3 The empirical fit, specified as a single computable function
 
@@ -288,12 +337,30 @@ margin. Without a stated tie-break, two correct implementations of this document
 would return materially different constants and both would be entitled to say
 they followed it. That is precisely the defect this revision exists to remove.
 
-**Tie-break, in order:** among all minimisers, take the smallest `A_abs`; among
-those, the smallest `R_rel`.
+**Tie-break, in order.** Among all objective minimisers represented by the
+enumerated candidate set:
 
-The governing principle, stated so the rule can be checked against it rather than
-merely obeyed: **a tie is never resolved in the direction that makes the gate
-easier to pass.** Both components select the tighter bound.
+1. choose the smallest `A_abs`;
+2. among those, choose the smallest `R_rel`.
+
+This is a deterministic **canonicalisation** rule. It does not claim pointwise
+dominance over every other minimiser. Its purpose is identical constants from
+identical corpus bytes, and that is the whole of its purpose.
+
+**A claim about this rule is withdrawn.** Revision 2 asserted that "a tie is
+never resolved in the direction that makes the gate easier to pass". That is
+false, and not merely overstated. Tied optima need not share a slope, so a
+smaller intercept can come with a steeper one, and the two lines cross. A
+concrete witness, found by search rather than argued: observations
+`(t, y) = (8, 20), (8, 10), (3, 11)` at `q = 1/2` have two tied minimisers at
+equal loss — `A_abs = 28/5, R_rel = 9/5` and `A_abs = 11, R_rel = 0`. The rule
+selects the first, which is **looser** than the second for every `t > 3`.
+
+The moral is the one this project keeps paying for: a rule may be perfectly good
+at its actual job while the sentence justifying it quietly promises something
+else. The rule stays; the promise goes. And no scalar tie-break by envelope area
+or summed width replaces it, because that would introduce a second objective
+nobody asked for, on top of the one that already decides.
 
 **Fail-closed conditions of the fit**, each refusing rather than guessing:
 
@@ -356,24 +423,53 @@ under the current harness identity. Everything on hand is form evidence.
 This is a normal outcome, not a setback, and the response is not to squeeze
 constants out of the museum exhibit in `historical/`.
 
-The required sequence, each step a separate owner decision:
+### 3.6 The implementation is written before the data, not after
+
+Revision 2 jumped from a ratified mechanism straight to a measurement, leaving
+the code that applies the policy to be written afterwards. That is a steering
+surface even when the prose is frozen: an implementation written with the
+training data already on disk can be nudged, in a hundred defensible small ways,
+toward the answer its author has already seen.
+
+So the implementation, its controls and its **frozen digest** all precede the
+training collection. And its provenance is not softer than the instrument's:
+**code that decides admissibility must not have weaker provenance than code that
+starts the stopwatch.**
+
+- if the implementation changes `perf_baseline.py` or any source covered by the
+  **measurement-harness digest**, that digest moves — necessarily **before** any
+  training data exists, never after
+- if it lives separately and the harness is untouched, that is equally fine, but
+  its **own digest becomes a mandatory identity axis** for the fit, for the
+  constant freeze and for the validation pair, exactly as the harness digest is
+
+The required sequence, each numbered step a separate owner decision:
 
 ```text
-1. ratify this mechanism                      (docs only; this document)
-2. ratify the design constants q, M, R_runs,
-   the N ladder, N_max, G                     (owner decision; no data consulted)
-3. preregister and authorise ONE
-   calibration-only training collection       (a measurement; NOT authorised here)
-4. fit per §3.3 per rung, select N per §3.4,
-   freeze and commit the constants            (deterministic; no new data)
-5. commit the validation protocol             (before any validation data exists)
-6. run ONE fresh holdout pair                 (a measurement; NOT authorised here)
-7. verdict per §4
+ 1. mechanism RATIFIED                        (docs only; this document)
+ 2. implement pure policy / fitter / verdict  (NO constant defaults anywhere)
+ 3. mutation + control review, exact-head CI  (the implementation's own adversary)
+ 4. freeze policy-implementation digest
+    AND measurement-harness digest            (both, before any corpus exists)
+ 5. ratify the exact-rational design constants
+    q, M, R_runs, the finite N ladder, G      (owner decision; no data consulted)
+ 6. preregister the numeric training collection,
+    bound to BOTH frozen digests              (before it is run)
+ 7. separate authority -> ONE training collection   (a measurement)
+ 8. deterministic fit per rung, select N per §3.4   (no new data)
+ 9. freeze the empirical constants                  (committed)
+10. commit the fresh holdout protocol               (before any validation data)
+11. separate authority -> ONE validation pair       (a measurement)
+12. four-way verdict per §4
 ```
 
-Steps 3 and 6 are measurements and neither is authorised by this document. Step 2
-precedes step 3 deliberately: design constants chosen after seeing the training
-corpus would be design constants chosen to flatter it.
+Step 2 carries **no constant defaults**: the fitter and the verdict function take
+`q`, `M`, `G`, `A_abs` and `R_rel` as required arguments with no fallback value,
+so the code physically cannot carry a number that no one ratified.
+
+Steps 7 and 11 are measurements and neither is authorised by this document.
+Step 5 precedes step 6 deliberately: design constants chosen after seeing the
+training corpus would be design constants chosen to flatter it.
 
 ## 4. The holdout firewall
 
@@ -507,7 +603,7 @@ it can record what it observed, and it must refuse rather than guess.
 
 A GitHub-hosted Windows runner is already recorded as not measurement-grade — two
 runs minutes apart on one commit disagreed about their own environment — so the
-environment must be named explicitly in §4's protocol and in step 3's training
+environment must be named explicitly in §4's protocol and in the step 6 training
 preregistration.
 
 ### 6.6 Determinism and the re-run rule
@@ -547,17 +643,21 @@ Three binding consequences:
 ```text
 policy mechanism frozen                     (this document, ratified)
         ↓
-design constants ratified                   (§3.2; before any corpus is collected)
+pure implementation written, mutation-reviewed, CI green
         ↓
-training collection preregistered + authorised + run   (§3.5 step 3)
+policy-implementation digest AND measurement-harness digest frozen
         ↓
-empirical constants frozen, N selected      (§3.3, §3.4; deterministic)
+design constants ratified as exact rationals   (§2.6, §3.2; no data consulted)
+        ↓
+training collection preregistered against both digests, authorised, run once
+        ↓
+empirical constants frozen per rung, N selected   (§3.3, §3.4; deterministic)
         ↓
 validation protocol committed               (§4; before any validation data)
         ↓
 ONE fresh validation pair
         ↓
-verdict under §2 and the §6 contract
+four-way verdict under §2 and the §6 contract
    reproducible          inconclusive / not-reproducible / invalid
         ↓                              ↓
    #263-A PASS              owner decision / redesign
@@ -580,8 +680,7 @@ verdict under §2 and the §6 contract
 | `q` | quantile level in `(0, 1)` | owner ratification |
 | `M` | dimensionless, `> 1` | owner ratification |
 | `R_runs` | count, `≥ 2` | owner ratification |
-| the `N` ladder | ordered counts | owner ratification |
-| `N_max` | count | owner ratification |
+| the `N` ladder | finite ordered list of counts; last element is the mandatory stop | owner ratification |
 | `G` | dimensionless, `≥ 0` | owner ratification |
 
 **Inherited — not set, not re-derived, not proposed here:** the noise-probe
@@ -594,11 +693,13 @@ where it will be visible.
 
 ## 10. What this proposal does not do
 
-It does not authorise any measurement — not the training collection of §3.5 step
-3, not the validation pair of §4. It does not authorise an implementation. It
-does not re-record the stale sizing pairs, promote a calibration of record,
-freeze D7, unblock #263-B, merge, or start Stage 3 or Stage 4. It does not move
-any incumbent constant.
+It does not authorise any measurement — not the training collection at step 7,
+not the validation pair at step 11. It does not authorise the implementation at
+step 2 either: that is the next thing to be authorised, not something this
+document grants itself. It does not re-record the stale sizing pairs, promote a
+calibration of record, freeze D7, unblock #263-B, merge, or start Stage 3 or
+Stage 4. It does not move any incumbent constant, and it still contains no
+values.
 
 It does not claim the instrument is frozen. It is a plan to find out, and every
 number it will eventually need is still missing on purpose.

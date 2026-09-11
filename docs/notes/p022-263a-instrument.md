@@ -1089,6 +1089,42 @@ Round 6 declined to establish and named as its own alternative. A functional for
 nobody has evidence for is not a repair, it is missing knowledge in mathematical
 notation.
 
+### The tie-break was fine; the sentence defending it was not
+
+Revision 2 of the policy earned PASS WITH MECHANICAL CORRECTIONS: two P0 and two
+P1, none of which changed the statistical model. Two are worth recording.
+
+**Exact arithmetic said nothing about how a constant is written down.** The
+document refused a floating-point LP solver on exactness grounds and then left
+its constants as "a dimensionless number", so a committed decimal would be read
+as a binary float by one implementation and as a rational by another, and the two
+would disagree on every boundary case. Constants are now canonical integer pairs
+— reduced, positive denominator — and reading one through a float is a refusal.
+
+**A rule was good and its justification was false.** The lexicographic tie-break
+(smallest `A_abs`, then smallest `R_rel`) was defended with "a tie is never
+resolved in the direction that makes the gate easier to pass". The owner pointed
+out that tied optimal lines can cross. They can: observations
+`(8, 20), (8, 10), (3, 11)` at `q = 1/2` have two minimisers at equal loss,
+`A_abs = 28/5, R_rel = 9/5` and `A_abs = 11, R_rel = 0`, and the rule picks the
+first, which is **looser** for every `t > 3`. Found by search, not by argument,
+after a first randomised sweep found nothing because its generator kept driving
+ties onto the `R_rel = 0` boundary where the claim happens to hold — a reminder
+that a search finding nothing is evidence about the search.
+
+The rule survives unchanged as pure canonicalisation, which is all it was ever
+needed for. Only the promise was removed. That is the sharpest form of this PR's
+recurring lesson to date: not a broken check, but a working mechanism with a
+sentence attached that quietly claimed more than the mechanism delivers — and
+prose is where that is cheapest to write and hardest to test.
+
+Also closed: the implementation now precedes the training data in the sequence,
+because code written with the data already on disk can be nudged in a hundred
+defensible small ways, and **code that decides admissibility must not have weaker
+provenance than code that starts the stopwatch**. And `N_max` is gone; a finite
+frozen ladder already ends somewhere, and a second maximum expresses nothing but
+a future argument about which one wins.
+
 ### Both pairs are stale, and are not re-recorded
 
 The digest moved from `2d6e52fe4352` to `6713e7300c7c`, and again to
