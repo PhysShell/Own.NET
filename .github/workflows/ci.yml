@@ -2930,6 +2930,13 @@ jobs:
         run: python scripts/perf_baseline.py --selftest
       - name: The instrument controls (firewall, both identity domains, provenance)
         run: python tests/test_perf_instrument.py
+      # The Round 7 apparatus is a classifier and a structural preflight, both
+      # exercisable without a clock. The exclusivity control is the one that
+      # matters: the preregistration's first outcome table let one dataset
+      # satisfy two contradictory verdicts, and nothing in the process that
+      # produced it would have noticed.
+      - name: Round 7 apparatus controls (outcome exclusivity, zero guard, B1-B4)
+        run: python tests/test_round7_apparatus.py
       # Decisive workloads: availability and pins only. No clock, no resource
       # sampling — this step is what "enumerated, hashed, availability-checked"
       # looks like when it is the only thing permitted.

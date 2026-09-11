@@ -32,10 +32,13 @@ files = [
   "tests/shadow_sweep.py",
   "tests/test_obligation_fact_parity.py",
   "scripts/perf_baseline.py",
+  "scripts/round7/classify.py",
+  "scripts/round7/elfread.py",
+  "scripts/round7/preflight.py",
   "scripts/mutate_campaign.py",
   "scripts/shadow_compare.py",
   "scripts/render_checkpoint_status.py",
 ]
-mypy_path = ["tests", "scripts"]
+mypy_path = ["tests", "scripts", "scripts/round7"]
 explicit_package_bases = true
 strict = true

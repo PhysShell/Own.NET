@@ -722,6 +722,65 @@ The non-POSIX branch is exercised on Linux by forcing the RSS mechanism, which
 drives the real branch of the real function. It is **not** a Windows test and
 the control says so; what it proves is that the absence path states an absence.
 
+### The Round 7 apparatus is not the instrument, and the digest proves it
+
+`scripts/round7/` holds a classifier, an ELF reader, arm B's padding source and
+the B1–B4 preflight. None of it is an instrument source, and the harness digest
+is **unchanged at `562a7f7232da`** across the whole addition — which is the point
+worth recording. A round's apparatus that quietly joined `INSTRUMENT_SOURCES`
+would restale every pair and, worse, would put the reading of an experiment
+inside the thing the experiment measures.
+
+**One classifier, and the controls are wired to it.** `classify.py` is the only
+implementation of P1–P5; a second copy would be a second opinion and the reading
+could then choose between them. `round7-outcome-exclusivity` evaluates it over
+50,653 exact rational triples — sixths, so the ratified edges `3/2`, `3`, `2/3`
+and `2` land exactly on grid points rather than near them — and reports which
+rule pairs overlap and where. Exact `Fraction` arithmetic throughout: a binary
+float `2/3` would decide the `(2/3)B ≤ C` edge by rounding direction rather than
+by the preregistered rule.
+
+The census is run twice. Once against the real rules, which must overlap only at
+`A = B = 0`; once against the previous draft's P1, which must be reported broken.
+A control that has only ever seen correct input is a control nobody has tested.
+
+**Six mutations of the real classifier, each caught by the check that owns it:**
+
+| mutation | caught by |
+|---|---|
+| the old overlapping P1 restored | P1 found overlapping another rule |
+| the zero guard widened to `A or B` | `A=1, B=0, C=4` refused instead of classifying P2 |
+| the zero guard removed | `A=B=C=0` raising instead of routing to P5 |
+| ambiguity resolved by precedence rather than raising | the classifier returning one answer where two rules fire |
+| P4's edge made strict | `C = 1.5A` falling through to P5 |
+| an epsilon smuggled into the zero comparison | a tiny non-zero `A` being refused |
+
+The second one is the one that matters: it is the guard I proposed and the owner
+rejected, and the control now refuses to let it back in.
+
+**And the crash-before-reporting defect recurred.** Removing the zero guard makes
+`A=B=C=0` fire P2, P3 and P4 at once, so the classifier raises and the control
+died on a traceback — exit code non-zero, mutation scored CAUGHT, no `FAIL` line
+naming anything. Identical in shape to the finding recorded one round earlier,
+in a file written after it. The control catches the raise and reports it now.
+Twice in two rounds suggests the habit is to check that a mutation *fails*
+rather than that the *check* speaks, and reading the output rather than the exit
+code is what caught it both times.
+
+**The preflight reads the ELF, not a rendering of it.** `elfread.py` parses
+program and section headers directly. B1 locates the padding through `st_shndx`,
+which names its section outright, rather than by matching its address against
+section ranges — an inference that quietly finds nothing at all for a
+non-allocated section, whose address is zero. That distinction is not
+theoretical: it is exactly what the B2 damage case constructs.
+
+The four damage cases are **built**, not simulated. A real linker really does
+drop an unreferenced non-`volatile` constant under `--gc-sections`; a section
+emitted through inline asm with empty flags really is absent from every
+`PT_LOAD`. The first attempt at that second case failed to produce the damage at
+all — gcc marked the custom section `SHF_ALLOC` anyway and B2 passed it
+correctly — which is why the mutation was checked before being believed.
+
 ### Both pairs are stale, and are not re-recorded
 
 The digest moved from `2d6e52fe4352` to `6713e7300c7c`, and again to
