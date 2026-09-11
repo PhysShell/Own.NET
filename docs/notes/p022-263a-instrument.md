@@ -834,6 +834,54 @@ The lesson has now cost three rounds, and the durable fix was not another
 resolution to be careful. It was making the tool that scores mutations unable to
 accept silence as success.
 
+### The sample was clamped in the vice, and nobody checked it was alive
+
+Round 7 called `Harness._run_once` directly. That gave it the instrument's
+measured interval and skipped the layer wrapped around it — the layer that
+exists because twelve cells once timed `command-not-found` accurately,
+reproducibly, and to no purpose.
+
+So the round had three arms bound byte-for-byte to the right binaries, running
+in a preregistered order, doing a work count traced to a committed ladder, and
+**nothing checked an exit code**. All that identity work would have measured the
+wrong path with great precision.
+
+The fix is Round 7's, not the instrument's: `perf_baseline.py` is untouched and
+the digest stays `562a7f7232da`. Before the clock, each arm proves untimed that
+it does its job — A and B must exit 0 at 460280 iterations; arm C goes through
+the instrument's own `core-usage` rung, `expect_rc` 2 **and** the `usage-help`
+evidence, reused rather than restated. Then every spawn, warmup discards
+included, must exit its arm's code, and one stray stops the round and records
+arm, block, half, warmup-or-sample, index and the observed code.
+
+Exit 2 alone is not sufficient and a control proves it rather than saying it: a
+stand-in that exits 2 and prints nothing is handed to the preflight and refused.
+
+**Seven mutations, and three of them found holes in my own control** — which is
+the part worth recording:
+
+| mutation | first result |
+|---|---|
+| timed rc check removed | caught |
+| warmups no longer checked | caught |
+| every arm expected to exit 0 | **crashed the control** — no finding |
+| arm C judged by exit code alone | **missed** — the control read the contract string, not the decision |
+| the outcome preflight not a stop condition | **missed** — never tested |
+| `usage-help` stops requiring stdout | caught |
+| `usage-help` tolerates stderr | caught |
+
+The crash was the fourth appearance of the same ghost, and it was visible only
+because the mutation runner now refuses to score a non-zero exit as CAUGHT
+without a `FAIL` line. The two misses were worse in kind: checks that passed
+happily while the thing they described was broken. One asserted that arm C's
+contract *string* named the rung, which stays true however the verdict is
+computed; the other never existed at all.
+
+All three are closed and all seven now come back with a finding. The general
+lesson is getting expensive to keep relearning: a control is not evidence that
+something works, it is a claim that needs its own adversary — and the cheapest
+adversary available is a mutation runner that will not accept silence.
+
 ### Both pairs are stale, and are not re-recorded
 
 The digest moved from `2d6e52fe4352` to `6713e7300c7c`, and again to

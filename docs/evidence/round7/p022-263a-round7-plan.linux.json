@@ -1,7 +1,7 @@
 {
   "tag": "CALIBRATION_ONLY",
   "mode": "plan",
-  "timestamp_utc": "2026-09-11T04:51:26Z",
+  "timestamp_utc": "2026-09-11T05:24:25Z",
   "work_binding": {
     "iterations": 460280,
     "helper_sha256": "f937b36bd4dac422f88942b87ea9794e2c75a198a034917e6c02c0abad1c0cbd",
@@ -45,6 +45,43 @@
       }
     },
     "failed": []
+  },
+  "outcome_preflight": {
+    "ran": true,
+    "all_passed": true,
+    "failed": [],
+    "arms": {
+      "A": {
+        "role": "A",
+        "pass": true,
+        "expected_rc": 0,
+        "observed_rc": 0,
+        "contract": "exit code only; the helper writes nothing by construction",
+        "why": "ran 460280 iterations and exited 0",
+        "stdout_bytes": 0,
+        "stderr_bytes": 0
+      },
+      "B": {
+        "role": "B",
+        "pass": true,
+        "expected_rc": 0,
+        "observed_rc": 0,
+        "contract": "exit code only; the helper writes nothing by construction",
+        "why": "ran 460280 iterations and exited 0",
+        "stdout_bytes": 0,
+        "stderr_bytes": 0
+      },
+      "C": {
+        "role": "C",
+        "pass": true,
+        "expected_rc": 2,
+        "observed_rc": 2,
+        "contract": "perf_baseline rung 'core-usage': expect_rc [2], evidence 'usage-help'",
+        "why": "satisfied the instrument's own core-usage contract",
+        "problems": []
+      }
+    },
+    "note": "untimed; no clock was started for any of these probes"
   },
   "frozen_arms": {
     "A": {

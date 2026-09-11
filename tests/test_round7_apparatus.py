@@ -12,6 +12,7 @@ than by reading them:
     round7-preflight            B1-B4 pass on healthy arms and each refuses its own damage
     round7-schedule             the execution order is blocked, seeded, and replayable
     round7-execution-contract   plan mode starts no clock; the timed bytes are the preflighted ones
+    round7-outcome-contract     every spawn, warmups included, did the work its arm exists to do
 
 The exclusivity control matters most. The previous draft's outcome table let one
 dataset satisfy two contradictory verdicts, and nothing in the process that
@@ -38,8 +39,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts" / "round7"))
+sys.path.insert(0, str(ROOT / "scripts"))
 
 import classify as cl  # noqa: E402
+import perf_baseline as pb  # noqa: E402
 import preflight as pf  # noqa: E402
 import runner as rn  # noqa: E402
 import schedule as sch  # noqa: E402
@@ -638,6 +641,181 @@ def control_execution_contract() -> None:
                                         "2 ms helper")
 
 
+class _FakeHarness:
+    """A harness whose interval returns exit codes I choose.
+
+    The point of the control is the CHECK, not the clock: driving real processes
+    to exit 127 on demand would test the operating system. This returns rows
+    shaped exactly like `_run_once`'s so the check sees what it would really see.
+    """
+
+    def __init__(self, codes: list[int]) -> None:
+        self.codes = list(codes)
+        self.spawns = 0
+
+    def _run_once(self, argv: list[str], env: dict[str, str],
+                  cwd: Path) -> dict[str, object]:
+        rc = self.codes[self.spawns] if self.spawns < len(self.codes) else 0
+        self.spawns += 1
+        return {"elapsed_ns": 1_000_000, "rc": rc, "peak_rss_bytes": 1024,
+                "rss_unavailable_reason": "", "accounting_unavailable_reason": ""}
+
+
+def control_outcome_contract() -> None:
+    """A timed process must have done the work, and warmups count too.
+
+    This is the Round 2 defect at one remove. Twelve cells once timed
+    `command-not-found` accurately and reproducibly, and the frozen instrument
+    grew an outcome layer because of it. Round 7 called `_run_once` directly and
+    walked straight past that layer: three perfectly identity-bound binaries
+    could have measured the wrong path with great precision.
+    """
+    problems = []
+    half = sch.Half("warm", 5, 1, "C", "first")
+    argv, env, cwd = ["x"], {}, ROOT
+
+    # (1) The healthy direction: all spawns conforming, warmups included.
+    #     Wrapped, because a mutation that changes arm C's expected code makes
+    #     this raise, and a control that dies here exits non-zero with no FAIL
+    #     line — which reads as "caught" to anything counting exit codes and as
+    #     nothing at all to a human. That ghost has a season pass by now.
+    good = _FakeHarness([2] * 7)
+    try:
+        row = rn.time_half(good, half, argv, env, cwd, repetitions=5, discards=2)
+    except rn.OutcomeContractBreach as exc:
+        fail("round7-outcome-contract",
+             f"a healthy arm C half (every spawn exiting 2) was refused: {exc}")
+        return
+    if good.spawns != 7:
+        problems.append(f"{good.spawns} spawns for n=5 with 2 discards, want 7")
+    if len(row["samples"]) != 5:
+        problems.append(f"{len(row['samples'])} samples kept, want 5 (discards must not "
+                        "be counted as measurements)")
+    if row.get("expected_rc") != 2:
+        problems.append("the half does not record which exit code it required")
+
+    # (2) A stray SAMPLE is refused, and named.
+    for bad_rc in (1, 127):
+        h = _FakeHarness([2, 2, 2, bad_rc, 2, 2, 2])
+        try:
+            rn.time_half(h, half, argv, env, cwd, repetitions=5, discards=2)
+        except rn.OutcomeContractBreach as exc:
+            s0 = exc.strays[0]
+            if s0["kind"] != "sample" or s0["observed_rc"] != bad_rc:
+                problems.append(f"a sample exiting {bad_rc} was recorded as {s0}")
+            for field in ("block", "arm", "half", "kind", "index", "observed_rc"):
+                if field not in s0:
+                    problems.append(f"the stray record omits {field!r}: "
+                                    "'something exited wrong somewhere' is not a record")
+        else:
+            problems.append(f"arm C exiting {bad_rc} was accepted as a calibration "
+                            "sample — exactly the shape that timed 12 "
+                            "command-not-found cells and called them reproduced")
+
+    # (3) A stray WARMUP is refused too. Its numbers are discarded; the evidence
+    #     that the process is broken is not.
+    h = _FakeHarness([2, 127, 2, 2, 2, 2, 2])
+    try:
+        rn.time_half(h, half, argv, env, cwd, repetitions=5, discards=2)
+    except rn.OutcomeContractBreach as exc:
+        if exc.strays[0]["kind"] != "warmup" or exc.strays[0]["index"] != 1:
+            problems.append(f"the failing warmup was misrecorded: {exc.strays[0]}")
+    else:
+        problems.append("a warmup discard that failed was ignored; a discarded iteration "
+                        "still proves the process is broken")
+
+    # (4) The arms expect DIFFERENT codes, so a check keyed on one constant is
+    #     wrong for two of the three. A/B must exit 0, C must exit 2.
+    if rn.EXPECTED_RC != {"A": 0, "B": 0, "C": 2}:
+        problems.append(f"the arms' expected exit codes are {rn.EXPECTED_RC}")
+    for arm, good_rc, bad_rc in (("A", 0, 2), ("B", 0, 1), ("C", 2, 0)):
+        hh = sch.Half("process-cold", 5, 1, arm, "second")
+        ok_h = _FakeHarness([good_rc] * 5)
+        try:
+            rn.time_half(ok_h, hh, argv, env, cwd, repetitions=5, discards=0)
+        except rn.OutcomeContractBreach as exc:
+            problems.append(f"arm {arm} exiting {good_rc} was refused: {exc}")
+        except Exception as exc:
+            problems.append(f"arm {arm} exiting {good_rc} raised "
+                            f"{type(exc).__name__}: {exc}")
+        bad_h = _FakeHarness([bad_rc] * 5)
+        try:
+            rn.time_half(bad_h, hh, argv, env, cwd, repetitions=5, discards=0)
+        except rn.OutcomeContractBreach:
+            pass
+        else:
+            problems.append(f"arm {arm} exiting {bad_rc} was accepted; {arm} must exit "
+                            f"{good_rc}")
+
+    # (5) Arm C's untimed contract is the INSTRUMENT's, not a third restatement.
+    if sys.platform == "linux" and shutil.which("gcc"):
+        candidate = ROOT / "rust/target/release/own-cli"
+        if candidate.is_file():
+            with tempfile.TemporaryDirectory(prefix="round7-oc-") as td:
+                prepared = rn.prepare(candidate, Path(td) / "arms")
+                pre = prepared.outcome
+                if not pre.ran or not pre.all_passed:
+                    problems.append(f"the untimed outcome preflight refused a healthy "
+                                    f"build: {pre.failed} "
+                                    f"{[pre.arms[a].why for a in pre.failed]}")
+                elif "core-usage" not in pre.arms["C"].contract:
+                    problems.append(f"arm C is not verified through the instrument's own "
+                                    f"rung: {pre.arms['C'].contract}")
+
+                # A stand-in that exits 2 and prints NOTHING. Exit 2 is the
+                # right code for the wrong reason, which is the whole argument
+                # for checking evidence as well. Built, not simulated.
+                stub = Path(td) / "not-really-own-cli"
+                stub.write_text("#!/bin/sh\nexit 2\n", encoding="utf-8")
+                stub.chmod(0o755)
+                faked = {**prepared.frozen, "C": rn._identity("C", stub)}
+                pre_bad = rn.outcome_preflight(faked, prepared.binding)
+                if pre_bad.arms["C"].passed:
+                    problems.append("a binary that exits 2 and prints nothing passed as "
+                                    "arm C; the runner is reading the exit code and not "
+                                    "the usage-help evidence, so any other failure "
+                                    "exiting 2 would be timed as core-usage")
+                elif pre_bad.all_passed:
+                    problems.append("arm C failed its contract but the preflight still "
+                                    "reported all_passed")
+
+                # And a failed preflight must STOP the round, not merely be noted.
+                stopped = rn.Prepared(
+                    binding=prepared.binding, build=prepared.build,
+                    checks=prepared.checks, preflight_failed=[],
+                    frozen=prepared.frozen, binding_ok=True, binding_problem="",
+                    arm_c_mapped_bytes=prepared.arm_c_mapped_bytes, outcome=pre_bad)
+                if not stopped.stop_conditions:
+                    problems.append("a refused outcome preflight produced no stop "
+                                    "condition; the round would time the arms anyway")
+                elif not any("C" in c for c in stopped.stop_conditions):
+                    problems.append(f"the stop condition does not name the refused arm: "
+                                    f"{stopped.stop_conditions}")
+                # And exit 2 alone must NOT be enough: the usage-help contract
+                # also requires stdout to name the subcommand and stderr empty.
+                bad_out = pb._evidence_problem("usage-help", "", "")
+                bad_err = pb._evidence_problem("usage-help", "ownir", "boom")
+                if not bad_out:
+                    problems.append("the usage-help contract accepts empty stdout, so a "
+                                    "different failure exiting 2 would pass as arm C")
+                if not bad_err:
+                    problems.append("the usage-help contract accepts a non-empty stderr")
+                if pb._evidence_problem("usage-help", "ownir usage", ""):
+                    problems.append("the usage-help contract refuses a healthy refusal")
+        # If arm C is not built here the untimed half simply does not run; the
+        # rc checks above are platform-independent and already did.
+
+    if problems:
+        fail("round7-outcome-contract", "; ".join(problems))
+    else:
+        ok("round7-outcome-contract", "every spawn is checked against its arm's exit code "
+                                      "(A/B 0, C 2), warmup discards included; a stray "
+                                      "sample or warmup is refused and recorded with arm, "
+                                      "block, half, kind and index; and arm C's untimed "
+                                      "contract is the instrument's own core-usage rung, "
+                                      "where exit 2 alone is not sufficient")
+
+
 def run() -> int:
     control_outcome_exclusivity()
     control_zero_guard()
@@ -646,6 +824,7 @@ def run() -> int:
     control_preflight()
     control_schedule()
     control_execution_contract()
+    control_outcome_contract()
     print()
     print(f"round 7 apparatus controls: {len(_PASSES)} passed, {len(_FAILURES)} failed")
     return 1 if _FAILURES else 0

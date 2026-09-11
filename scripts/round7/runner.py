@@ -39,6 +39,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -46,6 +47,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import preflight as pf
 import schedule as sch
 from elfread import Elf64
+
+if TYPE_CHECKING:
+    import perf_baseline as pb
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 SCALES = ROOT / "docs/evidence/round6/p022-263a-round6-scales.linux.json"
@@ -56,6 +60,32 @@ TAG = "CALIBRATION_ONLY"
 
 class ExecutionContractBreach(Exception):
     """The round was asked to measure something it did not preflight."""
+
+
+class OutcomeContractBreach(ExecutionContractBreach):
+    """A timed process did not do the work its arm exists to do.
+
+    Carries every stray spawn — arm, block, half, whether it was a warmup
+    discard or a counted sample, its index, and the exit code observed — because
+    "something exited wrong somewhere" is not a record anyone can act on.
+    """
+
+    def __init__(self, strays: list[dict[str, object]]) -> None:
+        self.strays = strays
+        first = strays[0]
+        super().__init__(
+            f"{len(strays)} spawn(s) exited outside their arm's contract, first at "
+            f"{first['block']} {first['arm']}/{first['half']} {first['kind']} "
+            f"#{first['index']}: rc {first['observed_rc']}, expected "
+            f"{first['expected_rc']}. The run is INVALID and is not classified.")
+
+
+# --- P0: a timed process must have done the work its arm exists to do --------
+
+# Arm A and B are the Round 6 helper: argc >= 2 and a finished loop exits 0.
+# Arm C is `own-cli ownir` with no document, which is the instrument's own
+# `core-usage` floor and exits 2.
+EXPECTED_RC = {"A": 0, "B": 0, "C": 2}
 
 
 # --- P1: the work is the Round 6 2 ms rung, by binding rather than by memory --
@@ -147,6 +177,7 @@ class Prepared:
     binding_ok: bool
     binding_problem: str
     arm_c_mapped_bytes: int
+    outcome: OutcomePreflight
 
     @property
     def stop_conditions(self) -> list[str]:
@@ -155,6 +186,11 @@ class Prepared:
             stop.append(f"B1-B4 failed: {self.preflight_failed}")
         if not self.binding_ok:
             stop.append(self.binding_problem)
+        if not self.outcome.all_passed:
+            stop.append("the untimed outcome preflight refused arm(s) "
+                        + ", ".join(self.outcome.failed) + ": "
+                        + "; ".join(f"arm {a} {self.outcome.arms[a].why}"
+                                    for a in self.outcome.failed))
         return stop
 
 
@@ -179,6 +215,131 @@ def check_binding(arm_a_sha256: str, binding: WorkBinding) -> tuple[bool, str]:
         "STOP — do not re-derive an iteration count after authorisation.")
 
 
+def _argv_for(role: str, frozen: dict[str, ArmIdentity], binding: WorkBinding
+              ) -> list[str]:
+    """One definition of how each arm is invoked, shared by preflight and timing.
+
+    Two copies would be two experiments: the untimed probe would verify one
+    command line and the clock would measure another.
+    """
+    if role == "C":
+        return [str(frozen["C"].path), "ownir"]
+    return [str(frozen[role].path), str(binding.iterations)]
+
+
+def measurement_env() -> dict[str, str]:
+    import os
+
+    import perf_baseline as pb
+    env = dict(os.environ)
+    for uncontrolled in pb.REFERENCE_ENV_PINNED_UNSET:
+        env.pop(uncontrolled, None)
+    return env
+
+
+@dataclass(frozen=True)
+class ArmOutcome:
+    """One arm's untimed proof that it does the work it exists to do."""
+
+    role: str
+    passed: bool
+    expected_rc: int
+    observed_rc: int
+    contract: str
+    why: str
+    detail: dict[str, object]
+
+    def as_dict(self) -> dict[str, object]:
+        return {"role": self.role, "pass": self.passed, "expected_rc": self.expected_rc,
+                "observed_rc": self.observed_rc, "contract": self.contract,
+                "why": self.why, **self.detail}
+
+
+@dataclass(frozen=True)
+class OutcomePreflight:
+    arms: dict[str, ArmOutcome]
+    ran: bool
+
+    @property
+    def failed(self) -> list[str]:
+        return sorted(r for r, a in self.arms.items() if not a.passed)
+
+    @property
+    def all_passed(self) -> bool:
+        return not self.failed
+
+    def as_dict(self) -> dict[str, object]:
+        return {"ran": self.ran, "all_passed": self.all_passed, "failed": self.failed,
+                "arms": {r: a.as_dict() for r, a in self.arms.items()},
+                "note": ("untimed; no clock was started for any of these probes"
+                         if self.ran else
+                         "not run: the arms did not pass B1-B4 or the work binding")}
+
+
+def outcome_preflight(frozen: dict[str, ArmIdentity], binding: WorkBinding
+                      ) -> OutcomePreflight:
+    """Prove each arm does its job BEFORE anything is timed. No clock here.
+
+    Arm C is verified through the instrument's own `core-usage` rung — the same
+    `expect_rc` and the same `usage-help` evidence contract the frozen harness
+    applies, not a third restatement of it. Exit 2 alone is not enough: a
+    different failure can exit 2 too, which is why that contract also requires
+    stdout to name the subcommand and stderr to be empty.
+
+    Arms A and B are the Round 6 helper and produce no output; their ratified
+    contract is the exit code. Their stream lengths are recorded as observations
+    rather than promoted to stop conditions.
+    """
+    import subprocess
+
+    import perf_baseline as pb
+
+    env = measurement_env()
+    arms: dict[str, ArmOutcome] = {}
+
+    for role in ("A", "B"):
+        r = subprocess.run(_argv_for(role, frozen, binding), capture_output=True,
+                           cwd=str(ROOT), env=env)
+        passed = r.returncode == EXPECTED_RC[role]
+        arms[role] = ArmOutcome(
+            role=role, passed=passed, expected_rc=EXPECTED_RC[role],
+            observed_rc=r.returncode,
+            contract="exit code only; the helper writes nothing by construction",
+            why=(f"ran {binding.iterations} iterations and exited {r.returncode}"
+                 if passed else
+                 f"exited {r.returncode}, not {EXPECTED_RC[role]}: it did not do the "
+                 "work, and timing it would measure the wrong path"),
+            detail={"stdout_bytes": len(r.stdout), "stderr_bytes": len(r.stderr)})
+
+    rung = next(x for x in pb.RUNGS if x.id == "core-usage")
+    outcome = _harness_for(frozen["C"].path).verify_outcome(
+        rung, _argv_for("C", frozen, binding), env, ROOT)
+    valid = bool(outcome["valid"])
+    arms["C"] = ArmOutcome(
+        role="C", passed=valid, expected_rc=EXPECTED_RC["C"],
+        observed_rc=int(str(outcome["observed_exit_code"])),
+        contract=f"perf_baseline rung {rung.id!r}: expect_rc {sorted(rung.expect_rc)}, "
+                 f"evidence {rung.evidence!r}",
+        why=(f"satisfied the instrument's own {rung.id} contract" if valid else
+             f"did not do the {rung.id} work: {outcome['problems']}"),
+        detail={"problems": outcome["problems"]})
+
+    return OutcomePreflight(arms=arms, ran=True)
+
+
+def _harness_for(candidate: Path) -> pb.Harness:
+    """A harness instance, built only to reuse the frozen outcome verifier.
+
+    Constructing it starts nothing: `verify_outcome` runs one untimed
+    subprocess and reads its streams.
+    """
+    import perf_baseline as pb
+    return pb.Harness(gate=pb.IdentityGate.load(pb.load_manifest()[1]),
+                      session=pb.SessionIdentity.freeze(candidate), rss=pb.RssProbe(),
+                      tmp=candidate.parent, candidate=candidate,
+                      warmup_discards=WARMUP_DISCARDS, repetitions=0, seed=0)
+
+
 def prepare(candidate: Path, build_dir: Path) -> Prepared:
     """Bind, build once, preflight THOSE files, freeze their identities.
 
@@ -200,9 +361,14 @@ def prepare(candidate: Path, build_dir: Path) -> Prepared:
 
     binding_ok, binding_problem = check_binding(frozen["A"].sha256, binding)
 
+    # The outcome preflight runs only once the arms are the arms: verifying a
+    # binary that failed its binding check would answer a question nobody asked.
+    outcome = (outcome_preflight(frozen, binding) if binding_ok and not failed
+               else OutcomePreflight(arms={}, ran=False))
+
     return Prepared(binding=binding, build=built, checks=checks, preflight_failed=failed,
                     frozen=frozen, binding_ok=binding_ok, binding_problem=binding_problem,
-                    arm_c_mapped_bytes=arm_c.mapped_bytes)
+                    arm_c_mapped_bytes=arm_c.mapped_bytes, outcome=outcome)
 
 
 # --- the clock, reachable from exactly one place -----------------------------
@@ -216,12 +382,36 @@ def time_half(harness: object, half: sch.Half, argv: list[str], env: dict[str, s
     interval is the instrument's and not a re-implementation that happens to
     look similar. Plan mode never reaches this function, and a control counts
     the calls rather than taking that on faith.
+
+    EVERY spawn is checked against its arm's exit code, warmup discards
+    included. Calling `_run_once` directly is what let this round skip the
+    instrument's own outcome layer — the layer that exists because twelve cells
+    once timed `command-not-found` accurately, reproducibly, and to no purpose.
+    A discarded iteration that failed is still evidence the process is broken,
+    so it is checked even though its numbers are thrown away.
+
+    Only the exit code is read here. Capturing stdout inside a measured interval
+    would change what the interval measures, which is exactly why the rich
+    output contract runs once, untimed, in `outcome_preflight`.
     """
     run_once = harness._run_once                       # type: ignore[attr-defined]
-    for _ in range(discards):
-        run_once(argv, env, cwd)
-    samples = [run_once(argv, env, cwd) for _ in range(repetitions)]
-    return {"half": half.key, "samples": samples}
+    expected = EXPECTED_RC[half.arm]
+    strays: list[dict[str, object]] = []
+
+    def _check(row: dict[str, object], kind: str, index: int) -> dict[str, object]:
+        if int(row["rc"]) != expected:                  # type: ignore[call-overload]
+            strays.append({"block": f"{half.regime}|n{half.n}|s{half.session}",
+                           "arm": half.arm, "half": half.half, "kind": kind,
+                           "index": index, "observed_rc": row["rc"],
+                           "expected_rc": expected})
+        return row
+
+    for i in range(discards):
+        _check(run_once(argv, env, cwd), "warmup", i)
+    samples = [_check(run_once(argv, env, cwd), "sample", i) for i in range(repetitions)]
+    if strays:
+        raise OutcomeContractBreach(strays)
+    return {"half": half.key, "expected_rc": expected, "samples": samples}
 
 
 # --- the pass ----------------------------------------------------------------
@@ -240,6 +430,7 @@ def run(candidate: Path, build_dir: Path, measure: bool) -> dict[str, object]:
         "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "work_binding": prepared.binding.as_dict(),
         "preflight": {"checks": prepared.checks, "failed": prepared.preflight_failed},
+        "outcome_preflight": prepared.outcome.as_dict(),
         "frozen_arms": {r: i.as_dict() for r, i in prepared.frozen.items()},
         "schedule": plan,
         "planned_process_spawns": spawns,
@@ -270,7 +461,6 @@ def _measure(prepared: Prepared, candidate: Path) -> dict[str, object]:
     import perf_baseline as pb
 
     frozen = prepared.frozen
-    iterations = str(prepared.binding.iterations)
 
     harness = pb.Harness(
         gate=pb.IdentityGate.load(pb.load_manifest()[1]),
@@ -278,15 +468,10 @@ def _measure(prepared: Prepared, candidate: Path) -> dict[str, object]:
         tmp=Path(str(prepared.build["arm_a"])).parent,
         candidate=candidate, warmup_discards=WARMUP_DISCARDS, repetitions=0, seed=0)
 
-    argv_for = {
-        "A": [str(frozen["A"].path), iterations],
-        "B": [str(frozen["B"].path), iterations],
-        "C": [str(frozen["C"].path), "ownir"],
-    }
-    import os
-    env = dict(os.environ)
-    for uncontrolled in pb.REFERENCE_ENV_PINNED_UNSET:
-        env.pop(uncontrolled, None)
+    # The SAME argv the untimed preflight verified. Two definitions would mean
+    # the probe checked one command line and the clock measured another.
+    argv_for = {r: _argv_for(r, frozen, prepared.binding) for r in ("A", "B", "C")}
+    env = measurement_env()
 
     results, actual_order = [], []
     for block in sch.blocks():

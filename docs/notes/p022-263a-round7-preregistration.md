@@ -1,7 +1,8 @@
 # Round 7 — what a real invocation does that a synthetic one does not
 
-**STATUS: RATIFIED DESIGN. APPARATUS BUILT. B1–B4 PASSED. PLAN-MODE DRY RUN
-DONE. NO ROUND 7 MEASUREMENT IS AUTHORISED AND NONE EXISTS.**
+**STATUS: RATIFIED DESIGN. APPARATUS BUILT. B1–B4 PASSED. OUTCOME CONTRACT
+BOUND. PLAN-MODE DRY RUN DONE. NO ROUND 7 MEASUREMENT IS AUTHORISED AND NONE
+EXISTS.**
 
 Amended three times. The first review ruled **CHANGES REQUIRED** and decided
 four design questions. The second ruled **PASS WITH ONE MECHANICAL CORRECTION**
@@ -93,7 +94,7 @@ enough of them to separate.
 |---|---|---|
 | image | ~16 KB | ~1.84 MB |
 | linkage | dynamic, libc only | dynamic, PIE, `ld-linux-x86-64` |
-| work | fixed arithmetic loop | argv parse, usage refusal to stderr |
+| work | fixed arithmetic loop | argv parse, usage refusal on **stdout** |
 | document I/O | none | **none** |
 
 ## Design: a ladder of process *shapes* at one duration
@@ -341,6 +342,43 @@ so nothing needed recalibrating. If a future build ever differs, the round
 2 ms; that would be calibrating a new knob after authorisation, which is the
 move this round exists to forbid.
 
+### And whether the process did the work at all
+
+Calling `Harness._run_once` directly gave this round the instrument's measured
+interval and skipped the layer wrapped around it. That layer exists because
+twelve cells once timed `command-not-found` accurately and reproducibly, and CI
+called it a reproduced calibration.
+
+Nothing in Round 7 checked an exit code. Three arms bound byte-for-byte to the
+right binaries could have measured the wrong path with great precision — the
+sample clamped perfectly in the vice, and nobody checking whether it was alive.
+
+**Before the clock**, untimed:
+
+| arm | contract |
+|---|---|
+| **A**, **B** | invoked with 460280 iterations, must exit **0** |
+| **C** | the instrument's own `core-usage` rung — `expect_rc` 2 **and** the `usage-help` evidence: stdout names the subcommand, stderr is empty |
+
+Arm C reuses `perf_baseline`'s rung rather than restating it a third time.
+Exit 2 is necessary and nowhere near sufficient: a different failure exits 2 as
+well, which is exactly what the evidence half is for. A control proves this by
+handing the preflight a stand-in that exits 2 and prints nothing; it is refused.
+
+**Every spawn, warmup discards included:**
+
+    A, B → rc must be 0
+    C    → rc must be 2
+
+A single stray exit **stops the round and invalidates it**, recording arm,
+block, half, whether it was a warmup or a counted sample, its index and the
+observed code. Nothing is classified. A discarded iteration that failed has its
+numbers thrown away and its evidence kept: it still proves the process is broken.
+
+Only the exit code is read inside the interval. Capturing stdout there would
+change what the interval measures, which is precisely why the rich contract runs
+once, untimed, and the timed samples check rc alone.
+
 ## The overlap that made the previous outcome table unreadable
 
 The owner found that the previous table's P1 and P4 could both fire on the same
@@ -495,9 +533,10 @@ offers, which is worth knowing.
 
 ## Authorisation state
 
-**Authorised and done:** all three amendments; the `_run_once` extension; the
+**Authorised and done:** all four amendments; the `_run_once` extension; the
 apparatus; the B1–B4 structural preflight; the execution contract, schedule and
-work binding; the **plan-mode dry run**; controls and mutations; CI.
+work binding; the **outcome contract**, timed and untimed; the **plan-mode dry
+run**; controls and mutations; CI.
 
 **Not authorised:** the Round 7 calibration pass itself — any timing or resource
 measurement; re-recording the sizing pairs; a calibration of record; the D7
@@ -505,6 +544,7 @@ freeze; #263-B; merge; Stage 3; Stage 4.
 
 The plan-mode record is committed at
 `docs/evidence/round7/p022-263a-round7-plan.linux.json`: arms built, B1–B4
-passed on those bytes, identities frozen, 40 blocks and 240 halves fixed, zero
-clocks started. The next decision is GO or NO-GO on the measurements, after a
+passed on those bytes, identities frozen, the untimed outcome preflight passed
+for all three arms (A 0, B 0, C 2 with evidence), 40 blocks and 240 halves
+fixed, zero clocks started. The next decision is GO or NO-GO on the measurements, after a
 check of these three bindings.
