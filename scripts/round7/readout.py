@@ -1,13 +1,29 @@
 #!/usr/bin/env python3
-"""Round 7's reading — CALIBRATION_ONLY, and written before the data existed.
+"""Round 7's reading — CALIBRATION_ONLY.
 
 This file computes nothing the preregistration did not already fix. It exists
 separately from `runner.py` because the runner produces observations and a
 reading interprets them, and because a reading written after seeing numbers is
-a reading that can be steered by them. It was authored, tested against synthetic
-triples, and its sha256 recorded BEFORE the measurement pass was started; the
-committed reading quotes that digest so the claim is checkable rather than
-asserted.
+a reading that can be steered by them.
+
+On provenance, stated precisely
+------------------------------
+The operator recorded a pre-clock sha256 of this module (`0f14be8a491d`).
+**Repository history does not independently establish that chronology**: this
+file is absent from the authorised head `7ad4a0b` and enters the tree in the
+single post-run commit, beside the dataset and the reading. An earlier revision
+of this docstring called the claim "checkable rather than asserted", which was
+itself an assertion dressed as a check — the exact defect this PR exists to
+argue against, committed in the file whose job is to avoid it.
+
+What IS established by the repository, and is what the result rests on: the
+definition of D, the P1-P5 rules, the zero-A guard, the attribution gates and
+the stop rule were all committed BEFORE any measurement existed. This module
+delegates every classification decision to that frozen `classify.py` rather than
+restating it, and `round7-readout` recomputes the committed reading from the
+committed dataset on every CI run. The formal outcome is therefore determined by
+precommitted rules and a reproducible application of them, whatever order the
+files happened to be written in.
 
 What is preregistered, quoted from the ratified design:
 

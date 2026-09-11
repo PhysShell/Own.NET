@@ -924,18 +924,34 @@ measurement ran once, on the exact head the owner pinned it to, and the formal
 outcome is **(process-cold P4, warm P5)**: the witness did not reproduce in the
 cold regime, and the warm regime declines to say.
 
-240 halves, 2640 spawns, every exit code contracted and checked, zero strays,
-zero identity drift. Half-to-half drift across all three arms landed between
+240 halves and 2640 spawns, every exit code contracted and checked, zero
+strays, zero identity drift. The accounting is worth stating exactly, because
+one careless noun turns a true sentence false: **2400 retained samples**, of
+which 1600 exited 0 (arms A and B) and 800 exited 2 (arm C), plus **240 warmup
+discards** whose exit codes were checked on the same contract — any stray would
+have invalidated the run — but whose rows are deliberately not retained, because
+discarding them is what the `warm` regime means. Half-to-half drift across all three arms landed between
 0.024 ms and 0.090 ms. Arm C cleared the P4 boundary in exactly one of the four
 cells, `warm` at n=15, and a rule must hold at both counts to fire.
 
-**The reading was written before the data existed**, and that is checkable
-rather than asserted. `scripts/round7/readout.py` was authored, selftested and
-its sha256 recorded — `0f14be8a491d` — before the clock started; the committed
-file differs only by lint and type-checking changes, and produces a **byte
-identical** reading from the same dataset. `round7-readout` recomputes the
-committed reading from the committed dataset on every CI run, because a reading
-nobody can recompute is a reading that has to be trusted.
+**A provenance claim here was withdrawn, and the withdrawal is the interesting
+part.** This note originally said the reading "was written before the data
+existed, and that is checkable". The operator did record a pre-clock sha256 of
+`scripts/round7/readout.py` — `0f14be8a491d` — but **git cannot check that**:
+the file is absent from the authorised head `7ad4a0b` and enters the tree in the
+single post-run commit, beside the dataset and the reading. So the word
+"checkable" was doing work nothing supported. That is an assertion dressed as a
+check, published in the note that exists to argue against assertions dressed as
+checks, one round after the same defect was recorded as finding 4.
+
+What the repository does establish is the part the result rests on: **D, the
+P1–P5 rules, the zero-A guard, the attribution gates and the stop rule were all
+committed before any measurement existed**, and `readout.py` delegates every
+classification decision to that frozen `classify.py` instead of restating it.
+`round7-readout` recomputes the committed reading from the committed dataset on
+every CI run, on Linux and on Windows. The outcome is determined by precommitted
+rules and a reproducible application of them; the authoring order of one file is
+not load-bearing, and should never have been offered as though it were.
 
 It earned its keep immediately. The synthetic cases caught the author's own
 boundary arithmetic *again* — `(A, B, C) = (1, 3, 4)` was asserted to be P3 and
@@ -947,6 +963,21 @@ nothing about the gate it named; and a reading that died with a `KeyError`
 instead of refusing when a repetition count went missing. Sixth appearance of
 crash-instead-of-finding. `read()` now refuses by name, and the control reports
 an escaping exception rather than being killed by it.
+
+**Both corrections were owner-found, and the second one bit twice.** Adding a
+control for the spawn accounting — so 2400 and 2640 are computed from the
+dataset rather than quoted — produced two fresh instances of the same defect in
+a row. The first compared `rn.WARMUP_DISCARDS` against a spawn count derived
+from `rn.WARMUP_DISCARDS`, so mutating that constant moved both sides together
+and the check stayed green: a check reading a proxy for the thing it checks.
+The second was worse. The repaired block landed inside an `except` branch, so it
+ran only when the dataset failed to read — dead code on every healthy run, while
+the control's success line went on announcing that it had verified 2400 retained
+samples. An assertion that sounds like a check, written into the edit whose
+entire purpose was to remove one, in the file that exists to catch exactly this.
+Both were found by mutation, not by reading. The accounting now pins to the
+ratified literals and to the dataset's own recorded spawn count, runs before the
+reproduction check, and three constant-drift mutations come back with findings.
 
 **The mechanism table was not applied.** P4 fires no elevation and P5 fires no
 rule, so neither regime licenses an attribution; the reading records the refusal

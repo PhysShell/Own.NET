@@ -1109,6 +1109,45 @@ def control_readout() -> None:
     dataset = ROOT / "docs/evidence/round7/p022-263a-round7-dataset.linux.json"
     committed = ROOT / "docs/evidence/round7/p022-263a-round7-reading.linux.json"
     if dataset.is_file() and committed.is_file():
+        # The spawn accounting, computed rather than quoted, and run BEFORE the
+        # reproduction check so it cannot end up inside a branch that only fires
+        # on failure. It did exactly that on the first attempt -- dead code under
+        # an `except`, with the control's success message still claiming it had
+        # verified 2400 samples. An assertion that sounds like a check, written
+        # into the edit whose whole purpose was to remove one.
+        #
+        # The retained samples and the warmup discards are DIFFERENT populations.
+        # "2640 spawns, all exit codes as contracted" invites the reader to think
+        # 2640 rows were kept. 2400 were.
+        data = json.loads(dataset.read_text(encoding="utf-8"))
+        halves = data["measurements"]
+        retained = sum(len(h["samples"]) for h in halves)
+        warm_halves = sum(1 for h in halves if h["half"].startswith("warm"))
+        codes: dict[int, int] = {}
+        for h in halves:
+            for row in h["samples"]:
+                codes[int(row["rc"])] = codes.get(int(row["rc"]), 0) + 1
+        # The literals here are the RATIFIED design, not the live constants.
+        # A first attempt compared rn.WARMUP_DISCARDS against a schedule
+        # computed from rn.WARMUP_DISCARDS, so mutating that constant moved
+        # both sides together and the check stayed green: a check reading a
+        # proxy for the thing, which is the defect this whole PR is about.
+        if rn.WARMUP_DISCARDS != 2:
+            problems.append(f"the warmup discard count is {rn.WARMUP_DISCARDS}; the "
+                            "ratified design fixes it at 2 and it is not a knob")
+        if retained != 2400:
+            problems.append(f"{retained} retained samples, not the 2400 the design "
+                            "fixes (3 arms x 2 counts x 10 sessions x 2 halves x "
+                            "(5 + 15) per regime, both regimes)")
+        planned = data.get("planned_process_spawns")
+        if retained + warm_halves * 2 != planned:
+            problems.append(f"retained {retained} + {warm_halves * 2} warmup discards "
+                            f"does not equal the {planned} spawns this very dataset "
+                            "recorded as planned")
+        if codes != {0: 1600, 2: 800}:
+            problems.append(f"retained exit codes are {codes}, not "
+                            "{0: 1600, 2: 800}")
+
         try:
             recomputed = ro.read(json.loads(dataset.read_text(encoding="utf-8")))
         except Exception as exc:
@@ -1136,9 +1175,11 @@ def control_readout() -> None:
         ok("round7-readout", "D is the median across sessions of |median(second half) - "
                              "median(first half)| on elapsed_ns; every ratified rule fires "
                              "on a triple built to trigger it; the mechanism table stays "
-                             "shut on P4 and P5; five malformed datasets are refused; and "
-                             "the committed reading is reproduced exactly from the "
-                             "committed dataset")
+                             "shut on P4 and P5; five malformed datasets are refused; the "
+                             "committed dataset holds 2400 retained samples (1600 rc 0, "
+                             "800 rc 2) which with 240 warmup discards accounts for every "
+                             "planned spawn; and the committed reading is reproduced "
+                             "exactly from the committed dataset")
 
 
 def run() -> int:

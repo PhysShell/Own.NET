@@ -577,6 +577,13 @@ failure. It ran once, at 07:03 UTC on 2026-09-11, on that head with a clean
 tree, and came back `run_valid: true`: 240 halves, 2640 spawns, no stray exit
 code, no identity drift, no stop condition.
 
+The spawn accounting, stated exactly: **2400 retained samples** — 1600 at rc 0
+for arms A and B, 800 at rc 2 for arm C — plus **240 warmup discards** whose
+exit codes were checked on the same contract, any stray among them invalidating
+the run, and whose rows are deliberately not retained. Discarding them is what
+the `warm` regime *is*; retaining them would make the dataset describe a regime
+nobody ran.
+
 ### D(arm, n, regime), in milliseconds
 
 | regime | n | D(A) | D(B) | D(C) | C/A | B/A |
@@ -641,8 +648,24 @@ what P5 means, and P5 means the round declines to say.
 
 The reading is committed at
 `docs/evidence/round7/p022-263a-round7-reading.linux.json` and the raw dataset,
-every observation and every accounting field, at
+every retained observation and every accounting field, at
 `docs/evidence/round7/p022-263a-round7-dataset.linux.json`.
+
+### What makes this reading trustworthy, stated without overclaiming
+
+The operator recorded a pre-clock sha256 of `scripts/round7/readout.py`
+(`0f14be8a491d`). **Repository history does not independently establish that
+chronology** — the file is absent from the authorised head `7ad4a0b` and enters
+the tree in the single post-run commit. An earlier revision of this document
+called that provenance "checkable"; it is not, and the claim is withdrawn.
+
+The result does not depend on it. Everything that decides the outcome was frozen
+in this document before any measurement existed: the definition of `D`, the
+P1–P5 rules, the zero-A guard, the attribution gates and the stop rule.
+`readout.py` delegates every classification decision to `classify.py` rather
+than restating it, so a reading written entirely after the fact would still have
+had to produce this answer. `round7-readout` recomputes the committed reading
+from the committed dataset on every CI run, on both platforms.
 
 ## Authorisation state
 
