@@ -276,6 +276,10 @@ def control_prereg_shape(art: dict[str, object]) -> None:
         problems.append(f"floating-point values: {floats(art)}")
     if art.get("ratified_by") != "owner":
         problems.append("ratified_by is not 'owner'")
+    if art.get("step_7_collection") != STEP_7_CLOSED:
+        problems.append(f"step_7_collection is {art.get('step_7_collection')!r}; a step 6 "
+                        f"artifact records exactly {STEP_7_CLOSED!r} and cannot carry its "
+                        "own authorisation to start measuring")
     if problems:
         fail("training-prereg-shape", "; ".join(problems))
     else:
@@ -377,6 +381,8 @@ def control_prereg_universe(art: dict[str, object]) -> None:
            "and both regimes, each carrying the frozen four-part identity")
 
 
+STEP_7_CLOSED = "NOT AUTHORISED"
+
 WORKFLOWS = ROOT / ".github" / "workflows"
 # Each guarded entrypoint, and the file that must still define its flag. Without the
 # second half a rename would make this control pass by finding nothing, which is the
@@ -403,13 +409,23 @@ def control_no_incidental_measurement(art: dict[str, object]) -> None:
     version of the rule, so the next person to add a convenient diagnostic finds the
     suite red rather than a reviewer's memory.
     """
-    problems: list[str] = []
-    if str(art.get("step_7_collection", "")).upper() != "NOT AUTHORISED":
-        ok("training-no-incidental-measurement",
-           "step 7 is recorded as authorised, so this control no longer constrains the "
-           "workflows and the collection protocol governs instead")
+    state = art.get("step_7_collection")
+    if state != STEP_7_CLOSED:
+        # Fail-closed, and with no authorised branch at all. The first version of
+        # this read `!= "NOT AUTHORISED"` and then RETURNED OK, so every state that
+        # was not the exact refusal -- a typo, a missing key after some later schema
+        # change, null, an American spelling, or the word AUTHORISED itself --
+        # silently meant permission to start a clock. That is fail-closed with the
+        # polarity reversed. Step 6 is a preregistration and cannot open step 7:
+        # when step 7 is really authorised, a separate reviewed artifact and a
+        # separate owner decision change the orchestration, rather than this
+        # document mutating into a permission bit its own producer can flip.
+        fail("training-no-incidental-measurement",
+             f"unknown or unauthorised authority transition: {state!r}; step 6 cannot "
+             f"open step 7, and the only state this control accepts is {STEP_7_CLOSED!r}")
         return
 
+    problems: list[str] = []
     for _name, flag, source in MEASUREMENT_ENTRYPOINTS:
         if not source.exists():
             problems.append(f"{source.name} is gone, so guarding {flag} proves nothing")

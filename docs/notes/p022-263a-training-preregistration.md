@@ -143,6 +143,33 @@ Four mutations, each caught by that control or correctly allowed: the pair added
 back to `ci.yml`, an entrypoint appearing in a *different* workflow, the flag
 renamed out from under the guard, and a comment that merely mentions it.
 
+### The same guard, with its polarity reversed
+
+The first version of that control was reviewed FAIL-OPEN, and the finding was one
+operator. It read `!= "NOT AUTHORISED"` and then returned **OK**, so the state
+machine was really this:
+
+    the exact refusal  -> gate closed
+    everything else    -> gate open
+
+A typo, a missing key after some later schema change, `null`, a `True`, the
+American spelling, or simply the word `AUTHORISED` all meant permission to start a
+clock. The enumerated schema did not save it either: that control proved the key
+was *allowed to exist*, never what its value meant. Driven rather than argued, the
+old code passed with `step_7_collection` set to `AUTHORISED` **and** a real timed
+step added to `ci.yml`, announcing that it was standing down. The artifact could
+authorise its own stopwatch by editing one string.
+
+It now accepts exactly one state and fails on everything else, and there is
+deliberately **no authorised branch at all**. Step 6 is a preregistration and
+cannot open step 7: when step 7 is really authorised, a separate reviewed artifact
+and a separate owner decision change the orchestration, rather than this document
+mutating into a permission bit its own producer can flip. The permitted state is
+also pinned as a frozen literal by the schema control, so two controls fail rather
+than one. Nine mutations: the key missing, `AUTHORISED`, `AUTHORISEDD`, `null`,
+`NOT AUTHORIZED`, `not authorised`, a space-padded copy, a boolean, and the
+worst case of a claimed authorisation alongside a real timed step.
+
 ## Three binding axes from here on
 
     policy_implementation_digest          c3068ed7fa88…
