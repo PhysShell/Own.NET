@@ -4,7 +4,7 @@
 Status:
   MECHANISM RATIFIED.
   STEPS 1-3 COMPLETE.
-  STEP 4 NOT YET FROZEN.
+  STEP 4 DIGEST FREEZE TAKEN, PENDING OWNER ACCEPTANCE.
   NO DESIGN CONSTANT VALUES RATIFIED.
   NO NUMERIC FITTING CORPUS EXISTS.
   NO TRAINING OR VALIDATION MEASUREMENT AUTHORISED.
@@ -25,6 +25,82 @@ document that fixes a mechanism and a value in the same breath is a document
 where the value was chosen by whoever was holding the pen.
 
 No clock authority is claimed or implied. No measurement is proposed here.
+
+## Step 4 — the digest freeze, taken
+
+`docs/evidence/calibration/p022-263a-policy-freeze.json` records **which bytes the
+policy is**, and nothing else. It carries no design constant, no fitted constant
+and no measurement output, because an artifact that carried one would have made
+step 4 into step 5 by the convenience of putting two JSON fields next to each
+other.
+
+| field | value |
+|---|---|
+| `policy_source_commit` | `b4f657a0abdfdfaae199cbc7eee0c47acd8b0057` |
+| `policy_source_tree` | `2f49574433fea23f6158f4d8544a3b1543c718d4` |
+| `policy_source_root` | `scripts/calibration/` |
+| `policy_source_set` | every committed `*.py` recursively under that root, at that commit |
+| `policy_implementation_digest` | `c3068ed7fa880a7083866ead25fe8bf65c87889d242d8af1f7eee01582cd5cbf` |
+| `measurement_harness_digest` | `562a7f7232dad2f4c79c6adfe0e1e7e25680b4b6f3444d54824bf0405e3c14b3` |
+
+The source set is physically one file today — `scripts/calibration/policy.py`,
+blob `ec3fab8b…`, 25,486 bytes — and the algorithm is nonetheless **recursive over
+the root**, not a special case for hashing a single file. A freeze whose formula
+silently assumes the current cardinality is a freeze that changes meaning the day
+a second module lands.
+
+**The framing is part of the freeze.** A digest described only in prose is one a
+second implementation cannot reproduce, so the byte layout is stated exactly and
+stored in the artifact: sha256 over the source set ordered by the UTF-8 bytes of
+each repo-relative POSIX path, each file contributing, with no header and no
+separator, its path byte length as an 8-byte big-endian unsigned integer, its
+path's exact UTF-8 bytes, its blob byte length in the same form, and its exact git
+blob bytes.
+
+`policy_source_files` records every path with its blob sha1 and byte length. It is
+not a third identity mechanism: it is the witness list that lets the aggregate
+digest be recomputed by anyone holding the repository, without reconstructing what
+the author meant.
+
+**The freeze lives outside the tree it freezes.** An artifact stored under
+`scripts/calibration/` would change that tree by existing, and the digest would
+then be a claim about a state that no longer exists the moment it is written.
+
+### What the controls prove, and what they refuse
+
+`tests/test_calibration_freeze.py` runs seven controls on every CI run, on both
+platforms:
+
+- **`freeze-artifact-shape`** enumerates the entire permitted schema and refuses
+  anything outside it. It deliberately does *not* list the field names forbidden
+  today — `q`, `M`, `R_runs`, the ladder, `G`, a fitted `A_abs`/`R_rel`, a
+  measurement output — because such a list is only ever as complete as the day it
+  was written. It also requires every number in the document to be a recorded file
+  byte length, so there is nowhere for a constant to sit even under a permitted
+  key. `bool` is excluded from "exact count" explicitly: in Python a `bool` is an
+  `int`, and round 9 of this PR was lost to precisely that.
+- **`freeze-ancestry`** proves the frozen source commit is a *strict* ancestor of
+  HEAD and really carries the recorded tree.
+- **`freeze-source-set`** proves the recorded file list is git's own at that commit.
+- **`freeze-digest`** recomputes the aggregate from the git blobs at that commit.
+- **`freeze-source-unchanged`** proves the freeze commit did not touch the tree it
+  froze. It compares blob sha1s rather than working-tree bytes, because a CRLF
+  checkout makes an identical file look different on disk — the round 3 defect.
+- **`freeze-harness-untouched`** proves the measurement instrument did not move.
+- **`freeze-source-root-clean`** is an addition, not part of the specified freeze.
+  The selector covers `*.py`; that leaves a gap it does not mention, because a
+  `constants.json` dropped beside the module would sit under the frozen root,
+  invisible to the digest, and be a comfortable home for `q`. The digest still
+  covers exactly `*.py`. This control refuses the gap rather than widening the
+  selector to paper over it.
+
+**They refuse rather than degrade.** Each control reads git objects, and where the
+objects are absent it reports a refusal instead of a pass it cannot support. The
+first draft of that guard refused on *shallowness*, which is a proxy: a shallow
+clone can still hold the commit in question, and the development clone does. It
+now reads the objects themselves, and the one claim shallowness genuinely blocks —
+ancestry — says so in its own message instead of reading as a provenance break.
+The CI job that runs these controls therefore checks out with full history.
 
 ## Revision 5 — what the owner's fourth review changed
 

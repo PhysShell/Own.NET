@@ -2914,6 +2914,12 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # The step 4 freeze controls read git objects at the frozen source
+          # commit and prove it is an ancestor of this head. A depth-1 checkout
+          # cannot answer either question, and those controls refuse rather than
+          # pass vacuously — so the history is the thing that makes them real.
+          fetch-depth: 0
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: "8.0.x"
@@ -2943,6 +2949,11 @@ jobs:
       # here on both platforms and none of it needs a measurement.
       - name: Calibration policy controls (no defaults, symmetry, exact fit)
         run: python tests/test_calibration_policy.py
+      # Step 4 froze WHICH BYTES the policy is, and nothing else. These controls
+      # recompute that digest from git blobs at the frozen commit, and refuse the
+      # artifact outright if it ever grows a field that is not identity.
+      - name: Calibration policy freeze controls (step 4 digest identity)
+        run: python tests/test_calibration_freeze.py
       # Plan mode builds the arms, preflights THOSE bytes, freezes their
       # identities and fixes the execution order — then returns before the
       # timing function is reachable. Linux only: the arms are ELF binaries.
