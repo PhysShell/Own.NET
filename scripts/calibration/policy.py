@@ -92,6 +92,33 @@ def canonical_count(value: object, *, name: str, minimum: int) -> int:
     return int(value)
 
 
+def exact_rational(value: object, *, name: str) -> Fraction:
+    """Every quantity that crosses into the policy's arithmetic, checked at the door.
+
+    `canonical_rational` guards the constants that arrive as committed pairs.
+    This guards everything else: measured medians, fitted envelopes, reference
+    durations. Without it the exact domain held at exactly one entry point, and
+    a float could walk in through a dataclass constructor.
+
+    That is not a typing nicety. `Fraction * float` is a **float** in Python, so
+    one float anywhere makes the whole downstream computation floating point:
+    the fitted `R_rel`, the bound, the comparison that decides the verdict. A
+    module that refused a floating-point LP solver on exactness grounds would
+    then be deciding its boundaries by rounding direction anyway.
+
+    A float is **refused, never converted**. `Fraction(0.1)` preserves the binary
+    error with impeccable fidelity, which would be funny rather than useful. An
+    `int` is refused too: it is exact, but `int / int` is a float in Python, so
+    admitting it puts a float one ordinary division away.
+    """
+    if not isinstance(value, Fraction):
+        raise PolicyRefused(
+            f"{name} is {value!r} ({type(value).__name__}); this policy computes in "
+            "exact rationals and refuses anything else rather than converting it. "
+            "Fraction(0.1) would keep the binary error exactly, not remove it")
+    return value
+
+
 def as_pair(value: Fraction) -> tuple[int, int]:
     """The canonical pair for serialisation. Round-trips through `canonical_rational`."""
     return (value.numerator, value.denominator)
@@ -105,7 +132,7 @@ def exact_median(values: Sequence[Fraction], *, name: str) -> Fraction:
     """
     if not values:
         raise PolicyRefused(f"{name}: the median of an empty sample is not a number")
-    ordered = sorted(values)
+    ordered = sorted(exact_rational(v, name=f"{name}[{i}]") for i, v in enumerate(values))
     mid = len(ordered) // 2
     if len(ordered) % 2 == 1:
         return ordered[mid]
@@ -195,6 +222,9 @@ class Envelope:
     r_rel: Fraction
 
     def __post_init__(self) -> None:
+        canonical_count(self.n, name=f"envelope rung n={self.n!r}", minimum=1)
+        exact_rational(self.a_abs, name=f"envelope at n={self.n}: A_abs")
+        exact_rational(self.r_rel, name=f"envelope at n={self.n}: R_rel")
         if self.a_abs < 0 or self.r_rel < 0:
             raise PolicyRefused(
                 f"envelope at n={self.n} has A_abs={self.a_abs}, R_rel={self.r_rel}; a "
@@ -221,6 +251,19 @@ class CellObservation:
     exit_b: int | None
     valid_a: bool
     valid_b: bool
+
+    def __post_init__(self) -> None:
+        for label, median in (("median_a", self.median_a), ("median_b", self.median_b)):
+            if median is not None:
+                exact_rational(median, name=f"{self.key}.{label}")
+        for label, code in (("exit_a", self.exit_a), ("exit_b", self.exit_b)):
+            if code is not None and (isinstance(code, bool) or not isinstance(code, int)):
+                raise PolicyRefused(f"{self.key}.{label} is {code!r}; an exit code is an "
+                                    "integer or absent")
+        for label, flag in (("valid_a", self.valid_a), ("valid_b", self.valid_b)):
+            if not isinstance(flag, bool):
+                raise PolicyRefused(f"{self.key}.{label} is {flag!r}; outcome validity is "
+                                    "a boolean, and a truthy value is not a boolean")
 
 
 @dataclass(frozen=True)
@@ -318,6 +361,10 @@ class Observation:
     t: Fraction
     y: Fraction
 
+    def __post_init__(self) -> None:
+        exact_rational(self.t, name="observation.t")
+        exact_rational(self.y, name="observation.y")
+
 
 def observations_from_medians(medians: Sequence[Fraction], constants: DesignConstants,
                               *, name: str) -> tuple[Observation, ...]:
@@ -329,6 +376,14 @@ def observations_from_medians(medians: Sequence[Fraction], constants: DesignCons
     """
     if len(medians) != constants.r_runs:
         raise PolicyRefused(f"{name}: {len(medians)} medians for R_runs={constants.r_runs}")
+    # Defence in depth, and deliberately redundant: `Observation.__post_init__`
+    # refuses the same floats a line later, so removing this guard changes the
+    # message and not the outcome. It earns its place by naming WHICH median was
+    # wrong instead of leaving the caller to work that out from "observation.t",
+    # and no mutation can distinguish it -- which is stated here rather than
+    # left looking like an untested line.
+    for i, median in enumerate(medians):
+        exact_rational(median, name=f"{name}: median [{i}]")
     rows = []
     for earlier, later in pairwise(medians):
         rows.append(Observation(t=(earlier + later) / 2, y=abs(later - earlier)))
@@ -427,7 +482,9 @@ def envelope_width(envelope: Envelope, reference_durations: Sequence[Fraction]) 
     if not reference_durations:
         raise PolicyRefused(f"n={envelope.n}: the workload universe is empty, so its "
                             "envelope width is not defined")
-    return sum((envelope.inner(t) for t in reference_durations), Fraction(0))
+    checked = [exact_rational(t, name=f"n={envelope.n}: reference duration [{i}]")
+               for i, t in enumerate(reference_durations)]
+    return sum((envelope.inner(t) for t in checked), Fraction(0))
 
 
 def select_n(envelopes: Mapping[int, Envelope],

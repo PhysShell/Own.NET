@@ -1204,6 +1204,39 @@ rather than what the module defines. A control measuring the wrong thing is
 cheaper to write than one measuring the right thing, which is why it keeps
 happening.
 
+### The exact domain had one door, and the building had no walls
+
+The owner declined to freeze the step 2 implementation, and was right to: the
+exact-arithmetic boundary was enforced at `DesignConstants.from_committed()` and
+nowhere else. `Envelope`, `Observation` and `CellObservation` took whatever they
+were handed.
+
+Driven rather than argued, that is worse than it reads. `Fraction * float` is a
+**float** in Python, so a float entering through a dataclass constructor made the
+**fitted `R_rel`** a float, and with it the bound and the comparison that decides
+the verdict. The module had refused a floating-point LP solver on exactness
+grounds while floats walked in the front door.
+
+Every quantitative entry point now refuses non-exact input, and refuses rather
+than converts: `Fraction(0.1)` preserves the binary error with impeccable
+fidelity, which removes nothing. An `int` is refused too — exact in itself, but
+`int / int` is a float in Python, so admitting it leaves a float one ordinary
+division away. `calib-exact-domain` checks both halves: eleven non-exact inputs
+refused at the door, and nine computed quantities that must all come back
+`Fraction`, because refusals guarding a building with no walls prove nothing.
+
+Ten mutations, nine caught. **The tenth is recorded as uncovered rather than
+counted as covered.** Removing the float guard inside `observations_from_medians`
+changes the message and not the outcome, because `Observation` refuses the same
+floats a line later. That guard is defence in depth and no mutation can
+distinguish it, which is now said in both the code and the control instead of
+being left to read as tested coverage.
+
+The document also contradicted itself about its own authority — a header saying
+"PROPOSAL. Nothing here is ratified" above a body correctly reporting the
+mechanism as ratified. An artifact a freeze will point at cannot be ambiguous
+about what it is. It now opens with an explicit status block and is revision 5.
+
 ### Both pairs are stale, and are not re-recorded
 
 The digest moved from `2d6e52fe4352` to `6713e7300c7c`, and again to

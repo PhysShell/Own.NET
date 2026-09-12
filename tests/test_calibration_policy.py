@@ -14,6 +14,7 @@ clock, and is checked here by running it rather than by reading it:
     calib-fit                exact vertex enumeration matches a grid, and is stable
     calib-select-n           the smallest rung within G, always defined
     calib-purity             no clock, no files, no randomness
+    calib-exact-domain       a float cannot enter, and no output leaves Fraction
 
 `calib-no-defaults` is the one the owner's last P0 asked for directly: the old
 wording named only the constants that appear in a formula, which left an
@@ -558,6 +559,90 @@ def control_select_n() -> None:
                              "and a missing rung or empty universe is refused")
 
 
+def control_exact_domain() -> None:
+    """A float cannot enter the policy, and nothing it computes leaves the exact domain.
+
+    The boundary held at exactly one entry point once: `from_committed`. Every
+    other quantitative object -- `Envelope`, `Observation`, `CellObservation` --
+    took whatever it was handed. That is not a typing nicety, because
+    `Fraction * float` is a **float** in Python: one float anywhere made the
+    fitted `R_rel`, the bound and the comparison that decides the verdict all
+    floating point. A module that refused a floating-point LP solver on
+    exactness grounds was then deciding its boundaries by rounding direction
+    through the front door of a dataclass.
+
+    Both halves are checked here. A float must be refused rather than converted,
+    since `Fraction(0.1)` preserves the binary error with impeccable fidelity.
+    And the pipeline's outputs must all still be `Fraction`, or the refusals
+    above are guarding a door in a building with no walls.
+    """
+    problems = []
+    c = _constants()
+    good_env = pol.Envelope(n=5, a_abs=Fraction(1), r_rel=Fraction(1, 10))
+
+    refusals = [
+        ("Envelope A_abs as float",
+         lambda: pol.Envelope(n=5, a_abs=0.1, r_rel=Fraction(0))),
+        ("Envelope R_rel as float",
+         lambda: pol.Envelope(n=5, a_abs=Fraction(0), r_rel=0.2)),
+        ("Envelope A_abs as int",
+         lambda: pol.Envelope(n=5, a_abs=1, r_rel=Fraction(0))),
+        ("Observation t as float", lambda: pol.Observation(t=3.14, y=Fraction(1))),
+        ("Observation y as float", lambda: pol.Observation(t=Fraction(1), y=0.2)),
+        ("CellObservation median as float",
+         lambda: pol.CellObservation("x", 1.1, Fraction(1), 0, 0, True, True)),
+        ("CellObservation exit code as float",
+         lambda: pol.CellObservation("x", Fraction(1), Fraction(1), 0.0, 0, True, True)),
+        ("CellObservation validity as a truthy non-boolean",
+         lambda: pol.CellObservation("x", Fraction(1), Fraction(1), 0, 0, 1, True)),
+        ("exact_median over floats", lambda: pol.exact_median([0.1, 0.2], name="probe")),
+        ("envelope_width over float durations",
+         lambda: pol.envelope_width(good_env, [0.5])),
+        # This one is caught twice: by the guard in `observations_from_medians`
+        # and, if that guard is removed, by `Observation` a line later. The
+        # refusal is therefore load-bearing but the guard itself is defence in
+        # depth, and no mutation of it can change the outcome. Recorded so the
+        # line does not read as untested coverage.
+        ("observations_from_medians over floats",
+         lambda: pol.observations_from_medians([0.1, 0.2, 0.3], c, name="probe")),
+    ]
+    for label, thunk in refusals:
+        try:
+            thunk()
+        except pol.PolicyRefused:
+            pass
+        except Exception as exc:
+            problems.append(f"{label} raised {type(exc).__name__}, not PolicyRefused: {exc}")
+        else:
+            problems.append(f"{label} was accepted; a float that enters here makes every "
+                            "downstream quantity floating point")
+
+    # The positive half. Drive a full fit and verdict and check the TYPES that
+    # come out, not just that the refusals fire.
+    rows = [pol.Observation(Fraction(1), Fraction(3)), pol.Observation(Fraction(4), Fraction(5)),
+            pol.Observation(Fraction(9), Fraction(12))]
+    fitted = pol.fit_envelope(5, rows, c)
+    verdict = pol.classify_cell(
+        pol.CellObservation("x", Fraction(100), Fraction(110), 0, 0, True, True), fitted, c)
+    width = pol.envelope_width(fitted, [Fraction(100), Fraction(200)])
+    produced = {"A_abs": fitted.a_abs, "R_rel": fitted.r_rel, "delta": verdict.delta,
+                "reference_duration": verdict.reference_duration, "inner": verdict.inner,
+                "outer": verdict.outer, "width": width,
+                "loss": pol.pinball_loss(rows, c.q, fitted.a_abs, fitted.r_rel),
+                "median": pol.exact_median([Fraction(1), Fraction(2)], name="probe")}
+    for label, value in produced.items():
+        if not isinstance(value, Fraction):
+            problems.append(f"{label} came out as {type(value).__name__} = {value!r}; the "
+                            "computation left the exact domain")
+
+    if problems:
+        fail("calib-exact-domain", "; ".join(problems))
+    else:
+        ok("calib-exact-domain", f"{len(refusals)} float and non-exact inputs refused at "
+                                 f"the door rather than converted, and all "
+                                 f"{len(produced)} computed quantities come back Fraction")
+
+
 def control_purity() -> None:
     """No clock, no files, no randomness, no global state. Read from the source."""
     problems = []
@@ -600,6 +685,7 @@ def run() -> int:
     control_aggregation()
     control_fit()
     control_select_n()
+    control_exact_domain()
     control_purity()
     print()
     print(f"calibration policy controls: {len(_PASSES)} passed, {len(_FAILURES)} failed")

@@ -1,15 +1,52 @@
-# P-022 / #263-A — calibration reproducibility policy, PROPOSAL (revision 4)
+# P-022 / #263-A — calibration reproducibility policy (revision 5)
 
-**Status: PROPOSAL. Nothing here is ratified, and nothing here is a number.**
+```text
+Status:
+  MECHANISM RATIFIED.
+  STEPS 1-3 COMPLETE.
+  STEP 4 NOT YET FROZEN.
+  NO DESIGN CONSTANT VALUES RATIFIED.
+  NO NUMERIC FITTING CORPUS EXISTS.
+  NO TRAINING OR VALIDATION MEASUREMENT AUTHORISED.
+```
 
-This document freezes the *mechanism* by which two calibration runs are judged
-to agree. It contains no constant values. Every quantity that will eventually
-carry a number is named, given units and a sign convention, and left empty,
-because a document that fixes a mechanism and a value in the same breath is a
-document where the value was chosen by whoever was holding the pen.
+Revision 4 still opened with "PROPOSAL. Nothing here is ratified" and then, a few
+lines down, correctly reported that the statistical architecture and the
+`median |Δ elapsed| > 0` precondition had been ratified. A document that
+contradicts itself about its own authority is a document whose authority cannot
+be read off it, which is a poor property for the artifact a freeze will point at.
+The status block above is the whole answer; the title no longer calls it a
+proposal.
 
-No clock authority is claimed or implied. No implementation authority is claimed.
-No measurement is proposed here.
+This document freezes the *mechanism* by which two calibration runs are judged to
+agree. It contains no constant values. Every quantity that will eventually carry
+a number is named, given units and a sign convention, and left empty, because a
+document that fixes a mechanism and a value in the same breath is a document
+where the value was chosen by whoever was holding the pen.
+
+No clock authority is claimed or implied. No measurement is proposed here.
+
+## Revision 5 — what the owner's fourth review changed
+
+Revision 4 was ruled **CHANGES REQUIRED before the step 4 freeze**, on one P0 in
+the implementation and one authority contradiction in this document. Neither
+reopens any settled design.
+
+| finding | fixed in |
+|---|---|
+| P0 — the exact-arithmetic boundary held at `DesignConstants.from_committed()` and nowhere else, so `Envelope`, `Observation` and `CellObservation` accepted floats, and `Fraction * float` is a float | §2.6 — every quantitative entry point refuses non-exact input, with the new `calib-exact-domain` control |
+| authority — the header said "PROPOSAL. Nothing here is ratified" while the body reported the mechanism as ratified | the status block at the top of this document |
+
+The P0 was real and worse than it reads: driven rather than argued, a float
+entering through a dataclass made the **fitted `R_rel`** a float, along with the
+bound and the comparison that decides the verdict. A module that had refused a
+floating-point LP solver on exactness grounds was admitting floats through the
+front door.
+
+A float is now **refused, never converted**: `Fraction(0.1)` preserves the binary
+error with impeccable fidelity, which removes nothing. An `int` is refused too —
+it is exact, but `int / int` is a float in Python, so admitting it leaves a float
+one ordinary division away.
 
 ## Revision 4 — what the owner's third review changed
 
@@ -755,9 +792,9 @@ where it will be visible.
 ## 10. What this proposal does not do
 
 It does not authorise any measurement — not the training collection at step 7,
-not the validation pair at step 11. It does not authorise the implementation at
-step 2 either: that is the next thing to be authorised, not something this
-document grants itself. It does not re-record the stale sizing pairs, promote a
+not the validation pair at step 11. Steps 2 and 3 are done and step 4, the
+digest freeze, is the next thing awaiting the owner's word; this document does
+not grant it. It does not re-record the stale sizing pairs, promote a
 calibration of record, freeze D7, unblock #263-B, merge, or start Stage 3 or
 Stage 4. It does not move any incumbent constant, and it still contains no
 values.
