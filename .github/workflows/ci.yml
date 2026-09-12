@@ -2979,119 +2979,22 @@ jobs:
       # looks like when it is the only thing permitted.
       - name: Decisive workloads — non-timed structural smoke
         run: python scripts/perf_baseline.py --smoke-decisive
-      # Two runs, and their exit codes are DATA rather than the verdict. A run
-      # this harness invalidates — a contended runner, per the brief's §4/§7 —
-      # is the instrument doing its job, not the job failing: it refused to
-      # report numbers taken on a machine that was not measuring anything
-      # steady. What the gate below asks is whether the harness STOOD UP and
-      # reported honestly; whether the environment is measurement-grade is a
-      # separate question, and its answer is recorded rather than forced.
-      - name: Calibrate, twice, and check the run reproduces itself
-        run: |
-          ext=""
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then ext=".exe"; fi
-          export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli$ext"
-          set +e
-          python scripts/perf_baseline.py --calibrate --repeat 5 --warmup 2 \
-            --out "$RUNNER_TEMP/cal-1.json"; rc1=$?
-          python scripts/perf_baseline.py --calibrate --repeat 5 --warmup 2 \
-            --reproduce "$RUNNER_TEMP/cal-1.json" --out "$RUNNER_TEMP/cal-2.json"; rc2=$?
-          set -e
-          echo "calibration exit codes: run1=$rc1 run2=$rc2 (non-zero = the harness "
-          echo "refused the environment or the run did not reproduce; the gate reads the report)"
-      - name: The instrument stood up — and measured nothing decisive
-        run: |
-          report="$RUNNER_TEMP/cal-2.json"
-          [ -f "$report" ] || report="$RUNNER_TEMP/cal-1.json"
-          [ -f "$report" ] || { echo "FAIL: the harness produced no report at all"; exit 1; }
-          python - "$report" <<'PY'
-          import json, sys
-          rep = json.load(open(sys.argv[1], encoding="utf-8"))
-          man = json.load(open("docs/evidence/p022-263a-workloads.json", encoding="utf-8"))
-          decisive = {w["id"] for w in man["decisive"]}
-          problems = []
-
-          # Properties the harness owes on ANY machine, contended or not.
-          if rep.get("tag") != "CALIBRATION_ONLY":
-              problems.append("the report is not tagged CALIBRATION_ONLY")
-          if rep["identity"]["gate_armed"]:
-              problems.append("the D7 gate is ARMED — #263-A must never ship an attestation")
-          timed = sorted({c["workload"] for c in rep["cells"]} & decisive)
-          if timed:
-              problems.append(f"DECISIVE workloads were timed: {timed}")
-          if not rep["cells"]:
-              problems.append("the harness produced no cells")
-          # A cell is a measurement only if the invocation did the rung's work.
-          # Without this the gate happily passed a report in which 12 of 44
-          # cells were command-not-found exits, timed and called reproduced.
-          outcomes = rep.get("outcomes") or {}
-          if not outcomes.get("valid"):
-              problems.append(
-                  "cells whose invocation did not do the rung's work: "
-                  + "; ".join(outcomes.get("problems") or ["(none recorded)"]))
-          if outcomes.get("cells_timed") != len(rep["cells"]):
-              problems.append(
-                  f"{len(rep['cells']) - (outcomes.get('cells_timed') or 0)} cell(s) were not "
-                  "timed, so this report does not cover the whole ladder")
-          if not all(c.get("raw_elapsed_ns") for c in rep["cells"]):
-              problems.append("a cell kept no raw per-iteration data")
-          rss = sorted({c["rss_mechanism"] for c in rep["cells"]})
-          if rss == ["none"]:
-              problems.append("no named RSS mechanism was available, so the brief's §8 was "
-                              "skipped entirely rather than honoured")
-          for key in ("tree_sha", "python_reference_commit", "environment", "timestamp_utc"):
-              if key not in rep["provenance"]:
-                  problems.append(f"provenance is missing {key}")
-
-          # Whether this ENVIRONMENT is measurement-grade is a separate question.
-          # A refusal here is a recorded property of the runner, not a defect in
-          # the instrument — and raising the noise floor so the run passed would
-          # be choosing a number to fit a result.
-          invalid = rep["noise"]["invalidated"]
-          if invalid:
-              if not rep["noise"]["invalidation_reasons"]:
-                  problems.append("the run was invalidated without recording why")
-              verdict = ("environment REFUSED as not measurement-grade: "
-                         + "; ".join(rep["noise"]["invalidation_reasons"]))
-          else:
-              repro = rep.get("reproducibility")
-              if repro is None:
-                  verdict = "valid run; no reproducibility check was requested"
-              elif not repro["outcomes_reproduced"]:
-                  # The harness disagreed with ITSELF: different cells, or the
-                  # same cell doing different work. That is a defect here.
-                  problems.append(
-                      f"the instrument did not reproduce itself: only in the earlier run "
-                      f"{repro['cells_only_in_earlier']}, only in the later "
-                      f"{repro['cells_only_in_later']}, outcome changed "
-                      f"{repro['cells_whose_outcome_changed']}")
-                  verdict = "the INSTRUMENT did not reproduce"
-              elif not repro["timings_reproduced"]:
-                  # Every outcome identical, medians moved. This job's question
-                  # is whether the instrument stands up, and it did. WHY the
-                  # numbers did not settle is not established here: a contended
-                  # runner, a variable workload and an uncertain median estimate
-                  # are indistinguishable from this vantage point. Recorded as a
-                  # diagnostic, never repaired by widening the tolerance.
-                  verdict = ("outcomes reproduced; TIMINGS did not (cause not established): "
-                             + "; ".join(f"{c['cell']} moved {c.get('relative_change'):.3f} "
-                                         f"against {c.get('tolerance')}"
-                                         for c in repro["cells_outside_tolerance"]))
-              else:
-                  verdict = (f"valid run; {repro['compared_cells']} cells reproduced within "
-                             f"{repro['tolerance_relative']}")
-
-          print("\n".join(problems) if problems else
-                f"instrument OK: {len(rep['cells'])} calibration cells, RSS via {rss}, gate "
-                f"dormant, 0 decisive workloads timed. Environment: {verdict}")
-          sys.exit(1 if problems else 0)
-          PY
-      - name: Upload the calibration reports
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: perf-calibration-${{ matrix.os }}
-          path: ${{ runner.temp }}/cal-*.json
+      # The timed legacy calibration pair USED TO RUN HERE, and it is gone while
+      # step 7 is closed. It started a real stopwatch, produced forty timed cells
+      # per platform on every push and uploaded them, which made the step 6
+      # preregistration's own claim to take no new observation false on the very
+      # commit that made it. A preregistration that fixes "exactly one collection"
+      # while CI quietly gathers numbers every twelve minutes has built an
+      # epistemic side channel, whatever anyone intends to do with the output.
+      #
+      # What still proves the apparatus, all of it untimed: --selftest above, the
+      # instrument controls, the round 7 apparatus controls, the round 7 runner in
+      # plan mode, the decisive structural smoke, and the calibration policy,
+      # freeze, constants and training preregistration controls.
+      #
+      # training-no-incidental-measurement fails this suite if any workflow
+      # regains a path to a measurement entrypoint while the preregistration
+      # still records step 7 as unauthorised.
 
   # P-014 Tier B: external-reference resolution. The SAME sample, run two ways, must give two
   # verdicts — proving the extractor binds a THIRD-PARTY event only when its DLL is referenced:

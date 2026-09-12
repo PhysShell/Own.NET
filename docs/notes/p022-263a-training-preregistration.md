@@ -93,6 +93,56 @@ and reports anything else as the defect it is. Recorded rather than quietly fixe
 because the interval between knowing this lesson by heart and writing it wrong
 again was, this time, about forty minutes.
 
+## The forgotten stopwatch
+
+The first version of this step was reviewed CHANGES REQUIRED, and the finding was
+not in anything it added. It was in what CI had been doing all along.
+
+The legacy calibration pair still ran in the same job: two real `--calibrate` runs
+per platform, forty timed cells each, uploaded as workflow artifacts, on the very
+commit whose preregistration said it took no new observation. "Step 7 has not run"
+stayed true. "Step 6 produced no new timing or resource observation" did not, and
+those are different sentences. I had checked that my own commit contained no clock
+and never checked what the job I was extending already did.
+
+That is worse than an idle diagnostic, because of what this document does. Once a
+preregistration fixes **exactly one** collection and forbids choosing among
+attempts, a CI job gathering numbers every twelve minutes is an epistemic side
+channel whoever owns it and whatever they mean to do with the output.
+
+**The rule is now unconditional**, and deliberately not phrased about dates:
+
+> Every timing/resource observation produced outside the single owner-authorised
+> Step-7 training collection is permanently inadmissible as fitting, N-selection,
+> holdout, or D7 evidence, regardless of whether it predates or postdates this
+> preregistration.
+
+The earlier wording excluded only data recorded *before* this document, which would
+have readmitted whatever a later rerun produced, on the entirely sincere ground
+that it is just a diagnostic. The run 2038 artifacts from both platforms are
+recorded in the artifact as `POST_PREREG_LEGACY_DIAGNOSTIC`,
+`INADMISSIBLE_FOR_TRAINING`, `NEVER_FIT`, `NEVER_SELECT_N`.
+
+**The timed pair is gone from CI** while step 7 is closed, along with the step that
+read its report and the step that uploaded it. What still proves the apparatus is
+untimed and unchanged: the instrument selftest, the instrument controls, the round 7
+apparatus controls, the round 7 runner in plan mode, the decisive structural smoke,
+and the policy, freeze, constants and preregistration controls.
+
+**And the boundary is mechanical now, not remembered.**
+`training-no-incidental-measurement` scans every executable line of every workflow
+and fails if any reaches `perf_baseline.py --calibrate` or `runner.py --measure`
+while the artifact still records step 7 as unauthorised. It reads that state from
+the preregistration rather than from a constant here, so authorising step 7 is what
+relaxes it, and nothing else. It also asserts both guarded flags still exist: a
+control that passed because a flag had been renamed would be the proxy defect one
+more time. A shell comment naming an entrypoint is allowed, because a comment
+cannot execute.
+
+Four mutations, each caught by that control or correctly allowed: the pair added
+back to `ci.yml`, an entrypoint appearing in a *different* workflow, the flag
+renamed out from under the guard, and a comment that merely mentions it.
+
 ## Three binding axes from here on
 
     policy_implementation_digest          c3068ed7fa88…

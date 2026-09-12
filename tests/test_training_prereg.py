@@ -11,6 +11,7 @@ contains no clock, no observation, no fitted constant and no selected N.
     training-prereg-shape        the artifact is protocol, never a result
     training-prereg-bindings     all three digests equal the live ones
     training-prereg-universe     the declared universe is the instrument's own
+    training-no-incidental-measurement  no workflow can reach a clock while step 7 is shut
 
 `training-scope-admissible` is the load-bearing one. The margin `(1 + G)` must be
 applied exactly once, inside the frozen `select_n`, so the control perturbs the
@@ -243,7 +244,8 @@ def control_prereg_shape(art: dict[str, object]) -> None:
     permitted = {"artifact", "anchor_commit", "bindings", "design_constants", "stratification",
                  "universe", "collection_protocol", "order", "run_identity_required_fields",
                  "identity_drift_rule", "abort_semantics", "exactly_one_collection",
-                 "future_procedure", "holdout", "forbidden_in_step_6", "ratified_by"}
+                 "future_procedure", "holdout", "forbidden_in_step_6", "ratified_by",
+                 "step_7_collection", "admissibility_of_observations"}
     problems: list[str] = []
     if set(art) != permitted:
         problems.append(f"keys are {sorted(set(art) ^ permitted)} away from the permitted set")
@@ -375,6 +377,66 @@ def control_prereg_universe(art: dict[str, object]) -> None:
            "and both regimes, each carrying the frozen four-part identity")
 
 
+WORKFLOWS = ROOT / ".github" / "workflows"
+# Each guarded entrypoint, and the file that must still define its flag. Without the
+# second half a rename would make this control pass by finding nothing, which is the
+# proxy-instead-of-the-thing failure it exists to avoid.
+MEASUREMENT_ENTRYPOINTS = (
+    ("perf_baseline.py", "--calibrate", ROOT / "scripts" / "perf_baseline.py"),
+    ("runner.py", "--measure", ROOT / "scripts" / "round7" / "runner.py"),
+)
+
+
+def _shell_lines(text: str) -> list[str]:
+    """Workflow lines that could execute. A comment cannot, so it is not an invocation."""
+    return [line for line in text.splitlines() if not line.lstrip().startswith("#")]
+
+
+def control_no_incidental_measurement(art: dict[str, object]) -> None:
+    """While step 7 is shut, no workflow may hold a path to a measurement entrypoint.
+
+    Step 6 preregisters a protocol and takes no observation. That claim was false on
+    the commit that first made it: the legacy calibration pair still ran in CI, timing
+    forty cells per platform on every push and uploading them. A preregistration that
+    fixes "exactly one collection" while CI gathers numbers on a timer has an epistemic
+    side channel whatever anyone means to do with the output. This is the mechanical
+    version of the rule, so the next person to add a convenient diagnostic finds the
+    suite red rather than a reviewer's memory.
+    """
+    problems: list[str] = []
+    if str(art.get("step_7_collection", "")).upper() != "NOT AUTHORISED":
+        ok("training-no-incidental-measurement",
+           "step 7 is recorded as authorised, so this control no longer constrains the "
+           "workflows and the collection protocol governs instead")
+        return
+
+    for _name, flag, source in MEASUREMENT_ENTRYPOINTS:
+        if not source.exists():
+            problems.append(f"{source.name} is gone, so guarding {flag} proves nothing")
+        elif f'"{flag}"' not in source.read_text(encoding="utf-8"):
+            problems.append(f"{source.name} no longer defines {flag}; this guard would pass "
+                            "by finding a flag that has been renamed")
+
+    if not WORKFLOWS.is_dir():
+        problems.append(f"{WORKFLOWS} is not a directory, so no workflow could be read")
+    else:
+        scanned = sorted(WORKFLOWS.glob("*.yml")) + sorted(WORKFLOWS.glob("*.yaml"))
+        if not scanned:
+            problems.append("no workflow files were found, so this scanned nothing")
+        for workflow in scanned:
+            for line in _shell_lines(workflow.read_text(encoding="utf-8")):
+                for name, flag, _source in MEASUREMENT_ENTRYPOINTS:
+                    if name in line and flag in line:
+                        problems.append(f"{workflow.name} can reach {name} {flag}: {line.strip()}")
+    if problems:
+        fail("training-no-incidental-measurement", "; ".join(problems))
+    else:
+        ok("training-no-incidental-measurement",
+           f"step 7 is shut and no executable line of any workflow reaches "
+           f"{', '.join(f'{n} {f}' for n, f, _ in MEASUREMENT_ENTRYPOINTS)}; both flags still "
+           "exist, so the guard is not passing on a rename")
+
+
 def run() -> int:
     constants = _constants()
     control_purity()
@@ -388,6 +450,7 @@ def run() -> int:
         control_prereg_shape(art)
         control_prereg_bindings(art)
         control_prereg_universe(art)
+        control_no_incidental_measurement(art)
     print()
     print(f"training preregistration controls: {len(_PASSES)} passed, {len(_FAILURES)} failed")
     return 1 if _FAILURES else 0

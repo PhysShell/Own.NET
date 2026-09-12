@@ -10,6 +10,23 @@
     "rss_mechanism_unavailable": "recorded and the affected field is null with a reason, never zero",
     "timeout_or_runner_loss": "invalidates the run"
   },
+  "admissibility_of_observations": {
+    "quarantined": [
+      {
+        "labels": [
+          "POST_PREREG_LEGACY_DIAGNOSTIC",
+          "INADMISSIBLE_FOR_TRAINING",
+          "NEVER_FIT",
+          "NEVER_SELECT_N"
+        ],
+        "produced": "two CALIBRATION_ONLY reports of 40 timed cells per platform, uploaded as workflow artifacts",
+        "source": "CI run 2038, the legacy calibration pair, ubuntu-latest and windows-latest"
+      }
+    ],
+    "rule": "Every timing/resource observation produced outside the single owner-authorised Step-7 training collection is permanently inadmissible as fitting, N-selection, holdout, or D7 evidence, regardless of whether it predates or postdates this preregistration.",
+    "scope": "The labels are a record, not the mechanism. The mechanism is the rule above, which is unconditional, plus training-no-incidental-measurement, which stops a workflow regaining a path to a measurement entrypoint while step 7 is closed.",
+    "why_not_only_pre_step_6": "An earlier wording excluded only data recorded before this preregistration, which is narrower than the rule needs to be. It would have readmitted anything a later rerun produced, on the entirely sincere ground that it is just a diagnostic."
+  },
   "anchor_commit": "eedf6d3ed44ecf7bda69fa509dcd23b45960cf76",
   "artifact": "p022-263a-calibration-training-preregistration",
   "bindings": {
@@ -104,6 +121,7 @@
     "provenance.timestamp_utc",
     "raw samples per cell"
   ],
+  "step_7_collection": "NOT AUTHORISED",
   "stratification": {
     "across_strata": "observations, medians, envelopes and widths are never pooled, averaged or summed across strata",
     "cell_identity": [
@@ -136,7 +154,7 @@
       "rust"
     ],
     "expected_cells_per_stratum": 40,
-    "pre_step6_data": "every --calibrate run recorded before this preregistration, including run 2036 and the four committed sizing halves, is excluded from U and remains historical hardware diagnostic only",
+    "pre_step6_data": "excluded from U, and so is every observation taken outside the single authorised step 7 collection whenever it was taken; see admissibility_of_observations",
     "regimes": [
       "process-cold",
       "warm"
