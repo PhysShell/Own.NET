@@ -2959,6 +2959,11 @@ jobs:
       # these controls hand it the committed pairs rather than re-stating them.
       - name: Calibration design constants controls (step 5 ratified values)
         run: python tests/test_calibration_constants.py
+      # Step 6 preregisters a training collection that has not happened. These
+      # controls prove the protocol is complete and bound, and that the scope
+      # combiner reads the frozen selector's own margin instead of copying it.
+      - name: Training preregistration controls (step 6 protocol + scope binding)
+        run: python tests/test_training_prereg.py
       # Plan mode builds the arms, preflights THOSE bytes, freezes their
       # identities and fixes the execution order — then returns before the
       # timing function is reachable. Linux only: the arms are ELF binaries.

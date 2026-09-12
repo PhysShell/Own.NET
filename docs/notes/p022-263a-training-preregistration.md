@@ -1,0 +1,142 @@
+# P-022 / #263-A — training collection preregistration (step 6)
+
+```text
+Status:
+  TRAINING PREREGISTRATION RECORDED.
+  NO TRAINING COLLECTION HAS RUN.
+  NO EMPIRICAL CONSTANT EXISTS.
+  STEP 7 COLLECTION NOT AUTHORISED.
+  STEP 8 FIT NOT AUTHORISED.
+  HOLDOUT NOT AUTHORISED.
+```
+
+This document and `docs/evidence/calibration/p022-263a-training-preregistration.json`
+fix the protocol of a training collection **that has not happened**. Step 6 contains
+no clock, no observation, no fitted `A_abs` or `R_rel`, no selected `N` and no
+width. It changes neither the frozen policy nor the measurement harness.
+
+## The gap this step closed, and where it was
+
+The owner's review found that platform had fallen between two levels of the model
+rather than out of a report. Ratified §2.1 defines a cell as the four-part
+`(rung, engine, workload, regime)` and says *no finer*. §3.3 then pools every cell
+of the named universe into one fit per rung, and §3.4 turns that into one width and
+one selected `N`. Meanwhile the instrument requires both Linux and Windows, and
+§6.5 makes environment part of comparability while recording that a GitHub-hosted
+runner has already shown itself not measurement-grade.
+
+Nothing in the ratified text said whether the universe spans platforms. Three
+readings all survived every sentence, and they disagree about whether an unstable
+machine widens the bound a stable one must then live under. That is a statistical
+model decision, so it went to the owner rather than being chosen here.
+
+## The owner's ruling
+
+**Platform is not a fifth cell axis.** The frozen four-part identity is unchanged.
+Platform is an **outer training stratum**, and there are exactly two universes,
+`U_linux` and `U_windows`.
+
+Within a stratum, cold and warm remain distinct cells and every cell pools into one
+fit per rung by the frozen fitter, unchanged. Across strata, observations, medians,
+envelopes and widths are **never** pooled, averaged or summed. The result is
+`E_p,N` and `W_p(N)` per platform, rather than one envelope inflated by the noisier
+runner into a forgiving blanket.
+
+**One global `N` all the same.** Each stratum computes its own admissible set
+
+    Q_p = { N in the ladder : W_p(N) <= (1 + G) * min_N W_p(N) }
+
+and the selection is the smallest ladder rung in `Q_linux ∩ Q_windows`. Three
+alternatives are rejected by name. `max` of the per-stratum picks looks conservative
+for about twenty seconds and can select a rung admissible under neither stratum's
+margin. Averaging the widths lets an unstable platform buy a stable one a wider
+tolerance with its own instability. Treating one platform as the reference puts the
+other into D7 with no measurement model of its own.
+
+**Empty intersection is a stop.** `NO_COMMON_N` is an **orchestration** refusal, not
+a fifth reproducibility verdict: the frozen four describe cells and run pairs and
+are untouched. There is no fallback rung, no stricter-platform tie-break, no second
+`G` and no second fit.
+
+## The combiner, and the one thing it refuses to do
+
+`scripts/training/scope.py` exists because `Q_linux ∩ Q_windows` is code that takes
+a statistical decision, and §3.6 requires such code to be written and
+provenance-bound **before** the data it will judge. It lives outside
+`scripts/calibration/` deliberately: the step 4 control proves the frozen root grew
+no new file, and it would stop proving that if this landed inside it.
+
+**It does not re-implement the `(1 + G)` test.** The frozen `select_n` already
+computes the margin and reports `widths` and `limit` beside its own pick, so `Q_p`
+is read back off that result. A second copy of the margin arithmetic would only ever
+prove that the two copies agree, which is the defect this PR has spent thirteen
+rounds removing. `training-scope-admissible` proves the reading is real rather than
+incidental: it perturbs the `limit` the frozen function reported and requires the
+combiner's answer to move. A combiner that recomputed the margin itself would ignore
+that and pass.
+
+On `NO_COMMON_N` the result carries **no** `selected_n` key at all, so a caller that
+reads it without checking the outcome raises `KeyError` rather than proceeding on a
+number the rule did not select.
+
+### A control that could not tell a traceback from a finding, for the seventh time
+
+`training-scope-refusals` was first written with a helper that caught bare
+`Exception` and scored that as a refusal. Under the mutation that deletes the
+strata-versus-selections check, the combiner then raised `KeyError` reaching for a
+stratum that was not there, and the helper read that crash as the guard working.
+The mutation came back MISSED, which is the only reason it was found.
+
+This is the same family the ledger already records six times, in a file written
+after all six. The helper now returns empty only for a refusal raised **by name**,
+and reports anything else as the defect it is. Recorded rather than quietly fixed,
+because the interval between knowing this lesson by heart and writing it wrong
+again was, this time, about forty minutes.
+
+## Three binding axes from here on
+
+    policy_implementation_digest          c3068ed7fa88…
+    measurement_harness_digest            562a7f7232da…
+    training_scope_implementation_digest  614bf9efe6ba…
+
+The third is new and is computed over every committed `*.py` under
+`scripts/training/` with the **same framing** step 4 froze, imported rather than
+restated. If the combiner changes after collection starts, the training corpus is
+stale, with no discussion about it having been only a small change to an
+intersection.
+
+## The collection, fixed in advance
+
+Per stratum, one preregistered environment identity covers the whole ladder: rungs
+5, 15 and 45, five full runs each, over the complete universe of that stratum.
+Fifteen runs per platform, thirty in total. Measuring one rung on one runner and
+another rung on a different one would leave `N` as something other than the only
+variable that changed.
+
+Five runs per rung give exactly four observations per cell, from the consecutive
+pairs `(r1,r2)`, `(r2,r3)`, `(r3,r4)`, `(r4,r5)` — not five convenient pairs chosen
+once the outcome is visible. The universe is the 40 cells the frozen instrument
+emits for the six `cal-*` workloads across five rungs, two engines and both regimes;
+`training-prereg-universe` computes that from the manifest and the instrument rather
+than trusting the number written here.
+
+Execution order and its seed are fixed now. The seed is `c3068ed7fa880a70`, the
+first sixteen hex digits of the policy digest the owner accepted at step 4 before
+this document existed, so it is not a number that could have been re-rolled until
+the order looked tidy.
+
+**Exactly one collection.** Not the first satisfactory one of several. It carries a
+durable identity from its first run and ends `ADMISSIBLE` or `INVALID` by rules
+written here. There is no automatic retry because CI blinked; a repeat after an
+abort needs a rule already in this document or a new owner ruling.
+
+**If either stratum invalidates, the collection yields no admissible step 8 input.**
+The surviving stratum's numbers remain durable evidence of what happened, and must
+never become a single-stratum fallback model. That would be selection on
+survivorship wearing a CI badge.
+
+## What this does not authorise
+
+Not the collection, not the fit, not the holdout. The validation pair remains a
+separate owner decision, and this document deliberately does not describe it, so
+that a training preregistration cannot quietly authorise a fresh validation run.
