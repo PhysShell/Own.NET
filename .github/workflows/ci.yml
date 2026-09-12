@@ -2954,6 +2954,11 @@ jobs:
       # artifact outright if it ever grows a field that is not identity.
       - name: Calibration policy freeze controls (step 4 digest identity)
         run: python tests/test_calibration_freeze.py
+      # Step 5 records the five constants the owner chose, bound to the step 4
+      # identity. The frozen implementation is the judge of its own ranges, so
+      # these controls hand it the committed pairs rather than re-stating them.
+      - name: Calibration design constants controls (step 5 ratified values)
+        run: python tests/test_calibration_constants.py
       # Plan mode builds the arms, preflights THOSE bytes, freezes their
       # identities and fixes the execution order — then returns before the
       # timing function is reachable. Linux only: the arms are ELF binaries.

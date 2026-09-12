@@ -4,8 +4,9 @@
 Status:
   MECHANISM RATIFIED.
   STEPS 1-3 COMPLETE.
-  STEP 4 DIGEST FREEZE TAKEN, PENDING OWNER ACCEPTANCE.
-  NO DESIGN CONSTANT VALUES RATIFIED.
+  STEP 4 DIGEST FREEZE ACCEPTED.
+  STEP 5 DESIGN CONSTANTS RATIFIED BY THE OWNER AND RECORDED.
+  NO EMPIRICAL CONSTANT IS FITTED.
   NO NUMERIC FITTING CORPUS EXISTS.
   NO TRAINING OR VALIDATION MEASUREMENT AUTHORISED.
 ```
@@ -26,7 +27,7 @@ where the value was chosen by whoever was holding the pen.
 
 No clock authority is claimed or implied. No measurement is proposed here.
 
-## Step 4 — the digest freeze, taken
+## Step 4 — the digest freeze, accepted
 
 `docs/evidence/calibration/p022-263a-policy-freeze.json` records **which bytes the
 policy is**, and nothing else. It carries no design constant, no fitted constant
@@ -101,6 +102,71 @@ clone can still hold the commit in question, and the development clone does. It
 now reads the objects themselves, and the one claim shallowness genuinely blocks —
 ancestry — says so in its own message instead of reading as a provenance break.
 The CI job that runs these controls therefore checks out with full history.
+
+## Step 5 — the design constants, chosen by the owner
+
+`docs/evidence/calibration/p022-263a-design-constants.json` records the five
+constants and nothing else. They were **chosen by the owner**, which is the whole
+point of the step: a constant this repository picked for itself would be a knob
+wearing a ratification.
+
+| constant | committed form | value |
+|---|---|---|
+| `q` | `[19, 20]` | 19/20 |
+| `M` | `[2, 1]` | 2 |
+| `R_runs` | `5` | 5 |
+| `N_ladder` | `[5, 15, 45]` | rungs 5, 15, 45, stopping at 45 |
+| `G` | `[1, 10]` | 1/10 |
+
+Rationals are committed as reduced integer pairs and counts as plain integers,
+which is the separation revision 4 introduced so that no reader has to decide
+whether `15` means the integer or the pair. There is no `N_max`: the ladder's last
+rung **is** the mandatory stop, and a second field holding 45 would be a duplicate
+free to drift.
+
+The artifact binds both identities: `policy_implementation_digest c3068ed7fa88…`
+and `measurement_harness_digest 562a7f7232da…`. Constants bound to an
+implementation other than the frozen one are constants for a policy nobody
+reviewed.
+
+**What is deliberately absent.** No `A_abs`, no `R_rel`, no selected `N`, no
+measurement output. Those are fitted rather than chosen, no admissible fitting
+corpus exists, and no measurement is authorised. The artifact's schema is
+enumerated by a control, so there is no key for one to arrive under.
+
+**A provenance limit, stated rather than implied.** `ratified_by` records `owner`,
+and the repository **cannot check that**. It is an attribution, not a proof, in
+exactly the sense the Round 7 reading's withdrawn "checkable" claim was not. What
+the repository does establish is the binding: these constants are recorded against
+a policy implementation whose bytes are frozen and independently recomputable, so
+whatever is later fitted is fitted under constants that were fixed first.
+
+### The controls
+
+`tests/test_calibration_constants.py` runs four on every CI run, both platforms:
+
+- **`constants-artifact-shape`** enumerates the permitted schema, requires rationals
+  as reduced integer pairs and counts as exact integers, and excludes `bool`
+  explicitly, since in Python a `bool` is an `int`.
+- **`constants-accepted-by-policy`** hands the committed pairs to the frozen
+  `DesignConstants.from_committed()` and requires an exact round trip through
+  `as_committed()`. It deliberately does **not** re-state the ranges — `0 < q < 1`,
+  `M > 1`, `G >= 0`, `R_runs >= 2`, a strictly increasing ladder — because a second
+  copy of those rules would only prove the two copies agree. The implementation
+  under freeze is the judge of its own constants.
+- **`constants-bound-to-freeze`** requires both recorded digests to equal what step
+  4 froze, and the harness digest to equal the live one.
+- **`constants-no-empirical`** is a second net whose forbidden names are *derived*
+  from what `Envelope` serialises, so it grows if the policy grows another
+  empirical field. **No mutation isolates it**, because the exact schema refuses
+  every smuggling route one check earlier, and that is recorded rather than
+  counted as coverage.
+
+Fifteen mutations, each declaring in advance which control must catch it and
+scored only on a `FAIL` line from that control. The count is not the claim: the
+claim is that every mutation has a named expected catcher and is scored by output
+rather than by a non-zero exit code, so the campaign can grow without the
+guarantee changing shape.
 
 ## Revision 5 — what the owner's fourth review changed
 
