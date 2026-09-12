@@ -11,6 +11,7 @@ to arrive dressed as a value.
     envcapture-assigned-id       an owner-assigned id cannot be 'unavailable'
     envcapture-drift             provenance moves freely; identity never does
     envcapture-no-measurement    no clock, no resource observation, by AST
+    envcapture-reason-fits-platform  an 'unavailable' reason names THIS platform
     envcapture-windows-fixture   the schema holds off Linux; the capture path does not
     envcapture-frozen-untouched  this addition moved none of the three frozen digests
     envcapture-ci-provenance     a CI-taken manifest says so and cannot hide it
@@ -329,6 +330,61 @@ WINDOWS_FIXTURE: dict[str, object] = {
 }
 
 
+# Mechanism names that exist on one platform only. A reason naming the other
+# platform's mechanisms is a false statement about what was tried.
+POSIX_ONLY = ("/sys/", "/proc/", "systemd-detect-virt", "scaling_governor", "cpufreq")
+WINDOWS_ONLY = ("powercfg", "Win32_", "MachineGuid", "GlobalMemoryStatusEx",
+                "powershell", "pwsh")
+
+
+def foreign_mechanisms(reason: str, *, on_windows: bool) -> tuple[str, ...]:
+    """Written once, used twice: on the live manifest and on a synthetic reason."""
+    foreign = POSIX_ONLY if on_windows else WINDOWS_ONLY
+    return tuple(token for token in foreign if token in reason)
+
+
+def control_reason_fits_platform() -> None:
+    """An 'unavailable' reason must describe THIS platform's mechanisms.
+
+    The first Windows CI run of this tool reported `virtualization` unavailable
+    because "systemd-detect-virt absent ... and no DMI identity under /sys" —
+    true of every Windows machine ever built, and silent about the fact that
+    nothing Windows-specific had been tried at all. A stated reason that names
+    the wrong operating system is worse than no reason, because it reads as
+    though a probe ran.
+    """
+    on_windows = os.name == "nt"
+    manifest = _live()
+    problems: list[str] = []
+    for name, field in manifest["identity"].items():  # type: ignore[union-attr]
+        if field.get("status") != ec.UNAVAILABLE:
+            continue
+        found = foreign_mechanisms(str(field.get("reason", "")), on_windows=on_windows)
+        if found:
+            problems.append(f"{name} blames {', '.join(found)}")
+    if problems:
+        fail("envcapture-reason-fits-platform",
+             f"on {'Windows' if on_windows else 'POSIX'}, "
+             + "; ".join(problems))
+        return
+
+    # The scanner must actually catch the defect that prompted it, or its silence
+    # on the live manifest proves nothing.
+    regression = "systemd-detect-virt absent or unclear and no DMI identity under /sys"
+    if not foreign_mechanisms(regression, on_windows=True):
+        fail("envcapture-reason-fits-platform",
+             "the scanner does not catch the exact Windows reason that prompted it")
+        return
+    if foreign_mechanisms(regression, on_windows=False):
+        fail("envcapture-reason-fits-platform",
+             "the scanner calls a POSIX reason foreign on POSIX")
+        return
+    ok("envcapture-reason-fits-platform",
+       f"every unavailable reason on {'Windows' if on_windows else 'POSIX'} names a mechanism "
+       "that exists here, and the Windows virtualization reason that shipped in the first "
+       "version is still caught")
+
+
 def control_windows_fixture() -> None:
     problems = ec.validate(WINDOWS_FIXTURE)
     if problems:
@@ -341,9 +397,11 @@ def control_windows_fixture() -> None:
         fail("envcapture-windows-fixture", "a changed Windows power policy was not drift")
         return
     ok("envcapture-windows-fixture",
-       "the schema and the drift rule hold on a non-Linux manifest. This does NOT exercise the "
-       "Windows capture path: the registry, powercfg and GlobalMemoryStatusEx branches stay "
-       "unrun until a dedicated Windows host exists, and are recorded as unverified")
+       "the schema and the drift rule hold on a non-Linux manifest. This fixture does not run "
+       "the Windows capture path; the CI selftest on windows-latest does, and its first run "
+       "returned the registry fingerprint, powercfg and GlobalMemoryStatusEx but no "
+       "virtualization, which is what added the CIM query. What stays unverified is capture on "
+       "a DEDICATED Windows host, since a hosted runner is not one")
 
 
 def _git(*args: str) -> tuple[int, bytes]:
@@ -423,6 +481,23 @@ def control_ci_provenance() -> None:
        "so it cannot later be presented as taken on a dedicated measurement host")
 
 
+def guard_failure(control: Callable[[], None]) -> str | None:
+    """Run a control; return the message a failure should carry, or None.
+
+    Split from `guarded` so the probe below can exercise it WITHOUT printing a
+    `FAIL[` line. The first version reported through `fail()` and then deleted
+    the entry from the list — which left a literal `FAIL[envcapture-guard-fixture]`
+    in every green CI log, exactly the string this repository's mutation scorer
+    keys on. A green run must not print a failure.
+    """
+    try:
+        control()
+    except Exception as exc:  # the point is that nothing escapes
+        return (f"the control raised {type(exc).__name__}: {exc}. A control that crashes "
+                "before reporting is a traceback, not a finding")
+    return None
+
+
 def guarded(name: str, control: Callable[[], None]) -> None:
     """Report an escaping exception instead of dying of it.
 
@@ -433,11 +508,9 @@ def guarded(name: str, control: Callable[[], None]) -> None:
     `envcapture-identity-split` — the control that owns exactly that defect —
     could say a word.
     """
-    try:
-        control()
-    except Exception as exc:  # the point is that nothing escapes
-        fail(name, f"the control raised {type(exc).__name__}: {exc}. A control that crashes "
-                   "before reporting is a traceback, not a finding")
+    message = guard_failure(control)
+    if message is not None:
+        fail(name, message)
 
 
 def control_guard_reports() -> None:
@@ -446,33 +519,29 @@ def control_guard_reports() -> None:
     A scratchpad campaign that once watched a crash get reported is not a
     regression catcher; restoring the bare call in `run()` has to fail here.
     """
-    marker = "envcapture-guard-fixture"
-    before_fails, before_passes = len(_FAILURES), len(_PASSES)
-
     def always_raises() -> None:
         raise RuntimeError("a control that dies before reporting")
 
     try:
-        guarded(marker, always_raises)
+        message = guard_failure(always_raises)
     except Exception as exc:  # nothing may escape, including from the guard
         fail("envcapture-guard-reports",
-             f"guarded() let {type(exc).__name__} escape, so one crashing control still "
+             f"guard_failure() let {type(exc).__name__} escape, so one crashing control still "
              "kills every control after it")
         return
-    recorded = [d for c, d in _FAILURES[before_fails:] if c == marker]
-    # Take the fixture's own failure back out; it is a probe, not a finding.
-    del _FAILURES[before_fails:]
-    del _PASSES[before_passes:]
-    if not recorded:
-        fail("envcapture-guard-reports", "guarded() swallowed the exception without reporting it")
+    if message is None:
+        fail("envcapture-guard-reports", "a raising control was reported as clean")
         return
-    if "RuntimeError" not in recorded[0]:
+    if "RuntimeError" not in message:
         fail("envcapture-guard-reports",
-             f"guarded() reported without naming the exception type: {recorded[0]!r}")
+             f"the report does not name the exception type: {message!r}")
+        return
+    if guard_failure(lambda: None) is not None:
+        fail("envcapture-guard-reports", "a clean control was reported as a failure")
         return
     ok("envcapture-guard-reports",
-       "a control that raises is reported by name and the run continues, so the mutation that "
-       "once killed the suite before its owning control could speak stays caught")
+       "a control that raises is reported by name and the run continues, a clean one is not, "
+       "and this probe prints no FAIL line of its own on a green run")
 
 
 def run() -> int:
@@ -483,6 +552,7 @@ def run() -> int:
     guarded("envcapture-assigned-id", control_assigned_id)
     guarded("envcapture-drift", control_drift)
     guarded("envcapture-no-measurement", control_no_measurement)
+    guarded("envcapture-reason-fits-platform", control_reason_fits_platform)
     guarded("envcapture-windows-fixture", control_windows_fixture)
     guarded("envcapture-frozen-untouched", control_frozen_untouched)
     guarded("envcapture-ci-provenance", control_ci_provenance)

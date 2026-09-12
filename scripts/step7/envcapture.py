@@ -168,6 +168,33 @@ def _windows_machine_guid() -> str | None:
     return str(value) if value else None
 
 
+def _windows_cim(class_name: str, props: tuple[str, ...]) -> dict[str, str] | None:
+    """One CIM query for identity. No shell, no timing, no clock.
+
+    `wmic` is gone from recent Windows images — the first CI run of this tool on
+    windows-latest (Server 2025) fell straight through it — so the model name
+    arrived as `platform.processor()`'s family/model/stepping string instead of
+    the processor's actual name. CIM is the supported replacement.
+    """
+    if os.name != "nt":
+        return None
+    script = "; ".join(
+        [f"$o = Get-CimInstance -ClassName {class_name} | Select-Object -First 1"]
+        + [f"Write-Output ('{prop}=' + $o.{prop})" for prop in props])
+    for exe in ("powershell", "pwsh"):
+        found = _tool([exe, "-NoProfile", "-NonInteractive", "-Command", script])
+        if found is None or found[0] != 0:
+            continue
+        values: dict[str, str] = {}
+        for line in found[1].splitlines():
+            key, _, value = line.partition("=")
+            if key.strip() in props and value.strip():
+                values[key.strip()] = value.strip()
+        if values:
+            return values
+    return None
+
+
 def _os_build() -> dict[str, object]:
     if os.name == "nt":
         release, version, csd, ptype = platform.win32_ver()
@@ -208,14 +235,15 @@ def _cpu_model() -> dict[str, object]:
                 if value.strip():
                     return observed(value.strip())
     if os.name == "nt":
-        found = _tool(["wmic", "cpu", "get", "name"])
-        if found and found[0] == 0:
-            lines = [ln.strip() for ln in found[1].splitlines() if ln.strip()]
-            if len(lines) > 1:
-                return observed(lines[1])
+        cim = _windows_cim("Win32_Processor", ("Name",))
+        if cim and cim.get("Name"):
+            return observed(cim["Name"])
     processor = platform.processor()
     if processor:
         return observed(processor)
+    if os.name == "nt":
+        return unavailable("no Win32_Processor Name through powershell or pwsh, and "
+                           "platform.processor() is empty")
     return unavailable("no model name in /proc/cpuinfo and platform.processor() is empty")
 
 
@@ -270,7 +298,21 @@ def _windows_total_ram() -> int | None:
 
 
 def _virtualization() -> dict[str, object]:
-    """Exact, or explicitly classified. Never a guessed 'probably bare metal'."""
+    """Exact, or explicitly classified. Never a guessed 'probably bare metal'.
+
+    Platform-branched, because an `unavailable` reason that names the other
+    platform's mechanisms is a false statement about what was tried. The first
+    Windows CI run of this tool reported "systemd-detect-virt absent ... no DMI
+    identity under /sys" on Windows Server 2025, which is true of every Windows
+    machine ever built and told the reader nothing.
+    """
+    if os.name == "nt":
+        cim = _windows_cim("Win32_ComputerSystem", ("Manufacturer", "Model"))
+        if cim:
+            return observed(f"Win32_ComputerSystem Manufacturer={cim.get('Manufacturer', '?')} "
+                            f"Model={cim.get('Model', '?')}")
+        return unavailable("Win32_ComputerSystem is unreadable through powershell and pwsh, "
+                           "so the virtualization boundary is not classified on this host")
     found = _tool(["systemd-detect-virt"])
     if found is not None:
         # Exit 1 with "none" is the tool answering, not failing.
@@ -285,14 +327,14 @@ def _virtualization() -> dict[str, object]:
 
 
 def _power_policy() -> dict[str, object]:
-    governor = _text("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
-    if governor and governor.strip():
-        return observed(f"cpufreq scaling_governor={governor.strip()}")
     if os.name == "nt":
         found = _tool(["powercfg", "/getactivescheme"])
         if found and found[0] == 0 and found[1].strip():
             return observed(found[1].strip())
         return unavailable("powercfg /getactivescheme produced no active scheme")
+    governor = _text("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
+    if governor and governor.strip():
+        return observed(f"cpufreq scaling_governor={governor.strip()}")
     return unavailable(
         "no /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor on this host; CPU "
         "frequency policy is not observable here")

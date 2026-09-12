@@ -140,21 +140,24 @@ so it cannot later be presented as host-taken.
 ## Controls
 
 ```text
-envcapture-guard-reports     a control that raises is reported, never fatal
-envcapture-schema            the declared key set, enforced both ways
-envcapture-field-contract    observed/unavailable, with no third state
-envcapture-identity-split    provenance can never become identity
-envcapture-assigned-id       an owner-assigned id cannot be 'unavailable'
-envcapture-drift             provenance moves freely; identity never does
-envcapture-no-measurement    no clock, no resource accounting, by AST
-envcapture-windows-fixture   the schema holds off Linux; the capture path does not
-envcapture-frozen-untouched  this addition moved none of the three frozen digests
-envcapture-ci-provenance     a CI-taken manifest says so and cannot hide it
+envcapture-guard-reports         a control that raises is reported, never fatal
+envcapture-schema                the declared key set, enforced both ways
+envcapture-field-contract        observed/unavailable, with no third state
+envcapture-identity-split        provenance can never become identity
+envcapture-assigned-id           an owner-assigned id cannot be 'unavailable'
+envcapture-drift                 provenance moves freely; identity never does
+envcapture-no-measurement        no clock, no resource accounting, by AST
+envcapture-reason-fits-platform  an 'unavailable' reason names THIS platform
+envcapture-windows-fixture       the schema holds off Linux
+envcapture-frozen-untouched      this addition moved none of the three frozen digests
+envcapture-ci-provenance         a CI-taken manifest says so and cannot hide it
 ```
 
-Twelve mutations of the tool, each declaring in advance which control must catch
-it, and each scored on a `FAIL` line from **that** control rather than on a
-non-zero exit.
+Fifteen mutations, each declaring in advance which control must catch it, and
+each scored on a `FAIL` line from **that** control rather than on a non-zero
+exit. Two of the fifteen mutate the **control file**, not the tool: the guard is
+the durable answer to a defect recorded eight times, so it needs its own
+adversary.
 
 ## Two defects the campaign found, both real
 
@@ -174,11 +177,49 @@ turns any escaping exception into a reported failure for that control and lets
 the run continue, and `envcapture-guard-reports` makes restoring the bare call a
 test failure rather than a story in a session log.
 
-## What is NOT verified
+## What the first Windows CI run found, and what it cost
 
-The Windows capture path. The registry read, `powercfg` and
-`GlobalMemoryStatusEx` branches have never executed. `envcapture-windows-fixture`
-exercises the **schema and the drift rule** on a synthetic non-Linux manifest and
-says so in its own success message; it is not evidence that Windows capture
-works. That stays unverified until a dedicated Windows host exists, which is the
-same gate the first clock waits behind.
+The Windows capture path was described as unverified, and one CI run on
+`windows-latest` (Server 2025) made most of it verified and found two defects.
+
+| field | Windows result |
+|---|---|
+| `host_fingerprint` | observed — the registry `MachineGuid` read works |
+| `os_build`, `kernel` | observed — `Windows 2025Server 10.0.26100 SP0 …` |
+| `memory_bytes` | observed — `GlobalMemoryStatusEx` works |
+| `power_policy` | observed — `powercfg` returns the active scheme |
+| `cpu_model` | observed, but **weak** |
+| `virtualization` | **unavailable, for a Linux reason** |
+
+**`virtualization` reported "systemd-detect-virt absent or unclear and no DMI
+identity under /sys" — on Windows.** That is true of every Windows machine ever
+built, and it reads as though a probe ran when nothing Windows-specific had been
+tried at all. A stated reason naming the wrong operating system is worse than no
+reason. `_virtualization()` is now platform-branched and queries
+`Win32_ComputerSystem` through CIM, and `envcapture-reason-fits-platform`
+enforces the general rule: an `unavailable` reason may only name mechanisms that
+exist on the platform it was produced on. Designing that control immediately
+caught a second instance — `_cpu_model`'s repaired reason named both `/proc/cpuinfo`
+and `Win32_Processor` in one sentence.
+
+**`cpu_model` fell through a dead tool in silence.** `wmic` is gone from recent
+Windows images, so the model name arrived as `platform.processor()`'s
+`AMD64 Family 25 Model 1 Stepping 1, AuthenticAMD` — a family string, not the
+processor's name, and nowhere near the "cpu model exact" the ruling asks for. The
+CIM query now runs first.
+
+**A green run printed a failure.** `control_guard_reports` exercised the guard by
+calling it and then deleting the entry from the failure list, which left a literal
+`FAIL[envcapture-guard-fixture]` in every passing CI log — exactly the string this
+repository's mutation scorer keys on, and the sort of line that teaches readers to
+ignore `FAIL`. The guard is now split into a pure `guard_failure()` that returns
+the message and a `guarded()` that reports it, so the probe asserts on a returned
+string and prints nothing.
+
+## What is still NOT verified
+
+Capture on a **dedicated** Windows host. A hosted runner is not one, and the CIM
+virtualization query added above has never executed anywhere, since this container
+is not Windows. `envcapture-windows-fixture` exercises the schema and drift rule
+on a synthetic manifest and now says exactly that rather than claiming the
+Windows branches are unrun.
