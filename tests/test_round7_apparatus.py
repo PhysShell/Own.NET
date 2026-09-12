@@ -1,0 +1,1297 @@
+#!/usr/bin/env python3
+"""#263-A Round 7 — controls for the apparatus, before any measurement exists.
+
+The apparatus is a classifier and a structural preflight. Both can be exercised
+exhaustively without a clock, and both are checked here by running them rather
+than by reading them:
+
+    round7-outcome-exclusivity  the ratified rules never fire twice at once
+    round7-zero-guard           A == 0 refuses; B == 0 alone does NOT
+    round7-boundaries           every rule's exact edge lands where it was ratified
+    round7-regime-reading       n-disagreement is P5; a cold/warm split is not
+    round7-preflight            B1-B4 pass on healthy arms and each refuses its own damage
+    round7-schedule             the execution order is blocked, seeded, and replayable
+    round7-execution-contract   plan mode starts no clock; the timed bytes are the preflighted ones
+    round7-outcome-contract     every spawn, warmups included, did the work its arm exists to do
+    round7-durable-refusal      an invalid run leaves a black box, not just a traceback
+    round7-readout              the reading is the preregistered D, and it is reproducible
+
+The exclusivity control matters most. The previous draft's outcome table let one
+dataset satisfy two contradictory verdicts, and nothing in the process that
+produced it would have noticed. It is checked here over an exact rational grid,
+and checked in the other direction too: the old overlapping rule is handed to
+the same census, which must report it broken. A control that only ever sees
+correct input is a control nobody has tested.
+
+Failures print `FAIL[<check>]: <detail>`; nothing stops at the first one.
+
+Run:  python tests/test_round7_apparatus.py
+"""
+
+from __future__ import annotations
+
+import json
+import shutil
+import subprocess
+import sys
+import tempfile
+from fractions import Fraction
+from itertools import product
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts" / "round7"))
+sys.path.insert(0, str(ROOT / "scripts"))
+
+import classify as cl  # noqa: E402
+import perf_baseline as pb  # noqa: E402
+import preflight as pf  # noqa: E402
+import readout as ro  # noqa: E402
+import runner as rn  # noqa: E402
+import schedule as sch  # noqa: E402
+from elfread import Elf64  # noqa: E402
+
+_FAILURES: list[tuple[str, str]] = []
+_PASSES: list[str] = []
+
+
+def fail(check: str, detail: str) -> None:
+    _FAILURES.append((check, detail))
+    print(f"FAIL[{check}]: {detail}")
+
+
+def ok(check: str, detail: str = "") -> None:
+    _PASSES.append(check)
+    print(f"ok[{check}]: {detail}" if detail else f"ok[{check}]")
+
+
+# --- the classifier --------------------------------------------------------
+
+# Sixths, so the ratified edges -- 3/2, 3, 2/3, 2 -- all land exactly on grid
+# points instead of near them. Floats would decide those edges by rounding.
+_GRID = tuple(Fraction(n, 6) for n in range(0, 37))
+
+
+def _census(rules_fired) -> dict[tuple[str, ...], list[tuple[Fraction, ...]]]:
+    """Every grid point where more than one rule fires, keyed by which rules."""
+    out: dict[tuple[str, ...], list[tuple[Fraction, ...]]] = {}
+    for a, b, c in product(_GRID, repeat=3):
+        fired = rules_fired(a, b, c)
+        if len(fired) > 1:
+            out.setdefault(tuple(sorted(fired)), []).append((a, b, c))
+    return out
+
+
+def _old_rules_fired(a, b, c) -> tuple[str, ...]:
+    """The PREVIOUS draft's rules, kept only so the census can reject them.
+
+    The single difference is P1's missing `C > 1.5A` clause. That one absence is
+    what let A=1, B=3, C=1.4 be both "the padded image explains it" and "the
+    phenomenon never reproduced".
+    """
+    A, B, C = Fraction(a), Fraction(b), Fraction(c)
+    three_halves = Fraction(3, 2)
+    fired = []
+    if C <= three_halves * A:
+        fired.append("P4")
+    if B >= 3 * A and C <= three_halves * B:          # no C > 1.5A guard
+        fired.append("P1")
+    if B <= three_halves * A and C >= 3 * A:
+        fired.append("P2")
+    if B >= 3 * A and C >= 2 * B:
+        fired.append("P3")
+    return tuple(fired)
+
+
+def control_outcome_exclusivity() -> None:
+    """The ratified rules overlap only where A and B are both exactly zero.
+
+    Checked in both directions. The real rules must be clean everywhere else;
+    the old rules must be caught. Without the second half this control would
+    pass just as happily against a census that never looks at anything.
+    """
+    problems = []
+    overlaps = _census(cl.rules_fired)
+
+    # (1) The claim the preregistration now makes, verbatim.
+    bad = {k: v for k, v in overlaps.items() if any(a != 0 or b != 0 for a, b, _ in v)}
+    if bad:
+        first = next(iter(bad.items()))
+        problems.append(f"the rules overlap away from A=B=0: {first[0]} at "
+                        f"{[str(x) for x in first[1][0]]}")
+    if any("P1" in k for k in overlaps):
+        problems.append("P1 overlaps another rule; the ratified set says it is disjoint "
+                        "unconditionally, because C > 1.5A cannot hold once the other "
+                        "clauses force B and C to zero")
+    # (2) And the overlaps that DO exist must exist, or this proves nothing.
+    if not overlaps:
+        problems.append("no overlap was found anywhere, including at A=B=0 where P2 and "
+                        "P3 provably coincide — the census is not evaluating the rules")
+
+    # (3) The other direction: the old rules must be caught, away from zero.
+    old = _census(_old_rules_fired)
+    old_nonzero = {k: v for k, v in old.items() if any(a != 0 or b != 0 for a, b, _ in v)}
+    if not old_nonzero:
+        problems.append("the previous draft's overlapping P1 was NOT caught by this "
+                        "census, so the census cannot detect the defect it exists for")
+    # And the owner's exact counterexample, at the exact numbers.
+    fired_old = _old_rules_fired(1, 3, Fraction(7, 5))
+    if sorted(fired_old) != ["P1", "P4"]:
+        problems.append(f"A=1, B=3, C=1.4 fired {sorted(fired_old)} under the old rules; "
+                        "the recorded defect was P1 and P4 together")
+    fired_new = cl.rules_fired(1, 3, Fraction(7, 5))
+    if sorted(fired_new) != ["P4"]:
+        problems.append(f"A=1, B=3, C=1.4 fires {sorted(fired_new)} under the RATIFIED "
+                        "rules; it must be P4 alone")
+
+    # (4) The fail-closed backstop: ambiguity raises rather than picking.
+    try:
+        cl.outcome_at(0, 0, 5)
+    except cl.AmbiguousOutcome:
+        pass
+    except Exception as exc:
+        problems.append(f"an ambiguous triple raised {type(exc).__name__}, not "
+                        f"AmbiguousOutcome: {exc}")
+    else:
+        problems.append("A=0, B=0, C=5 satisfies both P2 and P3 and the classifier "
+                        "returned a single answer anyway — it chose")
+
+    if problems:
+        fail("round7-outcome-exclusivity", "; ".join(problems))
+    else:
+        ok("round7-outcome-exclusivity",
+           f"over {len(_GRID) ** 3} exact rational triples the ratified rules overlap "
+           f"only at A=B=0 ({sum(len(v) for v in overlaps.values())} such points, "
+           f"{sorted(overlaps)}), P1 overlaps nothing, and the previous draft's P1 is "
+           "still detected as broken")
+
+
+def control_zero_guard() -> None:
+    """A == 0 refuses the regime. B == 0 alone is a result, not a refusal."""
+    problems = []
+
+    def regime(a5, b5, c5, a15=None, b15=None, c15=None):
+        """Classify, turning a raise into a reportable finding.
+
+        Without this the control dies on a traceback the moment the guard is
+        removed -- A=B=C=0 fires P2, P3 and P4 at once, so the classifier raises
+        AmbiguousOutcome and the run ends with a stack trace naming the raise
+        site and no FAIL line naming the cause. That exact shape was recorded as
+        a finding one round ago; it is not allowed to reappear here.
+        """
+        second = (a5 if a15 is None else a15, b5 if b15 is None else b15,
+                  c5 if c15 is None else c15)
+        try:
+            return cl.regime_outcome("process-cold", {5: (a5, b5, c5), 15: second})
+        except cl.ClassifierError as exc:
+            problems.append(f"A={a5}, B={b5}, C={c5} raised {type(exc).__name__} instead "
+                            f"of being routed to P5 by the zero-A guard: {exc}")
+            return cl.RegimeOutcome("process-cold", "<raised>", str(exc), {})
+
+    # A zero at EITHER count refuses the whole regime.
+    if regime(0, 0, 0).outcome != "P5":
+        problems.append("A=0 at both counts did not refuse")
+    if regime(0, 1, 4, a15=1, b15=1, c15=4).outcome != "P5":
+        problems.append("A=0 at n=5 alone did not refuse the regime")
+    if regime(1, 1, 4, a15=0, b15=1, c15=4).outcome != "P5":
+        problems.append("A=0 at n=15 alone did not refuse the regime")
+
+    # B == 0 with a live A is a clean P2 and must survive. Routing it to P5
+    # would discard one of the cleanest results the round can produce.
+    r = regime(1, 0, 4)
+    if r.outcome != "P2":
+        problems.append(f"A=1, B=0, C=4 classified {r.outcome}, not P2: the padded arm "
+                        "shows no excess and the real binary does, which is exactly "
+                        "what P2 means")
+
+    # No epsilon. A tiny but non-zero A must classify, not refuse: a tolerance
+    # here would be an absolute threshold with no preregistered basis.
+    tiny = regime(Fraction(1, 10 ** 9), 0, 4)
+    if tiny.outcome == "P5" and "exactly 0" in tiny.why:
+        problems.append("a tiny but NON-ZERO A was refused by the zero guard; the guard "
+                        "is exact zero, and an epsilon would be a new threshold")
+
+    # And the guard must say why, not merely refuse.
+    if "multiplicative reference" not in regime(0, 0, 0).why:
+        problems.append("the zero-A refusal does not state its reason")
+
+    if problems:
+        fail("round7-zero-guard", "; ".join(problems))
+    else:
+        ok("round7-zero-guard", "A=0 at either repetition count refuses the regime with "
+                                "a stated reason; B=0 with a live A still classifies "
+                                "(A=1,B=0,C=4 -> P2); a non-zero A is never refused")
+
+
+def control_boundaries() -> None:
+    """Each rule's exact edge lands where it was ratified, not one step away."""
+    problems = []
+    F = Fraction
+    cases = [
+        # (A, B, C, expected, what the edge is)
+        (2, 0, 3, "P4", "C = 1.5A exactly is P4: the inequality is <=, and P1 needs >"),
+        (2, 6, 5, "P1", "C above 1.5A, B = 3A, and C inside [2/3B, 1.5B] = [4, 9]"),
+        (1, 3, 2, "P1", "C = (2/3)B exactly is inside P1's band"),
+        (1, 3, F(9, 2), "P1", "C = 1.5B exactly is inside P1's band"),
+        (1, 3, 6, "P3", "C = 2B exactly is P3, and 6 > 1.5*3 puts it outside P1's band"),
+        (2, 3, 6, "P2", "B = 1.5A exactly and C = 3A exactly is P2"),
+        (2, 3, F(59, 10), "P5", "B = 1.5A exactly but C just under 3A fires nothing"),
+        (1, 3, 5, "P5", "B = 3A but C sits above 1.5B and below 2B: no rule covers it"),
+    ]
+    for a, b, c, want, why in cases:
+        try:
+            got = cl.outcome_at(a, b, c)
+        except cl.ClassifierError as exc:
+            problems.append(f"A={a}, B={b}, C={c} raised {exc}")
+            continue
+        if got != want:
+            problems.append(f"A={a}, B={b}, C={c} -> {got}, want {want} ({why})")
+
+    # Inputs that are not measurements are refused rather than classified. A
+    # non-finite drift falling through to P5 would read as a considered verdict.
+    for bad, label in ((float("nan"), "NaN"), (float("inf"), "infinity"),
+                       (-1, "a negative drift"), (True, "a boolean")):
+        try:
+            cl.outcome_at(1, 1, bad)
+        except cl.ClassifierError:
+            pass
+        else:
+            problems.append(f"{label} was classified rather than refused")
+
+    if problems:
+        fail("round7-boundaries", "; ".join(problems))
+    else:
+        ok("round7-boundaries", f"{len(cases)} ratified edges land where the rules put "
+                                "them, and a non-finite, negative or boolean drift is "
+                                "refused rather than classified")
+
+
+def control_regime_reading() -> None:
+    """Disagreement between counts is P5; disagreement between regimes is not."""
+    problems = []
+    cold = {5: (1, 0, 4), 15: (1, 0, 4)}          # P2 at both counts
+    warm = {5: (1, 0, 1), 15: (1, 0, 1)}          # P4 at both counts
+
+    r = cl.regime_outcome("process-cold", {5: (1, 0, 4), 15: (1, 0, 1)})
+    if r.outcome != "P5":
+        problems.append(f"n=5 P2 and n=15 P4 classified {r.outcome}, not P5")
+    elif "n=5" not in r.why or "n=15" not in r.why:
+        problems.append("the count-disagreement refusal does not name both counts")
+
+    read = cl.read_round({"process-cold": cold, "warm": warm})
+    per = read["per_regime"]
+    if per["process-cold"]["outcome"] != "P2" or per["warm"]["outcome"] != "P4":
+        problems.append(f"the regimes were not classified independently: {per}")
+    if not read["regime_split"]:
+        problems.append("a cold P2 against a warm P4 was not reported as a split")
+    if "NOT" not in str(read["regime_split_reading"]):
+        problems.append("the split reading does not say it is not P5 — the owner ruled a "
+                        "split is a cache-sensitivity signal, and collapsing it into "
+                        "inconclusive discards the round's most informative result")
+    same = cl.read_round({"process-cold": cold, "warm": cold})
+    if same["regime_split"]:
+        problems.append("two identical regimes were reported as a split")
+
+    # Only the ratified counts. n=25 is not a knob this round may reach for.
+    for bad in ({5: (1, 1, 1)}, {5: (1, 1, 1), 25: (1, 1, 1)},
+                {5: (1, 1, 1), 15: (1, 1, 1), 25: (1, 1, 1)}):
+        try:
+            cl.regime_outcome("process-cold", bad)
+        except cl.ClassifierError:
+            pass
+        else:
+            problems.append(f"repetition counts {sorted(bad)} were accepted")
+
+    if problems:
+        fail("round7-regime-reading", "; ".join(problems))
+    else:
+        ok("round7-regime-reading", "n=5 against n=15 within a regime is P5; cold "
+                                    "against warm is reported as a split and not "
+                                    "collapsed; only n in {5,15} is accepted")
+
+
+# --- the structural preflight ----------------------------------------------
+
+
+_DAMAGE = {
+    "padding dropped by the linker": ("""#include <stdint.h>
+const uint64_t own_round7_padding[200000] = { 1 };
+""", ("-fdata-sections",), ("-Wl,--gc-sections",), "B1"),
+    "padding present but never mapped": ("""__asm__(".section .own_round7_note,\\"\\",@progbits\\n"
+        ".globl own_round7_padding\\n"
+        ".type own_round7_padding,@object\\n"
+        "own_round7_padding:\\n"
+        ".fill 1600000, 1, 0\\n"
+        ".size own_round7_padding, 1600000\\n"
+        ".previous\\n");
+""", (), (), "B2"),
+    "padding sized nothing like arm C": ("""#include <stdint.h>
+const volatile uint64_t own_round7_padding[64] = { 1 };
+""", (), (), "B3"),
+}
+
+_ALTERED_WORK = """#include <stdint.h>
+#include <stdlib.h>
+int main(int argc, char **argv) {
+    if (argc < 2) return 2;
+    uint64_t n = strtoull(argv[1], NULL, 10);
+    volatile uint64_t x = 1;
+    for (uint64_t i = 0; i < n; i++) {
+        x = x * 1103515247ull + 12345ull;   /* one constant changed */
+    }
+    return (x == 0xFFFFFFFFFFFFFFFFull) ? 1 : 0;
+}
+"""
+
+
+def control_preflight() -> None:
+    """B1-B4 pass on healthy arms, and each refuses the damage it owns.
+
+    The damage is BUILT, not simulated: a real linker really does drop an
+    unreferenced non-volatile constant under --gc-sections, and a section
+    emitted with empty flags really is absent from every PT_LOAD. A fixture
+    that merely edited a dictionary would prove the checks can read a
+    dictionary.
+    """
+    if sys.platform != "linux" or shutil.which("gcc") is None:
+        ok("round7-preflight", f"skipped on {sys.platform}: the arms are ELF binaries "
+                               "built with gcc, and Round 7 is a Linux round. Nothing "
+                               "is claimed about this platform")
+        return
+    candidate = ROOT / "rust/target/release/own-cli"
+    problems = []
+    with tempfile.TemporaryDirectory(prefix="round7-pre-") as td:
+        tmp = Path(td)
+
+        # (1) The healthy arms.
+        if candidate.is_file():
+            record = pf.preflight(candidate, tmp / "healthy")
+            for name, res in record["checks"].items():
+                if not res["pass"]:
+                    problems.append(f"{name} failed on healthy arms: {res['why']}")
+            if record["checks"]["B4"]["test"] not in ("raw-bytes",
+                                                      "address-stripped-disassembly"):
+                problems.append("B4 did not name which test decided")
+        else:
+            ok("round7-preflight", "arm C (rust/target/release/own-cli) is not built "
+                                   "here, so the healthy pass and B3 were not exercised")
+            return
+
+        # (2) Each damage, refused by the check that owns it.
+        work_obj = tmp / "spin.o"
+        _gcc(["-O2", "-c", "-o", str(work_obj), str(pf.WORK_SOURCE)], problems)
+        arm_a = tmp / "arm-a"
+        _gcc(["-O2", "-o", str(arm_a), str(work_obj)], problems)
+        arm_c = Elf64(candidate)
+
+        for label, (source, cflags, ldflags, owner) in _DAMAGE.items():
+            src = tmp / f"{owner}.c"
+            src.write_text(source, encoding="utf-8")
+            obj, binary = tmp / f"{owner}.o", tmp / f"arm-b-{owner}"
+            _gcc(["-O2", *cflags, "-c", "-o", str(obj), str(src)], problems)
+            _gcc(["-O2", *ldflags, "-o", str(binary), str(work_obj), str(obj)], problems)
+            if not binary.is_file():
+                problems.append(f"{label}: the damaged arm did not build")
+                continue
+            bad = Elf64(binary)
+            results = {"B1": pf.check_b1(bad), "B2": pf.check_b2(bad),
+                       "B3": pf.check_b3(bad, arm_c), "B4": pf.check_b4(Elf64(arm_a), bad)}
+            if results[owner]["pass"]:
+                problems.append(f"{label}: {owner} accepted it — {results[owner]['why']}")
+
+        # (3) Altered work, refused by B4 and by nothing else.
+        alt = tmp / "altered.c"
+        alt.write_text(_ALTERED_WORK, encoding="utf-8")
+        alt_obj, alt_bin = tmp / "altered.o", tmp / "arm-b-altered"
+        _gcc(["-O2", "-c", "-o", str(alt_obj), str(alt)], problems)
+        pad_obj = tmp / "healthy" / "pad.o"
+        if pad_obj.is_file():
+            _gcc(["-O2", "-o", str(alt_bin), str(alt_obj), str(pad_obj)], problems)
+            if alt_bin.is_file():
+                res = pf.check_b4(Elf64(arm_a), Elf64(alt_bin))
+                if res["pass"]:
+                    problems.append("B4 accepted an arm whose work loop uses a different "
+                                    "constant — the one thing it exists to refuse")
+        else:
+            problems.append("the healthy pad object was not kept, so the altered-work "
+                            "arm could not be linked against it")
+
+    if problems:
+        fail("round7-preflight", "; ".join(problems))
+    else:
+        ok("round7-preflight", "B1-B4 pass on freshly built arms, and a dropped, "
+                               "unmapped, mis-sized or work-altered arm B is each "
+                               "refused by the check that owns it")
+
+
+def _gcc(args: list[str], problems: list[str]) -> None:
+    r = subprocess.run(["gcc", *args], capture_output=True)
+    if r.returncode != 0:
+        problems.append(f"gcc {' '.join(args)} failed: "
+                        + r.stderr.decode("utf-8", "replace")[:200])
+
+
+# --- the execution contract ------------------------------------------------
+
+
+def control_schedule() -> None:
+    """The order arms run in is fixed before the data, and replayable after it.
+
+    The preregistration fixed how many sessions and halves and said nothing
+    about order. Run every A, then every B, then every C, and machine drift
+    becomes "the effect of the real binary" -- a result that would survive every
+    other check in this PR.
+    """
+    problems = []
+    blocks = sch.blocks()
+    halves = sch.planned_halves()
+
+    # (1) The design, counted rather than described.
+    want_blocks = len(sch.REGIMES) * len(sch.REPETITION_COUNTS) * sch.SESSIONS
+    if len(blocks) != want_blocks:
+        problems.append(f"{len(blocks)} blocks, want {want_blocks} (2 regimes x 2 counts "
+                        f"x {sch.SESSIONS} sessions)")
+    if len(halves) != want_blocks * 6:
+        problems.append(f"{len(halves)} halves, want {want_blocks * 6}")
+    cells = [b.key for b in blocks]
+    if len(set(cells)) != len(cells):
+        problems.append("a (regime, n, session) cell appears twice in the schedule")
+    expected_cells = {f"{r}|n{n}|s{s}" for r in sch.REGIMES
+                      for n in sch.REPETITION_COUNTS for s in range(1, sch.SESSIONS + 1)}
+    if set(cells) != expected_cells:
+        problems.append(f"the schedule does not cover the design: missing "
+                        f"{sorted(expected_cells - set(cells))[:3]}")
+
+    # (2) Every block runs all three arms, with each arm's halves ADJACENT.
+    for b in blocks:
+        if sorted(b.arm_order) != sorted(sch.ARMS):
+            problems.append(f"block {b.key} runs {b.arm_order}, not all three arms")
+            break
+        seq = [(h.arm, h.half) for h in b.halves]
+        for i in range(0, len(seq), 2):
+            if seq[i][1] != "first" or seq[i + 1][1] != "second" or seq[i][0] != seq[i + 1][0]:
+                problems.append(f"block {b.key} splits an arm's halves: {seq}")
+                break
+
+    # (3) Shuffled, not merely claimed to be. A constant arm order, or a block
+    # order equal to the generated order, would satisfy every check above.
+    if len({b.arm_order for b in blocks}) < 2:
+        problems.append(f"every block uses the same arm order {blocks[0].arm_order}: "
+                        "the within-block shuffle is doing nothing, and drift would "
+                        "align with arms exactly as if nothing were shuffled")
+    generated = [f"{r}|n{n}|s{s}" for r in sch.REGIMES
+                 for n in sch.REPETITION_COUNTS for s in range(1, sch.SESSIONS + 1)]
+    if cells == generated:
+        problems.append("the block order is the generation order; the outer shuffle is "
+                        "doing nothing and all of process-cold would run before all warm")
+
+    # (4) Deterministic, and sensitive to the seed. A schedule nobody can replay
+    # is a fond memory; one that ignores its seed is not randomised at all.
+    if [b.key for b in sch.blocks()] != cells:
+        problems.append("two calls with the same seed produced different orders")
+    other = [b.key for b in sch.blocks(seed=sch.SCHEDULE_SEED ^ 0xFFFF)]
+    if other == cells:
+        problems.append("a different seed produced an identical order; the seed is "
+                        "decorative")
+
+    # (5) The seed is the Round 6 helper's, not a number I chose. Checked
+    # against the committed artifact rather than against the comment claiming it.
+    scales = json.loads((ROOT / "docs/evidence/round6/p022-263a-round6-scales.linux.json")
+                        .read_text(encoding="utf-8"))
+    want_seed = int(scales["helper_sha256"][:16], 16)
+    if sch.SCHEDULE_SEED != want_seed:
+        problems.append(f"the seed 0x{sch.SCHEDULE_SEED:016x} is not the Round 6 helper's "
+                        f"0x{want_seed:016x}: it is a number someone picked, and nothing "
+                        "stops it being re-picked until the order looks tidy")
+
+    # (6) The spawn count is computed from the plan, not quoted from prose.
+    spawns = sch.process_spawns(warmup_discards=2)
+    if spawns != 2640:
+        problems.append(f"the plan spawns {spawns} processes; the preregistration says "
+                        "2640, and a quoted number nothing computes is one that drifts")
+
+    if problems:
+        fail("round7-schedule", "; ".join(problems))
+    else:
+        ok("round7-schedule", f"{len(blocks)} blocks x 6 halves = {len(halves)}, every "
+                              f"(regime, n, session) exactly once, each arm's halves "
+                              f"adjacent, {len({b.arm_order for b in blocks})} distinct arm "
+                              f"orders, replayable from the seed and different without it; "
+                              f"{spawns} planned spawns computed from the plan")
+
+
+def control_execution_contract() -> None:
+    """Plan mode starts no clock, and the timed bytes are the preflighted bytes."""
+    problems = []
+
+    # (1) The work binding reads Round 6's ladder rather than remembering it.
+    binding = rn.bind_work()
+    if binding.iterations != 460280:
+        problems.append(f"the 2 ms rung binds {binding.iterations} iterations, not 460280")
+    if not binding.helper_sha256:
+        problems.append("the binding carries no helper sha256, so arm A cannot be checked "
+                        "against the ladder that gave it its iteration count")
+    # And it refuses a ladder that cannot supply one, rather than inventing a count.
+    with tempfile.TemporaryDirectory(prefix="round7-bind-") as td:
+        bad = Path(td) / "scales.json"
+        bad.write_text(json.dumps({"helper_sha256": "x", "rungs": [{"target_ms": 4}]}),
+                       encoding="utf-8")
+        try:
+            rn.bind_work(bad)
+        except rn.ExecutionContractBreach:
+            pass
+        except Exception as exc:
+            # Reported, not raised. A control that dies here exits non-zero with
+            # no FAIL line, which reads as "caught" to a mutation runner counting
+            # exit codes and as nothing at all to a human reading CI.
+            problems.append(f"bind_work raised {type(exc).__name__} instead of refusing a "
+                            f"ladder with no 2 ms rung: {exc}")
+        else:
+            problems.append("a ladder with no 2 ms rung was accepted; the arms' work would "
+                            "be whatever the runner felt like")
+
+    if sys.platform != "linux" or shutil.which("gcc") is None:
+        if problems:
+            fail("round7-execution-contract", "; ".join(problems))
+        else:
+            ok("round7-execution-contract", f"the work binding reads 460280 from Round 6's "
+                                            f"ladder and refuses one without a 2 ms rung; "
+                                            f"the arm-identity half needs ELF arms and is "
+                                            f"skipped on {sys.platform}")
+        return
+
+    candidate = ROOT / "rust/target/release/own-cli"
+    if not candidate.is_file():
+        ok("round7-execution-contract", "the work binding holds; arm C is not built here, "
+                                        "so the identity freeze was not exercised")
+        return
+
+    with tempfile.TemporaryDirectory(prefix="round7-exec-") as td:
+        tmp = Path(td)
+        # (2) Plan mode starts no clock. COUNTED, at the one function that can.
+        calls = {"n": 0}
+        real = rn.time_half
+
+        def counting(*a: object, **k: object) -> dict[str, object]:
+            calls["n"] += 1
+            return real(*a, **k)                        # type: ignore[arg-type]
+
+        rn.time_half = counting                         # type: ignore[assignment]
+        try:
+            record = rn.run(candidate, tmp / "arms", measure=False)
+        finally:
+            rn.time_half = real                         # type: ignore[assignment]
+        if calls["n"]:
+            problems.append(f"plan mode called the timing function {calls['n']} times; it "
+                            "must return before the clock is reachable at all")
+        if record["measurements"] is not None:
+            problems.append("plan mode produced measurements")
+        if record["stop_conditions"]:
+            problems.append(f"plan mode stopped: {record['stop_conditions']}")
+
+        # (3) The freeze covers all three arms with sha256 AND byte length.
+        frozen = record["frozen_arms"]
+        if not isinstance(frozen, dict) or set(frozen) != {"A", "B", "C"}:
+            problems.append(f"the identity freeze covers {frozen} rather than all three arms")
+        else:
+            for role, row in frozen.items():
+                if not row.get("sha256") or not row.get("file_bytes"):
+                    problems.append(f"arm {role}'s freeze lacks a sha256 or a byte length")
+
+        # (4) A byte changed after the freeze is refused. Actually changed, on
+        # disk, not simulated: this is the defect the whole transaction exists
+        # to prevent, and a fixture that edited a dict would prove nothing.
+        prepared = rn.prepare(candidate, tmp / "arms2")
+        arm_b = prepared.frozen["B"].path
+        arm_b.write_bytes(arm_b.read_bytes() + b"\x00")
+        try:
+            rn.verify_identities(prepared.frozen, "after a deliberate tamper")
+        except rn.ExecutionContractBreach as exc:
+            if "changed since the freeze" not in str(exc):
+                problems.append(f"the refusal does not say what happened: {exc}")
+        else:
+            problems.append("an arm rebuilt after the freeze was accepted for timing — the "
+                            "preflight would prove properties of bytes that are gone")
+        # And a deleted arm, which is the rebuild-in-a-temp-dir case exactly.
+        arm_b.unlink()
+        try:
+            rn.verify_identities(prepared.frozen, "after a deliberate delete")
+        except rn.ExecutionContractBreach:
+            pass
+        else:
+            problems.append("a missing arm was accepted for timing")
+
+        # (5) Arm A must BE the Round 6 helper, by sha, or the round stops.
+        # Both directions: the real arm accepted, a stand-in refused by name.
+        if not prepared.binding_ok:
+            problems.append(f"arm A does not match the Round 6 helper: "
+                            f"{prepared.binding_problem}")
+        ok_, why_ = rn.check_binding("0" * 64, binding)
+        if ok_:
+            problems.append("a binary that is not the Round 6 helper was accepted as arm "
+                            "A; 460280 iterations would then mean whatever that binary "
+                            "happens to do, not 2 ms")
+        elif "do not re-derive" not in why_:
+            problems.append(f"the binding refusal does not forbid re-deriving a count: {why_}")
+
+    if problems:
+        fail("round7-execution-contract", "; ".join(problems))
+    else:
+        ok("round7-execution-contract", "plan mode calls the timing function zero times; "
+                                        "the freeze carries sha256 and byte length for all "
+                                        "three arms; a tampered or deleted arm is refused "
+                                        "by name; and arm A is byte-identical to Round 6's "
+                                        "2 ms helper")
+
+
+class _FakeHarness:
+    """A harness whose interval returns exit codes I choose.
+
+    The point of the control is the CHECK, not the clock: driving real processes
+    to exit 127 on demand would test the operating system. This returns rows
+    shaped exactly like `_run_once`'s so the check sees what it would really see.
+    """
+
+    def __init__(self, codes: list[int]) -> None:
+        self.codes = list(codes)
+        self.spawns = 0
+
+    def _run_once(self, argv: list[str], env: dict[str, str],
+                  cwd: Path) -> dict[str, object]:
+        rc = self.codes[self.spawns] if self.spawns < len(self.codes) else 0
+        self.spawns += 1
+        return {"elapsed_ns": 1_000_000, "rc": rc, "peak_rss_bytes": 1024,
+                "rss_unavailable_reason": "", "accounting_unavailable_reason": ""}
+
+
+def control_outcome_contract() -> None:
+    """A timed process must have done the work, and warmups count too.
+
+    This is the Round 2 defect at one remove. Twelve cells once timed
+    `command-not-found` accurately and reproducibly, and the frozen instrument
+    grew an outcome layer because of it. Round 7 called `_run_once` directly and
+    walked straight past that layer: three perfectly identity-bound binaries
+    could have measured the wrong path with great precision.
+    """
+    problems = []
+    half = sch.Half("warm", 5, 1, "C", "first")
+    argv, env, cwd = ["x"], {}, ROOT
+
+    # (1) The healthy direction: all spawns conforming, warmups included.
+    #     Wrapped, because a mutation that changes arm C's expected code makes
+    #     this raise, and a control that dies here exits non-zero with no FAIL
+    #     line — which reads as "caught" to anything counting exit codes and as
+    #     nothing at all to a human. That ghost has a season pass by now.
+    good = _FakeHarness([2] * 7)
+    try:
+        row = rn.time_half(good, half, argv, env, cwd, repetitions=5, discards=2)
+    except rn.OutcomeContractBreach as exc:
+        fail("round7-outcome-contract",
+             f"a healthy arm C half (every spawn exiting 2) was refused: {exc}")
+        return
+    if good.spawns != 7:
+        problems.append(f"{good.spawns} spawns for n=5 with 2 discards, want 7")
+    if len(row["samples"]) != 5:
+        problems.append(f"{len(row['samples'])} samples kept, want 5 (discards must not "
+                        "be counted as measurements)")
+    if row.get("expected_rc") != 2:
+        problems.append("the half does not record which exit code it required")
+
+    # (2) A stray SAMPLE is refused, and named.
+    for bad_rc in (1, 127):
+        h = _FakeHarness([2, 2, 2, bad_rc, 2, 2, 2])
+        try:
+            rn.time_half(h, half, argv, env, cwd, repetitions=5, discards=2)
+        except rn.OutcomeContractBreach as exc:
+            s0 = exc.stray
+            if s0["spawn_kind"] != "sample" or s0["observed_rc"] != bad_rc:
+                problems.append(f"a sample exiting {bad_rc} was recorded as {s0}")
+            for field in ("block", "arm", "half", "spawn_kind", "index", "observed_rc"):
+                if field not in s0:
+                    problems.append(f"the stray record omits {field!r}: "
+                                    "'something exited wrong somewhere' is not a record")
+            # And nothing kept spawning after the breach was known.
+            if h.spawns != 4:
+                problems.append(f"{h.spawns} spawns after a breach at spawn 4; the half "
+                                "kept running processes whose numbers nobody may use")
+        else:
+            problems.append(f"arm C exiting {bad_rc} was accepted as a calibration "
+                            "sample — exactly the shape that timed 12 "
+                            "command-not-found cells and called them reproduced")
+
+    # (3) A stray WARMUP is refused too. Its numbers are discarded; the evidence
+    #     that the process is broken is not.
+    h = _FakeHarness([2, 127, 2, 2, 2, 2, 2])
+    try:
+        rn.time_half(h, half, argv, env, cwd, repetitions=5, discards=2)
+    except rn.OutcomeContractBreach as exc:
+        if exc.stray["spawn_kind"] != "warmup" or exc.stray["index"] != 1:
+            problems.append(f"the failing warmup was misrecorded: {exc.stray}")
+    else:
+        problems.append("a warmup discard that failed was ignored; a discarded iteration "
+                        "still proves the process is broken")
+
+    # (4) The arms expect DIFFERENT codes, so a check keyed on one constant is
+    #     wrong for two of the three. A/B must exit 0, C must exit 2.
+    if rn.EXPECTED_RC != {"A": 0, "B": 0, "C": 2}:
+        problems.append(f"the arms' expected exit codes are {rn.EXPECTED_RC}")
+    for arm, good_rc, bad_rc in (("A", 0, 2), ("B", 0, 1), ("C", 2, 0)):
+        hh = sch.Half("process-cold", 5, 1, arm, "second")
+        ok_h = _FakeHarness([good_rc] * 5)
+        try:
+            rn.time_half(ok_h, hh, argv, env, cwd, repetitions=5, discards=0)
+        except rn.OutcomeContractBreach as exc:
+            problems.append(f"arm {arm} exiting {good_rc} was refused: {exc}")
+        except Exception as exc:
+            problems.append(f"arm {arm} exiting {good_rc} raised "
+                            f"{type(exc).__name__}: {exc}")
+        bad_h = _FakeHarness([bad_rc] * 5)
+        try:
+            rn.time_half(bad_h, hh, argv, env, cwd, repetitions=5, discards=0)
+        except rn.OutcomeContractBreach:
+            pass
+        else:
+            problems.append(f"arm {arm} exiting {bad_rc} was accepted; {arm} must exit "
+                            f"{good_rc}")
+
+    # (5) Arm C's untimed contract is the INSTRUMENT's, not a third restatement.
+    if sys.platform == "linux" and shutil.which("gcc"):
+        candidate = ROOT / "rust/target/release/own-cli"
+        if candidate.is_file():
+            with tempfile.TemporaryDirectory(prefix="round7-oc-") as td:
+                prepared = rn.prepare(candidate, Path(td) / "arms")
+                pre = prepared.outcome
+                if not pre.ran or not pre.all_passed:
+                    problems.append(f"the untimed outcome preflight refused a healthy "
+                                    f"build: {pre.failed} "
+                                    f"{[pre.arms[a].why for a in pre.failed]}")
+                elif "core-usage" not in pre.arms["C"].contract:
+                    problems.append(f"arm C is not verified through the instrument's own "
+                                    f"rung: {pre.arms['C'].contract}")
+
+                # A stand-in that exits 2 and prints NOTHING. Exit 2 is the
+                # right code for the wrong reason, which is the whole argument
+                # for checking evidence as well. Built, not simulated.
+                stub = Path(td) / "not-really-own-cli"
+                stub.write_text("#!/bin/sh\nexit 2\n", encoding="utf-8")
+                stub.chmod(0o755)
+                faked = {**prepared.frozen, "C": rn._identity("C", stub)}
+                pre_bad = rn.outcome_preflight(faked, prepared.binding)
+                if pre_bad.arms["C"].passed:
+                    problems.append("a binary that exits 2 and prints nothing passed as "
+                                    "arm C; the runner is reading the exit code and not "
+                                    "the usage-help evidence, so any other failure "
+                                    "exiting 2 would be timed as core-usage")
+                elif pre_bad.all_passed:
+                    problems.append("arm C failed its contract but the preflight still "
+                                    "reported all_passed")
+
+                # And a failed preflight must STOP the round, not merely be noted.
+                stopped = rn.Prepared(
+                    binding=prepared.binding, build=prepared.build,
+                    checks=prepared.checks, preflight_failed=[],
+                    frozen=prepared.frozen, binding_ok=True, binding_problem="",
+                    arm_c_mapped_bytes=prepared.arm_c_mapped_bytes, outcome=pre_bad)
+                if not stopped.stop_conditions:
+                    problems.append("a refused outcome preflight produced no stop "
+                                    "condition; the round would time the arms anyway")
+                elif not any("C" in c for c in stopped.stop_conditions):
+                    problems.append(f"the stop condition does not name the refused arm: "
+                                    f"{stopped.stop_conditions}")
+                # And exit 2 alone must NOT be enough: the usage-help contract
+                # also requires stdout to name the subcommand and stderr empty.
+                bad_out = pb._evidence_problem("usage-help", "", "")
+                bad_err = pb._evidence_problem("usage-help", "ownir", "boom")
+                if not bad_out:
+                    problems.append("the usage-help contract accepts empty stdout, so a "
+                                    "different failure exiting 2 would pass as arm C")
+                if not bad_err:
+                    problems.append("the usage-help contract accepts a non-empty stderr")
+                if pb._evidence_problem("usage-help", "ownir usage", ""):
+                    problems.append("the usage-help contract refuses a healthy refusal")
+        # If arm C is not built here the untimed half simply does not run; the
+        # rc checks above are platform-independent and already did.
+
+    if problems:
+        fail("round7-outcome-contract", "; ".join(problems))
+    else:
+        ok("round7-outcome-contract", "every spawn is checked against its arm's exit code "
+                                      "(A/B 0, C 2), warmup discards included; a stray "
+                                      "sample or warmup is refused and recorded with arm, "
+                                      "block, half, kind and index; and arm C's untimed "
+                                      "contract is the instrument's own core-usage rung, "
+                                      "where exit 2 alone is not sufficient")
+
+
+def control_durable_refusal() -> None:
+    """An invalid run writes a black box. Checked from OUTSIDE, on the filesystem.
+
+    `round7-outcome-contract` proves the runner refuses. It proves it by reading
+    the exception object, which is the same mistake as scoring a mutation by its
+    exit code: the refusal happened, and nothing survived to say so. Until this
+    control existed, a stray exit on half 239 produced a traceback, no `--out`
+    file, and nothing to investigate.
+
+    So this one never looks at an exception. It drives `main()` and then reads
+    the filesystem: the file exists, the exit code is non-zero, the record says
+    `run_valid: false`, `measurements` is null, and the abort names the exact
+    spawn or the exact arm.
+    """
+    if sys.platform != "linux" or shutil.which("gcc") is None:
+        ok("round7-durable-refusal", f"skipped on {sys.platform}: driving the runner "
+                                     "needs the ELF arms it builds with gcc")
+        return
+    candidate = ROOT / "rust/target/release/own-cli"
+    if not candidate.is_file():
+        ok("round7-durable-refusal", "arm C is not built here, so the runner could not "
+                                     "be driven to a refusal")
+        return
+
+    problems = []
+
+    def drive(out: Path, build: Path) -> int:
+        """Run the runner, turning an escaping exception into a finding.
+
+        Without this catch, the exact defect this control exists to detect --
+        a breach escaping `run()` -- kills the control instead of being reported
+        by it. That is the fifth appearance of crash-instead-of-finding in this
+        PR, and the first inside the control written to catch that very shape.
+        Returning 1 lets the checks below report the missing file as the finding
+        it is.
+        """
+        argv = ["runner.py", "--candidate", str(candidate), "--measure",
+                "--build-dir", str(build), "--out", str(out)]
+        real_argv = sys.argv
+        sys.argv = argv
+        try:
+            return rn.main()
+        except Exception as exc:
+            problems.append(f"the runner let {type(exc).__name__} escape instead of "
+                            f"recording it: {str(exc)[:120]}")
+            return 1
+        finally:
+            sys.argv = real_argv
+
+    def check(label: str, out: Path, code: int, want_kind: str,
+              must_name: list[str]) -> None:
+        if not out.is_file():
+            problems.append(f"{label}: the runner refused and wrote NO record — the "
+                            "refusal is a traceback and nothing else")
+            return
+        if code == 0:
+            problems.append(f"{label}: exit code 0 for an invalid run")
+        rec = json.loads(out.read_text(encoding="utf-8"))
+        if rec.get("run_valid") is not False:
+            problems.append(f"{label}: run_valid is {rec.get('run_valid')!r}, not False")
+        if rec.get("measurements") is not None:
+            problems.append(f"{label}: an invalid run carries measurements")
+        abort = rec.get("abort")
+        if not isinstance(abort, dict):
+            problems.append(f"{label}: no abort block")
+            return
+        if abort.get("kind") != want_kind:
+            problems.append(f"{label}: abort kind {abort.get('kind')!r}, want {want_kind!r}")
+        missing = [k for k in must_name if k not in abort]
+        if missing:
+            problems.append(f"{label}: the abort does not name {missing}; "
+                            f"it says only {sorted(abort)}")
+        if "verdict" not in rec or "INVALID" not in str(rec["verdict"]):
+            problems.append(f"{label}: the verdict does not say INVALID")
+        for key in ("timing", "classification", "outcome"):
+            if key in rec and key not in ("outcome_preflight",):
+                problems.append(f"{label}: an invalid run carries {key!r}")
+
+    with tempfile.TemporaryDirectory(prefix="round7-durable-") as td:
+        tmp = Path(td)
+
+        # (1) A stray exit code. time_half is replaced so NO real timing happens:
+        #     the point is the refusal path, not the clock, and no Round 7
+        #     measurement is authorised.
+        out1 = tmp / "stray.json"
+        real_time_half = rn.time_half
+
+        def raising(*a: object, **k: object) -> dict[str, object]:
+            raise rn.OutcomeContractBreach(
+                {"block": "warm|n5|s3", "arm": "C", "half": "second",
+                 "spawn_kind": "sample", "index": 4, "observed_rc": 127,
+                 "expected_rc": 2})
+
+        rn.time_half = raising                          # type: ignore[assignment]
+        try:
+            code1 = drive(out1, tmp / "arms1")
+        finally:
+            rn.time_half = real_time_half                # type: ignore[assignment]
+        check("stray exit", out1, code1, "outcome-contract",
+              ["arm", "block", "half", "spawn_kind", "index", "observed_rc", "expected_rc"])
+
+        # (2) Identity drift mid-run, DETECTED for real: the arm's bytes are
+        #     actually changed on disk and the real verifier notices.
+        out2 = tmp / "drift.json"
+        real_verify = rn.verify_identities
+        state = {"tampered": False}
+
+        def tamper_then_verify(frozen: dict[str, object], when: str) -> None:
+            if not state["tampered"]:
+                state["tampered"] = True
+                arm_b = frozen["B"].path                 # type: ignore[attr-defined]
+                arm_b.write_bytes(arm_b.read_bytes() + b"\x00")
+            real_verify(frozen, when)                    # type: ignore[arg-type]
+
+        rn.verify_identities = tamper_then_verify        # type: ignore[assignment]
+        try:
+            code2 = drive(out2, tmp / "arms2")
+        finally:
+            rn.verify_identities = real_verify           # type: ignore[assignment]
+        check("identity drift", out2, code2, "identity-contract",
+              ["arm", "when", "expected_sha256", "observed_sha256"])
+
+        # (3) The healthy path still reports itself valid, or this control would
+        #     pass just as well against a runner that called everything invalid.
+        out3 = tmp / "plan.json"
+        argv = ["runner.py", "--candidate", str(candidate), "--plan",
+                "--build-dir", str(tmp / "arms3"), "--out", str(out3)]
+        real_argv = sys.argv
+        sys.argv = argv
+        try:
+            code3 = rn.main()
+        finally:
+            sys.argv = real_argv
+        if code3 != 0 or not out3.is_file():
+            problems.append(f"a healthy plan run exited {code3} or wrote no record")
+        else:
+            rec3 = json.loads(out3.read_text(encoding="utf-8"))
+            if rec3.get("run_valid") is not True:
+                problems.append(f"a healthy plan run reports run_valid "
+                                f"{rec3.get('run_valid')!r}")
+            if "abort" in rec3:
+                problems.append("a healthy plan run carries an abort block")
+
+    if problems:
+        fail("round7-durable-refusal", "; ".join(problems))
+    else:
+        ok("round7-durable-refusal", "a stray exit and a real mid-run identity drift each "
+                                     "leave a written record with run_valid false, null "
+                                     "measurements, and an abort naming the exact spawn or "
+                                     "arm; a healthy run still reports itself valid")
+
+
+def _synthetic(by_regime: dict[str, dict[int, tuple[float, float, float]]]
+               ) -> dict[str, object]:
+    """A dataset whose D(arm, n, regime) is exactly the triple asked for.
+
+    Every sample in a half carries the same value, so median(half) is that value
+    and |median(second) - median(first)| is the requested drift in every session.
+    A control that fed the readout real numbers could only check that it did
+    something; this checks that it did the preregistered thing.
+    """
+    measurements: list[dict[str, object]] = []
+    for regime, by_n in by_regime.items():
+        for n, triple in by_n.items():
+            for arm, drift in zip(ro.ARMS, triple, strict=True):
+                for session in range(1, ro.SESSIONS + 1):
+                    for half in ro.HALVES:
+                        value = 1_000_000.0 + (drift if half == "second" else 0.0)
+                        measurements.append({
+                            "half": f"{regime}|n{n}|s{session}|{arm}|{half}",
+                            "samples": [{"elapsed_ns": value, "rc": ro.EXPECTED_RC[arm],
+                                         "cpu_user_ns": 0, "cpu_system_ns": 0,
+                                         "minor_faults": 0, "major_faults": 0,
+                                         "voluntary_context_switches": 0,
+                                         "involuntary_context_switches": 0}
+                                        for _ in range(n)]})
+    return {"run_valid": True, "measurements": measurements}
+
+
+def control_readout() -> None:
+    """The reading computes the preregistered D and nothing else.
+
+    Two halves. First, synthetic datasets whose drift triples are known exactly,
+    so the rule that fires is known in advance -- this caught the author's own
+    arithmetic before the measurement pass ran, the third time in this PR that a
+    hand-checked boundary was wrong. Second, and the one that matters after the
+    fact: the committed reading must be REPRODUCIBLE from the committed dataset.
+    A reading nobody can recompute is a reading that has to be trusted, and this
+    round exists precisely because trusting a reading is not a method.
+    """
+    problems = []
+
+    # Each triple holds at both counts in both regimes, so the outcome is the
+    # rule that fires. The comments quote the clause that decides.
+    cases = [
+        ((1.0, 3.0, 6.0), "P3"),      # B >= 3A and C >= 2B
+        ((1.0, 1.0, 4.0), "P2"),      # B <= 1.5A and C >= 3A
+        ((1.0, 3.0, 3.0), "P1"),      # C > 1.5A, B >= 3A, (2/3)B <= C <= 1.5B
+        ((1.0, 3.0, 1.4), "P4"),      # C <= 1.5A
+        ((0.0, 3.0, 4.0), "P5"),      # the zero-A guard
+        ((1.0, 2.0, 2.0), "P5"),      # no rule fires
+    ]
+    for triple, want in cases:
+        record = _synthetic({r: dict.fromkeys(cl.REPETITION_COUNTS, triple)
+                             for r in cl.REGIMES})
+        try:
+            reading = ro.read(record)
+        except Exception as exc:
+            problems.append(f"{triple} raised {type(exc).__name__}: {exc}")
+            continue
+        for regime in cl.REGIMES:
+            got = reading["outcome"]["per_regime"][regime]["outcome"]   # type: ignore[index]
+            if got != want:
+                problems.append(f"D={triple} in {regime} read as {got}, want {want}")
+        # The mechanism table is applied only after an outcome fires. P4 and P5
+        # fire no rule and name no elevated arm, so an attribution there would be
+        # an analysis the preregistration does not license.
+        applied = reading["mechanism_attribution"][cl.REGIMES[0]]["applied"]  # type: ignore[index]
+        if applied is not bool(ro.ELEVATED_BY_OUTCOME[want]):
+            problems.append(f"{want}: attribution applied={applied}, "
+                            f"want {bool(ro.ELEVATED_BY_OUTCOME[want])}")
+
+    # Disagreement across counts inside one regime is P5; a cold/warm difference
+    # is a reported split, not P5.
+    split = _synthetic({"process-cold": {5: (1.0, 3.0, 6.0), 15: (1.0, 1.0, 4.0)},
+                        "warm": dict.fromkeys(cl.REPETITION_COUNTS, (1.0, 1.0, 4.0))})
+    try:
+        reading = ro.read(split)
+    except Exception as exc:
+        # A reading that dies here is a traceback, not a finding. This control
+        # exists to report, and a control that crashes reports nothing.
+        problems.append(f"the split case raised {type(exc).__name__}: {exc}")
+    else:
+        if reading["outcome"]["per_regime"]["process-cold"]["outcome"] != "P5":  # type: ignore[index]
+            problems.append("P3 at n=5 and P2 at n=15 did not become P5")
+        if reading["outcome"]["per_regime"]["warm"]["outcome"] != "P2":          # type: ignore[index]
+            problems.append("warm did not classify P2")
+        if not reading["outcome"]["regime_split"]:                               # type: ignore[index]
+            problems.append("a cold/warm difference was not reported as a split")
+
+    # The zero-versus-zero hole. Every mechanism rule is a ratio against a
+    # quantity that can itself be zero, and `0 >= 2 * 0` is true, so a cell
+    # where NOTHING moved once fired all three mechanisms at once: a confident
+    # attribution of a drift that does not exist.
+    still = {}
+    for regime in cl.REGIMES:
+        for n in cl.REPETITION_COUNTS:
+            for arm in ro.ARMS:
+                for session in range(1, ro.SESSIONS + 1):
+                    for half in ro.HALVES:
+                        still[(regime, n, session, arm, half)] = [{
+                            "elapsed_ns": 1_000_000.0, "rc": ro.EXPECTED_RC[arm],
+                            "cpu_user_ns": 0, "cpu_system_ns": 0,
+                            "minor_faults": 0, "major_faults": 0,
+                            "voluntary_context_switches": 0,
+                            "involuntary_context_switches": 0}]
+    try:
+        null_row = ro.attribution(still, cl.REGIMES[0], cl.REPETITION_COUNTS[0], "C")
+    except Exception as exc:
+        problems.append(f"the null-evidence attribution raised {type(exc).__name__}: {exc}")
+    else:
+        if null_row["fired"]:
+            problems.append("a cell where nothing moved attributed "
+                            f"{null_row['fired']} -- every delta is zero and "
+                            "0 >= 2 * 0 is true, so the rules fired on no evidence")
+
+    # The case that actually exercises the two RATIFIED guards: wall time moved
+    # but not one kernel counter did. The precondition above does not fire here,
+    # so `ctx >= 2 * a_ctx` and `faults >= 2 * a_faults` are reached with both
+    # sides at zero. Without `> 0` they report scheduler AND faults/mapping --
+    # the exact opposite of the truth, which is that the drift is visible in
+    # wall time and in none of the accounting the kernel offers.
+    #
+    # The first version of this control missed all of that: its only degenerate
+    # case had zero wall drift, so the precondition returned first and the two
+    # guards were never reached. Three mutations removing them came back green.
+    wall_only = {k: [dict(r) for r in v] for k, v in still.items()}
+    for key, rows in wall_only.items():
+        if key[3] == "C" and key[4] == "second":
+            for r in rows:
+                r["elapsed_ns"] = 3_000_000.0
+    try:
+        wall_row = ro.attribution(wall_only, cl.REGIMES[0], cl.REPETITION_COUNTS[0], "C")
+    except Exception as exc:
+        problems.append(f"the wall-only attribution raised {type(exc).__name__}: {exc}")
+    else:
+        if wall_row["fired"]:
+            problems.append(
+                f"wall time moved and no kernel counter did, yet the table attributed "
+                f"{wall_row['fired']}; both ratios compare zero against zero, and "
+                "0 >= 2 * 0 is true")
+
+    # ... and a real signal must still fire, or the guards above would pass just
+    # as well against a mechanism table that had been switched off entirely.
+    moved = {k: [dict(r) for r in v] for k, v in still.items()}
+    for (_regime, _n, _session, arm, half), rows in moved.items():
+        if arm == "C" and half == "second":
+            for r in rows:
+                r["elapsed_ns"] = 3_000_000.0
+                r["minor_faults"] = 500
+    try:
+        live_row = ro.attribution(moved, cl.REGIMES[0], cl.REPETITION_COUNTS[0], "C")
+    except Exception as exc:
+        problems.append(f"the live-signal attribution raised {type(exc).__name__}: {exc}")
+    else:
+        if "faults" not in live_row["fired"]:
+            problems.append(f"a real fault signal did not fire: {live_row['fired']} "
+                            f"from {live_row['median_abs_delta']}")
+
+    # Arm A must be the reference it claims to be. Above, arm A has zero faults,
+    # so `>= 2 * a_faults` holds however the rule is written; a mutation dropping
+    # the reference entirely came back green. Here arm A faults MORE than half of
+    # what arm C does, so the ratio is what decides and the rule must stay shut.
+    baseline = {k: [dict(r) for r in v] for k, v in still.items()}
+    for key, rows in baseline.items():
+        if key[4] == "second":
+            for r in rows:
+                r["elapsed_ns"] = 3_000_000.0
+                if key[3] == "C":
+                    r["minor_faults"] = 500
+                elif key[3] == "A":
+                    r["minor_faults"] = 400        # C is 500, so C < 2 x A
+    try:
+        ref_row = ro.attribution(baseline, cl.REGIMES[0], cl.REPETITION_COUNTS[0], "C")
+    except Exception as exc:
+        problems.append(f"the arm-A-reference attribution raised {type(exc).__name__}: {exc}")
+    else:
+        if "faults" in ref_row["fired"]:
+            problems.append(
+                f"arm C's fault delta {ref_row['median_abs_delta']['faults']} is below "
+                f"twice arm A's {ref_row['arm_a_reference']['faults']}, yet faults/mapping "
+                "fired; the rule is not consulting arm A as its reference")
+
+    # Fail-closed, five ways. Each would otherwise produce a median over
+    # whatever survived and call it the preregistered D.
+    healthy = _synthetic({r: dict.fromkeys(cl.REPETITION_COUNTS, (1.0, 3.0, 6.0))
+                          for r in cl.REGIMES})
+    refusals: list[tuple[str, dict[str, object]]] = []
+
+    invalid = {"run_valid": False, "measurements": None, "abort": {"kind": "outcome-contract"}}
+    refusals.append(("an invalid run", invalid))
+
+    # An invalid run whose halves are nonetheless complete and well-formed. This
+    # isolates the run_valid gate: the case above is refused by the missing
+    # measurements list whether that gate exists or not, so on its own it proves
+    # nothing about the gate it appears to test.
+    invalid_but_complete = json.loads(json.dumps(healthy))
+    invalid_but_complete["run_valid"] = False
+    invalid_but_complete["abort"] = {"kind": "identity-contract", "arm": "B"}
+    refusals.append(("an invalid run carrying a complete set of halves", invalid_but_complete))
+
+    stray = json.loads(json.dumps(healthy))
+    stray["measurements"][0]["samples"][0]["rc"] = 127
+    refusals.append(("a stray exit code", stray))
+
+    missing = json.loads(json.dumps(healthy))
+    missing["measurements"].pop()
+    refusals.append(("a missing half", missing))
+
+    short = json.loads(json.dumps(healthy))
+    short["measurements"][0]["samples"].pop()
+    refusals.append(("a half with too few samples", short))
+
+    for label, bad in refusals:
+        try:
+            ro.read(bad)
+        except ro.ReadoutRefused:
+            pass
+        except Exception as exc:
+            problems.append(f"{label} raised {type(exc).__name__} instead of "
+                            f"ReadoutRefused: {exc}")
+        else:
+            problems.append(f"{label} was read instead of refused")
+
+    # And the part that cannot be faked: the committed reading must come back
+    # out of the committed dataset.
+    dataset = ROOT / "docs/evidence/round7/p022-263a-round7-dataset.linux.json"
+    committed = ROOT / "docs/evidence/round7/p022-263a-round7-reading.linux.json"
+    if dataset.is_file() and committed.is_file():
+        # The spawn accounting, computed rather than quoted, and run BEFORE the
+        # reproduction check so it cannot end up inside a branch that only fires
+        # on failure. It did exactly that on the first attempt -- dead code under
+        # an `except`, with the control's success message still claiming it had
+        # verified 2400 samples. An assertion that sounds like a check, written
+        # into the edit whose whole purpose was to remove one.
+        #
+        # The retained samples and the warmup discards are DIFFERENT populations.
+        # "2640 spawns, all exit codes as contracted" invites the reader to think
+        # 2640 rows were kept. 2400 were.
+        data = json.loads(dataset.read_text(encoding="utf-8"))
+        halves = data["measurements"]
+        retained = sum(len(h["samples"]) for h in halves)
+        warm_halves = sum(1 for h in halves if h["half"].startswith("warm"))
+        codes: dict[int, int] = {}
+        for h in halves:
+            for row in h["samples"]:
+                codes[int(row["rc"])] = codes.get(int(row["rc"]), 0) + 1
+        # The literals here are the RATIFIED design, not the live constants.
+        # A first attempt compared rn.WARMUP_DISCARDS against a schedule
+        # computed from rn.WARMUP_DISCARDS, so mutating that constant moved
+        # both sides together and the check stayed green: a check reading a
+        # proxy for the thing, which is the defect this whole PR is about.
+        if rn.WARMUP_DISCARDS != 2:
+            problems.append(f"the warmup discard count is {rn.WARMUP_DISCARDS}; the "
+                            "ratified design fixes it at 2 and it is not a knob")
+        if retained != 2400:
+            problems.append(f"{retained} retained samples, not the 2400 the design "
+                            "fixes (3 arms x 2 counts x 10 sessions x 2 halves x "
+                            "(5 + 15) per regime, both regimes)")
+        planned = data.get("planned_process_spawns")
+        if retained + warm_halves * 2 != planned:
+            problems.append(f"retained {retained} + {warm_halves * 2} warmup discards "
+                            f"does not equal the {planned} spawns this very dataset "
+                            "recorded as planned")
+        if codes != {0: 1600, 2: 800}:
+            problems.append(f"retained exit codes are {codes}, not "
+                            "{0: 1600, 2: 800}")
+
+        try:
+            recomputed = ro.read(json.loads(dataset.read_text(encoding="utf-8")))
+        except Exception as exc:
+            problems.append(f"the committed dataset would not read: "
+                            f"{type(exc).__name__}: {exc}")
+        else:
+            # Compared as SERIALISED json, which is what was committed: read()
+            # keys repetition counts by int and json keys them by string, so an
+            # object-to-parsed-object comparison would report a difference that
+            # exists only in Python and miss any that does not.
+            got = json.loads(json.dumps(recomputed))
+            want = json.loads(committed.read_text(encoding="utf-8"))
+            if got != want:
+                differing = sorted(k for k in set(got) | set(want)
+                                   if got.get(k) != want.get(k))
+                problems.append("the committed reading is NOT what the committed dataset "
+                                f"produces; sections differing: {differing}")
+    else:
+        problems.append("the Round 7 dataset or reading is missing, so the reading "
+                        "could not be recomputed from the evidence it claims to read")
+
+    if problems:
+        fail("round7-readout", "; ".join(problems))
+    else:
+        ok("round7-readout", "D is the median across sessions of |median(second half) - "
+                             "median(first half)| on elapsed_ns; every ratified rule fires "
+                             "on a triple built to trigger it; the mechanism table stays "
+                             "shut on P4 and P5; five malformed datasets are refused; the "
+                             "committed dataset holds 2400 retained samples (1600 rc 0, "
+                             "800 rc 2) which with 240 warmup discards accounts for every "
+                             "planned spawn; a cell where nothing moved attributes no "
+                             "mechanism while a real fault signal still fires; and the "
+                             "committed reading is reproduced exactly from the committed "
+                             "dataset")
+
+
+def run() -> int:
+    control_outcome_exclusivity()
+    control_zero_guard()
+    control_boundaries()
+    control_regime_reading()
+    control_preflight()
+    control_schedule()
+    control_execution_contract()
+    control_outcome_contract()
+    control_durable_refusal()
+    control_readout()
+    print()
+    print(f"round 7 apparatus controls: {len(_PASSES)} passed, {len(_FAILURES)} failed")
+    return 1 if _FAILURES else 0
+
+
+if __name__ == "__main__":
+    sys.exit(run())

@@ -1,0 +1,170 @@
+{
+  "abort_semantics": {
+    "durable_record": "every abort writes a structured record naming stratum, rung, run index, cell where applicable, and the condition",
+    "failed_invocation_or_exit_contract": "invalidates the run",
+    "identity_drift": "invalidates the stratum",
+    "missing_cell_or_incomplete_rung": "invalidates the run; a partial rung is not a smaller rung",
+    "no_automatic_retry": "a refusal is recorded and the collection stops; there is no retry because CI blinked",
+    "noise_probe_refusal": "invalidates the run that carried it",
+    "repeat_after_abort": "permitted only by a rule already written here, or by a new owner ruling",
+    "rss_mechanism_unavailable": "recorded and the affected field is null with a reason, never zero",
+    "timeout_or_runner_loss": "invalidates the run"
+  },
+  "admissibility_of_observations": {
+    "quarantined": [
+      {
+        "labels": [
+          "POST_PREREG_LEGACY_DIAGNOSTIC",
+          "INADMISSIBLE_FOR_TRAINING",
+          "NEVER_FIT",
+          "NEVER_SELECT_N"
+        ],
+        "produced": "two CALIBRATION_ONLY reports of 40 timed cells per platform, uploaded as workflow artifacts",
+        "source": "CI run 2038, the legacy calibration pair, ubuntu-latest and windows-latest"
+      }
+    ],
+    "rule": "Every timing/resource observation produced outside the single owner-authorised Step-7 training collection is permanently inadmissible as fitting, N-selection, holdout, or D7 evidence, regardless of whether it predates or postdates this preregistration.",
+    "scope": "The labels are a record, not the mechanism. The mechanism is the rule above, which is unconditional, plus training-no-incidental-measurement, which stops a workflow regaining a path to a measurement entrypoint while step 7 is closed.",
+    "why_not_only_pre_step_6": "An earlier wording excluded only data recorded before this preregistration, which is narrower than the rule needs to be. It would have readmitted anything a later rerun produced, on the entirely sincere ground that it is just a diagnostic."
+  },
+  "anchor_commit": "eedf6d3ed44ecf7bda69fa509dcd23b45960cf76",
+  "artifact": "p022-263a-calibration-training-preregistration",
+  "bindings": {
+    "design_constants_blob_sha1": "d03c8455cbcaf71446f88aeea0957b8e0c56c880",
+    "measurement_harness_digest": "562a7f7232dad2f4c79c6adfe0e1e7e25680b4b6f3444d54824bf0405e3c14b3",
+    "policy_implementation_digest": "c3068ed7fa880a7083866ead25fe8bf65c87889d242d8af1f7eee01582cd5cbf",
+    "training_scope_implementation_digest": "614bf9efe6ba2bb10e26a251c10d6c4a8fdaa99985d43ea03d76c6774447d25b",
+    "training_scope_root": "scripts/training/"
+  },
+  "collection_protocol": {
+    "environment_rule": "the whole ladder and all runs of one stratum belong to ONE preregistered environment identity for that stratum; measuring one rung on one runner and another rung on a different runner makes N not the only variable that changed",
+    "observation_rule": "consecutive run pairs (r1,r2), (r2,r3), (r3,r4), (r4,r5), never a chosen five pairs after the outcome is visible",
+    "observations_per_cell_per_rung": 4,
+    "runs_per_rung_per_stratum": 5,
+    "runs_per_stratum": 15,
+    "runs_total": 30,
+    "warmup_discards": 2
+  },
+  "design_constants": {
+    "G": [
+      1,
+      10
+    ],
+    "M": [
+      2,
+      1
+    ],
+    "N_ladder": [
+      5,
+      15,
+      45
+    ],
+    "R_runs": 5,
+    "q": [
+      19,
+      20
+    ]
+  },
+  "exactly_one_collection": {
+    "identity": "the collection carries a durable identity from its first run",
+    "outcomes": [
+      "ADMISSIBLE",
+      "INVALID"
+    ],
+    "rule": "exactly one training collection is run; it is not the first satisfactory one of several",
+    "stratum_failure": "if either stratum invalidates, the cross-platform collection yields no admissible step 8 input; the surviving stratum's numbers remain durable evidence of what happened and must never become a single-stratum fallback model"
+  },
+  "forbidden_in_step_6": [
+    "any clock",
+    "any new timing or resource observation",
+    "any fitted A_abs or R_rel",
+    "any selected N",
+    "any fitted width",
+    "any change to the frozen policy or the measurement harness"
+  ],
+  "future_procedure": {
+    "no_common_n": "an orchestration stop, not a fifth reproducibility verdict; the frozen four describe cells and run pairs and are untouched. No fallback rung, no stricter-stratum tie-break, no second margin, no second fit",
+    "note": "described here so it is fixed before data; step 6 produces no numeric result of it",
+    "rejected_alternatives": {
+      "averaged_widths": "lets an unstable stratum buy a stable one a wider bound",
+      "max_of_per_stratum_picks": "can name a rung admissible on neither stratum",
+      "one_stratum_as_reference": "puts the other into D7 with no measurement model of its own"
+    },
+    "steps": [
+      "per stratum, pool its cells within a rung and fit the envelope by the frozen fitter",
+      "per stratum, compute each rung's width and the admissible rung set by the frozen selector",
+      "intersect the strata's admissible sets and take the smallest ladder rung in the intersection",
+      "if the intersection is empty, stop with NO_COMMON_N"
+    ]
+  },
+  "holdout": "not authorised by this preregistration and not described by it; the validation pair is a separate owner decision",
+  "identity_drift_rule": "any change to a required identity field after collection starts invalidates that stratum's training collection; two epochs are never glued into one dataset",
+  "order": {
+    "seed_derivation": "the first 16 hex digits of policy_implementation_digest, frozen at step 4 and owner-accepted before this preregistration existed, so it is not a number that could have been re-rolled until the order looked tidy",
+    "seed_hex": "c3068ed7fa880a70",
+    "stratum_order": "linux then windows, fixed",
+    "within_stratum_order": "ladder rungs ascending; within a rung the five runs are sequential; cell order within a run is the instrument's own fixed order and is not re-shuffled"
+  },
+  "ratified_by": "owner",
+  "run_identity_required_fields": [
+    "tree_sha",
+    "tree_dirty",
+    "python_reference_commit",
+    "python_reference_tree",
+    "workload_manifest_sha256",
+    "harness_digest",
+    "calibration_repetitions",
+    "warmup_discards",
+    "candidate_sha256",
+    "candidate_bytes",
+    "provenance.environment",
+    "provenance.timestamp_utc",
+    "raw samples per cell"
+  ],
+  "step_7_collection": "NOT AUTHORISED",
+  "stratification": {
+    "across_strata": "observations, medians, envelopes and widths are never pooled, averaged or summed across strata",
+    "cell_identity": [
+      "rung",
+      "engine",
+      "workload",
+      "regime"
+    ],
+    "platform_is_a_cell_axis": false,
+    "regime_rule": "cold and warm are distinct cells of the frozen four-part identity and pool within a stratum",
+    "strata": [
+      "linux",
+      "windows"
+    ],
+    "within_stratum": "every cell of U_p pools into one fit per ladder rung, by the frozen fitter unchanged"
+  },
+  "universe": {
+    "applicability_rule": "the universe is exactly the cell set the frozen instrument emits for the six calibration workloads; a rung that does not apply to a workload is absent rather than N/A, and the count is asserted by a control rather than trusted",
+    "calibration_workloads": [
+      "cal-facts-tiny",
+      "cal-facts-small",
+      "cal-facts-medium",
+      "cal-facts-refused",
+      "cal-source-small",
+      "cal-source-medium"
+    ],
+    "decisive_workloads": "excluded, and the CALIBRATION_ONLY firewall refuses them structurally",
+    "engines": [
+      "python",
+      "rust"
+    ],
+    "expected_cells_per_stratum": 40,
+    "pre_step6_data": "excluded from U, and so is every observation taken outside the single authorised step 7 collection whenever it was taken; see admissibility_of_observations",
+    "regimes": [
+      "process-cold",
+      "warm"
+    ],
+    "rungs": [
+      "core-usage",
+      "core-parse-refused",
+      "core-full-human",
+      "core-full-sarif",
+      "launcher-e2e"
+    ]
+  }
+}

@@ -31,10 +31,21 @@ files = [
   "tests/verdict_surface_inventory.py",
   "tests/shadow_sweep.py",
   "tests/test_obligation_fact_parity.py",
+  "scripts/perf_baseline.py",
+  "scripts/round7/classify.py",
+  "scripts/round7/elfread.py",
+  "scripts/round7/preflight.py",
+  "scripts/round7/schedule.py",
+  "scripts/round7/runner.py",
+  "scripts/round7/readout.py",
+  "scripts/calibration/policy.py",
+  "scripts/training/scope.py",
+  "scripts/step7/envcapture.py",
   "scripts/mutate_campaign.py",
   "scripts/shadow_compare.py",
   "scripts/render_checkpoint_status.py",
 ]
-mypy_path = ["tests", "scripts"]
+mypy_path = ["tests", "scripts", "scripts/round7", "scripts/calibration", "scripts/training",
+             "scripts/step7"]
 explicit_package_bases = true
 strict = true

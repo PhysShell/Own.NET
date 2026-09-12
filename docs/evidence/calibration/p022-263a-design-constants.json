@@ -1,0 +1,26 @@
+{
+  "artifact": "p022-263a-calibration-design-constants",
+  "bound_measurement_harness_digest": "562a7f7232dad2f4c79c6adfe0e1e7e25680b4b6f3444d54824bf0405e3c14b3",
+  "bound_policy_implementation_digest": "c3068ed7fa880a7083866ead25fe8bf65c87889d242d8af1f7eee01582cd5cbf",
+  "constants": {
+    "G": [
+      1,
+      10
+    ],
+    "M": [
+      2,
+      1
+    ],
+    "N_ladder": [
+      5,
+      15,
+      45
+    ],
+    "R_runs": 5,
+    "q": [
+      19,
+      20
+    ]
+  },
+  "ratified_by": "owner"
+}

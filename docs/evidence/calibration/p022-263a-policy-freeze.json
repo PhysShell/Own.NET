@@ -1,0 +1,17 @@
+{
+  "artifact": "p022-263a-calibration-policy-freeze",
+  "measurement_harness_digest": "562a7f7232dad2f4c79c6adfe0e1e7e25680b4b6f3444d54824bf0405e3c14b3",
+  "policy_implementation_digest": "c3068ed7fa880a7083866ead25fe8bf65c87889d242d8af1f7eee01582cd5cbf",
+  "policy_implementation_digest_framing": "sha256 over the source set ordered by the UTF-8 bytes of each repo-relative POSIX path. Each file contributes, with no header and no separator: its path byte length as an 8-byte big-endian unsigned integer, its path's exact UTF-8 bytes, its blob byte length as an 8-byte big-endian unsigned integer, and its exact git blob bytes.",
+  "policy_source_commit": "b4f657a0abdfdfaae199cbc7eee0c47acd8b0057",
+  "policy_source_files": [
+    {
+      "blob_sha1": "ec3fab8bbd8d5e0d0a0e1c6f60e7249d97f3ef4f",
+      "path": "scripts/calibration/policy.py",
+      "size_bytes": 25486
+    }
+  ],
+  "policy_source_root": "scripts/calibration/",
+  "policy_source_selector": "all committed *.py recursively under policy_source_root at policy_source_commit",
+  "policy_source_tree": "2f49574433fea23f6158f4d8544a3b1543c718d4"
+}
