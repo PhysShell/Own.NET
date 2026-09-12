@@ -12,6 +12,7 @@ contains no clock, no observation, no fitted constant and no selected N.
     training-prereg-bindings     all three digests equal the live ones
     training-prereg-universe     the declared universe is the instrument's own
     training-no-incidental-measurement  no workflow can reach a clock while step 7 is shut
+    training-scanner-catches-multiline  the known multiline bypass stays caught, permanently
 
 `training-scope-admissible` is the load-bearing one. The margin `(1 + G)` must be
 applied exactly once, inside the frozen `select_n`, so the control perturbs the
@@ -415,6 +416,20 @@ def _shell_lines(text: str) -> list[str]:
 # variables and quoting cannot get between the guard and the thing it guards.
 
 
+def forbidden_measurement_capabilities(text: str) -> tuple[str, ...]:
+    """Every forbidden capability token in EXECUTABLE workflow text.
+
+    Written once and used twice: the live control runs it over each workflow file
+    on disk, and `training-scanner-catches-multiline` runs it over mutated text in
+    memory. A second copy for the tests would only prove the two copies agree,
+    which is the defect this PR has spent fourteen rounds removing.
+    """
+    return tuple(f"{flag} on: {line.strip()}"
+                 for line in _shell_lines(text)
+                 for _name, flag, _source in MEASUREMENT_ENTRYPOINTS
+                 if flag in line)
+
+
 def control_no_incidental_measurement(art: dict[str, object]) -> None:
     """While step 7 is shut, no workflow may hold a path to a measurement entrypoint.
 
@@ -457,11 +472,9 @@ def control_no_incidental_measurement(art: dict[str, object]) -> None:
         if not scanned:
             problems.append("no workflow files were found, so this scanned nothing")
         for workflow in scanned:
-            for line in _shell_lines(workflow.read_text(encoding="utf-8")):
-                for _name, flag, _source in MEASUREMENT_ENTRYPOINTS:
-                    if flag in line:
-                        problems.append(f"{workflow.name} contains the forbidden measurement "
-                                        f"flag {flag}: {line.strip()}")
+            for hit in forbidden_measurement_capabilities(workflow.read_text(encoding="utf-8")):
+                problems.append(f"{workflow.name} contains a forbidden measurement capability, "
+                                f"{hit}")
     if problems:
         fail("training-no-incidental-measurement", "; ".join(problems))
     else:
@@ -470,6 +483,98 @@ def control_no_incidental_measurement(art: dict[str, object]) -> None:
            f"{' or '.join(f for _, f, _ in MEASUREMENT_ENTRYPOINTS)}, wherever it appears and "
            "whatever sits beside it; both flags still exist, so the guard is not passing on a "
            "rename")
+
+
+# A multiline invocation that has never existed in this repository since the timed
+# pair was removed, kept as text so the `--calibrate` half of the bypass is guarded
+# too. It is never written to disk and nothing here runs it.
+CALIBRATE_ACROSS_LINES = (
+    "      - name: never\n"
+    "        run: |\n"
+    "          python scripts/perf_baseline.py \\\n"
+    "            --calibrate --repeat 5 \\\n"
+    '            --out "$RUNNER_TEMP/cal-1.json"\n'
+)
+
+
+def _round7_invocation(text: str) -> str:
+    """The Round 7 runner call as ci.yml writes it: the line naming the script plus
+    every continuation it carries. Returns "" when there is none."""
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        if "round7/runner.py" in line and not line.lstrip().startswith("#"):
+            block = [line]
+            while block[-1].rstrip().endswith("\\") and index + len(block) < len(lines):
+                block.append(lines[index + len(block)])
+            return "\n".join(block)
+    return ""
+
+
+def control_scanner_catches_multiline() -> None:
+    """The bypass that defeated the earlier scanner, kept as a standing catcher.
+
+    The scanner once required the command name and the flag on the same physical
+    line. The Round 7 step spans four lines with `--plan` alone on a continuation,
+    so turning that one word into `--measure` made a plan-only step a real
+    measurement while the control stayed green. That was found by a manual
+    campaign, and a campaign is a memory rather than a property: restore the old
+    conjunction and the live workflow still says `--plan`, so CI goes green and
+    nothing notices.
+
+    The mutant is therefore derived from the REAL Round 7 block rather than a
+    synthetic copy that could drift away from it, mutated in memory, never written
+    to disk. Nothing here starts a clock.
+
+    Scoped to that block on purpose. An earlier draft searched the whole file for
+    any `--plan`, and ci.yml has a second one that is a stale-plan.json path in an
+    unrelated stage 2 step. The control passed by mutating that instead, and its
+    success line claimed both belonged to Round 7. Found by its own mutation
+    reporting MISSED.
+    """
+    problems: list[str] = []
+    ci = WORKFLOWS / "ci.yml"
+    if not ci.exists():
+        fail("training-scanner-catches-multiline", "ci.yml is gone, so this proves nothing")
+        return
+    text = ci.read_text(encoding="utf-8")
+
+    if forbidden_measurement_capabilities(text):
+        problems.append("the live ci.yml is already reported as forbidden: "
+                        f"{forbidden_measurement_capabilities(text)}")
+
+    block = _round7_invocation(text)
+    carriers = [line for line in _shell_lines(block)
+                if "--plan" in line and "runner.py" not in line]
+    if not block:
+        problems.append("no Round 7 runner invocation was found in ci.yml, so the mutation "
+                        "below would test nothing")
+    elif not carriers:
+        problems.append(f"the Round 7 invocation carries no continuation line with --plan away "
+                        f"from the script name, so the multiline mutation is a no-op and this "
+                        f"control would pass without testing anything: {block!r}")
+    else:
+        if forbidden_measurement_capabilities(block):
+            problems.append("the real plan-only Round 7 block is itself reported as forbidden")
+        if not any("--measure" in hit for hit in
+                   forbidden_measurement_capabilities(block.replace("--plan", "--measure"))):
+            problems.append("--plan turned into --measure on its own continuation line of the "
+                            "REAL Round 7 block is NOT caught; that is the exact bypass an "
+                            "earlier scanner missed, and the scanner has regressed to matching "
+                            "a command name")
+
+    if not any("--calibrate" in hit
+               for hit in forbidden_measurement_capabilities(CALIBRATE_ACROSS_LINES)):
+        problems.append("a multiline perf_baseline.py with --calibrate on the next line is NOT "
+                        "caught")
+
+    if problems:
+        fail("training-scanner-catches-multiline", "; ".join(problems))
+    else:
+        ok("training-scanner-catches-multiline",
+           f"the live ci.yml is clean; its Round 7 invocation spans "
+           f"{len(block.splitlines())} lines with --plan on {len(carriers)} continuation line(s) "
+           "away from the script name, and turning that word into --measure is caught, as is "
+           "--calibrate split across lines. Nothing written to disk, no clock run")
 
 
 def run() -> int:
@@ -486,6 +591,7 @@ def run() -> int:
         control_prereg_bindings(art)
         control_prereg_universe(art)
         control_no_incidental_measurement(art)
+    control_scanner_catches_multiline()
     print()
     print(f"training preregistration controls: {len(_PASSES)} passed, {len(_FAILURES)} failed")
     return 1 if _FAILURES else 0

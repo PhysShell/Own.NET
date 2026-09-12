@@ -199,6 +199,31 @@ next line, the flag assigned to a shell variable, the flag reached through a
 different command name entirely, the flag in a *different* workflow across lines,
 and a shell comment that merely names it.
 
+### And the mutant that found it is now a standing catcher
+
+Those six cases lived in a scratchpad campaign, which is a memory rather than a
+property of the repository. Restore the old conjunction and the live workflow still
+says `--plan`: CI goes green and the suite never notices. Proving once that the
+vest stops the bullet and then removing the bullet from the tests is a remarkably
+comfortable form of rigour.
+
+`training-scanner-catches-multiline` makes it permanent. The scan itself is now a
+pure helper used in both places, so the control exercises the same implementation
+the live check runs rather than a copy of it. The mutant is derived from the **real**
+Round 7 block in `ci.yml`, located by following the script line through its
+continuations, mutated in memory and never written to disk. Nothing in it runs a
+clock.
+
+It also fails closed on the two ways it could pass while testing nothing: if the
+Round 7 invocation is inlined so no continuation carries `--plan`, and if the step
+disappears altogether.
+
+A first draft of this control searched the whole file for any `--plan`, and `ci.yml`
+has a second one that is a `stale-plan.json` path in an unrelated stage 2 step. The
+control passed by mutating that instead, and its success line claimed both belonged
+to Round 7. Its own mutation reported MISSED, which is how it was found. The check
+is now scoped to the Round 7 block and its message says only what it established.
+
 ## Three binding axes from here on
 
     policy_implementation_digest          c3068ed7fa88…
