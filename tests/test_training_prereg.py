@@ -398,6 +398,23 @@ def _shell_lines(text: str) -> list[str]:
     return [line for line in text.splitlines() if not line.lstrip().startswith("#")]
 
 
+# The scan looks for the FLAG ALONE, never for the command name beside it. An
+# earlier version required both on one physical line, and the repository's own
+# Round 7 invocation is written across four:
+#
+#     python scripts/round7/runner.py \
+#       --candidate "..." \
+#       --plan --build-dir "..." \
+#       --out "..."
+#
+# Changing that one word to --measure turned a plan-only step into a real
+# measurement while the control stayed green, because the line naming the script
+# had no flag and the line with the flag named no script. Driven, not argued: the
+# mutation came back MISSED. A capability token is forbidden outright while step 7
+# is shut, wherever it appears and whatever sits next to it, so line breaks,
+# variables and quoting cannot get between the guard and the thing it guards.
+
+
 def control_no_incidental_measurement(art: dict[str, object]) -> None:
     """While step 7 is shut, no workflow may hold a path to a measurement entrypoint.
 
@@ -441,16 +458,18 @@ def control_no_incidental_measurement(art: dict[str, object]) -> None:
             problems.append("no workflow files were found, so this scanned nothing")
         for workflow in scanned:
             for line in _shell_lines(workflow.read_text(encoding="utf-8")):
-                for name, flag, _source in MEASUREMENT_ENTRYPOINTS:
-                    if name in line and flag in line:
-                        problems.append(f"{workflow.name} can reach {name} {flag}: {line.strip()}")
+                for _name, flag, _source in MEASUREMENT_ENTRYPOINTS:
+                    if flag in line:
+                        problems.append(f"{workflow.name} contains the forbidden measurement "
+                                        f"flag {flag}: {line.strip()}")
     if problems:
         fail("training-no-incidental-measurement", "; ".join(problems))
     else:
         ok("training-no-incidental-measurement",
-           f"step 7 is shut and no executable line of any workflow reaches "
-           f"{', '.join(f'{n} {f}' for n, f, _ in MEASUREMENT_ENTRYPOINTS)}; both flags still "
-           "exist, so the guard is not passing on a rename")
+           f"step 7 is shut and no executable line of any workflow carries "
+           f"{' or '.join(f for _, f, _ in MEASUREMENT_ENTRYPOINTS)}, wherever it appears and "
+           "whatever sits beside it; both flags still exist, so the guard is not passing on a "
+           "rename")
 
 
 def run() -> int:

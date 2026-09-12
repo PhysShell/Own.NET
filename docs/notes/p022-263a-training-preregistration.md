@@ -170,6 +170,35 @@ than one. Nine mutations: the key missing, `AUTHORISED`, `AUTHORISEDD`, `null`,
 `NOT AUTHORIZED`, `not authorised`, a space-padded copy, a boolean, and the
 worst case of a claimed authorisation alongside a real timed step.
 
+### And a second fail-open in the same control, found at re-review
+
+The polarity fix was right and did not save the scan beside it. That scan required
+the command name and the forbidden flag on the **same physical line**:
+
+    if name in line and flag in line:
+
+The repository's own Round 7 invocation is written across four lines, with
+`--plan` on a continuation line by itself. Change that one word to `--measure` and
+the line naming the script carries no flag while the line carrying the flag names
+no script. Driven rather than argued: the mutation on the real block came back
+MISSED, and the flag-existence check passed too, because nothing had been renamed.
+A plan-only step becomes a real measurement by editing one word, and the guard
+stays green. The safety mechanism was defeated by a line break.
+
+The scan now matches the **flag alone**, with no coupling to any command name.
+While step 7 is shut a capability token may not appear in executable workflow text
+at all, wherever it is and whatever sits beside it, so continuations, variables and
+quoting cannot get between the guard and the thing it guards. That is stricter than
+naming invocations, and strictness is the correct default for this phase. Building
+a shell parser to decide which occurrences *really* invoke something would be a
+remarkably human way to answer a three-line problem with a small compiler.
+
+Six cases, each caught or correctly allowed: the real Round 7 block with `--plan`
+turned into `--measure`, a multiline `perf_baseline.py` with `--calibrate` on the
+next line, the flag assigned to a shell variable, the flag reached through a
+different command name entirely, the flag in a *different* workflow across lines,
+and a shell comment that merely names it.
+
 ## Three binding axes from here on
 
     policy_implementation_digest          c3068ed7fa88…
