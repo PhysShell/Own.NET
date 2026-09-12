@@ -119,9 +119,16 @@ def exact_rational(value: object, *, name: str) -> Fraction:
     return value
 
 
-def as_pair(value: Fraction) -> tuple[int, int]:
-    """The canonical pair for serialisation. Round-trips through `canonical_rational`."""
-    return (value.numerator, value.denominator)
+def as_pair(value: object) -> tuple[int, int]:
+    """The canonical pair for serialisation. Round-trips through `canonical_rational`.
+
+    Guarded like everything else. It cannot corrupt a fit -- it only writes a
+    number out -- but if the contract is "the public policy surface fails closed
+    on the exact domain", then a serialiser that dies with `AttributeError`
+    instead of refusing is a door somebody will later argue was not a door.
+    """
+    return (exact_rational(value, name="as_pair value").numerator,
+            exact_rational(value, name="as_pair value").denominator)
 
 
 def exact_median(values: Sequence[Fraction], *, name: str) -> Fraction:
@@ -230,8 +237,12 @@ class Envelope:
                 f"envelope at n={self.n} has A_abs={self.a_abs}, R_rel={self.r_rel}; a "
                 "bound may not be negative anywhere on the duration range")
 
-    def inner(self, t: Fraction) -> Fraction:
-        return self.a_abs + self.r_rel * t
+    def inner(self, t: object) -> Fraction:
+        """The inner bound at one duration. `t` is checked, because this is the
+        one place the envelope meets a caller's number and `Fraction * float` is
+        a float."""
+        return self.a_abs + self.r_rel * exact_rational(
+            t, name=f"envelope at n={self.n}: duration t")
 
     def as_committed(self) -> dict[str, object]:
         return {"n": self.n, "A_abs": as_pair(self.a_abs), "R_rel": as_pair(self.r_rel)}
@@ -390,9 +401,18 @@ def observations_from_medians(medians: Sequence[Fraction], constants: DesignCons
     return tuple(rows)
 
 
-def pinball_loss(observations: Sequence[Observation], q: Fraction,
-                 a_abs: Fraction, r_rel: Fraction) -> Fraction:
-    """The quantile objective, exactly. rho_q(u) = q*u for u >= 0, (q-1)*u below."""
+def pinball_loss(observations: Sequence[Observation], q: object,
+                 a_abs: object, r_rel: object) -> Fraction:
+    """The quantile objective, exactly. rho_q(u) = q*u for u >= 0, (q-1)*u below.
+
+    All three scalars are checked. This is a public function and nothing stops a
+    caller handing it `q=0.75`; one float here and the objective that decides the
+    fit is computed in binary floating point, which is precisely what the
+    enumeration was chosen to avoid.
+    """
+    q = exact_rational(q, name="pinball_loss q")
+    a_abs = exact_rational(a_abs, name="pinball_loss A_abs")
+    r_rel = exact_rational(r_rel, name="pinball_loss R_rel")
     total = Fraction(0)
     for row in observations:
         u = row.y - (a_abs + r_rel * row.t)
@@ -436,7 +456,9 @@ def canonical_minimiser(tied: Iterable[tuple[Fraction, Fraction]]
     and the ratified document records a counterexample. Its only purpose is
     identical constants from identical corpus bytes.
     """
-    ordered = sorted(tied)
+    checked = [(exact_rational(a, name="minimiser A_abs"),
+                exact_rational(r, name="minimiser R_rel")) for a, r in tied]
+    ordered = sorted(checked)
     if not ordered:
         raise PolicyRefused("no minimiser to canonicalise")
     return ordered[0]

@@ -605,6 +605,26 @@ def control_exact_domain() -> None:
         # line does not read as untested coverage.
         ("observations_from_medians over floats",
          lambda: pol.observations_from_medians([0.1, 0.2, 0.3], c, name="probe")),
+        # The public ARITHMETIC surface, not just the constructors. Each of these
+        # was open after the first repair, and the first two can actually corrupt
+        # a computation: `inner` is where the envelope meets a caller's duration,
+        # and `pinball_loss` is the objective that decides the fit.
+        ("Envelope.inner with a float duration", lambda: good_env.inner(0.1)),
+        ("pinball_loss with a float q",
+         lambda: pol.pinball_loss([pol.Observation(Fraction(1), Fraction(1))], 0.75,
+                                  Fraction(0), Fraction(0))),
+        ("pinball_loss with a float A_abs",
+         lambda: pol.pinball_loss([pol.Observation(Fraction(1), Fraction(1))], c.q,
+                                  0.1, Fraction(0))),
+        ("pinball_loss with a float R_rel",
+         lambda: pol.pinball_loss([pol.Observation(Fraction(1), Fraction(1))], c.q,
+                                  Fraction(0), 0.2)),
+        ("canonical_minimiser over float pairs",
+         lambda: pol.canonical_minimiser({(0.1, 0.2), (Fraction(9), Fraction(0))})),
+        # The serialiser cannot corrupt a fit, but a surface that fails closed
+        # everywhere except one function is a surface somebody will later argue
+        # about. It died with AttributeError before this.
+        ("as_pair of a float", lambda: pol.as_pair(0.5)),
     ]
     for label, thunk in refusals:
         try:
@@ -625,22 +645,64 @@ def control_exact_domain() -> None:
     verdict = pol.classify_cell(
         pol.CellObservation("x", Fraction(100), Fraction(110), 0, 0, True, True), fitted, c)
     width = pol.envelope_width(fitted, [Fraction(100), Fraction(200)])
+    minimised = pol.canonical_minimiser({(Fraction(1), Fraction(2)), (Fraction(3), Fraction(0))})
     produced = {"A_abs": fitted.a_abs, "R_rel": fitted.r_rel, "delta": verdict.delta,
                 "reference_duration": verdict.reference_duration, "inner": verdict.inner,
                 "outer": verdict.outer, "width": width,
+                "envelope.inner": fitted.inner(Fraction(100)),
+                "minimiser A_abs": minimised[0], "minimiser R_rel": minimised[1],
                 "loss": pol.pinball_loss(rows, c.q, fitted.a_abs, fitted.r_rel),
                 "median": pol.exact_median([Fraction(1), Fraction(2)], name="probe")}
     for label, value in produced.items():
         if not isinstance(value, Fraction):
             problems.append(f"{label} came out as {type(value).__name__} = {value!r}; the "
                             "computation left the exact domain")
+    pair = pol.as_pair(Fraction(19, 20))
+    if pair != (19, 20) or not all(isinstance(x, int) for x in pair):
+        problems.append(f"as_pair produced {pair!r}, not the canonical integer pair")
+
+    # The root cause of this finding was four forgotten `exact_rational()` calls,
+    # so the durable fix is not four more refusal cases -- it is a check that
+    # fails the next time a public entry point appears without one. Every public
+    # callable the module defines is enumerated and must be accounted for here.
+    covered = {
+        # guarded, and exercised by a refusal case above
+        "Envelope.inner", "as_pair", "canonical_minimiser", "canonical_rational",
+        "canonical_count", "exact_rational", "exact_median", "envelope_width",
+        "observations_from_medians", "pinball_loss",
+        "DesignConstants.from_committed",
+        # take already-validated policy objects, never a bare number
+        "classify_cell", "classify_pair", "fit_envelope", "select_n",
+        "DesignConstants.as_committed", "Envelope.as_committed",
+    }
+    public = set()
+    for name, obj in vars(pol).items():
+        if name.startswith("_"):
+            continue
+        if inspect.isfunction(obj) and obj.__module__ == pol.__name__:
+            public.add(name)
+        elif inspect.isclass(obj) and obj.__module__ == pol.__name__:
+            for attr, member in vars(obj).items():
+                fn = member.__func__ if isinstance(member, classmethod) else member
+                if inspect.isfunction(fn) and not attr.startswith("__"):
+                    public.add(f"{name}.{attr}")
+    unaccounted = sorted(public - covered)
+    vanished = sorted(covered - public)
+    if unaccounted:
+        problems.append(f"public entry points with no exact-domain accounting: "
+                        f"{unaccounted}; each is a place a float can enter, which is "
+                        "exactly how the last four got in")
+    if vanished:
+        problems.append(f"this control still accounts for {vanished}, which the module no "
+                        "longer defines; the list has drifted from the surface")
 
     if problems:
         fail("calib-exact-domain", "; ".join(problems))
     else:
         ok("calib-exact-domain", f"{len(refusals)} float and non-exact inputs refused at "
-                                 f"the door rather than converted, and all "
-                                 f"{len(produced)} computed quantities come back Fraction")
+                                 f"the door rather than converted, all {len(produced)} "
+                                 f"computed quantities come back Fraction, and all "
+                                 f"{len(public)} public entry points are accounted for")
 
 
 def control_purity() -> None:

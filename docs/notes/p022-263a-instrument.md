@@ -1237,6 +1237,32 @@ The document also contradicted itself about its own authority — a header sayin
 mechanism as ratified. An artifact a freeze will point at cannot be ambiguous
 about what it is. It now opens with an explicit status block and is revision 5.
 
+### Four forgotten calls, and the check that should have existed first
+
+The exact-domain repair closed the constructors and left the arithmetic open.
+`Envelope.inner(0.1)` returned a float. `pinball_loss` took `q`, `A_abs` and
+`R_rel` straight from a caller and validated none of them, so the objective that
+decides the fit could be computed in binary floating point. `canonical_minimiser`
+would happily return a float pair. `as_pair` died with `AttributeError` rather
+than refusing.
+
+All four are now guarded and all six mutations of them come back with findings.
+The serialiser cannot corrupt a fit, but a surface that fails closed everywhere
+except one function is a surface somebody will later argue about.
+
+**The durable fix is not four more refusal cases.** The root cause was four
+*forgotten* calls, so `calib-exact-domain` now enumerates every public callable
+the module defines and requires each to be accounted for — either guarded and
+exercised by a refusal case, or explicitly recorded as taking only validated
+policy objects. Adding a new public function without that accounting fails the
+control; adding a stale name to the list fails it too. Verified by adding a
+throwaway unguarded function and watching it get named.
+
+The lesson is the PR's oldest one wearing yet another hat. "Every quantitative
+entry point refuses non-exact input" was a sentence about the code, published
+while four entry points did no such thing. The sentence is now a check that
+enumerates the surface rather than a claim about it.
+
 ### Both pairs are stale, and are not re-recorded
 
 The digest moved from `2d6e52fe4352` to `6713e7300c7c`, and again to
