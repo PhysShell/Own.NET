@@ -2964,6 +2964,18 @@ jobs:
       # combiner reads the frozen selector's own margin instead of copying it.
       - name: Training preregistration controls (step 6 protocol + scope binding)
         run: python tests/test_training_prereg.py
+      # Step 7 needs two dedicated measurement hosts that do not exist yet. This
+      # captures WHAT a machine is and never how fast it is: no clock, no resource
+      # observation, proved by walking the AST rather than the prose. It also
+      # proves the tool sits outside all three frozen source sets, so preparing
+      # step 7 cannot move a digest steps 4, 5 and 6 are already bound to.
+      - name: Step 7 environment capture controls (measurement-free identity manifest)
+        run: python tests/test_step7_envcapture.py
+      # The same tool run for real on this runner. It writes nothing, starts no
+      # clock, and is NOT a binding input: a hosted runner is not admissible for
+      # step 7, and the manifest records the runner and CI flag that say so.
+      - name: Step 7 environment capture selftest (writes nothing, starts nothing)
+        run: python scripts/step7/envcapture.py --selftest
       # Plan mode builds the arms, preflights THOSE bytes, freezes their
       # identities and fixes the execution order — then returns before the
       # timing function is reachable. Linux only: the arms are ELF binaries.
