@@ -218,8 +218,11 @@ string and prints nothing.
 
 ## What is still NOT verified
 
-Capture on a **dedicated** Windows host. A hosted runner is not one, and the CIM
-virtualization query added above has never executed anywhere, since this container
-is not Windows. `envcapture-windows-fixture` exercises the schema and drift rule
-on a synthetic manifest and now says exactly that rather than claiming the
-Windows branches are unrun.
+Capture on a **dedicated** Windows measurement host. The CIM queries have now
+executed successfully on GitHub-hosted Windows CI — run 2050 returned
+`AMD EPYC 7763 64-Core Processor` for `cpu_model` and `Win32_ComputerSystem
+Manufacturer=Microsoft Corporation Model=Virtual Machine` for `virtualization` —
+but a hosted runner is validation of the capture **mechanism**, not Step-7
+environment evidence. `envcapture-windows-fixture` exercises the schema and drift
+rule on a synthetic manifest and says so rather than claiming the Windows branches
+are unrun.
