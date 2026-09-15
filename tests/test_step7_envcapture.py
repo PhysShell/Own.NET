@@ -15,6 +15,7 @@ to arrive dressed as a value.
     envcapture-windows-fixture   the schema holds off Linux; the capture path does not
     envcapture-frozen-untouched  this addition moved none of the three frozen digests
     envcapture-ci-provenance     a CI-taken manifest says so and cannot hide it
+    envcapture-tool-encoding     a tool's bytes decode by the code page that wrote them
 
 `envcapture-no-measurement` walks the AST rather than the text, because this
 module's own docstring names `perf_counter` and `wait4` to say it does not use
@@ -544,6 +545,58 @@ def control_guard_reports() -> None:
        "and this probe prints no FAIL line of its own on a green run")
 
 
+def control_tool_encoding() -> None:
+    """A console tool's bytes are decoded by the code page that produced them.
+
+    `powercfg` writes in the console OUTPUT code page. `text=True` decoded with
+    the locale's preferred encoding — the ANSI code page — so on a Russian
+    Windows `power_policy` arrived as mojibake, and mojibake whose bytes moved
+    with the ambient code page: the same unchanged machine produced two
+    different identity values. Identity fields compare whole, so that is drift
+    the capture invents rather than observes.
+
+    The invariant is not "the bytes are UTF-8" — they are whatever the console
+    is set to. It is that the decoded VALUE is the same string whichever code
+    page produced it.
+    """
+    expected = "Высокая производительность"
+    original = ec._tool_encoding
+    seen: dict[str, str] = {}
+    try:
+        for code_page in ("cp866", "cp1251", "utf-8"):
+            ec._tool_encoding = lambda page=code_page: page  # type: ignore[assignment]
+            emitted = ec._tool([sys.executable, "-c",
+                                "import sys; sys.stdout.buffer.write("
+                                f"{expected.encode(code_page)!r})"])
+            if emitted is None:
+                fail("envcapture-tool-encoding", f"the {code_page} probe did not run at all")
+                return
+            seen[code_page] = emitted[1]
+    finally:
+        ec._tool_encoding = original  # type: ignore[assignment]
+
+    wrong = {page: text for page, text in seen.items() if text != expected}
+    if wrong:
+        fail("envcapture-tool-encoding",
+             f"decoded {wrong!r}, expected {expected!r} from every code page: the producing "
+             "code page was ignored, so an identity-bearing value moves with the console")
+        return
+
+    resolved = original()
+    if os.name == "nt":
+        if not (resolved.startswith("cp") and resolved[2:].isdigit()):
+            fail("envcapture-tool-encoding",
+                 f"on Windows the resolver named {resolved!r}, which is not a console code page")
+            return
+    elif resolved != "utf-8":
+        fail("envcapture-tool-encoding",
+             f"off Windows the resolver named {resolved!r} rather than utf-8")
+        return
+    ok("envcapture-tool-encoding",
+       f"the same text decodes identically from cp866, cp1251 and utf-8; this host resolves "
+       f"{resolved}")
+
+
 def run() -> int:
     guarded("envcapture-guard-reports", control_guard_reports)
     guarded("envcapture-schema", control_schema)
@@ -556,6 +609,7 @@ def run() -> int:
     guarded("envcapture-windows-fixture", control_windows_fixture)
     guarded("envcapture-frozen-untouched", control_frozen_untouched)
     guarded("envcapture-ci-provenance", control_ci_provenance)
+    guarded("envcapture-tool-encoding", control_tool_encoding)
     print()
     print(f"step 7 environment capture controls: {len(_PASSES)} passed, {len(_FAILURES)} failed")
     return 1 if _FAILURES else 0

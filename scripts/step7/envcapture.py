@@ -117,6 +117,32 @@ def _text(path: str) -> str | None:
         return None
 
 
+def _tool_encoding() -> str:
+    """The encoding a console tool's bytes actually arrive in.
+
+    `text=True` decodes with the locale's preferred encoding, which on a
+    non-English Windows is the ANSI code page — while a console tool writes in
+    the CONSOLE output code page. The two disagree, so `powercfg` output arrived
+    as mojibake whose bytes changed with the ambient code page, and
+    `power_policy` is identity-bearing: that is drift on a machine that never
+    moved. Decoding by the producing code page makes the value the same string
+    whichever console the capture is taken from.
+    """
+    if os.name == "nt":
+        import ctypes  # only needed on the Windows path
+
+        try:
+            # ctypes.windll is defined only on Windows; same treatment as above.
+            kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]  # Windows-only
+            for query in ("GetConsoleOutputCP", "GetOEMCP"):
+                code_page = getattr(kernel32, query)()
+                if code_page:
+                    return f"cp{code_page}"
+        except (AttributeError, OSError, ValueError):
+            pass
+    return "utf-8"
+
+
 def _tool(argv: list[str]) -> tuple[int, str] | None:
     """Run a version query. NOT timed, and no shell.
 
@@ -124,12 +150,19 @@ def _tool(argv: list[str]) -> tuple[int, str] | None:
     return code is handed back because `systemd-detect-virt` reports "none" with
     a non-zero exit, and reading that as a failure would turn a real answer into
     an unavailable.
+
+    Bytes are decoded by `_tool_encoding()` rather than by the locale, with the
+    same `errors="replace"` `_text` uses: an undecodable byte becomes a visible
+    replacement character instead of raising inside a probe.
     """
     try:
-        proc = subprocess.run(argv, capture_output=True, text=True, check=False)
+        proc = subprocess.run(argv, capture_output=True, check=False)
     except (OSError, ValueError):
         return None
-    return proc.returncode, (proc.stdout + proc.stderr).strip()
+    encoding = _tool_encoding()
+    out = proc.stdout.decode(encoding, errors="replace")
+    err = proc.stderr.decode(encoding, errors="replace")
+    return proc.returncode, (out + err).strip()
 
 
 def _host_fingerprint() -> dict[str, object]:
