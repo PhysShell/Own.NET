@@ -104,9 +104,22 @@ Semantics, frozen:
 
 ```yaml
 M: UNRESOLVED_OWNER_DECISION          # dimensionless ratio margin
-A: UNRESOLVED_OWNER_DECISION          # absolute margin, in the gate's unit
-M_A_scope: UNRESOLVED_OWNER_DECISION  # one pair for all gates, or per-gate pairs
+A: UNRESOLVED_OWNER_DECISION          # absolute margin, carries the gate's unit:
+                                      # milliseconds for the time gates,
+                                      # bytes for the peak RSS gates
+M_A_scope: UNRESOLVED_OWNER_DECISION  # see the dimensional constraint below
 ```
+
+**Dimensional constraint, recorded rather than decided.** `A` carries the gate's
+own unit, and the primary set now spans two units — milliseconds and bytes. One
+absolute value therefore cannot serve all four gates: a single `A` shared across
+time and memory is not a budget the owner has yet to pick, it is not a quantity.
+"One pair for all gates" is consequently unavailable for `A` as literally
+phrased, and the numeric ruling should be asked in the terms the units allow: one
+absolute budget for the time gates and one for the memory gates, with the open
+questions being whether `M` — dimensionless, and so unconstrained by this — is
+one budget or split, and whether the two gates inside a unit share one `A` or
+take one each. No value, and no choice among those readings, is made here.
 
 `M` and `A` derive from the cutover/product budget — what a user may be made to
 wait, and how much memory the migration may cost. They may not be derived from
@@ -162,14 +175,25 @@ is invented here.
 
 ### The gates
 
-**R1 — the user-visible path is `launcher-e2e`**, evaluated as two preregistered
-regimes, **cold** and **warm**. Both are primary strata of one user-visible
-surface and are never collapsed into a single number; #263 requires cold and warm
-kept distinct. `core-usage` remains a published startup/floor baseline and
-profiling evidence, and does not stand in for the cutover gate.
+**R1 — the user-visible path is `launcher-e2e`**, evaluated in two preregistered
+regimes, **`process-cold`** and **`warm`**. Both are primary strata of one
+user-visible surface and are never collapsed into a single number; #263 requires
+cold and warm runs kept distinct. `core-usage` remains a published startup/floor
+baseline and profiling evidence, and does not stand in for the cutover gate.
+
+The identifiers are the instrument's own, and this document uses no others:
+`process-cold` is a fresh process every iteration with no in-process warmup;
+`warm` is still a fresh process, after a stated number of discarded warmup
+iterations, with the OS and filesystem caches warm. `machine-cold` is **not
+claimed** by the instrument and is therefore not a gate, not a regime and not an
+alias for anything here. A bare `cold` is not an identifier in this contract.
 
 **R2 — peak RSS** remains a required resource gate wherever the contract provides
-a mechanism. Allocation and heap profiling is diagnostic, published for selected
+a mechanism, and it carries the same regime dimension as time. `peak_rss_bytes`
+is captured on every measured cell, and a cell's key includes its regime, so
+memory exists separately for `process-cold` and for `warm` rather than as one
+number beside the surface. `warm` memory may not hide inside `process-cold`
+memory, or the reverse. Allocation and heap profiling is diagnostic, published for selected
 workloads where practical; **a missing allocation profile is neither `INVALID`
 nor `FAIL`**, and no instrumentation is added under T0 to obtain one.
 
@@ -181,21 +205,32 @@ from this contract rather than filled — they are not part of it. Should a real
 profile later show the need for such a guardrail, it arrives as its own
 owner-ratified amendment, not as a silent passenger inside a preregistration.
 
-The primary gate set is therefore exactly:
+The primary gate set is therefore exactly **four** independent gates:
 
 ```text
-launcher-e2e, regime cold      (time)
-launcher-e2e, regime warm      (time)
-peak RSS on the same surface   (bytes)
+launcher-e2e / process-cold / elapsed time   (milliseconds)
+launcher-e2e / warm         / elapsed time   (milliseconds)
+launcher-e2e / process-cold / peak RSS       (bytes)
+launcher-e2e / warm         / peak RSS       (bytes)
 ```
 
-**Structural consequences, applied rather than re-decided.** Each primary gate is
-evaluated on its own by T0-4; nothing compensates anything else, because no
-compensation was ever granted. A surface whose strata disagree takes the worst
-outcome among them — `FAIL` over `NO_DECISION` over `PASS` — since both regimes
-are primary and neither may be discarded. Peak RSS is gated on the primary
-surface only: gating it on diagnostic rungs would reintroduce exactly the
-per-phase veto R4 removed.
+**No compensation, in either direction**: not between `process-cold` and `warm`,
+and not between time and memory. Four gates, each read on its own.
+
+The roll-up over them is the automaton of T0-4, applied without addition:
+
+```text
+any gate FAIL            => FAIL
+else any NO_DECISION     => NO_DECISION
+else                     => PASS
+```
+
+**Peak RSS is gated on `launcher-e2e` only.** The instrument captures
+`peak_rss_bytes` on every measured cell and those values are **published as
+diagnostic evidence**, but a memory number on a diagnostic rung never gates.
+Gating memory on the diagnostic rungs would reintroduce through the resource
+metric exactly the per-phase veto R4 removed, which is why the scope is named
+here rather than left to a reader.
 
 Every other surface in the table is **published, never gating**. A derived view
 may inform a reading and may never serve as a gate.
