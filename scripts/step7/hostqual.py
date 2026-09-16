@@ -14,6 +14,17 @@ This tool does NOT own the execution binding — that is `execbinding.py`. A
 utility that checks a CPU governor must not become the root of campaign
 identity.
 
+Artifact validity is not predicate outcome, and the exit codes say which is
+which:
+
+    0   a valid artifact, and the answer is yes
+    1   a valid artifact, and the answer is no — the record EXISTS and says so
+    2   a malformed input or an operational misuse; no record is produced
+
+A declaration of `false` is evidence, not damage. Only a document that is not the
+artifact it claims to be — wrong kind, wrong schema, a missing key, the string
+"false" where a boolean belongs — is refused before a record exists.
+
 Two classes of evidence, kept apart because only one of them is proof:
 
   DECLARED         provisioning and per-session operator facts. A guest OS
@@ -273,8 +284,17 @@ def _declared_na(value: object) -> bool:
 
 
 def validate_provisioning(doc: dict) -> list[str]:
-    """Shape AND value. A structurally perfect declaration of the wrong facts is
-    not a valid declaration, it is a refusal written politely."""
+    """SHAPE only.
+
+    Artifact validity is not predicate outcome. `dedicated_to_p022: false` is not
+    a damaged document — it is a perfectly good declaration that this host does
+    not qualify, and it has to survive long enough to become a record. Discarding
+    it before the artifact exists erases the negative attempts, and a laboratory
+    where every machine passes first time because the other tries "were not
+    artifacts" is not one anybody should trust.
+
+    So the string "false" is malformed and the boolean `false` is evidence.
+    """
     problems: list[str] = []
     if doc.get("kind") != PROVISIONING_SCHEMA:
         problems.append(f"kind is {doc.get('kind')!r}, not {PROVISIONING_SCHEMA!r}")
@@ -283,12 +303,9 @@ def validate_provisioning(doc: dict) -> list[str]:
     for key in PROVISIONING_STRINGS:
         if not isinstance(doc.get(key), str) or not doc.get(key):
             problems.append(f"{key} is missing or not a non-empty string")
-    for key in PROVISIONING_REQUIRED_TRUE:
-        if doc.get(key) is not True:
-            problems.append(f"{key} must be declared true, got {doc.get(key, '<missing>')!r}")
-    for key in PROVISIONING_REQUIRED_FALSE:
-        if doc.get(key) is not False:
-            problems.append(f"{key} must be declared false, got {doc.get(key, '<missing>')!r}")
+    for key in PROVISIONING_REQUIRED_TRUE + PROVISIONING_REQUIRED_FALSE:
+        if not isinstance(doc.get(key), bool):
+            problems.append(f"{key} must be a boolean, got {doc.get(key, '<missing>')!r}")
 
     virt = doc.get("virtualization")
     if not isinstance(virt, dict):
@@ -297,18 +314,37 @@ def validate_provisioning(doc: dict) -> list[str]:
     if not isinstance(is_vm, bool):
         return problems + [f"virtualization.is_vm must be a real boolean, got {is_vm!r}: "
                            "whether this is a VM is not a question a host may decline"]
+    # Applicability is shape; the answers themselves are the predicate's business.
     for key in PROVISIONING_VM_BOOLEANS:
         value = virt.get(key, "<missing>")
-        if is_vm:
-            if value is not True:
-                problems.append(f"virtualization.{key} must be true on a VM, got {value!r}")
-        elif not _declared_na(value):
+        if is_vm and not isinstance(value, bool):
+            problems.append(f"virtualization.{key} must be a boolean on a VM, got {value!r}")
+        elif not is_vm and not _declared_na(value):
             problems.append(f"virtualization.{key} must be an explicit 'n/a: <reason>' on a "
                             f"physical host, got {value!r}")
     return problems
 
 
+def provisioning_predicate(doc: dict) -> list[str]:
+    """VALUE. Every failure here becomes `qualified: false` in a real artifact."""
+    failures: list[str] = []
+    for key in PROVISIONING_REQUIRED_TRUE:
+        if doc.get(key) is not True:
+            failures.append(f"{key} is declared false")
+    for key in PROVISIONING_REQUIRED_FALSE:
+        if doc.get(key) is not False:
+            failures.append(f"{key} is declared true")
+    virt = doc.get("virtualization") or {}
+    if virt.get("is_vm") is True:
+        for key in PROVISIONING_VM_BOOLEANS:
+            if virt.get(key) is not True:
+                failures.append(f"virtualization.{key} is declared false; a VM that cannot "
+                                "promise it is not a measurement host")
+    return failures
+
+
 def validate_declaration(doc: dict) -> list[str]:
+    """SHAPE only, for the same reason as the provisioning declaration."""
     problems: list[str] = []
     if doc.get("kind") != DECLARATION_SCHEMA:
         problems.append(f"kind is {doc.get('kind')!r}, not {DECLARATION_SCHEMA!r}")
@@ -318,9 +354,16 @@ def validate_declaration(doc: dict) -> list[str]:
         if not isinstance(doc.get(key), str) or not doc.get(key):
             problems.append(f"{key} is missing or not a non-empty string")
     for key in DECLARATION_REQUIRED_TRUE:
-        if doc.get(key) is not True:
-            problems.append(f"{key} must be declared true, got {doc.get(key, '<missing>')!r}")
+        if not isinstance(doc.get(key), bool):
+            problems.append(f"{key} must be a boolean, got {doc.get(key, '<missing>')!r}")
     return problems
+
+
+def declaration_predicate(doc: dict) -> list[str]:
+    """VALUE. An operator who truthfully says a workload is running gets an
+    `eligible: false` record, not an error message and no evidence at all."""
+    return [f"{key} is declared false" for key in DECLARATION_REQUIRED_TRUE
+            if doc.get(key) is not True]
 
 
 ARTIFACT_VALIDATORS = {
@@ -353,10 +396,11 @@ def load_artifact(path: Path, kind: str) -> dict:
 
 
 def check_single_tenant(provisioning: dict, manifest: dict) -> dict[str, object]:
-    problems = validate_provisioning(provisioning)
-    if problems:
+    failures = provisioning_predicate(provisioning)
+    if failures:
         return check("single_tenant", False,
-                     "the provisioning declaration does not validate: " + "; ".join(problems))
+                     "the provisioning declaration is valid evidence that this host does not "
+                     "qualify: " + "; ".join(failures))
     identity = manifest.get("identity") if isinstance(manifest.get("identity"), dict) else {}
     mismatch = [k for k in ("environment_id", "host_fingerprint")
                 if observed(identity, k) != provisioning.get(k)]
@@ -619,7 +663,7 @@ def session_eligibility(binding_path: Path, qualification_path: Path, manifest_p
     binding = load_artifact(binding_path, "execution binding")
     qualification = load_artifact(qualification_path, "host qualification")
     manifest = load_artifact(manifest_path, "environment manifest")
-    load_artifact(declaration_path, "session declaration")
+    declaration = load_artifact(declaration_path, "session declaration")
     stratum = str(qualification["stratum"])
     bound = binding[stratum]
     identity = manifest["identity"]
@@ -632,6 +676,11 @@ def session_eligibility(binding_path: Path, qualification_path: Path, manifest_p
                        "host outside this campaign may not be substituted into it")
     if bound.get("memory_metric") != qualification.get("memory_metric"):
         reasons.append("the binding and the qualification disagree about the memory metric")
+
+    declared = declaration_predicate(declaration)
+    if declared:
+        reasons.append("the session declaration says this moment is not measurable: "
+                       + "; ".join(declared))
 
     ci = check_ci(manifest)
     snapshot = power_snapshot()

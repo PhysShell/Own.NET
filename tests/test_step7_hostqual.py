@@ -6,7 +6,9 @@
     hostqual-artifact-boundary     every consumed artifact is proved before it is read
     hostqual-t0-versioned          a qualification is versioned by the T0 it claims
     hostqual-ci-predicate          ci == false, not "the field is absent"
-    hostqual-provisioning-values   shape AND value; a VM that promises nothing fails
+    hostqual-provisioning-shape    malformed is malformed; a boolean false is not
+    hostqual-provisioning-predicate values are judged by the predicate, not the parser
+    hostqual-negative-evidence     an honest no leaves a record, not a stderr line
     hostqual-one-environment-id    one identity, not three strings that usually agree
     hostqual-quiesce-window        120 s means 120 s, of which 60 s is measured
     hostqual-quiesce-arithmetic    quiet passes; spike, mean, gap and rewind do not
@@ -418,37 +420,68 @@ def control_ci_predicate() -> None:
     ok("hostqual-ci-predicate", "ci == false; absent or non-boolean is refused")
 
 
-def control_provisioning_values() -> None:
-    if hq.validate_provisioning(provisioning()):
-        fail("hostqual-provisioning-values", "a valid physical-host declaration was refused")
-        return
-    if hq.validate_provisioning(vm_provisioning()):
-        fail("hostqual-provisioning-values", "a valid VM declaration was refused")
-        return
-    cases = [
-        ("dedicated_to_p022 false", provisioning(dedicated_to_p022=False)),
-        ("no_concurrent_user_workload false", provisioning(no_concurrent_user_workload=False)),
-        ("hosted_ci_runner true", provisioning(hosted_ci_runner=True)),
-        ("VM fixed_vcpu false", vm_provisioning(fixed_vcpu=False)),
-        ("VM fixed_ram false", vm_provisioning(fixed_ram=False)),
-        ("VM live_migration_disabled false", vm_provisioning(live_migration_disabled=False)),
-        ("VM dynamic_memory_disabled false", vm_provisioning(dynamic_memory_disabled=False)),
-        ("VM answering n/a", vm_provisioning(fixed_vcpu="n/a: do not ask")),
-        ("is_vm as n/a", provisioning(virtualization={"is_vm": "n/a: unclear"})),
-    ]
-    for label, doc in cases:
-        if not hq.validate_provisioning(doc):
-            fail("hostqual-provisioning-values", f"{label} was accepted")
+def control_provisioning_shape() -> None:
+    """Malformed is malformed; `false` is not malformed."""
+    for label, doc in (("a physical-host declaration", provisioning()),
+                       ("a VM declaration", vm_provisioning()),
+                       ("an honest negative", provisioning(dedicated_to_p022=False)),
+                       ("an honest VM negative", vm_provisioning(fixed_vcpu=False))):
+        if hq.validate_provisioning(doc):
+            fail("hostqual-provisioning-shape",
+                 f"{label} was refused as malformed: {hq.validate_provisioning(doc)}")
             return
-    physical_hole = provisioning()
-    physical_hole["virtualization"]["fixed_vcpu"] = True
-    if not hq.validate_provisioning(physical_hole):
-        fail("hostqual-provisioning-values",
-             "a physical host answering the VM questions with bare booleans was accepted")
+    malformed = [
+        ('the string "false" where a boolean belongs', provisioning(dedicated_to_p022="false")),
+        ("a missing required boolean",
+         {k: v for k, v in provisioning().items() if k != "dedicated_to_p022"}),
+        ("is_vm answered with n/a", provisioning(virtualization={"is_vm": "n/a: unclear"})),
+        ("a VM leaving a VM-only field out",
+         provisioning(virtualization={"is_vm": True, "fixed_vcpu": True, "fixed_ram": True,
+                                      "live_migration_disabled": True})),
+        ("a VM answering a VM-only field with n/a", vm_provisioning(fixed_vcpu="n/a: do not ask")),
+    ]
+    physical_bare = provisioning()
+    physical_bare["virtualization"]["fixed_vcpu"] = True
+    malformed.append(("a physical host answering VM questions with bare booleans", physical_bare))
+    for label, doc in malformed:
+        if not hq.validate_provisioning(doc):
+            fail("hostqual-provisioning-shape", f"{label} was accepted as a valid artifact")
+            return
+    ok("hostqual-provisioning-shape",
+       "wrong types, missing keys and inapplicable answers are malformed; a boolean `false` is "
+       "not, because a declaration that this host does not qualify is still a declaration")
+
+
+def control_provisioning_predicate() -> None:
+    if hq.provisioning_predicate(provisioning()) or hq.provisioning_predicate(vm_provisioning()):
+        fail("hostqual-provisioning-predicate", "a compliant declaration failed the predicate")
         return
-    ok("hostqual-provisioning-values",
-       "every required boolean is checked by VALUE: a VM that cannot promise fixed vCPU, fixed "
-       "RAM, no live migration or no dynamic memory fails, and 'n/a' is unavailable to it")
+    for label, doc in (("dedicated_to_p022 false", provisioning(dedicated_to_p022=False)),
+                       ("no_concurrent_user_workload false",
+                        provisioning(no_concurrent_user_workload=False)),
+                       ("hosted_ci_runner true", provisioning(hosted_ci_runner=True)),
+                       ("VM fixed_vcpu false", vm_provisioning(fixed_vcpu=False)),
+                       ("VM fixed_ram false", vm_provisioning(fixed_ram=False)),
+                       ("VM live_migration_disabled false",
+                        vm_provisioning(live_migration_disabled=False)),
+                       ("VM dynamic_memory_disabled false",
+                        vm_provisioning(dynamic_memory_disabled=False))):
+        if not hq.provisioning_predicate(doc):
+            fail("hostqual-provisioning-predicate", f"{label} satisfied the predicate")
+            return
+        if hq.check_single_tenant(doc, manifest())["result"] != "fail":
+            fail("hostqual-provisioning-predicate", f"{label} still qualified the host")
+            return
+    if hq.declaration_predicate(declaration()):
+        fail("hostqual-provisioning-predicate", "a compliant session declaration failed")
+        return
+    for key in hq.DECLARATION_REQUIRED_TRUE:
+        if not hq.declaration_predicate(declaration(**{key: False})):
+            fail("hostqual-provisioning-predicate", f"session declaration {key} false passed")
+            return
+    ok("hostqual-provisioning-predicate",
+       "every required value is judged by the predicate rather than by the parser, so each "
+       "failure can reach a record instead of a stream of errors")
 
 
 def control_one_environment_id() -> None:
@@ -831,6 +864,91 @@ def control_execbinding_no_overwrite() -> None:
 # --- the template and this file itself ---------------------------------------
 
 
+def control_negative_evidence() -> None:
+    """A refused host leaves a record saying so. Erasing negative attempts is how
+    a laboratory ends up with machines that pass on the first try because the
+    other tries were never artifacts."""
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        repo, commit, _digest, t0_path = instrument_repo(tmp)
+        mpath = write(tmp, "m.json", manifest())
+
+        def qualify_cli(name: str, prov: dict) -> tuple[int, Path]:
+            ppath = write(tmp, f"{name}-p.json", prov)
+            out = tmp / f"{name}-q.json"
+            with fixed_power(COMPLIANT_POWER):
+                rc = hq.main(["--qualify", "--stratum", "linux", "--repo", str(repo),
+                              "--t0-path", t0_path, "--t0-commit", commit,
+                              "--provisioning", str(ppath), "--manifest", str(mpath),
+                              "--emit", str(out)])
+            return rc, out
+
+        # N1 and N2: honest provisioning negatives
+        for label, prov, expect_key in (
+                ("n1", provisioning(dedicated_to_p022=False), "single_tenant"),
+                ("n1b", provisioning(no_concurrent_user_workload=False), "single_tenant"),
+                ("n2", vm_provisioning(fixed_vcpu=False), "single_tenant")):
+            rc, out = qualify_cli(label, prov)
+            if not out.is_file():
+                fail("hostqual-negative-evidence",
+                     f"{label}: a valid negative declaration produced no artifact at all")
+                return
+            record = json.loads(out.read_text(encoding="utf-8"))
+            if record.get("qualified") is not False:
+                fail("hostqual-negative-evidence", f"{label}: the record does not say qualified "
+                     f"false: {record.get('qualified')!r}")
+                return
+            if record.get("predicate", {}).get(expect_key) != "fail":
+                fail("hostqual-negative-evidence",
+                     f"{label}: {expect_key} is {record.get('predicate', {}).get(expect_key)!r}, "
+                     "so the record does not say WHY")
+                return
+            if rc != 1:
+                fail("hostqual-negative-evidence",
+                     f"{label}: exit code {rc}; a valid artifact with a negative outcome is 1")
+                return
+
+        # N4 and N5: malformed input produces no artifact and a different code
+        rc, out = qualify_cli("n4", provisioning(dedicated_to_p022="false"))
+        if out.is_file():
+            fail("hostqual-negative-evidence", "a malformed declaration produced an artifact")
+            return
+        if rc != 2:
+            fail("hostqual-negative-evidence",
+                 f"a malformed declaration exited {rc}; malformed input is 2, not 1")
+            return
+
+        # N3: an honest session negative still records eligibility
+        qpath = write(tmp, "q.json", qualification())
+        wpath = write(tmp, "qw.json", qualification("windows"))
+        bpath = write(tmp, "b.json", binding_doc(hq.sha256_file(qpath), hq.sha256_file(wpath)))
+        dpath = write(tmp, "d.json", declaration(no_prohibited_background_job_active=False))
+        cpath = tmp / "cand.bin"
+        cpath.write_bytes(LINUX_CANDIDATE)
+        quiet = {"eligible": True, "reason": "", "samples": [0.01], "mean": 0.01, "max": 0.01}
+        with fixed_power(COMPLIANT_POWER):
+            record = hq.session_eligibility(bpath, qpath, mpath, dpath, cpath,
+                                            quiesce_result=quiet)
+        if record["eligible"]:
+            fail("hostqual-negative-evidence", "a declared prohibited job left the session eligible")
+            return
+        if not any("declaration" in r for r in record["reasons"]):
+            fail("hostqual-negative-evidence",
+                 f"the eligibility record does not say why: {record['reasons']}")
+            return
+        malformed_d = write(tmp, "d-bad.json", declaration(no_campaign_workload="false"))
+        with fixed_power(COMPLIANT_POWER):
+            message = refuses(lambda: hq.session_eligibility(bpath, qpath, mpath, malformed_d,
+                                                             cpath, quiesce_result=quiet))
+        if message is None:
+            fail("hostqual-negative-evidence", "a malformed session declaration was consumed")
+            return
+    ok("hostqual-negative-evidence",
+       "an honest negative — host, VM or session — leaves a real artifact saying qualified/"
+       "eligible false and naming the reason, and exits 1; malformed input leaves nothing and "
+       "exits 2. The two classes never share a code")
+
+
 def control_provisioning_example() -> None:
     if not EXAMPLE.is_file():
         fail("provisioning-example-validates", f"{EXAMPLE} is missing")
@@ -899,7 +1017,9 @@ CONTROLS: list[tuple[str, Callable[[], None]]] = [
     ("hostqual-artifact-boundary", control_artifact_boundary),
     ("hostqual-t0-versioned", control_t0_versioned),
     ("hostqual-ci-predicate", control_ci_predicate),
-    ("hostqual-provisioning-values", control_provisioning_values),
+    ("hostqual-provisioning-shape", control_provisioning_shape),
+    ("hostqual-provisioning-predicate", control_provisioning_predicate),
+    ("hostqual-negative-evidence", control_negative_evidence),
     ("hostqual-one-environment-id", control_one_environment_id),
     ("hostqual-quiesce-window", control_quiesce_window),
     ("hostqual-quiesce-arithmetic", control_quiesce_arithmetic),
