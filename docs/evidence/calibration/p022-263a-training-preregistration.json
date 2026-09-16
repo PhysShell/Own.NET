@@ -30,8 +30,8 @@
   "anchor_commit": "eedf6d3ed44ecf7bda69fa509dcd23b45960cf76",
   "artifact": "p022-263a-calibration-training-preregistration",
   "bindings": {
-    "design_constants_blob_sha1": "d03c8455cbcaf71446f88aeea0957b8e0c56c880",
-    "measurement_harness_digest": "562a7f7232dad2f4c79c6adfe0e1e7e25680b4b6f3444d54824bf0405e3c14b3",
+    "design_constants_blob_sha1": "fa02f43bdf795e2f47d8ce781ec3a84f1dee64b5",
+    "measurement_harness_digest": "104c384d01bf6060bdec1e7c916053ddb04b97fcbd0b39f8a4fc57b8f139672f",
     "policy_implementation_digest": "c3068ed7fa880a7083866ead25fe8bf65c87889d242d8af1f7eee01582cd5cbf",
     "training_scope_implementation_digest": "614bf9efe6ba2bb10e26a251c10d6c4a8fdaa99985d43ea03d76c6774447d25b",
     "training_scope_root": "scripts/training/"
