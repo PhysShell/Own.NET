@@ -1112,18 +1112,43 @@ def environment_fingerprint() -> dict[str, object]:
 # --- peak RSS, by a NAMED tool (§8) ----------------------------------------
 
 
-class RssProbe:
-    """Peak resident set of a child process, captured by a NAMED mechanism.
+# The two kernel-native memory quantities this instrument can name. They are
+# NOT the same physical quantity, and a witness proves it rather than a manual
+# page: a child that commits 256 MiB and never touches a page reports 262.5 MiB
+# through the Windows job object and nothing resident on Linux. Both are
+# comparable Rust-vs-Python WITHIN one platform stratum; neither may be pooled
+# with, or compared against, the other across platforms.
+MEMORY_METRIC_RESIDENT = "max_process_peak_resident"
+MEMORY_METRIC_COMMIT = "max_process_peak_commit"
+MEMORY_METRICS: frozenset[str] = frozenset({MEMORY_METRIC_RESIDENT, MEMORY_METRIC_COMMIT})
 
-    POSIX: ``os.wait4`` — the kernel's own per-child accounting, ``ru_maxrss``
-    for exactly the process we spawned. Chosen over ``/usr/bin/time -v`` as the
+
+class MemoryProbe:
+    """Peak memory of a process tree, captured by a NAMED mechanism that also
+    NAMES WHICH QUANTITY it captured.
+
+    POSIX: ``os.wait4`` — the kernel's own accounting, ``ru_maxrss``, which is
+    the peak RESIDENT set of the child and of the descendants it waited for: a
+    witness run of shell -> child and shell -> shell -> child returns the heavy
+    descendant's peak, not the shell's. Chosen over ``/usr/bin/time -v`` as the
     primary because GNU time is a package that may simply be absent (it is
     absent on the container this was first calibrated on), and "the tool was
     missing" is not a memory measurement. ``/usr/bin/time -v`` remains as the
-    documented fallback where wait4 is unavailable.
+    documented fallback where wait4 is unavailable, and reports the same
+    quantity.
 
     Windows: a Job Object, read through ``QueryInformationJobObject`` for
-    ``PeakProcessMemoryUsed``.
+    ``PeakProcessMemoryUsed`` — the peak COMMITTED memory of any process ever
+    associated with the job. Committed, not resident: job and process memory
+    limits are defined on committed virtual memory, and the witness above shows
+    an untouched commit counted in full. The resident analogue would be
+    ``PeakWorkingSetSize`` per process, which for a tree of processes that come
+    and go needs handle tracking or polling; this instrument does not sample,
+    and will not perturb the elapsed-time interval to make two operating systems
+    pronounce the same noun.
+
+    So the quantity travels WITH the number, in ``memory_metric``. Downstream
+    code never infers the semantics from ``sys.platform``.
 
     Anywhere else: None WITH A REASON, so a silent absence can never be read as
     a measured zero.
@@ -1131,15 +1156,19 @@ class RssProbe:
 
     def __init__(self) -> None:
         self.reason = ""
+        self.metric = ""
         if hasattr(os, "wait4"):
             self.mechanism = "posix os.wait4 (ru_maxrss)"
+            self.metric = MEMORY_METRIC_RESIDENT
         elif os.name == "nt":
             self.mechanism = "win32 job object (PeakProcessMemoryUsed)"
+            self.metric = MEMORY_METRIC_COMMIT
         elif Path("/usr/bin/time").is_file():
             self.mechanism = "/usr/bin/time -v"
+            self.metric = MEMORY_METRIC_RESIDENT
         else:
             self.mechanism = "none"
-            self.reason = f"no named RSS mechanism on {sys.platform}"
+            self.reason = f"no named memory mechanism on {sys.platform}"
 
     # ru_maxrss is kilobytes on Linux and bytes on macOS/BSD. Recorded, because
     # a memory number whose unit was guessed is worse than none.
@@ -1565,7 +1594,7 @@ def rusage_seconds_to_ns(seconds: float) -> int:
 class Harness:
     gate: IdentityGate
     session: SessionIdentity
-    rss: RssProbe
+    memory: MemoryProbe
     tmp: Path
     candidate: Path
     warmup_discards: int
@@ -1609,9 +1638,9 @@ class Harness:
         left inside: moving them would tighten it, and a tightened interval
         silently un-compares every future number against every recorded one.
         """
-        wrapped, sidecar = self.rss.wrap(argv, self.tmp)
+        wrapped, sidecar = self.memory.wrap(argv, self.tmp)
         job = None
-        if os.name == "nt" and self.rss.mechanism.startswith("win32"):
+        if os.name == "nt" and self.memory.mechanism.startswith("win32"):
             job = ctypes.windll.kernel32.CreateJobObjectW(None, None)  # type: ignore[attr-defined]
         peak: int | None = None
         why = ""
@@ -1624,14 +1653,14 @@ class Harness:
         if job:
             ctypes.windll.kernel32.AssignProcessToJobObject(  # type: ignore[attr-defined]
                 job, int(proc._handle))  # type: ignore[attr-defined]
-        if self.rss.mechanism.startswith("posix"):
+        if self.memory.mechanism.startswith("posix"):
             # Reap through wait4 so the kernel hands back THIS child's rusage.
             _, status, ru = os.wait4(proc.pid, 0)
             proc.returncode = os.waitstatus_to_exitcode(status)
             rc = proc.returncode
             elapsed = time.perf_counter_ns() - t0
             # --- the clock is stopped; everything below is bookkeeping -------
-            peak = int(ru.ru_maxrss) * self.rss.maxrss_unit_bytes
+            peak = int(ru.ru_maxrss) * self.memory.maxrss_unit_bytes
             accounting = {
                 "cpu_user_ns": rusage_seconds_to_ns(ru.ru_utime),
                 "cpu_system_ns": rusage_seconds_to_ns(ru.ru_stime),
@@ -1643,19 +1672,26 @@ class Harness:
         else:
             rc = proc.wait()
             elapsed = time.perf_counter_ns() - t0
-            peak = self.rss.read(sidecar)
+            peak = self.memory.read(sidecar)
             if peak is None and job:
-                peak, why = self.rss.read_windows_peak(job)
+                peak, why = self.memory.read_windows_peak(job)
             accounting_why = (
                 "per-child CPU, fault and context-switch accounting comes from os.wait4's "
                 f"rusage, which is not available here (platform {sys.platform!r}, RSS "
-                f"mechanism {self.rss.mechanism!r}); these fields were not measured")
+                f"mechanism {self.memory.mechanism!r}); these fields were not measured")
         if job:
             ctypes.windll.kernel32.CloseHandle(job)  # type: ignore[attr-defined]
         if sidecar is not None and sidecar.is_file():
             sidecar.unlink()
-        return {"elapsed_ns": elapsed, "rc": rc, "peak_rss_bytes": peak,
-                "rss_unavailable_reason": why or (self.rss.reason if peak is None else ""),
+        if peak is not None and self.memory.metric not in MEMORY_METRICS:
+            # Fail closed. A number whose quantity is unnamed is worse than no
+            # number: downstream it would be read as whatever the reader assumed.
+            raise InstrumentError(
+                f"the memory probe produced a value under an unknown metric kind "
+                f"{self.memory.metric!r}; the declared set is {sorted(MEMORY_METRICS)}")
+        return {"elapsed_ns": elapsed, "rc": rc, "peak_memory_bytes": peak,
+                "memory_metric": self.memory.metric if peak is not None else "",
+                "memory_unavailable_reason": why or (self.memory.reason if peak is None else ""),
                 **accounting,
                 "accounting_unavailable_reason": accounting_why}
 
@@ -1757,7 +1793,7 @@ class Harness:
                 "argv": ([*argv[:1], "<...>"] if rung.surface == "core"
                          else [*argv[:2], "<...>"]),
                 "outcome": outcome,
-                "timing": None, "peak_rss": None, "accounting": None,
+                "timing": None, "peak_memory": None, "accounting": None,
                 "raw_elapsed_ns": [], "raw_accounting": [],
                 "not_timed_because": "the rung did not do its work; measuring it would time "
                                      "the wrong path",
@@ -1791,13 +1827,16 @@ class Harness:
             "exit_codes": rcs,
             "warmup_discarded": len(discarded),
             "timing": summarize([_as_int(s["elapsed_ns"]) for s in samples]),
-            "peak_rss": summarize(
-                [_as_int(s["peak_rss_bytes"]) for s in samples if s["peak_rss_bytes"] is not None],
+            "peak_memory": summarize(
+                [_as_int(s["peak_memory_bytes"]) for s in samples if s["peak_memory_bytes"] is not None],
                 unit="bytes"),
-            "rss_mechanism": self.rss.mechanism,
-            "rss_unavailable_reason": next(
-                (str(s["rss_unavailable_reason"]) for s in samples
-                 if s["peak_rss_bytes"] is None and s["rss_unavailable_reason"]), ""),
+            "memory_mechanism": self.memory.mechanism,
+            # WHICH quantity, beside HOW it was obtained. A cell that carries a
+            # number carries the name of what the number is.
+            "memory_metric": self.memory.metric,
+            "memory_unavailable_reason": next(
+                (str(s["memory_unavailable_reason"]) for s in samples
+                 if s["peak_memory_bytes"] is None and s["memory_unavailable_reason"]), ""),
             # Summarized over the samples that HAVE the field. Where the
             # platform offers no rusage every one of these is {"n": 0} and the
             # reason below says why — an absence that reads as an absence,
@@ -1809,7 +1848,7 @@ class Harness:
                 (str(s["accounting_unavailable_reason"]) for s in samples
                  if s["accounting_unavailable_reason"]), ""),
             "raw_elapsed_ns": [_as_int(s["elapsed_ns"]) for s in samples],  # §9: raw retained
-            "raw_peak_rss_bytes": [s["peak_rss_bytes"] for s in samples],
+            "raw_peak_memory_bytes": [s["peak_memory_bytes"] for s in samples],
             "raw_accounting": [{name: s[name] for name in ACCOUNTING_FIELDS} for s in samples],
             "tag": CALIBRATION_ONLY,
         }
@@ -2273,7 +2312,7 @@ def selftest() -> int:
 
     # The firewall, exercised rather than asserted.
     with tempfile.TemporaryDirectory(prefix="perf-selftest-") as td:
-        h = Harness(gate=gate, session=SessionIdentity("", "", 0, ""), rss=RssProbe(),
+        h = Harness(gate=gate, session=SessionIdentity("", "", 0, ""), memory=MemoryProbe(),
                     tmp=Path(td), candidate=Path("/nonexistent"), warmup_discards=1,
                     repetitions=1, seed=0)
         for w in workloads:
@@ -2358,7 +2397,7 @@ def main(argv: list[str] | None = None) -> int:
     session = SessionIdentity.freeze(candidate)
     before = noise_probe()
     with tempfile.TemporaryDirectory(prefix="perf-cal-") as td:
-        h = Harness(gate=gate, session=session, rss=RssProbe(), tmp=Path(td),
+        h = Harness(gate=gate, session=session, memory=MemoryProbe(), tmp=Path(td),
                     candidate=candidate, warmup_discards=a.warmup, repetitions=a.repeat,
                     seed=a.seed)
         cal = [w for w in workloads if not w.decisive]

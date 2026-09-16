@@ -660,8 +660,8 @@ class _FakeHarness:
                   cwd: Path) -> dict[str, object]:
         rc = self.codes[self.spawns] if self.spawns < len(self.codes) else 0
         self.spawns += 1
-        return {"elapsed_ns": 1_000_000, "rc": rc, "peak_rss_bytes": 1024,
-                "rss_unavailable_reason": "", "accounting_unavailable_reason": ""}
+        return {"elapsed_ns": 1_000_000, "rc": rc, "peak_memory_bytes": 1024,
+                "memory_unavailable_reason": "", "accounting_unavailable_reason": ""}
 
 
 def control_outcome_contract() -> None:
