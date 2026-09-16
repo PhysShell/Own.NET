@@ -140,11 +140,44 @@ def t0_at(repo: Path, path: str, commit: str) -> dict[str, object]:
             "sha256": sha256_bytes(raw), "status": declared}
 
 
+def validate_qualification(doc: object) -> list[str]:
+    """The one qualification validator. `hostqual` reuses this rather than keeping
+    a second opinion: the module that binds campaigns is the lower one, so there
+    is no import cycle and no drift between two copies of the same rules."""
+    if not isinstance(doc, dict):
+        return ["the qualification is not a JSON object"]
+    problems = []
+    if doc.get("kind") != QUALIFICATION_SCHEMA:
+        problems.append(f"kind is {doc.get('kind')!r}, not {QUALIFICATION_SCHEMA!r}")
+    if doc.get("schema") != SCHEMA_VERSION:
+        problems.append(f"schema is {doc.get('schema')!r}, not {SCHEMA_VERSION}")
+    stratum = doc.get("stratum")
+    if stratum not in STRATUM_METRIC:
+        problems.append(f"stratum is {stratum!r}")
+    elif doc.get("memory_metric") != STRATUM_METRIC[stratum]:
+        problems.append(f"memory_metric {doc.get('memory_metric')!r} does not belong to "
+                        f"stratum {stratum!r}")
+    t0 = doc.get("t0")
+    if not isinstance(t0, dict) or not t0.get("sha256") or not t0.get("commit"):
+        problems.append("t0 does not name a commit and a sha256")
+    for key in ("environment_id", "host_fingerprint", "environment_identity_sha256"):
+        if not doc.get(key):
+            problems.append(f"{key} is missing")
+    if not isinstance(doc.get("power_snapshot"), dict):
+        problems.append("power_snapshot is missing")
+    if not isinstance(doc.get("qualified"), bool):
+        problems.append("qualified is not a boolean")
+    return problems
+
+
 def _stratum_block(stratum: str, qualification_path: Path, candidate_path: Path,
                    t0_block: dict) -> dict[str, object]:
     doc = json.loads(qualification_path.read_text(encoding="utf-8"))
-    if doc.get("kind") != QUALIFICATION_SCHEMA:
-        raise BindingRefused(f"{qualification_path} is not a host-qualification artifact")
+    problems = validate_qualification(doc)
+    if problems:
+        raise BindingRefused(
+            f"{qualification_path} does not validate as a host qualification: "
+            + "; ".join(problems))
     if doc.get("stratum") != stratum:
         raise BindingRefused(
             f"{qualification_path} declares stratum {doc.get('stratum')!r}, bound as {stratum!r}")
@@ -245,9 +278,18 @@ def verify(repo: Path, binding_path: Path, qualifications: dict[str, Path],
            candidates: dict[str, Path]) -> list[str]:
     """Re-prove every bound component that can drift or be substituted.
 
-    A verifier whose docstring says campaign identity while it checks two hashes
-    is a future incident report.
+    There is no partial mode. A verifier that silently narrows to whatever it was
+    handed will eventually be called with two arguments missing, and the string
+    `binding verified` will be filed as evidence that nobody checked the hosts.
+    Incomplete inputs are refused here, not only in argparse, because the next
+    caller may be a script.
     """
+    incomplete = ([f"qualification for {s}" for s in STRATA if s not in qualifications]
+                  + [f"candidate for {s}" for s in STRATA if s not in candidates])
+    if incomplete:
+        return [f"full verification requires both qualification and candidate inputs for "
+                f"linux and windows; missing {incomplete}. There is no partial verification "
+                f"under this name"]
     binding = json.loads(binding_path.read_text(encoding="utf-8"))
     problems = validate(binding)
 
@@ -323,10 +365,17 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.verify:
-        qualifications = {s: p for s, p in (("linux", args.linux), ("windows", args.windows))
-                          if p is not None}
-        candidates = {s: p for s, p in (("linux", args.linux_candidate),
-                                        ("windows", args.windows_candidate)) if p is not None}
+        needed = {"linux": args.linux, "windows": args.windows,
+                  "linux-candidate": args.linux_candidate,
+                  "windows-candidate": args.windows_candidate}
+        absent = sorted(k for k, v in needed.items() if v is None)
+        if absent:
+            # Refusing to run beats running half of it and printing the word
+            # "verified" over the half that was skipped.
+            parser.error(f"--verify performs the FULL campaign verification and requires "
+                         f"{['--' + k for k in absent]}")
+        qualifications = {"linux": args.linux, "windows": args.windows}
+        candidates = {"linux": args.linux_candidate, "windows": args.windows_candidate}
         problems = verify(args.repo, args.verify, qualifications, candidates)
         for problem in problems:
             print(f"BINDING-DRIFT: {problem}")

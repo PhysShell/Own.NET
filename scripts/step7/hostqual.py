@@ -47,11 +47,17 @@ import sys
 import time
 from pathlib import Path
 
+import execbinding as eb  # sibling tool: one validator per artifact type, not five call sites
+
 QUALIFICATION_SCHEMA = "own.net/p022/host-qualification"
 ELIGIBILITY_SCHEMA = "own.net/p022/session-eligibility"
 ADMISSIBILITY_SCHEMA = "own.net/p022/session-admissibility"
 PROVISIONING_SCHEMA = "own.net/p022/host-provisioning"
 DECLARATION_SCHEMA = "own.net/p022/session-declaration"
+# The producer's own schema string, duplicated rather than imported so this tool
+# stays independent of the capture tool. `hostqual-producer-schema` proves the
+# copy still equals what envcapture emits, so the decoupling cannot rot quietly.
+ENVCAPTURE_SCHEMA = "p022-263a-step7-environment-identity"
 SCHEMA_VERSION = 1
 
 # The closed memory vocabulary, declared rather than imported so this tool never
@@ -164,6 +170,64 @@ def check(name: str, ok: bool, detail: str) -> dict[str, object]:
     return {"check": name, "result": "pass" if ok else "fail", "detail": detail}
 
 
+# --- the boundary: parse bytes, prove the artifact, then read semantics ------
+
+
+def validate_manifest(doc: object) -> list[str]:
+    """An environment manifest is what the capture tool emitted, not any JSON
+    that happens to carry an `identity` key. Inferring a type from the presence
+    of two keys is how a hand-written file becomes campaign evidence."""
+    if not isinstance(doc, dict):
+        return ["the environment manifest is not a JSON object"]
+    problems = []
+    if doc.get("schema") != ENVCAPTURE_SCHEMA:
+        problems.append(f"schema is {doc.get('schema')!r}, not {ENVCAPTURE_SCHEMA!r}")
+    if not isinstance(doc.get("identity"), dict) or not doc.get("identity"):
+        problems.append("identity is missing or empty")
+    provenance = doc.get("provenance")
+    if not isinstance(provenance, dict):
+        problems.append("provenance is missing")
+    elif not isinstance(provenance.get("ci"), bool):
+        problems.append("provenance.ci is missing or not a boolean")
+    return problems
+
+
+# One validator, owned by the module that binds campaigns, reused here. Two
+# copies of the same rules is how a qualification passes one consumer and fails
+# the next.
+validate_qualification = eb.validate_qualification
+
+
+def validate_binding(doc: object) -> list[str]:
+    if not isinstance(doc, dict):
+        return ["the execution binding is not a JSON object"]
+    problems = []
+    if doc.get("kind") != eb.BINDING_SCHEMA:
+        problems.append(f"kind is {doc.get('kind')!r}, not {eb.BINDING_SCHEMA!r}")
+    if doc.get("schema") != SCHEMA_VERSION:
+        problems.append(f"schema is {doc.get('schema')!r}, not {SCHEMA_VERSION}")
+    return problems + eb.validate(doc)
+
+
+def validate_eligibility(doc: object) -> list[str]:
+    if not isinstance(doc, dict):
+        return ["the preflight record is not a JSON object"]
+    problems = []
+    if doc.get("kind") != ELIGIBILITY_SCHEMA:
+        problems.append(f"kind is {doc.get('kind')!r}, not {ELIGIBILITY_SCHEMA!r}")
+    if doc.get("schema") != SCHEMA_VERSION:
+        problems.append(f"schema is {doc.get('schema')!r}, not {SCHEMA_VERSION}")
+    for key in ("execution_binding_sha256", "qualification_sha256",
+                "environment_identity_sha256"):
+        if not doc.get(key):
+            problems.append(f"{key} is missing")
+    if not isinstance(doc.get("power_snapshot"), dict):
+        problems.append("power_snapshot is missing")
+    if not isinstance(doc.get("eligible"), bool):
+        problems.append("eligible is not a boolean")
+    return problems
+
+
 # --- T0: a qualification is versioned by the protocol it claims to satisfy ---
 
 
@@ -257,6 +321,35 @@ def validate_declaration(doc: dict) -> list[str]:
         if doc.get(key) is not True:
             problems.append(f"{key} must be declared true, got {doc.get(key, '<missing>')!r}")
     return problems
+
+
+ARTIFACT_VALIDATORS = {
+    "environment manifest": validate_manifest,
+    "host qualification": validate_qualification,
+    "execution binding": validate_binding,
+    "session eligibility": validate_eligibility,
+    "host provisioning": validate_provisioning,
+    "session declaration": validate_declaration,
+}
+
+
+def load_artifact(path: Path, kind: str) -> dict:
+    """Parse, prove, then hand over.
+
+    One validator per artifact type rather than an ad-hoc `if doc.get("kind")` at
+    five call sites, and no path that reads a field before the type is
+    established.
+    """
+    validator = ARTIFACT_VALIDATORS[kind]
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise QualificationRefused(f"{path} is not readable JSON: {exc}") from exc
+    problems = validator(doc)
+    if problems:
+        raise QualificationRefused(
+            f"{path} does not validate as a {kind}: " + "; ".join(problems))
+    return doc
 
 
 def check_single_tenant(provisioning: dict, manifest: dict) -> dict[str, object]:
@@ -467,9 +560,9 @@ def qualify(stratum: str, repo: Path, t0_path: str, t0_commit: str,
             provisioning_path: Path, manifest_path: Path) -> dict[str, object]:
     if stratum not in STRATUM_METRIC:
         raise QualificationRefused(f"unknown stratum {stratum!r}")
-    provisioning = json.loads(provisioning_path.read_text(encoding="utf-8"))
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    identity = manifest.get("identity") if isinstance(manifest.get("identity"), dict) else {}
+    provisioning = load_artifact(provisioning_path, "host provisioning")
+    manifest = load_artifact(manifest_path, "environment manifest")
+    identity = manifest["identity"]
 
     t0_block, t0_check = bind_t0(repo, t0_path, t0_commit)
     environment_id = observed(identity, "environment_id")
@@ -523,13 +616,13 @@ def _candidate_check(binding_block: dict, candidate_path: Path) -> dict[str, obj
 def session_eligibility(binding_path: Path, qualification_path: Path, manifest_path: Path,
                         declaration_path: Path, candidate_path: Path,
                         quiesce_result: dict[str, object] | None = None) -> dict[str, object]:
-    binding = json.loads(binding_path.read_text(encoding="utf-8"))
-    qualification = json.loads(qualification_path.read_text(encoding="utf-8"))
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    declaration = json.loads(declaration_path.read_text(encoding="utf-8"))
-    stratum = str(qualification.get("stratum"))
-    bound = binding.get(stratum) if isinstance(binding.get(stratum), dict) else {}
-    identity = manifest.get("identity") if isinstance(manifest.get("identity"), dict) else {}
+    binding = load_artifact(binding_path, "execution binding")
+    qualification = load_artifact(qualification_path, "host qualification")
+    manifest = load_artifact(manifest_path, "environment manifest")
+    load_artifact(declaration_path, "session declaration")
+    stratum = str(qualification["stratum"])
+    bound = binding[stratum]
+    identity = manifest["identity"]
     reasons: list[str] = []
 
     if not qualification.get("qualified"):
@@ -539,11 +632,6 @@ def session_eligibility(binding_path: Path, qualification_path: Path, manifest_p
                        "host outside this campaign may not be substituted into it")
     if bound.get("memory_metric") != qualification.get("memory_metric"):
         reasons.append("the binding and the qualification disagree about the memory metric")
-
-    declaration_problems = validate_declaration(declaration)
-    if declaration_problems:
-        reasons.append("the session declaration does not validate: "
-                       + "; ".join(declaration_problems))
 
     ci = check_ci(manifest)
     snapshot = power_snapshot()
@@ -597,13 +685,13 @@ def session_admissibility(binding_path: Path, qualification_path: Path, prefligh
     did after it started, and an attempt that drifted mid-flight has to be
     caught by evidence taken after it, not before.
     """
-    binding = json.loads(binding_path.read_text(encoding="utf-8"))
-    qualification = json.loads(qualification_path.read_text(encoding="utf-8"))
-    preflight = json.loads(preflight_path.read_text(encoding="utf-8"))
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    stratum = str(qualification.get("stratum"))
-    bound = binding.get(stratum) if isinstance(binding.get(stratum), dict) else {}
-    identity = manifest.get("identity") if isinstance(manifest.get("identity"), dict) else {}
+    binding = load_artifact(binding_path, "execution binding")
+    qualification = load_artifact(qualification_path, "host qualification")
+    preflight = load_artifact(preflight_path, "session eligibility")
+    manifest = load_artifact(manifest_path, "environment manifest")
+    stratum = str(qualification["stratum"])
+    bound = binding[stratum]
+    identity = manifest["identity"]
     binding_sha = sha256_file(binding_path)
     reasons: list[str] = []
 
@@ -686,26 +774,34 @@ def main(argv: list[str] | None = None) -> int:
         if absent:
             parser.error(f"--{flag} requires {['--' + n for n in absent]}")
 
-    if args.qualify:
-        require("qualify", ("stratum", "t0-path", "t0-commit", "provisioning", "manifest"))
-        record = qualify(args.stratum, args.repo, args.t0_path, args.t0_commit,
-                         args.provisioning, args.manifest)
-        ok = bool(record["qualified"])
-    elif args.session_preflight:
-        require("session-preflight",
-                ("binding", "qualification", "manifest", "declaration", "candidate"))
-        record = session_eligibility(args.binding, args.qualification, args.manifest,
-                                     args.declaration, args.candidate)
-        ok = bool(record["eligible"])
-    elif args.session_postflight:
-        require("session-postflight",
-                ("binding", "qualification", "preflight", "manifest", "candidate",
-                 "closing-probe"))
-        record = session_admissibility(args.binding, args.qualification, args.preflight,
-                                       args.manifest, args.candidate, args.closing_probe)
-        ok = bool(record["admissible"])
-    else:
-        parser.error("choose --qualify, --session-preflight, --session-postflight or --selftest")
+    try:
+        if args.qualify:
+            require("qualify", ("stratum", "t0-path", "t0-commit", "provisioning", "manifest"))
+            record = qualify(args.stratum, args.repo, args.t0_path, args.t0_commit,
+                             args.provisioning, args.manifest)
+            ok = bool(record["qualified"])
+        elif args.session_preflight:
+            require("session-preflight",
+                    ("binding", "qualification", "manifest", "declaration", "candidate"))
+            record = session_eligibility(args.binding, args.qualification, args.manifest,
+                                         args.declaration, args.candidate)
+            ok = bool(record["eligible"])
+        elif args.session_postflight:
+            require("session-postflight",
+                    ("binding", "qualification", "preflight", "manifest", "candidate",
+                     "closing-probe"))
+            record = session_admissibility(args.binding, args.qualification, args.preflight,
+                                           args.manifest, args.candidate, args.closing_probe)
+            ok = bool(record["admissible"])
+        else:
+            parser.error("choose --qualify, --session-preflight, --session-postflight "
+                         "or --selftest")
+    except QualificationRefused as exc:
+        # An input that is not the artifact it claims to be is an operator error,
+        # never a session that merely failed a predicate. It gets its own exit
+        # code so a caller cannot read it as "measured, and not eligible".
+        print(f"refused: {exc}", file=sys.stderr)
+        return 2
 
     text = json.dumps(record, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
     if args.emit:

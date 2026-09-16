@@ -2,6 +2,8 @@
 """#263 step 7 — controls on qualification, eligibility, admissibility and binding.
 
     hostqual-memory-vocabulary     one closed set, three files, no drift
+    hostqual-producer-schema       the duplicated schema string still equals the producer's
+    hostqual-artifact-boundary     every consumed artifact is proved before it is read
     hostqual-t0-versioned          a qualification is versioned by the T0 it claims
     hostqual-ci-predicate          ci == false, not "the field is absent"
     hostqual-provisioning-values   shape AND value; a VM that promises nothing fails
@@ -12,11 +14,14 @@
     hostqual-candidate-at-start    the executable present must be the one bound
     hostqual-postflight            drift during the session is caught after it
     hostqual-one-binding           two campaign identities cannot meet in one session
+    hostqual-power-ac-and-dc       compliant on AC only is not a fixed environment
     execbinding-proves-inputs      T0, digest and manifest are proved, not trusted
     execbinding-old-t0             a host qualified under another T0 cannot enter
     execbinding-verify-campaign    the verifier checks the campaign, not two hashes
+    execbinding-verify-is-total    there is no partial verification under that name
     execbinding-no-overwrite       a rebuild is deliberate, never silent
     provisioning-example-validates the template still fits the schema it teaches
+    control-inventory-complete     this list and the executed set are the same set
     tools-do-not-import-harness    qualification never reaches into the instrument
 
 Git-dependent controls build a throwaway repository, so T0 and instrument
@@ -33,6 +38,7 @@ import ast
 import contextlib
 import io
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -43,6 +49,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "scripts" / "step7"))
 
+import envcapture as ec  # noqa: E402
 import execbinding as eb  # noqa: E402
 import hostqual as hq  # noqa: E402
 import perf_baseline as pb  # noqa: E402
@@ -70,6 +77,15 @@ def guarded(check: str, control: Callable[[], None]) -> None:
         fail(check, f"the control raised {type(exc).__name__}: {exc}")
 
 
+def refuses(call: Callable[[], object]) -> str | None:
+    """The refusal message, or None when the call went through."""
+    try:
+        call()
+    except hq.QualificationRefused as exc:
+        return str(exc)
+    return None
+
+
 # --- fixtures ---------------------------------------------------------------
 
 
@@ -77,11 +93,14 @@ T0_FROZEN = "# T0\n\n```text\nStatus:\n  FROZEN.\n  collection_authorized: true\
 T0_OPEN = "# T0\n\n```text\nStatus:\n  NOT_FROZEN.\n  collection_authorized: false\n```\n"
 
 # A compliant Windows snapshot, used as a fixture on every platform so the
-# Windows rules are driven on Linux too — and so these controls do not depend on
-# whatever the machine running them happens to have in its power plan.
+# Windows rules are driven on Linux too, and so these controls do not depend on
+# whatever the machine running them has in its power plan.
 COMPLIANT_POWER = {"platform": "windows", "plan_guid": hq.WIN_ACCEPTED_PLANS[0],
                    "processor_min_ac": 100, "processor_max_ac": 100,
                    "processor_min_dc": 100, "processor_max_dc": 100}
+
+LINUX_CANDIDATE = b"linux candidate bytes"
+WINDOWS_CANDIDATE = b"windows candidate, a different length"
 
 
 @contextlib.contextmanager
@@ -96,8 +115,10 @@ def fixed_power(snapshot: dict):
 
 def git_repo(tmp: Path, files: dict[str, str], message: str = "fixture") -> str:
     tmp.mkdir(parents=True, exist_ok=True)
+
     def run(*args: str) -> subprocess.CompletedProcess:
         return subprocess.run(["git", "-C", str(tmp), *args], capture_output=True, check=True)
+
     if not (tmp / ".git").exists():
         run("init", "-q")
         run("config", "user.email", "control@example.invalid")
@@ -113,8 +134,9 @@ def git_repo(tmp: Path, files: dict[str, str], message: str = "fixture") -> str:
 
 
 def manifest(ci: bool = False, fingerprint: str = "sha256:abc", environment_id: str = "env-1",
-             kernel: str = "6.1.0") -> dict:
+             kernel: str = "6.1.0", schema: str | None = None) -> dict:
     return {
+        "schema": hq.ENVCAPTURE_SCHEMA if schema is None else schema,
         "identity": {
             "environment_id": {"status": "observed", "value": environment_id},
             "host_fingerprint": {"status": "observed", "value": fingerprint},
@@ -158,11 +180,15 @@ def declaration(**overrides: object) -> dict:
     return doc
 
 
+def t0_stub() -> dict:
+    return {"commit": "c" * 40, "path": "t0.md", "blob_sha": "b" * 40,
+            "sha256": "f" * 64, "status": "FROZEN"}
+
+
 def qualification(stratum: str = "linux", t0: dict | None = None, **overrides) -> dict:
     doc: dict[str, object] = {
-        "kind": "own.net/p022/host-qualification", "schema": 1, "stratum": stratum,
-        "t0": t0 or {"commit": "c" * 40, "path": "t0.md", "blob_sha": "b" * 40,
-                     "sha256": "f" * 64, "status": "FROZEN"},
+        "kind": hq.QUALIFICATION_SCHEMA, "schema": 1, "stratum": stratum,
+        "t0": t0 or t0_stub(),
         "environment_id": "env-1", "host_fingerprint": "sha256:abc",
         "environment_identity_sha256": hq.canonical_sha256(manifest()["identity"]),
         "provisioning": {"sha256": "0" * 64},
@@ -176,6 +202,33 @@ def qualification(stratum: str = "linux", t0: dict | None = None, **overrides) -
     return doc
 
 
+def binding_doc(linux_qual_sha: str, windows_qual_sha: str, t0: dict | None = None,
+                linux_candidate: bytes = LINUX_CANDIDATE,
+                windows_candidate: bytes = WINDOWS_CANDIDATE) -> dict:
+    """A structurally complete binding, so a control that means to attack one
+    field is not passing because the whole document was malformed."""
+    block = t0 or t0_stub()
+    return {
+        "kind": eb.BINDING_SCHEMA, "schema": 1,
+        "t0": block,
+        "instrument": {"accepted_commit": "a" * 40, "harness_digest": "d" * 64},
+        "workloads": {"path": eb.WORKLOAD_MANIFEST, "manifest_sha256": "9" * 64},
+        "linux": {"qualification_sha256": linux_qual_sha, "environment_id": "env-1",
+                  "host_fingerprint": "sha256:abc",
+                  "environment_identity_sha256": hq.canonical_sha256(manifest()["identity"]),
+                  "candidate_sha256": hq.sha256_bytes(linux_candidate),
+                  "candidate_bytes": len(linux_candidate),
+                  "memory_metric": hq.STRATUM_METRIC["linux"]},
+        "windows": {"qualification_sha256": windows_qual_sha, "environment_id": "env-2",
+                    "host_fingerprint": "sha256:def",
+                    "environment_identity_sha256": "e" * 64,
+                    "candidate_sha256": hq.sha256_bytes(windows_candidate),
+                    "candidate_bytes": len(windows_candidate),
+                    "memory_metric": hq.STRATUM_METRIC["windows"]},
+        "bound_at": "2026-09-16T00:00:00+00:00",
+    }
+
+
 def write(tmp: Path, name: str, doc: dict) -> Path:
     path = tmp / name
     path.write_text(json.dumps(doc, indent=2), encoding="utf-8")
@@ -187,7 +240,22 @@ def steady(n: int = hq.QUIESCE_INTERVALS):
     return lambda: next(series, None)
 
 
-# --- vocabulary and T0 -------------------------------------------------------
+def session_fixture(tmp: Path, *, fresh: dict | None = None,
+                    candidate: bytes = LINUX_CANDIDATE, qual: dict | None = None):
+    qpath = write(tmp, "q.json", qual or qualification())
+    wpath = write(tmp, "qw.json", qualification("windows"))
+    bpath = write(tmp, "b.json", binding_doc(hq.sha256_file(qpath), hq.sha256_file(wpath)))
+    mpath = write(tmp, "m.json", fresh or manifest())
+    dpath = write(tmp, "d.json", declaration())
+    cpath = tmp / "cand.bin"
+    cpath.write_bytes(candidate)
+    quiet = {"eligible": True, "reason": "", "samples": [0.01], "mean": 0.01, "max": 0.01}
+    with fixed_power(COMPLIANT_POWER):
+        record = hq.session_eligibility(bpath, qpath, mpath, dpath, cpath, quiesce_result=quiet)
+    return record, (bpath, qpath, mpath, dpath, cpath)
+
+
+# --- vocabulary, producer schema and the boundary ---------------------------
 
 
 def control_memory_vocabulary() -> None:
@@ -204,8 +272,103 @@ def control_memory_vocabulary() -> None:
        "the closed set is identical in hostqual, execbinding and the instrument")
 
 
+def control_producer_schema() -> None:
+    """The duplicated constant is allowed; drifting from the producer is not."""
+    if hq.ENVCAPTURE_SCHEMA != ec.SCHEMA:
+        fail("hostqual-producer-schema",
+             f"hostqual expects {hq.ENVCAPTURE_SCHEMA!r}, the capture tool emits {ec.SCHEMA!r}; "
+             "every real manifest would be refused, or worse, a stale one accepted")
+        return
+    ok("hostqual-producer-schema",
+       f"{hq.ENVCAPTURE_SCHEMA!r} is exactly what envcapture emits, so decoupling the tools "
+       "did not decouple their agreement")
+
+
+def control_artifact_boundary() -> None:
+    """Every consumed artifact is proved to BE that artifact before it is read."""
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        good_q = write(tmp, "q.json", qualification())
+        good_w = write(tmp, "qw.json", qualification("windows"))
+        good_b = write(tmp, "b.json", binding_doc(hq.sha256_file(good_q),
+                                                  hq.sha256_file(good_w)))
+        good_m = write(tmp, "m.json", manifest())
+        good_d = write(tmp, "d.json", declaration())
+        cand = tmp / "c.bin"
+        cand.write_bytes(LINUX_CANDIDATE)
+        quiet = {"eligible": True, "reason": "", "samples": [0.01], "mean": 0.01, "max": 0.01}
+
+        attacks = [
+            ("fake execution-binding kind",
+             write(tmp, "b-kind.json", {**binding_doc(hq.sha256_file(good_q),
+                                                      hq.sha256_file(good_w)),
+                                        "kind": "NOT A BINDING AT ALL"}), "binding"),
+            ("wrong execution-binding schema",
+             write(tmp, "b-schema.json", {**binding_doc(hq.sha256_file(good_q),
+                                                        hq.sha256_file(good_w)),
+                                          "schema": 99}), "binding"),
+            ("fake envcapture schema",
+             write(tmp, "m-kind.json", manifest(schema="totally-made-up")), "manifest"),
+            ("missing envcapture schema",
+             write(tmp, "m-none.json", {k: v for k, v in manifest().items() if k != "schema"}),
+             "manifest"),
+            ("handwritten identity/provenance only",
+             write(tmp, "m-hand.json", {"identity": manifest()["identity"],
+                                        "provenance": {"ci": False}}), "manifest"),
+            ("fake qualification kind",
+             write(tmp, "q-kind.json", {**qualification(), "kind": "something else"}), "qual"),
+            ("wrong qualification schema",
+             write(tmp, "q-schema.json", {**qualification(), "schema": 7}), "qual"),
+        ]
+        for label, path, slot in attacks:
+            binding = path if slot == "binding" else good_b
+            qual = path if slot == "qual" else good_q
+            fresh = path if slot == "manifest" else good_m
+            with fixed_power(COMPLIANT_POWER):
+                message = refuses(lambda: hq.session_eligibility(
+                    binding, qual, fresh, good_d, cand, quiesce_result=quiet))
+            if message is None:
+                fail("hostqual-artifact-boundary", f"{label} was consumed as a real artifact")
+                return
+
+        # The old hole, reproduced exactly: a handwritten binding-like JSON plus a
+        # handwritten identity/provenance JSON must not produce an eligible session.
+        forged_b = write(tmp, "forged.json", {"kind": "NOT A BINDING AT ALL",
+                                              "linux": {"qualification_sha256":
+                                                        hq.sha256_file(good_q),
+                                                        "memory_metric":
+                                                        hq.STRATUM_METRIC["linux"],
+                                                        "candidate_sha256":
+                                                        hq.sha256_bytes(LINUX_CANDIDATE),
+                                                        "candidate_bytes": len(LINUX_CANDIDATE)}})
+        forged_m = write(tmp, "forged-m.json", {"identity": manifest()["identity"],
+                                                "provenance": {"ci": False}})
+        with fixed_power(COMPLIANT_POWER):
+            message = refuses(lambda: hq.session_eligibility(forged_b, good_q, forged_m, good_d,
+                                                             cand, quiesce_result=quiet))
+        if message is None:
+            fail("hostqual-artifact-boundary",
+                 "the original hole is open: a handwritten binding and a handwritten manifest "
+                 "produced a session")
+            return
+
+        # Postflight refuses a preflight record that is not one.
+        pre, _ = session_fixture(tmp)
+        bad_pre = write(tmp, "pre-kind.json", {**pre, "kind": "not a preflight"})
+        probe = tmp / "probe.json"
+        probe.write_text("{}", encoding="utf-8")
+        with fixed_power(COMPLIANT_POWER):
+            message = refuses(lambda: hq.session_admissibility(good_b, good_q, bad_pre, good_m,
+                                                               cand, probe))
+        if message is None:
+            fail("hostqual-artifact-boundary", "a fake preflight record was consumed")
+            return
+    ok("hostqual-artifact-boundary",
+       "binding, qualification, manifest and preflight are each proved by kind and schema before "
+       "a single field is read, and the original handwritten-JSON hole is closed")
+
+
 def control_t0_versioned() -> None:
-    """A qualification claims to satisfy T0-7, so it cannot float free of T0."""
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
         repo = tmp / "repo"
@@ -224,20 +387,15 @@ def control_t0_versioned() -> None:
             if not block.get(field):
                 fail("hostqual-t0-versioned", f"the bound T0 block has no {field}")
                 return
-        missing_commit = hq.bind_t0(repo, "t0.md", "0" * 40)[1]
-        if missing_commit["result"] != "fail":
+        if hq.bind_t0(repo, "t0.md", "0" * 40)[1]["result"] != "fail":
             fail("hostqual-t0-versioned", "a nonexistent commit was accepted")
             return
-        wrong_path = hq.bind_t0(repo, "nope.md", frozen_commit)[1]
-        if wrong_path["result"] != "fail":
+        if hq.bind_t0(repo, "nope.md", frozen_commit)[1]["result"] != "fail":
             fail("hostqual-t0-versioned", "a path absent at that commit was accepted")
             return
     ok("hostqual-t0-versioned",
        "the commit must exist, the path must exist at it, the bytes are hashed from the blob, "
        "and NOT_FROZEN refuses: reconnaissance cannot become qualification by reuse")
-
-
-# --- declared evidence -------------------------------------------------------
 
 
 def control_ci_predicate() -> None:
@@ -261,14 +419,12 @@ def control_ci_predicate() -> None:
 
 
 def control_provisioning_values() -> None:
-    """Shape was never the question. The values are the declaration."""
     if hq.validate_provisioning(provisioning()):
         fail("hostqual-provisioning-values", "a valid physical-host declaration was refused")
         return
     if hq.validate_provisioning(vm_provisioning()):
         fail("hostqual-provisioning-values", "a valid VM declaration was refused")
         return
-
     cases = [
         ("dedicated_to_p022 false", provisioning(dedicated_to_p022=False)),
         ("no_concurrent_user_workload false", provisioning(no_concurrent_user_workload=False)),
@@ -296,49 +452,36 @@ def control_provisioning_values() -> None:
 
 
 def control_one_environment_id() -> None:
-    mismatch = hq.check_single_tenant(provisioning(environment_id="env-other"), manifest())
-    if mismatch["result"] != "fail":
+    if hq.check_single_tenant(provisioning(environment_id="env-other"),
+                              manifest())["result"] != "fail":
         fail("hostqual-one-environment-id",
              "a declaration naming another environment qualified this one")
         return
-    agree = hq.check_single_tenant(provisioning(), manifest())
-    if agree["result"] != "pass":
-        fail("hostqual-one-environment-id", f"agreeing identities were refused: {agree}")
+    if hq.check_single_tenant(provisioning(), manifest())["result"] != "pass":
+        fail("hostqual-one-environment-id", "agreeing identities were refused")
         return
     source = (ROOT / "scripts" / "step7" / "hostqual.py").read_text(encoding="utf-8")
     if "--environment-id" in source:
-        fail("hostqual-one-environment-id",
-             "the tool still accepts an independent --environment-id; that is a third string "
-             "that only happens to agree while everyone behaves")
+        fail("hostqual-one-environment-id", "the tool still accepts an independent id argument")
         return
     ok("hostqual-one-environment-id",
-       "the id is the manifest's observed value, the declaration must agree with it, and there "
-       "is no third source to disagree with either")
-
-
-# --- quiesce -----------------------------------------------------------------
+       "the id is the manifest's observed value and the declaration must agree with it")
 
 
 def control_quiesce_window() -> None:
-    """120 s means 120 s. A constant that nobody waits for is documentation."""
     slept: list[float] = []
     hq.quiesce(sleep=slept.append, counters=steady())
-    total = sum(slept)
     if not slept or slept[0] != hq.QUIESCE_QUIET_S:
-        fail("hostqual-quiesce-window",
-             f"the quiet period was {slept[:1]}, expected a first wait of {hq.QUIESCE_QUIET_S}s")
+        fail("hostqual-quiesce-window", f"the quiet period was {slept[:1]}")
         return
-    if total != hq.QUIESCE_WINDOW_S:
-        fail("hostqual-quiesce-window",
-             f"the window lasted {total}s, not {hq.QUIESCE_WINDOW_S}s; sampling the final "
-             "minute immediately turns the other minute into a comment")
+    if sum(slept) != hq.QUIESCE_WINDOW_S:
+        fail("hostqual-quiesce-window", f"the window lasted {sum(slept)}s")
         return
-    measured = sum(slept[1:])
-    if measured != hq.QUIESCE_INTERVAL_S * hq.QUIESCE_INTERVALS:
-        fail("hostqual-quiesce-window", f"the measured part lasted {measured}s")
+    if sum(slept[1:]) != hq.QUIESCE_INTERVAL_S * hq.QUIESCE_INTERVALS:
+        fail("hostqual-quiesce-window", f"the measured part lasted {sum(slept[1:])}s")
         return
     ok("hostqual-quiesce-window",
-       f"{hq.QUIESCE_QUIET_S}s waited quietly, then {hq.QUIESCE_INTERVALS} intervals of "
+       f"{hq.QUIESCE_QUIET_S}s waited quietly, then {hq.QUIESCE_INTERVALS} x "
        f"{hq.QUIESCE_INTERVAL_S}s = {hq.QUIESCE_WINDOW_S}s in total")
 
 
@@ -365,40 +508,16 @@ def control_quiesce_arithmetic() -> None:
        "each refuse rather than skip")
 
 
-# --- session identity --------------------------------------------------------
-
-
-def _session(tmp: Path, *, fresh: dict | None = None, candidate: bytes = b"candidate",
-             bound_candidate: bytes = b"candidate", qual: dict | None = None):
-    qualification_doc = qual or qualification()
-    qpath = write(tmp, "q.json", qualification_doc)
-    binding = {"linux": {"qualification_sha256": hq.sha256_file(qpath),
-                         "memory_metric": hq.STRATUM_METRIC["linux"],
-                         "candidate_sha256": hq.sha256_bytes(bound_candidate),
-                         "candidate_bytes": len(bound_candidate)}}
-    bpath = write(tmp, "b.json", binding)
-    mpath = write(tmp, "m.json", fresh or manifest())
-    dpath = write(tmp, "d.json", declaration())
-    cpath = tmp / "cand.bin"
-    cpath.write_bytes(candidate)
-    quiet = {"eligible": True, "reason": "", "samples": [0.01], "mean": 0.01, "max": 0.01}
-    with fixed_power(COMPLIANT_POWER):
-        record = hq.session_eligibility(bpath, qpath, mpath, dpath, cpath, quiesce_result=quiet)
-    return record, (bpath, qpath, mpath, dpath, cpath)
-
-
 def control_identity_projection() -> None:
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
-        good, _ = _session(tmp)
+        good, _ = session_fixture(tmp)
         if not good["eligible"]:
             fail("hostqual-identity-projection", f"a clean session was refused: {good['reasons']}")
             return
-        drifted, _ = _session(tmp, fresh=manifest(kernel="6.2.0"))
+        drifted, _ = session_fixture(tmp, fresh=manifest(kernel="6.2.0"))
         if drifted["eligible"]:
-            fail("hostqual-identity-projection",
-                 "a manifest whose kernel changed still preflighted; only host_fingerprint was "
-                 "being compared and the rest of the identity set walked through")
+            fail("hostqual-identity-projection", "a manifest whose kernel changed preflighted")
             return
         if not any("identity" in r for r in drifted["reasons"]):
             fail("hostqual-identity-projection", f"refused for the wrong reason: {drifted}")
@@ -411,7 +530,7 @@ def control_identity_projection() -> None:
 def control_candidate_at_start() -> None:
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
-        swapped, _ = _session(tmp, candidate=b"a different executable")
+        swapped, _ = session_fixture(tmp, candidate=b"a different executable")
         if swapped["eligible"]:
             fail("hostqual-candidate-at-start", "a substituted candidate preflighted")
             return
@@ -426,107 +545,138 @@ def control_candidate_at_start() -> None:
 def control_postflight() -> None:
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
-        pre, (bpath, qpath, mpath, dpath, cpath) = _session(tmp)
+        pre, (bpath, qpath, mpath, dpath, cpath) = session_fixture(tmp)
         ppath = write(tmp, "pre.json", pre)
         probe = tmp / "probe.json"
         probe.write_text("{}", encoding="utf-8")
-
         with fixed_power(COMPLIANT_POWER):
             clean = hq.session_admissibility(bpath, qpath, ppath, mpath, cpath, probe)
-        if not clean["admissible"]:
-            fail("hostqual-postflight", f"a clean attempt was refused: {clean['reasons']}")
-            return
-
-        moved = write(tmp, "after.json", manifest(kernel="6.9.9"))
-        with fixed_power(COMPLIANT_POWER):
-            drifted = hq.session_admissibility(bpath, qpath, ppath, moved, cpath, probe)
-        if drifted["admissible"]:
-            fail("hostqual-postflight", "an environment that changed mid-session was admissible")
-            return
-
-        other = tmp / "other.bin"
-        other.write_bytes(b"rebuilt candidate")
-        with fixed_power(COMPLIANT_POWER):
-            rebuilt = hq.session_admissibility(bpath, qpath, ppath, mpath, other, probe)
-        if rebuilt["admissible"]:
-            fail("hostqual-postflight", "a candidate rebuilt mid-session was admissible")
-            return
-
-        with fixed_power(COMPLIANT_POWER):
-            missing_probe = hq.session_admissibility(bpath, qpath, ppath, mpath, cpath,
-                                                     tmp / "absent.json")
-        if missing_probe["admissible"]:
-            fail("hostqual-postflight", "an attempt with no closing probe was admissible")
-            return
+            if not clean["admissible"]:
+                fail("hostqual-postflight", f"a clean attempt was refused: {clean['reasons']}")
+                return
+            moved = write(tmp, "after.json", manifest(kernel="6.9.9"))
+            if hq.session_admissibility(bpath, qpath, ppath, moved, cpath,
+                                        probe)["admissible"]:
+                fail("hostqual-postflight", "an environment that changed mid-session passed")
+                return
+            other = tmp / "other.bin"
+            other.write_bytes(b"rebuilt candidate")
+            if hq.session_admissibility(bpath, qpath, ppath, mpath, other,
+                                        probe)["admissible"]:
+                fail("hostqual-postflight", "a candidate rebuilt mid-session passed")
+                return
+            if hq.session_admissibility(bpath, qpath, ppath, mpath, cpath,
+                                        tmp / "absent.json")["admissible"]:
+                fail("hostqual-postflight", "an attempt with no closing probe passed")
+                return
+        with fixed_power({**COMPLIANT_POWER, "processor_max_ac": 50}):
+            if hq.session_admissibility(bpath, qpath, ppath, mpath, cpath,
+                                        probe)["admissible"]:
+                fail("hostqual-postflight", "power that changed during the session passed")
+                return
     ok("hostqual-postflight",
-       "a separate post-session pass catches identity drift, candidate drift and a missing "
-       "closing probe; preflight may not certify what a session did after it started")
+       "a separate post-session pass catches identity drift, candidate drift, power drift and a "
+       "missing closing probe; preflight may not certify what a session did after it started")
 
 
 def control_one_binding() -> None:
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
-        pre, (bpath, qpath, mpath, dpath, cpath) = _session(tmp)
+        pre, (bpath, qpath, mpath, dpath, cpath) = session_fixture(tmp)
         ppath = write(tmp, "pre.json", pre)
         probe = tmp / "probe.json"
         probe.write_text("{}", encoding="utf-8")
-        second = write(tmp, "b2.json", {**json.loads(bpath.read_text(encoding="utf-8")),
-                                        "bound_at": "later"})
+        original = json.loads(bpath.read_text(encoding="utf-8"))
+        second = write(tmp, "b2.json", {**original, "bound_at": "a later moment"})
         with fixed_power(COMPLIANT_POWER):
             mixed = hq.session_admissibility(second, qpath, ppath, mpath, cpath, probe)
         if mixed["admissible"]:
             fail("hostqual-one-binding",
-                 "a preflight from one binding and a postflight from another were admissible; "
-                 "a changed binding is a different campaign, never a newer one")
+                 "a preflight from one binding and a postflight from another were admissible")
             return
     ok("hostqual-one-binding",
        "two execution_binding_sha256 values cannot meet inside one session record")
 
 
+def control_power_ac_and_dc() -> None:
+    if hq.check_power_policy(COMPLIANT_POWER)["result"] != "pass":
+        fail("hostqual-power-ac-and-dc", "a fully compliant snapshot was refused")
+        return
+    for label, patch in (("DC minimum below 100", {"processor_min_dc": 5}),
+                         ("DC maximum below 100", {"processor_max_dc": 50}),
+                         ("AC minimum below 100", {"processor_min_ac": 5}),
+                         ("an unaccepted plan",
+                          {"plan_guid": "381b4222-f694-41f0-9685-ff5bb260df2e"})):
+        if hq.check_power_policy({**COMPLIANT_POWER, **patch})["result"] != "fail":
+            fail("hostqual-power-ac-and-dc", f"{label} was accepted")
+            return
+    linux_ok = {"platform": "linux", "governors": {"cpu0": "performance", "cpu1": "performance"},
+                "boost": {"mechanism": "cpufreq/boost", "value": "1"}}
+    if hq.check_power_policy(linux_ok)["result"] != "pass":
+        fail("hostqual-power-ac-and-dc", "a compliant Linux snapshot was refused")
+        return
+    if hq.check_power_policy({**linux_ok,
+                              "governors": {"cpu0": "performance",
+                                            "cpu1": "powersave"}})["result"] != "fail":
+        fail("hostqual-power-ac-and-dc", "one CPU on powersave was accepted")
+        return
+    if hq.check_power_policy({**linux_ok,
+                              "boost": {"mechanism": None, "value": None}})["result"] != "fail":
+        fail("hostqual-power-ac-and-dc", "a host with no identifiable turbo mechanism passed")
+        return
+    ok("hostqual-power-ac-and-dc",
+       "Windows needs 100% on AC *and* DC and an accepted plan; Linux needs performance on every "
+       "CPU and a turbo mechanism that can be named and rechecked")
+
+
 # --- the binding -------------------------------------------------------------
 
 
-def _instrument_repo(tmp: Path) -> tuple[Path, str, str, str]:
-    """A throwaway repo carrying a T0 and the two instrument sources."""
+def instrument_repo(tmp: Path) -> tuple[Path, str, str, str]:
     repo = tmp / "repo"
     commit = git_repo(repo, {"t0.md": T0_FROZEN,
                              eb.INSTRUMENT_SOURCES[0]: "print('instrument')\n",
                              eb.INSTRUMENT_SOURCES[1]: '{"decisive": []}\n'})
-    digest = eb.harness_digest_at(repo, commit)
-    return repo, commit, digest or "", "t0.md"
+    return repo, commit, eb.harness_digest_at(repo, commit) or "", "t0.md"
 
 
 def control_execbinding_proves_inputs() -> None:
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
-        repo, commit, digest, t0_path = _instrument_repo(tmp)
+        repo, commit, digest, t0_path = instrument_repo(tmp)
         t0 = eb.t0_at(repo, t0_path, commit)
         lin = write(tmp, "ql.json", qualification("linux", t0=t0))
         win = write(tmp, "qw.json", qualification("windows", t0=t0))
         cand_l, cand_w = tmp / "cl", tmp / "cw"
-        cand_l.write_bytes(b"linux")
-        cand_w.write_bytes(b"windows-longer")
+        cand_l.write_bytes(LINUX_CANDIDATE)
+        cand_w.write_bytes(WINDOWS_CANDIDATE)
 
         binding = eb.build(repo, t0_path, commit, commit, digest,
                            {"linux": (lin, cand_l), "windows": (win, cand_w)})
         if eb.validate(binding):
             fail("execbinding-proves-inputs", f"a good binding was refused: {eb.validate(binding)}")
             return
-        blob = json.dumps(binding)
-        if any(word in blob for word in ("governor", "power_snapshot", "predicate_detail")):
+        if any(word in json.dumps(binding)
+               for word in ("governor", "power_snapshot", "predicate_detail")):
             fail("execbinding-proves-inputs", "the binding copies qualification detail")
             return
-
         try:
             eb.build(repo, t0_path, commit, commit, "0" * 64,
                      {"linux": (lin, cand_l), "windows": (win, cand_w)})
         except eb.BindingRefused:
             pass
         else:
-            fail("execbinding-proves-inputs",
-                 "a harness digest the sources do not produce was accepted as a string")
+            fail("execbinding-proves-inputs", "a digest the sources do not produce was accepted")
             return
-
+        wrong_schema = write(tmp, "qbad.json", {**qualification("windows", t0=t0), "schema": 9})
+        try:
+            eb.build(repo, t0_path, commit, commit, digest,
+                     {"linux": (lin, cand_l), "windows": (wrong_schema, cand_w)})
+        except eb.BindingRefused:
+            pass
+        else:
+            fail("execbinding-proves-inputs", "a qualification with the wrong schema was bound")
+            return
         open_commit = git_repo(repo, {"t0.md": T0_OPEN}, "reopen")
         try:
             eb.t0_at(repo, "t0.md", open_commit)
@@ -537,14 +687,14 @@ def control_execbinding_proves_inputs() -> None:
             return
     ok("execbinding-proves-inputs",
        "the harness digest is recomputed from the instrument sources at the bound commit by the "
-       "frozen formula, the manifest comes from the same commit's git object, and a NOT_FROZEN "
-       "T0 cannot be bound")
+       "frozen formula, the manifest comes from that commit's git object, and a wrong-schema "
+       "qualification or a NOT_FROZEN T0 cannot be bound")
 
 
 def control_execbinding_old_t0() -> None:
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
-        repo, commit, digest, t0_path = _instrument_repo(tmp)
+        repo, commit, digest, t0_path = instrument_repo(tmp)
         old_t0 = eb.t0_at(repo, t0_path, commit)
         newer = git_repo(repo, {"t0.md": T0_FROZEN + "\nAmended.\n"}, "t0 amended")
         lin = write(tmp, "ql.json", qualification("linux", t0=old_t0))
@@ -559,8 +709,7 @@ def control_execbinding_old_t0() -> None:
                 fail("execbinding-old-t0", f"refused for the wrong reason: {exc}")
                 return
         else:
-            fail("execbinding-old-t0",
-                 "a host qualified under an earlier T0 entered a campaign bound to a newer one")
+            fail("execbinding-old-t0", "a host qualified under an earlier T0 entered a campaign")
             return
     ok("execbinding-old-t0",
        "a qualification earned under one protocol is not evidence under another")
@@ -569,29 +718,28 @@ def control_execbinding_old_t0() -> None:
 def control_execbinding_verify_campaign() -> None:
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
-        repo, commit, digest, t0_path = _instrument_repo(tmp)
+        repo, commit, digest, t0_path = instrument_repo(tmp)
         t0 = eb.t0_at(repo, t0_path, commit)
         lin = write(tmp, "ql.json", qualification("linux", t0=t0))
         win = write(tmp, "qw.json", qualification("windows", t0=t0))
         cand_l, cand_w = tmp / "cl", tmp / "cw"
-        cand_l.write_bytes(b"linux")
-        cand_w.write_bytes(b"windows-longer")
-        binding = eb.build(repo, t0_path, commit, commit, digest,
-                           {"linux": (lin, cand_l), "windows": (win, cand_w)})
-        bpath = write(tmp, "binding.json", binding)
+        cand_l.write_bytes(LINUX_CANDIDATE)
+        cand_w.write_bytes(WINDOWS_CANDIDATE)
+        bpath = write(tmp, "binding.json",
+                      eb.build(repo, t0_path, commit, commit, digest,
+                               {"linux": (lin, cand_l), "windows": (win, cand_w)}))
         quals = {"linux": lin, "windows": win}
         cands = {"linux": cand_l, "windows": cand_w}
-
         if eb.verify(repo, bpath, quals, cands):
             fail("execbinding-verify-campaign",
-                 f"a clean campaign failed verification: {eb.verify(repo, bpath, quals, cands)}")
+                 f"a clean campaign failed: {eb.verify(repo, bpath, quals, cands)}")
             return
 
         cand_w.write_bytes(b"a replacement binary")
         if not any("candidate" in p for p in eb.verify(repo, bpath, quals, cands)):
             fail("execbinding-verify-campaign", "a replaced candidate was not caught")
             return
-        cand_w.write_bytes(b"windows-longer")
+        cand_w.write_bytes(WINDOWS_CANDIDATE)
 
         write(tmp, "qw.json", qualification("windows", t0=t0, qualified_at="changed"))
         if not any("qualification" in p for p in eb.verify(repo, bpath, quals, cands)):
@@ -601,20 +749,66 @@ def control_execbinding_verify_campaign() -> None:
 
         moved = json.loads(bpath.read_text(encoding="utf-8"))
         moved["workloads"]["manifest_sha256"] = "9" * 64
-        moved_path = write(tmp, "moved.json", moved)
-        if not any("workloads" in p for p in eb.verify(repo, moved_path, quals, cands)):
+        if not any("workloads" in p
+                   for p in eb.verify(repo, write(tmp, "moved.json", moved), quals, cands)):
             fail("execbinding-verify-campaign", "a changed workload manifest was not caught")
             return
-
         retimed = json.loads(bpath.read_text(encoding="utf-8"))
         retimed["t0"]["sha256"] = "7" * 64
-        retimed_path = write(tmp, "retimed.json", retimed)
-        if not any("T0" in p for p in eb.verify(repo, retimed_path, quals, cands)):
+        if not any("T0" in p
+                   for p in eb.verify(repo, write(tmp, "retimed.json", retimed), quals, cands)):
             fail("execbinding-verify-campaign", "a changed T0 was not caught")
             return
     ok("execbinding-verify-campaign",
        "the verifier re-proves T0, instrument digest, workload manifest, both qualifications "
-       "and both candidates — not two hashes with a confident docstring")
+       "and both candidates")
+
+
+def control_execbinding_verify_is_total() -> None:
+    """No partial mode under this name, in the API or at the command line."""
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        repo, commit, digest, t0_path = instrument_repo(tmp)
+        t0 = eb.t0_at(repo, t0_path, commit)
+        lin = write(tmp, "ql.json", qualification("linux", t0=t0))
+        win = write(tmp, "qw.json", qualification("windows", t0=t0))
+        cand_l, cand_w = tmp / "cl", tmp / "cw"
+        cand_l.write_bytes(LINUX_CANDIDATE)
+        cand_w.write_bytes(WINDOWS_CANDIDATE)
+        bpath = write(tmp, "binding.json",
+                      eb.build(repo, t0_path, commit, commit, digest,
+                               {"linux": (lin, cand_l), "windows": (win, cand_w)}))
+
+        partial_calls = [
+            ("no inputs at all", {}, {}),
+            ("only Linux inputs", {"linux": lin}, {"linux": cand_l}),
+            ("both qualifications, one candidate", {"linux": lin, "windows": win},
+             {"linux": cand_l}),
+        ]
+        for label, quals, cands in partial_calls:
+            problems = eb.verify(repo, bpath, quals, cands)
+            if not problems:
+                fail("execbinding-verify-is-total", f"{label} verified clean")
+                return
+            if not any("full verification requires" in p for p in problems):
+                fail("execbinding-verify-is-total",
+                     f"{label} produced findings instead of a refusal: {problems}")
+                return
+
+        out = io.StringIO()
+        err = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            try:
+                rc = eb.main(["--verify", str(bpath), "--repo", str(repo), "--linux", str(lin)])
+            except SystemExit as exc:      # argparse refuses before running anything
+                rc = int(exc.code or 0)
+        if rc == 0 or "binding verified" in out.getvalue():
+            fail("execbinding-verify-is-total",
+                 "the command line accepted an incomplete verify")
+            return
+    ok("execbinding-verify-is-total",
+       "an incomplete verify is refused by the function and by the command line; the string "
+       "'binding verified' cannot be produced over a skipped component")
 
 
 def control_execbinding_no_overwrite() -> None:
@@ -634,7 +828,7 @@ def control_execbinding_no_overwrite() -> None:
     ok("execbinding-no-overwrite", "a rebuild before the first clock is deliberate, never silent")
 
 
-# --- the template ------------------------------------------------------------
+# --- the template and this file itself ---------------------------------------
 
 
 def control_provisioning_example() -> None:
@@ -663,34 +857,22 @@ def control_provisioning_example() -> None:
        "physical-host form and explains the VM one, and sits outside docs/evidence/")
 
 
-def control_power_ac_and_dc() -> None:
-    """Both AC and DC, so a machine cannot be compliant only while plugged in."""
-    if hq.check_power_policy(COMPLIANT_POWER)["result"] != "pass":
-        fail("hostqual-power-ac-and-dc", "a fully compliant snapshot was refused")
+def control_inventory_complete() -> None:
+    """The docstring inventory and the executed set are the same set.
+
+    This class of defect has now been found twice — a list of controls that
+    quietly stopped matching the controls. A control is cheaper than finding it a
+    third time.
+    """
+    listed = set(re.findall(r"^    ([a-z0-9-]+) +\S", __doc__ or "", re.MULTILINE))
+    executed = {name for name, _ in CONTROLS}
+    if listed != executed:
+        fail("control-inventory-complete",
+             f"listed but not executed: {sorted(listed - executed)}; executed but not listed: "
+             f"{sorted(executed - listed)}")
         return
-    for label, patch in (("DC minimum below 100", {"processor_min_dc": 5}),
-                         ("DC maximum below 100", {"processor_max_dc": 50}),
-                         ("AC minimum below 100", {"processor_min_ac": 5}),
-                         ("an unaccepted plan", {"plan_guid": "381b4222-f694-41f0-9685-ff5bb260df2e"})):
-        if hq.check_power_policy({**COMPLIANT_POWER, **patch})["result"] != "fail":
-            fail("hostqual-power-ac-and-dc", f"{label} was accepted")
-            return
-    linux_ok = {"platform": "linux", "governors": {"cpu0": "performance", "cpu1": "performance"},
-                "boost": {"mechanism": "cpufreq/boost", "value": "1"}}
-    if hq.check_power_policy(linux_ok)["result"] != "pass":
-        fail("hostqual-power-ac-and-dc", "a compliant Linux snapshot was refused")
-        return
-    mixed = {**linux_ok, "governors": {"cpu0": "performance", "cpu1": "powersave"}}
-    if hq.check_power_policy(mixed)["result"] != "fail":
-        fail("hostqual-power-ac-and-dc", "one CPU on powersave was accepted")
-        return
-    unknown_boost = {**linux_ok, "boost": {"mechanism": None, "value": None}}
-    if hq.check_power_policy(unknown_boost)["result"] != "fail":
-        fail("hostqual-power-ac-and-dc", "a host with no identifiable turbo mechanism passed")
-        return
-    ok("hostqual-power-ac-and-dc",
-       "Windows needs 100% on AC *and* DC and an accepted plan; Linux needs performance on every "
-       "CPU and a turbo mechanism that can be named and rechecked")
+    ok("control-inventory-complete",
+       f"{len(executed)} controls listed, {len(executed)} executed, same names in both")
 
 
 def control_tools_do_not_import_harness() -> None:
@@ -707,29 +889,39 @@ def control_tools_do_not_import_harness() -> None:
             fail("tools-do-not-import-harness", f"{name} imports {reached}")
             return
     ok("tools-do-not-import-harness",
-       "neither tool imports the instrument; the digest is recomputed from git objects by the "
-       "frozen formula rather than by asking the thing under proof")
+       "neither tool imports the instrument or the capture tool; the digest is recomputed from "
+       "git objects and the producer's schema is held by a control instead of an import")
+
+
+CONTROLS: list[tuple[str, Callable[[], None]]] = [
+    ("hostqual-memory-vocabulary", control_memory_vocabulary),
+    ("hostqual-producer-schema", control_producer_schema),
+    ("hostqual-artifact-boundary", control_artifact_boundary),
+    ("hostqual-t0-versioned", control_t0_versioned),
+    ("hostqual-ci-predicate", control_ci_predicate),
+    ("hostqual-provisioning-values", control_provisioning_values),
+    ("hostqual-one-environment-id", control_one_environment_id),
+    ("hostqual-quiesce-window", control_quiesce_window),
+    ("hostqual-quiesce-arithmetic", control_quiesce_arithmetic),
+    ("hostqual-identity-projection", control_identity_projection),
+    ("hostqual-candidate-at-start", control_candidate_at_start),
+    ("hostqual-postflight", control_postflight),
+    ("hostqual-one-binding", control_one_binding),
+    ("hostqual-power-ac-and-dc", control_power_ac_and_dc),
+    ("execbinding-proves-inputs", control_execbinding_proves_inputs),
+    ("execbinding-old-t0", control_execbinding_old_t0),
+    ("execbinding-verify-campaign", control_execbinding_verify_campaign),
+    ("execbinding-verify-is-total", control_execbinding_verify_is_total),
+    ("execbinding-no-overwrite", control_execbinding_no_overwrite),
+    ("provisioning-example-validates", control_provisioning_example),
+    ("control-inventory-complete", control_inventory_complete),
+    ("tools-do-not-import-harness", control_tools_do_not_import_harness),
+]
 
 
 def run() -> int:
-    guarded("hostqual-memory-vocabulary", control_memory_vocabulary)
-    guarded("hostqual-t0-versioned", control_t0_versioned)
-    guarded("hostqual-ci-predicate", control_ci_predicate)
-    guarded("hostqual-provisioning-values", control_provisioning_values)
-    guarded("hostqual-one-environment-id", control_one_environment_id)
-    guarded("hostqual-quiesce-window", control_quiesce_window)
-    guarded("hostqual-quiesce-arithmetic", control_quiesce_arithmetic)
-    guarded("hostqual-identity-projection", control_identity_projection)
-    guarded("hostqual-candidate-at-start", control_candidate_at_start)
-    guarded("hostqual-postflight", control_postflight)
-    guarded("hostqual-one-binding", control_one_binding)
-    guarded("execbinding-proves-inputs", control_execbinding_proves_inputs)
-    guarded("execbinding-old-t0", control_execbinding_old_t0)
-    guarded("execbinding-verify-campaign", control_execbinding_verify_campaign)
-    guarded("execbinding-no-overwrite", control_execbinding_no_overwrite)
-    guarded("provisioning-example-validates", control_provisioning_example)
-    guarded("hostqual-power-ac-and-dc", control_power_ac_and_dc)
-    guarded("tools-do-not-import-harness", control_tools_do_not_import_harness)
+    for name, control in CONTROLS:
+        guarded(name, control)
     print()
     print(f"step 7 host qualification controls: {len(_PASSES)} passed, {len(_FAILURES)} failed")
     return 1 if _FAILURES else 0
