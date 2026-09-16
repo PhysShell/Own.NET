@@ -129,15 +129,29 @@ def t0_at(repo: Path, path: str, commit: str) -> dict[str, object]:
     rc, raw = _git(repo, "cat-file", "blob", f"{commit}:{path}")
     if rc != 0:
         raise BindingRefused(f"the T0 blob at {commit}:{path} could not be read")
-    status = re.search(r"^\s*(NOT_FROZEN|FROZEN)\.?\s*$", raw.decode("utf-8", "replace"),
-                       re.MULTILINE)
+    text = raw.decode("utf-8", "replace")
+    status = re.search(r"^\s*(NOT_FROZEN|FROZEN)\.?\s*$", text, re.MULTILINE)
+    flag = re.search(r"^\s*collection_authorized:\s*(true|false)\s*$", text, re.MULTILINE)
     declared = status.group(1) if status else "<no status line>"
+    authorized = (flag.group(1) == "true") if flag else None
+    # One authority state read from two fields (R15); three of the four
+    # combinations refuse, and the same three refuse on the qualification path.
+    if declared != "FROZEN" and authorized is True:
+        raise BindingRefused(
+            f"T0 at {commit}:{path} declares {declared} while claiming collection_authorized: "
+            "true; an authorisation without a fixed protocol is a contradiction")
     if declared != "FROZEN":
         raise BindingRefused(
             f"T0 at {commit}:{path} declares {declared}; a campaign cannot be bound to a "
             "protocol whose rules may still change")
+    if authorized is not True:
+        raise BindingRefused(
+            f"T0 at {commit}:{path} is FROZEN but collection_authorized is {authorized!r}; the "
+            "freeze is the owner's authorising act and carries both, so a campaign bound "
+            "without it would be bound to a protocol nobody has released")
     return {"commit": commit, "path": path, "blob_sha": blob.decode().strip(),
-            "sha256": sha256_bytes(raw), "status": declared}
+            "sha256": sha256_bytes(raw), "status": declared,
+            "collection_authorized": authorized}
 
 
 def validate_qualification(doc: object) -> list[str]:

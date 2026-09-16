@@ -9,6 +9,8 @@
     hostqual-provisioning-shape    malformed is malformed; a boolean false is not
     hostqual-provisioning-predicate values are judged by the predicate, not the parser
     hostqual-negative-evidence     an honest no leaves a record, not a stderr line
+    hostqual-campaign-link         the campaign and the freeze are joined by bytes
+    hostqual-authority-states      four states, three refusals, both T0 paths
     hostqual-one-environment-id    one identity, not three strings that usually agree
     hostqual-quiesce-window        120 s means 120 s, of which 60 s is measured
     hostqual-quiesce-arithmetic    quiet passes; spike, mean, gap and rewind do not
@@ -93,6 +95,8 @@ def refuses(call: Callable[[], object]) -> str | None:
 
 T0_FROZEN = "# T0\n\n```text\nStatus:\n  FROZEN.\n  collection_authorized: true\n```\n"
 T0_OPEN = "# T0\n\n```text\nStatus:\n  NOT_FROZEN.\n  collection_authorized: false\n```\n"
+T0_FROZEN_UNAUTHORIZED = "# T0\n\n```text\nStatus:\n  FROZEN.\n  collection_authorized: false\n```\n"
+T0_OPEN_AUTHORIZED = "# T0\n\n```text\nStatus:\n  NOT_FROZEN.\n  collection_authorized: true\n```\n"
 
 # A compliant Windows snapshot, used as a fixture on every platform so the
 # Windows rules are driven on Linux too, and so these controls do not depend on
@@ -242,8 +246,39 @@ def steady(n: int = hq.QUIESCE_INTERVALS):
     return lambda: next(series, None)
 
 
+def campaign_fixture(tmp: Path, binding_sha: str, *, tamper: bool = False,
+                     other_binding: bool = False):
+    """A repo carrying a D7 payload and attestation, and a link that joins them."""
+    # Distinct campaigns must be distinct documents: identical content committed
+    # inside the same second yields the same commit sha, and the fixture would
+    # then be proving only that a link equals itself.
+    tag = f"camp{len(list(tmp.glob('camp*')))}"
+    repo = tmp / tag
+    commit = git_repo(repo, {"docs/evidence/d7-payload.json":
+                             '{"kind": "d7", "campaign": "' + tag + '"}\n',
+                             "docs/evidence/d7-attestation.json": '{"kind": "att"}\n'},
+                      "freeze")
+    payload = repo / "docs/evidence/d7-payload.json"
+    attestation = repo / "docs/evidence/d7-attestation.json"
+    blob = subprocess.run(["git", "-C", str(repo), "rev-parse",
+                           commit + ":docs/evidence/d7-payload.json"],
+                          capture_output=True, text=True, check=True).stdout.strip()
+    link = {"kind": hq.CAMPAIGN_LINK_SCHEMA, "schema": 1,
+            "execution_binding_sha256": "f" * 64 if other_binding else binding_sha,
+            "d7_payload": {"path": "docs/evidence/d7-payload.json",
+                           "sha256": hq.sha256_file(payload), "blob_sha": blob,
+                           "commit": commit},
+            "d7_attestation": {"path": "docs/evidence/d7-attestation.json",
+                               "sha256": hq.sha256_file(attestation)},
+            "recorded_at": "2026-09-17T00:00:00+00:00"}
+    if tamper:                 # the freeze moved after the campaign was linked to it
+        payload.write_text('{"kind": "d7", "edited": true}\n', encoding="utf-8")
+    return repo, link
+
+
 def session_fixture(tmp: Path, *, fresh: dict | None = None,
-                    candidate: bytes = LINUX_CANDIDATE, qual: dict | None = None):
+                    candidate: bytes = LINUX_CANDIDATE, qual: dict | None = None,
+                    tamper_freeze: bool = False, other_campaign: bool = False):
     qpath = write(tmp, "q.json", qual or qualification())
     wpath = write(tmp, "qw.json", qualification("windows"))
     bpath = write(tmp, "b.json", binding_doc(hq.sha256_file(qpath), hq.sha256_file(wpath)))
@@ -252,9 +287,13 @@ def session_fixture(tmp: Path, *, fresh: dict | None = None,
     cpath = tmp / "cand.bin"
     cpath.write_bytes(candidate)
     quiet = {"eligible": True, "reason": "", "samples": [0.01], "mean": 0.01, "max": 0.01}
+    repo, link = campaign_fixture(tmp, hq.sha256_file(bpath), tamper=tamper_freeze,
+                                  other_binding=other_campaign)
+    lpath = write(tmp, "link.json", link)
     with fixed_power(COMPLIANT_POWER):
-        record = hq.session_eligibility(bpath, qpath, mpath, dpath, cpath, quiesce_result=quiet)
-    return record, (bpath, qpath, mpath, dpath, cpath)
+        record = hq.session_eligibility(bpath, qpath, mpath, dpath, cpath, lpath, repo,
+                                        quiesce_result=quiet)
+    return record, (bpath, qpath, mpath, dpath, cpath, lpath, repo)
 
 
 # --- vocabulary, producer schema and the boundary ---------------------------
@@ -299,6 +338,8 @@ def control_artifact_boundary() -> None:
         cand = tmp / "c.bin"
         cand.write_bytes(LINUX_CANDIDATE)
         quiet = {"eligible": True, "reason": "", "samples": [0.01], "mean": 0.01, "max": 0.01}
+        crepo, link_doc = campaign_fixture(tmp, hq.sha256_file(good_b))
+        good_link = write(tmp, "link.json", link_doc)
 
         attacks = [
             ("fake execution-binding kind",
@@ -328,7 +369,8 @@ def control_artifact_boundary() -> None:
             fresh = path if slot == "manifest" else good_m
             with fixed_power(COMPLIANT_POWER):
                 message = refuses(lambda: hq.session_eligibility(
-                    binding, qual, fresh, good_d, cand, quiesce_result=quiet))
+                    binding, qual, fresh, good_d, cand, good_link, crepo,
+                    quiesce_result=quiet))
             if message is None:
                 fail("hostqual-artifact-boundary", f"{label} was consumed as a real artifact")
                 return
@@ -347,7 +389,8 @@ def control_artifact_boundary() -> None:
                                                 "provenance": {"ci": False}})
         with fixed_power(COMPLIANT_POWER):
             message = refuses(lambda: hq.session_eligibility(forged_b, good_q, forged_m, good_d,
-                                                             cand, quiesce_result=quiet))
+                                                             cand, good_link, crepo,
+                                                             quiesce_result=quiet))
         if message is None:
             fail("hostqual-artifact-boundary",
                  "the original hole is open: a handwritten binding and a handwritten manifest "
@@ -361,7 +404,7 @@ def control_artifact_boundary() -> None:
         probe.write_text("{}", encoding="utf-8")
         with fixed_power(COMPLIANT_POWER):
             message = refuses(lambda: hq.session_admissibility(good_b, good_q, bad_pre, good_m,
-                                                               cand, probe))
+                                                               cand, probe, good_link, crepo))
         if message is None:
             fail("hostqual-artifact-boundary", "a fake preflight record was consumed")
             return
@@ -578,33 +621,33 @@ def control_candidate_at_start() -> None:
 def control_postflight() -> None:
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
-        pre, (bpath, qpath, mpath, dpath, cpath) = session_fixture(tmp)
+        pre, (bpath, qpath, mpath, dpath, cpath, lpath, crepo) = session_fixture(tmp)
         ppath = write(tmp, "pre.json", pre)
         probe = tmp / "probe.json"
         probe.write_text("{}", encoding="utf-8")
         with fixed_power(COMPLIANT_POWER):
-            clean = hq.session_admissibility(bpath, qpath, ppath, mpath, cpath, probe)
+            clean = hq.session_admissibility(bpath, qpath, ppath, mpath, cpath, probe, lpath, crepo)
             if not clean["admissible"]:
                 fail("hostqual-postflight", f"a clean attempt was refused: {clean['reasons']}")
                 return
             moved = write(tmp, "after.json", manifest(kernel="6.9.9"))
             if hq.session_admissibility(bpath, qpath, ppath, moved, cpath,
-                                        probe)["admissible"]:
+                                        probe, lpath, crepo)["admissible"]:
                 fail("hostqual-postflight", "an environment that changed mid-session passed")
                 return
             other = tmp / "other.bin"
             other.write_bytes(b"rebuilt candidate")
             if hq.session_admissibility(bpath, qpath, ppath, mpath, other,
-                                        probe)["admissible"]:
+                                        probe, lpath, crepo)["admissible"]:
                 fail("hostqual-postflight", "a candidate rebuilt mid-session passed")
                 return
             if hq.session_admissibility(bpath, qpath, ppath, mpath, cpath,
-                                        tmp / "absent.json")["admissible"]:
+                                        tmp / "absent.json", lpath, crepo)["admissible"]:
                 fail("hostqual-postflight", "an attempt with no closing probe passed")
                 return
         with fixed_power({**COMPLIANT_POWER, "processor_max_ac": 50}):
             if hq.session_admissibility(bpath, qpath, ppath, mpath, cpath,
-                                        probe)["admissible"]:
+                                        probe, lpath, crepo)["admissible"]:
                 fail("hostqual-postflight", "power that changed during the session passed")
                 return
     ok("hostqual-postflight",
@@ -615,14 +658,14 @@ def control_postflight() -> None:
 def control_one_binding() -> None:
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
-        pre, (bpath, qpath, mpath, dpath, cpath) = session_fixture(tmp)
+        pre, (bpath, qpath, mpath, dpath, cpath, lpath, crepo) = session_fixture(tmp)
         ppath = write(tmp, "pre.json", pre)
         probe = tmp / "probe.json"
         probe.write_text("{}", encoding="utf-8")
         original = json.loads(bpath.read_text(encoding="utf-8"))
         second = write(tmp, "b2.json", {**original, "bound_at": "a later moment"})
         with fixed_power(COMPLIANT_POWER):
-            mixed = hq.session_admissibility(second, qpath, ppath, mpath, cpath, probe)
+            mixed = hq.session_admissibility(second, qpath, ppath, mpath, cpath, probe, lpath, crepo)
         if mixed["admissible"]:
             fail("hostqual-one-binding",
                  "a preflight from one binding and a postflight from another were admissible")
@@ -926,8 +969,10 @@ def control_negative_evidence() -> None:
         cpath = tmp / "cand.bin"
         cpath.write_bytes(LINUX_CANDIDATE)
         quiet = {"eligible": True, "reason": "", "samples": [0.01], "mean": 0.01, "max": 0.01}
+        crepo, link_doc = campaign_fixture(tmp, hq.sha256_file(bpath))
+        lpath = write(tmp, "link.json", link_doc)
         with fixed_power(COMPLIANT_POWER):
-            record = hq.session_eligibility(bpath, qpath, mpath, dpath, cpath,
+            record = hq.session_eligibility(bpath, qpath, mpath, dpath, cpath, lpath, crepo,
                                             quiesce_result=quiet)
         if record["eligible"]:
             fail("hostqual-negative-evidence", "a declared prohibited job left the session eligible")
@@ -939,7 +984,8 @@ def control_negative_evidence() -> None:
         malformed_d = write(tmp, "d-bad.json", declaration(no_campaign_workload="false"))
         with fixed_power(COMPLIANT_POWER):
             message = refuses(lambda: hq.session_eligibility(bpath, qpath, mpath, malformed_d,
-                                                             cpath, quiesce_result=quiet))
+                                                             cpath, lpath, crepo,
+                                                             quiesce_result=quiet))
         if message is None:
             fail("hostqual-negative-evidence", "a malformed session declaration was consumed")
             return
@@ -947,6 +993,84 @@ def control_negative_evidence() -> None:
        "an honest negative — host, VM or session — leaves a real artifact saying qualified/"
        "eligible false and naming the reason, and exits 1; malformed input leaves nothing and "
        "exits 2. The two classes never share a code")
+
+
+def control_campaign_link() -> None:
+    """The join the D7 payload cannot make for itself, verified by bytes.
+
+    `D7_PAYLOAD_BINDING_KEYS` carries no execution binding and the gate tolerates
+    an unverified extra key, so without this the campaign and the freeze are two
+    documents that merely hope they are about each other.
+    """
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        clean, _ = session_fixture(tmp)
+        if not clean["eligible"] or clean["campaign_link"]["result"] != "pass":
+            fail("hostqual-campaign-link", f"a joined session was refused: {clean['reasons']}")
+            return
+        elsewhere, _ = session_fixture(tmp, other_campaign=True)
+        if elsewhere["eligible"] or not any("another campaign" in r for r in elsewhere["reasons"]):
+            fail("hostqual-campaign-link",
+                 "a link naming a different execution binding was accepted")
+            return
+        moved, _ = session_fixture(tmp, tamper_freeze=True)
+        if moved["eligible"] or not any("freeze changed" in r for r in moved["reasons"]):
+            fail("hostqual-campaign-link",
+                 "a D7 payload edited after the campaign was linked to it was accepted")
+            return
+
+        pre, (bpath, qpath, mpath, dpath, cpath, lpath, crepo) = session_fixture(tmp)
+        ppath = write(tmp, "pre.json", pre)
+        probe = tmp / "probe.json"
+        probe.write_text("{}", encoding="utf-8")
+        other_repo, other_link = campaign_fixture(tmp, hq.sha256_file(bpath))
+        olpath = write(tmp, "link2.json", other_link)
+        with fixed_power(COMPLIANT_POWER):
+            swapped = hq.session_admissibility(bpath, qpath, ppath, mpath, cpath, probe,
+                                               olpath, other_repo)
+        if swapped["admissible"]:
+            fail("hostqual-campaign-link",
+                 "an attempt changed which campaign it belonged to between preflight and "
+                 "postflight")
+            return
+    ok("hostqual-campaign-link",
+       "preflight and postflight re-prove the link by bytes: a link naming another binding, a "
+       "freeze edited afterwards, and a campaign swapped mid-session each refuse")
+
+
+def control_authority_states() -> None:
+    """Four states, three refusals, on both paths that read T0."""
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        repo = tmp / "repo"
+        states = {}
+        for name, text in (("frozen_authorized", T0_FROZEN),
+                           ("frozen_unauthorized", T0_FROZEN_UNAUTHORIZED),
+                           ("open_unauthorized", T0_OPEN),
+                           ("open_authorized", T0_OPEN_AUTHORIZED)):
+            states[name] = git_repo(repo, {"t0.md": text}, name)
+        expected = {"frozen_authorized": "pass", "frozen_unauthorized": "fail",
+                    "open_unauthorized": "fail", "open_authorized": "fail"}
+        for name, commit in states.items():
+            got = hq.bind_t0(repo, "t0.md", commit)[1]["result"]
+            if got != expected[name]:
+                fail("hostqual-authority-states",
+                     f"qualification path: {name} gave {got}, expected {expected[name]}")
+                return
+            refused = True
+            try:
+                eb.t0_at(repo, "t0.md", commit)
+                refused = False
+            except eb.BindingRefused:
+                pass
+            if refused == (expected[name] == "pass"):
+                fail("hostqual-authority-states",
+                     f"binding path: {name} was {'refused' if refused else 'accepted'}, "
+                     f"expected {expected[name]}")
+                return
+    ok("hostqual-authority-states",
+       "FROZEN+true proceeds; FROZEN+false, NOT_FROZEN+false and NOT_FROZEN+true each refuse, "
+       "on the qualification path and on the binding path alike")
 
 
 def control_provisioning_example() -> None:
@@ -1033,6 +1157,8 @@ CONTROLS: list[tuple[str, Callable[[], None]]] = [
     ("execbinding-verify-campaign", control_execbinding_verify_campaign),
     ("execbinding-verify-is-total", control_execbinding_verify_is_total),
     ("execbinding-no-overwrite", control_execbinding_no_overwrite),
+    ("hostqual-campaign-link", control_campaign_link),
+    ("hostqual-authority-states", control_authority_states),
     ("provisioning-example-validates", control_provisioning_example),
     ("control-inventory-complete", control_inventory_complete),
     ("tools-do-not-import-harness", control_tools_do_not_import_harness),

@@ -37,10 +37,10 @@ Usage:
         --provisioning <p.json> --manifest <m.json> --emit <q.json>
     hostqual.py --session-preflight --binding <b.json> --qualification <q.json> \\
         --manifest <fresh.json> --declaration <d.json> --candidate <bin> \\
-        --emit <e.json>
+        --campaign-link <link.json> --emit <e.json>
     hostqual.py --session-postflight --binding <b.json> --qualification <q.json> \\
         --preflight <e.json> --manifest <after.json> --candidate <bin> \\
-        --closing-probe <probe.json> --emit <a.json>
+        --closing-probe <probe.json> --campaign-link <link.json> --emit <a.json>
     hostqual.py --selftest
 """
 
@@ -69,6 +69,13 @@ DECLARATION_SCHEMA = "own.net/p022/session-declaration"
 # stays independent of the capture tool. `hostqual-producer-schema` proves the
 # copy still equals what envcapture emits, so the decoupling cannot rot quietly.
 ENVCAPTURE_SCHEMA = "p022-263a-step7-environment-identity"
+# The join the accepted D7 payload cannot make for itself: its binding keys are
+# python_reference_commit, python_reference_tree, harness_digest, harness_version
+# and workload_manifest_sha256 — no execution binding among them, and the gate
+# tolerates an extra key without ever verifying it. This artifact ties the
+# campaign to the freeze by exact bytes, and the session gates below refuse
+# without it, so evidence produced outside a campaign cannot become admissible.
+CAMPAIGN_LINK_SCHEMA = "own.net/p022/campaign-link"
 SCHEMA_VERSION = 1
 
 # The closed memory vocabulary, declared rather than imported so this tool never
@@ -266,14 +273,32 @@ def bind_t0(repo: Path, path: str, commit: str) -> tuple[dict[str, object], dict
     block = {"commit": commit, "path": path, "blob_sha": blob_sha.decode().strip(),
              "sha256": sha256_bytes(raw), "status": status["declared"],
              "collection_authorized": status["collection_authorized"]}
-    if not status["frozen"]:
+    # The two fields are one authority state, and three of its four combinations
+    # are refusals (R15). `FROZEN + false` is the one a reader assumes is fine:
+    # the protocol is fixed, so surely work may proceed — but the owner has not
+    # authorised collection, and a flag the tooling ignores is decoration.
+    frozen, authorized = bool(status["frozen"]), status["collection_authorized"]
+    if not frozen and authorized is True:
+        return block, check("t0", False,
+                            f"T0 at {commit}:{path} declares {status['declared']} while claiming "
+                            "collection_authorized: true. An authorisation without a fixed "
+                            "protocol is a contradiction, and honouring the flag over the "
+                            "contract is how a tool starts arguing with its own rules")
+    if not frozen:
         return block, check("t0", False,
                             f"T0 at {commit}:{path} declares {status['declared']}. A host cannot "
                             "be qualified against a protocol whose predicate may still change; "
                             "work done against it stays exploratory")
+    if authorized is not True:
+        return block, check("t0", False,
+                            f"T0 at {commit}:{path} is FROZEN but collection_authorized is "
+                            f"{json.dumps(authorized)}. The freeze is the owner's authorising "
+                            "act and carries both; without it no collection is authorised, "
+                            "however qualified the host")
     return block, check("t0", True,
-                        f"T0 {block['blob_sha'][:12]} at {commit} is FROZEN; "
-                        f"collection_authorized={status['collection_authorized']}")
+                        f"T0 {block['blob_sha'][:12]} at {commit} is FROZEN and "
+                        "collection_authorized: true — necessary, and not sufficient: "
+                        "qualification, binding and preflight may each still refuse")
 
 
 # --- the declared evidence ---------------------------------------------------
@@ -366,7 +391,62 @@ def declaration_predicate(doc: dict) -> list[str]:
             if doc.get(key) is not True]
 
 
+def validate_campaign_link(doc: object) -> list[str]:
+    if not isinstance(doc, dict):
+        return ["the campaign link is not a JSON object"]
+    problems = []
+    if doc.get("kind") != CAMPAIGN_LINK_SCHEMA:
+        problems.append(f"kind is {doc.get('kind')!r}, not {CAMPAIGN_LINK_SCHEMA!r}")
+    if doc.get("schema") != SCHEMA_VERSION:
+        problems.append(f"schema is {doc.get('schema')!r}, not {SCHEMA_VERSION}")
+    if not doc.get("execution_binding_sha256"):
+        problems.append("execution_binding_sha256 is missing")
+    for side, keys in (("d7_payload", ("path", "sha256", "blob_sha", "commit")),
+                       ("d7_attestation", ("path", "sha256"))):
+        block = doc.get(side)
+        if not isinstance(block, dict):
+            problems.append(f"{side} is missing")
+            continue
+        problems.extend(f"{side}.{k} is missing" for k in keys if not block.get(k))
+    return problems
+
+
+def check_campaign_link(link: dict, binding_path: Path, repo: Path) -> dict[str, object]:
+    """Does this campaign link actually join THIS binding to the freeze on disk?
+
+    Every field is re-proved against bytes: the binding's own hash, the D7
+    payload's hash and its blob at the named commit, the attestation's hash. A
+    link that names a different campaign — or a payload that has since changed —
+    fails here, before a clock exists.
+    """
+    if link.get("execution_binding_sha256") != sha256_file(binding_path):
+        return check("campaign_link", False,
+                     "the campaign link names a different execution binding; this session "
+                     "belongs to another campaign, or to none")
+    for side in ("d7_payload", "d7_attestation"):
+        named = link[side]
+        path = repo / str(named["path"])
+        if not path.is_file():
+            return check("campaign_link", False,
+                         f"{side} is absent at {named['path']}: the freeze the link names is "
+                         "not on disk")
+        if sha256_file(path) != named["sha256"]:
+            return check("campaign_link", False,
+                         f"{side} at {named['path']} does not hash to what the link names; "
+                         "the freeze changed after the campaign was linked to it")
+    payload = link["d7_payload"]
+    rc, blob = _git(repo, "rev-parse", f"{payload['commit']}:{payload['path']}")
+    if rc != 0 or blob.decode().strip() != payload["blob_sha"]:
+        return check("campaign_link", False,
+                     "the D7 payload blob at the named commit is not the one the link names")
+    return check("campaign_link", True,
+                 f"execution binding {str(link['execution_binding_sha256'])[:12]} is joined to "
+                 f"the D7 payload {str(payload['sha256'])[:12]} at {str(payload['commit'])[:12]} "
+                 "and to its attestation, by exact bytes")
+
+
 ARTIFACT_VALIDATORS = {
+    "campaign link": validate_campaign_link,
     "environment manifest": validate_manifest,
     "host qualification": validate_qualification,
     "execution binding": validate_binding,
@@ -659,11 +739,13 @@ def _candidate_check(binding_block: dict, candidate_path: Path) -> dict[str, obj
 
 def session_eligibility(binding_path: Path, qualification_path: Path, manifest_path: Path,
                         declaration_path: Path, candidate_path: Path,
+                        campaign_link_path: Path, repo: Path,
                         quiesce_result: dict[str, object] | None = None) -> dict[str, object]:
     binding = load_artifact(binding_path, "execution binding")
     qualification = load_artifact(qualification_path, "host qualification")
     manifest = load_artifact(manifest_path, "environment manifest")
     declaration = load_artifact(declaration_path, "session declaration")
+    link = load_artifact(campaign_link_path, "campaign link")
     stratum = str(qualification["stratum"])
     bound = binding[stratum]
     identity = manifest["identity"]
@@ -676,6 +758,10 @@ def session_eligibility(binding_path: Path, qualification_path: Path, manifest_p
                        "host outside this campaign may not be substituted into it")
     if bound.get("memory_metric") != qualification.get("memory_metric"):
         reasons.append("the binding and the qualification disagree about the memory metric")
+
+    joined = check_campaign_link(link, binding_path, repo)
+    if joined["result"] != "pass":
+        reasons.append(str(joined["detail"]))
 
     declared = declaration_predicate(declaration)
     if declared:
@@ -713,6 +799,8 @@ def session_eligibility(binding_path: Path, qualification_path: Path, manifest_p
         "fresh_environment_manifest_sha256": sha256_file(manifest_path),
         "environment_identity_sha256": live_identity,
         "session_declaration_sha256": sha256_file(declaration_path),
+        "campaign_link_sha256": sha256_file(campaign_link_path),
+        "campaign_link": joined,
         "power_snapshot": snapshot,
         "candidate": candidate,
         "ci": ci,
@@ -727,7 +815,8 @@ def session_eligibility(binding_path: Path, qualification_path: Path, manifest_p
 
 def session_admissibility(binding_path: Path, qualification_path: Path, preflight_path: Path,
                           manifest_path: Path, candidate_path: Path,
-                          closing_probe_path: Path) -> dict[str, object]:
+                          closing_probe_path: Path, campaign_link_path: Path,
+                          repo: Path) -> dict[str, object]:
     """Did the attempt that ran remain the one that was authorised?
 
     Separate from preflight on purpose: preflight may not certify what a session
@@ -738,6 +827,7 @@ def session_admissibility(binding_path: Path, qualification_path: Path, prefligh
     qualification = load_artifact(qualification_path, "host qualification")
     preflight = load_artifact(preflight_path, "session eligibility")
     manifest = load_artifact(manifest_path, "environment manifest")
+    link = load_artifact(campaign_link_path, "campaign link")
     stratum = str(qualification["stratum"])
     bound = binding[stratum]
     identity = manifest["identity"]
@@ -752,6 +842,12 @@ def session_admissibility(binding_path: Path, qualification_path: Path, prefligh
                        "a changed binding is a different campaign, never a newer one")
     if preflight.get("qualification_sha256") != sha256_file(qualification_path):
         reasons.append("the preflight was taken against a different qualification")
+    joined = check_campaign_link(link, binding_path, repo)
+    if joined["result"] != "pass":
+        reasons.append(str(joined["detail"]))
+    if preflight.get("campaign_link_sha256") != sha256_file(campaign_link_path):
+        reasons.append("the preflight and this pass name different campaign links; an "
+                       "attempt cannot change which campaign it belongs to mid-session")
 
     snapshot = power_snapshot()
     if snapshot != preflight.get("power_snapshot"):
@@ -772,6 +868,8 @@ def session_admissibility(binding_path: Path, qualification_path: Path, prefligh
         "execution_binding_sha256": binding_sha,
         "qualification_sha256": sha256_file(qualification_path),
         "preflight_sha256": sha256_file(preflight_path),
+        "campaign_link_sha256": sha256_file(campaign_link_path),
+        "campaign_link": joined,
         "post_environment_manifest_sha256": sha256_file(manifest_path),
         "environment_identity_sha256": live_identity,
         "power_snapshot": snapshot,
@@ -804,6 +902,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--qualification", type=Path)
     parser.add_argument("--preflight", type=Path)
     parser.add_argument("--closing-probe", type=Path)
+    parser.add_argument("--campaign-link", type=Path)
     parser.add_argument("--emit", type=Path)
     args = parser.parse_args(argv)
 
@@ -831,16 +930,19 @@ def main(argv: list[str] | None = None) -> int:
             ok = bool(record["qualified"])
         elif args.session_preflight:
             require("session-preflight",
-                    ("binding", "qualification", "manifest", "declaration", "candidate"))
+                    ("binding", "qualification", "manifest", "declaration", "candidate",
+                     "campaign-link"))
             record = session_eligibility(args.binding, args.qualification, args.manifest,
-                                         args.declaration, args.candidate)
+                                         args.declaration, args.candidate, args.campaign_link,
+                                         args.repo)
             ok = bool(record["eligible"])
         elif args.session_postflight:
             require("session-postflight",
                     ("binding", "qualification", "preflight", "manifest", "candidate",
-                     "closing-probe"))
+                     "closing-probe", "campaign-link"))
             record = session_admissibility(args.binding, args.qualification, args.preflight,
-                                           args.manifest, args.candidate, args.closing_probe)
+                                           args.manifest, args.candidate, args.closing_probe,
+                                           args.campaign_link, args.repo)
             ok = bool(record["admissible"])
         else:
             parser.error("choose --qualify, --session-preflight, --session-postflight "
