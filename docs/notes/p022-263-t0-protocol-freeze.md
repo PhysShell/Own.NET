@@ -442,7 +442,7 @@ The mapping, stated so nobody has to infer it:
   outcome in either direction;
 - the per-cell rule keys are filled by this contract: `pass_fail_rule` and
   `inconclusive_band` by T0-5, `bound` by the T0-2 families, `comparison_statistic`
-  by T0-1's per-cell ratio and difference, `repetition_ladder` by `N`,
+  by T0-1's per-cell ratio and difference, `repetition_ladder` by R14,
   `rss_policy` by the stratum's memory metric, `allocation_policy` by R2's
   diagnostic-only ruling.
 
@@ -464,7 +464,9 @@ rss_policy            names this cell's platform-local metric:
                       max_process_peak_resident on linux,
                       max_process_peak_commit on windows
 allocation_policy     diagnostic only, never gating (R2)
-repetition_ladder     N and its escalation, identical for both resources
+repetition_ladder     single-stage, by R14: initial_n = max_n = N, both
+                      mechanisms recorded as {kind: none}, terminal outcome is
+                      the cell verdict. Identical for both resources
 ```
 
 `_present` accepts a non-empty object, so these nested rules are structurally
@@ -733,6 +735,71 @@ of the coin. One retry survives a genuine one-off environmental failure; a large
 budget would turn the campaign into a machine that runs until the infrastructure
 eventually cooperates.
 
+### R14 — decisive repetition is single-stage
+
+Training selects one global `N` under T0-9. That `N` is both the initial **and**
+the maximum sample count of the decisive campaign. **There is no decisive
+escalation after a result has been seen.**
+
+```text
+initial_n = N
+max_n     = N
+
+collect exactly N samples for the cell
+apply the T0-4 admissibility rules
+apply the T0-5 decision
+
+PASS         => terminal
+FAIL         => terminal
+NO_DECISION  => terminal
+```
+
+`NO_DECISION` is never a transition predicate and never licenses a larger `N`.
+`INVALID` does not belong to the repetition ladder at all: it is handled by the
+retry mechanism above, and only `INVALID` with retry budget remaining permits a
+full repeat session — **at the same `N`**, which makes it a retry and not an
+escalation stage.
+
+The reason is recorded rather than left to be reconstructed:
+
+- T0-9 lets training derive `N` and nothing else, so an escalation ladder has no
+  owner who is allowed to choose it;
+- sample completeness (T0-4) already requires *exactly* `N` samples in a primary
+  cell, and a cell that grew to `N + k` would fail its own admissibility rule;
+- T0-5 deliberately makes the gray zone a terminal `NO_DECISION`;
+- an adaptive `N -> larger N` after seeing a decisive result would create a new
+  post-observation degree of freedom — the campaign asking for more data
+  precisely because the data it has did not answer conveniently. A
+  preregistration turns into a menu at exactly the moment a menu is least
+  affordable.
+
+**The exact D7 representation**, fixed here so the word "none" cannot become a
+freedom later. The accepted verifier's `_present()` treats an empty list or
+object as absent, so the two absent mechanisms are written as non-empty objects
+rather than as `[]`:
+
+```yaml
+repetition_ladder:
+  initial_n: N                 # the single global N selected by T0-9 training
+  escalation_stages:
+    kind: none
+  transition_predicates:
+    kind: none
+  max_n: N
+  terminal_outcome:
+    kind: cell_verdict
+    values:
+      - PASS
+      - FAIL
+      - NO_DECISION
+```
+
+`N` is substituted with the selected value when the D7 payload is built; nothing
+else in this block is a choice. Should a JSON serialization need different
+syntax, it must preserve **this** semantic structure: a non-empty object
+`{"kind": "none"}` for each absent mechanism, never an empty container and never
+free prose.
+
 **Manifest refresh is per session (R9).** A fresh environment manifest is
 captured before every measurement session, and the identity-bearing fields are
 rechecked after it; drift between the two is `INVALID`. A campaign-level manifest
@@ -972,6 +1039,7 @@ is now in it:
 | three budget families, time and one per stratum's memory metric | T0-2 | R6, R7 |
 | the two-dimensional decision rule | T0-5 | R5 |
 | `retry_budget: 1` | T0-6 | R8 |
+| single-stage decisive repetition, and its exact ladder serialization | T0-6 | R14 |
 | `manifest_refresh_rule: per session` | T0-6 | R9 |
 | single-tenancy, in two evidence classes | T0-7 | R10 |
 | power policy, per platform | T0-7 | R11 |
