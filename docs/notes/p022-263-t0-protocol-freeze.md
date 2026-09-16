@@ -8,7 +8,9 @@ Status:
   MANDATORY UNRESOLVED SLOTS: 0 (T0-completion).
   OPEN NORMATIVE CONFLICTS: none. The #262 ratification blocker was withdrawn
     as a misreading — see T0-3.
-  NO CLOCK HAS RUN. NO OBSERVATION EXISTS.
+  NO T0-GOVERNED CLOCK HAS RUN. NO TRAINING OR DECISIVE OBSERVATION EXISTS.
+    (Historical calibration and Round-7 observations exist and are untouched
+     by this contract; they are not training or decisive evidence.)
 ```
 
 **What this is.** The contract that fixes *how numbers will be judged*, before any
@@ -17,13 +19,39 @@ the decisive campaign (#263-B) alike, because a rule chosen after a look at
 training data is not a preregistered rule — it is a preference with a timestamp.
 
 **What this is not.** It is not D7. T0 says how a verdict is computed; D7 later
-records *which* exact numbers, candidate, digests and host instances the verdict
-was computed from, and adds no analytical decision of its own.
+**freezes the rules and the bindings before collection** — the reference, the
+harness identity, the workload manifest and a preregistered rule for every cell —
+and adds no analytical decision of its own. The measured numbers are not in D7 at
+all: they belong to the #263-B evidence produced afterwards. An earlier revision
+said D7 "records exact numbers", which described a stronger mechanism than the
+one that exists.
 
 **Authority.** T0-0 revoked the automatic authorisation of the first step-7
 collection (`docs/notes/p022-263a-step7-environment-capture.md`). Until this
 document is frozen, `collection_authorized` is `false` and no training, first or
 decisive collection may run, however ready the hosts are.
+
+**The freeze is the authorising act, and it is not sufficient on its own (R15).**
+Freezing this contract sets both `status: FROZEN` and
+`collection_authorized: true` in the same commit — one owner act, one state — and
+the flag is then a *necessary* condition, never a permission slip. Host
+qualification, an exact execution binding and a session preflight are still
+required, and each can still refuse.
+
+The two fields are read as one state, and three of the four combinations are
+refusals:
+
+```text
+NOT_FROZEN + false   refuse — the protocol is not fixed
+FROZEN     + false   refuse — frozen, but the owner has not authorised collection
+NOT_FROZEN + true    refuse — an authorisation without a fixed protocol is a
+                              contradiction, and a tool that accepted it would be
+                              honouring a flag over the contract
+FROZEN     + true    may proceed to the remaining gates, which may still refuse
+```
+
+The step-7 tooling enforces this state machine fail-closed; neither the
+qualification path nor the binding path may accept `FROZEN + false`.
 
 **Slot discipline.** Every value this document does not already hold appears as a
 typed `UNRESOLVED_OWNER_DECISION` slot with its unit and its scope stated. A slot
@@ -65,7 +93,18 @@ key. There is no second term for it — a "platform-cell" would
 be the same idea with a second name, and two names for one thing is how a
 contract starts disagreeing with itself.
 
-**The cell is also the acceptance leaf.** For each matched pair:
+**The cell is not the acceptance leaf; a resource inside it is.** A D7 cell
+carries two gated resources — elapsed time and the stratum's memory metric — and
+each is decided on its own. The leaf is therefore
+
+    (cell, resource)        resource ∈ { elapsed, the stratum's memory metric }
+
+and this document says "resource leaf" wherever the decision is meant, reserving
+"cell" for the measurement identity D7 enumerates. An earlier revision called the
+cell the leaf, which made two different implementations able to claim they
+followed T0.
+
+For each matched pair, per resource:
 
     P_c = median(Python_c)
     R_c = median(Rust_c)
@@ -371,6 +410,18 @@ windows / launcher-e2e / warm         / max_process_peak_commit     (bytes)
 Windows. `U_linux` and `U_windows` are never pooled, and no ratio is formed
 across them.
 
+### Cells and leaves are not the same count
+
+```text
+12 canonical workloads x 2 platforms x 2 regimes   =  48 end-to-end D7 cells
+48 cells x 2 gated resources (elapsed, memory)     =  96 acceptance resource leaves
+```
+
+The resource axis exists in this contract and **not** in `D7_CELL_DIMENSIONS`;
+adding it there would be a schema change, and none is made. The two resource
+verdicts of one cell are independent and are combined only by the operator below,
+never inside the cell.
+
 ### Two roll-ups, one operator
 
 ```text
@@ -513,6 +564,45 @@ is ever pooled, averaged or otherwise combined across workloads, regimes,
 platforms or resources: the algebra above applies to the three words `PASS`,
 `NO_DECISION` and `FAIL`, and to nothing else.
 
+### The campaign join, and what it is not
+
+The accepted D7 payload binds `python_reference_commit`,
+`python_reference_tree`, `harness_digest`, `harness_version` and
+`workload_manifest_sha256`. It does **not** bind the execution binding:
+`execution_binding_sha256` appears nowhere in `D7_PAYLOAD_BINDING_KEYS`, and the
+string `execution_binding` does not appear in the instrument at all. The gate
+checks that the listed keys are *present* and matching; an extra key in the
+payload is tolerated and never verified. So a payload could name a campaign and
+the gate would not notice if it named the wrong one.
+
+That gap is closed by a **campaign link**, an artifact of the step-7 layer that
+ties the three identities together and is verified fail-closed before the clock
+and again after it:
+
+```text
+campaign link binds, by exact bytes:
+    execution_binding_sha256
+    the D7 payload's sha256, its blob id and the commit that carries it
+    the D7 attestation's exact identity
+```
+
+**A decisive session is admissible only with it.** The session preflight refuses
+to start when the link is absent, when it does not name this execution binding,
+or when the D7 payload and attestation now on disk do not hash to what the link
+names; the postflight refuses to issue an admissibility record on the same
+grounds. Admissibility under this contract *is* the existence of that postflight
+record, so evidence produced without the link is not inadmissible by opinion —
+there is no artifact that can say it is admissible.
+
+**What the link does not do, stated plainly.** It does not make the instrument's
+firewall aware of the campaign. The `IdentityGate` arms from the D7 payload and
+attestation alone, so a decisive clock can physically run with no execution
+binding in existence; what cannot happen is that such a run becomes admissible
+evidence. Making the firewall itself refuse would require editing
+`scripts/perf_baseline.py`, which moves `measurement_harness_digest` and re-opens
+steps 4, 5 and 6 — a price this contract does not pay for a property it can
+obtain by making admissibility, rather than execution, the thing that is gated.
+
 Nothing here requires a change to `scripts/perf_baseline.py`, and therefore
 nothing here moves the harness digest.
 
@@ -630,8 +720,9 @@ rather than in a reading nobody re-reads.
 **RESOLVED (R5): a deterministic gray zone in two dimensions.**
 
 The gray zone is defined on the same two coordinates the margins are, and no
-synthetic scalar score is constructed from them. Per **cell**, against the
-budget family its class belongs to:
+synthetic scalar score is constructed from them. This is the **per-resource-leaf
+decision function**, applied to one resource of one cell against the budget
+family that resource belongs to:
 
 ```text
 PASS          iff  relative_regression_c <= M_pass
@@ -696,7 +787,6 @@ Invalidation fires only on machine-detectable predicates frozen in advance:
 - opening or closing noise probe relative IQR above `NOISE_PROBE_MAX_RELATIVE_IQR`
   (0.35);
 - drift between opening and closing probes above `NOISE_PROBE_MAX_DRIFT` (0.35);
-- reproducibility median change above `REPRODUCIBILITY_MAX_MEDIAN_CHANGE` (0.35);
 - a cell that did not do its rung's work, proved by its post-condition;
 - a required primary metric that returned `null` or went missing mid-attempt
   (T0-4 case B);
@@ -713,7 +803,22 @@ Invalidation fires only on machine-detectable predicates frozen in advance:
 - candidate byte drift within a stratum after collection started.
 
 **A performance result is never an invalidation condition.** Not a slow cell, not
-a gray-zone outcome, not a disappointing cell comparison. Every predicate above is
+a gray-zone outcome, not a disappointing cell comparison — and, since this
+revision, not a failure to reproduce a median either.
+
+**Statistical non-reproduction is not `INVALID` and buys no retry.** An earlier
+revision listed a reproducibility median change above
+`REPRODUCIBILITY_MAX_MEDIAN_CHANGE` among the invalidation predicates, which
+turned an observed number into a ticket for another throw of the coin — the
+outcome-selective surface this contract exists to close. The accepted instrument
+keeps the two questions apart on purpose: `timings_reproduced` and
+`environment_valid` are separate verdicts, and a timing disagreement does not
+establish whether contention, a variable workload or the uncertainty of a median
+caused it. `INVALID` remains for integrity and environment failures that are
+knowable without looking at the comparison: noise and drift probes, missing or
+corrupt evidence, the wrong population, identity or candidate drift, a missing
+required metric, a broken numeric domain. Reproducibility keeps the meaning the
+accepted calibration policy gives it, and T0 does not reclassify it. Every predicate above is
 machine-detected, so no operator chooses to invalidate a session.
 
 One retry attempt is one full re-collection of the invalidated session on the
@@ -724,7 +829,15 @@ evidence and none is deleted.
 retry_budget: 1        # R8
 ```
 
-Read literally:
+**Scope: the decisive campaign only.** `retry_budget` governs #263-B and nothing
+else. Step-7 training keeps the rule its own frozen preregistration already
+carries — `exactly_one_collection`, `abort_semantics.no_automatic_retry`, and an
+`INVALID` training collection yields no admissible Step-8 input. No training
+attempt is created by R8, and this document does not amend Step 6 by implication:
+a fixed thirty-run collection does not remain the same object after a second
+attempt, whatever a later reader would prefer.
+
+Read literally, for the decisive campaign:
 
     1 initial attempt
     + at most 1 full-session retry after INVALID
@@ -1048,7 +1161,9 @@ is now in it:
 | the decisive gate population | T0-3 | S1 |
 | the numeric domain and sample completeness | T0-4 | S2, S3 |
 | eight platform-qualified gate **classes** | T0-3 | S8 |
-| the leaf decision: one verdict per canonical workload cell | T0-1, T0-5 | P3.5 |
+| the leaf decision: one verdict per (cell, resource) leaf | T0-1, T0-5 | P3.5, F2 |
+| the authority state machine, freeze as the authorising act | preamble | R15 |
+| the campaign link joining execution binding, D7 payload and attestation | T0-3 | F1 |
 | the within-class roll-up over canonical workload verdicts | T0-3 | P3.5 |
 | the overall roll-up over the eight class verdicts | T0-3 | P3.5 |
 | the D7 serialization and its equivalence proof | T0-3 | P3.5 |
