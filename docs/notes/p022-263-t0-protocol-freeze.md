@@ -48,8 +48,8 @@ ratified four-part cell identity of §2.1 with `engine` projected out and the
 stratum named, so the pair exists exactly where both engines have a timed cell on
 **one** platform.
 
-**Pairing never crosses a stratum.** `median_c` is computed only within one
-primary gate's stratum, and no `R` is ever formed over Linux and Windows cells
+**Pairing never crosses a stratum.** A cell comparison is computed inside one
+stratum, and no comparison of any kind is formed over Linux and Windows cells
 together. A Linux cell and a Windows cell that agree on rung, workload and regime
 are two different cells, because since #355 their memory quantities are not even
 the same physical thing:
@@ -60,18 +60,40 @@ windows / launcher-e2e / W / warm   Python vs Rust      a different pair
 across those two                                        no pair, and no R
 ```
 
-Every later use of *cell*, *matched pair*, *the gate's cell set*, `median_c` and
-`R` inherits this key. There is no second term for it — a "platform-cell" would
+Every later use of *cell*, *matched pair* and *a class's cell set* inherits this
+key. There is no second term for it — a "platform-cell" would
 be the same idea with a second name, and two names for one thing is how a
 contract starts disagreeing with itself.
 
-For each matched pair:
+**The cell is also the acceptance leaf.** For each matched pair:
 
-    d_c = log(median(Rust_c)) - log(median(Python_c))
-    D   = median_c(d_c)
-    R   = exp(D)
+    P_c = median(Python_c)
+    R_c = median(Rust_c)
 
-`R` is the reported Rust-vs-Python ratio: `R < 1` means Rust is faster.
+    relative_regression_c = R_c / P_c - 1
+    absolute_regression_c = R_c - P_c
+
+and the rule of T0-5 is applied to **that cell**, on its own, against its
+family's budgets. A cell verdict is `PASS`, `FAIL` or `NO_DECISION`; the
+roll-ups of T0-3 then combine cell verdicts, never cell numbers.
+
+**Withdrawn: the population-level statistic.** An earlier revision computed
+`d_c = log(median(Rust_c)) − log(median(Python_c))`, `D = median_c(d_c)` and
+`R = exp(D)` across the whole workload population of a gate, and judged *that*.
+It is removed from the decision path for two reasons, both of which the frozen
+instrument already rules on:
+
+- a median over workloads **hides a casualty**. One decisive workload degraded
+  far past the fail margin disappears behind eleven healthy ones, and the gate
+  reports a comfortable ratio for a product that got materially worse on a real
+  input;
+- it **double-weights an alias**. `large-solution-control` is `alias_of`
+  `oss-ShareX.sln` — the same path at the same pin — so a population median over
+  manifest entries gives that one solution two votes.
+
+Neither is repaired by choosing a different average. The leaf has to be the cell,
+because that is the level at which the accepted D7 gate requires a preregistered
+decision, and no aggregate may stand in for it.
 
 **Index pairing is forbidden.** `Rust_i / Python_i` for the i-th iteration is not
 a paired observation here and may not be computed, reported or gated on.
@@ -95,13 +117,12 @@ instrumentation evidence, not a T0 detail.
 **An unpaired cell cannot reach the statistic.** A cell whose invocation did not
 do the rung's work is not timed at all and the collection is refused
 (instrument §2). Therefore a missing side is an admissibility failure — see
-T0-4 — and never a pair dropped quietly from `median_c`.
+T0-4 — and never a pair dropped quietly from a class's cell set.
 
 **Recorded consequence.** Cell-level pairing cancels *condition* noise (same
 stratum, rung, workload, regime, same session, interleaved order). It does not
-cancel
-per-iteration noise, because the data cannot support that claim. No stronger
-noise-cancellation property may be asserted for `R`.
+cancel per-iteration noise, because the data cannot support that claim, and no
+stronger noise-cancellation property may be asserted for a cell comparison.
 
 ---
 
@@ -113,8 +134,8 @@ Two coordinates, never collapsed into a score:
 
 | term | definition |
 |---|---|
-| `relative_regression` | `R - 1` for the gate's cell set, `R` per T0-1 |
-| `absolute_regression` | the median over matched pairs of `median(Rust_c) - median(Python_c)`, in the gate's own unit |
+| `relative_regression_c` | `median(Rust_c) / median(Python_c) - 1`, for one cell |
+| `absolute_regression_c` | `median(Rust_c) - median(Python_c)`, for one cell, in its unit |
 | unit, time gates | milliseconds — the instrument records `perf_counter_ns`, so the conversion belongs to the reading, never to the evidence |
 | unit, memory gates | bytes of the stratum's own `memory_metric`, after the instrument's unit normalisation — resident on `linux`, committed on `windows`, never mixed |
 
@@ -122,15 +143,15 @@ Two margins, because neither alone is meaningful: a relative-only rule fails a
 `0.20 ms -> 0.24 ms` change that no user can perceive, and an absolute-only rule
 is blind to scale.
 
-Each gate carries **two pairs** of budgets — one pair that admits a pass, one
-pair that compels a failure — and the decision rule over them is T0-5:
+Each cell is judged against **two pairs** of budgets — one pair that admits a
+pass, one pair that compels a failure — and the decision rule over them is T0-5:
 
 Each budget family below applies to **both regimes** of its resource, on the
-stratum named. The pass pair and the fail pair belong to the same gate: no regime
-owns one of them.
+stratum named, and to every canonical workload cell inside those classes. The
+pass pair and the fail pair belong to the same cell: no regime owns one of them.
 
 ```yaml
-# R6 — elapsed time. Both strata, both regimes: four of the eight gates, one family.
+# R6 — elapsed time. Both strata, both regimes: four of the eight classes, one family.
 time:
   M_pass: 0.05             # +5 %
   A_pass: 50               # milliseconds
@@ -157,7 +178,7 @@ agree today because both were chosen from the same product budget before any dat
 existed, and either may later move without the other. Reading the coincidence as
 one cross-platform metric is exactly the error #355 removed from the instrument.
 
-Required of every gate, and true of all three budget families above:
+Required of every cell, and true of all three budget families above:
 
     M_pass < M_fail
     A_pass < A_fail
@@ -276,9 +297,27 @@ owner-ratified amendment, not as a silent passenger inside a preregistration.
 
 The gates are computed over **exactly the decisive workloads of the D7-bound
 workload manifest that are applicable to the `launcher-e2e` rung**, and over
-nothing else. At the currently frozen manifest that is all **13** decisive
-workloads — every one of them is a source tree, and the launcher rung admits
-every one.
+nothing else — as **canonical identities**, which is not the same as manifest
+entries:
+
+```text
+manifest decisive entries at the frozen manifest   13
+canonical decisive identities                      12
+  large-solution-control is alias_of oss-ShareX.sln
+```
+
+**An alias earns no second vote.** `large-solution-control` and
+`oss-ShareX.sln` are the same path at the same pin; the manifest declares the
+alias precisely so the pair is never counted twice in a denominator. The
+instrument resolves an alias to the identity it aliases and refuses a duplicate
+canonical identity by name. A population counted in manifest entries would give
+that one solution two votes, so the population is counted in canonical
+identities and this document says "12 canonical identities at the current
+manifest", never "13 voting workloads".
+
+The number is read from the frozen artifacts, not asserted here: it is whatever
+the manifest's decisive entries resolve to under the instrument's alias rule, and
+it is 12 today.
 
 **Calibration workloads never enter a cutover gate.** They exist to size the
 instrument; a gate computed over them would be answering a different question
@@ -290,23 +329,30 @@ say which cells a gate covers without reading a function, and two readers must
 not be able to answer differently.
 
 Missing cells are not a smaller denominator. Each of these makes the attempt
-`INVALID`:
+`INVALID`, and the semantics match the accepted D7 verifier rather than being
+restated loosely here:
 
 ```text
-a decisive workload absent from the gate set        => INVALID
-a cell present for one engine and not the other     => INVALID
-an unexpected extra decisive cell                   => INVALID
-a calibration cell inside the gate set              => INVALID
+a canonical decisive identity absent from the gate set  => INVALID
+a cell present for one engine and not the other         => INVALID
+an unexpected extra decisive cell                       => INVALID
+a duplicate canonical identity (an alias counted twice) => INVALID
+a calibration cell inside the gate set                  => INVALID
 ```
 
 D7 binds the exact workload-manifest digest, and therefore the exact decisive
 set: the population cannot be re-read later as "whatever was measured".
 
-### The eight gates
+### The eight primary gate classes
 
-Since #355 the memory quantity is platform-local, so the gate identity carries
-its stratum. The primary set is exactly **eight** independent gates, four per
-stratum:
+Since #355 the memory quantity is platform-local, so the identity carries its
+stratum. The primary set is exactly **eight gate classes**, four per stratum.
+
+They are **classes, not leaves**: each one covers the canonical decisive
+workloads, and the acceptance decision happens per workload cell inside it
+(T0-1). Calling them eight gates was the previous revision's error — it implied
+one verdict per class computed from an aggregate, which is exactly the masking
+this section now forbids.
 
 ```text
 linux   / launcher-e2e / process-cold / elapsed                     (ms)
@@ -320,17 +366,33 @@ windows / launcher-e2e / process-cold / max_process_peak_commit     (bytes)
 windows / launcher-e2e / warm         / max_process_peak_commit     (bytes)
 ```
 
-**No compensation in any direction**: not between `process-cold` and `warm`, not
-between time and memory, and not between the two strata. `U_linux` and
-`U_windows` are never pooled, and no ratio is formed across them.
+**No compensation in any direction**: not workload against workload, not
+`process-cold` against `warm`, not time against memory, and not Linux against
+Windows. `U_linux` and `U_windows` are never pooled, and no ratio is formed
+across them.
 
-The roll-up over the eight is the automaton of T0-4, applied without addition:
+### Two roll-ups, one operator
 
 ```text
-any gate FAIL            => FAIL
-else any NO_DECISION     => NO_DECISION
-else                     => PASS
+inside a class, over canonical workload cell verdicts:
+    any FAIL             => class FAIL
+    else any NO_DECISION => class NO_DECISION
+    else                 => class PASS
+
+over the eight class verdicts:
+    any FAIL             => overall FAIL
+    else any NO_DECISION => overall NO_DECISION
+    else                 => overall PASS
 ```
+
+**One failing workload fails its class**, even when every other workload in it
+passes. That is the property the withdrawn population median destroyed, and it is
+the reason the leaf is the cell.
+
+`INVALID` is **not** a roll-up verdict and never appears at either level: an
+admissibility failure invalidates the attempt under T0-4 and T0-6 *before* any
+roll-up is computed. A session that reached a roll-up is a session whose evidence
+was already complete.
 
 **Memory is gated on `launcher-e2e` only.** The instrument captures
 `peak_memory_bytes` on every measured cell and those values are **published as
@@ -341,6 +403,38 @@ here rather than left to a reader.
 
 Every other surface in the table is **published, never gating**. A derived view
 may inform a reading and may never serve as a gate.
+
+### How this lands in the accepted D7 payload
+
+The frozen instrument already fixes the shape D7 must fill, and this contract is
+written to fit it rather than asking it to move:
+
+```text
+D7_CELL_DIMENSIONS = (phase, workload_id, platform, regime)
+D7_ROLLUP_LEVELS   = (workload_class, phase, overall_g3)
+cell universe      = 8 phases x 12 canonical workloads x 2 platforms x 2 regimes
+                   = 384 cells, each needing a rule or an explicit not_applicable
+```
+
+The mapping, stated so nobody has to infer it:
+
+- the **time** classes are the `end-to-end-csharp` phase, per platform and
+  regime — the user-visible path, and the only phase this contract gates;
+- the **memory** classes are not a phase. Memory is decided on the same cells
+  through the cell's `rss_policy` key, which is why this document never asks D7
+  for a memory phase it does not have;
+- the other seven phases carry an explicit `not_applicable` with the reason
+  "published as diagnostic evidence; not a cutover gate under T0-3" — under R4 a
+  diagnostic surface never becomes a veto, and D7 completeness is satisfied by a
+  recorded decision rather than by silence;
+- the per-cell rule keys are filled by this contract: `pass_fail_rule` and
+  `inconclusive_band` by T0-5, `bound` by the T0-2 families, `comparison_statistic`
+  by T0-1's per-cell ratio and difference, `repetition_ladder` by `N`,
+  `rss_policy` by the stratum's memory metric, `allocation_policy` by R2's
+  diagnostic-only ruling.
+
+Nothing here requires a change to `scripts/perf_baseline.py`, and therefore
+nothing here moves the harness digest.
 
 ---
 
@@ -366,12 +460,13 @@ eligibility (T0-7: host qualified, every required primary metric has a
         │                                     └─ budget exhausted ─► NO_DECISION
         └─ clean
              │
-             each of the eight primary gates, by the two-dimensional rule of
-             T0-5 over the T0-2 budgets
+             every canonical workload cell, by the two-dimensional rule of
+             T0-5 over its family's T0-2 budgets, then rolled up inside its
+             class and over the eight classes (T0-3)
              │
-             ├─ any gate FAIL ─────────────► FAIL          ─► NO_GO
-             ├─ any gate NO_DECISION ──────► NO_DECISION
-             └─ all eight gates PASS ──────► PASS          ─► GO
+             ├─ any class FAIL ────────────► FAIL          ─► NO_GO
+             ├─ any class NO_DECISION ─────► NO_DECISION
+             └─ all eight classes PASS ────► PASS          ─► GO
 ```
 
 The three null-metric situations are **different states**, and collapsing them
@@ -401,8 +496,8 @@ median elapsed > 0
 median memory  > 0        (the stratum's own metric)
 ```
 
-and for the derived quantities `R`, `relative_regression` and
-`absolute_regression`, any of
+and for each cell's derived quantities `relative_regression_c` and
+`absolute_regression_c`, any of
 
 ```text
 None · NaN · +inf · -inf · undefined arithmetic
@@ -455,7 +550,8 @@ rather than in a reading nobody re-reads.
 **RESOLVED (R5): a deterministic gray zone in two dimensions.**
 
 The gray zone is defined on the same two coordinates the margins are, and no
-synthetic scalar score is constructed from them. Per gate:
+synthetic scalar score is constructed from them. Per **cell**, against the
+budget family its class belongs to:
 
 ```text
 PASS          iff  relative_regression <= M_pass
@@ -537,7 +633,7 @@ Invalidation fires only on machine-detectable predicates frozen in advance:
 - candidate byte drift within a stratum after collection started.
 
 **A performance result is never an invalidation condition.** Not a slow cell, not
-a gray-zone outcome, not a disappointing `R`. Every predicate above is
+a gray-zone outcome, not a disappointing cell comparison. Every predicate above is
 machine-detected, so no operator chooses to invalidate a session.
 
 One retry attempt is one full re-collection of the invalidated session on the
@@ -841,7 +937,7 @@ Content completeness is not the freeze; it is what makes the freeze reviewable.
 | can a host with no mechanism for a required metric start a session? | **no** — T0-7 eligibility, T0-4 case A |
 | can a stale manifest carry a campaign? | **no** — fresh per session, rechecked after, drift is `INVALID` |
 | can anyone start collecting because hosts and binding are ready? | **no** — T0-0 revoked that; `collection_authorized: false` |
-| can one evidence set yield both PASS and FAIL under two admissible readings? | **no** — per gate the two conditions are mutually exclusive by `M_pass < M_fail` and `A_pass < A_fail`, and the roll-up is a total function of the eight gate outcomes |
+| can one evidence set yield both PASS and FAIL under two admissible readings? | **no** — per cell the two conditions are mutually exclusive by `M_pass < M_fail` and `A_pass < A_fail`, and both roll-ups are total functions of the verdicts beneath them |
 | does the declaration of single tenancy masquerade as proof? | **no** — provisioning evidence and runtime invariants are separated, and only the latter is called machine-verified |
 | can a calibration workload enter a cutover gate? | **no** — T0-3 owns the population: decisive workloads applicable to `launcher-e2e`, and a calibration cell in the set is `INVALID` |
 | can a missing decisive workload quietly shrink the denominator? | **no** — a missing workload, a missing engine side or an unexpected extra cell each make the attempt `INVALID` |
@@ -849,6 +945,11 @@ Content completeness is not the freeze; it is what makes the freeze reviewable.
 | can an undefined quantity reach a verdict through the rule's `OR`? | **no** — the numeric domain is checked before T0-5; `NaN` on either coordinate is `INVALID`, never `PASS` |
 | can Linux resident bytes be compared with Windows committed bytes? | **no** — the metric is part of the gate identity, the strata are never pooled, and `resident == commit` is asserted nowhere |
 | can a replacement host buy another attempt? | **no** — the retry budget belongs to the stratum, replacement does not reset it, and a valid outcome closes the stratum |
+| can one degraded workload hide behind the others? | **no** — the leaf is the cell; one `FAIL` fails its class however many workloads pass, and the population median that allowed it is withdrawn by name |
+| can an alias vote twice? | **no** — the population is counted in canonical identities, an alias resolves to what it aliases, and a duplicate canonical identity is `INVALID` |
+| can a workload be dropped to improve a class? | **no** — a missing canonical identity is `INVALID`, not a smaller denominator |
+| does reordering the workloads change a verdict? | **no** — the roll-up operator is order-independent by construction, and it is checked that way |
+| does T0 ask D7 for a payload it cannot express? | **no** — time maps to the `end-to-end-csharp` phase, memory to each cell's `rss_policy`, and the seven non-gating phases carry an explicit `not_applicable` with a reason |
 | can a valid result be re-measured on a new host? | **no** — re-measurement needs a previous `INVALID` **and** remaining budget; a new binding starts a campaign beside the old one and erases nothing |
 
 No "yes" answer remains that a decision could close. The one permitted item — a
