@@ -92,7 +92,7 @@ Two coordinates, never collapsed into a score:
 | `relative_regression` | `R - 1` for the gate's cell set, `R` per T0-1 |
 | `absolute_regression` | the median over matched pairs of `median(Rust_c) - median(Python_c)`, in the gate's own unit |
 | unit, time gates | milliseconds — the instrument records `perf_counter_ns`, so the conversion belongs to the reading, never to the evidence |
-| unit, memory gates | bytes of peak RSS, after the instrument's own `ru_maxrss` unit normalisation (kilobytes on Linux, bytes on macOS/BSD) |
+| unit, memory gates | bytes of the stratum's own `memory_metric`, after the instrument's unit normalisation — resident on `linux`, committed on `windows`, never mixed |
 
 Two margins, because neither alone is meaningful: a relative-only rule fails a
 `0.20 ms -> 0.24 ms` change that no user can perceive, and an absolute-only rule
@@ -101,23 +101,37 @@ is blind to scale.
 Each gate carries **two pairs** of budgets — one pair that admits a pass, one
 pair that compels a failure — and the decision rule over them is T0-5:
 
-```yaml
-# R6 — both primary elapsed-time gates
-#      launcher-e2e / process-cold / elapsed
-#      launcher-e2e / warm         / elapsed
-M_pass_time: 0.05          # +5 %
-A_pass_time: 50            # milliseconds
-M_fail_time: 0.10          # +10 %
-A_fail_time: 100           # milliseconds
+Each budget family below applies to **both regimes** of its resource, on the
+stratum named. The pass pair and the fail pair belong to the same gate: no regime
+owns one of them.
 
-# R7 — both primary peak-RSS gates
-#      launcher-e2e / process-cold / peak RSS
-#      launcher-e2e / warm         / peak RSS
-M_pass_rss:  0.10          # +10 %
-A_pass_rss:  33554432      # bytes, 32 MiB
-M_fail_rss:  0.20          # +20 %
-A_fail_rss:  67108864      # bytes, 64 MiB
+```yaml
+# R6 — elapsed time. Both strata, both regimes: four of the eight gates, one family.
+time:
+  M_pass: 0.05             # +5 %
+  A_pass: 50               # milliseconds
+  M_fail: 0.10             # +10 %
+  A_fail: 100              # milliseconds
+
+# R7 — memory. One family per stratum, because the quantities differ.
+linux_max_process_peak_resident:     # both regimes
+  M_pass: 0.10             # +10 %
+  A_pass: 33554432         # bytes, 32 MiB
+  M_fail: 0.20             # +20 %
+  A_fail: 67108864         # bytes, 64 MiB
+
+windows_max_process_peak_commit:     # both regimes
+  M_pass: 0.10             # +10 %
+  A_pass: 33554432         # bytes, 32 MiB
+  M_fail: 0.20             # +20 %
+  A_fail: 67108864         # bytes, 64 MiB
 ```
+
+**The two memory families carry identical numbers and are not the same budget.**
+Resident bytes and committed bytes are different physical quantities; the numbers
+agree today because both were chosen from the same product budget before any data
+existed, and either may later move without the other. Reading the coincidence as
+one cross-platform metric is exactly the error #355 removed from the instrument.
 
 Required of every gate, and true of both sets above:
 
@@ -128,13 +142,15 @@ Both regimes of a resource share that resource's budgets — not because
 `process-cold` and `warm` are the same thing, but because the product price of
 making a user wait is the same in either. Time and memory do **not** share
 budgets: a single absolute value cannot span milliseconds and bytes, and a shared
-relative budget would be a tidy symmetry bought with meaning. This is what
-replaces the old `M`, `A` and `M_A_scope`: eight named per-resource budgets, with
+relative budget would be a tidy symmetry bought with meaning. Nor do the two
+strata share a memory budget, for the same reason at one remove: resident and
+committed bytes are different quantities that happen to be priced alike. This is
+what replaces the old `M`, `A` and `M_A_scope`: three named budget families, with
 no scope left ambiguous.
 
 These budgets come from the cutover/product price of latency and memory. They may
 not be derived from observed Rust-vs-Python results, calibration variance, or
-training output — and none of the eight was.
+training output — and none of them was.
 
 ---
 
@@ -170,7 +186,7 @@ number may never be renamed into something stronger than it proves:
 | surface | observable | class |
 |---|---|---|
 | launcher end-to-end run | `launcher-e2e` | `DIRECT` |
-| peak RSS | `os.wait4` `ru_maxrss` (POSIX) / job object `PeakProcessMemoryUsed` (Windows), `null` with a reason elsewhere | `DIRECT` where a mechanism exists |
+| peak memory | `os.wait4` `ru_maxrss` on `linux` (resident) / job object `PeakProcessMemoryUsed` on `windows` (committed), `null` with a reason elsewhere | `DIRECT` where a mechanism exists, and the quantity is named beside the number |
 | core startup floor | `core-usage`, composed over `process-startup-core` + `cli-argv-parse` + `cli-usage-refusal` | `DIRECT` as an interval; a **lower bound** on core startup, never relabelled "startup" |
 | OwnIR parse | `core-parse-refused - core-usage` | `DERIVED_ASSUMPTION_DEPENDENT` — assumes both invocations pay comparable argv handling and refusal rendering |
 | CLI/SARIF rendering | `core-full-sarif - core-full-human` | `DERIVED_EXACT` **for the renderer difference**; imputing "rendering in isolation" from it is not permitted |
@@ -198,14 +214,31 @@ iterations, with the OS and filesystem caches warm. `machine-cold` is **not
 claimed** by the instrument and is therefore not a gate, not a regime and not an
 alias for anything here. A bare `cold` is not an identifier in this contract.
 
-**R2 — peak RSS** remains a required resource gate wherever the contract provides
-a mechanism, and it carries the same regime dimension as time. `peak_rss_bytes`
-is captured on every measured cell, and a cell's key includes its regime, so
-memory exists separately for `process-cold` and for `warm` rather than as one
-number beside the surface. `warm` memory may not hide inside `process-cold`
-memory, or the reverse. Allocation and heap profiling is diagnostic, published for selected
-workloads where practical; **a missing allocation profile is neither `INVALID`
-nor `FAIL`**, and no instrumentation is added under T0 to obtain one.
+**R2 — peak memory** remains a required resource gate wherever the contract
+provides a mechanism, and it carries the same regime dimension as time.
+`peak_memory_bytes` is captured on every measured cell, and a cell's key includes
+its regime, so memory exists separately for `process-cold` and for `warm` rather
+than as one number beside the surface. `warm` memory may not hide inside
+`process-cold` memory, or the reverse. Allocation and heap profiling is
+diagnostic, published for selected workloads where practical; **a missing
+allocation profile is neither `INVALID` nor `FAIL`**, and no instrumentation is
+added under T0 to obtain one.
+
+**There is no generic "peak RSS" gate in this contract; that name is obsolete.**
+The instrument names two different physical quantities and carries the name with
+the number, because a witness showed they are not the same thing — a child that
+commits 256 MiB and never touches a page is reported in full by the Windows job
+object and not at all by `ru_maxrss`:
+
+| stratum | `memory_metric` | what it counts |
+|---|---|---|
+| `linux` | `max_process_peak_resident` | peak **resident** set over the waited-for descendant chain |
+| `windows` | `max_process_peak_commit` | peak **committed** memory of any process in the job |
+
+`resident == commit` is asserted nowhere in this contract, and the two are never
+pooled, averaged or compared across platforms. A cell whose `memory_metric` is
+not the one its stratum declares does not belong to that gate, and its presence
+makes the attempt `INVALID`.
 
 **R4 — Option 2, the current observable surface, with no new diagnostic veto
 gates.** Catastrophic per-phase caps were considered and rejected: they are an
@@ -215,19 +248,59 @@ from this contract rather than filled — they are not part of it. Should a real
 profile later show the need for such a guardrail, it arrives as its own
 owner-ratified amendment, not as a silent passenger inside a preregistration.
 
-The primary gate set is therefore exactly **four** independent gates:
+### The gate workload population, owned here
+
+The gates are computed over **exactly the decisive workloads of the D7-bound
+workload manifest that are applicable to the `launcher-e2e` rung**, and over
+nothing else. At the currently frozen manifest that is all **13** decisive
+workloads — every one of them is a source tree, and the launcher rung admits
+every one.
+
+**Calibration workloads never enter a cutover gate.** They exist to size the
+instrument; a gate computed over them would be answering a different question
+with the same arithmetic.
+
+The instrument's own applicability rule is an implementation of this sentence,
+not the source of it. Population semantics belong to T0: a reader must be able to
+say which cells a gate covers without reading a function, and two readers must
+not be able to answer differently.
+
+Missing cells are not a smaller denominator. Each of these makes the attempt
+`INVALID`:
 
 ```text
-launcher-e2e / process-cold / elapsed time   (milliseconds)
-launcher-e2e / warm         / elapsed time   (milliseconds)
-launcher-e2e / process-cold / peak RSS       (bytes)
-launcher-e2e / warm         / peak RSS       (bytes)
+a decisive workload absent from the gate set        => INVALID
+a cell present for one engine and not the other     => INVALID
+an unexpected extra decisive cell                   => INVALID
+a calibration cell inside the gate set              => INVALID
 ```
 
-**No compensation, in either direction**: not between `process-cold` and `warm`,
-and not between time and memory. Four gates, each read on its own.
+D7 binds the exact workload-manifest digest, and therefore the exact decisive
+set: the population cannot be re-read later as "whatever was measured".
 
-The roll-up over them is the automaton of T0-4, applied without addition:
+### The eight gates
+
+Since #355 the memory quantity is platform-local, so the gate identity carries
+its stratum. The primary set is exactly **eight** independent gates, four per
+stratum:
+
+```text
+linux   / launcher-e2e / process-cold / elapsed                     (ms)
+linux   / launcher-e2e / warm         / elapsed                     (ms)
+linux   / launcher-e2e / process-cold / max_process_peak_resident   (bytes)
+linux   / launcher-e2e / warm         / max_process_peak_resident   (bytes)
+
+windows / launcher-e2e / process-cold / elapsed                     (ms)
+windows / launcher-e2e / warm         / elapsed                     (ms)
+windows / launcher-e2e / process-cold / max_process_peak_commit     (bytes)
+windows / launcher-e2e / warm         / max_process_peak_commit     (bytes)
+```
+
+**No compensation in any direction**: not between `process-cold` and `warm`, not
+between time and memory, and not between the two strata. `U_linux` and
+`U_windows` are never pooled, and no ratio is formed across them.
+
+The roll-up over the eight is the automaton of T0-4, applied without addition:
 
 ```text
 any gate FAIL            => FAIL
@@ -235,8 +308,8 @@ else any NO_DECISION     => NO_DECISION
 else                     => PASS
 ```
 
-**Peak RSS is gated on `launcher-e2e` only.** The instrument captures
-`peak_rss_bytes` on every measured cell and those values are **published as
+**Memory is gated on `launcher-e2e` only.** The instrument captures
+`peak_memory_bytes` on every measured cell and those values are **published as
 diagnostic evidence**, but a memory number on a diagnostic rung never gates.
 Gating memory on the diagnostic rungs would reintroduce through the resource
 metric exactly the per-phase veto R4 removed, which is why the scope is named
@@ -269,12 +342,12 @@ eligibility (T0-7: host qualified, every required primary metric has a
         │                                     └─ budget exhausted ─► NO_DECISION
         └─ clean
              │
-             each of the four primary gates, by the two-dimensional rule of
+             each of the eight primary gates, by the two-dimensional rule of
              T0-5 over the T0-2 budgets
              │
              ├─ any gate FAIL ─────────────► FAIL          ─► NO_GO
              ├─ any gate NO_DECISION ──────► NO_DECISION
-             └─ all four gates PASS ───────► PASS          ─► GO
+             └─ all eight gates PASS ──────► PASS          ─► GO
 ```
 
 The three null-metric situations are **different states**, and collapsing them
@@ -293,6 +366,63 @@ three.
 and are kept apart because they mean different things: `INVALID` says the
 measurement did not happen properly, `NO_DECISION` says it happened and did not
 resolve.
+
+### The numeric domain, before any rule is applied
+
+Every quantity a primary gate consumes must be **defined, real and finite**
+before T0-5 is reached. Per cell:
+
+```text
+median elapsed > 0
+median memory  > 0        (the stratum's own metric)
+```
+
+and for the derived quantities `R`, `relative_regression` and
+`absolute_regression`, any of
+
+```text
+None · NaN · +inf · -inf · undefined arithmetic
+```
+
+makes the **whole attempt `INVALID`**. A negative finite regression is not in
+that list: it is an improvement, and it passes.
+
+This is checked **before** the two-dimensional rule, not inside it, because the
+rule's `OR` would otherwise let an undefined coordinate through on the strength
+of the other one:
+
+```text
+relative = NaN,  absolute = 10 ms   =>  INVALID, never PASS
+relative = 0.01, absolute = NaN     =>  INVALID, never PASS
+```
+
+A comparison against an undefined number is not a comparison that failed, and it
+is certainly not one that succeeded.
+
+### Sample completeness
+
+A primary cell is admissible only when it holds **exactly the preregistered `N`**
+samples. For elapsed time:
+
+```text
+observed elapsed samples == N
+every sample finite and > 0
+```
+
+and for memory:
+
+```text
+observed memory samples == N
+every sample present, finite and > 0
+every sample carries the memory_metric its stratum declares
+```
+
+**One `null`, one missing sample or one unexpected metric kind makes the session
+`INVALID`.** A median over the surviving subset is forbidden: the instrument's
+summariser drops absent memory samples on the way past, so without this rule a
+cell that lost half its measurements reports a confident median of the half that
+survived. That is the defect this clause exists to close, and it is closed here
+rather than in a reading nobody re-reads.
 
 ---
 
@@ -346,7 +476,7 @@ confidence level, the resampling unit, the resample count and the seed would eac
 have had to be frozen, and each would have been a place to negotiate with the
 data afterwards.
 
-The zone's boundaries are the eight budgets of T0-2 and nothing else: there is no
+The zone's boundaries are the budget families of T0-2 and nothing else: there is no
 separate limit to set here, which is the point of removing the scalar pair. They
 may not be derived from training results, calibration variance or any observed
 comparison.
@@ -370,6 +500,14 @@ Invalidation fires only on machine-detectable predicates frozen in advance:
 - a cell that did not do its rung's work, proved by its post-condition;
 - a required primary metric that returned `null` or went missing mid-attempt
   (T0-4 case B);
+- a primary cell holding other than exactly `N` samples, or a sample that is
+  absent, non-finite or not greater than zero (T0-4, sample completeness);
+- a sample carrying a `memory_metric` other than the one its stratum declares;
+- a gate quantity that is undefined, non-real or non-finite (T0-4, numeric
+  domain);
+- a gate cell set that is not exactly the decisive population of T0-3 — a missing
+  decisive workload, a missing engine side, an unexpected extra cell, or a
+  calibration cell that found its way in;
 - identity-field drift in the step-7 environment manifest, fields compared whole,
   on the post-session recheck (R9);
 - candidate byte drift within a stratum after collection started.
@@ -426,7 +564,8 @@ Already normative, from the existing contract:
 - per-stratum untimed builds, with `candidate_sha256` and `candidate_bytes`
   identical across every run of that stratum;
 - **every required primary metric must have a working mechanism on the host**
-  before the session is eligible (T0-4 case A). On a host where peak RSS has no
+  before the session is eligible (T0-4 case A). On a host where the stratum's
+  memory metric has no
   mechanism, the session does not start; it does not start and then fail.
 
 ### R10 — single tenancy, in two classes of evidence
@@ -525,6 +664,23 @@ Reconnaissance already performed on a shared developer workstation remains
 **exploratory only**: it informed the shape of this predicate and contributes no
 measurement, no manifest and no qualified host.
 
+### What the tooling owes this section
+
+The qualification layer implements these rules; it does not own them, and its
+schemas are not restated here. T0 fixes the rule, the tooling fixes the
+representation:
+
+```text
+a qualification names the exact FROZEN T0 it was earned against
+an execution binding names both strata, both candidates and the instrument
+every session record names the execution binding it belongs to
+a fresh environment manifest per session, identity compared as a whole
+preflight before the clock, postflight after it
+```
+
+A qualification earned against a different T0 is not evidence under this one, and
+a session that cannot name its binding does not belong to this campaign.
+
 ---
 
 ## T0-8 — Selection and replacement
@@ -535,12 +691,55 @@ measurement, no manifest and no qualified host.
    predicate and the noise floor, never against how the comparison came out.
 2. The first host that passes the predicate, in a predeclared order, becomes the
    host of its stratum.
-3. After any outcome-bearing data exists, a host may be replaced only for a
-   predeclared environmental failure condition. **A performance outcome is never a
-   replacement reason.**
+3. After any outcome-bearing data exists, a host may be replaced only for one of
+   the six conditions below. **A performance outcome is never a replacement
+   reason.**
 4. Replacement begins with full requalification.
 5. Every replacement records: reason, the rule invoked, old identity, new
    identity, time and order. Evidence from the replaced host is retained.
+
+### The replacement conditions, exhaustively
+
+```text
+1. the host is permanently unavailable
+2. hardware failure
+3. OS or environment identity drift that cannot be restored
+4. the required power-policy qualification cannot be restored
+5. a required measurement mechanism is permanently unavailable
+6. the provisioning guarantee is withdrawn
+```
+
+The wording of a condition may be sharpened; the class may not be widened. There
+is deliberately no sixth-and-a-half "other environmental reason": a list with an
+escape hatch is a list of one entry, and that entry is "whatever we felt".
+
+### Retry continuity — the budget belongs to the stratum
+
+```text
+retry_budget is a property of the STRATUM, not of the host
+host replacement does NOT reset it
+```
+
+If one `INVALID` has already spent the budget, a replacement host does not buy
+another attempt. Otherwise a campaign could walk from machine to machine
+collecting attempts until one of them came out well, which is the same failure
+mode as an unbounded retry with extra paperwork.
+
+**A valid outcome-bearing session is retained as evidence forever**, and its
+existence is what closes the stratum: once a valid `PASS`, `FAIL` or
+`NO_DECISION` exists for a stratum, host replacement cannot create another
+attempt. Re-measurement is permitted only when
+
+```text
+the previous attempt was INVALID   AND   retry budget remains
+```
+
+A new binding identity does not erase the history of the old campaign attempt: it
+starts a new campaign beside it, and both remain in the record.
+
+Every replacement additionally records the **old and new execution-binding
+identities** and the **retry budget remaining** after it, so a reader can see
+what a replacement did and did not buy.
 
 Workloads and inputs are already frozen — 13 decisive entries, pinned. Drift on a
 pinned target is a **failed target**, never a newer measurement and never a
@@ -558,7 +757,7 @@ ladder `[5, 15, 45]`, `G = [1, 10]`, per-stratum admissible sets
 `Q_linux ∩ Q_windows`, and `NO_COMMON_N` is a stop with no fallback rung.
 
 Training may not change, and seeing training output grants no licence to revisit:
-the statistic, the pairing unit, any of the eight per-resource budgets, the gate
+the statistic, the pairing unit, any budget of any family, the gate
 population, the two-dimensional decision rule, the decision automaton, retry
 semantics and budget, manifest refresh, host eligibility semantics, or workload
 selection and replacement rules.
@@ -572,7 +771,7 @@ is now in it:
 
 | what | where | ruling |
 |---|---|---|
-| eight per-resource budgets | T0-2 | R6, R7 |
+| three budget families, time and one per stratum's memory metric | T0-2 | R6, R7 |
 | the two-dimensional decision rule | T0-5 | R5 |
 | `retry_budget: 1` | T0-6 | R8 |
 | `manifest_refresh_rule: per session` | T0-6 | R9 |
@@ -580,13 +779,17 @@ is now in it:
 | power policy, per platform | T0-7 | R11 |
 | permitted background | T0-7 | R12 |
 | quiesce procedure | T0-7 | R13 |
+| the decisive gate population | T0-3 | S1 |
+| the numeric domain and sample completeness | T0-4 | S2, S3 |
+| eight platform-qualified gates | T0-3 | S8 |
+| the exhaustive replacement list and retry continuity | T0-8 | S7 |
 
 Removed rather than filled, because the acceptance contract does not make the
 requirement: `K`, `B`, `caps_apply_to` (R4); `null_primary_metric_outcome`
 (replaced by the three distinct states of T0-4); and `PASS_LIMIT`, `FAIL_LIMIT`,
 `gray_zone_margin_binding` (R5 — symptoms of a scalar model that did not match the
 two coordinates the margins are defined on). Superseded: `M`, `A` and `M_A_scope`,
-by the eight typed per-resource budgets. Closed as a misreading: ratification of
+by the three typed budget families of T0-2. Closed as a misreading: ratification of
 the gate population against #262 (R3).
 
 **`status: NOT_FROZEN` stands until a hostile freeze review is completed.**
@@ -614,8 +817,15 @@ Content completeness is not the freeze; it is what makes the freeze reviewable.
 | can a host with no mechanism for a required metric start a session? | **no** — T0-7 eligibility, T0-4 case A |
 | can a stale manifest carry a campaign? | **no** — fresh per session, rechecked after, drift is `INVALID` |
 | can anyone start collecting because hosts and binding are ready? | **no** — T0-0 revoked that; `collection_authorized: false` |
-| can one evidence set yield both PASS and FAIL under two admissible readings? | **no** — per gate the two conditions are mutually exclusive by `M_pass < M_fail` and `A_pass < A_fail`, and the roll-up is a total function of the four gate outcomes |
+| can one evidence set yield both PASS and FAIL under two admissible readings? | **no** — per gate the two conditions are mutually exclusive by `M_pass < M_fail` and `A_pass < A_fail`, and the roll-up is a total function of the eight gate outcomes |
 | does the declaration of single tenancy masquerade as proof? | **no** — provisioning evidence and runtime invariants are separated, and only the latter is called machine-verified |
+| can a calibration workload enter a cutover gate? | **no** — T0-3 owns the population: decisive workloads applicable to `launcher-e2e`, and a calibration cell in the set is `INVALID` |
+| can a missing decisive workload quietly shrink the denominator? | **no** — a missing workload, a missing engine side or an unexpected extra cell each make the attempt `INVALID` |
+| can a cell with fewer than `N` samples still produce a median? | **no** — a primary cell holds exactly `N`, every sample finite and positive; one `null` invalidates the session rather than yielding a median of the survivors |
+| can an undefined quantity reach a verdict through the rule's `OR`? | **no** — the numeric domain is checked before T0-5; `NaN` on either coordinate is `INVALID`, never `PASS` |
+| can Linux resident bytes be compared with Windows committed bytes? | **no** — the metric is part of the gate identity, the strata are never pooled, and `resident == commit` is asserted nowhere |
+| can a replacement host buy another attempt? | **no** — the retry budget belongs to the stratum, replacement does not reset it, and a valid outcome closes the stratum |
+| can a valid result be re-measured on a new host? | **no** — re-measurement needs a previous `INVALID` **and** remaining budget; a new binding starts a campaign beside the old one and erases nothing |
 
 No "yes" answer remains that a decision could close. The one permitted item — a
 repeated quiesce attempt — produces no evidence and therefore cannot select an
