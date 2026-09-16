@@ -4,8 +4,8 @@
 Status:
   NOT_FROZEN.
   collection_authorized: false
-  STRUCTURE RESOLVED. NUMERIC AND HOST SLOTS OPEN.
-  MANDATORY UNRESOLVED SLOTS: 12 (T0-completion).
+  CONTENT COMPLETE. HOSTILE FREEZE REVIEW PENDING.
+  MANDATORY UNRESOLVED SLOTS: 0 (T0-completion).
   OPEN NORMATIVE CONFLICTS: none. The #262 ratification blocker was withdrawn
     as a misreading — see T0-3.
   NO CLOCK HAS RUN. NO OBSERVATION EXISTS.
@@ -83,48 +83,58 @@ noise-cancellation property may be asserted for `R`.
 
 ## T0-2 — Acceptance margins
 
-**FORM RESOLVED. VALUES OPEN.**
+**RESOLVED (R5, R6, R7). No open value.**
 
-A gate FAILs only when both margins are exceeded:
-
-    FAIL(gate)  iff  relative_regression(gate) > M  AND  absolute_regression(gate) > A
-
-Two margins, because neither alone is meaningful: a relative-only rule fails a
-`0.20 ms -> 0.24 ms` change that no user can perceive, and an absolute-only rule
-is blind to scale.
-
-Semantics, frozen:
+Two coordinates, never collapsed into a score:
 
 | term | definition |
 |---|---|
 | `relative_regression` | `R - 1` for the gate's cell set, `R` per T0-1 |
 | `absolute_regression` | the median over matched pairs of `median(Rust_c) - median(Python_c)`, in the gate's own unit |
-| unit, time gates | milliseconds |
-| unit, memory gates | bytes of peak RSS |
+| unit, time gates | milliseconds — the instrument records `perf_counter_ns`, so the conversion belongs to the reading, never to the evidence |
+| unit, memory gates | bytes of peak RSS, after the instrument's own `ru_maxrss` unit normalisation (kilobytes on Linux, bytes on macOS/BSD) |
+
+Two margins, because neither alone is meaningful: a relative-only rule fails a
+`0.20 ms -> 0.24 ms` change that no user can perceive, and an absolute-only rule
+is blind to scale.
+
+Each gate carries **two pairs** of budgets — one pair that admits a pass, one
+pair that compels a failure — and the decision rule over them is T0-5:
 
 ```yaml
-M: UNRESOLVED_OWNER_DECISION          # dimensionless ratio margin
-A: UNRESOLVED_OWNER_DECISION          # absolute margin, carries the gate's unit:
-                                      # milliseconds for the time gates,
-                                      # bytes for the peak RSS gates
-M_A_scope: UNRESOLVED_OWNER_DECISION  # see the dimensional constraint below
+# R6 — both primary elapsed-time gates
+#      launcher-e2e / process-cold / elapsed
+#      launcher-e2e / warm         / elapsed
+M_pass_time: 0.05          # +5 %
+A_pass_time: 50            # milliseconds
+M_fail_time: 0.10          # +10 %
+A_fail_time: 100           # milliseconds
+
+# R7 — both primary peak-RSS gates
+#      launcher-e2e / process-cold / peak RSS
+#      launcher-e2e / warm         / peak RSS
+M_pass_rss:  0.10          # +10 %
+A_pass_rss:  33554432      # bytes, 32 MiB
+M_fail_rss:  0.20          # +20 %
+A_fail_rss:  67108864      # bytes, 64 MiB
 ```
 
-**Dimensional constraint, recorded rather than decided.** `A` carries the gate's
-own unit, and the primary set now spans two units — milliseconds and bytes. One
-absolute value therefore cannot serve all four gates: a single `A` shared across
-time and memory is not a budget the owner has yet to pick, it is not a quantity.
-"One pair for all gates" is consequently unavailable for `A` as literally
-phrased, and the numeric ruling should be asked in the terms the units allow: one
-absolute budget for the time gates and one for the memory gates, with the open
-questions being whether `M` — dimensionless, and so unconstrained by this — is
-one budget or split, and whether the two gates inside a unit share one `A` or
-take one each. No value, and no choice among those readings, is made here.
+Required of every gate, and true of both sets above:
 
-`M` and `A` derive from the cutover/product budget — what a user may be made to
-wait, and how much memory the migration may cost. They may not be derived from
-observed Rust-vs-Python results, calibration variance, or training output. Their
-relationship to the T0-5 decision limits is itself an open slot, recorded there.
+    M_pass < M_fail
+    A_pass < A_fail
+
+Both regimes of a resource share that resource's budgets — not because
+`process-cold` and `warm` are the same thing, but because the product price of
+making a user wait is the same in either. Time and memory do **not** share
+budgets: a single absolute value cannot span milliseconds and bytes, and a shared
+relative budget would be a tidy symmetry bought with meaning. This is what
+replaces the old `M`, `A` and `M_A_scope`: eight named per-resource budgets, with
+no scope left ambiguous.
+
+These budgets come from the cutover/product price of latency and memory. They may
+not be derived from observed Rust-vs-Python results, calibration variance, or
+training output — and none of the eight was.
 
 ---
 
@@ -259,11 +269,12 @@ eligibility (T0-7: host qualified, every required primary metric has a
         │                                     └─ budget exhausted ─► NO_DECISION
         └─ clean
              │
-             primary gates, T0-2 margins read through the T0-5 limits
+             each of the four primary gates, by the two-dimensional rule of
+             T0-5 over the T0-2 budgets
              │
              ├─ any gate FAIL ─────────────► FAIL          ─► NO_GO
-             ├─ any gate in the gray zone ─► NO_DECISION
-             └─ all gates PASS ────────────► PASS          ─► GO
+             ├─ any gate NO_DECISION ──────► NO_DECISION
+             └─ all four gates PASS ───────► PASS          ─► GO
 ```
 
 The three null-metric situations are **different states**, and collapsing them
@@ -287,11 +298,40 @@ resolve.
 
 ## T0-5 — Uncertainty rule
 
-**MODEL RESOLVED: deterministic gray zone. LIMITS OPEN.**
+**RESOLVED (R5): a deterministic gray zone in two dimensions.**
 
-    value <= PASS_LIMIT                  => PASS
-    value >= FAIL_LIMIT                  => FAIL
-    PASS_LIMIT < value < FAIL_LIMIT      => NO_DECISION
+The gray zone is defined on the same two coordinates the margins are, and no
+synthetic scalar score is constructed from them. Per gate:
+
+```text
+PASS          iff  relative_regression <= M_pass
+               OR  absolute_regression <= A_pass
+
+FAIL          iff  relative_regression >= M_fail
+              AND  absolute_regression >= A_fail
+
+otherwise     NO_DECISION
+```
+
+**An earlier draft was underdetermined and this replaces it.** T0-2 gives two
+coordinates; that draft's `value <= PASS_LIMIT` named a scalar nothing produced,
+and left "which number is `value`" — relative, absolute, some normalisation, the
+larger of the two — unanswered. The answer was not a limit to be chosen later; it
+was a missing dimension. `PASS_LIMIT`, `FAIL_LIMIT` and `gray_zone_margin_binding`
+are therefore removed as symptoms of the wrong model rather than filled in.
+
+The two-dimensional form keeps what the dual-margin rule was for in the first
+place: a small absolute difference does not become a problem merely because the
+baseline is microscopic, and a small relative difference does not become a problem
+merely because the workload is enormous. Between "cheap on either coordinate" and
+"expensive on both" there is now a real gray zone, and it is named.
+
+**The two conditions cannot both hold.** `PASS` via the relative coordinate
+requires `relative_regression <= M_pass < M_fail`, which contradicts `FAIL`'s
+`relative_regression >= M_fail`; `PASS` via the absolute coordinate contradicts
+`FAIL`'s absolute condition the same way, because `A_pass < A_fail`. The ordering
+requirement in T0-2 is what makes the per-gate function total and single-valued —
+one of `PASS`, `FAIL`, `NO_DECISION`, never two.
 
 **Why not a bootstrap over cells.** The cells are a fixed, preregistered set of
 acceptance strata — an engineering choice of workloads, rungs and regimes — not
@@ -306,23 +346,16 @@ confidence level, the resampling unit, the resample count and the seed would eac
 have had to be frozen, and each would have been a place to negotiate with the
 data afterwards.
 
-```yaml
-PASS_LIMIT: UNRESOLVED_OWNER_DECISION   # per gate unit; the value at or below which a gate passes
-FAIL_LIMIT: UNRESOLVED_OWNER_DECISION   # per gate unit; the value at or above which a gate fails
-gray_zone_margin_binding: UNRESOLVED_OWNER_DECISION
-# how PASS_LIMIT/FAIL_LIMIT relate to the T0-2 predicate: whether the M/A pair
-# IS the FAIL_LIMIT with PASS_LIMIT below it, or the two limits bracket M/A.
-# Both readings are consistent with the form; they are not the same contract.
-```
-
-The limits are budget quantities. They may not be derived from training results,
-calibration variance or any observed comparison.
+The zone's boundaries are the eight budgets of T0-2 and nothing else: there is no
+separate limit to set here, which is the point of removing the scalar pair. They
+may not be derived from training results, calibration variance or any observed
+comparison.
 
 ---
 
 ## T0-6 — Invalidation and retry
 
-**SEMANTICS RESOLVED. BUDGET OPEN.**
+**RESOLVED (R8, R9).**
 
 The unit of invalidation is the **session** — the whole predefined measurement
 unit, as the instrument already treats it. A phase, a cell or a workload is never
@@ -337,26 +370,45 @@ Invalidation fires only on machine-detectable predicates frozen in advance:
 - a cell that did not do its rung's work, proved by its post-condition;
 - a required primary metric that returned `null` or went missing mid-attempt
   (T0-4 case B);
-- identity-field drift in the step-7 environment manifest, fields compared whole;
+- identity-field drift in the step-7 environment manifest, fields compared whole,
+  on the post-session recheck (R9);
 - candidate byte drift within a stratum after collection started.
 
 **A performance result is never an invalidation condition.** Not a slow cell, not
-a gray-zone outcome, not a disappointing `R`.
+a gray-zone outcome, not a disappointing `R`. Every predicate above is
+machine-detected, so no operator chooses to invalidate a session.
 
 One retry attempt is one full re-collection of the invalidated session on the
-same qualified host. Retries are bounded; on exhaustion the outcome is
-`NO_DECISION`, never "one more run". Every attempt, including invalidated ones,
-is retained as evidence and none is deleted.
+same qualified host. Every attempt, including invalidated ones, is retained as
+evidence and none is deleted.
 
 ```yaml
-retry_budget: UNRESOLVED_OWNER_DECISION   # attempts per stratum, integer
+retry_budget: 1        # R8
 ```
+
+Read literally:
+
+    1 initial attempt
+    + at most 1 full-session retry after INVALID
+    = at most 2 attempts per stratum
+
+After a second `INVALID`, the outcome is `NO_DECISION`. There is no third throw
+of the coin. One retry survives a genuine one-off environmental failure; a larger
+budget would turn the campaign into a machine that runs until the infrastructure
+eventually cooperates.
+
+**Manifest refresh is per session (R9).** A fresh environment manifest is
+captured before every measurement session, and the identity-bearing fields are
+rechecked after it; drift between the two is `INVALID`. A campaign-level manifest
+is too weak: between an update, a reboot, a governor change and the other ways a
+computer gets improved, it can become a historical document before the second
+session starts.
 
 ---
 
 ## T0-7 — Host eligibility predicate
 
-**PARTIALLY OPEN — a freeze blocker.**
+**RESOLVED (R10–R13).**
 
 Already normative, from the existing contract:
 
@@ -377,20 +429,101 @@ Already normative, from the existing contract:
   before the session is eligible (T0-4 case A). On a host where peak RSS has no
   mechanism, the session does not start; it does not start and then fail.
 
-Still unresolved, and each is machine-checkable only once ruled:
+### R10 — single tenancy, in two classes of evidence
+
+A guest OS cannot look at the hypervisor and establish that no neighbour has
+appeared on the same iron. Pretending otherwise would be security theatre in a lab
+coat, so the predicate separates what is declared from what is checked, and never
+calls the declaration a proof.
 
 ```yaml
-single_tenant_predicate: UNRESOLVED_OWNER_DECISION      # what a checker asserts
-power_policy_requirement: UNRESOLVED_OWNER_DECISION     # per platform
-permitted_background: UNRESOLVED_OWNER_DECISION         # what may run during a session
-quiesce_procedure: UNRESOLVED_OWNER_DECISION            # and how it is evidenced
-manifest_refresh_rule: UNRESOLVED_OWNER_DECISION        # per session or per campaign
+single_tenant_predicate:
+  provisioning:                 # declared, recorded as evidence, shape-checked
+    dedicated_to_p022: true
+    no_concurrent_user_workload: true
+    hosted_ci_runner: false
+    if_vm:
+      fixed_vcpu: true
+      fixed_ram: true
+      live_migration_disabled: true
+      dynamic_memory_disabled: true
+  runtime:                      # machine-verified each session
+    host_fingerprint_stable: true
+    logical_cpu_count_stable: true
+    memory_bytes_stable: true
+    candidate_identity_stable: true
+    ci_environment_absent: true    # the manifest's own `ci` provenance field
 ```
 
-An incomplete predicate blocks the freeze. It is not an invitation to write down
-one drafter's idea of a good benchmark host. Reconnaissance already performed on
-a shared developer workstation is **exploratory only**: it may inform the shape of
-the predicate and contributes no measurement, no manifest and no qualified host.
+The checker asserts the presence and shape of the provisioning declaration and
+verifies every runtime invariant. It does not claim the first class is machine
+proof.
+
+### R11 — power policy
+
+```yaml
+power_policy_requirement:
+  linux:
+    governor: performance            # on all applicable CPUs
+    turbo_boost_state: recorded and unchanged through the session
+  windows:
+    power_plan: High Performance OR Ultimate Performance
+    processor_minimum_state: 100
+    processor_maximum_state: 100
+    active_plan_identity: unchanged through the session
+```
+
+Turbo is **not** forcibly disabled. The subject is a production-like code path,
+not SPEC CPU in a monastery, and instability is what the noise and drift probes
+exist to catch.
+
+### R12 — permitted background
+
+Baseline OS services are permitted; this is not a debloat ritual. Prohibited for
+the duration of a session:
+
+```yaml
+permitted_background:
+  prohibited_during_session:
+    - OS or package updates
+    - scheduled antivirus or full scans
+    - backup jobs
+    - indexing rebuilds
+    - build or test workloads unrelated to the campaign
+    - interactive user workloads
+```
+
+Windows Defender realtime protection is not itself prohibited. If it makes the
+environment unstable, the noise and drift predicates catch it — that is a
+measurement question, not a reason to switch off a security stack by ritual.
+
+### R13 — quiesce procedure
+
+```yaml
+quiesce_procedure:
+  before_session:
+    no_campaign_workload_for: 120 s
+    during_final: 60 s
+    mean_host_cpu_utilisation_below: 0.05
+    no_5_second_sample_above: 0.20
+    no_prohibited_background_job_active: true
+  then: opening noise probe
+  after_session:
+    - closing noise probe
+    - environment identity recheck
+```
+
+**A quiesce failure is `not eligible to start`, never `INVALID`** — no clock has
+run, so there is no evidence to damage and nothing to retry. It therefore consumes
+no retry budget, and it cannot be outcome-selective: a session that never started
+produced no number to prefer.
+
+The existing 0.35 noise, drift and reproducibility limits apply unchanged after
+this point.
+
+Reconnaissance already performed on a shared developer workstation remains
+**exploratory only**: it informed the shape of this predicate and contributes no
+measurement, no manifest and no qualified host.
 
 ---
 
@@ -425,36 +558,40 @@ ladder `[5, 15, 45]`, `G = [1, 10]`, per-stratum admissible sets
 `Q_linux ∩ Q_windows`, and `NO_COMMON_N` is a stop with no fallback rung.
 
 Training may not change, and seeing training output grants no licence to revisit:
-the statistic, the pairing unit, `M`, `A`, the gate population, the decision
-limits, the uncertainty model, the decision automaton, retry semantics, host
-eligibility semantics, or workload selection and replacement rules.
+the statistic, the pairing unit, any of the eight per-resource budgets, the gate
+population, the two-dimensional decision rule, the decision automaton, retry
+semantics and budget, manifest refresh, host eligibility semantics, or workload
+selection and replacement rules.
 
 ---
 
 ## T0-completion
 
-T0 is not frozen while any mandatory slot is unresolved. Until then
-`collection_authorized: false`.
+**No `UNRESOLVED_OWNER_DECISION` slot remains.** Every value this contract needs
+is now in it:
 
-| # | slot | section |
+| what | where | ruling |
 |---|---|---|
-| 1 | `M` | T0-2 |
-| 2 | `A` | T0-2 |
-| 3 | `M_A_scope` | T0-2 |
-| 4 | `PASS_LIMIT` | T0-5 |
-| 5 | `FAIL_LIMIT` | T0-5 |
-| 6 | `gray_zone_margin_binding` | T0-5 |
-| 7 | `retry_budget` | T0-6 |
-| 8 | `single_tenant_predicate` | T0-7 |
-| 9 | `power_policy_requirement` | T0-7 |
-| 10 | `permitted_background` | T0-7 |
-| 11 | `quiesce_procedure` | T0-7 |
-| 12 | `manifest_refresh_rule` | T0-7 |
+| eight per-resource budgets | T0-2 | R6, R7 |
+| the two-dimensional decision rule | T0-5 | R5 |
+| `retry_budget: 1` | T0-6 | R8 |
+| `manifest_refresh_rule: per session` | T0-6 | R9 |
+| single-tenancy, in two evidence classes | T0-7 | R10 |
+| power policy, per platform | T0-7 | R11 |
+| permitted background | T0-7 | R12 |
+| quiesce procedure | T0-7 | R13 |
 
 Removed rather than filled, because the acceptance contract does not make the
-requirement: `K`, `B`, `caps_apply_to` (R4), and `null_primary_metric_outcome`
-(replaced by the three distinct states of T0-4). Closed as a misreading:
-ratification of the gate population against #262 (R3).
+requirement: `K`, `B`, `caps_apply_to` (R4); `null_primary_metric_outcome`
+(replaced by the three distinct states of T0-4); and `PASS_LIMIT`, `FAIL_LIMIT`,
+`gray_zone_margin_binding` (R5 — symptoms of a scalar model that did not match the
+two coordinates the margins are defined on). Superseded: `M`, `A` and `M_A_scope`,
+by the eight typed per-resource budgets. Closed as a misreading: ratification of
+the gate population against #262 (R3).
+
+**`status: NOT_FROZEN` stands until a hostile freeze review is completed.**
+Content completeness is not the freeze; it is what makes the freeze reviewable.
+`collection_authorized: false`.
 
 ---
 
@@ -467,17 +604,22 @@ ratification of the gate population against #262 (R3).
 | change the primary gate population? | **no** — T0-3 resolved under R1/R4; a new gate is an amendment, not an adjustment |
 | reintroduce per-phase vetoes quietly? | **no** — the caps were removed from the contract, and a derived view may never gate |
 | pick the uncertainty model after the data? | **no** — deterministic gray zone chosen, with its rationale recorded in T0-5 |
-| change `M`/`A` or the decision limits? | **yes while unresolved** — the remaining budget exposure, closed by the numeric packet |
-| raise the retry budget after a failure? | **yes while unresolved**; once set, bounded, and exhaustion yields NO_DECISION |
+| change a budget after seeing a number? | **no** — all eight are set, and T0-9 forbids revisiting |
+| construct a scalar score and argue about which number it is? | **no** — the rule is two-dimensional and no scalar exists to construct |
+| raise the retry budget after a failure? | **no** — `retry_budget: 1`, and a second `INVALID` is `NO_DECISION` |
+| invalidate a session deliberately to buy a retry? | **no** — every invalidation predicate is machine-detected, and a performance result is never one |
+| re-run quiesce until the machine looks good? | **permitted, and harmless** — a failed quiesce starts no clock and produces no number, so it cannot be outcome-selective; it consumes no retry budget |
 | replace a host because the result is unpleasant? | **no** — T0-8 rules 3 and 5 |
 | can a missing or null primary metric yield PASS? | **no** — structurally, in all three T0-4 states |
 | can a host with no mechanism for a required metric start a session? | **no** — T0-7 eligibility, T0-4 case A |
+| can a stale manifest carry a campaign? | **no** — fresh per session, rechecked after, drift is `INVALID` |
 | can anyone start collecting because hosts and binding are ready? | **no** — T0-0 revoked that; `collection_authorized: false` |
-| can one evidence set yield both PASS and FAIL under two admissible readings? | **no** once the limits are set — the automaton is a function of evidence; **yes while `PASS_LIMIT`/`FAIL_LIMIT` are empty** |
+| can one evidence set yield both PASS and FAIL under two admissible readings? | **no** — per gate the two conditions are mutually exclusive by `M_pass < M_fail` and `A_pass < A_fail`, and the roll-up is a total function of the four gate outcomes |
+| does the declaration of single tenancy masquerade as proof? | **no** — provisioning evidence and runtime invariants are separated, and only the latter is called machine-verified |
 
-Three "yes" answers remain, all of them the same thing: the budget numbers are
-not chosen yet. None is a structural hole, and none may be closed by looking at
-data.
+No "yes" answer remains that a decision could close. The one permitted item — a
+repeated quiesce attempt — produces no evidence and therefore cannot select an
+outcome.
 
-    T0_SKELETON_READY_FOR_NUMERIC_RULINGS
+    T0_CONTENT_COMPLETE_READY_FOR_FREEZE_REVIEW
     status: NOT_FROZEN — collection_authorized: false
