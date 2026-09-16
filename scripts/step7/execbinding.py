@@ -3,43 +3,47 @@
 
 Host qualification answers "is this one environment fit". This answers a
 different question: **which** Linux and Windows environments, which candidates
-and which instrument form THIS measurement campaign. The two are separate
-artifacts on purpose — a utility that checks a CPU governor must not become the
-root of campaign identity, and a campaign identity must not be re-derived from
-whichever qualified host happens to be lying around.
+and which instrument form THIS campaign. A utility that checks a CPU governor
+must not become the root of campaign identity, so the two stay apart.
 
-The binding carries **references and identity**, never copies. Governors, power
-plans, CPU samples and the provisioning declaration stay in the qualification
-record, which owns them; duplicating them here would create two copies of one
-fact, and two copies drift.
+Nothing here is taken on the caller's word. Every bound component is **proved**
+against git objects and file bytes at emit time, and re-proved by `--verify`:
 
-The chain is acyclic, and each link names only the one before it:
+  T0           the commit exists, `blob_sha` really is `commit:path`, the bytes
+               hash to `sha256`, and the document says FROZEN.
+  instrument   the harness digest is RECOMPUTED from the instrument sources at
+               the named commit, using the frozen formula, without importing the
+               harness. Because the workload manifest is one of those sources,
+               proving the digest at a commit also proves the manifest at that
+               commit — so there is no second anchor to write and none to get
+               wrong.
+  hosts        each qualification says qualified, and names the SAME T0 as this
+               binding. A qualification earned against an older T0 cannot enter
+               a newer campaign.
+  candidates   sha256 and byte length of the exact files.
 
-    provisioning declaration -> envcapture manifest -> host qualification
-      -> execution binding -> training session(s) -> N -> D7 C1 -> D7 C2
-      -> decisive collection
+The binding carries references and identity, never copies: duplicating the
+governor or the provisioning blob would make two copies of one fact, and two
+copies drift.
 
-D7 later binds `execution_binding_sha256`. It does not restate the machines.
+    provisioning -> envcapture -> qualification -> execution binding
+      -> training -> N -> D7 C1 -> D7 C2 -> decisive collection
 
-Lifecycle, enforced here as far as a tool can and stated where it cannot:
+D7 later binds `execution_binding_sha256`; it does not restate the machines.
 
-  BEFORE the first clock  the binding may be rebuilt whenever a host or a
-                          candidate changes. `--emit` refuses to overwrite an
-                          existing file, so a rebuild is a deliberate act.
-  AFTER the first clock   the binding is immutable. A change to any bound
-                          component does not patch the running campaign: the old
-                          campaign stops and a new binding identity begins.
-                          `--verify` detects the drift; it cannot un-run a clock.
+Lifecycle: before the first clock a rebuild is legitimate but never silent —
+`--emit` refuses to overwrite. After the first clock the binding is immutable,
+and any drift `--verify` reports is not a patch: the campaign stops and a new
+binding identity begins.
 
 Usage:
-    python scripts/step7/execbinding.py --emit <out.json> --t0 <t0.md> \\
-        --t0-commit <sha> --instrument-commit <sha> --harness-digest <hex> \\
-        --workloads <workloads.json> \\
-        --linux <qualification.linux.json> --linux-candidate <path> \\
-        --windows <qualification.windows.json> --windows-candidate <path>
-    python scripts/step7/execbinding.py --verify <binding.json> \\
-        --linux <qualification.linux.json> --windows <qualification.windows.json>
-    python scripts/step7/execbinding.py --selftest
+    execbinding.py --emit <out.json> --t0-path <p> --t0-commit <sha> \\
+        --instrument-commit <sha> --harness-digest <hex> \\
+        --linux <q.json> --linux-candidate <bin> \\
+        --windows <q.json> --windows-candidate <bin>
+    execbinding.py --verify <binding.json> --linux <q.json> --windows <q.json> \\
+        --linux-candidate <bin> --windows-candidate <bin>
+    execbinding.py --selftest
 """
 
 from __future__ import annotations
@@ -48,17 +52,24 @@ import argparse
 import datetime
 import hashlib
 import json
+import re
+import subprocess
 import sys
 from pathlib import Path
 
 BINDING_SCHEMA = "own.net/p022/execution-binding"
+QUALIFICATION_SCHEMA = "own.net/p022/host-qualification"
 SCHEMA_VERSION = 1
 STRATA = ("linux", "windows")
 
-# Kept in step with hostqual's own declaration; a control proves they agree.
 MEMORY_METRIC_RESIDENT = "max_process_peak_resident"
 MEMORY_METRIC_COMMIT = "max_process_peak_commit"
 STRATUM_METRIC = {"linux": MEMORY_METRIC_RESIDENT, "windows": MEMORY_METRIC_COMMIT}
+
+# The instrument's identity is the content of these files, in this order. The
+# manifest is one of them on purpose — see the module docstring.
+INSTRUMENT_SOURCES = ("scripts/perf_baseline.py", "docs/evidence/p022-263a-workloads.json")
+WORKLOAD_MANIFEST = "docs/evidence/p022-263a-workloads.json"
 
 REQUIRED_STRATUM_KEYS = ("qualification_sha256", "environment_id", "host_fingerprint",
                          "candidate_sha256", "candidate_bytes", "memory_metric")
@@ -68,57 +79,131 @@ class BindingRefused(Exception):
     """Raised by name, so a caller that reads through gets an exception."""
 
 
+def sha256_bytes(raw: bytes) -> str:
+    return hashlib.sha256(raw).hexdigest()
+
+
 def sha256_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_bytes(path.read_bytes())
 
 
 def _now() -> str:
     return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
 
 
-def _stratum_block(stratum: str, qualification_path: Path,
-                   candidate_path: Path) -> dict[str, object]:
+def _git(repo: Path, *args: str) -> tuple[int, bytes]:
+    try:
+        proc = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, check=False)
+    except (OSError, ValueError):
+        return 127, b""
+    return proc.returncode, proc.stdout
+
+
+def normalized_text(data: bytes) -> bytes:
+    """Line endings normalized, so identity is content and not checkout policy."""
+    return data.replace(b"\r\n", b"\n")
+
+
+def harness_digest_at(repo: Path, commit: str) -> str | None:
+    """The frozen formula, recomputed from git blobs — not imported.
+
+    Importing the harness to check the harness would prove only that a function
+    agrees with itself.
+    """
+    lines = []
+    for path in INSTRUMENT_SOURCES:
+        rc, raw = _git(repo, "cat-file", "blob", f"{commit}:{path}")
+        if rc != 0:
+            return None
+        lines.append(f"{Path(path).name}:{sha256_bytes(normalized_text(raw))}")
+    return sha256_bytes("\n".join(lines).encode("utf-8"))
+
+
+def t0_at(repo: Path, path: str, commit: str) -> dict[str, object]:
+    rc, _ = _git(repo, "cat-file", "-e", f"{commit}^{{commit}}")
+    if rc != 0:
+        raise BindingRefused(f"T0 commit {commit} does not exist")
+    rc, blob = _git(repo, "rev-parse", f"{commit}:{path}")
+    if rc != 0:
+        raise BindingRefused(f"T0 path {path} does not exist at {commit}")
+    rc, raw = _git(repo, "cat-file", "blob", f"{commit}:{path}")
+    if rc != 0:
+        raise BindingRefused(f"the T0 blob at {commit}:{path} could not be read")
+    status = re.search(r"^\s*(NOT_FROZEN|FROZEN)\.?\s*$", raw.decode("utf-8", "replace"),
+                       re.MULTILINE)
+    declared = status.group(1) if status else "<no status line>"
+    if declared != "FROZEN":
+        raise BindingRefused(
+            f"T0 at {commit}:{path} declares {declared}; a campaign cannot be bound to a "
+            "protocol whose rules may still change")
+    return {"commit": commit, "path": path, "blob_sha": blob.decode().strip(),
+            "sha256": sha256_bytes(raw), "status": declared}
+
+
+def _stratum_block(stratum: str, qualification_path: Path, candidate_path: Path,
+                   t0_block: dict) -> dict[str, object]:
     doc = json.loads(qualification_path.read_text(encoding="utf-8"))
-    if doc.get("kind") != "own.net/p022/host-qualification":
+    if doc.get("kind") != QUALIFICATION_SCHEMA:
         raise BindingRefused(f"{qualification_path} is not a host-qualification artifact")
     if doc.get("stratum") != stratum:
         raise BindingRefused(
             f"{qualification_path} declares stratum {doc.get('stratum')!r}, bound as {stratum!r}")
     if not doc.get("qualified"):
-        raise BindingRefused(f"{qualification_path} does not say qualified; an unqualified host "
-                             "may not enter a campaign")
-    metric = doc.get("memory_metric")
-    if metric != STRATUM_METRIC[stratum]:
+        raise BindingRefused(f"{qualification_path} does not say qualified")
+    qualified_t0 = doc.get("t0") if isinstance(doc.get("t0"), dict) else {}
+    if (qualified_t0.get("sha256") != t0_block["sha256"]
+            or qualified_t0.get("commit") != t0_block["commit"]):
         raise BindingRefused(
-            f"stratum {stratum} must carry {STRATUM_METRIC[stratum]!r}, not {metric!r}")
+            f"{stratum}: the host was qualified against T0 "
+            f"{str(qualified_t0.get('sha256'))[:12]} at {qualified_t0.get('commit')}, and this "
+            f"campaign binds {t0_block['sha256'][:12]} at {t0_block['commit']}. A qualification "
+            "earned under one protocol is not evidence under another")
+    if doc.get("memory_metric") != STRATUM_METRIC[stratum]:
+        raise BindingRefused(f"stratum {stratum} must carry {STRATUM_METRIC[stratum]!r}, "
+                             f"not {doc.get('memory_metric')!r}")
     raw = candidate_path.read_bytes()
     return {
         "qualification_sha256": sha256_file(qualification_path),
         "environment_id": doc.get("environment_id"),
         "host_fingerprint": doc.get("host_fingerprint"),
-        "candidate_sha256": hashlib.sha256(raw).hexdigest(),
+        "environment_identity_sha256": doc.get("environment_identity_sha256"),
+        "candidate_sha256": sha256_bytes(raw),
         "candidate_bytes": len(raw),
-        "memory_metric": metric,
+        "memory_metric": doc.get("memory_metric"),
     }
 
 
-def build(t0_path: Path, t0_commit: str, t0_blob_sha: str, instrument_commit: str,
-          harness_digest: str, workloads_path: Path,
-          strata: dict[str, tuple[Path, Path]]) -> dict[str, object]:
+def build(repo: Path, t0_path: str, t0_commit: str, instrument_commit: str,
+          harness_digest: str, strata: dict[str, tuple[Path, Path]]) -> dict[str, object]:
     missing = [s for s in STRATA if s not in strata]
     if missing:
         raise BindingRefused(f"both strata are required; missing {missing}. `U_linux` and "
                              "`U_windows` are never pooled, and never optional either")
+    t0_block = t0_at(repo, t0_path, t0_commit)
+
+    live = harness_digest_at(repo, instrument_commit)
+    if live is None:
+        raise BindingRefused(f"the instrument sources could not be read at {instrument_commit}")
+    if live != harness_digest:
+        raise BindingRefused(
+            f"the instrument at {instrument_commit} hashes to {live[:12]}, not the accepted "
+            f"{harness_digest[:12]}; a binding may not name a digest the sources do not produce")
+    rc, manifest_raw = _git(repo, "cat-file", "blob", f"{instrument_commit}:{WORKLOAD_MANIFEST}")
+    if rc != 0:
+        raise BindingRefused(f"the workload manifest is absent at {instrument_commit}")
+
     binding: dict[str, object] = {
         "kind": BINDING_SCHEMA,
         "schema": SCHEMA_VERSION,
-        "t0": {"commit": t0_commit, "blob_sha": t0_blob_sha, "sha256": sha256_file(t0_path)},
+        "t0": t0_block,
         "instrument": {"accepted_commit": instrument_commit, "harness_digest": harness_digest},
-        "workloads": {"manifest_sha256": sha256_file(workloads_path)},
+        # Taken from the git object at the instrument commit, never from a
+        # working-tree file that happened to be passed under the same flag.
+        "workloads": {"path": WORKLOAD_MANIFEST, "manifest_sha256": sha256_bytes(manifest_raw)},
         "bound_at": _now(),
     }
     for stratum in STRATA:
-        binding[stratum] = _stratum_block(stratum, *strata[stratum])
+        binding[stratum] = _stratum_block(stratum, *strata[stratum], t0_block)
     return binding
 
 
@@ -128,15 +213,14 @@ def validate(binding: dict) -> list[str]:
         problems.append(f"kind is {binding.get('kind')!r}, not {BINDING_SCHEMA!r}")
     if binding.get("schema") != SCHEMA_VERSION:
         problems.append(f"schema is {binding.get('schema')!r}, not {SCHEMA_VERSION}")
-    for section, keys in (("t0", ("commit", "blob_sha", "sha256")),
+    for section, keys in (("t0", ("commit", "path", "blob_sha", "sha256")),
                           ("instrument", ("accepted_commit", "harness_digest")),
-                          ("workloads", ("manifest_sha256",))):
+                          ("workloads", ("path", "manifest_sha256"))):
         block = binding.get(section)
         if not isinstance(block, dict):
             problems.append(f"{section} is missing")
             continue
-        problems.extend(f"{section}.{k} is missing or empty"
-                        for k in keys if not block.get(k))
+        problems.extend(f"{section}.{k} is missing or empty" for k in keys if not block.get(k))
     for stratum in STRATA:
         block = binding.get(stratum)
         if not isinstance(block, dict):
@@ -149,27 +233,70 @@ def validate(binding: dict) -> list[str]:
                             f"not {STRATUM_METRIC[stratum]!r}")
         if not isinstance(block.get("candidate_bytes"), int):
             problems.append(f"{stratum}.candidate_bytes is not an integer")
-    if isinstance(binding.get("linux"), dict) and isinstance(binding.get("windows"), dict):
-        if binding["linux"].get("memory_metric") == binding["windows"].get("memory_metric"):
+    linux, windows = binding.get("linux"), binding.get("windows")
+    if isinstance(linux, dict) and isinstance(windows, dict):
+        if linux.get("memory_metric") == windows.get("memory_metric"):
             problems.append("both strata carry the same memory metric; they measure different "
                             "physical quantities and may not be pooled")
     return problems
 
 
-def verify(binding_path: Path, qualifications: dict[str, Path]) -> list[str]:
-    """Does the campaign still describe the hosts it was bound to?"""
+def verify(repo: Path, binding_path: Path, qualifications: dict[str, Path],
+           candidates: dict[str, Path]) -> list[str]:
+    """Re-prove every bound component that can drift or be substituted.
+
+    A verifier whose docstring says campaign identity while it checks two hashes
+    is a future incident report.
+    """
     binding = json.loads(binding_path.read_text(encoding="utf-8"))
     problems = validate(binding)
+
+    t0 = binding.get("t0") if isinstance(binding.get("t0"), dict) else {}
+    try:
+        live_t0 = t0_at(repo, str(t0.get("path")), str(t0.get("commit")))
+        if live_t0["sha256"] != t0.get("sha256") or live_t0["blob_sha"] != t0.get("blob_sha"):
+            problems.append("T0: the bytes at the bound commit are not the bytes bound")
+    except BindingRefused as exc:
+        problems.append(f"T0: {exc}")
+
+    instrument = binding.get("instrument") if isinstance(binding.get("instrument"), dict) else {}
+    live_digest = harness_digest_at(repo, str(instrument.get("accepted_commit")))
+    if live_digest is None:
+        problems.append("instrument: the sources could not be read at the bound commit")
+    elif live_digest != instrument.get("harness_digest"):
+        problems.append(f"instrument: the sources at the bound commit now hash to "
+                        f"{live_digest[:12]}, bound as "
+                        f"{str(instrument.get('harness_digest'))[:12]}")
+    rc, manifest_raw = _git(repo, "cat-file", "blob",
+                            f"{instrument.get('accepted_commit')}:{WORKLOAD_MANIFEST}")
+    workloads = binding.get("workloads") if isinstance(binding.get("workloads"), dict) else {}
+    if rc != 0:
+        problems.append("workloads: the manifest is absent at the bound instrument commit")
+    elif sha256_bytes(manifest_raw) != workloads.get("manifest_sha256"):
+        problems.append("workloads: the manifest at the bound commit is not the one bound")
+
     for stratum, path in qualifications.items():
-        block = binding.get(stratum)
-        if not isinstance(block, dict):
-            continue
+        block = binding.get(stratum) if isinstance(binding.get(stratum), dict) else {}
         live = sha256_file(path)
         if block.get("qualification_sha256") != live:
             problems.append(
                 f"{stratum}: the qualification now hashes to {live[:12]}, bound as "
-                f"{str(block.get('qualification_sha256'))[:12]}. After the first clock this is "
-                "not a patch: the campaign stops and a new binding identity begins")
+                f"{str(block.get('qualification_sha256'))[:12]}")
+            continue
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        qualified_t0 = doc.get("t0") if isinstance(doc.get("t0"), dict) else {}
+        if qualified_t0.get("sha256") != t0.get("sha256"):
+            problems.append(f"{stratum}: the qualification names a different T0 than the binding")
+
+    for stratum, path in candidates.items():
+        block = binding.get(stratum) if isinstance(binding.get(stratum), dict) else {}
+        raw = path.read_bytes()
+        if sha256_bytes(raw) != block.get("candidate_sha256") or len(raw) != block.get(
+                "candidate_bytes"):
+            problems.append(
+                f"{stratum}: the candidate present is {sha256_bytes(raw)[:12]} / {len(raw)} B, "
+                f"bound as {str(block.get('candidate_sha256'))[:12]} / "
+                f"{block.get('candidate_bytes')} B")
     return problems
 
 
@@ -178,12 +305,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--emit", type=Path)
     parser.add_argument("--verify", type=Path)
     parser.add_argument("--selftest", action="store_true")
-    parser.add_argument("--t0", type=Path)
-    parser.add_argument("--t0-commit", default="")
-    parser.add_argument("--t0-blob-sha", default="")
-    parser.add_argument("--instrument-commit", default="")
-    parser.add_argument("--harness-digest", default="")
-    parser.add_argument("--workloads", type=Path)
+    parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[2])
+    parser.add_argument("--t0-path")
+    parser.add_argument("--t0-commit")
+    parser.add_argument("--instrument-commit")
+    parser.add_argument("--harness-digest")
     parser.add_argument("--linux", type=Path)
     parser.add_argument("--linux-candidate", type=Path)
     parser.add_argument("--windows", type=Path)
@@ -192,14 +318,16 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.selftest:
         print(json.dumps({"kind": BINDING_SCHEMA, "schema": SCHEMA_VERSION,
-                          "strata": STRATUM_METRIC,
+                          "strata": STRATUM_METRIC, "instrument_sources": INSTRUMENT_SOURCES,
                           "required_stratum_keys": list(REQUIRED_STRATUM_KEYS)}, indent=2))
         return 0
 
     if args.verify:
         qualifications = {s: p for s, p in (("linux", args.linux), ("windows", args.windows))
                           if p is not None}
-        problems = verify(args.verify, qualifications)
+        candidates = {s: p for s, p in (("linux", args.linux_candidate),
+                                        ("windows", args.windows_candidate)) if p is not None}
+        problems = verify(args.repo, args.verify, qualifications, candidates)
         for problem in problems:
             print(f"BINDING-DRIFT: {problem}")
         print("binding verified" if not problems else f"{len(problems)} problem(s)")
@@ -207,18 +335,19 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.emit:
         if args.emit.exists():
-            # Before the first clock a rebuild is legitimate; it is never silent.
             print(f"refused: {args.emit} exists. A rebuild is a deliberate act — remove it "
                   "first, and only before the first clock.", file=sys.stderr)
             return 2
-        required = {"t0": args.t0, "workloads": args.workloads, "linux": args.linux,
-                    "linux-candidate": args.linux_candidate, "windows": args.windows,
-                    "windows-candidate": args.windows_candidate}
-        absent = sorted(k for k, v in required.items() if v is None)
+        needed = {"t0-path": args.t0_path, "t0-commit": args.t0_commit,
+                  "instrument-commit": args.instrument_commit,
+                  "harness-digest": args.harness_digest, "linux": args.linux,
+                  "linux-candidate": args.linux_candidate, "windows": args.windows,
+                  "windows-candidate": args.windows_candidate}
+        absent = sorted(k for k, v in needed.items() if v is None)
         if absent:
             parser.error(f"--emit requires {absent}")
-        binding = build(args.t0, args.t0_commit, args.t0_blob_sha, args.instrument_commit,
-                        args.harness_digest, args.workloads,
+        binding = build(args.repo, args.t0_path, args.t0_commit, args.instrument_commit,
+                        args.harness_digest,
                         {"linux": (args.linux, args.linux_candidate),
                          "windows": (args.windows, args.windows_candidate)})
         problems = validate(binding)
