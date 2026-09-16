@@ -41,11 +41,29 @@ zero, an infinity or an "N/A".
 
 The pairing unit is the **cell**, keyed
 
-    (rung, workload, regime)
+    (stratum, rung, workload, regime)        stratum ∈ { linux, windows }
 
 Engine is not part of the key: it is the two sides of the pair. This is the
-ratified four-part cell identity of §2.1 with `engine` projected out, so the pair
-exists exactly where both engines have a timed cell.
+ratified four-part cell identity of §2.1 with `engine` projected out and the
+stratum named, so the pair exists exactly where both engines have a timed cell on
+**one** platform.
+
+**Pairing never crosses a stratum.** `median_c` is computed only within one
+primary gate's stratum, and no `R` is ever formed over Linux and Windows cells
+together. A Linux cell and a Windows cell that agree on rung, workload and regime
+are two different cells, because since #355 their memory quantities are not even
+the same physical thing:
+
+```text
+linux   / launcher-e2e / W / warm   Python vs Rust      one pair
+windows / launcher-e2e / W / warm   Python vs Rust      a different pair
+across those two                                        no pair, and no R
+```
+
+Every later use of *cell*, *matched pair*, *the gate's cell set*, `median_c` and
+`R` inherits this key. There is no second term for it — a "platform-cell" would
+be the same idea with a second name, and two names for one thing is how a
+contract starts disagreeing with itself.
 
 For each matched pair:
 
@@ -65,9 +83,14 @@ the fifth Rust run with the third Python run" defect, in a formula.
 
 **The harness is not to be changed to iteration-level A/B interleaving under T0.**
 Doing so edits `scripts/perf_baseline.py`, which is one of the two files in the
-harness source set, so it moves `measurement_harness_digest 562a7f7232da…` — the
-identity steps 4, 5 and 6 were accepted on. That is a new instrument and a
-re-evaluation of accepted instrumentation evidence, not a T0 detail.
+harness source set, so it moves the harness identity
+
+    measurement_harness_digest
+    104c384d01bf6060bdec1e7c916053ddb04b97fcbd0b39f8a4fc57b8f139672f
+
+to which steps 4, 5 and 6 were **re-bound** after the S8 memory-semantics repair.
+Moving it again is a new instrument and a re-evaluation of accepted
+instrumentation evidence, not a T0 detail.
 
 **An unpaired cell cannot reach the statistic.** A cell whose invocation did not
 do the rung's work is not timed at all and the collection is refused
@@ -75,7 +98,8 @@ do the rung's work is not timed at all and the collection is refused
 T0-4 — and never a pair dropped quietly from `median_c`.
 
 **Recorded consequence.** Cell-level pairing cancels *condition* noise (same
-rung, workload, regime, same session, interleaved order). It does not cancel
+stratum, rung, workload, regime, same session, interleaved order). It does not
+cancel
 per-iteration noise, because the data cannot support that claim. No stronger
 noise-cancellation property may be asserted for `R`.
 
@@ -133,7 +157,7 @@ agree today because both were chosen from the same product budget before any dat
 existed, and either may later move without the other. Reading the coincidence as
 one cross-platform metric is exactly the error #355 removed from the instrument.
 
-Required of every gate, and true of both sets above:
+Required of every gate, and true of all three budget families above:
 
     M_pass < M_fail
     A_pass < A_fail
