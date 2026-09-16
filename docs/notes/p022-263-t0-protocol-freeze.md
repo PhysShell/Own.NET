@@ -57,7 +57,7 @@ the same physical thing:
 ```text
 linux   / launcher-e2e / W / warm   Python vs Rust      one pair
 windows / launcher-e2e / W / warm   Python vs Rust      a different pair
-across those two                                        no pair, and no R
+across those two                                        no pair, no comparison
 ```
 
 Every later use of *cell*, *matched pair* and *a class's cell set* inherits this
@@ -416,6 +416,17 @@ cell universe      = 8 phases x 12 canonical workloads x 2 platforms x 2 regimes
                    = 384 cells, each needing a rule or an explicit not_applicable
 ```
 
+**What the accepted verifier proves, and what it leaves open.**
+`_d7_protocol_problems()` requires `rollups` to be an object carrying
+`workload_class`, `phase` and `overall_g3`, each `_present`, and `_present`
+inspects presence and container shape only — "nothing compares, orders, or
+records a value, so no threshold can leak through the verifier". That is right
+for a gate forbidden to read a threshold, and it has a consequence this contract
+must absorb: **the verifier would accept several different reductions**, and no
+accepted artifact says what the three levels mean. So T0 says it. A freeze whose
+serialization is settled afterwards by "it was obvious what we meant" is not a
+freeze.
+
 The mapping, stated so nobody has to infer it:
 
 - the **time** classes are the `end-to-end-csharp` phase, per platform and
@@ -426,12 +437,79 @@ The mapping, stated so nobody has to infer it:
 - the other seven phases carry an explicit `not_applicable` with the reason
   "published as diagnostic evidence; not a cutover gate under T0-3" — under R4 a
   diagnostic surface never becomes a veto, and D7 completeness is satisfied by a
-  recorded decision rather than by silence;
+  recorded decision rather than by silence. A `not_applicable` cell contributes
+  **no verdict at any level**, so no diagnostic phase can move the acceptance
+  outcome in either direction;
 - the per-cell rule keys are filled by this contract: `pass_fail_rule` and
   `inconclusive_band` by T0-5, `bound` by the T0-2 families, `comparison_statistic`
   by T0-1's per-cell ratio and difference, `repetition_ladder` by `N`,
   `rss_policy` by the stratum's memory metric, `allocation_policy` by R2's
   diagnostic-only ruling.
+
+### Two resources inside one D7 cell
+
+A D7 cell identity has no resource axis: `(end-to-end-csharp, workload_id,
+platform, regime)` is one cell, and this contract produces **two** independent
+verdicts on it — elapsed time and memory. Where each rule lives is fixed here, so
+a payload author cannot choose an interpretation afterwards:
+
+```text
+bound                 { "elapsed": <the T0-2 time family>,
+                        "memory":  <the T0-2 family of this cell's platform> }
+pass_fail_rule        { "elapsed": <T0-5 rule>,      "memory": <T0-5 rule> }
+inconclusive_band     { "elapsed": <T0-5 gray zone>, "memory": <T0-5 gray zone> }
+comparison_statistic  { "elapsed": <T0-1 per-cell ratio and difference>,
+                        "memory":  <the same, on this cell's memory metric> }
+rss_policy            names this cell's platform-local metric:
+                      max_process_peak_resident on linux,
+                      max_process_peak_commit on windows
+allocation_policy     diagnostic only, never gating (R2)
+repetition_ladder     N and its escalation, identical for both resources
+```
+
+`_present` accepts a non-empty object, so these nested rules are structurally
+valid under the accepted verifier: **no schema change, no instrument change, and
+the harness digest does not move.**
+
+Both resources yield **independent leaf verdicts** that enter the reduction side
+by side. A `FAIL` on either is never compensated by a `PASS` on the other, and a
+`NO_DECISION` on either propagates unless the other is `FAIL` — not as a special
+case, but as the ordinary behaviour of the operator below.
+
+### Why the serialized reduction returns the same verdict
+
+T0 reduces cell verdicts to eight class verdicts to one overall verdict; the D7
+payload reduces at `workload_class`, then `phase`, then `overall_g3`. These must
+not be two different answers wearing one name, so the equality is proved rather
+than asserted.
+
+The roll-up operator is **maximum under the total order**
+
+```text
+PASS  <  NO_DECISION  <  FAIL
+```
+
+"any FAIL ⇒ FAIL; else any NO_DECISION ⇒ NO_DECISION; else PASS" is exactly `max`
+over that order. Maximum over a total order is **associative, commutative and
+idempotent**, so the result depends only on the *set* of leaf verdicts and never
+on how they are grouped, ordered or nested. Therefore:
+
+```text
+workload_class :  max over the canonical workload leaf verdicts of one
+                  (platform, regime, resource)            -> a class verdict
+phase          :  max over the class verdicts of end-to-end-csharp;
+                  not_applicable cells contribute nothing
+overall_g3     :  max over the phase level — which by associativity equals
+                  max over all eight class verdicts, which is T0's own roll-up
+```
+
+The two reductions are the same function of the same multiset, so they cannot
+disagree.
+
+Regrouping is safe **only for discrete verdicts**. No elapsed or memory *number*
+is ever pooled, averaged or otherwise combined across workloads, regimes,
+platforms or resources: the algebra above applies to the three words `PASS`,
+`NO_DECISION` and `FAIL`, and to nothing else.
 
 Nothing here requires a change to `scripts/perf_baseline.py`, and therefore
 nothing here moves the harness digest.
@@ -554,11 +632,11 @@ synthetic scalar score is constructed from them. Per **cell**, against the
 budget family its class belongs to:
 
 ```text
-PASS          iff  relative_regression <= M_pass
-               OR  absolute_regression <= A_pass
+PASS          iff  relative_regression_c <= M_pass
+               OR  absolute_regression_c <= A_pass
 
-FAIL          iff  relative_regression >= M_fail
-              AND  absolute_regression >= A_fail
+FAIL          iff  relative_regression_c >= M_fail
+              AND  absolute_regression_c >= A_fail
 
 otherwise     NO_DECISION
 ```
@@ -577,8 +655,8 @@ merely because the workload is enormous. Between "cheap on either coordinate" an
 "expensive on both" there is now a real gray zone, and it is named.
 
 **The two conditions cannot both hold.** `PASS` via the relative coordinate
-requires `relative_regression <= M_pass < M_fail`, which contradicts `FAIL`'s
-`relative_regression >= M_fail`; `PASS` via the absolute coordinate contradicts
+requires `relative_regression_c <= M_pass < M_fail`, which contradicts `FAIL`'s
+`relative_regression_c >= M_fail`; `PASS` via the absolute coordinate contradicts
 `FAIL`'s absolute condition the same way, because `A_pass < A_fail`. The ordering
 requirement in T0-2 is what makes the per-gate function total and single-valued —
 one of `PASS`, `FAIL`, `NO_DECISION`, never two.
@@ -901,7 +979,11 @@ is now in it:
 | quiesce procedure | T0-7 | R13 |
 | the decisive gate population | T0-3 | S1 |
 | the numeric domain and sample completeness | T0-4 | S2, S3 |
-| eight platform-qualified gates | T0-3 | S8 |
+| eight platform-qualified gate **classes** | T0-3 | S8 |
+| the leaf decision: one verdict per canonical workload cell | T0-1, T0-5 | P3.5 |
+| the within-class roll-up over canonical workload verdicts | T0-3 | P3.5 |
+| the overall roll-up over the eight class verdicts | T0-3 | P3.5 |
+| the D7 serialization and its equivalence proof | T0-3 | P3.5 |
 | the exhaustive replacement list and retry continuity | T0-8 | S7 |
 
 Removed rather than filled, because the acceptance contract does not make the
