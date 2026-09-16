@@ -4,8 +4,10 @@
 Status:
   NOT_FROZEN.
   collection_authorized: false
-  MANDATORY UNRESOLVED SLOTS: 9 (T0-completion).
-  OPEN NORMATIVE CONFLICT: 1, against #262 (T0-3).
+  STRUCTURE RESOLVED. NUMERIC AND HOST SLOTS OPEN.
+  MANDATORY UNRESOLVED SLOTS: 12 (T0-completion).
+  OPEN NORMATIVE CONFLICTS: none. The #262 ratification blocker was withdrawn
+    as a misreading — see T0-3.
   NO CLOCK HAS RUN. NO OBSERVATION EXISTS.
 ```
 
@@ -27,13 +29,15 @@ decisive collection may run, however ready the hosts are.
 typed `UNRESOLVED_OWNER_DECISION` slot with its unit and its scope stated. A slot
 is filled by an owner ruling recorded here, never by a plausible default and
 never by a number suggested by data. A drafter who fills one has replaced the
-owner.
+owner. Equally, a slot is not kept alive because it was once drafted: a
+requirement the acceptance contract does not make is removed, not filled with a
+zero, an infinity or an "N/A".
 
 ---
 
 ## T0-1 — Statistic and pairing unit
 
-**FROZEN.**
+**RESOLVED.**
 
 The pairing unit is the **cell**, keyed
 
@@ -79,7 +83,7 @@ noise-cancellation property may be asserted for `R`.
 
 ## T0-2 — Acceptance margins
 
-**FORM FROZEN. VALUES UNRESOLVED.**
+**FORM RESOLVED. VALUES OPEN.**
 
 A gate FAILs only when both margins are exceeded:
 
@@ -106,161 +110,184 @@ M_A_scope: UNRESOLVED_OWNER_DECISION  # one pair for all gates, or per-gate pair
 
 `M` and `A` derive from the cutover/product budget — what a user may be made to
 wait, and how much memory the migration may cost. They may not be derived from
-observed Rust-vs-Python results, calibration variance, or training output.
+observed Rust-vs-Python results, calibration variance, or training output. Their
+relationship to the T0-5 decision limits is itself an open slot, recorded there.
 
 ---
 
-## T0-3 — Gate population and aggregation
+## T0-3 — Gate population
 
-**BLOCKED. `NORMATIVE_RATIFICATION_REQUIRED_AGAINST_262`.**
+**RESOLVED (owner rulings R1–R4). The #262 ratification blocker is withdrawn.**
 
-#263-A must not silently narrow #263's acceptance (instrument §1), so the gate
-population is not T0's to settle. What T0 can do is state the conflict exactly.
+### Why the blocker was withdrawn
 
-### The authoritative list, and what is actually observable
+An earlier draft of this document carried
+`NORMATIVE_RATIFICATION_REQUIRED_AGAINST_262`, on the reading that #262 names
+seven phases and demands a gate on each. Reading the issues themselves rather
+than a restatement of them dissolves it:
 
-#262's performance gates name seven phases. The instrument measures a ladder of
-real production invocations and records each as the composed interval it is:
+- **#262** says *"Establish and publish **baselines** for"* the seven surfaces,
+  delegates their production to #263, and then states the gate separately and
+  once: *"Rust must meet an explicit budget and must not materially regress the
+  user-visible path."* It also says *"profile before optimizing; JSON and
+  rendering may dominate once analysis becomes cheap"* — the per-phase surfaces
+  are named there as profiling instruments, not as vetoes.
+- **#263**, which produces those baselines, requires measuring separately
+  *"where possible"* and *"clearly mark unavailable stages"*.
 
-| #262 gate phase | observable as | standalone number? |
+A phase that cannot be isolated, published as composed and marked unavailable, is
+therefore #263's method working as specified, not a contract violation. No
+amendment to #262 is required and none is made here.
+
+### Baseline classification, honestly named
+
+Every published stage baseline carries one of exactly four classes, and a derived
+number may never be renamed into something stronger than it proves:
+
+| surface | observable | class |
 |---|---|---|
-| process startup | `core-usage`, composed over `process-startup-core` + `cli-argv-parse` + `cli-usage-refusal` | **no** — a *lower bound* on core startup; `process-startup-launcher` is separate and lives inside `launcher-e2e` |
-| OwnIR parse | `core-parse-refused - core-usage` | **no** — a derived bound, valid only under an assumption the instrument never measures |
-| bridge/lowering | member of `core-full-*` | **no** — not separately observable (§14.1) |
-| analysis | member of `core-full-*` | **no** — not separately observable (§14.1) |
-| CLI/SARIF rendering | `core-full-sarif - core-full-human` | **no** — a renderer *difference*, which is not rendering in isolation |
-| end-to-end C# project/solution run | `launcher-e2e` | **yes** |
-| peak RSS / allocations where practical | RSS by named mechanism per platform | **RSS yes**; allocations **not captured** (§14.2) |
+| launcher end-to-end run | `launcher-e2e` | `DIRECT` |
+| peak RSS | `os.wait4` `ru_maxrss` (POSIX) / job object `PeakProcessMemoryUsed` (Windows), `null` with a reason elsewhere | `DIRECT` where a mechanism exists |
+| core startup floor | `core-usage`, composed over `process-startup-core` + `cli-argv-parse` + `cli-usage-refusal` | `DIRECT` as an interval; a **lower bound** on core startup, never relabelled "startup" |
+| OwnIR parse | `core-parse-refused - core-usage` | `DERIVED_ASSUMPTION_DEPENDENT` — assumes both invocations pay comparable argv handling and refusal rendering |
+| CLI/SARIF rendering | `core-full-sarif - core-full-human` | `DERIVED_EXACT` **for the renderer difference**; imputing "rendering in isolation" from it is not permitted |
+| bridge/lowering | member of `core-full-*` | `UNOBSERVABLE_SEPARATELY` |
+| analysis | member of `core-full-*` | `UNOBSERVABLE_SEPARATELY` |
+| frontend extraction | member of `launcher-e2e` | `UNOBSERVABLE_SEPARATELY` |
+| allocations / heap profile | not captured | diagnostic, published where practical (R2) |
 
-Two of #262's seven gate phases yield a standalone gateable number. One yields a
-bound. Four exist only as derived views, which §2 forbids presenting as
-measurements.
+`bridge/lowering` and `analysis` share one interval with no boundary between
+them. No arithmetic recovers a division the instrument never recorded, and none
+is invented here.
 
-### The proposed reshape, and the three conflicts it raises
+### The gates
 
-Proposed primary gates: process startup, cold E2E, warm E2E, peak RSS.
-Proposed diagnostic-only: OwnIR parse, bridge/lowering, analysis, rendering,
-frontend extraction.
+**R1 — the user-visible path is `launcher-e2e`**, evaluated as two preregistered
+regimes, **cold** and **warm**. Both are primary strata of one user-visible
+surface and are never collapsed into a single number; #263 requires cold and warm
+kept distinct. `core-usage` remains a published startup/floor baseline and
+profiling evidence, and does not stand in for the cutover gate.
 
-- **C1 — acceptance surface.** Moving parse, bridge/lowering, analysis and
-  rendering out of the gating set changes #262's acceptance surface. Sound
-  engineering — one user-visible effect should not be gated four times — but it
-  is a normative change, and instrument §1 exists precisely to stop it happening
-  by omission. **Requires ratification against #262.**
-- **C2 — "process startup" is not one number.** As a primary gate it can mean
-  `core-usage` (a bound on the child's startup) or `process-startup-launcher`
-  (what a user waits for), and §2 keeps the two deliberately unmerged. Which one
-  gates is undefined. **Requires a ruling, then ratification.**
-- **C3 — three of the five diagnostics do not exist.** bridge/lowering, analysis
-  and launcher-scoped extraction are not separately observable; parse and
-  rendering exist only as derived bound and difference. A diagnostic list must be
-  written against observables, or it manufactures several metrics out of one
-  interval — the defect §2 records as `launcher-extract` withdrawn.
-- **C4 — allocations.** #262's phrasing is "peak RSS/allocations where
-  practical"; allocations are not captured. Whether "where practical" already
-  discharges this must be recorded explicitly, not assumed.
+**R2 — peak RSS** remains a required resource gate wherever the contract provides
+a mechanism. Allocation and heap profiling is diagnostic, published for selected
+workloads where practical; **a missing allocation profile is neither `INVALID`
+nor `FAIL`**, and no instrumentation is added under T0 to obtain one.
 
-### Catastrophic-regression caps
+**R4 — Option 2, the current observable surface, with no new diagnostic veto
+gates.** Catastrophic per-phase caps were considered and rejected: they are an
+acceptance policy #262 does not ask for, and they would turn profiling surfaces
+back into hidden vetoes. `K`, `B` and `caps_apply_to` are therefore **removed**
+from this contract rather than filled — they are not part of it. Should a real
+profile later show the need for such a guardrail, it arrives as its own
+owner-ratified amendment, not as a silent passenger inside a preregistration.
 
-A diagnostic metric does not veto the cutover, but a diagnostic surface that
-collapses should not pass silently either.
+The primary gate set is therefore exactly:
 
-```yaml
-K: UNRESOLVED_OWNER_DECISION   # per-phase ratio cap, dimensionless
-B: UNRESOLVED_OWNER_DECISION   # per-phase absolute cap, in the phase's unit
-caps_apply_to: UNRESOLVED_OWNER_DECISION   # which observable surfaces carry a cap
+```text
+launcher-e2e, regime cold      (time)
+launcher-e2e, regime warm      (time)
+peak RSS on the same surface   (bytes)
 ```
 
-A cap fires only when both are exceeded, on the same two-margin logic as T0-2.
+**Structural consequences, applied rather than re-decided.** Each primary gate is
+evaluated on its own by T0-4; nothing compensates anything else, because no
+compensation was ever granted. A surface whose strata disagree takes the worst
+outcome among them — `FAIL` over `NO_DECISION` over `PASS` — since both regimes
+are primary and neither may be discarded. Peak RSS is gated on the primary
+surface only: gating it on diagnostic rungs would reintroduce exactly the
+per-phase veto R4 removed.
 
-**Normative, independent of the ratification:** a derived view (`core-parse-refused
-- core-usage`, `core-full-sarif - core-full-human`) may inform a reading and may
-never serve as a gate or a cap, and no two metrics may be manufactured from one
-observable interval.
+Every other surface in the table is **published, never gating**. A derived view
+may inform a reading and may never serve as a gate.
 
 ---
 
 ## T0-4 — Decision automaton
 
-**STRUCTURE FROZEN. ONE SLOT.**
+**RESOLVED.**
 
 Terminal states are exactly four, and the reading is a function of evidence, not
 prose:
 
 ```text
-admissibility (T0-6 invalidation predicates)
+eligibility (T0-7: host qualified, every required primary metric has a
+             working mechanism on it)
    │
-   ├─ violated ─────────────────────────────► INVALID
-   │
-   └─ clean
+   ├─ not eligible ────────────────────────► collection does not start
+   │                                          (no attempt, no evidence, no verdict)
+   └─ eligible
         │
-        required primary metric missing or null
+        admissibility (T0-6 invalidation predicates, incl. a required primary
+                       metric that returned null or went missing mid-attempt)
         │
-        ├─ yes ──────────────────────────────► INVALID or NO_DECISION   (never PASS)
-        │
-        └─ no
+        ├─ violated ───────────────────────► INVALID attempt ─► retry (T0-6)
+        │                                     └─ budget exhausted ─► NO_DECISION
+        └─ clean
              │
-             primary gates, T0-2 margins under the T0-5 uncertainty rule
+             primary gates, T0-2 margins read through the T0-5 limits
              │
-             ├─ regression proven ────────────► FAIL      ─► NO_GO
-             ├─ neither proven ───────────────► NO_DECISION
-             └─ non-inferiority proven
-                  │
-                  catastrophic caps (T0-3)
-                  ├─ violated ────────────────► FAIL      ─► NO_GO
-                  └─ clean ───────────────────► PASS      ─► GO
+             ├─ any gate FAIL ─────────────► FAIL          ─► NO_GO
+             ├─ any gate in the gray zone ─► NO_DECISION
+             └─ all gates PASS ────────────► PASS          ─► GO
 ```
 
-`INVALID` and `NO_DECISION` both map to `NO_DECISION` at the cutover level: no
-evidence, no verdict. They are kept apart because they mean different things —
-`INVALID` says the measurement did not happen properly, `NO_DECISION` says it
-happened and did not resolve.
+The three null-metric situations are **different states**, and collapsing them
+into one switch was the defect this section used to carry:
 
-**A missing primary metric may never read as "no regression found".** Peak RSS is
-the live case: §9 emits `null` with a reason where no mechanism exists, so if RSS
-is a primary gate, a Job Object that did not answer on Windows must not become a
-silent pass.
+| situation | outcome |
+|---|---|
+| **A.** Before collection: a required primary metric has no mechanism on this host or session | the host/session is **not eligible**; collection does not start |
+| **B.** Collection was eligible, but a required primary metric returned `null` or went missing during the attempt | the attempt is **`INVALID`** — evidence that should exist is damaged |
+| **C.** Retry budget exhausted after `INVALID` attempts | **`NO_DECISION`** |
 
-```yaml
-null_primary_metric_outcome: UNRESOLVED_OWNER_DECISION
-# INVALID  — treat an unmeasurable primary gate as a broken measurement, retry-eligible
-# NO_DECISION — treat it as measured-but-unresolved, not retry-eligible
-```
+`null primary metric => PASS` is structurally unreachable, in every one of the
+three.
+
+`INVALID` and `NO_DECISION` both surface as `NO_DECISION` at the cutover level,
+and are kept apart because they mean different things: `INVALID` says the
+measurement did not happen properly, `NO_DECISION` says it happened and did not
+resolve.
 
 ---
 
 ## T0-5 — Uncertainty rule
 
-**OPTIONS STATED. MODEL UNRESOLVED.**
+**MODEL RESOLVED: deterministic gray zone. LIMITS OPEN.**
 
-Without an uncertainty rule, `1.0999 -> PASS` and `1.1001 -> FAIL` become
-metaphysics on a machine whose own floor tolerates 0.35 relative IQR.
+    value <= PASS_LIMIT                  => PASS
+    value >= FAIL_LIMIT                  => FAIL
+    PASS_LIMIT < value < FAIL_LIMIT      => NO_DECISION
 
-Cell count bounds the choice: up to `5 rungs x 13 decisive workloads x 2 regimes`
-= 130 cell pairs per platform, less whatever `_rung_accepts` rejects, and less
-again if the gate population shrinks to primary surfaces only.
+**Why not a bootstrap over cells.** The cells are a fixed, preregistered set of
+acceptance strata — an engineering choice of workloads, rungs and regimes — not
+an IID sample drawn from a natural population. Resampling them produces an
+interval that looks like statistical inference while describing the drafter's
+workload list, and it would lend that list an authority it has not earned. The
+gray zone is cruder and honest: it says where the contract refuses to call a
+winner, and it says so in the same units as the margins.
 
-| | Option A — bootstrap over paired cells | Option B — deterministic gray zone |
-|---|---|---|
-| shape | resample cell pairs, preregistered confidence level; PASS if the upper bound ≤ margin, FAIL if the lower bound > margin, else NO_DECISION | fixed `PASS_LIMIT` / `FAIL_LIMIT`; between them, NO_DECISION |
-| reproducibility | recomputable from retained raw, but only if resampling unit, resample count and RNG seed are frozen too — otherwise the interval is itself a degree of freedom | trivially recomputable, no RNG |
-| few cells | interval widens honestly; a narrow gate population can make NO_DECISION the usual outcome | insensitive to sample size — a 3-cell result and a 100-cell result read identically |
-| retry semantics | a wide interval is **not** an invalid run; if it were, retry-until-narrow is rerun-until-pass | same; the gray zone is an outcome, not a retry trigger |
-| machine-checkable | yes, once every parameter is frozen | yes, the simplest possible predicate |
-| post-hoc exposure | low if frozen; the live risk is choosing the confidence level after seeing the width | low; the limits must come from the budget, and they overlap T0-2 unless defined as a bracket around `M`/`A` |
+It also removes a post-hoc surface a bootstrap would have kept open — the
+confidence level, the resampling unit, the resample count and the seed would each
+have had to be frozen, and each would have been a place to negotiate with the
+data afterwards.
 
 ```yaml
-uncertainty_model: UNRESOLVED_OWNER_DECISION          # A or B
-confidence_level: UNRESOLVED_OWNER_DECISION           # if A
-bootstrap_unit_resamples_seed: UNRESOLVED_OWNER_DECISION  # if A; all three, frozen
-gray_zone_limits: UNRESOLVED_OWNER_DECISION           # if B; PASS_LIMIT and FAIL_LIMIT
+PASS_LIMIT: UNRESOLVED_OWNER_DECISION   # per gate unit; the value at or below which a gate passes
+FAIL_LIMIT: UNRESOLVED_OWNER_DECISION   # per gate unit; the value at or above which a gate fails
+gray_zone_margin_binding: UNRESOLVED_OWNER_DECISION
+# how PASS_LIMIT/FAIL_LIMIT relate to the T0-2 predicate: whether the M/A pair
+# IS the FAIL_LIMIT with PASS_LIMIT below it, or the two limits bracket M/A.
+# Both readings are consistent with the form; they are not the same contract.
 ```
+
+The limits are budget quantities. They may not be derived from training results,
+calibration variance or any observed comparison.
 
 ---
 
 ## T0-6 — Invalidation and retry
 
-**SEMANTICS FROZEN. BUDGET UNRESOLVED.**
+**SEMANTICS RESOLVED. BUDGET OPEN.**
 
 The unit of invalidation is the **session** — the whole predefined measurement
 unit, as the instrument already treats it. A phase, a cell or a workload is never
@@ -273,11 +300,13 @@ Invalidation fires only on machine-detectable predicates frozen in advance:
 - drift between opening and closing probes above `NOISE_PROBE_MAX_DRIFT` (0.35);
 - reproducibility median change above `REPRODUCIBILITY_MAX_MEDIAN_CHANGE` (0.35);
 - a cell that did not do its rung's work, proved by its post-condition;
+- a required primary metric that returned `null` or went missing mid-attempt
+  (T0-4 case B);
 - identity-field drift in the step-7 environment manifest, fields compared whole;
 - candidate byte drift within a stratum after collection started.
 
 **A performance result is never an invalidation condition.** Not a slow cell, not
-a wide interval, not a disappointing `R`.
+a gray-zone outcome, not a disappointing `R`.
 
 One retry attempt is one full re-collection of the invalidated session on the
 same qualified host. Retries are bounded; on exhaustion the outcome is
@@ -292,7 +321,7 @@ retry_budget: UNRESOLVED_OWNER_DECISION   # attempts per stratum, integer
 
 ## T0-7 — Host eligibility predicate
 
-**PARTIALLY NORMATIVE. INCOMPLETE — a freeze blocker.**
+**PARTIALLY OPEN — a freeze blocker.**
 
 Already normative, from the existing contract:
 
@@ -308,7 +337,10 @@ Already normative, from the existing contract:
 - `host_fingerprint` inside a container is the container's identity, so a
   container is not a host;
 - per-stratum untimed builds, with `candidate_sha256` and `candidate_bytes`
-  identical across every run of that stratum.
+  identical across every run of that stratum;
+- **every required primary metric must have a working mechanism on the host**
+  before the session is eligible (T0-4 case A). On a host where peak RSS has no
+  mechanism, the session does not start; it does not start and then fail.
 
 Still unresolved, and each is machine-checkable only once ruled:
 
@@ -329,7 +361,7 @@ the predicate and contributes no measurement, no manifest and no qualified host.
 
 ## T0-8 — Selection and replacement
 
-**FROZEN.**
+**RESOLVED.**
 
 1. Qualification runs no Rust-vs-Python benchmark. A host is qualified against the
    predicate and the noise floor, never against how the comparison came out.
@@ -350,7 +382,7 @@ substitution.
 
 ## T0-9 — Training degrees of freedom
 
-**FROZEN.**
+**RESOLVED.**
 
 Training may derive **`N` and nothing else**, by the already-ratified rule: the
 ladder `[5, 15, 45]`, `G = [1, 10]`, per-stratum admissible sets
@@ -358,49 +390,59 @@ ladder `[5, 15, 45]`, `G = [1, 10]`, per-stratum admissible sets
 `Q_linux ∩ Q_windows`, and `NO_COMMON_N` is a stop with no fallback rung.
 
 Training may not change, and seeing training output grants no licence to revisit:
-the statistic, the pairing unit, `M`, `A`, the gate population, `K`, `B`, the
-uncertainty model and its parameters, the decision automaton, retry semantics,
-host eligibility semantics, or workload selection and replacement rules.
+the statistic, the pairing unit, `M`, `A`, the gate population, the decision
+limits, the uncertainty model, the decision automaton, retry semantics, host
+eligibility semantics, or workload selection and replacement rules.
 
 ---
 
 ## T0-completion
 
-T0 is not frozen while any mandatory slot is unresolved or any normative conflict
-is open. Until then `collection_authorized: false`.
+T0 is not frozen while any mandatory slot is unresolved. Until then
+`collection_authorized: false`.
 
 | # | slot | section |
 |---|---|---|
 | 1 | `M` | T0-2 |
 | 2 | `A` | T0-2 |
 | 3 | `M_A_scope` | T0-2 |
-| 4 | `K`, `B`, `caps_apply_to` | T0-3 |
-| 5 | `null_primary_metric_outcome` | T0-4 |
-| 6 | `uncertainty_model` + its parameters | T0-5 |
+| 4 | `PASS_LIMIT` | T0-5 |
+| 5 | `FAIL_LIMIT` | T0-5 |
+| 6 | `gray_zone_margin_binding` | T0-5 |
 | 7 | `retry_budget` | T0-6 |
-| 8 | host predicate slots (5) | T0-7 |
-| 9 | ratification of the gate population against #262, incl. C2's "which startup" | T0-3 |
+| 8 | `single_tenant_predicate` | T0-7 |
+| 9 | `power_policy_requirement` | T0-7 |
+| 10 | `permitted_background` | T0-7 |
+| 11 | `quiesce_procedure` | T0-7 |
+| 12 | `manifest_refresh_rule` | T0-7 |
+
+Removed rather than filled, because the acceptance contract does not make the
+requirement: `K`, `B`, `caps_apply_to` (R4), and `null_primary_metric_outcome`
+(replaced by the three distinct states of T0-4). Closed as a misreading:
+ratification of the gate population against #262 (R3).
 
 ---
 
-## Hostile review of this skeleton
+## Hostile review after the rulings
 
-| question | answer under T0 as drafted |
+| question | answer |
 |---|---|
-| see training data, then change the statistic? | **no** — T0-1 frozen, T0-9 forbids revisiting |
-| change the pairing definition? | **no** — T0-1 frozen, index pairing named and forbidden |
-| change `M`/`A`? | **no once ruled** — but **yes while unresolved**, which is why the freeze is blocked |
-| change the primary gate population? | **yes today** — C1/C2 open; closes only by ratification against #262 |
-| change `K`/`B`? | **yes while unresolved** |
-| pick the uncertainty model after the data? | **yes while unresolved** — the single largest post-hoc exposure left |
-| raise the retry budget after a failure? | **no once ruled** — bounded, exhaustion yields NO_DECISION |
+| see training data, then change the statistic? | **no** — T0-1 resolved, T0-9 forbids revisiting |
+| change the pairing definition? | **no** — index pairing named and forbidden |
+| change the primary gate population? | **no** — T0-3 resolved under R1/R4; a new gate is an amendment, not an adjustment |
+| reintroduce per-phase vetoes quietly? | **no** — the caps were removed from the contract, and a derived view may never gate |
+| pick the uncertainty model after the data? | **no** — deterministic gray zone chosen, with its rationale recorded in T0-5 |
+| change `M`/`A` or the decision limits? | **yes while unresolved** — the remaining budget exposure, closed by the numeric packet |
+| raise the retry budget after a failure? | **yes while unresolved**; once set, bounded, and exhaustion yields NO_DECISION |
 | replace a host because the result is unpleasant? | **no** — T0-8 rules 3 and 5 |
-| can a missing or null primary metric yield PASS? | **no** — T0-4, structurally |
+| can a missing or null primary metric yield PASS? | **no** — structurally, in all three T0-4 states |
+| can a host with no mechanism for a required metric start a session? | **no** — T0-7 eligibility, T0-4 case A |
 | can anyone start collecting because hosts and binding are ready? | **no** — T0-0 revoked that; `collection_authorized: false` |
-| can one evidence set yield both PASS and FAIL under two admissible readings? | **yes while T0-3 and T0-5 are open**; **no** once both are closed, since the automaton is then a function |
+| can one evidence set yield both PASS and FAIL under two admissible readings? | **no** once the limits are set — the automaton is a function of evidence; **yes while `PASS_LIMIT`/`FAIL_LIMIT` are empty** |
 
-Five "yes" answers remain. Every one of them is an empty slot or the open #262
-conflict — none can be closed by drafting, and none may be closed by looking at
+Three "yes" answers remain, all of them the same thing: the budget numbers are
+not chosen yet. None is a structural hole, and none may be closed by looking at
 data.
 
-    T0_NOT_FREEZABLE — until the table above is all "no".
+    T0_SKELETON_READY_FOR_NUMERIC_RULINGS
+    status: NOT_FROZEN — collection_authorized: false
