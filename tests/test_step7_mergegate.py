@@ -7,17 +7,22 @@
     mergegate-exact-binding-field the digest is read at each artifact's own path
     mergegate-decoy-digest        the right digest in a field nobody binds is not a binding
     mergegate-noop-campaign-link  a permissive link check must not satisfy the gate
-    mergegate-dead-authority      an authority check that always passes must not satisfy it
+    mergegate-dead-authority      hostqual authorising anything must not satisfy it
+    mergegate-dead-authority-eb   nor must execbinding — the claim covers both readers
+    mergegate-dead-continuity     nor must a postflight that stops comparing campaign links
+    mergegate-always-inadmissible nor must one that refuses every campaign
     mergegate-missing-machinery   the tools must be there at all
     mergegate-lingering-auto      the revoked automatic authority must stay revoked
     mergegate-unfrozen-t0         an unfrozen or unauthorised T0 is not merged as frozen
     mergegate-reads-t0-digest     the expected digest comes from T0, not from a constant
     control-inventory-complete    this list and the executed set are the same set
 
-Fixtures ship the real tools, and two controls mutate them. An earlier revision
-shipped a stub whose check_campaign_link was a bare pass and called that world
-compliant: the fixture demonstrated the false positive it was meant to exclude.
-Checking for the name of a mechanism is not checking the mechanism.
+Fixtures ship the real tools, and four controls mutate one enforcement point
+each. An earlier revision shipped a stub whose check_campaign_link was a bare
+pass and called that world compliant: the fixture demonstrated the false
+positive it was meant to exclude. Checking for the name of a mechanism is not
+checking the mechanism, and a witness that only ever sees refusals is not
+checking one either — hence a positive control beside each negative one.
 
 Failures print FAIL[<check>]: <detail>; nothing stops at the first one.
 
@@ -94,8 +99,11 @@ BINDING_SHAPES = {
         lambda d: {"bindings": {"measurement_harness_digest": d}},
 }
 
-# Mutations appended to the real hostqual: a later definition wins, so each stub
-# disables exactly one enforcement point and leaves the rest genuine.
+HOSTQUAL, EXECBINDING = mg.STEP7_TOOLS[1], mg.STEP7_TOOLS[2]
+
+# Mutations of the real tools, one enforcement point each. Appending a definition
+# is enough where a later definition wins; the continuity check lives inside a
+# larger function, so that one is a targeted edit of its condition.
 NOOP_LINK = '''
 
 def check_campaign_link(link, binding_path, repo):
@@ -109,6 +117,33 @@ def bind_t0(repo, path, commit):
              "sha256": "f" * 64, "status": "FROZEN", "collection_authorized": True}
     return block, check("t0", True, "stubbed: always authorised")
 '''
+
+# The second reader. The gate's message claims enforcement on both, so a control
+# that only breaks the first leaves half of that claim unproved.
+DEAD_AUTHORITY_EB = '''
+
+def t0_at(repo, path, commit):
+    return {"commit": commit, "path": path, "blob_sha": "b" * 40, "sha256": "f" * 64,
+            "status": "FROZEN", "collection_authorized": True}
+'''
+
+# The mutation the positive postflight control exists to catch: a tool that
+# refuses every campaign satisfies a negative-only witness, which would then be
+# reading "nothing is admissible" as "the swap was caught".
+ALWAYS_INADMISSIBLE = '''
+
+def session_admissibility(*args, **kwargs):
+    return {"admissible": False, "reasons": ["stubbed: nothing is ever admissible"]}
+'''
+
+CONTINUITY_CONDITION = ('preflight.get("campaign_link_sha256") != '
+                        "sha256_file(campaign_link_path)")
+
+
+def dead_continuity(src: str) -> str:
+    """Leave check_campaign_link working and remove only the comparison of the
+    preflight's campaign link with this pass's."""
+    return src.replace(CONTINUITY_CONDITION, "False")
 
 
 def real_tools() -> dict[str, str]:
@@ -140,7 +175,8 @@ def commit_tree(repo: Path, files: dict[str, str]) -> str:
 def world(tmp: Path, *, frozen: bool = True, authorized: bool = True,
           instrument: str = "print('instrument')" + NL, rebound: bool = True,
           machinery: bool = True, auto_authority: bool = False, decoy: bool = False,
-          wrong_field: bool = False, mutate: str = "", name: str = "w") -> tuple[Path, str]:
+          wrong_field: bool = False, mutate: dict[str, object] | None = None,
+          name: str = "w") -> tuple[Path, str]:
     """A synthetic target tree, and the commit a merge into it would produce."""
     repo = tmp / name
     files = {eb.INSTRUMENT_SOURCES[0]: instrument,
@@ -148,8 +184,14 @@ def world(tmp: Path, *, frozen: bool = True, authorized: bool = True,
              mg.STEP7_NOTE: NOTE_AUTO if auto_authority else NOTE_REVOKED}
     if machinery:
         tools = real_tools()
-        if mutate:
-            tools[mg.STEP7_TOOLS[1]] = tools[mg.STEP7_TOOLS[1]] + mutate
+        for tool, change in (mutate or {}).items():
+            before = tools[tool]
+            tools[tool] = change(before) if callable(change) else before + str(change)
+            if tools[tool] == before:
+                # A mutation that lands nowhere turns an attack control into a
+                # second positive control that nobody reads as one.
+                raise AssertionError(f"the mutation for {tool} changed nothing; the source it "
+                                     "targets has moved")
         files.update(tools)
     else:
         files[mg.STEP7_TOOLS[0]] = "# capture only" + NL
@@ -269,7 +311,7 @@ def control_decoy_digest() -> None:
 def control_noop_campaign_link() -> None:
     """The attack the previous revision of this gate could not see."""
     with tempfile.TemporaryDirectory() as raw:
-        repo, commit = world(Path(raw), mutate=NOOP_LINK, name="noop")
+        repo, commit = world(Path(raw), mutate={HOSTQUAL: NOOP_LINK}, name="noop")
         if verdicts(repo, commit).get("step7_machinery_enforces") != "fail":
             fail("mergegate-noop-campaign-link",
                  "a permissive check_campaign_link satisfied the gate; the name of a mechanism "
@@ -284,20 +326,70 @@ def control_noop_campaign_link() -> None:
        "that got through")
 
 
-def control_dead_authority() -> None:
+def _dead_authority(check_name: str, tool: str, stub: str, reader: str) -> None:
+    """Both readers carry the authority state machine, and the gate says so.
+    A control that breaks one of them leaves the other half of that claim
+    standing on nothing."""
     with tempfile.TemporaryDirectory() as raw:
-        repo, commit = world(Path(raw), mutate=DEAD_AUTHORITY, name="deadauth")
+        repo, commit = world(Path(raw), mutate={tool: stub}, name="deadauth")
         if verdicts(repo, commit).get("step7_machinery_enforces") != "fail":
-            fail("mergegate-dead-authority",
-                 "a bind_t0 that always returns pass satisfied the gate")
+            fail(check_name, f"a {reader} authority check that always passes satisfied the gate")
             return
         detail = details(repo, commit)["step7_machinery_enforces"]
-        if "accepted" not in detail:
-            fail("mergegate-dead-authority", f"refused for an unrelated reason: {detail}")
+        wrongly = [s for s in ("FROZEN+false", "NOT_FROZEN+true", "NOT_FROZEN+false")
+                   if f"{reader} accepted {s}" in detail]
+        if len(wrongly) != 3:
+            fail(check_name, f"refused, but named {wrongly} rather than all three forbidden "
+                             f"states: {detail}")
             return
-    ok("mergegate-dead-authority",
-       "a tree whose authority check always passes is refused, and the refusal says which "
-       "state it wrongly accepted")
+    ok(check_name,
+       f"a tree whose {reader} authorises anything is refused, and the refusal names every "
+       "forbidden state it accepted: FROZEN+false, NOT_FROZEN+true, NOT_FROZEN+false")
+
+
+def control_dead_authority() -> None:
+    _dead_authority("mergegate-dead-authority", HOSTQUAL, DEAD_AUTHORITY, "hostqual")
+
+
+def control_dead_authority_eb() -> None:
+    _dead_authority("mergegate-dead-authority-eb", EXECBINDING, DEAD_AUTHORITY_EB, "execbinding")
+
+
+def control_dead_continuity() -> None:
+    """The campaign-swap witness needs its own sensitivity proof: a postflight
+    that refuses everything would satisfy a negative-only control."""
+    with tempfile.TemporaryDirectory() as raw:
+        repo, commit = world(Path(raw), mutate={HOSTQUAL: dead_continuity}, name="deadcont")
+        if verdicts(repo, commit).get("step7_machinery_enforces") != "fail":
+            fail("mergegate-dead-continuity",
+                 "a postflight that no longer compares the preflight's campaign link with "
+                 "this pass's satisfied the gate; the swap witness proves nothing")
+            return
+        detail = details(repo, commit)["step7_machinery_enforces"]
+        if "swapped" not in detail:
+            fail("mergegate-dead-continuity", f"refused for an unrelated reason: {detail}")
+            return
+    ok("mergegate-dead-continuity",
+       "removing only the preflight/postflight campaign-link comparison, and leaving "
+       "check_campaign_link intact, is caught and named as the swap becoming admissible")
+
+
+def control_always_inadmissible() -> None:
+    """A refusal is only evidence if acceptance was possible."""
+    with tempfile.TemporaryDirectory() as raw:
+        repo, commit = world(Path(raw), mutate={HOSTQUAL: ALWAYS_INADMISSIBLE}, name="noadmit")
+        if verdicts(repo, commit).get("step7_machinery_enforces") != "fail":
+            fail("mergegate-always-inadmissible",
+                 "a postflight that refuses every campaign satisfied the gate; the swap "
+                 "witness was reading a blanket refusal as enforcement")
+            return
+        detail = details(repo, commit)["step7_machinery_enforces"]
+        if "unchanged campaign was inadmissible" not in detail:
+            fail("mergegate-always-inadmissible", f"refused for another reason: {detail}")
+            return
+    ok("mergegate-always-inadmissible",
+       "the unchanged campaign must survive preflight to postflight, so a tool that refuses "
+       "everything cannot pose as one that caught the swap")
 
 
 def control_missing_machinery() -> None:
@@ -384,6 +476,9 @@ CONTROLS: list[tuple[str, Callable[[], None]]] = [
     ("mergegate-decoy-digest", control_decoy_digest),
     ("mergegate-noop-campaign-link", control_noop_campaign_link),
     ("mergegate-dead-authority", control_dead_authority),
+    ("mergegate-dead-authority-eb", control_dead_authority_eb),
+    ("mergegate-dead-continuity", control_dead_continuity),
+    ("mergegate-always-inadmissible", control_always_inadmissible),
     ("mergegate-missing-machinery", control_missing_machinery),
     ("mergegate-lingering-auto", control_lingering_auto),
     ("mergegate-unfrozen-t0", control_unfrozen_t0),

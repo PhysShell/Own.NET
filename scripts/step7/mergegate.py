@@ -99,6 +99,7 @@ def w(name, doc):
 # --- W3/W4: the authority state must bite on both readers -------------------
 for label, status, flag, must_pass in (("FROZEN+false", "FROZEN.", "false", False),
                                        ("NOT_FROZEN+true", "NOT_FROZEN.", "true", False),
+                                       ("NOT_FROZEN+false", "NOT_FROZEN.", "false", False),
                                        ("FROZEN+true", "FROZEN.", "true", True)):
     body = "```text\nStatus:\n  %s\n  collection_authorized: %s\n```\n" % (status, flag)
     root, commit = repo_with("t0-" + flag + status[:4], {"t0.md": body})
@@ -199,9 +200,20 @@ pre = hq.session_eligibility(bpath, qpath, mpath, dpath, cand, l2, r2, quiesce_r
 if not pre["eligible"]:
     failures.append("a correctly linked session was refused: " + str(pre["reasons"])[:120])
 ppath = w("preflight.json", pre)
+# The positive half first. Without it a postflight hard-wired to inadmissible
+# would satisfy the negative half, and this witness would read "everything is
+# refused" as "the swap is refused" — a broken closing probe standing in for the
+# check it was meant to prove.
+kept = hq.session_admissibility(bpath, qpath, ppath, mpath, cand, probe, l2, r2)
+if not kept["admissible"]:
+    failures.append("an unchanged campaign was inadmissible at postflight: "
+                    + str(kept.get("reasons"))[:140])
 after = hq.session_admissibility(bpath, qpath, ppath, mpath, cand, probe, l3, r3)
 if after["admissible"]:
     failures.append("a campaign swapped between preflight and postflight was admissible")
+elif not any("campaign link" in str(r) for r in after.get("reasons", ())):
+    failures.append("the swapped campaign was refused, but by no reason naming the campaign "
+                    "link: " + str(after.get("reasons"))[:140])
 
 print(json.dumps(failures))
 """
@@ -309,9 +321,11 @@ def gate(repo: Path, commit: str) -> list[dict[str, object]]:
         results.append(check(
             "step7_machinery_enforces", not refusals,
             "; ".join(refusals) if refusals else
-            "the target tree's own tools were run and refused all four attacks: a link naming "
-            "another binding, a freeze edited after linking, FROZEN with collection_authorized "
-            "false, and a campaign swapped between preflight and postflight"))
+            "the target tree's own tools were run: both readers refused all three forbidden "
+            "authority states and accepted FROZEN+true; a link naming another binding and a "
+            "freeze edited after linking were refused; an unchanged campaign survived "
+            "preflight to postflight and a swapped one was refused by campaign-link "
+            "continuity"))
 
     note = (blob(repo, commit, STEP7_NOTE) or b"").decode("utf-8", "replace")
     revoked = "AUTOMATIC AUTHORISATION OF THE FIRST STEP-7 COLLECTION IS REVOKED" in note
