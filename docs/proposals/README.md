@@ -55,7 +55,7 @@ proposal is marked `done` with a pointer.
 | [P-033](P-033-probabilistic-data-structures.md) | In-process sketches & bitmap indexes for legacy .NET diagnostics (Top-K, CMS, t-digest, Bloom) | draft |
 | [P-034](P-034-runtime-lifetime-guard.md) | Runtime lifetime guard & disposal quarantine — the "enterprise malloc" idea, correctly scoped for .NET | draft |
 | [P-035](P-035-custom-weak-subscription.md) | Project-declared weak-subscription conventions — recognise/suggest a repo's own weak-subscribe API, not just the BCL WeakEventManager | draft |
-| [P-036](P-036-interprocedural-semantic-architecture.md) | Interprocedural semantic architecture: OwnHIR, OwnCFG, call graph, first-class summaries, and evidence | draft |
+| [P-036](P-036-interprocedural-semantic-architecture.md) | Interprocedural semantic architecture: OwnHIR, OwnCFG, call graph, first-class summaries, and evidence | draft — research outcome: broad architecture not approved by the comparative bakeoff, direction SHRINK to P-037 guarded transfer + exceptional-exit teardown ([`docs/notes/p036-bakeoff.md`](../notes/p036-bakeoff.md) §8.5, owner ruling at `d3364a0`) |
 | [P-037](P-037-guarded-effect-summaries.md) | Guarded effect summaries — the conditional-transfer contract for #304 (fixed-split product lattice, cell selection at call sites) | accepted (design; impl post-cutover, #304) |
 | [P-038](P-038-boundary-transition-witness.md) | Boundary transition witness — test whether unobserved production calls add signal beyond local coverage and mutation adequacy | accepted (experiment ratified; product not proposed) |
 

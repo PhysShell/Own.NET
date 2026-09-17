@@ -12,7 +12,10 @@
 > harness had approximated the frozen D1/D4 text; §8.2 / §8.4 EVIDENCE
 > DIRECTION **SHRINK** to the P-037 guarded-transfer core plus exceptional-exit
 > teardown reasoning — the broad generic P-036 platform is not supported by
-> this evidence.
+> this evidence. **Terminal at `d3364a0` (OWNER RULING, §8.5)**: no new
+> preregistration; the project result is SHRINK as an engineering direction,
+> handed off as three verticals (A guarded transfer, B exceptional-exit
+> teardown, C enrollment as a hypothesis).
 > Owner ruling that frames this note (OWNER RULING, verbatim from the task):
 > physical-host qualification is **deferred**; the current host is accepted for
 > exploratory comparative research and functional capability evaluation, and
@@ -1252,3 +1255,74 @@ WHAT WOULD MAKE IT DECISION-GRADE (a NEW preregistration, not an amendment):
     minimum; the same harness, the same status vocabulary, the same
     provenance discipline.
 ```
+
+### 8.5 Terminal ruling and engineering hand-off (OWNER RULING, recorded after `d3364a0`)
+
+The owner read `d3364a0` and ruled as follows. Recorded here verbatim in
+substance so the research record carries its own closure; nothing above was
+edited to match it.
+
+- **Frozen.** `d3364a0` is the terminal research checkpoint of this bakeoff.
+  **No new preregistration is opened now.** The evidence is good enough to
+  answer the project's practical question even though it is not good enough
+  for a ceremonial GO; another 90-side run under repaired criteria on
+  roughly the same synthetic corpus would return SHRINK, which is already
+  known, and would be research about the research.
+- **Project state.** P-036 broad architecture: **NOT APPROVED by this
+  research.** P-036 research direction: **SHRINK.** Supported: P-037
+  guarded-transfer summaries; exceptional-exit teardown reasoning. Promising
+  but weak evidence: LifecycleEnrollment as reachability (post-hoc synthetic
+  only, §8.4.1). Not justified: a generic all-domain interprocedural
+  platform; obligations / progress / regions / tasks as one investment;
+  delegate-target machinery as differentiation.
+- **Why the frozen NO-GO is not resurrected as a substantive conclusion.**
+  The post-hoc 2×2 did what was required: IDISP009 is a check of the
+  `IDisposable` convention, not of LifecycleEnrollment — it fires when the
+  lifecycle is fixed by an explicit `Dispose()` and stops being the rule that
+  catches the bug once the interface is present and the object is simply
+  dropped; no tested tool separated both bug cells from both fixed cells by
+  enrollment/reachability. The literal re-read is also done: D1 stays TRUE
+  despite the harness's implementation error; D4 is 1 domain under the
+  natural reading or 0 under the strong one, and the old mapping is undefined
+  at 0. §8.1 stands as the contract's output, not as the project's answer.
+- **What the executable evidence already settles.** For guarded transfer the
+  gap is not an idea but a table: F3-S1..S4 — Owen-current MISS, CodeQL stock
+  MISS, IDisposableAnalyzers MISS, Infer# MISS, RLC# MISS, CA2000 warning on
+  the bug *and* on the fix — with Owen corrupting the semantics before the
+  bridge through the may-as-must `ConsumesParam` (§3.1): a concrete
+  engineering reason for P-037. Exceptional-exit teardown (F5-S1) is a second,
+  separate gap. Proving the *broad* P-036 would need historical bugs per
+  domain, and obligations / progress / tasks exist in this bakeoff mostly as
+  synthetic specimens.
+- **Engineering hand-off** (kept separate from the research decision):
+
+  ```text
+  A. P-037 guarded transfer
+     first target:   the ConsumesParam may-as-must hole (§3.1)
+     acceptance:     F3-S1..S4 flagged
+                     + the existing transfer regressions unchanged
+                     + no regression of the honest may -> OWN051 semantics
+
+  B. exceptional-exit teardown
+     first target:   F5-S1
+     question:       can the existing OwnCFG exceptional edges feed
+                     release-crediting honestly, WITHOUT first building
+                     generic P-036 machinery (OwnHIR, generic MethodSummary,
+                     SCC engine)? Try the smallest honest semantic slice.
+
+  C. enrollment / reachability
+     evidence:       interesting (§8.4.1)
+     status:         hypothesis
+     next trigger:   a historical real bug; no machinery built for it now
+  ```
+
+- **When a new preregistration becomes worth it.** Not now; when real
+  historical witnesses exist — a guarded handoff in a real project, a real
+  `Dispose` whose exceptional path skips its cleanup. It then asks whether a
+  real population justifies the semantic layer, in the §8.4.3 form:
+  per-domain D2, D4 over domains with a defined cell at 0, D1 as written,
+  at least one historical case per claimed domain.
+- **What this ruling does not do.** It does not rewrite §8.1; it does not
+  change P-037's accepted design, any fixture expectation, or any host rule.
+  The proposal index carries a one-line pointer to this outcome; P-036's
+  status field itself is the maintainers' call.
