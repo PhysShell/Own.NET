@@ -496,16 +496,20 @@ impl System {
     /// with no branch mask — the pure-lattice "today".
     #[must_use]
     pub fn collapsed(&self) -> Self {
-        let mut out = *self;
-        for c in &mut out.coords {
-            c.shape = Shape::Uncond;
-            c.seed = Cells::diag(c.seed.collapse());
-            for e in c.edges.iter_mut().flatten() {
-                e.transform = Transform::Opaque;
-                e.mask = Mask::Both;
-            }
-        }
-        out
+        // by-value maps, no mutable references: the model checker sees pure
+        // functions of the coordinate instead of pointer updates
+        let coords = self.coords.map(|c| Coord {
+            shape: Shape::Uncond,
+            seed: Cells::diag(c.seed.collapse()),
+            edges: c.edges.map(|slot| {
+                slot.map(|e| Edge {
+                    callee: e.callee,
+                    transform: Transform::Opaque,
+                    mask: Mask::Both,
+                })
+            }),
+        });
+        Self { n: self.n, coords }
     }
 
     /// Today's `_build_skeletons` read of the same bodies, as P-037 §7.1
@@ -518,32 +522,55 @@ impl System {
     /// release in that cell, `no` = a kept path, `⊥` = nothing local.
     #[must_use]
     pub fn today(&self) -> Self {
-        let mut out = self.collapsed();
-        for c in out.coords.iter_mut().zip(self.coords.iter()) {
-            let (t, g) = c;
-            let released = |x: Transfer| matches!(x, Transfer::Must | Transfer::May);
-            let local_release = released(g.seed.pos) || released(g.seed.neg);
-            if local_release {
-                let definite = g.seed.pos == Transfer::Must && g.seed.neg == Transfer::Must;
-                t.seed = Cells::diag(if definite {
-                    Transfer::Must
-                } else {
-                    Transfer::May
-                });
-                t.edges = [None; MAX_EDGES];
+        let collapsed = self.collapsed();
+        let [g0, g1, g2] = self.coords;
+        let [t0, t1, t2] = collapsed.coords;
+        Self {
+            n: self.n,
+            coords: [
+                Self::today_coord(g0, t0),
+                Self::today_coord(g1, t1),
+                Self::today_coord(g2, t2),
+            ],
+        }
+    }
+
+    /// One coordinate of [`Self::today`]: `g` is the guarded coordinate, `t`
+    /// its collapsed form.
+    #[allow(clippy::manual_flatten)]
+    fn today_coord(g: Coord, t: Coord) -> Coord {
+        let released = |x: Transfer| matches!(x, Transfer::Must | Transfer::May);
+        if released(g.seed.pos) || released(g.seed.neg) {
+            let definite = g.seed.pos == Transfer::Must && g.seed.neg == Transfer::Must;
+            let seed = Cells::diag(if definite {
+                Transfer::Must
             } else {
-                let count = g.edges.iter().flatten().count();
-                let conditional = g
-                    .edges
-                    .iter()
-                    .flatten()
-                    .any(|e| !matches!(e.mask, Mask::Both));
-                if count > 0 && (count > 1 || conditional) {
-                    t.seed = t.seed.join(Cells::diag(Transfer::No));
-                }
+                Transfer::May
+            });
+            return Coord {
+                shape: t.shape,
+                seed,
+                edges: [None; MAX_EDGES],
+            };
+        }
+        let mut count = 0_usize;
+        let mut conditional = false;
+        for slot in &g.edges {
+            if let Some(e) = slot {
+                count = count.saturating_add(1);
+                conditional |= !matches!(e.mask, Mask::Both);
             }
         }
-        out
+        let seed = if count > 0 && (count > 1 || conditional) {
+            t.seed.join(Cells::diag(Transfer::No))
+        } else {
+            t.seed
+        };
+        Coord {
+            shape: t.shape,
+            seed,
+            edges: t.edges,
+        }
     }
 }
 
