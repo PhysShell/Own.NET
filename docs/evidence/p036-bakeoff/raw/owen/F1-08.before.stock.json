@@ -1,0 +1,23 @@
+{
+ "case": "F1-08",
+ "side": "before",
+ "tool": "owen",
+ "config": "stock",
+ "status": "DETECTED_STOCK",
+ "findings": [
+  {
+   "rule": "OWN001",
+   "line": 23,
+   "message": "event '_settings.PropertyChanged' is subscribed (handler 'OnSettingsChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SettingsView' alive (possible leak) [resource: subscription token]",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  }
+ ],
+ "note": "nning retry 1 in 1000ms. The process cannot access the file '/home/user/Own.NET/frontend/roslyn/OwnSharp.Extractor/bin/Debug/net8.0/ownsharp-extract' because it is being used by another process.  [/home/user/Own.NET/frontend/roslyn/OwnSharp.Extractor/OwnSharp.Extractor.csproj]\nextractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n\n1 finding.\n",
+ "elapsed_s": 8.36,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

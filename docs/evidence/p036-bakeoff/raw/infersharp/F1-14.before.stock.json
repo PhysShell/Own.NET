@@ -1,0 +1,67 @@
+{
+ "case": "F1-14",
+ "side": "before",
+ "tool": "infersharp",
+ "config": "stock",
+ "status": "DETECTED_STOCK",
+ "findings": [
+  {
+   "rule": "PULSE_RESOURCE_LEAK",
+   "line": 42,
+   "message": "Resource dynamically allocated by constructor System.IO.FileStream() on line 43 is not closed after the last access at line 42, column 5.",
+   "level": "error",
+   "path": "Program.cs",
+   "extra": {
+    "codeFlows": 1,
+    "relatedLocations": 0
+   }
+  },
+  {
+   "rule": "PULSE_RESOURCE_LEAK",
+   "line": 44,
+   "message": "Resource dynamically allocated by constructor System.IO.FileStream() on line 43 is not closed after the last access at line 44, column 9.",
+   "level": "error",
+   "path": "Program.cs",
+   "extra": {
+    "codeFlows": 1,
+    "relatedLocations": 0
+   }
+  },
+  {
+   "rule": "PULSE_RESOURCE_LEAK",
+   "line": 55,
+   "message": "Resource dynamically allocated by constructor System.IO.FileStream() on line 54 is not closed after the last access at line 55, column 15.",
+   "level": "error",
+   "path": "Program.cs",
+   "extra": {
+    "codeFlows": 1,
+    "relatedLocations": 0
+   }
+  },
+  {
+   "rule": "PULSE_RESOURCE_LEAK",
+   "line": 56,
+   "message": "Resource dynamically allocated by constructor System.IO.FileStream() on line 54 is not closed after the last access at line 56, column 9.",
+   "level": "error",
+   "path": "Program.cs",
+   "extra": {
+    "codeFlows": 1,
+    "relatedLocations": 0
+   }
+  },
+  {
+   "rule": "PULSE_RESOURCE_LEAK",
+   "line": 79,
+   "message": "Resource dynamically allocated by constructor System.IO.FileStream() on line 77 is not closed after the last access at line 79, column 9.",
+   "level": "error",
+   "path": "Program.cs",
+   "extra": {
+    "codeFlows": 1,
+    "relatedLocations": 0
+   }
+  }
+ ],
+ "note": "",
+ "elapsed_s": 10.12,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

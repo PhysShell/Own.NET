@@ -1,0 +1,11 @@
+{
+ "case": "F1-11",
+ "side": "after",
+ "tool": "codeql",
+ "config": "stock",
+ "status": "NOT_APPLICABLE",
+ "findings": [],
+ "note": "n/a: no event-subscription/lifetime rule",
+ "elapsed_s": 89.83,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

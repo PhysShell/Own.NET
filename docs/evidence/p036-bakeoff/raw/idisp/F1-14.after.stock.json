@@ -1,0 +1,28 @@
+{
+ "case": "F1-14",
+ "side": "after",
+ "tool": "idisp",
+ "config": "stock",
+ "status": "FALSE_POSITIVE_STOCK",
+ "findings": [
+  {
+   "rule": "IDISP001",
+   "line": 43,
+   "message": "Dispose created",
+   "level": "warning",
+   "path": "Program.cs",
+   "extra": {}
+  },
+  {
+   "rule": "IDISP001",
+   "line": 54,
+   "message": "Dispose created",
+   "level": "warning",
+   "path": "Program.cs",
+   "extra": {}
+  }
+ ],
+ "note": "",
+ "elapsed_s": 2.04,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

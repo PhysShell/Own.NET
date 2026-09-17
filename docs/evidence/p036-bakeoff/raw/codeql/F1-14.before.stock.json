@@ -1,0 +1,67 @@
+{
+ "case": "F1-14",
+ "side": "before",
+ "tool": "codeql",
+ "config": "stock",
+ "status": "DETECTED_STOCK",
+ "findings": [
+  {
+   "rule": "cs/local-not-disposed",
+   "line": 43,
+   "message": "Disposable 'FileStream' is created but not disposed.",
+   "level": "",
+   "path": "Program.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  },
+  {
+   "rule": "cs/local-not-disposed",
+   "line": 54,
+   "message": "Disposable 'FileStream' is created but not disposed.",
+   "level": "",
+   "path": "Program.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  },
+  {
+   "rule": "cs/dispose-not-called-on-throw",
+   "line": 78,
+   "message": "Dispose missed if exception is thrown by [call to method WriteByte](1).",
+   "level": "",
+   "path": "Program.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 1
+   }
+  },
+  {
+   "rule": "cs/catch-of-all-exceptions",
+   "line": 56,
+   "message": "Generic catch clause.",
+   "level": "",
+   "path": "Program.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  },
+  {
+   "rule": "cs/catch-of-all-exceptions",
+   "line": 79,
+   "message": "Generic catch clause.",
+   "level": "",
+   "path": "Program.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  }
+ ],
+ "note": "",
+ "elapsed_s": 89.58,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

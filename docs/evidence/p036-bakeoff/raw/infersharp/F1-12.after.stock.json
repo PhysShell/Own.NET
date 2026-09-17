@@ -1,0 +1,11 @@
+{
+ "case": "F1-12",
+ "side": "after",
+ "tool": "infersharp",
+ "config": "stock",
+ "status": "UNSUPPORTED",
+ "findings": [],
+ "note": "build failed:  name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after/Case.cs(19,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.21\n\n",
+ "elapsed_s": 1.55,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

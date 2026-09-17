@@ -1,0 +1,56 @@
+{
+ "case": "F1-14",
+ "side": "before",
+ "tool": "owen",
+ "config": "stock",
+ "status": "DETECTED_STOCK",
+ "findings": [
+  {
+   "rule": "OWN014",
+   "line": 20,
+   "message": "event 'SystemEvents.DisplaySettingsChanged' is subscribed (handler 'OnDisplayChanged') to a static (process-lived) event source that outlives 'DisplayWatcher'; the strong subscription promotes 'DisplayWatcher' to the source's lifetime, so it can never be collected \u2014 a region escape (leak, no release path) [resource: subscription token]",
+   "level": "warning",
+   "path": "Program.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  },
+  {
+   "rule": "OWN001",
+   "line": 43,
+   "message": "IDisposable local 'stream' is never disposed (leak) [resource: disposable]",
+   "level": "warning",
+   "path": "Program.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  },
+  {
+   "rule": "OWN001",
+   "line": 54,
+   "message": "IDisposable local 'tried' is never disposed (leak) [resource: disposable]",
+   "level": "warning",
+   "path": "Program.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  },
+  {
+   "rule": "OWN001",
+   "line": 77,
+   "message": "IDisposable local 'onThrow' may not be disposed on every path (leak) [resource: disposable]",
+   "level": "warning",
+   "path": "Program.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  }
+ ],
+ "note": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n\n4 findings.\n",
+ "elapsed_s": 2.61,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

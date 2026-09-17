@@ -1,0 +1,11 @@
+{
+ "case": "F1-13",
+ "side": "before",
+ "tool": "rlc",
+ "config": "stock",
+ "status": "NOT_APPLICABLE",
+ "findings": [],
+ "note": "inferred annotations: 0; n/a: scope-uncertain: IDisposable return of an interface call",
+ "elapsed_s": 84.13,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

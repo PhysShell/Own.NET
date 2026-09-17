@@ -1,0 +1,11 @@
+{
+ "case": "F1-13",
+ "side": "after",
+ "tool": "infersharp",
+ "config": "stock",
+ "status": "NOT_APPLICABLE",
+ "findings": [],
+ "note": "n/a: scope-uncertain: Pulse tracks allocated resources; IEventBus.Subscribe is an interface stub",
+ "elapsed_s": 8.64,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

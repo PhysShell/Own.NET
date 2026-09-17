@@ -267,6 +267,14 @@ Notes on honesty of the corpus:
   where used), plus a harness stub file for two undeclared fixture types
   (`IEventBus`, and a global using for the DI abstractions package). The
   stubs are identical for all tools and are recorded in the manifest.
+- Two input-shape adapters, applied identically to every tool and recorded in
+  the harness: (a) the three WPF partial-class fixtures (`F1-11`, `F1-12`,
+  `F9-03`) get the XAML-generated half of their class as an empty
+  `InitializeComponent()` stub, so the build-requiring comparators can
+  compile them; (b) `F1-09` is left exactly as the fixture intends — its
+  `Window` base is deliberately unresolvable (the case pins Owen's
+  unresolved-lifecycle-event path) — so for the build-requiring comparators
+  it is `UNSUPPORTED` by construction, not a measurement.
 - ArrayPool/MemoryPool cases (POOL/OWN025) are deliberately **excluded**: they
   are not in P-036's interprocedural scope and would inflate the "Owen-only"
   count with an orthogonal capability.
@@ -594,3 +602,60 @@ today.** Owen's message is the most informative sentence, and it is still a
 sentence, not a path. This is a REPOSITORY FACT about the current
 `Diagnostic.evidence` coverage (only the OWN002/OWN005 and pool-view paths
 carry steps; `docs/tasks/evidence-coverage.md`), not a P-036 measurement.
+
+---
+
+## Phase 7 — hostile review
+
+### 7.0 Decision-contract sensitivity (recorded BEFORE the results matrix was read)
+
+Raised by the owner on reading the checkpoint commit `fce388a`, while the
+corpus run was still executing and no result beyond the §2.0 smoke and the
+§3.1 harness-validation cases had been read. The preregistration is **not**
+amended — changing the mapping after results start arriving would be exactly
+the goalpost move §0 forbids. Instead the final verdict is reported twice:
+once **exactly as frozen**, once under the sensitivity analysis below, with
+the two labelled `PREREGISTERED VERDICT` and `METHODOLOGY SENSITIVITY /
+CONTRACT DEFECT`. Neither replaces the other.
+
+**Defect 1 — GO is structurally unreachable with the preregistered corpus.**
+D4 counts a P-036 domain as evidenced only if the corpus holds a class-1
+(historical real bug) case in it, and GO requires ≥ 3 evidenced domains. The
+frozen corpus (§1 table) has class-1 cases only in F1 (4) and F3 (5); F2 is
+class 3, F4–F8 are class 4, F9 is class 2. P-036's five domains map onto the
+families as ownership ↔ F3/F1/F2 (lifecycle release is the ownership
+summary's first consumer), obligations ↔ F7, progress ↔ F8, regions ↔ F9,
+tasks ↔ none. So at most **one** domain (ownership, counting lifecycle under
+it) — or two if F1 and F3 are read as separate domains — can ever be
+evidenced under D4, whatever the tools do. The ceiling of the frozen mapping
+is therefore SHRINK, and a SHRINK verdict must be read as partly a property
+of the corpus's provenance mix, not only of the measurements. This is a
+contract defect, recorded as such. The honest statement of what D4 *can*
+show is: "which of P-036's domains have any real-bug grounding in this
+repository today" — a useful fact, but not a GO/SHRINK discriminator.
+
+**Defect 2 — D2 is global, so one comparator-covered target case can force
+NO-GO past several differentiated families.** As frozen, ¬D2 holds if *any*
+D2-scope case that Owen misses is caught STOCK/CONFIGURED by a comparator
+(with the fix silent). SHRINK exists precisely for "part of the layer is
+commoditised, part is not"; a global D2 cannot express that and collapses it
+into NO-GO. The sensitivity analysis will therefore also evaluate a
+**per-domain D2** (D2 restricted to each family separately) and report where
+the global and per-domain readings diverge.
+
+**Defect 3 — the D2-scope set itself is small and synthetic.** The cases Owen
+misses inside the P-036 scope are, by construction, the class-4 cases (F3-S*,
+F4-S1, F5-S1, F6-S1) plus whatever the run adds. A verdict resting on them
+rests on proposal-derived shapes, not on incidents. Recorded; not fixable
+without a mined corpus for those families, which is out of this phase.
+
+Sensitivity questions the final section must answer, in this order:
+
+```text
+S1  Is GO structurally reachable with the preregistered corpus?         (no — Defect 1)
+S2  Can one comparator-covered target case force NO-GO although several
+    other P-036 families stay differentiated?                            (yes — Defect 2)
+S3  Would a per-domain D2 produce SHRINK where the global D2 produces
+    NO-GO?                                                               (evaluated on the results)
+S4  Does any conclusion change when class-4 cases are removed from D1/D2?  (evaluated on the results)
+```

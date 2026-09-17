@@ -862,8 +862,19 @@ def materialize(case: dict[str, Any], side: str, work: Path) -> tuple[Path, list
     src = (src_dir / f"{side}.cs").read_text(encoding="utf-8")
     (proj / "Case.cs").write_text(src, encoding="utf-8")
     files = ["Case.cs"]
-    for s in case.get("stubs", []):
-        (proj / "Stubs.cs").write_text(STUBS[s], encoding="utf-8")
+    # global-using stubs first (they must open the file), then type stubs
+    stub_parts = [STUBS[s] for s in sorted(case.get("stubs", []), key=lambda k: k != "di")]
+    m = re.search(r"partial class (\w+)\s*:\s*Window\b", src)
+    if m and "InitializeComponent()" in src:
+        # the XAML-generated half of a WPF partial class: an empty
+        # InitializeComponent(), identical for every tool (recorded in the note)
+        stub_parts.append(
+            "// bakeoff stub (harness-provided, identical for every tool): the\n"
+            "// XAML-generated half of the partial class.\n"
+            f"partial class {m.group(1)} {{ private void InitializeComponent() {{ }} }}\n"
+        )
+    if stub_parts:
+        (proj / "Stubs.cs").write_text("\n".join(stub_parts), encoding="utf-8")
         files.append("Stubs.cs")
     tfm = "net8.0-windows" if needs_windows(src) else "net8.0"
     (proj / "Case.csproj").write_text(
@@ -882,6 +893,11 @@ def project_file(proj: Path) -> str:
 # ---------------------------------------------------------------------------
 
 
+# own-check.sh runs `dotnet build` on the shared extractor project on every call;
+# two concurrent calls race on its obj/ output (CS2012). Serialize them.
+_OWEN_LOCK = threading.Lock()
+
+
 def run_owen(proj: Path, files: list[str]) -> tuple[list[Finding], str | None, str]:
     cmd = [
         str(ROOT / "scripts" / "own-check.sh"),
@@ -892,7 +908,8 @@ def run_owen(proj: Path, files: list[str]) -> tuple[list[Finding], str | None, s
         "--",
     ]
     cmd += [str(proj / f) for f in files]
-    rc, out, err = sh(cmd, cwd=proj, env=dotnet_env())
+    with _OWEN_LOCK:
+        rc, out, err = sh(cmd, cwd=proj, env=dotnet_env())
     if rc not in (0, 1):
         return [], "CRASHED", f"own-check rc={rc}: {err[-800:]}"
     fs = parse_sarif(out, proj)
@@ -1411,6 +1428,120 @@ def run_custom_queries(
     return results
 
 
+D2_SCOPE_FAMILIES = {"F4", "F5", "F6"}  # plus the class-4 F3 cases (preregistration §0.6)
+
+
+def decision_inputs(results: list[RunResult], cases: list[dict[str, Any]]) -> dict[str, Any]:
+    """The MECHANICAL inputs to the preregistered predicates D1, D2, D4 (docs/notes/
+    p036-bakeoff.md §0.6), computed from statuses only so an auditor can recompute
+    them without reading the note. D3 (necessity) and D6 (admissibility) are
+    judgments and are not computed here. Custom-query configs never count."""
+    idx = {(r.case, r.side, r.tool, r.config): r for r in results}
+    comparator_cfgs = sorted(
+        {
+            (r.tool, r.config)
+            for r in results
+            if r.tool != "owen" and not r.config.startswith("custom_query")
+        }
+    )
+
+    def status(cid: str, side: str, tool: str, cfg: str) -> str:
+        r = idx.get((cid, side, tool, cfg))
+        return r.status if r else "ABSENT"
+
+    def disc(cid: str, tool: str, cfg: str) -> bool:
+        return status(cid, "before", tool, cfg).startswith("DETECTED") and status(
+            cid, "after", tool, cfg
+        ) in ("CLEAN", "ABSENT")
+
+    fams: dict[str, list[dict[str, Any]]] = {}
+    for c in cases:
+        fams.setdefault(c["family"], []).append(c)
+    out: dict[str, Any] = {
+        "rules": {
+            "discriminates": "before status starts with DETECTED and after status is CLEAN",
+            "D1_family": "Owen discriminates >= 1 case, Owen has no FALSE_POSITIVE on any "
+            "fix, and no comparator stock/configured config discriminates any case",
+            "D2_scope": "cases in F4/F5/F6 plus class-4 F3 cases whose Owen before status "
+            "is MISSED",
+            "D2_global": "no D2-scope case is discriminated by any comparator "
+            "stock/configured config",
+            "D2_per_family": "same, restricted to each family",
+            "D4_evidenced": "family holds a class-1 case AND no comparator config "
+            "discriminates any case in it",
+        },
+        "comparator_configs": [f"{t}/{g}" for t, g in comparator_cfgs],
+        "families": {},
+    }
+    for f, cs in sorted(fams.items()):
+        owen_disc = [c["id"] for c in cs if disc(c["id"], "owen", "stock")]
+        owen_fp = [
+            c["id"]
+            for c in cs
+            if status(c["id"], "after", "owen", "stock").startswith("FALSE_POSITIVE")
+        ]
+        owen_missed = [
+            c["id"] for c in cs if status(c["id"], "before", "owen", "stock") == "MISSED"
+        ]
+        owen_na = [
+            c["id"]
+            for c in cs
+            if status(c["id"], "before", "owen", "stock")
+            in ("NOT_APPLICABLE", "UNSUPPORTED", "CRASHED")
+        ]
+        comp = {
+            f"{t}/{g}": [c["id"] for c in cs if disc(c["id"], t, g)] for t, g in comparator_cfgs
+        }
+        comp_fp = {
+            f"{t}/{g}": [
+                c["id"] for c in cs if status(c["id"], "after", t, g).startswith("FALSE_POSITIVE")
+            ]
+            for t, g in comparator_cfgs
+        }
+        class1 = [c["id"] for c in cs if c["provenance"] == 1]
+        any_comp = any(v for v in comp.values())
+        out["families"][f] = {
+            "cases": [c["id"] for c in cs],
+            "class1_cases": class1,
+            "owen_discriminates": owen_disc,
+            "owen_false_positive_on_fix": owen_fp,
+            "owen_missed": owen_missed,
+            "owen_not_run_or_na": owen_na,
+            "comparator_discriminates": comp,
+            "comparator_false_positive_on_fix": comp_fp,
+            "D1_holds_for_family": bool(owen_disc) and not owen_fp and not any_comp,
+            "D4_evidenced": bool(class1) and not any_comp,
+        }
+    d2_cases = [
+        c
+        for c in cases
+        if (c["family"] in D2_SCOPE_FAMILIES or (c["family"] == "F3" and c["provenance"] == 4))
+        and status(c["id"], "before", "owen", "stock") == "MISSED"
+    ]
+    d2: dict[str, Any] = {}
+    for c in d2_cases:
+        d2[c["id"]] = {
+            "family": c["family"],
+            "commoditised_by": [f"{t}/{g}" for t, g in comparator_cfgs if disc(c["id"], t, g)],
+            "comparator_before_status": {
+                f"{t}/{g}": status(c["id"], "before", t, g) for t, g in comparator_cfgs
+            },
+        }
+    out["D2"] = {
+        "scope_cases": d2,
+        "global_holds": all(not v["commoditised_by"] for v in d2.values()),
+        "per_family_holds": {
+            f: all(not v["commoditised_by"] for v in d2.values() if v["family"] == f)
+            for f in sorted({v["family"] for v in d2.values()})
+        },
+    }
+    out["D1"] = {
+        "families_holding": [f for f, v in out["families"].items() if v["D1_holds_for_family"]]
+    }
+    out["D4"] = {"families_evidenced": [f for f, v in out["families"].items() if v["D4_evidenced"]]}
+    return out
+
+
 def summarize(results: list[RunResult], cases: list[dict[str, Any]], out: Path) -> None:
     tools_cfg = sorted({(r.tool, r.config) for r in results}, key=lambda x: (x[0], x[1]))
     lines = [
@@ -1481,6 +1612,40 @@ def summarize(results: list[RunResult], cases: list[dict[str, Any]], out: Path) 
             f"| {len(d['missed'])}: {' '.join(d['missed'])} | {len(d['not_applicable'])} "
             f"| {len(d['unsupported_or_crashed'])}: {' '.join(d['unsupported_or_crashed'])} |"
         )
+    dec = decision_inputs(results, cases)
+    lines += [
+        "",
+        "## Mechanical decision inputs (D1 / D2 / D4; D3 and D6 are judgments in the note)",
+        "",
+        f"- D1 holds for families: {dec['D1']['families_holding']}",
+        f"- D2 global: {dec['D2']['global_holds']}; per family: {dec['D2']['per_family_holds']}",
+        f"- D4 evidenced families: {dec['D4']['families_evidenced']}",
+        "",
+        "| family | class-1 | Owen discriminates | Owen FP on fix | Owen missed "
+        "| comparators discriminating (stock/configured) |",
+        "|---|---|---|---|---|---|",
+    ]
+    for f, v in dec["families"].items():
+        comps = (
+            "; ".join(
+                f"{k}: {' '.join(ids)}" for k, ids in v["comparator_discriminates"].items() if ids
+            )
+            or "none"
+        )
+        lines.append(
+            f"| {f} | {len(v['class1_cases'])} "
+            f"| {len(v['owen_discriminates'])}: {' '.join(v['owen_discriminates'])} "
+            f"| {len(v['owen_false_positive_on_fix'])}: "
+            f"{' '.join(v['owen_false_positive_on_fix'])} "
+            f"| {len(v['owen_missed'])}: {' '.join(v['owen_missed'])} | {comps} |"
+        )
+    lines += [
+        "",
+        "D2-scope cases (Owen MISSED inside the P-036 scope) and who commoditises them:",
+        "",
+    ]
+    for cid, v in dec["D2"]["scope_cases"].items():
+        lines.append(f"- {cid} ({v['family']}): " + (", ".join(v["commoditised_by"]) or "nobody"))
     (out / "summary.md").write_text("\n".join(lines) + "\n")
     (out / "results.json").write_text(
         json.dumps(
@@ -1488,6 +1653,7 @@ def summarize(results: list[RunResult], cases: list[dict[str, Any]], out: Path) 
                 "head": sh(["git", "rev-parse", "HEAD"], cwd=ROOT)[1].strip(),
                 "timing_label": TIMING_LABEL,
                 "discrimination": disc,
+                "decision_inputs": dec,
                 "results": [asdict(r) for r in results],
             },
             indent=1,
@@ -1507,6 +1673,11 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--cases", default="")
     ap.add_argument("--sides", default="before,after")
     ap.add_argument("--jobs", type=int, default=2)
+    ap.add_argument(
+        "--merge",
+        action="store_true",
+        help="merge this (partial) run into the existing results.json",
+    )
     ap.add_argument(
         "--custom-queries",
         metavar="DIR",
@@ -1571,6 +1742,21 @@ def main(argv: list[str]) -> int:
                 + "  ".join(f"{r.tool}/{r.config}={r.status}({len(r.findings)})" for r in rs),
                 flush=True,
             )
+    if a.merge and (out / "results.json").exists():
+        prior = json.loads((out / "results.json").read_text())["results"]
+        keep = {(r.case, r.side, r.tool, r.config) for r in results}
+        results += [
+            RunResult(
+                **{
+                    **r,
+                    "findings": [Finding(**f) for f in r["findings"]],
+                    "other": [Finding(**f) for f in r["other"]],
+                }
+            )
+            for r in prior
+            if (r["case"], r["side"], r["tool"], r["config"]) not in keep
+        ]
+        cases = json.loads(Path(a.manifest).read_text())["cases"]
     results.sort(key=lambda r: (r.case, r.side, r.tool, r.config))
     summarize(results, cases, out)
     print(f"wrote {out / 'summary.md'} and {out / 'results.json'}")
