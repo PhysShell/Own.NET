@@ -1,0 +1,23 @@
+{
+ "case": "F9-03",
+ "side": "before",
+ "tool": "codeql",
+ "config": "custom_query_naive",
+ "status": "DETECTED_CUSTOM_QUERY",
+ "findings": [
+  {
+   "rule": "ownnet/p036/subscription-never-removed",
+   "line": 26,
+   "message": "Event 'DisplaySettingsChanged' subscribed here is never unsubscribed in 'GraphicsConfigurationDialog'.",
+   "level": "",
+   "path": "Case.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  }
+ ],
+ "note": "",
+ "elapsed_s": 6.78,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

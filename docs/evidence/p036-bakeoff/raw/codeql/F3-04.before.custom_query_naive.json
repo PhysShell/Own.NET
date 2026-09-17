@@ -1,0 +1,11 @@
+{
+ "case": "F3-04",
+ "side": "before",
+ "tool": "codeql",
+ "config": "custom_query_naive",
+ "status": "MISSED",
+ "findings": [],
+ "note": "",
+ "elapsed_s": 6.42,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

@@ -1,0 +1,23 @@
+{
+ "case": "F9-02",
+ "side": "before",
+ "tool": "codeql",
+ "config": "custom_query_naive",
+ "status": "DETECTED_CUSTOM_QUERY",
+ "findings": [
+  {
+   "rule": "ownnet/p036/subscription-never-removed",
+   "line": 14,
+   "message": "Event 'CustomerChanged' subscribed here is never unsubscribed in 'CustomerViewModel'.",
+   "level": "",
+   "path": "Case.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  }
+ ],
+ "note": "",
+ "elapsed_s": 6.71,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

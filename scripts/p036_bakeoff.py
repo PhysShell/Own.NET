@@ -1467,7 +1467,10 @@ def decision_inputs(results: list[RunResult], cases: list[dict[str, Any]]) -> di
         fams.setdefault(c["family"], []).append(c)
     out: dict[str, Any] = {
         "rules": {
-            "discriminates": "before status starts with DETECTED and after status is CLEAN",
+            "discriminates": "before status starts with DETECTED and after status is one "
+            "of CLEAN, NOT_APPLICABLE, ABSENT (NOT_APPLICABLE is only ever assigned over a "
+            "raw CLEAN/MISSED, so an N/A fix side was clean; ABSENT = no result row for "
+            "that side)",
             "D1_family": "Owen discriminates >= 1 case, Owen has no FALSE_POSITIVE on any "
             "fix, and no comparator stock/configured config discriminates any case",
             "D2_scope": "cases in F4/F5/F6 plus class-4 F3 cases whose Owen before status "

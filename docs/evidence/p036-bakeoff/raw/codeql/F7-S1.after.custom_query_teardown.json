@@ -1,0 +1,11 @@
+{
+ "case": "F7-S1",
+ "side": "after",
+ "tool": "codeql",
+ "config": "custom_query_teardown",
+ "status": "CLEAN",
+ "findings": [],
+ "note": "",
+ "elapsed_s": 6.9,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

@@ -1,0 +1,23 @@
+{
+ "case": "F1-09",
+ "side": "before",
+ "tool": "codeql",
+ "config": "custom_query_teardown",
+ "status": "DETECTED_CUSTOM_QUERY",
+ "findings": [
+  {
+   "rule": "ownnet/p036/subscription-not-released-in-teardown",
+   "line": 26,
+   "message": "Event 'PropertyChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'OrdersWindow'.",
+   "level": "",
+   "path": "Case.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  }
+ ],
+ "note": "",
+ "elapsed_s": 7.43,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

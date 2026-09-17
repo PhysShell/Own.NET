@@ -1,0 +1,23 @@
+{
+ "case": "F1-05",
+ "side": "after",
+ "tool": "codeql",
+ "config": "custom_query_naive",
+ "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+ "findings": [
+  {
+   "rule": "ownnet/p036/subscription-never-removed",
+   "line": 18,
+   "message": "Event 'PropertyChanged' subscribed here is never unsubscribed in 'UncalledLocalFunctionView'.",
+   "level": "",
+   "path": "Case.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  }
+ ],
+ "note": "",
+ "elapsed_s": 6.78,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

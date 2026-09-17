@@ -1,0 +1,23 @@
+{
+ "case": "F2-02",
+ "side": "after",
+ "tool": "codeql",
+ "config": "custom_query_teardown",
+ "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+ "findings": [
+  {
+   "rule": "ownnet/p036/subscription-not-released-in-teardown",
+   "line": 11,
+   "message": "Event 'Tick' subscribed here has no unguarded '-=' in a proven teardown context of 'FeedTicker'.",
+   "level": "",
+   "path": "Case.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  }
+ ],
+ "note": "",
+ "elapsed_s": 7.27,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

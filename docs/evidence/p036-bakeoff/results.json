@@ -1,7 +1,117 @@
 {
- "head": "5aa24a14bc1128c9973a549451512822662b2838",
+ "head": "14ab0dd4d3fc39700e349bdd17e75865ee6ee6a2",
  "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST",
  "discrimination": {
+  "codeql/custom_query_naive": {
+   "discriminates": [
+    "F1-10",
+    "F1-11",
+    "F1-12",
+    "F1-14",
+    "F6-S1",
+    "F9-02",
+    "F9-03"
+   ],
+   "detected_but_fp_on_fix": [
+    "F1-05",
+    "F2-01",
+    "F2-02",
+    "F2-03",
+    "F2-04",
+    "F2-05",
+    "F2-06"
+   ],
+   "missed": [
+    "F1-01",
+    "F1-02",
+    "F1-03",
+    "F1-04",
+    "F1-06",
+    "F1-07",
+    "F1-08",
+    "F1-09",
+    "F1-13",
+    "F3-01",
+    "F3-02",
+    "F3-03",
+    "F3-04",
+    "F3-05",
+    "F3-06",
+    "F3-07",
+    "F3-08",
+    "F3-09",
+    "F3-10",
+    "F3-S1",
+    "F3-S2",
+    "F3-S3",
+    "F3-S4",
+    "F3-S5",
+    "F3-S6",
+    "F4-S1",
+    "F4-S2",
+    "F5-S1",
+    "F7-S1",
+    "F8-S1",
+    "F9-01"
+   ],
+   "not_applicable": [],
+   "unsupported_or_crashed": []
+  },
+  "codeql/custom_query_teardown": {
+   "discriminates": [
+    "F1-01",
+    "F1-02",
+    "F1-03",
+    "F1-04",
+    "F1-05",
+    "F1-06",
+    "F1-07",
+    "F1-08",
+    "F1-10",
+    "F1-11",
+    "F1-12",
+    "F1-14",
+    "F6-S1",
+    "F9-02",
+    "F9-03"
+   ],
+   "detected_but_fp_on_fix": [
+    "F1-09",
+    "F2-01",
+    "F2-02",
+    "F2-03",
+    "F2-04",
+    "F2-05",
+    "F2-06"
+   ],
+   "missed": [
+    "F1-13",
+    "F3-01",
+    "F3-02",
+    "F3-03",
+    "F3-04",
+    "F3-05",
+    "F3-06",
+    "F3-07",
+    "F3-08",
+    "F3-09",
+    "F3-10",
+    "F3-S1",
+    "F3-S2",
+    "F3-S3",
+    "F3-S4",
+    "F3-S5",
+    "F3-S6",
+    "F4-S1",
+    "F4-S2",
+    "F5-S1",
+    "F7-S1",
+    "F8-S1",
+    "F9-01"
+   ],
+   "not_applicable": [],
+   "unsupported_or_crashed": []
+  },
   "codeql/stock": {
    "discriminates": [
     "F1-14",
@@ -67,11 +177,11 @@
     "F3-08",
     "F3-09",
     "F3-10",
+    "F4-S1",
     "F4-S2"
    ],
    "detected_but_fp_on_fix": [
-    "F3-05",
-    "F4-S1"
+    "F3-05"
    ],
    "missed": [
     "F1-13",
@@ -94,6 +204,8 @@
     "F1-07",
     "F1-08",
     "F1-10",
+    "F1-11",
+    "F1-12",
     "F2-01",
     "F2-02",
     "F2-03",
@@ -105,13 +217,11 @@
     "F7-S1",
     "F8-S1",
     "F9-01",
-    "F9-02"
+    "F9-02",
+    "F9-03"
    ],
    "unsupported_or_crashed": [
-    "F1-09",
-    "F1-11",
-    "F1-12",
-    "F9-03"
+    "F1-09"
    ]
   },
   "infersharp/stock": {
@@ -148,6 +258,8 @@
     "F1-07",
     "F1-08",
     "F1-10",
+    "F1-11",
+    "F1-12",
     "F1-13",
     "F2-01",
     "F2-02",
@@ -161,13 +273,11 @@
     "F7-S1",
     "F8-S1",
     "F9-01",
-    "F9-02"
+    "F9-02",
+    "F9-03"
    ],
    "unsupported_or_crashed": [
-    "F1-09",
-    "F1-11",
-    "F1-12",
-    "F9-03"
+    "F1-09"
    ]
   },
   "netanalyzers/configured": {
@@ -207,6 +317,8 @@
     "F1-07",
     "F1-08",
     "F1-10",
+    "F1-11",
+    "F1-12",
     "F2-01",
     "F2-02",
     "F2-03",
@@ -218,13 +330,11 @@
     "F7-S1",
     "F8-S1",
     "F9-01",
-    "F9-02"
+    "F9-02",
+    "F9-03"
    ],
    "unsupported_or_crashed": [
-    "F1-09",
-    "F1-11",
-    "F1-12",
-    "F9-03"
+    "F1-09"
    ]
   },
   "netanalyzers/stock": {
@@ -264,6 +374,8 @@
     "F1-07",
     "F1-08",
     "F1-10",
+    "F1-11",
+    "F1-12",
     "F2-01",
     "F2-02",
     "F2-03",
@@ -275,13 +387,11 @@
     "F7-S1",
     "F8-S1",
     "F9-01",
-    "F9-02"
+    "F9-02",
+    "F9-03"
    ],
    "unsupported_or_crashed": [
-    "F1-09",
-    "F1-11",
-    "F1-12",
-    "F9-03"
+    "F1-09"
    ]
   },
   "owen/stock": {
@@ -375,6 +485,8 @@
     "F1-07",
     "F1-08",
     "F1-10",
+    "F1-11",
+    "F1-12",
     "F1-13",
     "F2-01",
     "F2-02",
@@ -388,19 +500,17 @@
     "F7-S1",
     "F8-S1",
     "F9-01",
-    "F9-02"
+    "F9-02",
+    "F9-03"
    ],
    "unsupported_or_crashed": [
-    "F1-09",
-    "F1-11",
-    "F1-12",
-    "F9-03"
+    "F1-09"
    ]
   }
  },
  "decision_inputs": {
   "rules": {
-   "discriminates": "before status starts with DETECTED and after status is CLEAN",
+   "discriminates": "before status starts with DETECTED and after status is one of CLEAN, NOT_APPLICABLE, ABSENT (NOT_APPLICABLE is only ever assigned over a raw CLEAN/MISSED, so an N/A fix side was clean; ABSENT = no result row for that side)",
    "D1_family": "Owen discriminates >= 1 case, Owen has no FALSE_POSITIVE on any fix, and no comparator stock/configured config discriminates any case",
    "D2_scope": "cases in F4/F5/F6 plus class-4 F3 cases whose Owen before status is MISSED",
    "D2_global": "no D2-scope case is discriminated by any comparator stock/configured config",
@@ -665,6 +775,7 @@
     "comparator_discriminates": {
      "codeql/stock": [],
      "idisp/stock": [
+      "F4-S1",
       "F4-S2"
      ],
      "infersharp/stock": [],
@@ -898,7 +1009,9 @@
     },
     "F4-S1": {
      "family": "F4",
-     "commoditised_by": [],
+     "commoditised_by": [
+      "idisp/stock"
+     ],
      "comparator_before_status": {
       "codeql/stock": "NOT_APPLICABLE",
       "idisp/stock": "DETECTED_STOCK",
@@ -921,10 +1034,10 @@
      }
     }
    },
-   "global_holds": true,
+   "global_holds": false,
    "per_family_holds": {
     "F3": true,
-    "F4": true,
+    "F4": false,
     "F5": true
    }
   },
@@ -939,6 +1052,30 @@
   }
  },
  "results": [
+  {
+   "case": "F1-01",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 5.65,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-01",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 5.51,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
   {
    "case": "F1-01",
    "side": "after",
@@ -1021,6 +1158,42 @@
    "other": [],
    "elapsed_s": 224.58,
    "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-01",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 5.6,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-01",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 25,
+     "message": "Event 'PropertyChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'GoodsDocument'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 5.63,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -1123,6 +1296,30 @@
    "case": "F1-02",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.61,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-02",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.88,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-02",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -1201,6 +1398,42 @@
    "other": [],
    "elapsed_s": 80.8,
    "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-02",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.62,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-02",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 31,
+     "message": "Event 'PropertyChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'SessionDocument'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.61,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -1303,6 +1536,30 @@
    "case": "F1-03",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.8,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-03",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.99,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-03",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -1381,6 +1638,42 @@
    "other": [],
    "elapsed_s": 79.89,
    "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-03",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.89,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-03",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 25,
+     "message": "Event 'PropertyChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'ReportView'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.96,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -1492,6 +1785,30 @@
    "case": "F1-04",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.58,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-04",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.29,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-04",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -1570,6 +1887,42 @@
    "other": [],
    "elapsed_s": 84.2,
    "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-04",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.53,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-04",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 21,
+     "message": "Event 'PropertyChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'PriceListener'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.56,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -1672,6 +2025,42 @@
    "case": "F1-05",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 18,
+     "message": "Event 'PropertyChanged' subscribed here is never unsubscribed in 'UncalledLocalFunctionView'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.78,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-05",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.43,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-05",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -1750,6 +2139,76 @@
    "other": [],
    "elapsed_s": 83.53,
    "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-05",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 20,
+     "message": "Event 'PropertyChanged' subscribed here is never unsubscribed in 'UncalledLocalFunctionView'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    },
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 42,
+     "message": "Event 'PropertyChanged' subscribed here is never unsubscribed in 'UncalledLambdaView'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.71,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-05",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 20,
+     "message": "Event 'PropertyChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'UncalledLocalFunctionView'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    },
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 42,
+     "message": "Event 'PropertyChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'UncalledLambdaView'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.68,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -1875,6 +2334,30 @@
    "case": "F1-06",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.5,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-06",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.48,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-06",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -1953,6 +2436,42 @@
    "other": [],
    "elapsed_s": 81.76,
    "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-06",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.71,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-06",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 20,
+     "message": "Event 'PropertyChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'ReportView'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.42,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2055,6 +2574,30 @@
    "case": "F1-07",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.59,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-07",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.49,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-07",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -2133,6 +2676,42 @@
    "other": [],
    "elapsed_s": 82.27,
    "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-07",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.79,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-07",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 22,
+     "message": "Event 'PropertyChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'FinalizerDetachDocument'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.59,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2244,6 +2823,42 @@
    "case": "F1-08",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 43,
+     "message": "Event 'PropertyChanged' subscribed here is never unsubscribed in 'SettingsPane'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.78,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-08",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.48,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-08",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -2322,6 +2937,42 @@
    "other": [],
    "elapsed_s": 63.31,
    "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-08",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.53,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-08",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 23,
+     "message": "Event 'PropertyChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'SettingsView'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.83,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2424,6 +3075,42 @@
    "case": "F1-09",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.86,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-09",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 19,
+     "message": "Event 'PropertyChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'OrdersWindow'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.83,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-09",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -2509,11 +3196,47 @@
    "side": "after",
    "tool": "rlc",
    "config": "stock",
-   "status": "CRASHED",
+   "status": "UNSUPPORTED",
    "findings": [],
    "other": [],
-   "elapsed_s": 14.28,
-   "notes": "traced build/db create rc=2: .org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=\nInitializing database at /tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/rlc/F1-09-after/db.\nRunning build command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\nA fatal error occurred: Exit status 1 from command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\n",
+   "elapsed_s": 4.02,
+   "notes": "traced build/db create rc=2: 847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-09-after/Case.cs(12,37): error CS0246: The type or namespace name 'Window' could not be found (are you missing a using directive or an assembly reference?) [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-09-after/Case.csproj]\n[2026-09-17 18:52:39] [build-stdout] Build FAILED.\n[2026-09-17 18:52:39] [build-stdout] /tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-09-after/Case.cs(12,37): error CS0246: The type or namespace name 'Window' could not be found (are you missing a using directive or an assembly reference?) [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-09-after/Case.csproj]",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-09",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.57,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-09",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 26,
+     "message": "Event 'PropertyChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'OrdersWindow'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.43,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2617,11 +3340,35 @@
    "side": "before",
    "tool": "rlc",
    "config": "stock",
-   "status": "CRASHED",
+   "status": "UNSUPPORTED",
    "findings": [],
    "other": [],
-   "elapsed_s": 15.2,
-   "notes": "traced build/db create rc=2: org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=\nInitializing database at /tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/rlc/F1-09-before/db.\nRunning build command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\nA fatal error occurred: Exit status 1 from command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\n",
+   "elapsed_s": 4.1,
+   "notes": "traced build/db create rc=2: efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-09-before/Case.cs(19,37): error CS0246: The type or namespace name 'Window' could not be found (are you missing a using directive or an assembly reference?) [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-09-before/Case.csproj]\n[2026-09-17 18:52:39] [build-stdout] Build FAILED.\n[2026-09-17 18:52:39] [build-stdout] /tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-09-before/Case.cs(19,37): error CS0246: The type or namespace name 'Window' could not be found (are you missing a using directive or an assembly reference?) [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-09-before/Case.csproj]",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-10",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.85,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-10",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.44,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2706,6 +3453,54 @@
    "other": [],
    "elapsed_s": 81.42,
    "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-10",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 18,
+     "message": "Event 'PropertyChanged' subscribed here is never unsubscribed in 'SourceView'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.73,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-10",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 18,
+     "message": "Event 'PropertyChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'SourceView'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.45,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2808,11 +3603,35 @@
    "case": "F1-11",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.78,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-11",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.54,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-11",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 89.83,
+   "elapsed_s": 93.23,
    "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
@@ -2821,11 +3640,11 @@
    "side": "after",
    "tool": "idisp",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.73,
-   "notes": "build failed: omponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-after-idisp/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-after-idisp/Case.cs(11,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-after-idisp/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.44\n\n",
+   "elapsed_s": 1.47,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2833,11 +3652,11 @@
    "side": "after",
    "tool": "infersharp",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.51,
-   "notes": "build failed:  name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-after/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-after/Case.cs(11,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-after/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.24\n\n",
+   "elapsed_s": 7.61,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2845,11 +3664,11 @@
    "side": "after",
    "tool": "netanalyzers",
    "config": "configured",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.54,
-   "notes": "build failed:  name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-after/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-after/Case.cs(11,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-after/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.19\n\n",
+   "elapsed_s": 1.3,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2857,11 +3676,11 @@
    "side": "after",
    "tool": "netanalyzers",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.46,
-   "notes": "build failed:  name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-after/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-after/Case.cs(11,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-after/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.23\n\n",
+   "elapsed_s": 1.36,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2872,8 +3691,8 @@
    "status": "CLEAN",
    "findings": [],
    "other": [],
-   "elapsed_s": 3.52,
-   "notes": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.9SVVpnw45E: ok \u2014 no subscription leaks found\n\n0 findings.\n",
+   "elapsed_s": 4.47,
+   "notes": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.AdNMKYmcWa: ok \u2014 no subscription leaks found\n\n0 findings.\n",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2881,11 +3700,59 @@
    "side": "after",
    "tool": "rlc",
    "config": "stock",
-   "status": "CRASHED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 24.55,
-   "notes": "traced build/db create rc=2: .org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=\nInitializing database at /tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/rlc/F1-11-after/db.\nRunning build command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\nA fatal error occurred: Exit status 1 from command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\n",
+   "elapsed_s": 110.32,
+   "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-11",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 20,
+     "message": "Event 'DisplaySettingsChanged' subscribed here is never unsubscribed in 'GraphicsConfigurationDialog'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.61,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-11",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 20,
+     "message": "Event 'DisplaySettingsChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'GraphicsConfigurationDialog'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.5,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2896,7 +3763,7 @@
    "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 101.65,
+   "elapsed_s": 92.69,
    "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
@@ -2905,11 +3772,11 @@
    "side": "before",
    "tool": "idisp",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 2.63,
-   "notes": "build failed: onent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-before-idisp/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-before-idisp/Case.cs(19,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-before-idisp/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:02.25\n\n",
+   "elapsed_s": 1.51,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2917,11 +3784,11 @@
    "side": "before",
    "tool": "infersharp",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 3.02,
-   "notes": "build failed: me 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-before/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-before/Case.cs(19,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-before/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:02.58\n\n",
+   "elapsed_s": 7.43,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2929,11 +3796,11 @@
    "side": "before",
    "tool": "netanalyzers",
    "config": "configured",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 2.16,
-   "notes": "build failed: me 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-before/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-before/Case.cs(19,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-before/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.84\n\n",
+   "elapsed_s": 1.28,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2941,11 +3808,11 @@
    "side": "before",
    "tool": "netanalyzers",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 2.21,
-   "notes": "build failed: me 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-before/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-before/Case.cs(19,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-11-before/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.84\n\n",
+   "elapsed_s": 1.42,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2968,7 +3835,7 @@
     }
    ],
    "other": [],
-   "elapsed_s": 5.33,
+   "elapsed_s": 2.26,
    "notes": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n\n1 finding.\n",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
@@ -2977,11 +3844,35 @@
    "side": "before",
    "tool": "rlc",
    "config": "stock",
-   "status": "CRASHED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 17.7,
-   "notes": "traced build/db create rc=2: org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=\nInitializing database at /tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/rlc/F1-11-before/db.\nRunning build command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\nA fatal error occurred: Exit status 1 from command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\n",
+   "elapsed_s": 110.88,
+   "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-12",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.64,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-12",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.47,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2992,7 +3883,7 @@
    "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 99.31,
+   "elapsed_s": 95.63,
    "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
@@ -3001,11 +3892,11 @@
    "side": "after",
    "tool": "idisp",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.93,
-   "notes": "build failed: omponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after-idisp/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after-idisp/Case.cs(19,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after-idisp/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.62\n\n",
+   "elapsed_s": 2.27,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -3013,11 +3904,11 @@
    "side": "after",
    "tool": "infersharp",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.55,
-   "notes": "build failed:  name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after/Case.cs(19,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.21\n\n",
+   "elapsed_s": 7.67,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -3025,11 +3916,11 @@
    "side": "after",
    "tool": "netanalyzers",
    "config": "configured",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.67,
-   "notes": "build failed:  name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after/Case.cs(19,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.32\n\n",
+   "elapsed_s": 1.9,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -3037,11 +3928,11 @@
    "side": "after",
    "tool": "netanalyzers",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.69,
-   "notes": "build failed:  name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after/Case.cs(19,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.36\n\n",
+   "elapsed_s": 1.84,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -3052,8 +3943,8 @@
    "status": "CLEAN",
    "findings": [],
    "other": [],
-   "elapsed_s": 2.43,
-   "notes": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.R6ID8xNUHD: ok \u2014 no subscription leaks found\n\n0 findings.\n",
+   "elapsed_s": 3.31,
+   "notes": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.t29aeH2Mzr: ok \u2014 no subscription leaks found\n\n0 findings.\n",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -3061,11 +3952,103 @@
    "side": "after",
    "tool": "rlc",
    "config": "stock",
-   "status": "CRASHED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 16.31,
-   "notes": "traced build/db create rc=2: .org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=\nInitializing database at /tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/rlc/F1-12-after/db.\nRunning build command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\nA fatal error occurred: Exit status 1 from command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\n",
+   "elapsed_s": 114.94,
+   "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-12",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 24,
+     "message": "Event 'ShowErrorRequested' subscribed here is never unsubscribed in 'VideoSource'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    },
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 25,
+     "message": "Event 'HideErrorRequested' subscribed here is never unsubscribed in 'VideoSource'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    },
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 26,
+     "message": "Event 'CloseRequested' subscribed here is never unsubscribed in 'VideoSource'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.64,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-12",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 24,
+     "message": "Event 'ShowErrorRequested' subscribed here has no unguarded '-=' in a proven teardown context of 'VideoSource'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    },
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 25,
+     "message": "Event 'HideErrorRequested' subscribed here has no unguarded '-=' in a proven teardown context of 'VideoSource'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    },
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 26,
+     "message": "Event 'CloseRequested' subscribed here has no unguarded '-=' in a proven teardown context of 'VideoSource'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.37,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -3076,7 +4059,7 @@
    "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 92.8,
+   "elapsed_s": 99.07,
    "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
@@ -3085,11 +4068,11 @@
    "side": "before",
    "tool": "idisp",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.79,
-   "notes": "build failed: onent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-before-idisp/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-before-idisp/Case.cs(18,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-before-idisp/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.53\n\n",
+   "elapsed_s": 1.53,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -3097,11 +4080,11 @@
    "side": "before",
    "tool": "infersharp",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.71,
-   "notes": "build failed: me 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-before/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-before/Case.cs(18,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-before/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.46\n\n",
+   "elapsed_s": 8.11,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -3109,11 +4092,11 @@
    "side": "before",
    "tool": "netanalyzers",
    "config": "configured",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.48,
-   "notes": "build failed: me 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-before/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-before/Case.cs(18,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-before/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.20\n\n",
+   "elapsed_s": 1.3,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -3121,11 +4104,11 @@
    "side": "before",
    "tool": "netanalyzers",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.7,
-   "notes": "build failed: me 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-before/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-before/Case.cs(18,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-before/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.35\n\n",
+   "elapsed_s": 1.33,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -3170,7 +4153,7 @@
     }
    ],
    "other": [],
-   "elapsed_s": 2.52,
+   "elapsed_s": 6.95,
    "notes": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n\n3 findings.\n",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
@@ -3179,11 +4162,35 @@
    "side": "before",
    "tool": "rlc",
    "config": "stock",
-   "status": "CRASHED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 21.54,
-   "notes": "traced build/db create rc=2: org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=\nInitializing database at /tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/rlc/F1-12-before/db.\nRunning build command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\nA fatal error occurred: Exit status 1 from command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\n",
+   "elapsed_s": 109.11,
+   "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-13",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.58,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-13",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.12,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -3268,6 +4275,30 @@
    "other": [],
    "elapsed_s": 84.47,
    "notes": "inferred annotations: 0; n/a: scope-uncertain: IDisposable return of an interface call",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-13",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.31,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-13",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.03,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -3364,6 +4395,54 @@
    "other": [],
    "elapsed_s": 84.13,
    "notes": "inferred annotations: 0; n/a: scope-uncertain: IDisposable return of an interface call",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-14",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 20,
+     "message": "Event 'DisplaySettingsChanged' subscribed here is never unsubscribed in 'DisplayWatcher'.",
+     "level": "",
+     "path": "Program.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.76,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F1-14",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 20,
+     "message": "Event 'DisplaySettingsChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'DisplayWatcher'.",
+     "level": "",
+     "path": "Program.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.73,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -3704,6 +4783,54 @@
    "case": "F2-01",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 13,
+     "message": "Event 'Tick' subscribed here is never unsubscribed in 'FeedTicker'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.72,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-01",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 13,
+     "message": "Event 'Tick' subscribed here has no unguarded '-=' in a proven teardown context of 'FeedTicker'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.57,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-01",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -3794,6 +4921,54 @@
    "other": [],
    "elapsed_s": 170.97,
    "notes": "inferred annotations: 1; n/a: no timer-stop/lifecycle rule; the timer type is not IDisposable",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-01",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 17,
+     "message": "Event 'Tick' subscribed here is never unsubscribed in 'FeedTicker'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.71,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-01",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 17,
+     "message": "Event 'Tick' subscribed here has no unguarded '-=' in a proven teardown context of 'FeedTicker'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.61,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -3896,6 +5071,54 @@
    "case": "F2-02",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 11,
+     "message": "Event 'Tick' subscribed here is never unsubscribed in 'FeedTicker'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.69,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-02",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 11,
+     "message": "Event 'Tick' subscribed here has no unguarded '-=' in a proven teardown context of 'FeedTicker'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.27,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-02",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -3974,6 +5197,54 @@
    "other": [],
    "elapsed_s": 169.44,
    "notes": "inferred annotations: 1; n/a: no timer-stop/lifecycle rule; the timer type is not IDisposable",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-02",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 19,
+     "message": "Event 'Tick' subscribed here is never unsubscribed in 'FeedTicker'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.76,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-02",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 19,
+     "message": "Event 'Tick' subscribed here has no unguarded '-=' in a proven teardown context of 'FeedTicker'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.31,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -4076,6 +5347,54 @@
    "case": "F2-03",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 12,
+     "message": "Event 'Tick' subscribed here is never unsubscribed in 'ChartRefresher'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.47,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-03",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 12,
+     "message": "Event 'Tick' subscribed here has no unguarded '-=' in a proven teardown context of 'ChartRefresher'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.33,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-03",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -4154,6 +5473,54 @@
    "other": [],
    "elapsed_s": 185.05,
    "notes": "inferred annotations: 1; n/a: no timer-stop/lifecycle rule; the timer type is not IDisposable",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-03",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 17,
+     "message": "Event 'Tick' subscribed here is never unsubscribed in 'ChartRefresher'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.53,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-03",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 17,
+     "message": "Event 'Tick' subscribed here has no unguarded '-=' in a proven teardown context of 'ChartRefresher'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.42,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -4256,6 +5623,54 @@
    "case": "F2-04",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 12,
+     "message": "Event 'Tick' subscribed here is never unsubscribed in 'TickerView'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.59,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-04",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 12,
+     "message": "Event 'Tick' subscribed here has no unguarded '-=' in a proven teardown context of 'TickerView'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.61,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-04",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -4334,6 +5749,54 @@
    "other": [],
    "elapsed_s": 179.62,
    "notes": "inferred annotations: 1; n/a: no timer-stop/lifecycle rule; the timer type is not IDisposable",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-04",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 18,
+     "message": "Event 'Tick' subscribed here is never unsubscribed in 'TickerView'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.84,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-04",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 18,
+     "message": "Event 'Tick' subscribed here has no unguarded '-=' in a proven teardown context of 'TickerView'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.63,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -4436,6 +5899,76 @@
    "case": "F2-05",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 12,
+     "message": "Event 'Tick' subscribed here is never unsubscribed in 'DualPoller'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    },
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 14,
+     "message": "Event 'Tick' subscribed here is never unsubscribed in 'DualPoller'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.64,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-05",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 12,
+     "message": "Event 'Tick' subscribed here has no unguarded '-=' in a proven teardown context of 'DualPoller'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    },
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 14,
+     "message": "Event 'Tick' subscribed here has no unguarded '-=' in a proven teardown context of 'DualPoller'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.25,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-05",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -4514,6 +6047,76 @@
    "other": [],
    "elapsed_s": 170.59,
    "notes": "inferred annotations: 1; n/a: no timer-stop/lifecycle rule; the timer type is not IDisposable",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-05",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 16,
+     "message": "Event 'Tick' subscribed here is never unsubscribed in 'DualPoller'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    },
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 18,
+     "message": "Event 'Tick' subscribed here is never unsubscribed in 'DualPoller'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.73,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-05",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 16,
+     "message": "Event 'Tick' subscribed here has no unguarded '-=' in a proven teardown context of 'DualPoller'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    },
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 18,
+     "message": "Event 'Tick' subscribed here has no unguarded '-=' in a proven teardown context of 'DualPoller'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.36,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -4616,6 +6219,54 @@
    "case": "F2-06",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 14,
+     "message": "Event 'Tick' subscribed here is never unsubscribed in 'SplashTicker'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.61,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-06",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "FALSE_POSITIVE_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 14,
+     "message": "Event 'Tick' subscribed here has no unguarded '-=' in a proven teardown context of 'SplashTicker'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.35,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-06",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -4694,6 +6345,54 @@
    "other": [],
    "elapsed_s": 64.75,
    "notes": "inferred annotations: 0; n/a: no timer-stop/lifecycle rule; the timer type is not IDisposable",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-06",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 17,
+     "message": "Event 'Tick' subscribed here is never unsubscribed in 'SplashTicker'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.8,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F2-06",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 17,
+     "message": "Event 'Tick' subscribed here has no unguarded '-=' in a proven teardown context of 'SplashTicker'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.43,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -4790,6 +6489,30 @@
    "other": [],
    "elapsed_s": 71.0,
    "notes": "inferred annotations: 0; n/a: no timer-stop/lifecycle rule; the timer type is not IDisposable",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-01",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.31,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-01",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.27,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -4900,6 +6623,30 @@
    "other": [],
    "elapsed_s": 178.54,
    "notes": "inferred annotations: 1",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-01",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.39,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-01",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.1,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -5074,6 +6821,30 @@
    "case": "F3-02",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.58,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-02",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.06,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-02",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "CLEAN",
    "findings": [],
@@ -5170,6 +6941,30 @@
    "other": [],
    "elapsed_s": 184.12,
    "notes": "inferred annotations: 1",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-02",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.65,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-02",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.2,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -5290,6 +7085,30 @@
    "case": "F3-03",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.39,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-03",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.06,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-03",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "CLEAN",
    "findings": [],
@@ -5386,6 +7205,30 @@
    "other": [],
    "elapsed_s": 159.6,
    "notes": "inferred annotations: 2",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-03",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.48,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-03",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.12,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -5506,6 +7349,30 @@
    "case": "F3-04",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.37,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-04",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.91,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-04",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "CLEAN",
    "findings": [],
@@ -5593,6 +7460,30 @@
    "other": [],
    "elapsed_s": 179.16,
    "notes": "inferred annotations: 4",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-04",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.42,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-04",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.09,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -5740,6 +7631,30 @@
    "case": "F3-05",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.6,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-05",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.27,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-05",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "CLEAN",
    "findings": [],
@@ -5863,6 +7778,30 @@
    "other": [],
    "elapsed_s": 181.68,
    "notes": "inferred annotations: 1",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-05",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.24,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-05",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.22,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -6022,6 +7961,30 @@
    "case": "F3-06",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.56,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-06",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.28,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-06",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "CLEAN",
    "findings": [],
@@ -6100,6 +8063,30 @@
    "other": [],
    "elapsed_s": 82.6,
    "notes": "inferred annotations: 0",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-06",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.5,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-06",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.19,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -6296,6 +8283,30 @@
    "case": "F3-07",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.48,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-07",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.34,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-07",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "CLEAN",
    "findings": [],
@@ -6374,6 +8385,30 @@
    "other": [],
    "elapsed_s": 73.44,
    "notes": "inferred annotations: 0",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-07",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.53,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-07",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.31,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -6485,6 +8520,30 @@
    "case": "F3-08",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.43,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-08",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.13,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-08",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "CLEAN",
    "findings": [],
@@ -6563,6 +8622,30 @@
    "other": [],
    "elapsed_s": 73.37,
    "notes": "inferred annotations: 0",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-08",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.58,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-08",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.19,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -6713,6 +8796,30 @@
    "case": "F3-09",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.29,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-09",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.36,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-09",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "CLEAN",
    "findings": [],
@@ -6791,6 +8898,30 @@
    "other": [],
    "elapsed_s": 77.53,
    "notes": "inferred annotations: 0",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-09",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.27,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-09",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.21,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -6952,6 +9083,30 @@
    "case": "F3-10",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.25,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-10",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.94,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-10",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "CLEAN",
    "findings": [],
@@ -7030,6 +9185,30 @@
    "other": [],
    "elapsed_s": 73.6,
    "notes": "inferred annotations: 0",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-10",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.5,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-10",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.2,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -7144,6 +9323,30 @@
    "other": [],
    "elapsed_s": 74.61,
    "notes": "inferred annotations: 0",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S1",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.56,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S1",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.09,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -7270,6 +9473,30 @@
    "case": "F3-S1",
    "side": "before",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.51,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S1",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.06,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S1",
+   "side": "before",
+   "tool": "codeql",
    "config": "stock",
    "status": "MISSED",
    "findings": [],
@@ -7384,6 +9611,30 @@
    ],
    "elapsed_s": 196.22,
    "notes": "inferred annotations: 1",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S2",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.28,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S2",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.04,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -7510,6 +9761,30 @@
    "case": "F3-S2",
    "side": "before",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.3,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S2",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.96,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S2",
+   "side": "before",
+   "tool": "codeql",
    "config": "stock",
    "status": "MISSED",
    "findings": [],
@@ -7624,6 +9899,30 @@
    ],
    "elapsed_s": 167.11,
    "notes": "inferred annotations: 1",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S3",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.32,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S3",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.03,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -7750,6 +10049,30 @@
    "case": "F3-S3",
    "side": "before",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.41,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S3",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.03,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S3",
+   "side": "before",
+   "tool": "codeql",
    "config": "stock",
    "status": "MISSED",
    "findings": [],
@@ -7864,6 +10187,30 @@
    ],
    "elapsed_s": 182.3,
    "notes": "inferred annotations: 2",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S4",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.33,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S4",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.05,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -7990,6 +10337,30 @@
    "case": "F3-S4",
    "side": "before",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.62,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S4",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.9,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S4",
+   "side": "before",
+   "tool": "codeql",
    "config": "stock",
    "status": "MISSED",
    "findings": [],
@@ -8110,6 +10481,30 @@
    "case": "F3-S5",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.27,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S5",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.01,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S5",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "CLEAN",
    "findings": [],
@@ -8206,6 +10601,30 @@
    "other": [],
    "elapsed_s": 83.18,
    "notes": "inferred annotations: 1",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S5",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.27,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S5",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.16,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -8317,6 +10736,30 @@
    "case": "F3-S6",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.22,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S6",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.94,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S6",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "CLEAN",
    "findings": [],
@@ -8421,6 +10864,30 @@
    "other": [],
    "elapsed_s": 172.48,
    "notes": "inferred annotations: 2",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S6",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.41,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F3-S6",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.15,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -8549,6 +11016,30 @@
    "case": "F4-S1",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.69,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-S1",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.56,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-S1",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -8627,6 +11118,30 @@
    "other": [],
    "elapsed_s": 81.85,
    "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-S1",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.51,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-S1",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.27,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -8726,6 +11241,30 @@
    "case": "F4-S2",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.71,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-S2",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.52,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-S2",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "CLEAN",
    "findings": [],
@@ -8804,6 +11343,30 @@
    "other": [],
    "elapsed_s": 77.77,
    "notes": "inferred annotations: 0",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-S2",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.48,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-S2",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.4,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -8933,6 +11496,30 @@
    "case": "F5-S1",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.7,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F5-S1",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.36,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F5-S1",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -9029,6 +11616,30 @@
    "other": [],
    "elapsed_s": 80.0,
    "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F5-S1",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.57,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F5-S1",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.49,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -9137,6 +11748,30 @@
    "case": "F6-S1",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.4,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F6-S1",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.34,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F6-S1",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -9227,6 +11862,54 @@
    "other": [],
    "elapsed_s": 83.42,
    "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F6-S1",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 28,
+     "message": "Event 'PropertyChanged' subscribed here is never unsubscribed in 'Report'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.57,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F6-S1",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 28,
+     "message": "Event 'PropertyChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'Report'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.32,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -9329,6 +12012,30 @@
    "case": "F7-S1",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.34,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F7-S1",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.9,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F7-S1",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -9407,6 +12114,30 @@
    "other": [],
    "elapsed_s": 78.0,
    "notes": "inferred annotations: 0; n/a: no project-protocol/obligation rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F7-S1",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.43,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F7-S1",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.05,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -9497,6 +12228,30 @@
    "case": "F8-S1",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.26,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F8-S1",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.94,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F8-S1",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -9581,6 +12336,30 @@
    "case": "F8-S1",
    "side": "before",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.39,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F8-S1",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.08,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F8-S1",
+   "side": "before",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -9659,6 +12438,30 @@
    "other": [],
    "elapsed_s": 80.44,
    "notes": "inferred annotations: 0; n/a: no loop-progress rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F9-01",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.24,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F9-01",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.96,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -9761,6 +12564,30 @@
    "case": "F9-01",
    "side": "before",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.36,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F9-01",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.1,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F9-01",
+   "side": "before",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -9857,6 +12684,30 @@
    "case": "F9-02",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.4,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F9-02",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.91,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F9-02",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
@@ -9935,6 +12786,54 @@
    "other": [],
    "elapsed_s": 77.05,
    "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F9-02",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 14,
+     "message": "Event 'CustomerChanged' subscribed here is never unsubscribed in 'CustomerViewModel'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.71,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F9-02",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 14,
+     "message": "Event 'CustomerChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'CustomerViewModel'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.43,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -10037,11 +12936,35 @@
    "case": "F9-03",
    "side": "after",
    "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.78,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F9-03",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.51,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F9-03",
+   "side": "after",
+   "tool": "codeql",
    "config": "stock",
    "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 68.12,
+   "elapsed_s": 94.76,
    "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
@@ -10050,11 +12973,11 @@
    "side": "after",
    "tool": "idisp",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 2.64,
-   "notes": "build failed: omponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-after-idisp/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-after-idisp/Case.cs(14,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-after-idisp/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:02.29\n\n",
+   "elapsed_s": 1.53,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -10062,11 +12985,11 @@
    "side": "after",
    "tool": "infersharp",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.45,
-   "notes": "build failed:  name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-after/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-after/Case.cs(14,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-after/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.13\n\n",
+   "elapsed_s": 7.98,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -10074,11 +12997,11 @@
    "side": "after",
    "tool": "netanalyzers",
    "config": "configured",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.76,
-   "notes": "build failed:  name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-after/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-after/Case.cs(14,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-after/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.50\n\n",
+   "elapsed_s": 1.32,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -10086,11 +13009,11 @@
    "side": "after",
    "tool": "netanalyzers",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.72,
-   "notes": "build failed:  name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-after/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-after/Case.cs(14,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-after/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.35\n\n",
+   "elapsed_s": 1.39,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -10101,8 +13024,8 @@
    "status": "CLEAN",
    "findings": [],
    "other": [],
-   "elapsed_s": 2.36,
-   "notes": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.4cLtgAf8Qv: ok \u2014 no subscription leaks found\n\n0 findings.\n",
+   "elapsed_s": 2.23,
+   "notes": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.J37yxK8Exm: ok \u2014 no subscription leaks found\n\n0 findings.\n",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -10110,11 +13033,59 @@
    "side": "after",
    "tool": "rlc",
    "config": "stock",
-   "status": "CRASHED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 16.13,
-   "notes": "traced build/db create rc=2: .org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=\nInitializing database at /tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/rlc/F9-03-after/db.\nRunning build command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\nA fatal error occurred: Exit status 1 from command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\n",
+   "elapsed_s": 110.49,
+   "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F9-03",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-never-removed",
+     "line": 26,
+     "message": "Event 'DisplaySettingsChanged' subscribed here is never unsubscribed in 'GraphicsConfigurationDialog'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 6.78,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F9-03",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "DETECTED_CUSTOM_QUERY",
+   "findings": [
+    {
+     "rule": "ownnet/p036/subscription-not-released-in-teardown",
+     "line": 26,
+     "message": "Event 'DisplaySettingsChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'GraphicsConfigurationDialog'.",
+     "level": "",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.46,
+   "notes": "",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -10125,7 +13096,7 @@
    "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 69.06,
+   "elapsed_s": 90.78,
    "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
@@ -10134,11 +13105,11 @@
    "side": "before",
    "tool": "idisp",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 2.34,
-   "notes": "build failed: onent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-before-idisp/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-before-idisp/Case.cs(23,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-before-idisp/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.90\n\n",
+   "elapsed_s": 1.54,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -10146,11 +13117,11 @@
    "side": "before",
    "tool": "infersharp",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.69,
-   "notes": "build failed: me 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-before/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-before/Case.cs(23,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-before/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.25\n\n",
+   "elapsed_s": 7.43,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -10158,11 +13129,11 @@
    "side": "before",
    "tool": "netanalyzers",
    "config": "configured",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.8,
-   "notes": "build failed: me 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-before/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-before/Case.cs(23,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-before/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.49\n\n",
+   "elapsed_s": 1.73,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -10170,11 +13141,11 @@
    "side": "before",
    "tool": "netanalyzers",
    "config": "stock",
-   "status": "UNSUPPORTED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 1.74,
-   "notes": "build failed: me 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-before/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-before/Case.cs(23,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F9-03-before/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.44\n\n",
+   "elapsed_s": 2.2,
+   "notes": "n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -10197,7 +13168,7 @@
     }
    ],
    "other": [],
-   "elapsed_s": 2.38,
+   "elapsed_s": 3.84,
    "notes": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n\n1 finding.\n",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
@@ -10206,11 +13177,11 @@
    "side": "before",
    "tool": "rlc",
    "config": "stock",
-   "status": "CRASHED",
+   "status": "NOT_APPLICABLE",
    "findings": [],
    "other": [],
-   "elapsed_s": 15.82,
-   "notes": "traced build/db create rc=2: org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=\nInitializing database at /tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/rlc/F9-03-before/db.\nRunning build command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\nA fatal error occurred: Exit status 1 from command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\n",
+   "elapsed_s": 113.92,
+   "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   }
  ]

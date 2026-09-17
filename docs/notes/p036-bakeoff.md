@@ -1,6 +1,11 @@
 # P-036 comparative bakeoff — Infer# / RLC# / CodeQL / CA2000 vs Owen (capability, not speed)
 
-> Status: **research record, in progress** (opened 2026-09-17 at `70189a3`).
+> Status: **research record, complete** (opened and closed 2026-09-17; Owen at
+> `70189a3`; results at `docs/evidence/p036-bakeoff/`). Verdict: §8.1
+> PREREGISTERED VERDICT **NO-GO** (one commoditised case under the frozen
+> global D2); §8.2 METHODOLOGY SENSITIVITY reads the same evidence as
+> **SHRINK** to the P-037 guarded-transfer core plus exceptional-exit teardown
+> reasoning. Both are reported; neither replaces the other.
 > Owner ruling that frames this note (OWNER RULING, verbatim from the task):
 > physical-host qualification is **deferred**; the current host is accepted for
 > exploratory comparative research and functional capability evaluation, and
@@ -869,3 +874,158 @@ dominated by database construction and query compilation, not by analysis;
 Owen's per-file cost is dominated by the extractor build it repeats per
 invocation (`own-check.sh`), which a batch mode would amortise. Nothing here
 ranks engines, feeds #263, or supports a latency claim.
+
+### 3.3 The bakeoff-written CodeQL queries (DETECTED_CUSTOM_QUERY — never stock)
+
+MEASURED OBSERVATIONS over the 2.27.0 databases of the main pass
+(`raw/codeql/*.custom_query_*.json`):
+
+| query | discriminates | FP on fix | misses | reading |
+|---|---|---|---|---|
+| naive (pre-#278 rule: any matching `-=` in the class releases) | 7: F1-10, F1-11, F1-12, F1-14, F6-S1, F9-02, F9-03 — exactly the cases with **no** `-=` anywhere | 7: F1-05 (the `-=` lives in a local function; the query's declaring-type test does not see it — a defect of the 40-line query, recorded), F2-01…F2-06 (no timer model was written) | F1-01…F1-04, F1-06…F1-09 (a `-=` exists somewhere → credited: the #278 hole, reproduced in QL), F1-13 (token), F4-S1, F5-S1 | the naive rule is a few lines of QL and fails exactly the class the #278 corpus was built to pin |
+| teardown port (the #293/#305 predicate in ~130 lines of QL) | 15: F1-01…F1-08, F1-10, F1-11, F1-12, F1-14, F6-S1, F9-02, F9-03 | 7: F1-09 (unresolved lifecycle event; Owen's unique-name fallback was not ported), F2-01…F2-06 (no timer model) | F1-13 (token: a different mechanism), **F4-S1 and F5-S1 — the port inherits Owen's enrollment and exceptional-exit holes by construction** | matches Owen on 14 of the 15 two-sided F1/F9 cases it was written for, and **beats Owen on F6-S1's fix**: CodeQL's stock call graph (`Callable.calls`) resolves the delegate target assigned in the constructor, so the `-=` in `Detach` is credited; Owen's intra-class symbol closure does not resolve delegate invocations and keeps the warning |
+
+Reading: the landed bounded predicate is portable to QL by someone who
+already knows it, in an afternoon, and it inherits every hole of the
+predicate. What CodeQL adds for free is its call graph (delegate targets,
+`getARuntimeTarget`); what it does not give is a may/must summary engine:
+the P-037 shapes are not a query away — they would be a bespoke
+interprocedural analysis written in QL, i.e. the same architectural work
+P-036 describes, in a different language.
+
+### 3.4 Mechanical inputs to the predicates (from `results.json`, `decision_inputs`)
+
+Predicates exactly as coded in `decision_inputs()` (the same text is written
+into `results.json` under `rules`, so an auditor can recompute from `raw/`
+without reading the harness): a tool/config **discriminates** a case when its
+`before` status starts with `DETECTED` and its `after` status is one of
+`CLEAN`, `NOT_APPLICABLE`, `ABSENT`. The harness assigns `NOT_APPLICABLE` only
+over a raw `CLEAN`/`MISSED` — a manifest `na` label never hides a finding
+(F4-S1: IDISP009 on `before` stays `DETECTED_STOCK`; the silent `after` is
+labelled N/A) — so an N/A fix side was a clean fix side, which is the §3.2
+reading "flags `before` and is silent on `after`". A narrower recomputation
+(`after == CLEAN` only) would un-commoditise F4-S1 and flip §8.1; it is not
+the predicate that was run, and it is recorded here so nobody has to guess.
+
+| predicate | mechanical value | human reading (and why it differs) |
+|---|---|---|
+| D1 families holding | `['F2', 'F9']` | **F1 also holds**: the only comparator hits in F1 are on F1-14, the single-sided July fixture, at lines 42–79 — its three RAII *controls* (§2.0); no comparator produced anything at the subscription site `:20`. The mechanical rule cannot see subjects inside a mixed fixture. D1 is **TRUE** under both readings. |
+| D2 global | `False` — `F4-S1` commoditised by `idisp/stock` (IDISP009) | as read: IDISP009 flags the design symptom, not the lifecycle; it does discriminate (fix silent). CA2000 "detects" F3-S1…S4 with a false positive on every fix → not commoditised. |
+| D2 per family | `F3: True, F4: False, F5: True` | as read |
+| D3 (judgment) | — | **holds for F3-S1…S4**: a branch-sensitive `ConsumesParam` would only restore the honest `may` + OWN051 (still a miss); a verdict needs guard-preserving summaries with call-site constant selection — P-037's mechanism, not a lexical patch. **Holds for F5-S1**: crediting must consult exceptional edges and callee may-throw; the lexical alternative ("any call before the `-=` in `Dispose` demotes") would flag most real `Dispose` bodies. **Fails for F4-S1**: a design rule suffices for the cheap form (IDISP009; the audit's bounded fix D). **Fails for F6-S1's precision half**: delegate-target resolution is symbol-level work CodeQL's stock library already does. |
+| D4 families evidenced | `[]` | **F1** under the human reading (same F1-14 artifact). F3 has 5 class-1 cases but its leak arms are discriminated by three to six comparators, so F3 can never be "evidenced" by D4's definition. Maximum reachable D4 with this corpus: **1**. |
+| D5 | — | recorded in §2.6/§3.3: comparators reached the F3 real cases with zero modelling; the P-037 shapes were reached by nobody at any modelling cost tried here; RLC# is a floor (no manual annotations). |
+| D6 | — | every input above is executed except the P-036 column and F7/F8 (nothing executed by anyone). Timings excluded. |
+
+---
+
+## Phase 8 — decision
+
+### 8.1 PREREGISTERED VERDICT (the §0.6 mapping applied exactly as frozen)
+
+```text
+PREDICATE:       D1 — present differentiation
+EVIDENCE:        Owen discriminates F2 6/6 and F9 3/3 with zero comparator
+                 hits (mechanical); F1 14/14 with comparator hits only on the
+                 F1-14 RAII controls (human reading). 0 false positives on
+                 fixes in those families.
+COUNTEREVIDENCE: the F1/F2 families are Owen's own regression corpus in
+                 classes no comparator ships a rule for (T11); F9-02 needed a
+                 harness stub to resolve (T9).
+VERDICT:         TRUE.
+LIMITATION:      rule-scope coverage, not measured quality on a shared class.
+
+PREDICATE:       D2 — target differentiation (global, as frozen)
+EVIDENCE:        F3-S1, F3-S2, F3-S3, F3-S4, F5-S1: no comparator
+                 discriminates (CA2000 flags both sides of F3-S1..S4;
+                 CA2213 flags an unrelated field on both sides of F5-S1).
+COUNTEREVIDENCE: F4-S1 is discriminated stock by IDisposableAnalyzers
+                 (IDISP009 "Add IDisposable interface").
+VERDICT:         FALSE — one commoditised case, exactly as the global rule
+                 is written.
+LIMITATION:      class-4 cases only (T3); IDISP009 flags the symptom, not the
+                 subscription; the rule's globality is Defect 2.
+
+PREDICATE:       D3 — necessity of the semantic layer
+EVIDENCE:        F3-S1..S4 need guarded summaries + call-site selection;
+                 F5-S1 needs exceptional-edge crediting.
+COUNTEREVIDENCE: F4-S1 (design rule) and F6-S1 (symbol-level delegate
+                 resolution) do not need it.
+VERDICT:         TRUE for the F3-S/F5 subset; FALSE for F4-S1 and F6-S1.
+LIMITATION:      judgment, not computation.
+
+PREDICATE:       D4 — breadth
+EVIDENCE:        class-1 cases exist in F1 (4) and F3 (5) only.
+COUNTEREVIDENCE: F3's class-1 leak arms are commoditised; F1-14 artifact.
+VERDICT:         0 families (mechanical) / 1 family, F1 (human reading).
+LIMITATION:      structurally capped at 1 by the corpus (Defect 1).
+
+PREDICATE:       D5 — cost signal        VERDICT: recorded (§2.6, §3.3).
+PREDICATE:       D6 — admissibility      VERDICT: holds for D1–D5 as read;
+                 F7/F8 contribute nothing; timings excluded.
+
+MAPPING (frozen): NO-GO if ¬D1, or ¬D2, or ¬D3.  D2 = FALSE.
+
+PREREGISTERED VERDICT: NO-GO
+```
+
+Stated plainly: applied exactly as written, the preregistered contract
+returns **NO-GO**, and the single fact that returns it is that
+IDisposableAnalyzers' design rule IDISP009 discriminates one synthetic
+enrollment case (F4-S1) that Owen misses. Every other case Owen misses inside
+the P-036 scope (the four P-037 guarded-transfer shapes and the
+exceptional-exit teardown) is caught by nobody.
+
+### 8.2 METHODOLOGY SENSITIVITY / CONTRACT DEFECT (§7.0, answered on the results; does not replace §8.1)
+
+```text
+S1  Is GO structurally reachable with the preregistered corpus?
+    NO. D4 can reach at most 1 (F1); F3's real cases are commoditised on
+    their leak arms by three to six comparators, and F2/F4–F9 carry no
+    class-1 case. GO required 3. (Defect 1, confirmed.)
+
+S2  Can one comparator-covered target case force NO-GO although several
+    other P-036 families stay differentiated?
+    YES, and it did: F4-S1 / IDISP009 flips the global D2 while F3-S1..S4
+    and F5-S1 remain uncommoditised. (Defect 2, realised.)
+
+S3  Would a per-domain D2 produce SHRINK where the global D2 produces NO-GO?
+    YES. Per-domain D2 = {F3: TRUE, F5: TRUE, F4: FALSE}. With D1 TRUE and
+    D3 TRUE on the F3-S/F5 subset, the frozen mapping gives SHRINK for
+    D4 ∈ {1, 2} — i.e. SHRINK under the human reading of D4 (= 1). Under
+    the strictly mechanical D4 (= 0) the frozen mapping has NO cell
+    (SHRINK needs D4 ∈ {1,2}; NO-GO needs ¬D1/¬D2/¬D3): Defect 5 — the
+    mapping is incomplete at D4 = 0.
+
+S4  Does any conclusion change when class-4 cases are removed from D1/D2?
+    The D2 scope becomes empty (vacuously TRUE); D1 and D4 are unchanged;
+    the outcome is the S3 outcome: SHRINK (human D4) / undefined
+    (mechanical D4). No reading of the frozen contract reaches GO.
+```
+
+Sensitivity reading of the evidence (labelled as such, not a verdict):
+**SHRINK** — to the subset the run actually differentiates: the P-037
+guarded-transfer core (F3-S1…S4: nobody catches the `Teardown(true)` shape,
+and Owen's own C# path currently swallows it without an advisory, §3.1) and
+exceptional-exit teardown reasoning (F5-S1). Two things P-036 lists are
+**not** novelty on this evidence: enrollment-by-interface (a design rule;
+IDISP009 has it, the audit's bounded fix D is it) and statically-known
+delegate/virtual target resolution (CodeQL's stock call graph has it; a
+symbol-level extractor change would too). Obligations, progress, regions and
+tasks are **plausible, unevidenced**: no executed tool, Owen included, said
+anything about F7/F8, and F9 is covered by landed work.
+
+### 8.3 What this decision is not, and what it does carry forward
+
+- It is not a ranking of tools and it carries no performance claim
+  (OWNER RULING; §6 label).
+- It does not change any verdict, fixture expectation or host rule.
+- Carried forward for #304 regardless of the verdict: the extractor's
+  `ConsumesParam` is may-as-must on the C# path (§3.1), so the
+  `spec/Inference.md` "may → OWN051" story does not hold for guarded
+  handoffs today; and `Diagnostic.evidence` carries no steps for the
+  subscription class (§5.4), so no tool — Owen included — produces the
+  witness P-036 §Evidence promises.
+- Carried forward for the contract itself: Defects 1, 2, 3 and 5 (§7.0,
+  §8.2). A re-run under a repaired contract must be a new preregistration,
+  not an amendment of this one.
