@@ -245,7 +245,7 @@ def control_complete_tree() -> None:
 
 def control_missing_instrument() -> None:
     with tempfile.TemporaryDirectory() as raw:
-        repo, commit = world(Path(raw))
+        repo, _commit = world(Path(raw))
         # the instrument moves after T0 named it — the exact intermediate state a
         # stray merge produces when the repair PR is not in yet
         drifted = commit_tree(repo, {eb.INSTRUMENT_SOURCES[0]: "print('older')" + NL})

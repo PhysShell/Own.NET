@@ -88,7 +88,7 @@ def sha256_file(path: Path) -> str:
 
 
 def _now() -> str:
-    return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+    return datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds")
 
 
 def _git(repo: Path, *args: str) -> tuple[int, bytes]:

@@ -30,7 +30,6 @@ its own source would be checking itself.
 from __future__ import annotations
 
 import argparse
-
 import json
 import re
 import subprocess
@@ -154,9 +153,11 @@ QUAL["environment_identity_sha256"] = hq.canonical_sha256(MANIFEST["identity"])
 CAND = b"candidate bytes"
 cand = tmp / "cand.bin"; cand.write_bytes(CAND)
 qpath = w("qual.json", QUAL)
+IDENT = QUAL["environment_identity_sha256"]
 stratum_block = lambda m, extra: {"qualification_sha256": hq.sha256_file(qpath),
-                                  "environment_id": "env-1", "host_fingerprint": "sha256:abc",
-                                  "environment_identity_sha256": QUAL["environment_identity_sha256"],
+                                  "environment_id": "env-1",
+                                  "host_fingerprint": "sha256:abc",
+                                  "environment_identity_sha256": IDENT,
                                   "candidate_sha256": hq.sha256_bytes(CAND),
                                   "candidate_bytes": len(CAND), "memory_metric": m, **extra}
 BINDING = {"kind": eb.BINDING_SCHEMA, "schema": 1,

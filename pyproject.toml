@@ -15,6 +15,17 @@ target-version = "py311"
 #   UP pyupgrade · C4 comprehensions · RUF ruff-native
 select = ["E", "W", "F", "I", "B", "UP", "C4", "RUF"]
 
+[tool.ruff.lint.per-file-ignores]
+# scripts/perf_baseline.py is an INSTRUMENT SOURCE: its bytes are hashed into
+# the measurement harness digest that the frozen #263 preregistration names
+# (104c384d01bf), and steps 4, 5 and 6 are bound to that same value. Rewrapping
+# a line there is not a cosmetic edit — it moves the digest and makes the frozen
+# contract point at an identity the tree no longer contains, which is exactly
+# what scripts/step7/mergegate.py exists to refuse. So the one over-long line
+# stays and the linter is told why, rather than the instrument being reformatted
+# to please it. Lift this only together with a re-binding of steps 4/5/6.
+"scripts/perf_baseline.py" = ["E501"]
+
 [tool.mypy]
 # The package is held to --strict. Tests/fuzzers are not (they lean on dynamic
 # construction and an AST oracle); ruff still covers them. The evidence tooling
