@@ -1,0 +1,895 @@
+{
+ "preregistered_at": "70189a3",
+ "cases": [
+  {
+   "id": "F1-01",
+   "family": "F1",
+   "provenance": 1,
+   "provenance_note": "SectorTS GTD (heap-proven, #278), hand-reduced",
+   "source": "corpus/wpf/subscription-param-guarded-unregister",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "ctor += to injected INotifyPropertyChanged; -= under if(!flag) in UnregisterEventHandlers(bool)",
+   "why_p036": "the #278 motivating incident: -= behind a bool parameter in a non-teardown method",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F1-02",
+   "family": "F1",
+   "provenance": 3,
+   "provenance_note": "",
+   "source": "corpus/wpf/subscription-teardown-early-return-guard",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Dispose() -> Cleanup(keepAlive: true); -= after `if (keepAlive) return;`",
+   "why_p036": "P-037 row 2 spelling of the guard, on a subscription; #305 attack A",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F1-03",
+   "family": "F1",
+   "provenance": 3,
+   "provenance_note": "",
+   "source": "corpus/wpf/subscription-disposing-else-branch-release",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "-= in the else of if(disposing)",
+   "why_p036": "branch membership of the canonical Dispose(bool) guard; #305 attack B",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F1-04",
+   "family": "F1",
+   "provenance": 1,
+   "provenance_note": "SectorTS DocCloud shape (#278 rule 3), hand-reduced",
+   "source": "corpus/wpf/subscription-nonteardown-release",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "-= only in StopListening(), which nothing here calls",
+   "why_p036": "release exists but no lifecycle root reaches it (P-036 lifecycle roots)",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F1-05",
+   "family": "F1",
+   "provenance": 3,
+   "provenance_note": "",
+   "source": "corpus/wpf/subscription-uncalled-local-function",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "-= inside a nested callable Dispose never invokes",
+   "why_p036": "declaration is not execution: uncalled local function / lambda inside Dispose",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F1-06",
+   "family": "F1",
+   "provenance": 3,
+   "provenance_note": "",
+   "source": "corpus/wpf/subscription-overload-conflated-cleanup",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "-= in the uncalled overload of a teardown helper",
+   "why_p036": "call resolution by symbol, not name: Cleanup() vs uncalled Cleanup(bool)",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F1-07",
+   "family": "F1",
+   "provenance": 3,
+   "provenance_note": "",
+   "source": "corpus/wpf/subscription-finalizer-release",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "-= only in ~Finalizer",
+   "why_p036": "a finalizer is not a lifecycle root while the publisher pins the subscriber",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F1-08",
+   "family": "F1",
+   "provenance": 3,
+   "provenance_note": "",
+   "source": "corpus/wpf/subscription-xaml-name-only-release",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "-= in a name-only handler nobody wires",
+   "why_p036": "enrollment: a Window_Closing-named handler with no wiring is not a root",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F1-09",
+   "family": "F1",
+   "provenance": 3,
+   "provenance_note": "",
+   "source": "corpus/wpf/subscription-ambiguous-overload-wiring",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "-= in the never-attached overload of a wired handler",
+   "why_p036": "unresolved lifecycle event + ambiguous method group: no delegate target proven",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F1-10",
+   "family": "F1",
+   "provenance": 2,
+   "provenance_note": "",
+   "source": "corpus/wpf/subscription-explicit-delegate-release",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "ctor += new PropertyChangedEventHandler(H), Dispose -= H",
+   "why_p036": "specificity control: release-match through `new Handler(H)` vs bare `H`",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F1-11",
+   "family": "F1",
+   "provenance": 1,
+   "provenance_note": "ScreenToGif @27a49c3 GraphicsConfigurationDialog.xaml.cs:35",
+   "source": "corpus/real-world/screentogif-systemevents-leak",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "SystemEvents.DisplaySettingsChanged += in a Window ctor, never -=",
+   "why_p036": "real OSS static-source subscription leak; lifetime tiering (static source => error)",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F1-12",
+   "family": "F1",
+   "provenance": 1,
+   "provenance_note": "ScreenToGif @27a49c3 VideoSource.xaml.cs:50-83, reduced",
+   "source": "corpus/real-world/screentogif-loaded-subscription",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "_viewModel.X += lambda in Window_Loaded, never detached",
+   "why_p036": "real OSS view<->view-model subscription with inline lambdas (no -= handle)",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F1-13",
+   "family": "F1",
+   "provenance": 2,
+   "provenance_note": "",
+   "source": "corpus/wpf/zombie-viewmodel",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "bus.Subscribe<T>(handler) result ignored; no Dispose",
+   "why_p036": "token-returning Subscribe: the IDisposable token is discarded \u2014 RAII tools MAY see it",
+   "na": {
+    "codeql": "cs/local-not-disposed needs a local; a discarded call result is out of scope",
+    "infersharp": "scope-uncertain: Pulse tracks allocated resources; IEventBus.Subscribe is an interface stub",
+    "rlc": "scope-uncertain: IDisposable return of an interface call"
+   },
+   "stubs": [
+    "eventbus"
+   ],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F1-14",
+   "family": "F1",
+   "provenance": 2,
+   "provenance_note": "",
+   "source": "corpus/fixtures/systemevents-console",
+   "expected": [
+    "OWN001",
+    "OWN014"
+   ],
+   "subject": "DisplayWatcher ctor += SystemEvents (leak #1); FileStream locals (#2 #3 #4 controls)",
+   "why_p036": "the July three-tool oracle fixture: one subscription leak + three RAII controls in one program",
+   "na": {},
+   "stubs": [],
+   "project": "SystemEventsLeak.csproj",
+   "rlc_annotations": []
+  },
+  {
+   "id": "F2-01",
+   "family": "F2",
+   "provenance": 3,
+   "provenance_note": "",
+   "source": "corpus/wpf/timer-stop-param-guarded",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Tick += in ctor; Stop() under if(!flag)",
+   "why_p036": "WPF002 twin of F1-01: Stop() behind a caller parameter",
+   "na": {
+    "codeql": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "rlc": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "infersharp": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "netanalyzers": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "idisp": "no timer-stop/lifecycle rule; the timer type is not IDisposable"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F2-02",
+   "family": "F2",
+   "provenance": 3,
+   "provenance_note": "",
+   "source": "corpus/wpf/timer-stop-early-return-guard",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Stop() after a parameter-guarded early return",
+   "why_p036": "WPF002 twin of F1-02",
+   "na": {
+    "codeql": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "rlc": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "infersharp": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "netanalyzers": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "idisp": "no timer-stop/lifecycle rule; the timer type is not IDisposable"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F2-03",
+   "family": "F2",
+   "provenance": 3,
+   "provenance_note": "",
+   "source": "corpus/wpf/timer-stop-uncalled-helper",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Stop() in ReleaseTimer() called only from Reset()",
+   "why_p036": "helper reachability from a lifecycle root",
+   "na": {
+    "codeql": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "rlc": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "infersharp": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "netanalyzers": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "idisp": "no timer-stop/lifecycle rule; the timer type is not IDisposable"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F2-04",
+   "family": "F2",
+   "provenance": 3,
+   "provenance_note": "",
+   "source": "corpus/wpf/timer-stop-nonteardown-release",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Stop() in an arbitrary method",
+   "why_p036": "no lifecycle root reaches the Stop()",
+   "na": {
+    "codeql": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "rlc": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "infersharp": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "netanalyzers": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "idisp": "no timer-stop/lifecycle rule; the timer type is not IDisposable"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F2-05",
+   "family": "F2",
+   "provenance": 3,
+   "provenance_note": "",
+   "source": "corpus/wpf/timer-stop-wrong-receiver",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Stop() on a different field",
+   "why_p036": "receiver identity: Stop() on another timer credits nothing",
+   "na": {
+    "codeql": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "rlc": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "infersharp": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "netanalyzers": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "idisp": "no timer-stop/lifecycle rule; the timer type is not IDisposable"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F2-06",
+   "family": "F2",
+   "provenance": 3,
+   "provenance_note": "",
+   "source": "corpus/wpf/timer-stop-unwired-lifecycle",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Stop() in unwired Window_Closing",
+   "why_p036": "enrollment: a lifecycle-looking handler with no wiring",
+   "na": {
+    "codeql": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "rlc": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "infersharp": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "netanalyzers": "no timer-stop/lifecycle rule; the timer type is not IDisposable",
+    "idisp": "no timer-stop/lifecycle rule; the timer type is not IDisposable"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-01",
+   "family": "F3",
+   "provenance": 1,
+   "provenance_note": "representative real-world pattern (stream sink), corpus note",
+   "source": "corpus/real-world/ownership-handoff-consume",
+   "expected": [
+    "OWN001",
+    "OWN002"
+   ],
+   "subject": "Archive(Stream) disposes; Leak() never hands off; Run() uses after handoff; RunOk() clean",
+   "why_p036": "consume contract through a helper: leak arm + use-after-handoff arm + clean handoff",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-02",
+   "family": "F3",
+   "provenance": 2,
+   "provenance_note": "",
+   "source": "corpus/real-world/ownership-handoff-use",
+   "expected": [
+    "OWN002"
+   ],
+   "subject": "Consume(s) disposes; s.Length after",
+   "why_p036": "pure use-after-handoff (no leak arm)",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-03",
+   "family": "F3",
+   "provenance": 2,
+   "provenance_note": "",
+   "source": "corpus/real-world/ownership-handoff-use-transitive",
+   "expected": [
+    "OWN002"
+   ],
+   "subject": "Consume -> Inner -> Dispose; use after",
+   "why_p036": "consume through a forwarding chain (summary composition)",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-04",
+   "family": "F3",
+   "provenance": 1,
+   "provenance_note": "NLog Common/AsyncHelpers.cs WaitForDispose shape",
+   "source": "corpus/real-world/field-dispose-via-helper",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Timer field; after.cs releases via extension method that disposes its receiver",
+   "why_p036": "release of an owned field through a first-party sink (NLog WaitForDispose)",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-05",
+   "family": "F3",
+   "provenance": 1,
+   "provenance_note": "NLog TimeoutContinuation shape",
+   "source": "corpus/real-world/field-dispose-via-exchange",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Timer field; Interlocked.Exchange(ref _t, null)?.Dispose()",
+   "why_p036": "Interlocked.Exchange detach-and-dispose idiom (heap identity through a call)",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-06",
+   "family": "F3",
+   "provenance": 1,
+   "provenance_note": "ShareX @ed2a864 Vault_ooo.cs:216",
+   "source": "corpus/real-world/sharex-rfc2898-derivebytes-leak",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Rfc2898DeriveBytes + RandomNumberGenerator.Create() never disposed",
+   "why_p036": "intraprocedural control: real OSS crypto IDisposable never disposed",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-07",
+   "family": "F3",
+   "provenance": 2,
+   "provenance_note": "",
+   "source": "corpus/real-world/tcplistener-accept-leak",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "TcpClient from AcceptTcpClient never disposed",
+   "why_p036": "factory-acquire control (AcceptTcpClient)",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-08",
+   "family": "F3",
+   "provenance": 2,
+   "provenance_note": "",
+   "source": "corpus/real-world/local-dispose-via-using-statement",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "local IDisposable never disposed / using in after",
+   "why_p036": "plain local leak control",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-09",
+   "family": "F3",
+   "provenance": 2,
+   "provenance_note": "",
+   "source": "corpus/real-world/using-statement-throw-releases",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "manual Dispose after a may-throw call",
+   "why_p036": "exceptional-path control (using vs manual dispose after a throwing call)",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-10",
+   "family": "F3",
+   "provenance": 1,
+   "provenance_note": "representative ADO.NET shape, corpus note",
+   "source": "corpus/real-world/ado-executereader-leak",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "DbDataReader from ExecuteReader never disposed",
+   "why_p036": "ADO reader leak (real-world shape)",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-S1",
+   "family": "F3",
+   "provenance": 4,
+   "provenance_note": "",
+   "source": "corpus/p036-bakeoff/guarded-consume-flag-branch",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Close(s, keep: true) never disposes",
+   "why_p036": "P-037 \u00a78 row 1: guarded consume, call site passes the constant that skips the release",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-S2",
+   "family": "F3",
+   "provenance": 4,
+   "provenance_note": "",
+   "source": "corpus/p036-bakeoff/guarded-consume-early-return",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Close(s, keep: true) returns before Dispose",
+   "why_p036": "P-037 \u00a78 row 2: early-return spelling must converge with row 1",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-S3",
+   "family": "F3",
+   "provenance": 4,
+   "provenance_note": "",
+   "source": "corpus/p036-bakeoff/guarded-consume-wrapper-forward",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Outer(s, true) -> Inner(s, true) never disposes",
+   "why_p036": "P-037 \u00a78 row 7: split imported through a wrapper (id edge)",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-S4",
+   "family": "F3",
+   "provenance": 4,
+   "provenance_note": "",
+   "source": "corpus/p036-bakeoff/guarded-consume-negation-wrapper",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Outer(s, stop:false) -> Inner(s, keep:true) never disposes",
+   "why_p036": "P-037 \u00a78 row 8: neg edge",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-S5",
+   "family": "F3",
+   "provenance": 4,
+   "provenance_note": "",
+   "source": "corpus/p036-bakeoff/nullguard-helper-use-after",
+   "expected": [
+    "OWN002"
+   ],
+   "subject": "Close(s) { if (s != null) s.Dispose(); } then s.Length",
+   "why_p036": "P-037 \u00a78 row 4: self-null split retires the D1 `may`; use after a provably-disposing helper",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F3-S6",
+   "family": "F3",
+   "provenance": 4,
+   "provenance_note": "",
+   "source": "corpus/p036-bakeoff/mixed-release-forward-use-after",
+   "expected": [
+    "OWN002"
+   ],
+   "subject": "Route(s, flag) consumes on both arms; s.Length after",
+   "why_p036": "P-037 \u00a78 row 12: unanimous must across release/forward arms",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F4-S1",
+   "family": "F4",
+   "provenance": 4,
+   "provenance_note": "",
+   "source": "corpus/p036-bakeoff/enrollment-dispose-without-idisposable",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Cache.Dispose() unsubscribes but Cache is not IDisposable; Use() drops it",
+   "why_p036": "audit attack D / P-036 LifecycleEnrollment: name-root Dispose nobody can call",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F4-S2",
+   "family": "F4",
+   "provenance": 4,
+   "provenance_note": "",
+   "source": "corpus/p036-bakeoff/enrollment-owner-drops-subscriber",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "var sub = new Subscriber(src); never disposed",
+   "why_p036": "RAII half of enrollment: owner drops an IDisposable subscriber \u2014 RAII tools cover this",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F5-S1",
+   "family": "F5",
+   "provenance": 4,
+   "provenance_note": "",
+   "source": "corpus/p036-bakeoff/subscription-release-skipped-by-throw",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Dispose() { _log.Flush(); _props.PropertyChanged -= H; }",
+   "why_p036": "P-036 Phase 2 fixture 7: -= after a may-throw call inside Dispose",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F6-S1",
+   "family": "F6",
+   "provenance": 4,
+   "provenance_note": "",
+   "source": "corpus/p036-bakeoff/release-through-delegate-target",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Dispose() => _cleanup.Run() / _cleanup() where _cleanup = Detach",
+   "why_p036": "P-036 Phase 2 fixture 6: cleanup through an interface (before) vs a statically-known delegate (after)",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F7-S1",
+   "family": "F7",
+   "provenance": 4,
+   "provenance_note": "",
+   "source": "corpus/p036-bakeoff/obligation-barrier-through-helper",
+   "expected": [
+    "OBL001"
+   ],
+   "subject": "IsLoaded=false; Rebuild() notifies Document; IsLoaded=true",
+   "why_p036": "#272/#274: forbidden barrier raised inside a helper while the obligation is open",
+   "na": {
+    "codeql": "no project-protocol/obligation rule",
+    "rlc": "no project-protocol/obligation rule",
+    "infersharp": "no project-protocol/obligation rule",
+    "netanalyzers": "no project-protocol/obligation rule",
+    "idisp": "no project-protocol/obligation rule",
+    "owen": "P-025 core exists but the C# protocol extractor is pending (proposals README)"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F8-S1",
+   "family": "F8",
+   "provenance": 4,
+   "provenance_note": "",
+   "source": "corpus/p036-bakeoff/loop-no-progress-through-helper",
+   "expected": [
+    "PRG001"
+   ],
+   "subject": "while (queue.Count > 0) { if (!TryRun(job)) continue; queue.Dequeue(); }",
+   "why_p036": "#275: back-edge without progress through a helper's false outcome",
+   "na": {
+    "codeql": "no loop-progress rule",
+    "rlc": "no loop-progress rule",
+    "infersharp": "no loop-progress rule",
+    "netanalyzers": "no loop-progress rule",
+    "idisp": "no loop-progress rule",
+    "owen": "PRG001 does not exist at 70189a3"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F9-01",
+   "family": "F9",
+   "provenance": 2,
+   "provenance_note": "",
+   "source": "corpus/di/singleton-captures-scoped-dbcontext",
+   "expected": [
+    "DI001"
+   ],
+   "subject": "AddSingleton<NotificationService> whose ctor takes the scoped AppDbContext",
+   "why_p036": "DI captive dependency (registration-graph lifetime rule)",
+   "na": {
+    "codeql": "no DI-lifetime rule",
+    "rlc": "no DI-lifetime rule",
+    "infersharp": "no DI-lifetime rule",
+    "netanalyzers": "no DI-lifetime rule",
+    "idisp": "no DI-lifetime rule"
+   },
+   "stubs": [
+    "di"
+   ],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F9-02",
+   "family": "F9",
+   "provenance": 2,
+   "provenance_note": "",
+   "source": "corpus/wpf/viewmodel-escapes-to-app",
+   "expected": [
+    "OWN014"
+   ],
+   "subject": "appBus.CustomerChanged += OnCustomerChanged, no token",
+   "why_p036": "region escape: Window-scoped VM promoted to App lifetime through an App-scoped bus",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [
+    "eventbus"
+   ],
+   "project": null,
+   "rlc_annotations": []
+  },
+  {
+   "id": "F9-03",
+   "family": "F9",
+   "provenance": 2,
+   "provenance_note": "",
+   "source": "corpus/wpf/systemevents-region-escape",
+   "expected": [
+    "OWN014"
+   ],
+   "subject": "SystemEvents.X += in a Window; no release path",
+   "why_p036": "region escape through a static process-lived source (WPF Window)",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": []
+  }
+ ]
+}

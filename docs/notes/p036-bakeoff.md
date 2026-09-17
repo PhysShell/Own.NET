@@ -1,0 +1,596 @@
+# P-036 comparative bakeoff — Infer# / RLC# / CodeQL / CA2000 vs Owen (capability, not speed)
+
+> Status: **research record, in progress** (opened 2026-09-17 at `70189a3`).
+> Owner ruling that frames this note (OWNER RULING, verbatim from the task):
+> physical-host qualification is **deferred**; the current host is accepted for
+> exploratory comparative research and functional capability evaluation, and
+> **not** accepted for final performance claims, #263 acceptance, reproducible
+> latency/memory baselines, or publication-grade speed comparisons. Nothing
+> below reopens that. Every timing in this note is labeled
+> `EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE /
+> UNCONTROLLED SHARED HOST`.
+>
+> Evidence discipline: every load-bearing statement is tagged
+> `REPOSITORY FACT` (read from this tree at `70189a3`), `EXTERNAL SOURCE FACT`
+> (a cited external artifact), `MEASURED OBSERVATION` (a tool executed here,
+> raw output preserved under `docs/evidence/p036-bakeoff/`), `INFERENCE`,
+> `PROPOSED P-036 CAPABILITY` (proposal text, never executed), or
+> `OWNER RULING`.
+
+Related: [P-036](../proposals/P-036-interprocedural-semantic-architecture.md),
+[P-037](../proposals/P-037-guarded-effect-summaries.md), #278 / #293 / #302 /
+#304 / #305 / #306 / #307, [`spec/Inference.md`](../../spec/Inference.md),
+[`teardown-predicate-adversarial-audit.md`](teardown-predicate-adversarial-audit.md),
+[`oracle.md`](oracle.md), [`corpus-benchmark.md`](corpus-benchmark.md),
+[`own278-corpus-diff.md`](own278-corpus-diff.md),
+[`research-landscape-2026.md`](research-landscape-2026.md).
+
+Harness: [`scripts/p036_bakeoff.py`](../../scripts/p036_bakeoff.py).
+Machine-readable results: [`docs/evidence/p036-bakeoff/`](../evidence/p036-bakeoff/).
+New synthetic conformance cases: [`corpus/p036-bakeoff/`](../../corpus/p036-bakeoff/).
+
+---
+
+## Phase 0 — the P-036 decision contract (preregistration)
+
+Written **before** any comparator ran on the corpus below. The only tool runs
+that precede this section are the toolchain smoke tests on the pre-existing
+three-tool fixture `corpus/fixtures/systemevents-console` (§2.0), which was
+designed in July for the oracle, not for this bakeoff.
+
+### 0.1 What P-036 actually commits to (REPOSITORY FACT)
+
+- P-036 (`draft`) proposes a first-class interprocedural layer: OwnIR stays the
+  wire seam, an internal OwnHIR, the existing OwnCFG as the local substrate,
+  a derived call graph, first-class `MethodSummary` artifacts composed by a
+  generic SCC/fixpoint engine, domains = ownership (MOS), obligations,
+  progress, regions, tasks; diagnostics carry a proof-DAG-projected witness.
+- Its **first production consumer is #304**: summary-backed lifecycle release
+  reachability generalizing the landed #293/#302/#306 extractor predicates.
+  P-036 §Phase 2 lists eight fixture families; families 1–3 are already caught
+  by the landed predicates (regression anchors), **4–8 are the new capability**:
+  4 helper that always unsubscribes → clean through summary application;
+  5 helper that may unsubscribe → finding/advisory by rule policy;
+  6 virtual/external cleanup target → explicit degraded precision;
+  7 exceptional exit bypassing cleanup → finding with exceptional path;
+  8 runtime-correlated SectorTS scenario (OwnAudit, out of this bakeoff).
+- P-037 (`accepted`, frozen design) is the guarded-transfer contract: a single
+  fixed bool/null-ness split per (method, disposable parameter), cell selection
+  at call sites with constant arguments, two consume routes (selected `must`,
+  unanimous `must`), G-T1 precision floor, G-T2 lax refinement. Its §8 rows
+  1, 2, 3, 4, 7, 8, 12, 17 are the observable verdict changes.
+- The **precision floor** of the whole interprocedural layer is `own-only 0`:
+  no rule may fabricate `must`/`fresh`/alias; degradation goes to silence plus
+  an advisory (OWN051), never to a guess (`spec/Inference.md` §7, INF-P1).
+
+### 0.2 Landed bounded implementation (the regression floor) (REPOSITORY FACT)
+
+`frontend/roslyn/OwnSharp.Extractor/Program.cs` credits a `-=` (and, since
+#302, a timer `.Stop()`) as a release only when: it sits in a teardown context
+(`TeardownContextMethods`: exact name-roots `Dispose`/`DisposeAsync`/`OnClosed`/
+`OnClosing`/`OnUnloaded`/`OnFormClosed`/`OnFormClosing`, code-wired handlers of
+the class's own `Closed`/`Closing`/`Unloaded`/`FormClosed`/`FormClosing`/
+`Disposed`, plus the symbol-resolved intra-class call closure), and it is not
+parameter-guarded (`IsParamGuardedRelease` incl. the #305 early-return and
+else-branch refinements). It is lexical + symbol-based, **argument values are
+never consulted** (a helper credited through the closure is credited for all
+callers), and **enrollment is assumed from the name-root** (audit attack D).
+
+The Python bridge (`ownlang/ownir.py` + `ownlang/ownership.py`) already has a
+context-insensitive MOS: a per-method summary (`transfer ∈ {no, must, may,
+unknown}`, `returns ∈ {fresh, aliasOf, aliased, none, unknown}`) solved by an
+SCC fixpoint; a conditional release derives `may` (INF-S2) and the caller's
+obligation is **untracked** at that call plus OWN051 (INF-A5). The extractor
+separately has a transitive `ConsumesParam` walk (a callee that disposes or
+forwards to a disposer consumes its parameter), used for the use-after-handoff
+release at the call site and for `CallReleasesReceiver` (NLog sink shape).
+
+Owen-current therefore has: intraprocedural path-sensitive ownership over a
+CFG (OWN001/002/003/009, exceptional edges for `try`), a context-insensitive
+summary layer for disposable parameters/returns, lexical teardown-context
+predicates for subscriptions/timers, lifetime tiering (static/injected/self
+sources → error/warning/silent), DI captive-dependency graph rules, and an
+intraprocedural obligation-protocol core whose **C# extractor is pending**
+(`docs/proposals/README.md`: P-025 "extractor pending").
+
+### 0.3 Target questions
+
+```text
+TARGET QUESTIONS
+Q1  Which P-036-scope defect families does Owen-current catch on real C#
+    (before caught, fix silent), and which does it miss?
+Q2  Which of those families do Infer#, RLC#, CodeQL, CA2000 catch STOCK,
+    which only CONFIGURED, which only with a CUSTOM MODEL or CUSTOM QUERY,
+    and which not at all (UNSUPPORTED / NOT_APPLICABLE)?
+Q3  On the cases Owen-current misses INSIDE the P-036 scope (guarded-effect
+    summaries, enrollment, exceptional exit, delegate/virtual cleanup
+    targets, cross-method obligations, loop progress), does any comparator
+    already catch them?  Yes → P-036 rebuilds; no → P-036 differentiates.
+Q4  For each family, what semantic machinery does each tool bring (CFG, call
+    graph, summaries, may/must, guards, constant substitution, lifecycle
+    roots, enrollment, heap identity, virtual dispatch, external models,
+    exceptional exit), built-in vs user-authored, and what degrades to
+    unknown vs silently clean?
+Q5  What does each tool's diagnostic actually give a developer (location,
+    message, path/call witness, branch explanation, subject identity)?
+Q6  What modelling/setup cost does each comparator need to reach the
+    families at all?
+```
+
+### 0.4 Defect families
+
+```text
+DEFECT FAMILIES
+F1  Subscription release reachability (the #278 class): a `-=` that exists
+    but is flag-guarded / in an uncalled method / in a finalizer / in a
+    name-only handler / in the wrong overload; plus the real ScreenToGif and
+    SectorTS-reduced shapes; plus the token-returning Subscribe shape.
+F2  Timer `Stop()` lifecycle (WPF002 twin of F1): a non-IDisposable timer
+    whose only release is `Stop()` in an unproven context.
+F3  Interprocedural IDisposable ownership transfer: consume/borrow/forward
+    through helpers, use-after-handoff, release through a helper/sink,
+    and the P-037 guarded-transfer shapes (flag-guarded helper, early-return
+    spelling, wrapper forwarding the flag, negated wrapper, null-guard
+    helper, mixed release/forward).
+F4  Lifecycle ENROLLMENT vs EFFECT: a perfect teardown nobody runs
+    (name-root `Dispose` on a non-IDisposable type; an IDisposable
+    subscriber the owner drops).
+F5  Exceptional exit bypassing a subscription release inside a teardown.
+F6  Release reached only through a delegate/interface target.
+F7  Obligation protocol crossing a helper (P-025 / #274).
+F8  Loop progress through a helper (#275).
+F9  Region/DI lifetime escapes (static source promotion, App-scoped bus,
+    singleton captures scoped).
+```
+
+Provenance classes used for every case (never mixed into one number):
+`1 historical real bug`, `2 existing regression fixture`,
+`3 adversarial mutation of a real shape`, `4 synthetic conformance case`
+(derived from proposal text before any comparator ran), `5 exploratory new
+case`. A case designed after observing a comparator's failure is class 5 and
+is marked `post-hoc`.
+
+### 0.5 Comparators
+
+```text
+COMPARATORS
+Infer#             microsoft/infersharp v1.5 (release tarball, Cilsil translator
+                   + Infer v1.1.0-9d469330b6, Pulse); analyses compiled
+                   .dll+.pdb; run via run_infersharp.sh.
+RLC#               microsoft/global-resource-leaks-codeql @1212a92 (archived
+                   2026-06-11, last commit 2023-08-12), paper arXiv:2312.01912
+                   (CodeQL 2.11.4); shipped pipeline = infer.ql (spec
+                   inference) + RLC.ql + docs/library-annotations.txt, where
+                   `readAnnotation/5` is an EXTERNAL predicate the scripts
+                   splice in. Executed either unmodified on a period-correct
+                   CodeQL bundle (codeql-bundle-20221211) or, if that cannot
+                   extract, with a recorded API-rename adapter on 2.27.0.
+                   Paper capability, tool capability and executed capability
+                   are reported separately.
+CodeQL             CodeQL 2.27.0 bundle, codeql/csharp-queries 1.9.3, stock
+                   `csharp-security-and-quality.qls`; build-mode none.
+                   Any query written for this bakeoff is scored
+                   DETECTED_CUSTOM_QUERY, never as stock.
+CA2000 / .NET      Microsoft.CodeAnalysis.NetAnalyzers 8.0.9 (shipped in SDK
+analyzers          8.0.425): (a) STOCK = CA2000/CA2213/CA1001 enabled at
+                   warning, all dataflow options at their defaults;
+                   (b) CONFIGURED = same plus interprocedural ContextSensitive,
+                   dispose_analysis_kind AllPaths.
+                   Secondary: IDisposableAnalyzers 4.0.8 (community, NuGet).
+Owen-current       this tree at 70189a3: Roslyn extractor + Python core via
+                   scripts/own-check.sh --format sarif --severity warning,
+                   WindowsDesktop ref pack on (as oracle.yml does).
+Owen-P036-target   P-036 + P-037 text only. PROPOSED CAPABILITY. Never a
+                   measured result; reported in its own column.
+```
+
+### 0.6 Decision predicates
+
+```text
+DECISION PREDICATES
+D1  Present differentiation: Owen-current catches at least one whole family
+    that no comparator catches STOCK or CONFIGURED, with zero false
+    positives on that family's fixes.
+D2  Target differentiation: on the P-036-scope cases Owen-current MISSES
+    (F3 guarded shapes, F4 enrollment, F5, F6), no comparator catches them
+    STOCK or CONFIGURED either. If a comparator does, P-036 is rebuilding
+    that part and the case is charged against P-036.
+D3  Necessity of the semantic layer: the D2 cases need call-graph /
+    summary / guard / enrollment machinery that the landed lexical
+    predicates cannot express without another lexical patch — judged from
+    the adversarial audit's residual attack list (C, D, E, F) and from what
+    the extractor's predicate actually inspects.
+D4  Breadth: a P-036 domain (ownership, obligations, progress, regions,
+    tasks) counts as evidenced only if the corpus holds at least one class-1
+    (historical real bug) case in it AND the bakeoff shows a semantic gap in
+    every comparator on it. Domains evidenced only by class-4 cases are
+    recorded as "plausible, unevidenced".
+D5  Cost signal: a comparator that reaches a D2 case only with per-case
+    annotations (RLC# Owning/MustCall, CA2000 exclusions, a bakeoff-written
+    CodeQL query) is scored as CUSTOM, which counts for expressiveness but
+    not for D2.
+D6  Admissibility: every predicate rests on executed results or repository
+    facts; paper claims and exploratory timings are excluded from D1–D5.
+
+Mapping (fixed before results):
+GO      D1 ∧ D2 ∧ D3 ∧ D4 ≥ 3 domains evidenced.
+SHRINK  D1 ∧ D2 ∧ D3 ∧ D4 ∈ {1, 2} domains evidenced (recommend the
+        evidenced subset, i.e. #304-first / P-037 core, as the P-036 scope).
+NO-GO   ¬D1, or ¬D2 (comparators already cover the target cases STOCK or
+        CONFIGURED), or ¬D3.
+DECISION NOT YET ADMISSIBLE if the comparators could not be executed on the
+        D2 families (UNSUPPORTED/CRASHED across the board) — then report the
+        missing evidence instead of a verdict.
+```
+
+Anti-goalpost rule: the mapping above and the family list are frozen at this
+commit; anything added afterwards is labeled post-hoc in §1.
+
+---
+
+## Phase 1 — the corpus (45 cases, 12 new)
+
+The manifest is `docs/evidence/p036-bakeoff/corpus.json` (written by
+`scripts/p036_bakeoff.py --write-manifest`). Per case it records id, family,
+provenance class, source path, expected Owen codes, the defect subject, why
+the case matters to P-036, the tools declared `NOT_APPLICABLE` by documented
+rule scope, and any harness stubs. Counts by family × provenance class
+(REPOSITORY FACT):
+
+| family | class 1 real | class 2 fixture | class 3 adversarial | class 4 synthetic | total |
+|---|---|---|---|---|---|
+| F1 subscription reachability | 4 | 3 | 7 | 0 | 14 |
+| F2 timer Stop() | 0 | 0 | 6 | 0 | 6 |
+| F3 ownership transfer | 5 | 5 | 0 | 6 | 16 |
+| F4 enrollment | 0 | 0 | 0 | 2 | 2 |
+| F5 exceptional exit | 0 | 0 | 0 | 1 | 1 |
+| F6 delegate/virtual target | 0 | 0 | 0 | 1 | 1 |
+| F7 obligation via helper | 0 | 0 | 0 | 1 | 1 |
+| F8 loop progress via helper | 0 | 0 | 0 | 1 | 1 |
+| F9 region / DI | 0 | 3 | 0 | 0 | 3 |
+
+Notes on honesty of the corpus:
+
+- **No case was written after seeing a comparator result.** The twelve class-4
+  cases were authored from P-037 §8 and P-036 §Phase 2 before any comparator
+  touched them (§0). No class-5 (post-hoc) case exists at the time of writing;
+  if one is added later it is marked so here.
+- The "historical real bug" class contains SectorTS reductions (heap-proven,
+  #278), ScreenToGif (mined, `real-world-mining.md`), ShareX, NLog shapes and
+  representative ADO/stream shapes — all *reductions*, not the original
+  repositories. Prior full-repository runs (Dapper, Polly, ScreenToGif,
+  Newtonsoft; `oracle.md`, `own278-corpus-diff.md`) are cited as REPOSITORY
+  FACTS where relevant and were **not** re-run here.
+- Every comparator sees the **same input** as Owen: one project per file
+  (`Case.csproj`, `net8.0` or `net8.0-windows` when the file uses
+  `System.Windows*`, NuGet `System.Data.SqlClient` / `Microsoft.Win32.SystemEvents`
+  where used), plus a harness stub file for two undeclared fixture types
+  (`IEventBus`, and a global using for the DI abstractions package). The
+  stubs are identical for all tools and are recorded in the manifest.
+- ArrayPool/MemoryPool cases (POOL/OWN025) are deliberately **excluded**: they
+  are not in P-036's interprocedural scope and would inflate the "Owen-only"
+  count with an orthogonal capability.
+- `F1-14` is the July oracle fixture reused unchanged (its own console project).
+
+---
+
+## Phase 2 — comparator qualification
+
+### 2.0 Toolchain smoke (all tools on `corpus/fixtures/systemevents-console`)
+
+MEASURED OBSERVATION, before the corpus run, reproducing the July three-tool
+table (`dispose-agreement-with-codeql.md`) on this host:
+
+| site | Owen | CodeQL 2.27 stock | Infer# 1.5 | CA2000 (SDK 8.0.425) | IDISP 4.0.8 | RLC# (2.11.6, lib annotations) |
+|---|---|---|---|---|---|---|
+| `:20` `SystemEvents +=` never `-=` | OWN014 (with ref pack) / OWN050 (without) | — | — | — | — | — |
+| `:43` local `FileStream` never disposed | OWN001 | `cs/local-not-disposed` | `PULSE_RESOURCE_LEAK` (×2, lines 42 and 44) | CA2000 | IDISP001 | Resource Leak (FileStream) |
+| `:54` same inside a `try` method | OWN001 | `cs/local-not-disposed` | `PULSE_RESOURCE_LEAK` (×2) | CA2000 | IDISP001 | Resource Leak |
+| `:77` `Dispose()` skipped on the throw path | OWN001 "may not be disposed on every path" | `cs/dispose-not-called-on-throw` (at the `Dispose` call, `:78`) | `PULSE_RESOURCE_LEAK` (`:79`) | CA2000 (only with `dispose_analysis_kind = AllPaths`; stock is silent on `:77`) | — | Resource Leak (`:77`) |
+
+Two corrections to the July write-up fall out of this: RLC# (not run in July)
+*does* flag the throw-path case, and CA2000 at its default
+`NonExceptionPaths` does **not**. Also visible: Infer# reports each leak at
+two program points (method entry and last access), which the oracle's ±3-line
+matcher would count as one.
+
+### 2.1 Infer#
+
+- EXTERNAL SOURCE FACT: `microsoft/infersharp` v1.5 (2024-05-31 per the
+  releases page), Linux release tarball `infersharp-linux64-v1.5.tar.gz`
+  (74 MB), containing `Cilsil` (self-contained .NET 6 translator, CIL → SIL
+  via Mono.Cecil) and `infer` reporting `v1.1.0-9d469330b6`. Requires compiled
+  `.dll` + `.pdb`; the Docker image was not usable here (no daemon), the
+  tarball was.
+- EXTERNAL SOURCE FACT: the resource-leak checker is Pulse
+  (`PULSE_RESOURCE_LEAK`), interprocedural with per-procedure summaries;
+  unknown calls "scramble the parts of the state reachable from the
+  parameters"; Pulse reports only manifest errors (conditions true regardless
+  of input), latent issues stay silent (fbinfer.com, checker-pulse).
+- MEASURED OBSERVATION: runs out of the box on every fixture that builds;
+  ~7 s per case on this host (EXPLORATORY ONLY). No configuration or model
+  was written. Diagnostics: allocation site + last-access site, no branch or
+  call witness in the SARIF (Infer's `.txt` report carries a bug trace; the
+  SARIF does not).
+- What it cannot take: anything that does not compile (a fixture referencing
+  undeclared types without a stub) → `UNSUPPORTED`.
+- Ambiguity resolved: "Infer#" means the released v1.5 tarball above, not the
+  fbinfer C/Java front ends and not the `infersharpaction` wrapper.
+
+### 2.2 RLC#
+
+- EXTERNAL SOURCE FACT: paper arXiv:2312.01912 (Gharat, Shadab, Tiwari,
+  Lahiri, Lal; v2 2023-12-05); implementation `microsoft/global-resource-leaks-codeql`
+  (MIT), last commit `1212a92` 2023-08-12, **archived 2026-06-11**. The paper
+  says CodeQL 2.11.4; the repo README says "works only for Windows machine"
+  (WSL + PowerShell wrappers), which is a scripting constraint, not a query
+  constraint.
+- REPOSITORY-OF-TOOL FACT (read from source): `src/RLC.ql` (1062 lines,
+  `@kind problem`), `src/Dispose.qll`, `src/infer.ql` (627 lines, the
+  specification-inference query of their OOPSLA'23 follow-up),
+  `docs/library-annotations.txt` (93 rows: `MustCall` on ~50 BCL/Azure
+  types, `MustCallAlias` on wrapper constructors such as `StreamReader(Stream)`,
+  `NonOwning` on `CancellationTokenSource`, `Socket.Accept` etc.). The
+  annotation predicate `readAnnotation/5` is **external**: the shipped shell
+  scripts append a predicate body made of the library rows plus the rows
+  `infer.ql` produced for the target, then run `RLC.ql`. Output is CSV; rows
+  whose message contains "Resource Leak" are the findings, the rest
+  ("Verifying …", "Missing …") are annotation-consistency checks.
+- Semantics (paper §3, confirmed in source): sources = `new` of a resource
+  type, calls returning a resource type (default `Owning`), `CreateMustCallFor`
+  calls, `Owning` parameters; sinks = `Dispose`/`Close`, `using`, return of a
+  resource type, argument to an `Owning` parameter, `EnsuresCalledMethods`,
+  assignment to an `Owning` field, `Add` into a collection; **intraprocedural
+  local data flow only** — the call boundary is crossed **only through
+  annotations**; a resource type is anything `IDisposable` unless annotated
+  otherwise; nullness handled for simple `!= null` guards; exceptional paths
+  handled only inside `try`/`catch`/`finally`.
+- Paper capability vs tool capability vs executed: the paper reports
+  24 TP / 37 FP (39% precision) on Lucene.Net, EF Core and three Azure
+  services **with manual annotations on library-typed elements only**
+  (Table 3). What we execute is the shipped pipeline with the shipped
+  library annotations plus its own inference — no hand annotations unless a
+  case row says `custom_model`.
+- MEASURED OBSERVATION: `RLC.ql` and `infer.ql` **compile unmodified** on
+  the period-correct bundle `codeql-bundle-20221211` (CLI 2.11.6,
+  `codeql/csharp-all` 0.4.6), and that extractor traces a .NET 8 SDK build.
+  Against CodeQL 2.27.0 the same query fails to compile (40 API-drift
+  errors: `ControlFlow::Node`, `Namespace.getQualifiedName`,
+  `ControlFlowNode.getElement`, `getAControlFlowExitNode`) — so the honest
+  execution path is the 2022 bundle, and **no adapter was written**. The
+  only harness change is mechanical: identical annotation sets share one
+  compiled query pack (the shipped script recompiles per database).
+- Cost: ~200 s per case on first compile, ~60 s once packs are cached
+  (EXPLORATORY ONLY).
+
+### 2.3 CodeQL
+
+- EXTERNAL SOURCE FACT: CodeQL 2.27.0 bundle (`github/codeql-action`
+  release `codeql-bundle-v2.27.0`), `codeql/csharp-queries` 1.9.3,
+  `codeql/csharp-all` 7.3.0. Databases are built with `--build-mode=none`
+  (source + NuGet resolution, no compile), as `oracle.yml` does.
+- REPOSITORY-OF-TOOL FACT: the stock suite `csharp-security-and-quality.qls`
+  holds exactly three dispose-family queries —
+  `cs/local-not-disposed` (`API Abuse/NoDisposeCallOnLocalIDisposable.ql`),
+  `cs/dispose-not-called-on-throw` (`API Abuse/DisposeNotCalledOnException.ql`),
+  `cs/missed-using-statement` — and **no** event-subscription, timer, DI or
+  protocol query (the query-help index confirms). `cs/local-not-disposed` is a
+  **global data-flow** configuration: sources are `new`/static `Create` of a
+  *library* `IDisposable` type ("user types often have spurious IDisposable
+  declarations" — first-party disposables are deliberately excluded), sinks
+  include return, `using`, `foreach`, explicit `Dispose`, **an argument to a
+  parameter that `mayBeDisposed`** (`commons/Disposal.qll`: a conservative
+  interprocedural over-approximation — a parameter counts as disposed if
+  the callee calls `Dispose` on it *anywhere*, or forwards it to such a
+  parameter), field/property/indexer assignment, `Add(...)`, `Close`/`Clear`.
+  So: interprocedural via a **may**-disposal relation with no path or
+  guard sensitivity, biased to silence. `cs/dispose-not-called-on-throw` is
+  local flow + a CFG reachability check + an interprocedural
+  "may throw" relation over callees.
+- Any query written for this bakeoff would be scored `DETECTED_CUSTOM_QUERY`;
+  at the time of writing none has been written.
+
+### 2.4 CA2000 / .NET analyzers
+
+- EXTERNAL SOURCE FACT: `Microsoft.CodeAnalysis.NetAnalyzers` 8.0.9
+  (`AssemblyInformationalVersion 8.0.9.11401`, shipped in SDK 8.0.425).
+  CA2000 is **not enabled by default** (docs: "Enabled by default in
+  .NET 10: No"); it must be switched on by severity. Documented options:
+  `dispose_analysis_kind` (default `NonExceptionPaths`),
+  `dispose_ownership_transfer_at_constructor` / `_at_method_call` (default
+  `false`), `interprocedural_analysis_kind` ("specific to each rule"),
+  `max_interprocedural_method_call_chain` (3), `points_to_analysis_kind`.
+- REPOSITORY-OF-TOOL FACT (dotnet/roslyn-analyzers `main`):
+  `DisposeAnalysis.TryGetOrComputeResult` defaults to
+  `InterproceduralAnalysisKind.ContextSensitive`; the CA2000 analyzer
+  requests `PointsToAnalysisKind.PartialWithoutTrackingFieldsAndProperties`,
+  `trackInstanceFields: false`. Abstract values:
+  `NotDisposable, Invalid, NotDisposed, Escaped, NotDisposedOrEscaped,
+  Disposed, MaybeDisposed, Unknown`; two message families (`NotDisposed`,
+  `MayBeDisposed` "use recommended dispose pattern"), each with an
+  exception-paths twin. Passing a disposable to a method is ownership
+  transfer only if `dispose_ownership_transfer_at_method_call` is set or the
+  callee is a `Create*`/`Open*` special case; otherwise the callee is
+  analysed context-sensitively up to the chain limit and the argument's
+  state becomes what that analysis says (typically `MaybeDisposed` when the
+  callee's disposal is conditional).
+- Two configurations are run: **stock** (CA2000/CA2213/CA1001/CA1063/CA1816
+  at `warning`, options untouched) and **configured** (`ContextSensitive`,
+  `AllPaths`, chain 5). Secondary comparator: **IDisposableAnalyzers 4.0.8**
+  (community NuGet, default severities) — its rules include IDISP001
+  "dispose created", IDISP004 "don't ignore created IDisposable", IDISP007
+  "don't dispose injected".
+- Scope statement (docs, verbatim in spirit): CA2000 fires when "a local
+  object of an IDisposable type is created, but the object is not disposed
+  before all references to the object are out of scope". Events, event
+  handlers, timers-as-subscriptions, DI lifetimes and project protocols are
+  outside its rule text; it was never expected to solve them and is not
+  scored as if it should.
+
+### 2.5 Owen-current and Owen-P036-target
+
+- Owen-current: extractor built from `70189a3`, Python engine (the public
+  default at this HEAD; the Rust core is CI/dogfood-default only, #262
+  Stage 2), `own-check.sh --format sarif --severity warning`, WindowsDesktop
+  8.0.31 reference pack on. Official corpus benchmark at this HEAD with the
+  ref pack (MEASURED OBSERVATION, `scripts/benchmark.py`):
+  **61/62 bugs caught · 62/62 fixes clean · 0 false positives**; the one
+  miss is `viewmodel-escapes-to-app` (the documented injected-source
+  region-escape backlog).
+- Owen-P036-target: **never executed**. Its column is filled from P-036 /
+  P-037 text and labelled PROPOSED P-036 CAPABILITY in every row.
+
+---
+
+## Phase 4 — semantic machinery per tool (documentation and source, not scores)
+
+Legend: **B** built-in, **U** user-authored (annotation/config/query), **—**
+absent. "Silently clean" = the situation in which the tool emits nothing
+although the property is unproven. Sources: §2 citations; Owen columns are
+REPOSITORY FACTS at `70189a3`; the last column is PROPOSED P-036 CAPABILITY.
+
+| concept | Owen-current | CodeQL stock (`cs/local-not-disposed`) | Infer# (Pulse) | RLC# | CA2000 (NetAnalyzers 8.0.9) | Owen-P036-target (proposed) |
+|---|---|---|---|---|---|---|
+| local syntax pattern | B (extractor: `+=`/`-=` pairing, `Stop()`, teardown names) | B (source/sink patterns over AST) | — (works on CIL) | B (source/sink patterns; annotation keyed by file:line) | B (IOperation patterns) | B (OwnHIR ops) |
+| intraprocedural CFG | B (OwnCFG, path-sensitive; `try` lowering + exception edges since the July slices) | B (CFG used by `dispose-not-called-on-throw`; the leak query is data-flow, not path-sensitive) | B (symbolic execution over SIL CFG) | B (CFG dominance/post-dominance checks, `try` handled only when present) | B (Roslyn IOperation CFG, exception paths only under `AllPaths`) | B (OwnCFG with typed terminators incl. `Invoke`/`Throw`) |
+| call graph | partial: symbol-resolved **intra-class** closure for teardown roots; first-party call edges in the MOS (`forward` paths) | B (global data flow crosses calls; `mayBeDisposed` is a may-relation over callee bodies) | B (whole-program over compiled assemblies, summaries per procedure) | — (crosses calls only through annotations) | B (context-sensitive re-analysis of callees, chain ≤ 3) | B (derived ICFG; lifecycle roots; unresolved targets explicit) |
+| method summary | B for disposable params/returns (MOS: `no/must/may/unknown`, `fresh/aliasOf/…`), one per method, context-insensitive | — (no summaries; flow through callees is a may-relation) | B (Pulse summaries per procedure, path-conditioned) | U (the annotations *are* the summaries; `infer.ql` proposes `Owning`/`MustCallAlias`) | B (interprocedural result cache, context-sensitive) | B (first-class `MethodSummary` per domain, serialised, cached) |
+| must vs may effect | B (`must` only on every normal-return path; `may` → untrack + OWN051) | — (any disposal anywhere in the callee silences: may treated as must → **silently clean**) | B (path-conditioned: latent vs manifest) | — (an `Owning` parameter is trusted unconditionally: may treated as must) | B (`Disposed`/`MaybeDisposed`/`NotDisposed`; `MaybeDisposed` reported only as "use recommended pattern") | B (same lattice, cellwise under guards) |
+| guarded effect (bool/null param) | — (lexical demotion only: a parameter-guarded `-=` never credits; no per-call-site selection) | — | B-ish (Pulse case-splits on conditions; whether a constant argument prunes the callee's branch is tested in §3) | — | — (branch pruning by constant arguments is not part of DisposeAnalysis; observed in §3) | B (P-037: fixed split, five edge transforms, cell selection at the call site) |
+| constant-argument substitution | — | — | B (symbolic values flow into summaries) | — | — (context-sensitive analysis re-analyses the callee but §3 shows the constant does not decide the branch) | B (P-037 G-A1, literals `true`/`false`/`null` and fresh non-null only) |
+| lifecycle-root reachability | B, bounded: name-roots + wired own-lifecycle handlers + intra-class symbol closure | — | — (no notion of teardown roots; a Dispose method is just a procedure) | — | — (CA2213 checks fields disposed in `Dispose`, by name) | B (explicit roots incl. DI scope / framework teardown; root-to-exit paths) |
+| framework enrollment (is the root ever run?) | — (assumed from the name-root; audit attack D) | — | — | — | partial: `using`/local scope only (CA2000), `IDisposable` fields (CA2213/CA1001) | B (LifecycleEnrollment: `using`, DI scope, wired callback, owner chain, model) |
+| field / heap identity | partial: field name text + `Interlocked.Exchange` / alias idioms; receiver rebinding (#163) unmodelled | B for locals (data flow), fields are a **sink** (assigning to a field is "may be disposed elsewhere" → silently clean) | B (heap abstraction over SIL) | partial (`isFieldAlias` for `t.f = s` patterns) | partial (points-to without field tracking for CA2000; CA2213 tracks fields by symbol) | B (places: `Field(base, id)`, allocation sites, `UnknownHeap` explicit) |
+| virtual dispatch | — (unresolved invocation extends nothing → kept warning) | B (`getARuntimeTarget` over-approximation) | B (Cilsil resolves callvirt targets conservatively) | B (`getARuntimeTarget`) | — (interface calls are opaque → argument escapes) | B (`FiniteSet(methods)` with explicit precision) |
+| external modelling | Tier B BCL fresh-factory table; `$consume/$borrow` channel; P-035 config | B (library models: `Create`/`Open` factories; `Task` excluded) | B (Infer models for BCL; unknown calls scramble reachable state) | U (`library-annotations.txt`, 93 rows) | B (`DisposeOwnershipTransferLikelyTypes`, `Create*`/`Open*` special case) + U (`.editorconfig`) | U (declarative model files, P-031) + explicit `Unknown` |
+| exceptional exit | B for `try` bodies (exception edge before each may-throw statement); **not** applied to teardown-context release crediting | B (`cs/dispose-not-called-on-throw`, may-throw over callees) | B (Pulse models exceptions on the SIL CFG) | partial (only inside `try`) | B under `AllPaths` only | B (`Invoke` terminators with exceptional successors for all domains) |
+| runtime correlation | — in Owen (OwnAudit consumes stable IDs; static-only/runtime-only buckets) | — | — | — | — | B (proof-DAG IDs for OwnAudit correlation) |
+| unknown → visible? | B: OWN050 (unresolved type), OWN051 (unverified transfer), OWN052 (solver degraded) | — (unresolved → no source, silent) | partial (`skipped_calls` in summaries, not in the report) | — (a missing `MustCall` annotation = not a resource = silent, paper §5.3) | — (`Unknown` value is never reported) | B (`Unknown(reason)` on every callsite and summary) |
+| witness preserved | acquire site + message; `codeFlows` only for OWN002/OWN005-class and pool views; **subscription OWN001/OWN014 carry no evidence steps** (MEASURED: 0 `codeFlows`, 0 `relatedLocations`) | location + message (`@kind problem`, no path) | allocation site + last access; `bug_trace` in `report.json` (3 steps: allocation start / allocated here / becomes unreachable) | file:line + message ("Resource Leak (Type - L/C) in method M") | line + message; no path | ordered derivation evidence: Acquire → Call → CallTarget → SummaryApplied → Branch → Release/Escape |
+
+---
+
+## Phase 3 — functional bakeoff
+
+### 3.0 The Owen-P036-target column (PROPOSED P-036 CAPABILITY — proposal text only)
+
+What the proposals *say* each family would get. None of this has been executed
+anywhere; it is placed here so the measured rows can be read against it.
+
+| family | proposal text | source |
+|---|---|---|
+| F1 (guarded / uncalled / wrong-overload `-=`) | fixtures 1–3 "already caught … enter this phase as regression anchors"; helper release "proven through summary application, not extractor-side symbol fixpoints"; findings "contain a call/branch witness" | P-036 §Phase 2 |
+| F1 helper that may unsubscribe | "finding/advisory according to rule policy" | P-036 §Phase 2 fixture 5 |
+| F2 timer `Stop()` | same doctrine as `-=` through the same lifecycle roots ("event subscriptions and timers") | P-036 §Phase 2 |
+| F3 guarded transfer (`Teardown(true)`) | "`Split(skip, no, must)`; `Teardown(true)` → borrow → caller keeps obligation → honest OWN001; `Teardown(false)` → consume" | P-037 §8 row 1 |
+| F3 early-return spelling | "identical by G-S2 row 3 — the two spellings converge" | P-037 §8 row 2 |
+| F3 wrapper `id` / `neg` edges | "the guard survives one hop"; cells swap on `neg` | P-037 §8 rows 7–8 |
+| F3 null-guard helper | "self-null: `Split(nn(s), must, no)` … `consume` (D1 conservatism retired)" | P-037 §8 row 4 |
+| F3 mixed release/forward | "`Split(g, must, must)`, collapse `must` … `consume` (unanimous must)" | P-037 §8 row 12 |
+| F4 enrollment | "Proving a perfect `Dispose()` that nothing ever calls proves nothing … effect without enrollment yields a degraded or conditional verdict — never clean" | P-036 §Lifecycle roots |
+| F5 exceptional exit | "exceptional exit bypassing cleanup: finding with exceptional path" | P-036 §Phase 2 fixture 7 |
+| F6 virtual/external target | "virtual/external cleanup target: explicit degraded precision"; delegate targets "when statically known" | P-036 §Phase 2 fixture 6, §Call resolution |
+| F7 obligations | "an obligation produced in method A and discharged in method B is recognized; discharge on only some callee exits remains `may`" | P-036 §Phase 3 |
+| F8 progress | "helper calls can prove progress / no progress; unknown progress remains explicit" | P-036 §Phase 4 |
+| F9 regions / DI | "extends the existing lifetime/DI region reasoning without moving DI registration extraction into the generic solver" | P-036 §Region summary |
+
+The P-037 walls apply to the target as much as to today: no conjunctions, no
+field/local guards, no guard threading beyond one edge, no per-call-site
+summary specialisation (P-037 §9). A case outside the vocabulary is claimed to
+degrade to today's behaviour, not to improve.
+
+### 3.1 A finding that surfaced while validating the harness: three layers, three answers on the P-037 flagship shape
+
+MEASURED OBSERVATION on `corpus/p036-bakeoff/guarded-consume-flag-branch/before.cs`
+(`Close(s, keep)` disposes only when `!keep`; the caller passes `keep: true`):
+
+| layer | what it says | how it was measured |
+|---|---|---|
+| Owen-current, C# path (extractor + core) | **silent — no finding, no advisory** | `own-check --emit-facts`: the emitted body of `Guarded.Leak` is `acquire s (24); release s (26)`. The extractor's `ConsumeReleaseArgs` → `ConsumesParam` → `DisposesLocal` asks only whether `s.Dispose()` occurs *anywhere* in `Close`'s body (`Program.cs` ~4500–4600), so the guarded handoff is lowered to a flat `release` at the call site. `Close` itself is not emitted as a function, so the bridge's summary layer never sees it. |
+| Owen-current, bridge alone (hand-written facts with `Close`'s body as `if … release s`) | **OWN051 advisory, no verdict**: "cannot verify whether 'Guarded.Close' takes ownership of 's' (inferred contract: may); optimistically assuming it does — 's' is not checked past this call" | `check_facts` on synthetic OwnIR (`spec/Inference.md` INF-S2 + INF-A5 behaviour, as the TZ D1 tests pin) |
+| Owen-P036-target (P-037 §8 row 1) | OWN001 at the call site: `Split(keep, no, must)`, `keep: true` selects `no`, obligation stays with the caller | PROPOSED P-036 CAPABILITY — not executed |
+
+INFERENCE: the extractor's consume inference is **may-as-must** — the same
+defect class the bridge fixed as TZ D1 (`interprocedural-tz.md` §3) and the
+adversarial audit named for `-=` (attack A), now observed on the consume
+channel. It is *not* a regression (the after side is silent, correctly, and
+no existing corpus case pins the guarded-consume shape), but it means the
+"honest silence + OWN051" story of `spec/Inference.md` does not currently hold
+on the C# path for this shape: the advisory is swallowed one layer earlier.
+Recorded here for #304; **deliberately not fixed in this research phase**
+(repository-work rule: no verdict changes before the decision).
+
+### 2.6 Setup and modelling cost to reach the families at all (Q6)
+
+MEASURED OBSERVATION on this host, human effort estimated by the author of
+this note (EXPLORATORY ONLY; the wall-clock figures are non-admissible):
+
+| tool | to run at all | to reach F3 (IDisposable transfer) | to reach F1/F2 (subscriptions, timers) | to reach F7/F8 (protocols, progress) |
+|---|---|---|---|---|
+| Infer# 1.5 | download tarball (74 MB), `dotnet build` the target; zero configuration | stock | **no path**: no event/timer model, and Cilsil works on CIL where a subscription is just `add_X(delegate)` | no path |
+| RLC# | period-correct CodeQL bundle (2022, 1.0 GB), traced build, shipped scripts; the query is unmaintained (archived) | stock pipeline (library annotations + its own inference) — but ownership is unconditional: no annotation vocabulary for a guarded transfer | **no path** (resource = `IDisposable`-typed value; an event has no `MustCall`) | no path |
+| CodeQL 2.27 | bundle (≈1.4 GB), `build-mode none`; zero configuration | stock (`cs/local-not-disposed`, `cs/dispose-not-called-on-throw`) | **custom query required**: no stock rule; the naive rule is ~40 lines of QL, the port of Owen's bounded predicate ~130 lines (§evidence `custom-codeql/`, written in about two hours by someone who already knew the target predicate) | custom query per project protocol; loop progress would need a custom CFG/summary query, not attempted |
+| CA2000 / NetAnalyzers | in the SDK; must be **enabled** by `.editorconfig` severity | stock once enabled; `AllPaths` for exception paths | **no path** (rule text is scoped to local IDisposable objects) | no path |
+| IDisposableAnalyzers | NuGet package | stock | no path (IDISP004 sees a discarded IDisposable *return value*, which covers the token-returning Subscribe shape only) | no path |
+| Owen-current | build the extractor (`dotnet build`), reference pack for WPF types | stock | stock (the differentiated family) | F7: core exists, **C# extractor pending** (not reachable on C# today); F8: not implemented |
+
+---
+
+## Phase 5 — diagnostics and developer usefulness (concrete, not scored)
+
+All quotes are MEASURED OBSERVATIONS from this host's runs (raw files under
+`docs/evidence/p036-bakeoff/raw/`, and the §2.0 smoke run). No subjective
+score is assigned; the repository preregistered none.
+
+### 5.1 One leak, every tool: `corpus/fixtures/systemevents-console` `:43` (`new FileStream` never disposed)
+
+| tool | anchor | message (verbatim) | witness |
+|---|---|---|---|
+| Owen | `Program.cs:43` (acquire) | `[OWN001] IDisposable local 'stream' is never disposed (leak) [resource: disposable]` | none for this code (no `codeFlows`; the OWN002/OWN005 family carries "acquired here"/"moved here" steps) |
+| CodeQL stock | `Program.cs:43` | `Disposable 'FileStream' is created but not disposed.` | none (`@kind problem`) |
+| Infer# | `Program.cs:42` and `:44` (two results for one leak) | `Resource dynamically allocated by constructor System.IO.FileStream() on line 43 is not closed after the last access at line 44, column 9.` | 3-step `bug_trace` in `report.json` (allocation start → allocated here → memory becomes unreachable); the SARIF carries only the location |
+| RLC# | `Program.cs:43` | `Resource Leak (FileStream- L)  in method LeakAFile` | none |
+| CA2000 stock | `Program.cs(43,22)` | `Call System.IDisposable.Dispose on object created by 'new FileStream("scratch.bin", FileMode.Create)' before all references to it are out of scope` | none |
+| IDisposableAnalyzers | `Program.cs(43,9)` | `IDISP001: Dispose created` | none |
+
+Reading: on the plain RAII class every tool anchors at the allocation and
+says roughly the same sentence; Infer# alone carries a trace, and only in its
+JSON report. Nobody explains a *path* for a straight-line leak because there
+is none to explain.
+
+### 5.2 The exception-path variant, `:77` (`Dispose()` skipped when `WriteByte` throws)
+
+| tool | anchor | message | what the developer learns |
+|---|---|---|---|
+| Owen | `:77` | `[OWN001] IDisposable local 'onThrow' may not be disposed on every path (leak)` | that a path exists; not which one |
+| CodeQL stock | `:78` (the `Dispose` call) | `Dispose missed if exception is thrown by [call to method WriteByte](1).` | **the throwing call is named** (a related location) — the most actionable message in the set |
+| Infer# | `:79` | `… is not closed after the last access at line 79, column 9.` | last access only; the exceptional branch is implicit |
+| RLC# | `:77` | `Resource Leak (FileStream- L)  in method DisposeOnThrow` | that RLC# treats the `try` as a path split; nothing about which |
+| CA2000 configured (`AllPaths`) | `(77,23)` | `Object created by 'new FileStream(...)' is not disposed along all exception paths.` | that it is an exception path; not which call |
+| CA2000 stock | — | silent (`NonExceptionPaths` default) | nothing |
+
+### 5.3 The subscription leak, `:20` (`SystemEvents.DisplaySettingsChanged +=`, never `-=`)
+
+| tool | result |
+|---|---|
+| Owen (ref pack on) | `[OWN014] event 'SystemEvents.DisplaySettingsChanged' is subscribed (handler 'OnDisplayChanged') to a static (process-lived) event source that outlives 'DisplayWatcher'; the strong subscription promotes 'DisplayWatcher' to the source's lifetime, so it can never be collected — a region escape (leak, no release path) [resource: subscription token]` — subject, publisher lifetime tier, consequence, and the missing release path, in one sentence; no evidence steps |
+| Owen (ref pack off) | `[OWN050] cannot verify 'SystemEvents.DisplaySettingsChanged' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped` — the *honest-unknown* path, an advisory not a verdict |
+| CodeQL stock, Infer#, RLC#, CA2000, IDISP | nothing (no rule) |
+| CodeQL custom (bakeoff-written) | `Event 'DisplaySettingsChanged' subscribed here is never unsubscribed in 'DisplayWatcher'.` — location + subject; no lifetime tiering, no release-path reasoning beyond what the query encodes |
+
+### 5.4 The #278 shape, `F1-01` (guarded `-=` in a non-teardown method)
+
+| tool | result |
+|---|---|
+| Owen | `Case.cs:25 [OWN001] event '_properties.PropertyChanged' is subscribed (handler 'new PropertyChangedEventHandler(OnPropertiesChanged)') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'GoodsDocument' alive (possible leak) [resource: subscription token]` — note the wording "never unsubscribed": the diagnostic does not say *why* the existing `-=` at line 33 was not credited (guarded by `UnregOnlyGoodys` in a method nothing here calls). The reason lives in the extractor's predicate, not in the message. `codeFlows: 0`. |
+| CodeQL custom port | `Event 'PropertyChanged' subscribed here has no unguarded '-=' in a proven teardown context of 'GoodsDocument'.` — names the *criterion* that failed, still not the site that failed it |
+| every stock comparator | nothing (no rule) |
+
+Reading against P-036's witness requirement ("Subscription acquired at …;
+Close() called from OnClosed(); Cleanup() reaches `return` when `_flag ==
+false`; Unsubscribe at … is not reached on that path"): **no executed tool,
+Owen included, produces a branch/call witness for the subscription class
+today.** Owen's message is the most informative sentence, and it is still a
+sentence, not a path. This is a REPOSITORY FACT about the current
+`Diagnostic.evidence` coverage (only the OWN002/OWN005 and pool-view paths
+carry steps; `docs/tasks/evidence-coverage.md`), not a P-036 measurement.

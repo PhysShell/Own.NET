@@ -1,0 +1,4 @@
+name: ownnet/p036-bakeoff-custom
+version: 0.0.1
+dependencies:
+  codeql/csharp-all: "*"

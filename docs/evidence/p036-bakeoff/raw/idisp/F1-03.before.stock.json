@@ -1,0 +1,20 @@
+{
+ "case": "F1-03",
+ "side": "before",
+ "tool": "idisp",
+ "config": "stock",
+ "status": "NOT_APPLICABLE",
+ "findings": [
+  {
+   "rule": "IDISP023",
+   "line": 42,
+   "message": "Don't use reference types in finalizer context",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {}
+  }
+ ],
+ "note": "n/a: no event-subscription/lifetime rule",
+ "elapsed_s": 1.99,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

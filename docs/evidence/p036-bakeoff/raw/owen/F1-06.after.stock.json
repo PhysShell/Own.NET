@@ -1,0 +1,11 @@
+{
+ "case": "F1-06",
+ "side": "after",
+ "tool": "owen",
+ "config": "stock",
+ "status": "CLEAN",
+ "findings": [],
+ "note": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.2Kpf0RhsNC: ok \u2014 no subscription leaks found\n\n0 findings.\n",
+ "elapsed_s": 2.3,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

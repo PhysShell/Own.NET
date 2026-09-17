@@ -1,0 +1,11 @@
+{
+ "case": "F1-03",
+ "side": "after",
+ "tool": "netanalyzers",
+ "config": "stock",
+ "status": "NOT_APPLICABLE",
+ "findings": [],
+ "note": "n/a: no event-subscription/lifetime rule",
+ "elapsed_s": 2.21,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}
