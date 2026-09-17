@@ -366,7 +366,7 @@ def _harness_for(candidate: Path) -> pb.Harness:
     """
     import perf_baseline as pb
     return pb.Harness(gate=pb.IdentityGate.load(pb.load_manifest()[1]),
-                      session=pb.SessionIdentity.freeze(candidate), rss=pb.RssProbe(),
+                      session=pb.SessionIdentity.freeze(candidate), memory=pb.MemoryProbe(),
                       tmp=candidate.parent, candidate=candidate,
                       warmup_discards=WARMUP_DISCARDS, repetitions=0, seed=0)
 
@@ -533,7 +533,7 @@ def _measure(prepared: Prepared, candidate: Path, results: list[dict[str, object
 
     harness = pb.Harness(
         gate=pb.IdentityGate.load(pb.load_manifest()[1]),
-        session=pb.SessionIdentity.freeze(candidate), rss=pb.RssProbe(),
+        session=pb.SessionIdentity.freeze(candidate), memory=pb.MemoryProbe(),
         tmp=Path(str(prepared.build["arm_a"])).parent,
         candidate=candidate, warmup_discards=WARMUP_DISCARDS, repetitions=0, seed=0)
 
