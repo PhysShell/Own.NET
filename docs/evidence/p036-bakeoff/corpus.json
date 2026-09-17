@@ -1070,5 +1070,54 @@
     "after"
    ]
   }
+ ],
+ "posthoc_after_audit_of": "c57a919",
+ "posthoc_cases": [
+  {
+   "id": "F4-C1",
+   "family": "F4",
+   "provenance": 5,
+   "provenance_note": "post-hoc (owner audit of c57a919): isolates the owner-enrollment variable with the interface held present",
+   "source": "corpus/p036-bakeoff/enrollment-control-interface-owner-drops",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Cache : IDisposable; var cache = new Cache(settings); never disposed",
+   "why_p036": "control A for F4-S1: interface present, owner still drops it -> lifecycle bug remains",
+   "na": {},
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
+  },
+  {
+   "id": "F4-C2",
+   "family": "F4",
+   "provenance": 5,
+   "provenance_note": "post-hoc (owner audit of c57a919): isolates the owner-enrollment variable with the interface held absent \u2014 does IDISP009 fire on a fixed lifecycle?",
+   "source": "corpus/p036-bakeoff/enrollment-control-dispose-without-interface",
+   "expected": [
+    "OWN001"
+   ],
+   "subject": "Cache not IDisposable; var cache = new Cache(settings); cache.Dispose() on the way out",
+   "why_p036": "control B for F4-S1: no interface, owner calls Dispose() explicitly -> lifecycle fixed",
+   "na": {
+    "codeql": "no event-subscription/lifetime rule",
+    "rlc": "no event-subscription/lifetime rule",
+    "infersharp": "no event-subscription/lifetime rule",
+    "netanalyzers": "no event-subscription/lifetime rule",
+    "idisp": "no event-subscription/lifetime rule"
+   },
+   "stubs": [],
+   "project": null,
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
+  }
  ]
 }

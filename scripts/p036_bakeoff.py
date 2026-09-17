@@ -587,6 +587,37 @@ CASES: list[dict[str, Any]] = [
     ),
 ]
 
+# Post-hoc cases (provenance class 5). Added AFTER the preregistered run, in
+# answer to the owner's hostile audit of c57a919 (F4-S1's fixed side toggles two
+# variables at once: the IDisposable interface AND the owner's `using`). They
+# are never part of the preregistered decision inputs — decision_inputs() drops
+# provenance 5 for D1/D2/D4 — and feed the separate `posthoc` block only.
+POSTHOC_CASES: list[dict[str, Any]] = [
+    _c(
+        "F4-C1",
+        "F4",
+        5,
+        "corpus/p036-bakeoff/enrollment-control-interface-owner-drops",
+        ["OWN001"],
+        "control A for F4-S1: interface present, owner still drops it -> lifecycle bug remains",
+        "Cache : IDisposable; var cache = new Cache(settings); never disposed",
+        prov_note="post-hoc (owner audit of c57a919): isolates the owner-enrollment variable "
+        "with the interface held present",
+    ),
+    _c(
+        "F4-C2",
+        "F4",
+        5,
+        "corpus/p036-bakeoff/enrollment-control-dispose-without-interface",
+        ["OWN001"],
+        "control B for F4-S1: no interface, owner calls Dispose() explicitly -> lifecycle fixed",
+        "Cache not IDisposable; var cache = new Cache(settings); cache.Dispose() on the way out",
+        NA_SUBSCRIPTION,
+        prov_note="post-hoc (owner audit of c57a919): isolates the owner-enrollment variable "
+        "with the interface held absent — does IDISP009 fire on a fixed lifecycle?",
+    ),
+]
+
 STUBS = {
     "eventbus": """// bakeoff stub (harness-provided, identical for every tool): the corpus file
 // references IEventBus / CustomerChanged without declaring them.
@@ -1437,6 +1468,300 @@ def run_custom_queries(
 D2_SCOPE_FAMILIES = {"F4", "F5", "F6"}  # plus the class-4 F3 cases (preregistration §0.6)
 
 
+# P-036 domains (§0.1) and the family -> domain mapping used by the literal D4
+# recomputation. INFERENCE, stated once: F1/F2/F4/F5/F6 are lifecycle-release
+# shapes reported under OWN0xx ownership codes, F3 is IDisposable ownership,
+# F7 is the obligation protocol (OBL001), F8 loop progress (PRG001), F9 region
+# / DI lifetime (OWN014, DI001). No family exercises the tasks domain.
+P036_DOMAINS = ("ownership", "obligations", "progress", "regions", "tasks")
+DOMAIN_OF_FAMILY = {
+    "F1": "ownership",
+    "F2": "ownership",
+    "F3": "ownership",
+    "F4": "ownership",
+    "F5": "ownership",
+    "F6": "ownership",
+    "F7": "obligations",
+    "F8": "progress",
+    "F9": "regions",
+}
+
+# The F4 2x2 factorial around F4-S1 (post-hoc controls F4-C1 / F4-C2):
+# I = the type implements IDisposable, O = the owner enrolls / disposes.
+# I-O- and I+O+ are F4-S1's own two sides, re-run byte-identically inside the
+# controls so the duplicate cells double as a reproducibility check.
+FACTORIAL_CELLS = {
+    "I-O-": ("F4-C2", "before"),
+    "I-O+": ("F4-C2", "after"),
+    "I+O-": ("F4-C1", "before"),
+    "I+O+": ("F4-C1", "after"),
+}
+FACTORIAL_DUPLICATES = {"I-O-": ("F4-S1", "before"), "I+O+": ("F4-S1", "after")}
+FACTORIAL_BUG_CELLS = ("I-O-", "I+O-")
+FACTORIAL_FIXED_CELLS = ("I-O+", "I+O+")
+
+
+def literal_contract(
+    prereg: list[dict[str, Any]],
+    status: Any,
+    disc: Any,
+    comparator_cfgs: list[tuple[str, str]],
+) -> dict[str, Any]:
+    """D1 and D4 recomputed from the §0.6 wording read literally.
+
+    The preregistered harness block approximates the contract at family
+    granularity. The owner's audit of c57a919 found two divergences: the D1
+    text says Owen "catches at least one WHOLE family" where the code accepted
+    one discriminated case; the D4 text counts P-036 DOMAINS where the code
+    counted defect families. Both are recomputed here, in every defensible
+    reading of the ambiguous clauses, without touching the original block.
+    """
+
+    def caught(c: dict[str, Any], t: str, g: str) -> bool:
+        if c.get("sides", ["before", "after"]) == ["before"]:
+            return status(c["id"], "before", t, g).startswith("DETECTED")
+        return disc(c["id"], t, g)
+
+    fams: dict[str, list[dict[str, Any]]] = {}
+    for c in prereg:
+        fams.setdefault(c["family"], []).append(c)
+    d1: dict[str, Any] = {}
+    for f, cs in sorted(fams.items()):
+        owen_whole = all(caught(c, "owen", "stock") for c in cs)
+        owen_fp = [
+            c["id"]
+            for c in cs
+            if status(c["id"], "after", "owen", "stock").startswith("FALSE_POSITIVE")
+        ]
+        comp_any = {
+            f"{t}/{g}": [c["id"] for c in cs if caught(c, t, g)] for t, g in comparator_cfgs
+        }
+        comp_whole = [k for k, ids in comp_any.items() if len(ids) == len(cs)]
+        d1[f] = {
+            "owen_catches_whole_family": owen_whole,
+            "owen_false_positive_on_fix": owen_fp,
+            "comparator_catches_any_case": {k: v for k, v in comp_any.items() if v},
+            "comparator_catches_whole_family": comp_whole,
+            "holds_reading_a": owen_whole and not owen_fp and not any(comp_any.values()),
+            "holds_reading_b": owen_whole and not owen_fp and not comp_whole,
+        }
+    d4: dict[str, Any] = {}
+    for dom in P036_DOMAINS:
+        cs = [c for c in prereg if DOMAIN_OF_FAMILY.get(c["family"]) == dom]
+        class1 = [c["id"] for c in cs if c["provenance"] == 1]
+        per_cfg: dict[str, Any] = {}
+        for t, g in comparator_cfgs:
+            catches = [c["id"] for c in cs if caught(c, t, g)]
+            gap_applicable = [
+                c["id"]
+                for c in cs
+                if status(c["id"], "before", t, g) == "MISSED"
+                or (
+                    status(c["id"], "before", t, g).startswith("DETECTED")
+                    and status(c["id"], "after", t, g).startswith("FALSE_POSITIVE")
+                )
+            ]
+            gap_no_rule = [
+                c["id"]
+                for c in cs
+                if status(c["id"], "before", t, g)
+                in ("NOT_APPLICABLE", "UNSUPPORTED", "CRASHED", "ABSENT")
+            ]
+            per_cfg[f"{t}/{g}"] = {
+                "catches": catches,
+                "gap_applicable": gap_applicable,
+                "gap_no_rule_or_not_run": gap_no_rule,
+            }
+        strong = bool(class1) and all(not v["catches"] for v in per_cfg.values())
+        weak_applicable = bool(class1) and all(v["gap_applicable"] for v in per_cfg.values())
+        weak_any = bool(class1) and all(
+            v["gap_applicable"] or v["gap_no_rule_or_not_run"] for v in per_cfg.values()
+        )
+        if not cs:
+            label = "no cases"
+        elif not class1:
+            label = "plausible, unevidenced (no class-1 case)"
+        else:
+            label = "class-1 present; see readings"
+        d4[dom] = {
+            "families": sorted({c["family"] for c in cs}),
+            "cases": [c["id"] for c in cs],
+            "class1_cases": class1,
+            "per_comparator": per_cfg,
+            "evidenced_strong": strong,
+            "evidenced_weak_applicable_gap": weak_applicable,
+            "evidenced_weak_any_gap": weak_any,
+            "label": label,
+        }
+    return {
+        "rules": {
+            "D1_text": "Owen-current catches at least one whole family that no comparator "
+            "catches STOCK or CONFIGURED, with zero false positives on that family's fixes",
+            "D1_caught": "two-sided case: discriminates (before DETECTED*, after silent); "
+            "single-sided case: before DETECTED*",
+            "D1_reading_a": "Owen catches every case of the family, no Owen FP on a fix, and no "
+            "comparator config catches ANY case of the family",
+            "D1_reading_b": "as (a) but the comparator clause is 'no comparator config catches "
+            "the WHOLE family'",
+            "D4_text": "a P-036 domain counts as evidenced only if the corpus holds at least "
+            "one class-1 case in it AND the bakeoff shows a semantic gap in every comparator "
+            "on it",
+            "D4_strong": "class-1 present AND every comparator config catches no case of the "
+            "domain (what the preregistered block computed, at family granularity)",
+            "D4_weak_applicable_gap": "class-1 present AND every comparator config has at "
+            "least one domain case it ran on and failed (MISSED, or DETECTED with a false "
+            "positive on the fix)",
+            "D4_weak_any_gap": "as above but NOT_APPLICABLE / UNSUPPORTED / CRASHED also count "
+            "as a gap",
+        },
+        "family_to_domain": DOMAIN_OF_FAMILY,
+        "D1": d1,
+        "D1_families_holding_a": [f for f, v in d1.items() if v["holds_reading_a"]],
+        "D1_families_holding_b": [f for f, v in d1.items() if v["holds_reading_b"]],
+        "D4": d4,
+        "D4_domains_evidenced_strong": [d for d, v in d4.items() if v["evidenced_strong"]],
+        "D4_domains_evidenced_weak_applicable_gap": [
+            d for d, v in d4.items() if v["evidenced_weak_applicable_gap"]
+        ],
+        "D4_domains_evidenced_weak_any_gap": [
+            d for d, v in d4.items() if v["evidenced_weak_any_gap"]
+        ],
+        "D4_plausible_unevidenced": [
+            d for d, v in d4.items() if v["label"].startswith("plausible")
+        ],
+        "D4_no_cases": [d for d, v in d4.items() if v["label"] == "no cases"],
+    }
+
+
+def posthoc_reanalysis(
+    cases: list[dict[str, Any]],
+    status: Any,
+    disc: Any,
+    rules_at: Any,
+    comparator_cfgs: list[tuple[str, str]],
+    d2_prereg: dict[str, Any],
+) -> dict[str, Any]:
+    """Provenance-5 controls: statuses, the F4 factorial reading, and a
+    de-confounded D2. Never replaces the preregistered block."""
+    ph = [c for c in cases if c["provenance"] == 5]
+    if not ph:
+        return {}
+    cfgs = [("owen", "stock"), *comparator_cfgs]
+
+    def fires(cid: str, side: str, t: str, g: str) -> bool:
+        return status(cid, side, t, g).startswith(("DETECTED", "FALSE_POSITIVE"))
+
+    out: dict[str, Any] = {
+        "rules": {
+            "fires": "the tool emitted a leak-family finding on the cell (status DETECTED* or "
+            "FALSE_POSITIVE*)",
+            "reading_lifecycle": "fires on both bug cells (I-O-, I+O-) and is silent on both "
+            "fixed cells (I-O+, I+O+): the tool tracks whether the teardown runs",
+            "reading_interface_convention": "fires exactly on the two no-interface cells "
+            "(I-O-, I-O+) regardless of the lifecycle: the tool tracks the IDisposable "
+            "convention",
+            "reading_raii_half_only": "fires only on I+O- (an undisposed IDisposable local): "
+            "the tool tracks the lifecycle only once the interface is present",
+            "D2_deconfounded": "the preregistered D2 scope with F4-S1's commoditised_by "
+            "restricted to configs whose factorial reading is 'lifecycle' (a config with an "
+            "unobserved cell is kept, conservatively)",
+        },
+        "cases": {},
+    }
+    for c in ph:
+        out["cases"][c["id"]] = {
+            "family": c["family"],
+            "provenance_note": c.get("provenance_note", ""),
+            "per_config": {
+                f"{t}/{g}": {
+                    "before": status(c["id"], "before", t, g),
+                    "after": status(c["id"], "after", t, g),
+                    "rules_before": rules_at(c["id"], "before", t, g),
+                    "rules_after": rules_at(c["id"], "after", t, g),
+                    "discriminates": disc(c["id"], t, g),
+                }
+                for t, g in cfgs
+            },
+        }
+    ids = {c["id"] for c in cases}
+    if not all(cid in ids for cid, _ in FACTORIAL_CELLS.values()) or "F4-S1" not in ids:
+        return out
+    fac: dict[str, Any] = {}
+    for t, g in cfgs:
+        f = {cell: fires(cid, side, t, g) for cell, (cid, side) in FACTORIAL_CELLS.items()}
+        r = {cell: rules_at(cid, side, t, g) for cell, (cid, side) in FACTORIAL_CELLS.items()}
+        unobserved = [
+            cell
+            for cell, (cid, side) in FACTORIAL_CELLS.items()
+            if status(cid, side, t, g) in ("ABSENT", "CRASHED", "UNSUPPORTED")
+        ]
+        bug = all(f[c] for c in FACTORIAL_BUG_CELLS)
+        fixed_silent = not any(f[c] for c in FACTORIAL_FIXED_CELLS)
+        iface = f["I-O-"] and f["I-O+"] and not f["I+O-"] and not f["I+O+"]
+        raii = f["I+O-"] and not f["I+O+"] and not f["I-O-"] and not f["I-O+"]
+        if unobserved:
+            reading = "not_run_or_failed:" + ",".join(unobserved)
+        elif bug and fixed_silent:
+            reading = "lifecycle"
+        elif iface:
+            reading = "interface_convention"
+        elif raii:
+            reading = "raii_half_only"
+        elif not any(f.values()):
+            reading = "silent_on_all_cells"
+        else:
+            reading = "other"
+        fac[f"{t}/{g}"] = {"fires": f, "rules": r, "reading": reading}
+    dup: dict[str, Any] = {}
+    for cell, (ocid, oside) in FACTORIAL_DUPLICATES.items():
+        ccid, cside = FACTORIAL_CELLS[cell]
+        dup[cell] = {
+            f"{t}/{g}": {
+                "original": status(ocid, oside, t, g),
+                "rerun": status(ccid, cside, t, g),
+                "agree": status(ocid, oside, t, g) == status(ccid, cside, t, g),
+            }
+            for t, g in cfgs
+        }
+    scope: dict[str, Any] = {}
+    for cid, v in d2_prereg["scope_cases"].items():
+        cb = list(v["commoditised_by"])
+        if cid == "F4-S1":
+            # conservative: a config is dropped only on a DEFINITIVE non-lifecycle
+            # reading (all four cells observed); an unobserved cell keeps it
+            cb = [
+                k
+                for k in cb
+                if fac.get(k, {}).get("reading", "").startswith(("lifecycle", "not_run"))
+            ]
+        scope[cid] = {
+            "family": v["family"],
+            "commoditised_by": cb,
+            "removed_as_confounded": [k for k in v["commoditised_by"] if k not in cb],
+        }
+    out["F4_factorial"] = {
+        "cells": {k: list(v) for k, v in FACTORIAL_CELLS.items()},
+        "duplicates_of": {k: list(v) for k, v in FACTORIAL_DUPLICATES.items()},
+        "per_config": fac,
+        "duplicate_cell_agreement": dup,
+    }
+    out["D2_deconfounded"] = {
+        "scope_cases": scope,
+        "global_holds": all(not v["commoditised_by"] for v in scope.values()),
+        "per_family_holds": {
+            f: all(not v["commoditised_by"] for v in scope.values() if v["family"] == f)
+            for f in sorted({v["family"] for v in scope.values()})
+        },
+    }
+    return out
+
+
+def load_manifest(path: Path) -> list[dict[str, Any]]:
+    """Preregistered cases followed by any post-hoc (provenance 5) cases."""
+    m = json.loads(path.read_text())
+    return list(m["cases"]) + list(m.get("posthoc_cases", []))
+
+
 def decision_inputs(results: list[RunResult], cases: list[dict[str, Any]]) -> dict[str, Any]:
     """The MECHANICAL inputs to the preregistered predicates D1, D2, D4 (docs/notes/
     p036-bakeoff.md §0.6), computed from statuses only so an auditor can recompute
@@ -1462,8 +1787,15 @@ def decision_inputs(results: list[RunResult], cases: list[dict[str, Any]]) -> di
             cid, "after", tool, cfg
         ) in ("CLEAN", "ABSENT", "NOT_APPLICABLE")
 
+    def rules_at(cid: str, side: str, tool: str, cfg: str) -> list[str]:
+        r = idx.get((cid, side, tool, cfg))
+        return sorted({f.rule for f in r.findings}) if r else []
+
+    # The preregistered predicates see the preregistered corpus only; class-5
+    # (post-hoc) cases feed the separate `posthoc` block at the end.
+    prereg = [c for c in cases if c["provenance"] <= 4]
     fams: dict[str, list[dict[str, Any]]] = {}
-    for c in cases:
+    for c in prereg:
         fams.setdefault(c["family"], []).append(c)
     out: dict[str, Any] = {
         "rules": {
@@ -1473,8 +1805,9 @@ def decision_inputs(results: list[RunResult], cases: list[dict[str, Any]]) -> di
             "that side)",
             "D1_family": "Owen discriminates >= 1 case, Owen has no FALSE_POSITIVE on any "
             "fix, and no comparator stock/configured config discriminates any case",
-            "D2_scope": "cases in F4/F5/F6 plus class-4 F3 cases whose Owen before status "
-            "is MISSED",
+            "D2_scope": "cases whose Owen before status is MISSED, among F4/F5/F6 and the "
+            "class-4 F3 cases (preregistered corpus only; provenance-5 post-hoc cases are "
+            "excluded from every predicate in this block)",
             "D2_global": "no D2-scope case is discriminated by any comparator "
             "stock/configured config",
             "D2_per_family": "same, restricted to each family",
@@ -1525,7 +1858,7 @@ def decision_inputs(results: list[RunResult], cases: list[dict[str, Any]]) -> di
         }
     d2_cases = [
         c
-        for c in cases
+        for c in prereg
         if (c["family"] in D2_SCOPE_FAMILIES or (c["family"] == "F3" and c["provenance"] == 4))
         and status(c["id"], "before", "owen", "stock") == "MISSED"
     ]
@@ -1550,7 +1883,83 @@ def decision_inputs(results: list[RunResult], cases: list[dict[str, Any]]) -> di
         "families_holding": [f for f, v in out["families"].items() if v["D1_holds_for_family"]]
     }
     out["D4"] = {"families_evidenced": [f for f, v in out["families"].items() if v["D4_evidenced"]]}
+    out["literal_contract"] = literal_contract(prereg, status, disc, comparator_cfgs)
+    out["posthoc"] = posthoc_reanalysis(cases, status, disc, rules_at, comparator_cfgs, out["D2"])
     return out
+
+
+def posthoc_lines(dec: dict[str, Any]) -> list[str]:
+    """summary.md sections for the post-hoc controls and the literal-contract
+    recomputation (both outside the preregistered inputs)."""
+    lines: list[str] = []
+    ph = dec.get("posthoc") or {}
+    if ph:
+        lines += [
+            "",
+            "## Post-hoc re-analysis (provenance-5 controls; NOT part of the preregistered inputs)",
+            "",
+        ]
+        for cid, v in ph["cases"].items():
+            cells = "; ".join(
+                f"{k}={pc['before']}/{pc['after']}" + (" DISC" if pc["discriminates"] else "")
+                for k, pc in v["per_config"].items()
+            )
+            lines.append(f"- {cid} ({v['family']}; {v['provenance_note']}): {cells}")
+        fac = ph.get("F4_factorial")
+        if fac:
+            lines += [
+                "",
+                "F4 2x2 factorial around F4-S1 (I = type implements IDisposable, O = owner "
+                "enrolls/disposes; I-O- and I+O+ are F4-S1's own sides re-run):",
+                "",
+                "| tool/config | I-O- (bug) | I+O- (bug) | I-O+ (fixed) | I+O+ (fixed) | reading |",
+                "|---|---|---|---|---|---|",
+            ]
+            for k, v in fac["per_config"].items():
+                cells = [
+                    ("fires " + " ".join(v["rules"][c])) if v["fires"][c] else "silent"
+                    for c in ("I-O-", "I+O-", "I-O+", "I+O+")
+                ]
+                lines.append(f"| {k} | " + " | ".join(cells) + f" | {v['reading']} |")
+            bad = [
+                f"{cell}:{k}"
+                for cell, m in fac["duplicate_cell_agreement"].items()
+                for k, a in m.items()
+                if not a["agree"]
+            ]
+            lines += [
+                "",
+                "Duplicate-cell agreement with F4-S1's original rows: "
+                + ("all configs agree" if not bad else "DISAGREE " + " ".join(bad)),
+            ]
+            d2d = ph["D2_deconfounded"]
+            removed = "; ".join(
+                f"{cid}: {' '.join(v['removed_as_confounded'])}"
+                for cid, v in d2d["scope_cases"].items()
+                if v["removed_as_confounded"]
+            )
+            lines.append(
+                f"D2 de-confounded (F4-S1 counts only 'lifecycle'-reading configs): global "
+                f"{d2d['global_holds']}; per family {d2d['per_family_holds']}; removed as "
+                f"confounded: {removed or 'none'}"
+            )
+    lc = dec.get("literal_contract") or {}
+    if lc:
+        lines += [
+            "",
+            "## Literal-contract recomputation (§0.6 wording read literally; "
+            "family->domain mapping and every reading's definition in results.json)",
+            "",
+            f"- D1 literal, reading (a): {lc['D1_families_holding_a']}",
+            f"- D1 literal, reading (b): {lc['D1_families_holding_b']}",
+            f"- D4 literal, strong: {lc['D4_domains_evidenced_strong']}",
+            "- D4 literal, weak (applicable gap): "
+            f"{lc['D4_domains_evidenced_weak_applicable_gap']}",
+            f"- D4 literal, weak (any gap): {lc['D4_domains_evidenced_weak_any_gap']}",
+            f"- D4 plausible, unevidenced: {lc['D4_plausible_unevidenced']}; "
+            f"no cases: {lc['D4_no_cases']}",
+        ]
+    return lines
 
 
 def summarize(results: list[RunResult], cases: list[dict[str, Any]], out: Path) -> None:
@@ -1558,6 +1967,7 @@ def summarize(results: list[RunResult], cases: list[dict[str, Any]], out: Path) 
     # any stray result for a side the manifest does not declare
     allowed = {(c["id"], s) for c in cases for s in c.get("sides", ["before", "after"])}
     results = [r for r in results if (r.case, r.side) in allowed]
+    prereg_cases = [c for c in cases if c["provenance"] <= 4]
     tools_cfg = sorted({(r.tool, r.config) for r in results}, key=lambda x: (x[0], x[1]))
     lines = [
         "# P-036 bakeoff — status matrix (generated by scripts/p036_bakeoff.py)",
@@ -1597,7 +2007,7 @@ def summarize(results: list[RunResult], cases: list[dict[str, Any]], out: Path) 
                 "unsupported_or_crashed": [],
             },
         )
-        for c in cases:
+        for c in prereg_cases:
             b = idx.get((c["id"], "before", t, cfg))
             a = idx.get((c["id"], "after", t, cfg))
             if b is None:
@@ -1616,7 +2026,8 @@ def summarize(results: list[RunResult], cases: list[dict[str, Any]], out: Path) 
                 d["unsupported_or_crashed"].append(c["id"])
     lines += [
         "",
-        "## Discrimination per tool/config (before flagged AND fix silent)",
+        "## Discrimination per tool/config (before flagged AND fix silent; "
+        "preregistered cases only)",
         "",
         "| tool/config | discriminates | detected but FP on fix | missed | n/a "
         "| unsupported/crashed |",
@@ -1663,6 +2074,7 @@ def summarize(results: list[RunResult], cases: list[dict[str, Any]], out: Path) 
     ]
     for cid, v in dec["D2"]["scope_cases"].items():
         lines.append(f"- {cid} ({v['family']}): " + (", ".join(v["commoditised_by"]) or "nobody"))
+    lines += posthoc_lines(dec)
     (out / "summary.md").write_text("\n".join(lines) + "\n")
     (out / "results.json").write_text(
         json.dumps(
@@ -1708,13 +2120,22 @@ def main(argv: list[str]) -> int:
     a = ap.parse_args(argv)
     if a.write_manifest:
         Path(a.write_manifest).write_text(
-            json.dumps({"preregistered_at": "70189a3", "cases": CASES}, indent=1) + "\n"
+            json.dumps(
+                {
+                    "preregistered_at": "70189a3",
+                    "cases": CASES,
+                    "posthoc_after_audit_of": "c57a919",
+                    "posthoc_cases": POSTHOC_CASES,
+                },
+                indent=1,
+            )
+            + "\n"
         )
-        print(f"wrote {a.write_manifest} ({len(CASES)} cases)")
+        print(f"wrote {a.write_manifest} ({len(CASES)} cases + {len(POSTHOC_CASES)} post-hoc)")
         return 0
     if not (a.manifest and a.work and a.out):
         ap.error("--manifest, --work and --out are required to run")
-    cases = json.loads(Path(a.manifest).read_text())["cases"]
+    cases = load_manifest(Path(a.manifest))
     if a.cases:
         want = set(a.cases.split(","))
         cases = [c for c in cases if c["id"] in want]
@@ -1737,7 +2158,7 @@ def main(argv: list[str]) -> int:
             )
             for r in prior
         ]
-        allcases = json.loads(Path(a.manifest).read_text())["cases"]
+        allcases = load_manifest(Path(a.manifest))
         summarize(results, allcases, out)
         print(f"rewrote {out / 'summary.md'} and {out / 'results.json'}")
         return 0
@@ -1753,7 +2174,7 @@ def main(argv: list[str]) -> int:
             )
             for r in prior
         ]
-        allcases = json.loads(Path(a.manifest).read_text())["cases"]
+        allcases = load_manifest(Path(a.manifest))
         fresh = run_custom_queries(Path(a.custom_queries), cases, sides, work, raw)
         keep = {(r.case, r.side, r.tool, r.config) for r in fresh}
         results = [r for r in results if (r.case, r.side, r.tool, r.config) not in keep] + fresh
@@ -1794,7 +2215,7 @@ def main(argv: list[str]) -> int:
             for r in prior
             if (r["case"], r["side"], r["tool"], r["config"]) not in keep
         ]
-        cases = json.loads(Path(a.manifest).read_text())["cases"]
+        cases = load_manifest(Path(a.manifest))
     results.sort(key=lambda r: (r.case, r.side, r.tool, r.config))
     summarize(results, cases, out)
     print(f"wrote {out / 'summary.md'} and {out / 'results.json'}")

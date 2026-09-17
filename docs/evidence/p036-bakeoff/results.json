@@ -1,5 +1,5 @@
 {
- "head": "14ab0dd4d3fc39700e349bdd17e75865ee6ee6a2",
+ "head": "c57a919c5f2ec3cbfca0580ea4224099f88e6603",
  "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST",
  "discrimination": {
   "codeql/custom_query_naive": {
@@ -512,7 +512,7 @@
   "rules": {
    "discriminates": "before status starts with DETECTED and after status is one of CLEAN, NOT_APPLICABLE, ABSENT (NOT_APPLICABLE is only ever assigned over a raw CLEAN/MISSED, so an N/A fix side was clean; ABSENT = no result row for that side)",
    "D1_family": "Owen discriminates >= 1 case, Owen has no FALSE_POSITIVE on any fix, and no comparator stock/configured config discriminates any case",
-   "D2_scope": "cases in F4/F5/F6 plus class-4 F3 cases whose Owen before status is MISSED",
+   "D2_scope": "cases whose Owen before status is MISSED, among F4/F5/F6 and the class-4 F3 cases (preregistered corpus only; provenance-5 post-hoc cases are excluded from every predicate in this block)",
    "D2_global": "no D2-scope case is discriminated by any comparator stock/configured config",
    "D2_per_family": "same, restricted to each family",
    "D4_evidenced": "family holds a class-1 case AND no comparator config discriminates any case in it"
@@ -1049,6 +1049,1160 @@
   },
   "D4": {
    "families_evidenced": []
+  },
+  "literal_contract": {
+   "rules": {
+    "D1_text": "Owen-current catches at least one whole family that no comparator catches STOCK or CONFIGURED, with zero false positives on that family's fixes",
+    "D1_caught": "two-sided case: discriminates (before DETECTED*, after silent); single-sided case: before DETECTED*",
+    "D1_reading_a": "Owen catches every case of the family, no Owen FP on a fix, and no comparator config catches ANY case of the family",
+    "D1_reading_b": "as (a) but the comparator clause is 'no comparator config catches the WHOLE family'",
+    "D4_text": "a P-036 domain counts as evidenced only if the corpus holds at least one class-1 case in it AND the bakeoff shows a semantic gap in every comparator on it",
+    "D4_strong": "class-1 present AND every comparator config catches no case of the domain (what the preregistered block computed, at family granularity)",
+    "D4_weak_applicable_gap": "class-1 present AND every comparator config has at least one domain case it ran on and failed (MISSED, or DETECTED with a false positive on the fix)",
+    "D4_weak_any_gap": "as above but NOT_APPLICABLE / UNSUPPORTED / CRASHED also count as a gap"
+   },
+   "family_to_domain": {
+    "F1": "ownership",
+    "F2": "ownership",
+    "F3": "ownership",
+    "F4": "ownership",
+    "F5": "ownership",
+    "F6": "ownership",
+    "F7": "obligations",
+    "F8": "progress",
+    "F9": "regions"
+   },
+   "D1": {
+    "F1": {
+     "owen_catches_whole_family": true,
+     "owen_false_positive_on_fix": [],
+     "comparator_catches_any_case": {
+      "codeql/stock": [
+       "F1-14"
+      ],
+      "idisp/stock": [
+       "F1-14"
+      ],
+      "infersharp/stock": [
+       "F1-14"
+      ],
+      "netanalyzers/configured": [
+       "F1-14"
+      ],
+      "netanalyzers/stock": [
+       "F1-14"
+      ],
+      "rlc/stock": [
+       "F1-14"
+      ]
+     },
+     "comparator_catches_whole_family": [],
+     "holds_reading_a": false,
+     "holds_reading_b": true
+    },
+    "F2": {
+     "owen_catches_whole_family": true,
+     "owen_false_positive_on_fix": [],
+     "comparator_catches_any_case": {},
+     "comparator_catches_whole_family": [],
+     "holds_reading_a": true,
+     "holds_reading_b": true
+    },
+    "F3": {
+     "owen_catches_whole_family": false,
+     "owen_false_positive_on_fix": [],
+     "comparator_catches_any_case": {
+      "codeql/stock": [
+       "F3-06"
+      ],
+      "idisp/stock": [
+       "F3-01",
+       "F3-04",
+       "F3-06",
+       "F3-07",
+       "F3-08",
+       "F3-09",
+       "F3-10"
+      ],
+      "infersharp/stock": [
+       "F3-08",
+       "F3-09"
+      ],
+      "netanalyzers/configured": [
+       "F3-04",
+       "F3-06",
+       "F3-08",
+       "F3-09"
+      ],
+      "netanalyzers/stock": [
+       "F3-01",
+       "F3-04",
+       "F3-06",
+       "F3-08",
+       "F3-09"
+      ],
+      "rlc/stock": [
+       "F3-01",
+       "F3-04",
+       "F3-06",
+       "F3-08",
+       "F3-09",
+       "F3-10"
+      ]
+     },
+     "comparator_catches_whole_family": [],
+     "holds_reading_a": false,
+     "holds_reading_b": false
+    },
+    "F4": {
+     "owen_catches_whole_family": false,
+     "owen_false_positive_on_fix": [],
+     "comparator_catches_any_case": {
+      "idisp/stock": [
+       "F4-S1",
+       "F4-S2"
+      ],
+      "netanalyzers/configured": [
+       "F4-S2"
+      ],
+      "netanalyzers/stock": [
+       "F4-S2"
+      ]
+     },
+     "comparator_catches_whole_family": [
+      "idisp/stock"
+     ],
+     "holds_reading_a": false,
+     "holds_reading_b": false
+    },
+    "F5": {
+     "owen_catches_whole_family": false,
+     "owen_false_positive_on_fix": [],
+     "comparator_catches_any_case": {},
+     "comparator_catches_whole_family": [],
+     "holds_reading_a": false,
+     "holds_reading_b": false
+    },
+    "F6": {
+     "owen_catches_whole_family": false,
+     "owen_false_positive_on_fix": [
+      "F6-S1"
+     ],
+     "comparator_catches_any_case": {},
+     "comparator_catches_whole_family": [],
+     "holds_reading_a": false,
+     "holds_reading_b": false
+    },
+    "F7": {
+     "owen_catches_whole_family": false,
+     "owen_false_positive_on_fix": [],
+     "comparator_catches_any_case": {},
+     "comparator_catches_whole_family": [],
+     "holds_reading_a": false,
+     "holds_reading_b": false
+    },
+    "F8": {
+     "owen_catches_whole_family": false,
+     "owen_false_positive_on_fix": [],
+     "comparator_catches_any_case": {},
+     "comparator_catches_whole_family": [],
+     "holds_reading_a": false,
+     "holds_reading_b": false
+    },
+    "F9": {
+     "owen_catches_whole_family": true,
+     "owen_false_positive_on_fix": [],
+     "comparator_catches_any_case": {},
+     "comparator_catches_whole_family": [],
+     "holds_reading_a": true,
+     "holds_reading_b": true
+    }
+   },
+   "D1_families_holding_a": [
+    "F2",
+    "F9"
+   ],
+   "D1_families_holding_b": [
+    "F1",
+    "F2",
+    "F9"
+   ],
+   "D4": {
+    "ownership": {
+     "families": [
+      "F1",
+      "F2",
+      "F3",
+      "F4",
+      "F5",
+      "F6"
+     ],
+     "cases": [
+      "F1-01",
+      "F1-02",
+      "F1-03",
+      "F1-04",
+      "F1-05",
+      "F1-06",
+      "F1-07",
+      "F1-08",
+      "F1-09",
+      "F1-10",
+      "F1-11",
+      "F1-12",
+      "F1-13",
+      "F1-14",
+      "F2-01",
+      "F2-02",
+      "F2-03",
+      "F2-04",
+      "F2-05",
+      "F2-06",
+      "F3-01",
+      "F3-02",
+      "F3-03",
+      "F3-04",
+      "F3-05",
+      "F3-06",
+      "F3-07",
+      "F3-08",
+      "F3-09",
+      "F3-10",
+      "F3-S1",
+      "F3-S2",
+      "F3-S3",
+      "F3-S4",
+      "F3-S5",
+      "F3-S6",
+      "F4-S1",
+      "F4-S2",
+      "F5-S1",
+      "F6-S1"
+     ],
+     "class1_cases": [
+      "F1-01",
+      "F1-04",
+      "F1-11",
+      "F1-12",
+      "F3-01",
+      "F3-04",
+      "F3-05",
+      "F3-06",
+      "F3-10"
+     ],
+     "per_comparator": {
+      "codeql/stock": {
+       "catches": [
+        "F1-14",
+        "F3-06"
+       ],
+       "gap_applicable": [
+        "F3-01",
+        "F3-02",
+        "F3-03",
+        "F3-04",
+        "F3-05",
+        "F3-07",
+        "F3-08",
+        "F3-09",
+        "F3-10",
+        "F3-S1",
+        "F3-S2",
+        "F3-S3",
+        "F3-S4",
+        "F3-S5",
+        "F3-S6",
+        "F4-S2"
+       ],
+       "gap_no_rule_or_not_run": [
+        "F1-01",
+        "F1-02",
+        "F1-03",
+        "F1-04",
+        "F1-05",
+        "F1-06",
+        "F1-07",
+        "F1-08",
+        "F1-09",
+        "F1-10",
+        "F1-11",
+        "F1-12",
+        "F1-13",
+        "F2-01",
+        "F2-02",
+        "F2-03",
+        "F2-04",
+        "F2-05",
+        "F2-06",
+        "F4-S1",
+        "F5-S1",
+        "F6-S1"
+       ]
+      },
+      "idisp/stock": {
+       "catches": [
+        "F1-14",
+        "F3-01",
+        "F3-04",
+        "F3-06",
+        "F3-07",
+        "F3-08",
+        "F3-09",
+        "F3-10",
+        "F4-S1",
+        "F4-S2"
+       ],
+       "gap_applicable": [
+        "F1-13",
+        "F3-02",
+        "F3-03",
+        "F3-05",
+        "F3-S1",
+        "F3-S2",
+        "F3-S3",
+        "F3-S4",
+        "F3-S5",
+        "F3-S6"
+       ],
+       "gap_no_rule_or_not_run": [
+        "F1-01",
+        "F1-02",
+        "F1-03",
+        "F1-04",
+        "F1-05",
+        "F1-06",
+        "F1-07",
+        "F1-08",
+        "F1-09",
+        "F1-10",
+        "F1-11",
+        "F1-12",
+        "F2-01",
+        "F2-02",
+        "F2-03",
+        "F2-04",
+        "F2-05",
+        "F2-06",
+        "F5-S1",
+        "F6-S1"
+       ]
+      },
+      "infersharp/stock": {
+       "catches": [
+        "F1-14",
+        "F3-08",
+        "F3-09"
+       ],
+       "gap_applicable": [
+        "F3-01",
+        "F3-02",
+        "F3-03",
+        "F3-04",
+        "F3-05",
+        "F3-06",
+        "F3-07",
+        "F3-10",
+        "F3-S1",
+        "F3-S2",
+        "F3-S3",
+        "F3-S4",
+        "F3-S5",
+        "F3-S6",
+        "F4-S2"
+       ],
+       "gap_no_rule_or_not_run": [
+        "F1-01",
+        "F1-02",
+        "F1-03",
+        "F1-04",
+        "F1-05",
+        "F1-06",
+        "F1-07",
+        "F1-08",
+        "F1-09",
+        "F1-10",
+        "F1-11",
+        "F1-12",
+        "F1-13",
+        "F2-01",
+        "F2-02",
+        "F2-03",
+        "F2-04",
+        "F2-05",
+        "F2-06",
+        "F4-S1",
+        "F5-S1",
+        "F6-S1"
+       ]
+      },
+      "netanalyzers/configured": {
+       "catches": [
+        "F1-14",
+        "F3-04",
+        "F3-06",
+        "F3-08",
+        "F3-09",
+        "F4-S2"
+       ],
+       "gap_applicable": [
+        "F1-13",
+        "F3-01",
+        "F3-02",
+        "F3-03",
+        "F3-05",
+        "F3-07",
+        "F3-10",
+        "F3-S1",
+        "F3-S2",
+        "F3-S3",
+        "F3-S4",
+        "F3-S5",
+        "F3-S6",
+        "F5-S1"
+       ],
+       "gap_no_rule_or_not_run": [
+        "F1-01",
+        "F1-02",
+        "F1-03",
+        "F1-04",
+        "F1-05",
+        "F1-06",
+        "F1-07",
+        "F1-08",
+        "F1-09",
+        "F1-10",
+        "F1-11",
+        "F1-12",
+        "F2-01",
+        "F2-02",
+        "F2-03",
+        "F2-04",
+        "F2-05",
+        "F2-06",
+        "F4-S1",
+        "F6-S1"
+       ]
+      },
+      "netanalyzers/stock": {
+       "catches": [
+        "F1-14",
+        "F3-01",
+        "F3-04",
+        "F3-06",
+        "F3-08",
+        "F3-09",
+        "F4-S2"
+       ],
+       "gap_applicable": [
+        "F1-13",
+        "F3-02",
+        "F3-03",
+        "F3-05",
+        "F3-07",
+        "F3-10",
+        "F3-S1",
+        "F3-S2",
+        "F3-S3",
+        "F3-S4",
+        "F3-S5",
+        "F3-S6",
+        "F5-S1"
+       ],
+       "gap_no_rule_or_not_run": [
+        "F1-01",
+        "F1-02",
+        "F1-03",
+        "F1-04",
+        "F1-05",
+        "F1-06",
+        "F1-07",
+        "F1-08",
+        "F1-09",
+        "F1-10",
+        "F1-11",
+        "F1-12",
+        "F2-01",
+        "F2-02",
+        "F2-03",
+        "F2-04",
+        "F2-05",
+        "F2-06",
+        "F4-S1",
+        "F6-S1"
+       ]
+      },
+      "rlc/stock": {
+       "catches": [
+        "F1-14",
+        "F3-01",
+        "F3-04",
+        "F3-06",
+        "F3-08",
+        "F3-09",
+        "F3-10"
+       ],
+       "gap_applicable": [
+        "F3-02",
+        "F3-03",
+        "F3-05",
+        "F3-07",
+        "F3-S1",
+        "F3-S2",
+        "F3-S3",
+        "F3-S4",
+        "F3-S5",
+        "F3-S6",
+        "F4-S2"
+       ],
+       "gap_no_rule_or_not_run": [
+        "F1-01",
+        "F1-02",
+        "F1-03",
+        "F1-04",
+        "F1-05",
+        "F1-06",
+        "F1-07",
+        "F1-08",
+        "F1-09",
+        "F1-10",
+        "F1-11",
+        "F1-12",
+        "F1-13",
+        "F2-01",
+        "F2-02",
+        "F2-03",
+        "F2-04",
+        "F2-05",
+        "F2-06",
+        "F4-S1",
+        "F5-S1",
+        "F6-S1"
+       ]
+      }
+     },
+     "evidenced_strong": false,
+     "evidenced_weak_applicable_gap": true,
+     "evidenced_weak_any_gap": true,
+     "label": "class-1 present; see readings"
+    },
+    "obligations": {
+     "families": [
+      "F7"
+     ],
+     "cases": [
+      "F7-S1"
+     ],
+     "class1_cases": [],
+     "per_comparator": {
+      "codeql/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F7-S1"
+       ]
+      },
+      "idisp/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F7-S1"
+       ]
+      },
+      "infersharp/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F7-S1"
+       ]
+      },
+      "netanalyzers/configured": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F7-S1"
+       ]
+      },
+      "netanalyzers/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F7-S1"
+       ]
+      },
+      "rlc/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F7-S1"
+       ]
+      }
+     },
+     "evidenced_strong": false,
+     "evidenced_weak_applicable_gap": false,
+     "evidenced_weak_any_gap": false,
+     "label": "plausible, unevidenced (no class-1 case)"
+    },
+    "progress": {
+     "families": [
+      "F8"
+     ],
+     "cases": [
+      "F8-S1"
+     ],
+     "class1_cases": [],
+     "per_comparator": {
+      "codeql/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F8-S1"
+       ]
+      },
+      "idisp/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F8-S1"
+       ]
+      },
+      "infersharp/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F8-S1"
+       ]
+      },
+      "netanalyzers/configured": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F8-S1"
+       ]
+      },
+      "netanalyzers/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F8-S1"
+       ]
+      },
+      "rlc/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F8-S1"
+       ]
+      }
+     },
+     "evidenced_strong": false,
+     "evidenced_weak_applicable_gap": false,
+     "evidenced_weak_any_gap": false,
+     "label": "plausible, unevidenced (no class-1 case)"
+    },
+    "regions": {
+     "families": [
+      "F9"
+     ],
+     "cases": [
+      "F9-01",
+      "F9-02",
+      "F9-03"
+     ],
+     "class1_cases": [],
+     "per_comparator": {
+      "codeql/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F9-01",
+        "F9-02",
+        "F9-03"
+       ]
+      },
+      "idisp/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F9-01",
+        "F9-02",
+        "F9-03"
+       ]
+      },
+      "infersharp/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F9-01",
+        "F9-02",
+        "F9-03"
+       ]
+      },
+      "netanalyzers/configured": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F9-01",
+        "F9-02",
+        "F9-03"
+       ]
+      },
+      "netanalyzers/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F9-01",
+        "F9-02",
+        "F9-03"
+       ]
+      },
+      "rlc/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": [
+        "F9-01",
+        "F9-02",
+        "F9-03"
+       ]
+      }
+     },
+     "evidenced_strong": false,
+     "evidenced_weak_applicable_gap": false,
+     "evidenced_weak_any_gap": false,
+     "label": "plausible, unevidenced (no class-1 case)"
+    },
+    "tasks": {
+     "families": [],
+     "cases": [],
+     "class1_cases": [],
+     "per_comparator": {
+      "codeql/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": []
+      },
+      "idisp/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": []
+      },
+      "infersharp/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": []
+      },
+      "netanalyzers/configured": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": []
+      },
+      "netanalyzers/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": []
+      },
+      "rlc/stock": {
+       "catches": [],
+       "gap_applicable": [],
+       "gap_no_rule_or_not_run": []
+      }
+     },
+     "evidenced_strong": false,
+     "evidenced_weak_applicable_gap": false,
+     "evidenced_weak_any_gap": false,
+     "label": "no cases"
+    }
+   },
+   "D4_domains_evidenced_strong": [],
+   "D4_domains_evidenced_weak_applicable_gap": [
+    "ownership"
+   ],
+   "D4_domains_evidenced_weak_any_gap": [
+    "ownership"
+   ],
+   "D4_plausible_unevidenced": [
+    "obligations",
+    "progress",
+    "regions"
+   ],
+   "D4_no_cases": [
+    "tasks"
+   ]
+  },
+  "posthoc": {
+   "rules": {
+    "fires": "the tool emitted a leak-family finding on the cell (status DETECTED* or FALSE_POSITIVE*)",
+    "reading_lifecycle": "fires on both bug cells (I-O-, I+O-) and is silent on both fixed cells (I-O+, I+O+): the tool tracks whether the teardown runs",
+    "reading_interface_convention": "fires exactly on the two no-interface cells (I-O-, I-O+) regardless of the lifecycle: the tool tracks the IDisposable convention",
+    "reading_raii_half_only": "fires only on I+O- (an undisposed IDisposable local): the tool tracks the lifecycle only once the interface is present",
+    "D2_deconfounded": "the preregistered D2 scope with F4-S1's commoditised_by restricted to configs whose factorial reading is 'lifecycle' (a config with an unobserved cell is kept, conservatively)"
+   },
+   "cases": {
+    "F4-C1": {
+     "family": "F4",
+     "provenance_note": "post-hoc (owner audit of c57a919): isolates the owner-enrollment variable with the interface held present",
+     "per_config": {
+      "owen/stock": {
+       "before": "ABSENT",
+       "after": "ABSENT",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      },
+      "codeql/stock": {
+       "before": "ABSENT",
+       "after": "ABSENT",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      },
+      "idisp/stock": {
+       "before": "ABSENT",
+       "after": "ABSENT",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      },
+      "infersharp/stock": {
+       "before": "ABSENT",
+       "after": "ABSENT",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      },
+      "netanalyzers/configured": {
+       "before": "ABSENT",
+       "after": "ABSENT",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      },
+      "netanalyzers/stock": {
+       "before": "ABSENT",
+       "after": "ABSENT",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      },
+      "rlc/stock": {
+       "before": "ABSENT",
+       "after": "ABSENT",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      }
+     }
+    },
+    "F4-C2": {
+     "family": "F4",
+     "provenance_note": "post-hoc (owner audit of c57a919): isolates the owner-enrollment variable with the interface held absent \u2014 does IDISP009 fire on a fixed lifecycle?",
+     "per_config": {
+      "owen/stock": {
+       "before": "ABSENT",
+       "after": "ABSENT",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      },
+      "codeql/stock": {
+       "before": "ABSENT",
+       "after": "ABSENT",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      },
+      "idisp/stock": {
+       "before": "ABSENT",
+       "after": "ABSENT",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      },
+      "infersharp/stock": {
+       "before": "ABSENT",
+       "after": "ABSENT",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      },
+      "netanalyzers/configured": {
+       "before": "ABSENT",
+       "after": "ABSENT",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      },
+      "netanalyzers/stock": {
+       "before": "ABSENT",
+       "after": "ABSENT",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      },
+      "rlc/stock": {
+       "before": "ABSENT",
+       "after": "ABSENT",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      }
+     }
+    }
+   },
+   "F4_factorial": {
+    "cells": {
+     "I-O-": [
+      "F4-C2",
+      "before"
+     ],
+     "I-O+": [
+      "F4-C2",
+      "after"
+     ],
+     "I+O-": [
+      "F4-C1",
+      "before"
+     ],
+     "I+O+": [
+      "F4-C1",
+      "after"
+     ]
+    },
+    "duplicates_of": {
+     "I-O-": [
+      "F4-S1",
+      "before"
+     ],
+     "I+O+": [
+      "F4-S1",
+      "after"
+     ]
+    },
+    "per_config": {
+     "owen/stock": {
+      "fires": {
+       "I-O-": false,
+       "I-O+": false,
+       "I+O-": false,
+       "I+O+": false
+      },
+      "rules": {
+       "I-O-": [],
+       "I-O+": [],
+       "I+O-": [],
+       "I+O+": []
+      },
+      "reading": "not_run_or_failed:I-O-,I-O+,I+O-,I+O+"
+     },
+     "codeql/stock": {
+      "fires": {
+       "I-O-": false,
+       "I-O+": false,
+       "I+O-": false,
+       "I+O+": false
+      },
+      "rules": {
+       "I-O-": [],
+       "I-O+": [],
+       "I+O-": [],
+       "I+O+": []
+      },
+      "reading": "not_run_or_failed:I-O-,I-O+,I+O-,I+O+"
+     },
+     "idisp/stock": {
+      "fires": {
+       "I-O-": false,
+       "I-O+": false,
+       "I+O-": false,
+       "I+O+": false
+      },
+      "rules": {
+       "I-O-": [],
+       "I-O+": [],
+       "I+O-": [],
+       "I+O+": []
+      },
+      "reading": "not_run_or_failed:I-O-,I-O+,I+O-,I+O+"
+     },
+     "infersharp/stock": {
+      "fires": {
+       "I-O-": false,
+       "I-O+": false,
+       "I+O-": false,
+       "I+O+": false
+      },
+      "rules": {
+       "I-O-": [],
+       "I-O+": [],
+       "I+O-": [],
+       "I+O+": []
+      },
+      "reading": "not_run_or_failed:I-O-,I-O+,I+O-,I+O+"
+     },
+     "netanalyzers/configured": {
+      "fires": {
+       "I-O-": false,
+       "I-O+": false,
+       "I+O-": false,
+       "I+O+": false
+      },
+      "rules": {
+       "I-O-": [],
+       "I-O+": [],
+       "I+O-": [],
+       "I+O+": []
+      },
+      "reading": "not_run_or_failed:I-O-,I-O+,I+O-,I+O+"
+     },
+     "netanalyzers/stock": {
+      "fires": {
+       "I-O-": false,
+       "I-O+": false,
+       "I+O-": false,
+       "I+O+": false
+      },
+      "rules": {
+       "I-O-": [],
+       "I-O+": [],
+       "I+O-": [],
+       "I+O+": []
+      },
+      "reading": "not_run_or_failed:I-O-,I-O+,I+O-,I+O+"
+     },
+     "rlc/stock": {
+      "fires": {
+       "I-O-": false,
+       "I-O+": false,
+       "I+O-": false,
+       "I+O+": false
+      },
+      "rules": {
+       "I-O-": [],
+       "I-O+": [],
+       "I+O-": [],
+       "I+O+": []
+      },
+      "reading": "not_run_or_failed:I-O-,I-O+,I+O-,I+O+"
+     }
+    },
+    "duplicate_cell_agreement": {
+     "I-O-": {
+      "owen/stock": {
+       "original": "MISSED",
+       "rerun": "ABSENT",
+       "agree": false
+      },
+      "codeql/stock": {
+       "original": "NOT_APPLICABLE",
+       "rerun": "ABSENT",
+       "agree": false
+      },
+      "idisp/stock": {
+       "original": "DETECTED_STOCK",
+       "rerun": "ABSENT",
+       "agree": false
+      },
+      "infersharp/stock": {
+       "original": "NOT_APPLICABLE",
+       "rerun": "ABSENT",
+       "agree": false
+      },
+      "netanalyzers/configured": {
+       "original": "NOT_APPLICABLE",
+       "rerun": "ABSENT",
+       "agree": false
+      },
+      "netanalyzers/stock": {
+       "original": "NOT_APPLICABLE",
+       "rerun": "ABSENT",
+       "agree": false
+      },
+      "rlc/stock": {
+       "original": "NOT_APPLICABLE",
+       "rerun": "ABSENT",
+       "agree": false
+      }
+     },
+     "I+O+": {
+      "owen/stock": {
+       "original": "CLEAN",
+       "rerun": "ABSENT",
+       "agree": false
+      },
+      "codeql/stock": {
+       "original": "NOT_APPLICABLE",
+       "rerun": "ABSENT",
+       "agree": false
+      },
+      "idisp/stock": {
+       "original": "NOT_APPLICABLE",
+       "rerun": "ABSENT",
+       "agree": false
+      },
+      "infersharp/stock": {
+       "original": "NOT_APPLICABLE",
+       "rerun": "ABSENT",
+       "agree": false
+      },
+      "netanalyzers/configured": {
+       "original": "NOT_APPLICABLE",
+       "rerun": "ABSENT",
+       "agree": false
+      },
+      "netanalyzers/stock": {
+       "original": "NOT_APPLICABLE",
+       "rerun": "ABSENT",
+       "agree": false
+      },
+      "rlc/stock": {
+       "original": "NOT_APPLICABLE",
+       "rerun": "ABSENT",
+       "agree": false
+      }
+     }
+    }
+   },
+   "D2_deconfounded": {
+    "scope_cases": {
+     "F3-S1": {
+      "family": "F3",
+      "commoditised_by": [],
+      "removed_as_confounded": []
+     },
+     "F3-S2": {
+      "family": "F3",
+      "commoditised_by": [],
+      "removed_as_confounded": []
+     },
+     "F3-S3": {
+      "family": "F3",
+      "commoditised_by": [],
+      "removed_as_confounded": []
+     },
+     "F3-S4": {
+      "family": "F3",
+      "commoditised_by": [],
+      "removed_as_confounded": []
+     },
+     "F4-S1": {
+      "family": "F4",
+      "commoditised_by": [
+       "idisp/stock"
+      ],
+      "removed_as_confounded": []
+     },
+     "F5-S1": {
+      "family": "F5",
+      "commoditised_by": [],
+      "removed_as_confounded": []
+     }
+    },
+    "global_holds": false,
+    "per_family_holds": {
+     "F3": true,
+     "F4": false,
+     "F5": true
+    }
+   }
   }
  },
  "results": [

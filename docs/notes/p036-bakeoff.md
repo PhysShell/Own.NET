@@ -256,10 +256,13 @@ rule scope, and any harness stubs. Counts by family × provenance class
 
 Notes on honesty of the corpus:
 
-- **No case was written after seeing a comparator result.** The twelve class-4
-  cases were authored from P-037 §8 and P-036 §Phase 2 before any comparator
-  touched them (§0). No class-5 (post-hoc) case exists at the time of writing;
-  if one is added later it is marked so here.
+- **No case was written after seeing a comparator result** — for the
+  preregistered corpus. The twelve class-4 cases were authored from P-037 §8
+  and P-036 §Phase 2 before any comparator touched them (§0). No class-5
+  (post-hoc) case existed when the results matrix was read. **Two class-5
+  controls were added afterwards** (§1.1), in answer to the owner's hostile
+  audit of `c57a919`; they are marked post-hoc in the manifest, excluded from
+  every preregistered predicate (§3.4), and read only in §8.4.
 - The "historical real bug" class contains SectorTS reductions (heap-proven,
   #278), ScreenToGif (mined, `real-world-mining.md`), ShareX, NLog shapes and
   representative ADO/stream shapes — all *reductions*, not the original
@@ -284,6 +287,28 @@ Notes on honesty of the corpus:
   are not in P-036's interprocedural scope and would inflate the "Owen-only"
   count with an orthogonal capability.
 - `F1-14` is the July oracle fixture reused unchanged (its own console project).
+
+### 1.1 Post-hoc controls (class 5, added after the audit of `c57a919`)
+
+The owner's audit of the closed record found that F4-S1's fixed side toggles
+**two** variables at once — the type gains `IDisposable` *and* the owner gains
+a `using` — so a tool silent on the fix could be tracking either. The two
+controls below complete a 2×2 factorial around F4-S1 with everything else
+byte-identical (I = type implements `IDisposable`, O = owner enrolls/disposes):
+
+| case | cell(s) | source | lifecycle state on `before` → `after` |
+|---|---|---|---|
+| `F4-C1` `enrollment-control-interface-owner-drops` | I+O− → I+O+ | F4-S1's code with `: IDisposable` added and the owner still dropping the instance; the fix is F4-S1's fix verbatim | BUG REMAINS → FIXED |
+| `F4-C2` `enrollment-control-dispose-without-interface` | I−O− → I−O+ | F4-S1's buggy side verbatim; the fix calls `cache.Dispose()` explicitly and never adds the interface | BUG → FIXED (normal path; the exceptional path is F5's) |
+
+The I−O− and I+O+ cells are F4-S1's own sides re-run, so they double as a
+reproducibility check on F4-S1's original rows. The provenance class is 5 by
+the §0.4 rule ("a case designed after observing a comparator's failure is
+class 5"): these were designed after observing a comparator's *success* and
+asking what it was a success at, which is the same thing. The manifest keeps
+them under `posthoc_cases`, `decision_inputs()` drops provenance 5 before
+computing D1/D2/D4, and their only effect on any number in this note is the
+labelled post-hoc block (§8.4).
 
 ---
 
@@ -726,7 +751,10 @@ interface), says nothing about the subscription, and is exactly the cheap
 bounded fix the audit proposed for D ("name-root `Dispose` only when the type
 implements `IDisposable`"). The manifest had declared IDISP N/A for this
 family by rule scope; the declaration was too coarse for this case and the
-detection is counted (the harness never masks a detection). F4-S2 (owner
+detection is counted (the harness never masks a detection). **Post-audit:**
+the fix toggles two variables (interface *and* `using`), so this detection
+alone cannot tell which one IDISP009 tracked; the §1.1 controls isolate them
+and §8.4 reads the result. F4-S2 (owner
 drops an `IDisposable` subscriber): Owen, CA2000 and IDISP001 discriminate;
 CodeQL (first-party type excluded), Infer# and RLC# miss it.
 
@@ -846,6 +874,12 @@ T10 Single run per tool on one host; CodeQL/Infer# nondeterminism was not
     probed by repetition (deterministic by design, unverified here).
 T11 F1/F2 "differentiation" is rule-scope coverage, not measured quality
     on a shared class (Q1); it is real, but it is not a P-036 result.
+T12 (found by the owner's audit of c57a919, after this list was closed)
+    F4-S1's fixed side toggles two variables at once (the IDisposable
+    interface and the owner's `using`), so the one D2-failing witness was
+    confounded; the harness D1/D4 also computed "≥ 1 case" and "families"
+    where the frozen text says "whole family" and "domains". Addressed
+    post-hoc in §1.1 / §3.4 / §8.4 without amending the contract.
 ```
 
 ---
@@ -916,6 +950,45 @@ the predicate that was run, and it is recorded here so nobody has to guess.
 | D4 families evidenced | `[]` | **F1** under the human reading (same F1-14 artifact). F3 has 5 class-1 cases but its leak arms are discriminated by three to six comparators, so F3 can never be "evidenced" by D4's definition. Maximum reachable D4 with this corpus: **1**. |
 | D5 | — | recorded in §2.6/§3.3: comparators reached the F3 real cases with zero modelling; the P-037 shapes were reached by nobody at any modelling cost tried here; RLC# is a floor (no manual annotations). |
 | D6 | — | every input above is executed except the P-036 column and F7/F8 (nothing executed by anyone). Timings excluded. |
+
+#### 3.4.1 Literal-contract recomputation of D1 and D4 (post-audit; preregistered rows only)
+
+The owner's audit of `c57a919` found that the harness block above computes
+**approximations** of the frozen text, not the text: D1 in §0.6 says Owen
+"catches at least one **whole** family", the code accepted one discriminated
+case; D4 in §0.6 counts P-036 **domains** (ownership, obligations, progress,
+regions, tasks), the code counted defect families. Neither changed the
+preregistered outcome (F2 and F9 are caught 6/6 and 3/3; mechanical D4 was
+empty), but a machine that does not implement the frozen predicate cannot be
+cited as having applied it. `literal_contract()` in the harness now
+recomputes both from the same rows, in every defensible reading of the
+ambiguous clauses, and writes the result to `results.json` under
+`decision_inputs.literal_contract` (definitions included). The block above is
+untouched.
+
+Family → domain mapping (INFERENCE, stated once, from §0.4 and the codes
+each family reports under): F1, F2, F3, F4, F5, F6 → ownership (lifecycle
+release and `IDisposable` ownership, OWN0xx); F7 → obligations (OBL001);
+F8 → progress (PRG001); F9 → regions (OWN014 / DI001); tasks → no family.
+
+| predicate, reading | value | what decides it |
+|---|---|---|
+| D1 literal, (a) "no comparator catches **any** case of the family" | `['F2', 'F9']` | Owen catches every case of F1 (14/14, F1-14 single-sided counts on `before`), F2 (6/6), F9 (3/3) with zero FPs; F1 fails (a) only through the F1-14 RAII-control artifact (§3.4). F3 is 12/16, F4 1/2, F5–F8 0/1, F6 has an Owen FP on the fix: none is a *whole* family. |
+| D1 literal, (b) "no comparator catches the **whole** family" | `['F1', 'F2', 'F9']` | no comparator catches all 14 F1 cases (each catches exactly one, F1-14). |
+| D4 literal, strong: class-1 present **and** every comparator catches nothing in the domain | `[]` | ownership has 9 class-1 cases but every comparator catches something in it (IDisposableAnalyzers 10 cases, CA2000 stock 7, RLC# 7, CA2000 configured 6, Infer# 3, CodeQL 2). This is the reading the preregistered block implemented, at family granularity. |
+| D4 literal, weak: class-1 present **and** every comparator has a gap on a case it ran on (MISSED, or DETECTED with an FP on the fix) | `['ownership']` | every comparator fails 10–16 ownership cases it was applicable to, F3-S1…S4 and F3-S5/S6 among them for all six configs. |
+| D4 literal, weak with N/A also counting as a gap | `['ownership']` | same. |
+| plausible, unevidenced (cases but no class-1) | obligations, progress, regions | F7, F8 are class 4; F9 is class 2. |
+| no cases | tasks | — |
+
+Reading: under the literal text D1 is **TRUE** in both readings, and D4 is
+**1 domain** (ownership) under the natural reading of "shows a semantic gap in
+every comparator on it", or **0** under the strong reading the harness had
+implemented. The mapping cell that the strong reading lands in is still
+undefined (Defect 5); the weak reading lands in a defined cell (D4 ∈ {1, 2}
+→ SHRINK, if D1 ∧ D2 ∧ D3). Which reading the contract *meant* cannot be
+settled after the fact — that is exactly why it is reported as a
+recomputation, not as a correction of §8.1.
 
 ---
 

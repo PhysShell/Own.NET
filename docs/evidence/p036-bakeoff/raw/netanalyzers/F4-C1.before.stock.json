@@ -1,0 +1,20 @@
+{
+ "case": "F4-C1",
+ "side": "before",
+ "tool": "netanalyzers",
+ "config": "stock",
+ "status": "DETECTED_STOCK",
+ "findings": [
+  {
+   "rule": "CA2000",
+   "line": 32,
+   "message": "Call System.IDisposable.Dispose on object created by 'new Cache(settings)' before all references to it are out of scope",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {}
+  }
+ ],
+ "note": "",
+ "elapsed_s": 2.04,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

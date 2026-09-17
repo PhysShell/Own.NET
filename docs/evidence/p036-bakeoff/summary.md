@@ -94,8 +94,12 @@ Timing label for every elapsed value: EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263
 | F9-02 | F9 | 2 | after | CLEAN (0) | CLEAN (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | CLEAN (0) | NOT_APPLICABLE (0) |
 | F9-03 | F9 | 2 | before | DETECTED_CUSTOM_QUERY (1) | DETECTED_CUSTOM_QUERY (1) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | DETECTED_STOCK (1) | NOT_APPLICABLE (0) |
 | F9-03 | F9 | 2 | after | CLEAN (0) | CLEAN (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | CLEAN (0) | NOT_APPLICABLE (0) |
+| F4-C1 | F4 | 5 | before |  |  |  |  |  |  |  |  |  |
+| F4-C1 | F4 | 5 | after |  |  |  |  |  |  |  |  |  |
+| F4-C2 | F4 | 5 | before |  |  |  |  |  |  |  |  |  |
+| F4-C2 | F4 | 5 | after |  |  |  |  |  |  |  |  |  |
 
-## Discrimination per tool/config (before flagged AND fix silent)
+## Discrimination per tool/config (before flagged AND fix silent; preregistered cases only)
 
 | tool/config | discriminates | detected but FP on fix | missed | n/a | unsupported/crashed |
 |---|---|---|---|---|---|
@@ -135,3 +139,32 @@ D2-scope cases (Owen MISSED inside the P-036 scope) and who commoditises them:
 - F3-S4 (F3): nobody
 - F4-S1 (F4): idisp/stock
 - F5-S1 (F5): nobody
+
+## Post-hoc re-analysis (provenance-5 controls; NOT part of the preregistered inputs)
+
+- F4-C1 (F4; post-hoc (owner audit of c57a919): isolates the owner-enrollment variable with the interface held present): owen/stock=ABSENT/ABSENT; codeql/stock=ABSENT/ABSENT; idisp/stock=ABSENT/ABSENT; infersharp/stock=ABSENT/ABSENT; netanalyzers/configured=ABSENT/ABSENT; netanalyzers/stock=ABSENT/ABSENT; rlc/stock=ABSENT/ABSENT
+- F4-C2 (F4; post-hoc (owner audit of c57a919): isolates the owner-enrollment variable with the interface held absent — does IDISP009 fire on a fixed lifecycle?): owen/stock=ABSENT/ABSENT; codeql/stock=ABSENT/ABSENT; idisp/stock=ABSENT/ABSENT; infersharp/stock=ABSENT/ABSENT; netanalyzers/configured=ABSENT/ABSENT; netanalyzers/stock=ABSENT/ABSENT; rlc/stock=ABSENT/ABSENT
+
+F4 2x2 factorial around F4-S1 (I = type implements IDisposable, O = owner enrolls/disposes; I-O- and I+O+ are F4-S1's own sides re-run):
+
+| tool/config | I-O- (bug) | I+O- (bug) | I-O+ (fixed) | I+O+ (fixed) | reading |
+|---|---|---|---|---|---|
+| owen/stock | silent | silent | silent | silent | not_run_or_failed:I-O-,I-O+,I+O-,I+O+ |
+| codeql/stock | silent | silent | silent | silent | not_run_or_failed:I-O-,I-O+,I+O-,I+O+ |
+| idisp/stock | silent | silent | silent | silent | not_run_or_failed:I-O-,I-O+,I+O-,I+O+ |
+| infersharp/stock | silent | silent | silent | silent | not_run_or_failed:I-O-,I-O+,I+O-,I+O+ |
+| netanalyzers/configured | silent | silent | silent | silent | not_run_or_failed:I-O-,I-O+,I+O-,I+O+ |
+| netanalyzers/stock | silent | silent | silent | silent | not_run_or_failed:I-O-,I-O+,I+O-,I+O+ |
+| rlc/stock | silent | silent | silent | silent | not_run_or_failed:I-O-,I-O+,I+O-,I+O+ |
+
+Duplicate-cell agreement with F4-S1's original rows: DISAGREE I-O-:owen/stock I-O-:codeql/stock I-O-:idisp/stock I-O-:infersharp/stock I-O-:netanalyzers/configured I-O-:netanalyzers/stock I-O-:rlc/stock I+O+:owen/stock I+O+:codeql/stock I+O+:idisp/stock I+O+:infersharp/stock I+O+:netanalyzers/configured I+O+:netanalyzers/stock I+O+:rlc/stock
+D2 de-confounded (F4-S1 counts only 'lifecycle'-reading configs): global False; per family {'F3': True, 'F4': False, 'F5': True}; removed as confounded: none
+
+## Literal-contract recomputation (§0.6 wording read literally; family->domain mapping and every reading's definition in results.json)
+
+- D1 literal, reading (a): ['F2', 'F9']
+- D1 literal, reading (b): ['F1', 'F2', 'F9']
+- D4 literal, strong: []
+- D4 literal, weak (applicable gap): ['ownership']
+- D4 literal, weak (any gap): ['ownership']
+- D4 plausible, unevidenced: ['obligations', 'progress', 'regions']; no cases: ['tasks']
