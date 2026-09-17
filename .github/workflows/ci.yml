@@ -2894,6 +2894,120 @@ jobs:
           [ "$rc" -ne 0 ] || { echo "FAIL: a broken candidate exited 0"; exit 1; }
           echo "OK: a broken candidate is a visible failure (exit $rc), never a Python rescue"
 
+  # #263-A — the performance measurement INSTRUMENT, calibrated. Not a
+  # baseline: this job proves the instrument stands up, on both platforms, and
+  # that it refuses to measure anything decisive before the D7 freeze.
+  #
+  # It publishes no engine comparison and can publish none: the harness holds
+  # one engine's samples per cell and refuses a report carrying a comparison
+  # key. What it asserts here is that the refusal is real, not that Rust is
+  # anything.
+  perf-instrument:
+    name: "#263-A measurement instrument (CALIBRATION_ONLY)"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # The step 4 freeze controls read git objects at the frozen source
+          # commit and prove it is an ancestor of this head. A depth-1 checkout
+          # cannot answer either question, and those controls refuse rather than
+          # pass vacuously — so the history is the thing that makes them real.
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build the production own-cli candidate
+        working-directory: rust
+        run: cargo build -p own-cli --release
+      - name: The instrument's own selftest (no measurement taken)
+        run: python scripts/perf_baseline.py --selftest
+      - name: The instrument controls (firewall, both identity domains, provenance)
+        run: python tests/test_perf_instrument.py
+      # The Round 7 apparatus is a classifier and a structural preflight, both
+      # exercisable without a clock. The exclusivity control is the one that
+      # matters: the preregistration's first outcome table let one dataset
+      # satisfy two contradictory verdicts, and nothing in the process that
+      # produced it would have noticed.
+      - name: Round 7 apparatus controls (outcome exclusivity, zero guard, B1-B4)
+        run: python tests/test_round7_apparatus.py
+      # The calibration policy is pure: no clock, no files, no randomness, and no
+      # constant values at all. It is step 2 of the ratified sequence, written
+      # before any training corpus exists, so every claim it makes is checkable
+      # here on both platforms and none of it needs a measurement.
+      - name: Calibration policy controls (no defaults, symmetry, exact fit)
+        run: python tests/test_calibration_policy.py
+      # Step 4 froze WHICH BYTES the policy is, and nothing else. These controls
+      # recompute that digest from git blobs at the frozen commit, and refuse the
+      # artifact outright if it ever grows a field that is not identity.
+      - name: Calibration policy freeze controls (step 4 digest identity)
+        run: python tests/test_calibration_freeze.py
+      # Step 5 records the five constants the owner chose, bound to the step 4
+      # identity. The frozen implementation is the judge of its own ranges, so
+      # these controls hand it the committed pairs rather than re-stating them.
+      - name: Calibration design constants controls (step 5 ratified values)
+        run: python tests/test_calibration_constants.py
+      # Step 6 preregisters a training collection that has not happened. These
+      # controls prove the protocol is complete and bound, and that the scope
+      # combiner reads the frozen selector's own margin instead of copying it.
+      - name: Training preregistration controls (step 6 protocol + scope binding)
+        run: python tests/test_training_prereg.py
+      # Step 7 needs two dedicated measurement hosts that do not exist yet. This
+      # captures WHAT a machine is and never how fast it is: no clock, no resource
+      # observation, proved by walking the AST rather than the prose. It also
+      # proves the tool sits outside all three frozen source sets, so preparing
+      # step 7 cannot move a digest steps 4, 5 and 6 are already bound to.
+      - name: Step 7 environment capture controls (measurement-free identity manifest)
+        run: python tests/test_step7_envcapture.py
+      # The same tool run for real on this runner. It writes nothing, starts no
+      # clock, and is NOT a binding input: a hosted runner is not admissible for
+      # step 7, and the manifest records the runner and CI flag that say so.
+      - name: Step 7 environment capture selftest (writes nothing, starts nothing)
+        run: python scripts/step7/envcapture.py --selftest
+      # Plan mode builds the arms, preflights THOSE bytes, freezes their
+      # identities and fixes the execution order — then returns before the
+      # timing function is reachable. Linux only: the arms are ELF binaries.
+      - name: Round 7 runner — plan mode, no clock started
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          python scripts/round7/runner.py \
+            --candidate "$PWD/rust/target/release/own-cli" \
+            --plan --build-dir "$RUNNER_TEMP/round7-arms" \
+            --out "$RUNNER_TEMP/round7-plan.json"
+      # Decisive workloads: availability and pins only. No clock, no resource
+      # sampling — this step is what "enumerated, hashed, availability-checked"
+      # looks like when it is the only thing permitted.
+      - name: Decisive workloads — non-timed structural smoke
+        run: python scripts/perf_baseline.py --smoke-decisive
+      # The timed legacy calibration pair USED TO RUN HERE, and it is gone while
+      # step 7 is closed. It started a real stopwatch, produced forty timed cells
+      # per platform on every push and uploaded them, which made the step 6
+      # preregistration's own claim to take no new observation false on the very
+      # commit that made it. A preregistration that fixes "exactly one collection"
+      # while CI quietly gathers numbers every twelve minutes has built an
+      # epistemic side channel, whatever anyone intends to do with the output.
+      #
+      # What still proves the apparatus, all of it untimed: --selftest above, the
+      # instrument controls, the round 7 apparatus controls, the round 7 runner in
+      # plan mode, the decisive structural smoke, and the calibration policy,
+      # freeze, constants and training preregistration controls.
+      #
+      # training-no-incidental-measurement fails this suite if any workflow
+      # regains a path to a measurement entrypoint while the preregistration
+      # still records step 7 as unauthorised.
+
   # P-014 Tier B: external-reference resolution. The SAME sample, run two ways, must give two
   # verdicts — proving the extractor binds a THIRD-PARTY event only when its DLL is referenced:
   #   A (no refs)        -> ObservableObject is an error type -> OWN050 (honest skip), no leak

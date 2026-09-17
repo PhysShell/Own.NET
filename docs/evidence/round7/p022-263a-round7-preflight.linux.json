@@ -1,0 +1,92 @@
+{
+  "tag": "CALIBRATION_ONLY",
+  "note": "structural preflight only; no clock was started and no timing exists",
+  "timestamp_utc": "2026-09-11T02:04:09Z",
+  "sources": {
+    "spin.c": {
+      "sha256": "77557875615e1310cce4d36d3f45c21860b7c6250631437e0ee10aead988fa2c",
+      "bytes": 960
+    },
+    "pad.c": {
+      "sha256": "e25f000079cd681ccd1758d4c16e9edd9e248228ca583cd124e6b23e7745c563",
+      "bytes": 1297
+    }
+  },
+  "build": {
+    "work_object_sha256": "0eccbd873967b200fa20be128dc50d289d9abee14ece5de307b966ec512a453c",
+    "pad_elements": 203253,
+    "tuning_trace": [
+      {
+        "pad_elements": 203253,
+        "mapped_bytes": 1628917,
+        "delta": 25
+      }
+    ],
+    "cflags": [
+      "-O2"
+    ]
+  },
+  "arms": {
+    "A": {
+      "role": "synth",
+      "name": "arm-a",
+      "sha256": "f937b36bd4dac422f88942b87ea9794e2c75a198a034917e6c02c0abad1c0cbd",
+      "file_bytes": 15960,
+      "mapped_bytes": 2861,
+      "pt_load_segments": 4
+    },
+    "B": {
+      "role": "synth-padded",
+      "name": "arm-b",
+      "sha256": "0bd6ecc40dfc5c51fbda073fe248d90f6378257e701909d274ea294a742d3c5f",
+      "file_bytes": 1642152,
+      "mapped_bytes": 1628917,
+      "pt_load_segments": 4
+    },
+    "C": {
+      "role": "core-usage (own-cli)",
+      "name": "rust/target/release/own-cli",
+      "sha256": "8f6c06dd7728fdc12663e03dd46b6e32c183656a2a9f9d05b05d1b0f3f9332fe",
+      "file_bytes": 1841648,
+      "mapped_bytes": 1628892,
+      "pt_load_segments": 4
+    }
+  },
+  "checks": {
+    "B1": {
+      "pass": true,
+      "symbol_size": 1626024,
+      "section": ".rodata",
+      "section_size": 1626056,
+      "why": "own_round7_padding is 1626024 bytes in .rodata (1626056 bytes)"
+    },
+    "B2": {
+      "pass": true,
+      "section": ".rodata",
+      "segment_vaddr": 8192,
+      "segment_memsz": 1626276,
+      "segment_flags": 4,
+      "why": "the padding lies in SHF_ALLOC section .rodata, wholly inside the PT_LOAD at 0x2000 (1626276 bytes mapped)"
+    },
+    "B3": {
+      "pass": true,
+      "arm_b_mapped_bytes": 1628917,
+      "arm_c_mapped_bytes": 1628892,
+      "delta_bytes": 25,
+      "page_bytes": 4096,
+      "arm_b_file_bytes": 1642152,
+      "arm_c_file_bytes": 1841648,
+      "why": "arm B maps 1628917 bytes against arm C's 1628892, a difference of +25 bytes"
+    },
+    "B4": {
+      "pass": true,
+      "test": "raw-bytes",
+      "size": 107,
+      "sha256": "69126786004d1e128458c1054e6a67a2534397146cf8a4f0d5e838b18fc70797",
+      "why": "main is 107 bytes and byte-identical in both arms; the disassembly fallback was not needed"
+    }
+  },
+  "all_passed": true,
+  "failed": [],
+  "verdict": "B1-B4 all pass; the round's structural precondition holds"
+}

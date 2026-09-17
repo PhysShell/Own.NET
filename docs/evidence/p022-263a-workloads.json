@@ -1,0 +1,172 @@
+{
+  "schema": 1,
+  "comment": "#263-A FROZEN workload manifest. Two populations that must never be confused: DECISIVE workloads feed the D7 cutover verdict and MUST NOT be run in timed or resource-measured mode before the D7 freeze; CALIBRATION workloads exist only to validate the instrument and can never pick a threshold. The split is why calibration can happen at all without anybody having peeked at the Rust-vs-Python delta — 'we did not save it' is accounting-clean, not epistemically clean.",
+  "populations": {
+    "decisive": "The G3 cutover subset (#262's Performance gates) plus #262's large-solution control. Pinned by commit; drift is a FAILED TARGET, never a newer measurement. Pre-D7 these may be enumerated, hashed, fetched, availability-checked and exercised by NON-TIMED structural smoke only.",
+    "calibration": "Generated deterministically by the harness from this manifest, so they are separate from the decisive corpus by construction rather than by discipline. Every result over them is tagged CALIBRATION_ONLY."
+  },
+  "decisive": [
+    {
+      "id": "repo-samples",
+      "kind": "source-tree",
+      "path": "frontend/roslyn/samples",
+      "why": "the committed C# sample tree — the small end of the decisive size ladder"
+    },
+    {
+      "id": "repo-examples",
+      "kind": "source-tree",
+      "path": "examples",
+      "why": "the committed examples tree — the medium rung"
+    },
+    {
+      "id": "committed-corpus",
+      "kind": "source-tree",
+      "path": "corpus",
+      "why": "#263's 'corpus batch' and #262's committed-corpus gate"
+    },
+    {
+      "id": "oss-ShareX.repo",
+      "kind": "source-tree",
+      "path": "targets/ShareX",
+      "pin": {
+        "repository": "ShareX/ShareX",
+        "commit": "0df9ca4d83eed9d2489048c539d7d1fc2860fdec"
+      },
+      "why": "one of the five pinned OSS repositories of #243, whole-tree walk, at its verified pin"
+    },
+    {
+      "id": "oss-ShareX.sln",
+      "kind": "source-tree",
+      "path": "targets/ShareX/ShareX.sln",
+      "pin": {
+        "repository": "ShareX/ShareX",
+        "commit": "0df9ca4d83eed9d2489048c539d7d1fc2860fdec"
+      },
+      "why": "the largest solution of ShareX — a different extractor path and a differently ORDERED document, not a subset of the repo walk"
+    },
+    {
+      "id": "oss-MahApps.Metro.repo",
+      "kind": "source-tree",
+      "path": "targets/MahApps.Metro",
+      "pin": {
+        "repository": "MahApps/MahApps.Metro",
+        "commit": "72099e310bac2d12ac98fd7560b69679252519f5"
+      },
+      "why": "one of the five pinned OSS repositories of #243, whole-tree walk, at its verified pin"
+    },
+    {
+      "id": "oss-MahApps.Metro.sln",
+      "kind": "source-tree",
+      "path": "targets/MahApps.Metro/src/MahApps.Metro.sln",
+      "pin": {
+        "repository": "MahApps/MahApps.Metro",
+        "commit": "72099e310bac2d12ac98fd7560b69679252519f5"
+      },
+      "why": "the largest solution of MahApps.Metro — a different extractor path and a differently ORDERED document, not a subset of the repo walk"
+    },
+    {
+      "id": "oss-MaterialDesignInXamlToolkit.repo",
+      "kind": "source-tree",
+      "path": "targets/MaterialDesignInXamlToolkit",
+      "pin": {
+        "repository": "MaterialDesignInXAML/MaterialDesignInXamlToolkit",
+        "commit": "ef3a5ea434e39182b1848f5e11aaea6b3890581f"
+      },
+      "why": "one of the five pinned OSS repositories of #243, whole-tree walk, at its verified pin"
+    },
+    {
+      "id": "oss-AvalonEdit.repo",
+      "kind": "source-tree",
+      "path": "targets/AvalonEdit",
+      "pin": {
+        "repository": "icsharpcode/AvalonEdit",
+        "commit": "ed0bd149059469ac9bd39b13cf8a341b12a6c1da"
+      },
+      "why": "one of the five pinned OSS repositories of #243, whole-tree walk, at its verified pin"
+    },
+    {
+      "id": "oss-AvalonEdit.sln",
+      "kind": "source-tree",
+      "path": "targets/AvalonEdit/ICSharpCode.AvalonEdit.sln",
+      "pin": {
+        "repository": "icsharpcode/AvalonEdit",
+        "commit": "ed0bd149059469ac9bd39b13cf8a341b12a6c1da"
+      },
+      "why": "the largest solution of AvalonEdit — a different extractor path and a differently ORDERED document, not a subset of the repo walk"
+    },
+    {
+      "id": "oss-ClosedXML.repo",
+      "kind": "source-tree",
+      "path": "targets/ClosedXML",
+      "pin": {
+        "repository": "ClosedXML/ClosedXML",
+        "commit": "4e89dcedd83cad553e84d2d97f77fc3d7deb630f"
+      },
+      "why": "one of the five pinned OSS repositories of #243, whole-tree walk, at its verified pin"
+    },
+    {
+      "id": "oss-ClosedXML.sln",
+      "kind": "source-tree",
+      "path": "targets/ClosedXML/ClosedXML.sln",
+      "pin": {
+        "repository": "ClosedXML/ClosedXML",
+        "commit": "4e89dcedd83cad553e84d2d97f77fc3d7deb630f"
+      },
+      "why": "the largest solution of ClosedXML — a different extractor path and a differently ORDERED document, not a subset of the repo walk"
+    },
+    {
+      "id": "large-solution-control",
+      "kind": "source-tree",
+      "path": "targets/ShareX/ShareX.sln",
+      "pin": {
+        "repository": "ShareX/ShareX",
+        "commit": "0df9ca4d83eed9d2489048c539d7d1fc2860fdec"
+      },
+      "alias_of": "oss-ShareX.sln",
+      "why": "#262's large-solution control. Declared under its own id because the gate names it, and recorded as an ALIAS so it is never counted twice in a denominator"
+    }
+  ],
+  "calibration": [
+    {
+      "id": "cal-facts-tiny",
+      "kind": "generated-facts",
+      "generator": "facts",
+      "scale": 1,
+      "why": "instrument-sizing only: the smallest document the door accepts"
+    },
+    {
+      "id": "cal-facts-small",
+      "kind": "generated-facts",
+      "generator": "facts",
+      "scale": 25,
+      "why": "instrument-sizing only"
+    },
+    {
+      "id": "cal-facts-medium",
+      "kind": "generated-facts",
+      "generator": "facts",
+      "scale": 250,
+      "why": "instrument-sizing only: large enough that analysis is not lost in startup"
+    },
+    {
+      "id": "cal-facts-refused",
+      "kind": "generated-facts",
+      "generator": "refused",
+      "why": "a document the strict door REFUSES: the parse rung, which stops before bridge and analysis"
+    },
+    {
+      "id": "cal-source-small",
+      "kind": "generated-source",
+      "generator": "csharp",
+      "scale": 4,
+      "why": "instrument-sizing only: a synthetic C# tree for the launcher rungs"
+    },
+    {
+      "id": "cal-source-medium",
+      "kind": "generated-source",
+      "generator": "csharp",
+      "scale": 40,
+      "why": "instrument-sizing only"
+    }
+  ]
+}

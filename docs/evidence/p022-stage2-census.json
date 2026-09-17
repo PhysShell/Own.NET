@@ -7,7 +7,7 @@
     "C": "COMPARE GATE. Runs both engines under the ratified #260 / Stage-1 differential contract. Stage 2 increases Rust exposure and must never pay for it with differential evidence, so these are neither weakened nor relabelled.",
     "D": "OPERATIONAL SELF-DOGFOOD. Own.NET running Owen over its own code as the engine under test — not verifying the public default, not acting as a reference. This is the Stage-2 Rust-default population: every Class-D call site selects Rust EXPLICITLY through the ratified launcher contract, with the production `own-cli` supplied via OWEN_RUST_CORE."
   },
-  "entry_points_comment": "What counts as executing the core. The launcher surfaces are direct; the wrapper entries are scripts that invoke a launcher or the core themselves, listed so an indirect call site cannot escape the census by adding one level of indirection. Two negative lookaheads are deliberate and were measured, not guessed: `benchmark.py --selftest` validates the scoring and SARIF-parsing logic against embedded fixtures with no SDK, and `shadow_sweep.py --collect`/`--result` assemble and check a record of legs that ran elsewhere. Neither executes the analysis core, so neither is a call site; counting them would inflate the denominator with runs that analyse nothing. Comment lines and `paths:` filters are stripped for the same reason.",
+  "entry_points_comment": "What counts as executing the core. The launcher surfaces are direct; the wrapper entries are scripts that invoke a launcher or the core themselves, listed so an indirect call site cannot escape the census by adding one level of indirection. That list is a closed enumeration and therefore a maintenance obligation: a NEW wrapper script must be added here when it lands, or the job that runs it is invisible to the census. scripts/perf_baseline.py (#263-A) is the first one added under that rule. Two negative lookaheads are deliberate and were measured, not guessed: `benchmark.py --selftest` validates the scoring and SARIF-parsing logic against embedded fixtures with no SDK, and `shadow_sweep.py --collect`/`--result` assemble and check a record of legs that ran elsewhere. Neither executes the analysis core, so neither is a call site; counting them would inflate the denominator with runs that analyse nothing. Comment lines and `paths:` filters are stripped for the same reason.",
   "entry_points": [
     "scripts/own-check\\.sh",
     "scripts/own-check\\.ps1",
@@ -18,7 +18,8 @@
     "scripts/benchmark\\.py(?!.*--selftest)",
     "tests/shadow_sweep\\.py(?!.*(--collect|--result))",
     "cargo test[^\\n]*-p own-cli",
-    "scripts/mutate_campaign\\.py"
+    "scripts/mutate_campaign\\.py",
+    "scripts/perf_baseline\\.py"
   ],
   "call_sites": [
     {
@@ -26,6 +27,12 @@
       "job": "own-cli-parity",
       "class": "B",
       "why": "Replays the frozen Python-authored CLI fixture family against the built Rust `own-cli` with zero Python at run time. The measurement IS the parity between the two implementations, so it is engine-specific by construction and has no default to move."
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "perf-instrument",
+      "class": "B",
+      "why": "#263-A's measurement instrument, calibrating. It drives BOTH engines through the production launcher, but it is not a compare gate: it produces no engine comparison and structurally refuses to, and it measures no decisive workload before the D7 freeze. A deliberately engine-specific measurement whose subject is the instrument rather than either engine."
     },
     {
       "workflow": ".github/workflows/ci.yml",
