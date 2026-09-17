@@ -1,0 +1,23 @@
+{
+ "case": "F9-02",
+ "side": "before",
+ "tool": "owen",
+ "config": "stock",
+ "status": "DETECTED_STOCK",
+ "findings": [
+  {
+   "rule": "OWN001",
+   "line": 14,
+   "message": "event 'appBus.CustomerChanged' is subscribed (handler 'OnCustomerChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'CustomerViewModel' alive (possible leak) [resource: subscription token]",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  }
+ ],
+ "note": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n\n1 finding.\n",
+ "elapsed_s": 2.66,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

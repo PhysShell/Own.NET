@@ -1,0 +1,11 @@
+{
+ "case": "F3-S6",
+ "side": "before",
+ "tool": "infersharp",
+ "config": "stock",
+ "status": "MISSED",
+ "findings": [],
+ "note": "",
+ "elapsed_s": 11.91,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

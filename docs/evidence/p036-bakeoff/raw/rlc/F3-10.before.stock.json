@@ -1,0 +1,20 @@
+{
+ "case": "F3-10",
+ "side": "before",
+ "tool": "rlc",
+ "config": "stock",
+ "status": "DETECTED_STOCK",
+ "findings": [
+  {
+   "rule": "rlc/resource-leak",
+   "line": 11,
+   "message": "Resource Leak (DbDataReader- L)  in method Run",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {}
+  }
+ ],
+ "note": "inferred annotations: 0",
+ "elapsed_s": 74.61,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

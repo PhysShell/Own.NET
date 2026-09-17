@@ -1,0 +1,20 @@
+{
+ "case": "F3-S4",
+ "side": "after",
+ "tool": "netanalyzers",
+ "config": "configured",
+ "status": "FALSE_POSITIVE_CONFIGURED",
+ "findings": [
+  {
+   "rule": "CA2000",
+   "line": 23,
+   "message": "Object created by 'File.OpenRead(path)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {}
+  }
+ ],
+ "note": "",
+ "elapsed_s": 1.86,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

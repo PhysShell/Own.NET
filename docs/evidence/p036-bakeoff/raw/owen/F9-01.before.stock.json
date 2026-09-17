@@ -1,0 +1,23 @@
+{
+ "case": "F9-01",
+ "side": "before",
+ "tool": "owen",
+ "config": "stock",
+ "status": "DETECTED_STOCK",
+ "findings": [
+  {
+   "rule": "DI001",
+   "line": 31,
+   "message": "singleton 'NotificationService' captures scoped service 'AppDbContext' (captive dependency: NotificationService -> AppDbContext) [consumed by the 'NotificationService' constructor at Case.cs:23] [resource: DI lifetime]",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {
+    "codeFlows": 1,
+    "relatedLocations": 1
+   }
+  }
+ ],
+ "note": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n\n1 finding.\n",
+ "elapsed_s": 2.22,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

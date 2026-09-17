@@ -1,0 +1,11 @@
+{
+ "case": "F8-S1",
+ "side": "before",
+ "tool": "owen",
+ "config": "stock",
+ "status": "NOT_APPLICABLE",
+ "findings": [],
+ "note": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.KZgGSQWTKK: ok \u2014 no subscription leaks found\n\n0 findings.\n; n/a: PRG001 does not exist at 70189a3",
+ "elapsed_s": 3.37,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

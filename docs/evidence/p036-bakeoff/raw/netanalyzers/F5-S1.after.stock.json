@@ -1,0 +1,20 @@
+{
+ "case": "F5-S1",
+ "side": "after",
+ "tool": "netanalyzers",
+ "config": "stock",
+ "status": "FALSE_POSITIVE_STOCK",
+ "findings": [
+  {
+   "rule": "CA2213",
+   "line": 10,
+   "message": "'Document' contains field '_log' that is of IDisposable type 'TextWriter', but it is never disposed. Change the Dispose method on 'Document' to call Close or Dispose on this field.",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {}
+  }
+ ],
+ "note": "",
+ "elapsed_s": 1.46,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

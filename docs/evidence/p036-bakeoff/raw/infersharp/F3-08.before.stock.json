@@ -1,0 +1,23 @@
+{
+ "case": "F3-08",
+ "side": "before",
+ "tool": "infersharp",
+ "config": "stock",
+ "status": "DETECTED_STOCK",
+ "findings": [
+  {
+   "rule": "PULSE_RESOURCE_LEAK",
+   "line": 20,
+   "message": "Resource dynamically allocated by constructor Res() on line 19 is not closed after the last access at line 20, column 9.",
+   "level": "error",
+   "path": "Case.cs",
+   "extra": {
+    "codeFlows": 1,
+    "relatedLocations": 0
+   }
+  }
+ ],
+ "note": "",
+ "elapsed_s": 9.41,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

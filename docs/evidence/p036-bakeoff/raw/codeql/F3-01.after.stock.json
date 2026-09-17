@@ -1,0 +1,11 @@
+{
+ "case": "F3-01",
+ "side": "after",
+ "tool": "codeql",
+ "config": "stock",
+ "status": "CLEAN",
+ "findings": [],
+ "note": "",
+ "elapsed_s": 77.77,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

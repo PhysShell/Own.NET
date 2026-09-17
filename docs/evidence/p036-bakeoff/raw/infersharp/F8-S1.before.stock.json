@@ -1,0 +1,11 @@
+{
+ "case": "F8-S1",
+ "side": "before",
+ "tool": "infersharp",
+ "config": "stock",
+ "status": "NOT_APPLICABLE",
+ "findings": [],
+ "note": "n/a: no loop-progress rule",
+ "elapsed_s": 8.91,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

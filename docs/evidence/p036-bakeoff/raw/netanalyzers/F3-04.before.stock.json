@@ -1,0 +1,20 @@
+{
+ "case": "F3-04",
+ "side": "before",
+ "tool": "netanalyzers",
+ "config": "stock",
+ "status": "DETECTED_STOCK",
+ "findings": [
+  {
+   "rule": "CA2213",
+   "line": 21,
+   "message": "'Worker' contains field '_timer' that is of IDisposable type 'Timer', but it is never disposed. Change the Dispose method on 'Worker' to call Close or Dispose on this field.",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {}
+  }
+ ],
+ "note": "",
+ "elapsed_s": 2.11,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

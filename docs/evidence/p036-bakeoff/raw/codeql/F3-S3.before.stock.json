@@ -1,0 +1,11 @@
+{
+ "case": "F3-S3",
+ "side": "before",
+ "tool": "codeql",
+ "config": "stock",
+ "status": "MISSED",
+ "findings": [],
+ "note": "",
+ "elapsed_s": 86.38,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

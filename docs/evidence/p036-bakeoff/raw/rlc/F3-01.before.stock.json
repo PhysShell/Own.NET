@@ -1,0 +1,20 @@
+{
+ "case": "F3-01",
+ "side": "before",
+ "tool": "rlc",
+ "config": "stock",
+ "status": "DETECTED_STOCK",
+ "findings": [
+  {
+   "rule": "rlc/resource-leak",
+   "line": 20,
+   "message": "Resource Leak (FileStream- L)  in method Leak",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {}
+  }
+ ],
+ "note": "inferred annotations: 1",
+ "elapsed_s": 181.71,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

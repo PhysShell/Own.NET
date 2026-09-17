@@ -21,7 +21,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F1-02",
@@ -43,7 +47,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F1-03",
@@ -65,7 +73,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F1-04",
@@ -87,7 +99,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F1-05",
@@ -109,7 +125,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F1-06",
@@ -131,7 +151,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F1-07",
@@ -153,7 +177,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F1-08",
@@ -175,7 +203,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F1-09",
@@ -197,7 +229,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F1-10",
@@ -219,7 +255,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F1-11",
@@ -241,7 +281,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F1-12",
@@ -263,7 +307,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F1-13",
@@ -285,7 +333,11 @@
     "eventbus"
    ],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F1-14",
@@ -302,7 +354,10 @@
    "na": {},
    "stubs": [],
    "project": "SystemEventsLeak.csproj",
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before"
+   ]
   },
   {
    "id": "F2-01",
@@ -324,7 +379,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F2-02",
@@ -346,7 +405,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F2-03",
@@ -368,7 +431,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F2-04",
@@ -390,7 +457,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F2-05",
@@ -412,7 +483,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F2-06",
@@ -434,7 +509,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-01",
@@ -451,7 +530,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-02",
@@ -467,7 +550,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-03",
@@ -483,7 +570,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-04",
@@ -499,7 +590,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-05",
@@ -515,7 +610,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-06",
@@ -531,7 +630,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-07",
@@ -547,7 +650,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-08",
@@ -563,7 +670,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-09",
@@ -579,7 +690,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-10",
@@ -595,7 +710,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-S1",
@@ -611,7 +730,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-S2",
@@ -627,7 +750,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-S3",
@@ -643,7 +770,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-S4",
@@ -659,7 +790,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-S5",
@@ -675,7 +810,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F3-S6",
@@ -691,7 +830,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F4-S1",
@@ -713,7 +856,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F4-S2",
@@ -729,7 +876,11 @@
    "na": {},
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F5-S1",
@@ -751,7 +902,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F6-S1",
@@ -773,7 +928,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F7-S1",
@@ -796,7 +955,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F8-S1",
@@ -819,7 +982,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F9-01",
@@ -843,7 +1010,11 @@
     "di"
    ],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F9-02",
@@ -867,7 +1038,11 @@
     "eventbus"
    ],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   },
   {
    "id": "F9-03",
@@ -889,7 +1064,11 @@
    },
    "stubs": [],
    "project": null,
-   "rlc_annotations": []
+   "rlc_annotations": [],
+   "sides": [
+    "before",
+    "after"
+   ]
   }
  ]
 }

@@ -1,0 +1,20 @@
+{
+ "case": "F4-S2",
+ "side": "before",
+ "tool": "idisp",
+ "config": "stock",
+ "status": "DETECTED_STOCK",
+ "findings": [
+  {
+   "rule": "IDISP001",
+   "line": 31,
+   "message": "Dispose created",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {}
+  }
+ ],
+ "note": "",
+ "elapsed_s": 2.86,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

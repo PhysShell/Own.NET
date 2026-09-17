@@ -1,0 +1,11 @@
+{
+ "case": "F7-S1",
+ "side": "before",
+ "tool": "codeql",
+ "config": "stock",
+ "status": "NOT_APPLICABLE",
+ "findings": [],
+ "note": "n/a: no project-protocol/obligation rule",
+ "elapsed_s": 80.51,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

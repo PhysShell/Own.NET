@@ -1,0 +1,34 @@
+{
+ "case": "F3-06",
+ "side": "before",
+ "tool": "codeql",
+ "config": "stock",
+ "status": "DETECTED_STOCK",
+ "findings": [
+  {
+   "rule": "cs/local-not-disposed",
+   "line": 24,
+   "message": "Disposable 'RandomNumberGenerator' is created but not disposed.",
+   "level": "",
+   "path": "Case.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  },
+  {
+   "rule": "cs/local-not-disposed",
+   "line": 28,
+   "message": "Disposable 'Rfc2898DeriveBytes' is created but not disposed.",
+   "level": "",
+   "path": "Case.cs",
+   "extra": {
+    "codeFlows": 0,
+    "relatedLocations": 0
+   }
+  }
+ ],
+ "note": "",
+ "elapsed_s": 84.49,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

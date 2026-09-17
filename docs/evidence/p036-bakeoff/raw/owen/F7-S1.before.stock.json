@@ -1,0 +1,11 @@
+{
+ "case": "F7-S1",
+ "side": "before",
+ "tool": "owen",
+ "config": "stock",
+ "status": "NOT_APPLICABLE",
+ "findings": [],
+ "note": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.aZIB0eR5X2: ok \u2014 no subscription leaks found\n\n0 findings.\n; n/a: P-025 core exists but the C# protocol extractor is pending (proposals README)",
+ "elapsed_s": 2.6,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

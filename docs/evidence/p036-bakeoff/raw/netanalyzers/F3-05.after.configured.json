@@ -1,0 +1,20 @@
+{
+ "case": "F3-05",
+ "side": "after",
+ "tool": "netanalyzers",
+ "config": "configured",
+ "status": "FALSE_POSITIVE_CONFIGURED",
+ "findings": [
+  {
+   "rule": "CA2213",
+   "line": 22,
+   "message": "'Continuation' contains field '_timer' that is of IDisposable type 'Timer?', but it is never disposed. Change the Dispose method on 'Continuation' to call Close or Dispose on this field.",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {}
+  }
+ ],
+ "note": "",
+ "elapsed_s": 1.94,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

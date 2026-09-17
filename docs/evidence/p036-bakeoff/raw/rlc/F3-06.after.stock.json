@@ -1,0 +1,11 @@
+{
+ "case": "F3-06",
+ "side": "after",
+ "tool": "rlc",
+ "config": "stock",
+ "status": "CLEAN",
+ "findings": [],
+ "note": "inferred annotations: 0",
+ "elapsed_s": 82.6,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

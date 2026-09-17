@@ -1,0 +1,20 @@
+{
+ "case": "F3-S3",
+ "side": "before",
+ "tool": "rlc",
+ "config": "stock",
+ "status": "MISSED",
+ "findings": [
+  {
+   "rule": "rlc/annotation-check",
+   "line": 9,
+   "message": "Verifying Owning Parameter (Stream - L) s in method Inner",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {}
+  }
+ ],
+ "note": "inferred annotations: 2",
+ "elapsed_s": 182.3,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

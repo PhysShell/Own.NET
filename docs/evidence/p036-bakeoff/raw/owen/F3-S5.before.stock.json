@@ -1,0 +1,23 @@
+{
+ "case": "F3-S5",
+ "side": "before",
+ "tool": "owen",
+ "config": "stock",
+ "status": "DETECTED_STOCK",
+ "findings": [
+  {
+   "rule": "OWN002",
+   "line": 23,
+   "message": "IDisposable local 's' is used after it is disposed [resource: disposable]",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {
+    "codeFlows": 1,
+    "relatedLocations": 0
+   }
+  }
+ ],
+ "note": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n\n1 finding.\n",
+ "elapsed_s": 2.75,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

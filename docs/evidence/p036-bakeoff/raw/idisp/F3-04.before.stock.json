@@ -1,0 +1,28 @@
+{
+ "case": "F3-04",
+ "side": "before",
+ "tool": "idisp",
+ "config": "stock",
+ "status": "DETECTED_STOCK",
+ "findings": [
+  {
+   "rule": "IDISP007",
+   "line": 13,
+   "message": "Don't dispose injected",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {}
+  },
+  {
+   "rule": "IDISP002",
+   "line": 21,
+   "message": "Dispose member",
+   "level": "warning",
+   "path": "Case.cs",
+   "extra": {}
+  }
+ ],
+ "note": "",
+ "elapsed_s": 2.05,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}
