@@ -70,7 +70,7 @@ def _harness(tmp: Path, binary: Path) -> pb.Harness:
     """
     _, digest = pb.load_manifest()
     return pb.Harness(gate=pb.IdentityGate.load(digest), session=pb.SessionIdentity.freeze(binary),
-                      rss=pb.RssProbe(), tmp=tmp, candidate=binary,
+                      memory=pb.MemoryProbe(), tmp=tmp, candidate=binary,
                       warmup_discards=WARMUP, repetitions=1, seed=1)
 
 
