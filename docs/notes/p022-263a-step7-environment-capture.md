@@ -151,7 +151,15 @@ envcapture-reason-fits-platform  an 'unavailable' reason names THIS platform
 envcapture-windows-fixture       the schema holds off Linux
 envcapture-frozen-untouched      this addition moved none of the three frozen digests
 envcapture-ci-provenance         a CI-taken manifest says so and cannot hide it
+envcapture-tool-encoding         a tool's bytes decode by the code page that wrote them
 ```
+
+`envcapture-tool-encoding` postdates the mutation campaign below and was not
+scored by it. It was added with the locale-decoding fix: `text=True` decoded a
+console tool's output with the ANSI code page while the tool wrote in the
+console's, so `power_policy` — identity-bearing — arrived as mojibake that moved
+with the ambient code page, which is drift the capture invented rather than
+observed.
 
 Fifteen mutations, each declaring in advance which control must catch it, and
 each scored on a `FAIL` line from **that** control rather than on a non-zero
