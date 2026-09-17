@@ -66,13 +66,22 @@ first whole-solver harness — a symbolic 3-coordinate SCC with a symbolic
 live count, `usize` indices and the kernel's iterator-adapter loops — ran
 CBMC's symbolic execution for 472 s, produced a 2.4-million-step program
 and **ran out of memory** in the SAT phase on a 16 GB host, for the
-*election* solver, the small one. Three changes made every harness
-tractable without touching what is proven: the harnesses draw `u8`
-symbols and convert (`properties::symbolic`), the live-coordinate count is
-concrete (3, or 2 for the "small" systems), and the kernel's `step` /
-Jacobi loops are plain loops instead of `flatten`/`fold`/`enumerate`
-chains (semantics unchanged: the 35 twins are the witnesses). The
-whole-solver properties are then checked in two forms: the *inductive*
+*election* solver, the small one. Five changes made every harness
+tractable without touching what is proven — each one measured, because
+the first three were not enough: (1) the harnesses draw `u8` symbols and
+convert (`properties::symbolic`); (2) the live-coordinate count is concrete
+(3, or 2 for the "small" systems); (3) the kernel's `step` / Jacobi /
+`well_formed` loops are plain loops instead of `flatten`/`fold`/`enumerate`
+chains; (4) a coordinate looked up at a *symbolic* index is **copied out of
+the array** instead of borrowed — a reference at a symbolic index is a
+symbolic-offset pointer for CBMC and every field read through it is a case
+split: the one-step election harness went from unfinished at 7 min / 1.5 GB
+to proven in 3.9 s on this change alone; (5) `collapsed()` / `today()` are
+by-value `array::map` transforms instead of `iter_mut().flatten()` updates
+through mutable references: the G-T2 one-step harness went from unfinished
+at 16 min / 1.7 GB to proven in 8.9 s. Semantics unchanged throughout: the
+35 twins are the witnesses, run after every change. The whole-solver
+properties are then checked in two forms: the *inductive*
 one-step lemma on a symbolic 3-coordinate SCC and a symbolic state (`step`
 monotone; F_G keeps `Uncond` diagonal; the §7.2 one-step inequality), plus
 the *direct* whole-solver statement on 2-coordinate SCCs with ≤ 1 edge each
@@ -86,24 +95,28 @@ model checker looking at the concrete solver as well.
 
 `cargo test`: **35 passed, 0 failed** (≈ 19 s, `opt-level = 2` test
 profile). `cargo kani` (Kani 0.68.0, CBMC 6.11.0, pinned nightly
-2026-08-21): see the table.
+2026-08-21, one harness at a time on a 4-core / 16 GB container):
+**22 of 22 harnesses SUCCESSFUL**, per-harness wall times in the table;
+the two heaviest are the cells solver's least-fixpoint harness at the full
+3-coordinate / 2-edge bound (5.0 min) and chaotic = Jacobi on small SCCs
+(4.0 min); everything value-level is under a second.
 
 | # | property (P-037 rule) | test twin | Kani harness | Kani bound |
 |---|---|---|---|---|
-| K1 | `Transfer` join commutative / associative / idempotent, `⊥` identity, `unknown` absorbing; `leq` a partial order with `no`/`must` incomparable; `Cells` inherit componentwise (G-L2/G-L3) | exhaustive | running at this checkpoint | all values |
-| K2 | `Election` join laws, `None` identity, `Conflict` absorbing, `One(g)`/`One(h)` incomparable (G-S1) | exhaustive | running at this checkpoint | all values |
-| K3 | every `read(τ, ·)` and `contribute(m, ·)` monotone; every read component ≤ the collapse (the §7.2 lemma) (G-F2/G-S4) | exhaustive | running at this checkpoint | all values |
-| K4 | `import` monotone, `Conflict → Conflict`, `None → None`; maps exactly the bound guard; is **not** a join-morphism (pinned, only monotonicity is claimed) (G-S1) | exhaustive | running at this checkpoint | all values |
-| K5 | `collapse` monotone and a join-morphism; `C(Uncond(t)) = t` (G-T2) | exhaustive | running at this checkpoint | all values |
-| K6 | `apply` yields `consume` iff a selected finalized `must` cell or a unanimous finalized `must`; a selected `no` cell is `borrow` (G-A2/G-A3); `Uncond` ignores selection | exhaustive | SUCCESSFUL | all values |
-| K7 | unselected differing cells never consume; a selected `unknown` cell is `plain`; an opaque read of finalized cells consumes only when both are `must`; raw `⊥` lowers to `borrow`; **the unfinalized witness** `(must, ⊥)` reads as `must` inside the solver and `apply` therefore finalizes first (§4 F2) | exhaustive + pin | SUCCESSFUL | all values |
-| K8 | `read(id, read(id, c)) = c`, `read(neg, read(neg, c)) = c`; `const-pos`/`const-neg`/`opaque` reads are diagonal (G-F2) | exhaustive | running at this checkpoint | all values |
-| K9 | residual-⊥ lemma: `C(fin(other, ⊥)) ≤ fin(today)` for all three groundings and every `other`; the §7.3 non-commutation witness `C(fin(must, ⊥)) = may ≠ fin(C(must, ⊥)) = must` (G-T2.3) | exhaustive + pin | running at this checkpoint | all values |
-| K10 | the solver stabilizes within the height bound; its result is a fixpoint, the **least** fixpoint (test: against every fixpoint of the domain; Kani: against every symbolic fixpoint), and equal under every permutation schedule and a repeating fair schedule; §8 row 11 (late `Conflict` cannot leave a stale import) (G-F1/G-F2) | exhaustive n ≤ 2 + 20 000 random n = 3 | K10a `step` monotone in the state: KANI_K10A · K10b `solve` is a fixpoint below every fixpoint: KANI_K10B · K10c chaotic = Jacobi: KANI_K10C | K10a/b: n = 3, ≤ 2 edges, symbolic state; K10c: n = 2, ≤ 1 edge, any fair schedule |
-| K10e | the election pre-solver: the same three facts (G-S1) | exhaustive twins of K10 | step monotone: KANI_K10E1 · least fixpoint: KANI_K10E2 · chaotic = Jacobi: KANI_K10E3 | as K10 |
-| K11 | G-T2 §7.2 lax simulation against the **collapsed** system: one step `C(F_G(X)) ≤ F_0(C(X))` for every state, and at the lfp `C(lfp F_G) ≤ lfp F_0` — unconditional | exhaustive + 20 000 random | one step: KANI_K11S · lfp: KANI_K11L | one step: n = 3, ≤ 2 edges, symbolic state; lfp: n = 2, ≤ 1 edge |
-| K11′ | G-T2 as stated, against **today's derivation** post-finalization: `C(fin(lfp F_G)) ≤ fin(lfp F_0)` — holds under two trusted-input assumptions (release cells carry no edges; no `unknown` seed in the SCC) and **fails without the second** (§4 F1, pinned) | exhaustive + 20 000 random + counterexample pin | KANI_K11T | n = 2, ≤ 1 edge |
-| K12 | `Uncond` coordinates stay diagonal through the solver (justifies the pair representation of §3) | exhaustive + random | one step keeps them diagonal: KANI_K12A · lfp: KANI_K12B | one step: n = 3; lfp: n = 2, ≤ 1 edge |
+| K1 | `Transfer` join commutative / associative / idempotent, `⊥` identity, `unknown` absorbing; `leq` a partial order with `no`/`must` incomparable; `Cells` inherit componentwise (G-L2/G-L3) | exhaustive | SUCCESSFUL (1.8 s, 3 harnesses) | all values |
+| K2 | `Election` join laws, `None` identity, `Conflict` absorbing, `One(g)`/`One(h)` incomparable (G-S1) | exhaustive | SUCCESSFUL (0.6 s) | all values |
+| K3 | every `read(τ, ·)` and `contribute(m, ·)` monotone; every read component ≤ the collapse (the §7.2 lemma) (G-F2/G-S4) | exhaustive | SUCCESSFUL (0.8 s) | all values |
+| K4 | `import` monotone, `Conflict → Conflict`, `None → None`; maps exactly the bound guard; is **not** a join-morphism (pinned, only monotonicity is claimed) (G-S1) | exhaustive | SUCCESSFUL (0.6 s) | all values |
+| K5 | `collapse` monotone and a join-morphism; `C(Uncond(t)) = t` (G-T2) | exhaustive | SUCCESSFUL (0.6 s) | all values |
+| K6 | `apply` yields `consume` iff a selected finalized `must` cell or a unanimous finalized `must`; a selected `no` cell is `borrow` (G-A2/G-A3); `Uncond` ignores selection | exhaustive | SUCCESSFUL (0.6 s) | all values |
+| K7 | unselected differing cells never consume; a selected `unknown` cell is `plain`; an opaque read of finalized cells consumes only when both are `must`; raw `⊥` lowers to `borrow`; **the unfinalized witness** `(must, ⊥)` reads as `must` inside the solver and `apply` therefore finalizes first (§4 F2) | exhaustive + pin | SUCCESSFUL (0.6 s) | all values |
+| K8 | `read(id, read(id, c)) = c`, `read(neg, read(neg, c)) = c`; `const-pos`/`const-neg`/`opaque` reads are diagonal (G-F2) | exhaustive | SUCCESSFUL (0.6 s) | all values |
+| K9 | residual-⊥ lemma: `C(fin(other, ⊥)) ≤ fin(today)` for all three groundings and every `other`; the §7.3 non-commutation witness `C(fin(must, ⊥)) = may ≠ fin(C(must, ⊥)) = must` (G-T2.3) | exhaustive + pin | SUCCESSFUL (0.6 s) | all values |
+| K10 | the solver stabilizes within the height bound; its result is a fixpoint, the **least** fixpoint (test: against every fixpoint of the domain; Kani: against every symbolic fixpoint), and equal under every permutation schedule and a repeating fair schedule; §8 row 11 (late `Conflict` cannot leave a stale import) (G-F1/G-F2) | exhaustive n ≤ 2 + 20 000 random n = 3 | K10a `step` monotone in the state: SUCCESSFUL (6.3 s) · K10b `solve` is a fixpoint below every fixpoint: SUCCESSFUL (300 s) · K10c chaotic = Jacobi: SUCCESSFUL (240 s) | K10a/b: n = 3, ≤ 2 edges, symbolic state; K10c: n = 2, ≤ 1 edge, any fair schedule |
+| K10e | the election pre-solver: the same three facts (G-S1) | exhaustive twins of K10 | step monotone: SUCCESSFUL (3.9 s) · least fixpoint: SUCCESSFUL (24 s) · chaotic = Jacobi: SUCCESSFUL (44 s) | as K10 |
+| K11 | G-T2 §7.2 lax simulation against the **collapsed** system: one step `C(F_G(X)) ≤ F_0(C(X))` for every state, and at the lfp `C(lfp F_G) ≤ lfp F_0` — unconditional | exhaustive + 20 000 random | one step: SUCCESSFUL (8.9 s) · lfp: SUCCESSFUL (73 s) | one step: n = 3, ≤ 2 edges, symbolic state; lfp: n = 2, ≤ 1 edge |
+| K11′ | G-T2 as stated, against **today's derivation** post-finalization: `C(fin(lfp F_G)) ≤ fin(lfp F_0)` — holds under two trusted-input assumptions (release cells carry no edges; no `unknown` seed in the SCC) and **fails without the second** (§4 F1, pinned) | exhaustive + 20 000 random + counterexample pin | SUCCESSFUL (79 s) | n = 2, ≤ 1 edge |
+| K12 | `Uncond` coordinates stay diagonal through the solver (justifies the pair representation of §3) | exhaustive + random | one step keeps them diagonal: SUCCESSFUL (5.3 s) · lfp: SUCCESSFUL (26 s) | one step: n = 3; lfp: n = 2, ≤ 1 edge |
 | K13 | P-037 §8 rows 1, 3, 7, 8, 9, 12, 13, 14, 16, 17, 18 as concrete pins, each with today's value where the row states one | pins | — | — |
 
 ## 4. Findings (the point of the exercise)
@@ -181,7 +194,7 @@ discharge matrix already lists the G-V4 negative controls).
 - "If the pure semantic kernel ≤ roughly a few hundred LOC and the proof
   harnesses stay local, KEEP." Kernel 497 code lines including both "today"
   models and the election pre-solver; harnesses are per-property, in one
-  crate, and run in ≈ 19 s (`cargo test`) / a time to be recorded when the run completes (`cargo kani`).
+  crate, and run in ≈ 19 s (`cargo test`) / 13.6 min for all 22 harnesses, sequential, one CBMC at a time (`cargo kani`).
   **Keep.**
 
 ## 7. What A1 and A2 inherit

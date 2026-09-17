@@ -53,7 +53,8 @@ solver is a schedule-independent least fixpoint (K10).
 ```text
 cargo test                      # the exhaustive / randomized twins (~20 s)
 cargo clippy --all-targets      # the rust/ workspace's strict lints, copied
-cargo kani                      # every #[kani::proof] harness (needs cargo-kani)
+cargo kani                      # every #[kani::proof] harness (needs cargo-kani;
+                                #  22 harnesses, ~14 min sequential on 4 cores)
 cargo kani --harness k9_residual_bottom_lemma_all_three_groundings
 ```
 
