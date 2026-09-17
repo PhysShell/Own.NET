@@ -1456,9 +1456,11 @@ def decision_inputs(results: list[RunResult], cases: list[dict[str, Any]]) -> di
         return r.status if r else "ABSENT"
 
     def disc(cid: str, tool: str, cfg: str) -> bool:
+        # NOT_APPLICABLE is only ever assigned over a CLEAN/MISSED raw status,
+        # so an after side labelled N/A was clean: a detection on before counts.
         return status(cid, "before", tool, cfg).startswith("DETECTED") and status(
             cid, "after", tool, cfg
-        ) in ("CLEAN", "ABSENT")
+        ) in ("CLEAN", "ABSENT", "NOT_APPLICABLE")
 
     fams: dict[str, list[dict[str, Any]]] = {}
     for c in cases:
@@ -1597,7 +1599,9 @@ def summarize(results: list[RunResult], cases: list[dict[str, Any]], out: Path) 
             a = idx.get((c["id"], "after", t, cfg))
             if b is None:
                 continue
-            if b.status.startswith("DETECTED") and (a is None or a.status == "CLEAN"):
+            if b.status.startswith("DETECTED") and (
+                a is None or a.status in ("CLEAN", "NOT_APPLICABLE")
+            ):
                 d["discriminates"].append(c["id"])
             elif b.status.startswith("DETECTED"):
                 d["detected_but_fp_on_fix"].append(c["id"])
@@ -1684,6 +1688,11 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--sides", default="before,after")
     ap.add_argument("--jobs", type=int, default=2)
     ap.add_argument(
+        "--resummarize",
+        action="store_true",
+        help="rewrite summary.md / results.json from the existing results.json, no tool runs",
+    )
+    ap.add_argument(
         "--merge",
         action="store_true",
         help="merge this (partial) run into the existing results.json",
@@ -1713,6 +1722,22 @@ def main(argv: list[str]) -> int:
     raw = out / "raw"
     (work / "proj").mkdir(parents=True, exist_ok=True)
     raw.mkdir(parents=True, exist_ok=True)
+    if a.resummarize:
+        prior = json.loads((out / "results.json").read_text())["results"]
+        results = [
+            RunResult(
+                **{
+                    **r,
+                    "findings": [Finding(**f) for f in r["findings"]],
+                    "other": [Finding(**f) for f in r["other"]],
+                }
+            )
+            for r in prior
+        ]
+        allcases = json.loads(Path(a.manifest).read_text())["cases"]
+        summarize(results, allcases, out)
+        print(f"rewrote {out / 'summary.md'} and {out / 'results.json'}")
+        return 0
     if a.custom_queries:
         prior = json.loads((out / "results.json").read_text())["results"]
         results = [

@@ -1,14 +1,13 @@
 {
- "head": "6ef9426b0fb3fc8bf2fd6279f96d79acddef473f",
+ "head": "5aa24a14bc1128c9973a549451512822662b2838",
  "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST",
  "discrimination": {
   "codeql/stock": {
    "discriminates": [
+    "F1-14",
     "F3-06"
    ],
-   "detected_but_fp_on_fix": [
-    "F1-14"
-   ],
+   "detected_but_fp_on_fix": [],
    "missed": [
     "F3-01",
     "F3-02",
@@ -60,6 +59,7 @@
   },
   "idisp/stock": {
    "discriminates": [
+    "F1-14",
     "F3-01",
     "F3-04",
     "F3-06",
@@ -70,7 +70,6 @@
     "F4-S2"
    ],
    "detected_but_fp_on_fix": [
-    "F1-14",
     "F3-05",
     "F4-S1"
    ],
@@ -117,12 +116,11 @@
   },
   "infersharp/stock": {
    "discriminates": [
+    "F1-14",
     "F3-08",
     "F3-09"
    ],
-   "detected_but_fp_on_fix": [
-    "F1-14"
-   ],
+   "detected_but_fp_on_fix": [],
    "missed": [
     "F3-01",
     "F3-02",
@@ -174,6 +172,7 @@
   },
   "netanalyzers/configured": {
    "discriminates": [
+    "F1-14",
     "F3-04",
     "F3-06",
     "F3-08",
@@ -181,7 +180,6 @@
     "F4-S2"
    ],
    "detected_but_fp_on_fix": [
-    "F1-14",
     "F3-01",
     "F3-02",
     "F3-03",
@@ -231,6 +229,7 @@
   },
   "netanalyzers/stock": {
    "discriminates": [
+    "F1-14",
     "F3-01",
     "F3-04",
     "F3-06",
@@ -239,7 +238,6 @@
     "F4-S2"
    ],
    "detected_but_fp_on_fix": [
-    "F1-14",
     "F3-05",
     "F3-S1",
     "F3-S2",
@@ -294,12 +292,14 @@
     "F1-04",
     "F1-05",
     "F1-06",
+    "F1-07",
     "F1-08",
     "F1-09",
     "F1-10",
     "F1-11",
     "F1-12",
     "F1-13",
+    "F1-14",
     "F2-01",
     "F2-02",
     "F2-03",
@@ -324,8 +324,6 @@
     "F9-03"
    ],
    "detected_but_fp_on_fix": [
-    "F1-07",
-    "F1-14",
     "F6-S1"
    ],
    "missed": [
@@ -344,6 +342,7 @@
   },
   "rlc/stock": {
    "discriminates": [
+    "F1-14",
     "F3-01",
     "F3-04",
     "F3-06",
@@ -352,7 +351,6 @@
     "F3-10"
    ],
    "detected_but_fp_on_fix": [
-    "F1-14",
     "F3-05"
    ],
    "missed": [
@@ -398,6 +396,546 @@
     "F1-12",
     "F9-03"
    ]
+  }
+ },
+ "decision_inputs": {
+  "rules": {
+   "discriminates": "before status starts with DETECTED and after status is CLEAN",
+   "D1_family": "Owen discriminates >= 1 case, Owen has no FALSE_POSITIVE on any fix, and no comparator stock/configured config discriminates any case",
+   "D2_scope": "cases in F4/F5/F6 plus class-4 F3 cases whose Owen before status is MISSED",
+   "D2_global": "no D2-scope case is discriminated by any comparator stock/configured config",
+   "D2_per_family": "same, restricted to each family",
+   "D4_evidenced": "family holds a class-1 case AND no comparator config discriminates any case in it"
+  },
+  "comparator_configs": [
+   "codeql/stock",
+   "idisp/stock",
+   "infersharp/stock",
+   "netanalyzers/configured",
+   "netanalyzers/stock",
+   "rlc/stock"
+  ],
+  "families": {
+   "F1": {
+    "cases": [
+     "F1-01",
+     "F1-02",
+     "F1-03",
+     "F1-04",
+     "F1-05",
+     "F1-06",
+     "F1-07",
+     "F1-08",
+     "F1-09",
+     "F1-10",
+     "F1-11",
+     "F1-12",
+     "F1-13",
+     "F1-14"
+    ],
+    "class1_cases": [
+     "F1-01",
+     "F1-04",
+     "F1-11",
+     "F1-12"
+    ],
+    "owen_discriminates": [
+     "F1-01",
+     "F1-02",
+     "F1-03",
+     "F1-04",
+     "F1-05",
+     "F1-06",
+     "F1-07",
+     "F1-08",
+     "F1-09",
+     "F1-10",
+     "F1-11",
+     "F1-12",
+     "F1-13",
+     "F1-14"
+    ],
+    "owen_false_positive_on_fix": [],
+    "owen_missed": [],
+    "owen_not_run_or_na": [],
+    "comparator_discriminates": {
+     "codeql/stock": [
+      "F1-14"
+     ],
+     "idisp/stock": [
+      "F1-14"
+     ],
+     "infersharp/stock": [
+      "F1-14"
+     ],
+     "netanalyzers/configured": [
+      "F1-14"
+     ],
+     "netanalyzers/stock": [
+      "F1-14"
+     ],
+     "rlc/stock": [
+      "F1-14"
+     ]
+    },
+    "comparator_false_positive_on_fix": {
+     "codeql/stock": [],
+     "idisp/stock": [],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [],
+     "netanalyzers/stock": [],
+     "rlc/stock": []
+    },
+    "D1_holds_for_family": false,
+    "D4_evidenced": false
+   },
+   "F2": {
+    "cases": [
+     "F2-01",
+     "F2-02",
+     "F2-03",
+     "F2-04",
+     "F2-05",
+     "F2-06"
+    ],
+    "class1_cases": [],
+    "owen_discriminates": [
+     "F2-01",
+     "F2-02",
+     "F2-03",
+     "F2-04",
+     "F2-05",
+     "F2-06"
+    ],
+    "owen_false_positive_on_fix": [],
+    "owen_missed": [],
+    "owen_not_run_or_na": [],
+    "comparator_discriminates": {
+     "codeql/stock": [],
+     "idisp/stock": [],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [],
+     "netanalyzers/stock": [],
+     "rlc/stock": []
+    },
+    "comparator_false_positive_on_fix": {
+     "codeql/stock": [],
+     "idisp/stock": [],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [],
+     "netanalyzers/stock": [],
+     "rlc/stock": []
+    },
+    "D1_holds_for_family": true,
+    "D4_evidenced": false
+   },
+   "F3": {
+    "cases": [
+     "F3-01",
+     "F3-02",
+     "F3-03",
+     "F3-04",
+     "F3-05",
+     "F3-06",
+     "F3-07",
+     "F3-08",
+     "F3-09",
+     "F3-10",
+     "F3-S1",
+     "F3-S2",
+     "F3-S3",
+     "F3-S4",
+     "F3-S5",
+     "F3-S6"
+    ],
+    "class1_cases": [
+     "F3-01",
+     "F3-04",
+     "F3-05",
+     "F3-06",
+     "F3-10"
+    ],
+    "owen_discriminates": [
+     "F3-01",
+     "F3-02",
+     "F3-03",
+     "F3-04",
+     "F3-05",
+     "F3-06",
+     "F3-07",
+     "F3-08",
+     "F3-09",
+     "F3-10",
+     "F3-S5",
+     "F3-S6"
+    ],
+    "owen_false_positive_on_fix": [],
+    "owen_missed": [
+     "F3-S1",
+     "F3-S2",
+     "F3-S3",
+     "F3-S4"
+    ],
+    "owen_not_run_or_na": [],
+    "comparator_discriminates": {
+     "codeql/stock": [
+      "F3-06"
+     ],
+     "idisp/stock": [
+      "F3-01",
+      "F3-04",
+      "F3-06",
+      "F3-07",
+      "F3-08",
+      "F3-09",
+      "F3-10"
+     ],
+     "infersharp/stock": [
+      "F3-08",
+      "F3-09"
+     ],
+     "netanalyzers/configured": [
+      "F3-04",
+      "F3-06",
+      "F3-08",
+      "F3-09"
+     ],
+     "netanalyzers/stock": [
+      "F3-01",
+      "F3-04",
+      "F3-06",
+      "F3-08",
+      "F3-09"
+     ],
+     "rlc/stock": [
+      "F3-01",
+      "F3-04",
+      "F3-06",
+      "F3-08",
+      "F3-09",
+      "F3-10"
+     ]
+    },
+    "comparator_false_positive_on_fix": {
+     "codeql/stock": [],
+     "idisp/stock": [
+      "F3-05"
+     ],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [
+      "F3-01",
+      "F3-02",
+      "F3-03",
+      "F3-05",
+      "F3-S1",
+      "F3-S2",
+      "F3-S3",
+      "F3-S4",
+      "F3-S5",
+      "F3-S6"
+     ],
+     "netanalyzers/stock": [
+      "F3-05",
+      "F3-S1",
+      "F3-S2",
+      "F3-S3",
+      "F3-S4"
+     ],
+     "rlc/stock": [
+      "F3-05"
+     ]
+    },
+    "D1_holds_for_family": false,
+    "D4_evidenced": false
+   },
+   "F4": {
+    "cases": [
+     "F4-S1",
+     "F4-S2"
+    ],
+    "class1_cases": [],
+    "owen_discriminates": [
+     "F4-S2"
+    ],
+    "owen_false_positive_on_fix": [],
+    "owen_missed": [
+     "F4-S1"
+    ],
+    "owen_not_run_or_na": [],
+    "comparator_discriminates": {
+     "codeql/stock": [],
+     "idisp/stock": [
+      "F4-S2"
+     ],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [
+      "F4-S2"
+     ],
+     "netanalyzers/stock": [
+      "F4-S2"
+     ],
+     "rlc/stock": []
+    },
+    "comparator_false_positive_on_fix": {
+     "codeql/stock": [],
+     "idisp/stock": [],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [],
+     "netanalyzers/stock": [],
+     "rlc/stock": []
+    },
+    "D1_holds_for_family": false,
+    "D4_evidenced": false
+   },
+   "F5": {
+    "cases": [
+     "F5-S1"
+    ],
+    "class1_cases": [],
+    "owen_discriminates": [],
+    "owen_false_positive_on_fix": [],
+    "owen_missed": [
+     "F5-S1"
+    ],
+    "owen_not_run_or_na": [],
+    "comparator_discriminates": {
+     "codeql/stock": [],
+     "idisp/stock": [],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [],
+     "netanalyzers/stock": [],
+     "rlc/stock": []
+    },
+    "comparator_false_positive_on_fix": {
+     "codeql/stock": [],
+     "idisp/stock": [],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [
+      "F5-S1"
+     ],
+     "netanalyzers/stock": [
+      "F5-S1"
+     ],
+     "rlc/stock": []
+    },
+    "D1_holds_for_family": false,
+    "D4_evidenced": false
+   },
+   "F6": {
+    "cases": [
+     "F6-S1"
+    ],
+    "class1_cases": [],
+    "owen_discriminates": [],
+    "owen_false_positive_on_fix": [
+     "F6-S1"
+    ],
+    "owen_missed": [],
+    "owen_not_run_or_na": [],
+    "comparator_discriminates": {
+     "codeql/stock": [],
+     "idisp/stock": [],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [],
+     "netanalyzers/stock": [],
+     "rlc/stock": []
+    },
+    "comparator_false_positive_on_fix": {
+     "codeql/stock": [],
+     "idisp/stock": [],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [],
+     "netanalyzers/stock": [],
+     "rlc/stock": []
+    },
+    "D1_holds_for_family": false,
+    "D4_evidenced": false
+   },
+   "F7": {
+    "cases": [
+     "F7-S1"
+    ],
+    "class1_cases": [],
+    "owen_discriminates": [],
+    "owen_false_positive_on_fix": [],
+    "owen_missed": [],
+    "owen_not_run_or_na": [
+     "F7-S1"
+    ],
+    "comparator_discriminates": {
+     "codeql/stock": [],
+     "idisp/stock": [],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [],
+     "netanalyzers/stock": [],
+     "rlc/stock": []
+    },
+    "comparator_false_positive_on_fix": {
+     "codeql/stock": [],
+     "idisp/stock": [],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [],
+     "netanalyzers/stock": [],
+     "rlc/stock": []
+    },
+    "D1_holds_for_family": false,
+    "D4_evidenced": false
+   },
+   "F8": {
+    "cases": [
+     "F8-S1"
+    ],
+    "class1_cases": [],
+    "owen_discriminates": [],
+    "owen_false_positive_on_fix": [],
+    "owen_missed": [],
+    "owen_not_run_or_na": [
+     "F8-S1"
+    ],
+    "comparator_discriminates": {
+     "codeql/stock": [],
+     "idisp/stock": [],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [],
+     "netanalyzers/stock": [],
+     "rlc/stock": []
+    },
+    "comparator_false_positive_on_fix": {
+     "codeql/stock": [],
+     "idisp/stock": [],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [],
+     "netanalyzers/stock": [],
+     "rlc/stock": []
+    },
+    "D1_holds_for_family": false,
+    "D4_evidenced": false
+   },
+   "F9": {
+    "cases": [
+     "F9-01",
+     "F9-02",
+     "F9-03"
+    ],
+    "class1_cases": [],
+    "owen_discriminates": [
+     "F9-01",
+     "F9-02",
+     "F9-03"
+    ],
+    "owen_false_positive_on_fix": [],
+    "owen_missed": [],
+    "owen_not_run_or_na": [],
+    "comparator_discriminates": {
+     "codeql/stock": [],
+     "idisp/stock": [],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [],
+     "netanalyzers/stock": [],
+     "rlc/stock": []
+    },
+    "comparator_false_positive_on_fix": {
+     "codeql/stock": [],
+     "idisp/stock": [],
+     "infersharp/stock": [],
+     "netanalyzers/configured": [],
+     "netanalyzers/stock": [],
+     "rlc/stock": []
+    },
+    "D1_holds_for_family": true,
+    "D4_evidenced": false
+   }
+  },
+  "D2": {
+   "scope_cases": {
+    "F3-S1": {
+     "family": "F3",
+     "commoditised_by": [],
+     "comparator_before_status": {
+      "codeql/stock": "MISSED",
+      "idisp/stock": "MISSED",
+      "infersharp/stock": "MISSED",
+      "netanalyzers/configured": "DETECTED_CONFIGURED",
+      "netanalyzers/stock": "DETECTED_STOCK",
+      "rlc/stock": "MISSED"
+     }
+    },
+    "F3-S2": {
+     "family": "F3",
+     "commoditised_by": [],
+     "comparator_before_status": {
+      "codeql/stock": "MISSED",
+      "idisp/stock": "MISSED",
+      "infersharp/stock": "MISSED",
+      "netanalyzers/configured": "DETECTED_CONFIGURED",
+      "netanalyzers/stock": "DETECTED_STOCK",
+      "rlc/stock": "MISSED"
+     }
+    },
+    "F3-S3": {
+     "family": "F3",
+     "commoditised_by": [],
+     "comparator_before_status": {
+      "codeql/stock": "MISSED",
+      "idisp/stock": "MISSED",
+      "infersharp/stock": "MISSED",
+      "netanalyzers/configured": "DETECTED_CONFIGURED",
+      "netanalyzers/stock": "DETECTED_STOCK",
+      "rlc/stock": "MISSED"
+     }
+    },
+    "F3-S4": {
+     "family": "F3",
+     "commoditised_by": [],
+     "comparator_before_status": {
+      "codeql/stock": "MISSED",
+      "idisp/stock": "MISSED",
+      "infersharp/stock": "MISSED",
+      "netanalyzers/configured": "DETECTED_CONFIGURED",
+      "netanalyzers/stock": "DETECTED_STOCK",
+      "rlc/stock": "MISSED"
+     }
+    },
+    "F4-S1": {
+     "family": "F4",
+     "commoditised_by": [],
+     "comparator_before_status": {
+      "codeql/stock": "NOT_APPLICABLE",
+      "idisp/stock": "DETECTED_STOCK",
+      "infersharp/stock": "NOT_APPLICABLE",
+      "netanalyzers/configured": "NOT_APPLICABLE",
+      "netanalyzers/stock": "NOT_APPLICABLE",
+      "rlc/stock": "NOT_APPLICABLE"
+     }
+    },
+    "F5-S1": {
+     "family": "F5",
+     "commoditised_by": [],
+     "comparator_before_status": {
+      "codeql/stock": "NOT_APPLICABLE",
+      "idisp/stock": "NOT_APPLICABLE",
+      "infersharp/stock": "NOT_APPLICABLE",
+      "netanalyzers/configured": "DETECTED_CONFIGURED",
+      "netanalyzers/stock": "DETECTED_STOCK",
+      "rlc/stock": "NOT_APPLICABLE"
+     }
+    }
+   },
+   "global_holds": true,
+   "per_family_holds": {
+    "F3": true,
+    "F4": true,
+    "F5": true
+   }
+  },
+  "D1": {
+   "families_holding": [
+    "F2",
+    "F9"
+   ]
+  },
+  "D4": {
+   "families_evidenced": []
   }
  },
  "results": [
@@ -1578,11 +2116,11 @@
    "side": "after",
    "tool": "owen",
    "config": "stock",
-   "status": "CRASHED",
+   "status": "CLEAN",
    "findings": [],
    "other": [],
-   "elapsed_s": 6.43,
-   "notes": "own-check rc=2: ment of type 'IEnumerable<string?>' cannot be used for parameter 'collection' of type 'IEnumerable<string>' in 'HashSet<string>.HashSet(IEnumerable<string> collection, IEqualityComparer<string>? comparer)' due to differences in the nullability of reference types. [/home/user/Own.NET/frontend/roslyn/OwnSharp.Extractor/OwnSharp.Extractor.csproj]\nCSC : error CS2012: Cannot open '/home/user/Own.NET/frontend/roslyn/OwnSharp.Extractor/obj/Debug/net8.0/ownsharp-extract.dll' for writing -- 'The process cannot access the file '/home/user/Own.NET/frontend/roslyn/OwnSharp.Extractor/obj/Debug/net8.0/ownsharp-extract.dll' because it is being used by another process.' [/home/user/Own.NET/frontend/roslyn/OwnSharp.Extractor/OwnSharp.Extractor.csproj]\n\nThe build failed. Fix the build errors and run again.\n",
+   "elapsed_s": 5.08,
+   "notes": "ing>.HashSet(IEnumerable<string> collection, IEqualityComparer<string>? comparer)' due to differences in the nullability of reference types. [/home/user/Own.NET/frontend/roslyn/OwnSharp.Extractor/OwnSharp.Extractor.csproj]\nextractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.JkFwaOKYji: ok \u2014 no subscription leaks found\n\n0 findings.\n",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {
@@ -2826,340 +3364,6 @@
    "other": [],
    "elapsed_s": 84.13,
    "notes": "inferred annotations: 0; n/a: scope-uncertain: IDisposable return of an interface call",
-   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
-  },
-  {
-   "case": "F1-14",
-   "side": "after",
-   "tool": "codeql",
-   "config": "stock",
-   "status": "FALSE_POSITIVE_STOCK",
-   "findings": [
-    {
-     "rule": "cs/local-not-disposed",
-     "line": 43,
-     "message": "Disposable 'FileStream' is created but not disposed.",
-     "level": "",
-     "path": "Program.cs",
-     "extra": {
-      "codeFlows": 0,
-      "relatedLocations": 0
-     }
-    },
-    {
-     "rule": "cs/local-not-disposed",
-     "line": 54,
-     "message": "Disposable 'FileStream' is created but not disposed.",
-     "level": "",
-     "path": "Program.cs",
-     "extra": {
-      "codeFlows": 0,
-      "relatedLocations": 0
-     }
-    },
-    {
-     "rule": "cs/dispose-not-called-on-throw",
-     "line": 78,
-     "message": "Dispose missed if exception is thrown by [call to method WriteByte](1).",
-     "level": "",
-     "path": "Program.cs",
-     "extra": {
-      "codeFlows": 0,
-      "relatedLocations": 1
-     }
-    }
-   ],
-   "other": [
-    {
-     "rule": "cs/catch-of-all-exceptions",
-     "line": 56,
-     "message": "Generic catch clause.",
-     "level": "",
-     "path": "Program.cs",
-     "extra": {
-      "codeFlows": 0,
-      "relatedLocations": 0
-     }
-    },
-    {
-     "rule": "cs/catch-of-all-exceptions",
-     "line": 79,
-     "message": "Generic catch clause.",
-     "level": "",
-     "path": "Program.cs",
-     "extra": {
-      "codeFlows": 0,
-      "relatedLocations": 0
-     }
-    }
-   ],
-   "elapsed_s": 79.25,
-   "notes": "",
-   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
-  },
-  {
-   "case": "F1-14",
-   "side": "after",
-   "tool": "idisp",
-   "config": "stock",
-   "status": "FALSE_POSITIVE_STOCK",
-   "findings": [
-    {
-     "rule": "IDISP001",
-     "line": 43,
-     "message": "Dispose created",
-     "level": "warning",
-     "path": "Program.cs",
-     "extra": {}
-    },
-    {
-     "rule": "IDISP001",
-     "line": 54,
-     "message": "Dispose created",
-     "level": "warning",
-     "path": "Program.cs",
-     "extra": {}
-    }
-   ],
-   "other": [],
-   "elapsed_s": 2.04,
-   "notes": "",
-   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
-  },
-  {
-   "case": "F1-14",
-   "side": "after",
-   "tool": "infersharp",
-   "config": "stock",
-   "status": "FALSE_POSITIVE_STOCK",
-   "findings": [
-    {
-     "rule": "PULSE_RESOURCE_LEAK",
-     "line": 42,
-     "message": "Resource dynamically allocated by constructor System.IO.FileStream() on line 43 is not closed after the last access at line 42, column 5.",
-     "level": "error",
-     "path": "Program.cs",
-     "extra": {
-      "codeFlows": 1,
-      "relatedLocations": 0
-     }
-    },
-    {
-     "rule": "PULSE_RESOURCE_LEAK",
-     "line": 44,
-     "message": "Resource dynamically allocated by constructor System.IO.FileStream() on line 43 is not closed after the last access at line 44, column 9.",
-     "level": "error",
-     "path": "Program.cs",
-     "extra": {
-      "codeFlows": 1,
-      "relatedLocations": 0
-     }
-    },
-    {
-     "rule": "PULSE_RESOURCE_LEAK",
-     "line": 55,
-     "message": "Resource dynamically allocated by constructor System.IO.FileStream() on line 54 is not closed after the last access at line 55, column 15.",
-     "level": "error",
-     "path": "Program.cs",
-     "extra": {
-      "codeFlows": 1,
-      "relatedLocations": 0
-     }
-    },
-    {
-     "rule": "PULSE_RESOURCE_LEAK",
-     "line": 56,
-     "message": "Resource dynamically allocated by constructor System.IO.FileStream() on line 54 is not closed after the last access at line 56, column 9.",
-     "level": "error",
-     "path": "Program.cs",
-     "extra": {
-      "codeFlows": 1,
-      "relatedLocations": 0
-     }
-    },
-    {
-     "rule": "PULSE_RESOURCE_LEAK",
-     "line": 79,
-     "message": "Resource dynamically allocated by constructor System.IO.FileStream() on line 77 is not closed after the last access at line 79, column 9.",
-     "level": "error",
-     "path": "Program.cs",
-     "extra": {
-      "codeFlows": 1,
-      "relatedLocations": 0
-     }
-    }
-   ],
-   "other": [],
-   "elapsed_s": 9.0,
-   "notes": "",
-   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
-  },
-  {
-   "case": "F1-14",
-   "side": "after",
-   "tool": "netanalyzers",
-   "config": "configured",
-   "status": "FALSE_POSITIVE_CONFIGURED",
-   "findings": [
-    {
-     "rule": "CA2000",
-     "line": 77,
-     "message": "Object created by 'new FileStream(\"scratch3.bin\", FileMode.Create)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.",
-     "level": "warning",
-     "path": "Program.cs",
-     "extra": {}
-    },
-    {
-     "rule": "CA2000",
-     "line": 43,
-     "message": "Call System.IDisposable.Dispose on object created by 'new FileStream(\"scratch.bin\", FileMode.Create)' before all references to it are out of scope",
-     "level": "warning",
-     "path": "Program.cs",
-     "extra": {}
-    },
-    {
-     "rule": "CA2000",
-     "line": 54,
-     "message": "Call System.IDisposable.Dispose on object created by 'new FileStream(\"scratch2.bin\", FileMode.Create)' before all references to it are out of scope",
-     "level": "warning",
-     "path": "Program.cs",
-     "extra": {}
-    }
-   ],
-   "other": [],
-   "elapsed_s": 1.91,
-   "notes": "",
-   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
-  },
-  {
-   "case": "F1-14",
-   "side": "after",
-   "tool": "netanalyzers",
-   "config": "stock",
-   "status": "FALSE_POSITIVE_STOCK",
-   "findings": [
-    {
-     "rule": "CA2000",
-     "line": 54,
-     "message": "Call System.IDisposable.Dispose on object created by 'new FileStream(\"scratch2.bin\", FileMode.Create)' before all references to it are out of scope",
-     "level": "warning",
-     "path": "Program.cs",
-     "extra": {}
-    },
-    {
-     "rule": "CA2000",
-     "line": 77,
-     "message": "Use recommended dispose pattern to ensure that object created by 'new FileStream(\"scratch3.bin\", FileMode.Create)' is disposed on all paths. If possible, wrap the creation within a 'using' statement or a 'using' declaration. Otherwise, use a try-finally pattern, with a dedicated local variable declared before the try region and an unconditional Dispose invocation on non-null value in the 'finally' region, say 'x?.Dispose()'. If the object is explicitly disposed within the try region or the dispose ownership is transfered to another object or method, assign 'null' to the local variable just after such an operation to prevent double dispose in 'finally'.",
-     "level": "warning",
-     "path": "Program.cs",
-     "extra": {}
-    },
-    {
-     "rule": "CA2000",
-     "line": 43,
-     "message": "Call System.IDisposable.Dispose on object created by 'new FileStream(\"scratch.bin\", FileMode.Create)' before all references to it are out of scope",
-     "level": "warning",
-     "path": "Program.cs",
-     "extra": {}
-    }
-   ],
-   "other": [],
-   "elapsed_s": 2.78,
-   "notes": "",
-   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
-  },
-  {
-   "case": "F1-14",
-   "side": "after",
-   "tool": "owen",
-   "config": "stock",
-   "status": "FALSE_POSITIVE_STOCK",
-   "findings": [
-    {
-     "rule": "OWN014",
-     "line": 20,
-     "message": "event 'SystemEvents.DisplaySettingsChanged' is subscribed (handler 'OnDisplayChanged') to a static (process-lived) event source that outlives 'DisplayWatcher'; the strong subscription promotes 'DisplayWatcher' to the source's lifetime, so it can never be collected \u2014 a region escape (leak, no release path) [resource: subscription token]",
-     "level": "warning",
-     "path": "Program.cs",
-     "extra": {
-      "codeFlows": 0,
-      "relatedLocations": 0
-     }
-    },
-    {
-     "rule": "OWN001",
-     "line": 43,
-     "message": "IDisposable local 'stream' is never disposed (leak) [resource: disposable]",
-     "level": "warning",
-     "path": "Program.cs",
-     "extra": {
-      "codeFlows": 0,
-      "relatedLocations": 0
-     }
-    },
-    {
-     "rule": "OWN001",
-     "line": 54,
-     "message": "IDisposable local 'tried' is never disposed (leak) [resource: disposable]",
-     "level": "warning",
-     "path": "Program.cs",
-     "extra": {
-      "codeFlows": 0,
-      "relatedLocations": 0
-     }
-    },
-    {
-     "rule": "OWN001",
-     "line": 77,
-     "message": "IDisposable local 'onThrow' may not be disposed on every path (leak) [resource: disposable]",
-     "level": "warning",
-     "path": "Program.cs",
-     "extra": {
-      "codeFlows": 0,
-      "relatedLocations": 0
-     }
-    }
-   ],
-   "other": [],
-   "elapsed_s": 5.88,
-   "notes": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n\n4 findings.\n",
-   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
-  },
-  {
-   "case": "F1-14",
-   "side": "after",
-   "tool": "rlc",
-   "config": "stock",
-   "status": "FALSE_POSITIVE_STOCK",
-   "findings": [
-    {
-     "rule": "rlc/resource-leak",
-     "line": 43,
-     "message": "Resource Leak (FileStream- L)  in method LeakAFile",
-     "level": "warning",
-     "path": "Program.cs",
-     "extra": {}
-    },
-    {
-     "rule": "rlc/resource-leak",
-     "line": 54,
-     "message": "Resource Leak (FileStream- L)  in method LeakInTry",
-     "level": "warning",
-     "path": "Program.cs",
-     "extra": {}
-    },
-    {
-     "rule": "rlc/resource-leak",
-     "line": 77,
-     "message": "Resource Leak (FileStream- L)  in method DisposeOnThrow",
-     "level": "warning",
-     "path": "Program.cs",
-     "extra": {}
-    }
-   ],
-   "other": [],
-   "elapsed_s": 87.51,
-   "notes": "inferred annotations: 0",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {

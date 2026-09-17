@@ -3,9 +3,9 @@
  "side": "before",
  "tool": "rlc",
  "config": "stock",
- "status": "CRASHED",
+ "status": "NOT_APPLICABLE",
  "findings": [],
- "note": "traced build/db create rc=2: org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=\nInitializing database at /tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/rlc/F1-11-before/db.\nRunning build command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\nA fatal error occurred: Exit status 1 from command: [dotnet, build, Case.csproj, -c, Debug, -o, bin_rlc, --no-incremental, -p:TreatWarningsAsErrors=false]\n",
- "elapsed_s": 17.7,
+ "note": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+ "elapsed_s": 110.88,
  "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
 }

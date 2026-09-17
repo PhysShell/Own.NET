@@ -659,3 +659,213 @@ S3  Would a per-domain D2 produce SHRINK where the global D2 produces
     NO-GO?                                                               (evaluated on the results)
 S4  Does any conclusion change when class-4 cases are removed from D1/D2?  (evaluated on the results)
 ```
+
+### 3.2 Results by family (MEASURED OBSERVATIONS; every detection re-read by hand)
+
+The generated status matrix is `docs/evidence/p036-bakeoff/summary.md`
+(per case × side × tool/config) and the per-finding messages are under
+`raw/`. "Discriminates" = flags `before` **and** is silent on `after`; a tool
+that flags both sides never modelled the mechanism under test and is listed
+separately. Where the harness status and the human reading differ, the human
+reading is given and the reason stated.
+
+**F1 — subscription release reachability (14 cases; 4 real, 3 fixtures, 7 adversarial).**
+Owen discriminates all 13 two-sided cases and flags the single-sided F1-14;
+zero false positives on fixes (the one CRASHED entry, F1-07's fix, was a
+harness race on the shared extractor build — re-run serialised: CLEAN). Every
+stock comparator is silent on every F1 case, by rule scope (no event/timer
+rule), which the manifest declared before the run and the run confirmed.
+Two F1 cases put an `IDisposable` in reach of the RAII tools and they still
+did not fire: F1-13 (the token returned by `bus.Subscribe<T>()` is
+discarded — IDISP004 and CA2000 both `MISSED`; Owen: "the result of
+'bus.Subscribe<CustomerChanged>' is ignored — the IDisposable subscription is
+never disposed") and F1-14 (the RAII controls are caught by all, the
+subscription by Owen alone, §2.0). F1-09 is `UNSUPPORTED` for the
+build-requiring tools by fixture design (unresolvable `Window`), and N/A
+anyway. F1-11/F1-12 (ScreenToGif) needed the XAML stub to compile for the
+comparators; Owen reads them without it (OWN014 static source; three OWN001
+lambdas).
+
+**F2 — timer `Stop()` (6 adversarial).** Owen 6/6 discriminates, no FPs. All
+comparators N/A: the timer stand-in is not `IDisposable`, so no RAII tool has
+a resource to track — confirmed silent.
+
+**F3 — interprocedural IDisposable transfer (16: 5 real, 5 fixtures, 6 synthetic).**
+
+| tool/config | discriminates | detected but FP on fix | reading |
+|---|---|---|---|
+| Owen | 12 (F3-01…F3-10, F3-S5, F3-S6) | 0 | misses **F3-S1…S4** — all four through the extractor's may-as-must `ConsumesParam` (§3.1); the same inference is what makes F3-S5/S6 "caught": the OWN002 there is the right verdict for an unsound reason (any `Dispose` in the callee counts), not a proof |
+| CodeQL stock | 1 (F3-06) | 0 | `cs/local-not-disposed` sources are `new`/static `Create` of **library** types only: `File.OpenRead`, `AcceptTcpClient`, `ExecuteReader` are not creations, the first-party `Res` is excluded by design; a handoff to any callee that disposes the parameter *somewhere* is a sink (`mayBeDisposed`), so every guarded shape is silent on both sides. Use-after cases: no rule |
+| Infer# | 2 (F3-08, F3-09) | 0 | catches `new` of a user type with `Dispose`; no models for BCL factories (`File.OpenRead`, `RandomNumberGenerator.Create`, `AcceptTcpClient`, `ExecuteReader`) → unknown → silent; silent on every guarded/handoff shape; no use-after-dispose issue type for C# |
+| RLC# (shipped pipeline, 2.11.6) | 6 (F3-01 leak arm, F3-04, F3-06, F3-08, F3-09, F3-10) | 1 (F3-05) | strongest pure-RAII comparator here: an annotation-free `Owning`-by-default model; its own inference marks `Close(Stream s, bool keep)`'s `s` as `Owning`, which makes the guarded handoff a sink on both sides — no conditional ownership exists in its vocabulary. F3-05's fix (`Interlocked.Exchange(ref _timer, null)?.Dispose()`) is flagged: no heap identity through the exchange. Use-after: no rule |
+| CA2000 stock | 6 (F3-01 leak arm, F3-04 via CA2213, F3-06, F3-08, F3-09, F4-S2) | 5 (F3-05, F3-S1…S4) | on the guarded shapes it emits the `MaybeDisposed` message ("use recommended dispose pattern") on **both** sides — context-sensitive re-analysis sees a conditional dispose but never prunes the branch by the constant argument; F3-05's fix flagged (CA2213, no identity through `Exchange`); misses `AcceptTcpClient`/`ExecuteReader` (not creations) |
+| CA2000 configured (`AllPaths`, chain 5) | 5 | 11 | adds exception-path detections and as many exception-path "false positives" on fixes (`File.OpenRead(...)` then `s.Length` before the handoff: strictly, `s` leaks if `Length` throws). These are not false under CA2000's criterion — the corpus's "fixed" is Owen's criterion (normal paths + `try`-body throw edges). Recorded as a corpus-definition threat in §7 |
+| IDisposableAnalyzers | 8 (F3-01, F3-04, F3-06, **F3-07**, F3-08, F3-09, F3-10, F4-S2) | 1 (F3-05) | the only comparator that treats a method return (`AcceptTcpClient`) as a creation (IDISP001); F3-05's fix flagged; IDISP007 "Don't dispose injected" fires on every consuming helper's `s.Dispose()` — its ownership convention is the *inverse* of the consume contract (a parameter is presumed borrowed), a design disagreement, not a leak finding |
+
+Net for F3: on the five real-bug cases (F3-01, F3-04, F3-05, F3-06, F3-10)
+every tool with a RAII rule catches at least the plain leak arm; **only Owen is
+silent on the two NLog fixes (F3-04 helper sink, F3-05 `Interlocked.Exchange`)
+and flags the use-after-handoff arms (F3-01, F3-02, F3-03)** — the
+first-party-summary (`ConsumesParam`/`CallReleasesReceiver`) and heap-idiom
+work already landed, not P-036. On the six P-037-derived cases: **nobody
+discriminates F3-S1…S4**; Owen is silent without an advisory (§3.1), CA2000
+flags both sides, the rest are silent. F3-S5/S6 are "caught" by Owen only
+(mechanism caveat above).
+
+**F4 — enrollment (2 synthetic).** F4-S1 (name-root `Dispose` on a
+non-`IDisposable` type, nobody calls it): Owen `MISSED` — the audit's attack
+D, reproduced. **IDisposableAnalyzers discriminates it stock** with IDISP009
+"Add IDisposable interface" at the `Dispose` declaration: a design rule
+that flags the *symptom* (a `Dispose` nobody can reach through the
+interface), says nothing about the subscription, and is exactly the cheap
+bounded fix the audit proposed for D ("name-root `Dispose` only when the type
+implements `IDisposable`"). The manifest had declared IDISP N/A for this
+family by rule scope; the declaration was too coarse for this case and the
+detection is counted (the harness never masks a detection). F4-S2 (owner
+drops an `IDisposable` subscriber): Owen, CA2000 and IDISP001 discriminate;
+CodeQL (first-party type excluded), Infer# and RLC# miss it.
+
+**F5 — exceptional exit inside `Dispose` (1 synthetic).** Owen `MISSED`: the
+teardown-context predicate credits the `-=` in `Dispose` without looking at
+the may-throw `Flush()` before it — the CFG's exception edges exist for
+`try` bodies but are not consulted by the release-crediting predicate. No
+comparator has a rule; CA2213 fires on both sides about the unrelated `_log`
+field (wrong subject, no discrimination).
+
+**F6 — cleanup through a delegate/interface target (1 synthetic).** Owen flags
+the bug side (an interface call proves nothing: kept warning, correct) and
+**also flags the fix** (`_cleanup = Detach` assigned in the ctor, invoked in
+`Dispose`): the documented degraded-precision case (audit table: "teardown
+via delegate field ⇒ kept warning"). A precision claim for P-036 (delegate
+targets "when statically known"), not a recall claim; no comparator has a rule.
+
+**F7 / F8 — obligations, progress (1 synthetic each).** `NOT_APPLICABLE` for
+every tool including Owen (C# protocol extractor pending; PRG001 not
+implemented). Nothing executed can say anything about these domains.
+
+**F9 — regions / DI (3 fixtures).** Owen discriminates all three (DI001;
+OWN001 on the App-scoped bus; OWN014 on the static source in a `Window`); all
+comparators N/A and silent. One honest wrinkle: with the harness `IEventBus`
+stub, F9-02 resolves and Owen reports an injected-source **OWN001 warning**,
+where the official benchmark (no stub) records an OWN050 advisory and a miss —
+the stub changed Owen's own verdict from "unresolved" to "warning"; the
+App-lifetime *proof* (OWN014) is still not produced.
+
+### 7.1 The ten questions
+
+1. **Did we select cases that favour Owen?** Partly, and structurally: 20 of
+   the 45 cases (F1, F2) plus the 3 F9 fixtures are Owen's own regression
+   corpus, written to pin defects in Owen's *predecessor*, in defect classes
+   for which no comparator ships a rule. Their result ("everyone else is
+   silent") was knowable from rule scope before the run and was declared so
+   in the manifest; the run only confirms that nothing fires by accident
+   (F1-13/F1-14 are the two places a RAII rule could have reached, and did
+   not). Those families measure *coverage of a class*, not relative quality
+   on a shared class. The shared class is F3, and there Owen's edge is
+   narrow: the use-after-handoff arms and two NLog heap idioms, all landed
+   features; its four guarded-shape misses are real.
+2. **Current Owen vs theoretical comparators?** No: every comparator was
+   executed as shipped, on the same inputs. The one asymmetry runs the other
+   way — RLC#'s paper results depend on manual annotations that were *not*
+   reproduced, so RLC#'s executed recall is a floor for the tool, not its
+   ceiling (§2.2).
+3. **Theoretical P-036 vs implemented comparators?** The P-036 column is
+   never scored. But the D2 scope is, by construction, "proposal-derived
+   cases Owen misses", so D2 measures *whether anyone else already covers
+   P-036's target shapes*, not whether P-036 would. Nothing in the note
+   claims the latter; the mechanism finding of §3.1 cuts the other way (the
+   C# path currently swallows the shape before any summary sees it).
+4. **Custom CodeQL logic scored as stock?** No. Two bakeoff-written queries
+   exist (§evidence `custom-codeql/`), are scored `DETECTED_CUSTOM_QUERY`
+   only, and are excluded from D1/D2/D4 by the mechanical rule set (§3.4).
+5. **Unsupported counted as missed?** Statuses are separate: `UNSUPPORTED`
+   (F1-09 by fixture design; F1-11/F1-12/F9-03 until the XAML stub re-run)
+   never became `MISSED`. One declaration gap the other way: the manifest
+   declared N/A by rule scope for subscriptions, timers, DI, protocols and
+   progress, but **not** for the use-after-dispose subclass (F3-02, F3-03,
+   F3-S5, F3-S6), for which no comparator has a C# rule either; those rows
+   read `MISSED` for the comparators where `NOT_APPLICABLE` would be fairer.
+   Effect on the predicates: none (D1 for F3 fails on the leak arms anyway;
+   the D2 scope contains only Owen-missed cases); effect on the comparator
+   discrimination counts in F3: understated by up to four cases each.
+6. **Lack of diagnostics confused with lack of capability?** Checked per
+   tool: CodeQL's silence on handoffs is a *design* choice (a callee that
+   may dispose is a sink); CA2000's both-sides `MaybeDisposed` is a
+   *capability* gap (no branch pruning by constant arguments); RLC#'s is a
+   *vocabulary* gap (no conditional `Owning`); Infer#'s silence on F3-S1 is a
+   *model* gap (the leak in `Leak()` is manifest, no parameter decides it,
+   and `File.OpenRead` is simply unmodelled), whereas its silence on
+   parameter-driven shapes could also be Pulse's manifest-only reporting
+   policy — the two were not separated further.
+7. **Synthetic where real bugs disagree?** The D2 evidence rests entirely on
+   class-4 cases (Defect 3). No class-1 case in the corpus is caught by
+   P-036-target-only reasoning; on the class-1 F3 cases Owen's advantage
+   comes from landed work. The SectorTS incident (#278, class 1) is caught by
+   the landed predicates, and its P-037-style generalisation (the same guard
+   on an `IDisposable` handoff, F3-S1) is caught by nobody — that is the
+   honest shape of the evidence.
+8. **Performance smuggled in?** No timing enters D1–D6. §6 carries the label
+   on every number and makes one claim only: no order-of-magnitude
+   disaster, and setup (database creation, traced build) dominates all
+   comparators.
+9. **Setup/modelling cost ignored?** §2.6. The comparators ran with zero
+   per-case modelling; that is why RLC# is a floor (Q2) and why the custom
+   CodeQL queries are reported as *cost*, not as CodeQL's stock capability.
+10. **Wrong RLC#/Infer# artifact?** RLC# executed is the archived 2023
+    `microsoft/global-resource-leaks-codeql` on CodeQL 2.11.6 (the paper
+    says 2.11.4), **unmodified**, with the shipped inference and library
+    annotations. Infer# executed is release v1.5 (2024) whose bundled Infer
+    reports `v1.1.0-9d469330b6` — a Pulse of that vintage, not current
+    Infer `main`. CodeQL 2.27.0 and IDisposableAnalyzers 4.0.8 are current;
+    NetAnalyzers 8.0.9 is the SDK-8 build (SDK 9/10 analyzers not tested).
+
+### 7.2 Surviving threats to validity
+
+```text
+T1  Corpus provenance mix: GO unreachable by construction (Defect 1).
+T2  Global D2: one commoditised case decides NO-GO (Defect 2) — realised by
+    F4-S1 / IDISP009.
+T3  D2 scope is entirely class-4 (Defect 3).
+T4  "Fixed" is Owen's criterion: CA2000 AllPaths' exception-path findings
+    on F3-01/02/03 fixes are true under its own criterion.
+T5  N/A declarations incomplete for use-after-dispose: comparator
+    discrimination in F3 understated by ≤ 4.
+T6  RLC# executed below its paper capability (no manual annotations).
+T7  Infer# core vintage (Infer 1.1.0 Pulse).
+T8  Owen's F3-S5/F3-S6 detections come from may-as-must consume inference
+    (§3.1): correct verdict, unsound mechanism — Owen's F3 discrimination
+    count overstates its proven capability by two.
+T9  Harness stubs changed one Owen verdict (F9-02: OWN050 advisory → OWN001
+    warning) by making a fixture type resolvable; recorded, not scored.
+T10 Single run per tool on one host; CodeQL/Infer# nondeterminism was not
+    probed by repetition (deterministic by design, unverified here).
+T11 F1/F2 "differentiation" is rule-scope coverage, not measured quality
+    on a shared class (Q1); it is real, but it is not a P-036 result.
+```
+
+---
+
+## Phase 6 — exploratory timings
+
+`EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE /
+UNCONTROLLED SHARED HOST.` One run per (case, side), three worker threads on
+four cores, no warm-up policy, compile caches cold for the first cases, the
+same host running the other tools concurrently. Wall-clock per side from the
+main run (n = 89 sides per tool/config; the merge re-runs and the custom
+post-pass are excluded):
+
+| tool/config | median s | p90 s | max s | what the number contains |
+|---|---|---|---|---|
+| Owen | 2.9 | 4.6 | 8.4 | incremental `dotnet build` of the extractor + extraction + Python core |
+| NetAnalyzers stock / configured | 1.7 / 1.5 | 2.3 / 2.1 | 3.2 / 2.8 | `dotnet build` of a one-file library with analyzers |
+| IDisposableAnalyzers | 1.8 | 2.6 | 3.6 | same |
+| Infer# | 8.4 | 10.6 | 13.0 | `dotnet build` + Cilsil translation + Pulse |
+| CodeQL 2.27 stock suite | 81.0 | 91.4 | 123.9 | database creation (build-mode none, NuGet resolution) + the full security-and-quality suite |
+| RLC# (2.11.6) | 81.8 | 182.3 | 226.0 | traced `dotnet build` + database + `infer.ql` + `RLC.ql` (first compile ≈ 60 s per distinct annotation set) |
+
+Suitable conclusions, and the only ones drawn: no comparator is a 100×
+disaster on inputs of this size; the two CodeQL-based comparators are
+dominated by database construction and query compilation, not by analysis;
+Owen's per-file cost is dominated by the extractor build it repeats per
+invocation (`own-check.sh`), which a batch mode would amortise. Nothing here
+ranks engines, feeds #263, or supports a latency claim.

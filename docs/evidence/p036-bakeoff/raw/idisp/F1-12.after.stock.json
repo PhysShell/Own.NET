@@ -3,9 +3,9 @@
  "side": "after",
  "tool": "idisp",
  "config": "stock",
- "status": "UNSUPPORTED",
+ "status": "NOT_APPLICABLE",
  "findings": [],
- "note": "build failed: omponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after-idisp/Case.csproj]\n\nBuild FAILED.\n\n/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after-idisp/Case.cs(19,9): error CS0103: The name 'InitializeComponent' does not exist in the current context [/tmp/claude-0/-home-user-Own-NET/66a01856-ff04-59d1-b847-efd5db512f3b/scratchpad/runs/bakeoff/proj/F1-12-after-idisp/Case.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:01.62\n\n",
- "elapsed_s": 1.93,
+ "note": "n/a: no event-subscription/lifetime rule",
+ "elapsed_s": 2.27,
  "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
 }

@@ -5,7 +5,7 @@
  "config": "stock",
  "status": "CLEAN",
  "findings": [],
- "note": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.R6ID8xNUHD: ok \u2014 no subscription leaks found\n\n0 findings.\n",
- "elapsed_s": 2.43,
+ "note": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.t29aeH2Mzr: ok \u2014 no subscription leaks found\n\n0 findings.\n",
+ "elapsed_s": 3.31,
  "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
 }

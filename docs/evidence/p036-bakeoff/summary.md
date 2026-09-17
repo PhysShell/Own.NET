@@ -17,7 +17,7 @@ Timing label for every elapsed value: EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263
 | F1-06 | F1 | 3 | before | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | DETECTED_STOCK (1) | NOT_APPLICABLE (0) |
 | F1-06 | F1 | 3 | after | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | CLEAN (0) | NOT_APPLICABLE (0) |
 | F1-07 | F1 | 3 | before | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | DETECTED_STOCK (1) | NOT_APPLICABLE (0) |
-| F1-07 | F1 | 3 | after | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | CRASHED (0) | NOT_APPLICABLE (0) |
+| F1-07 | F1 | 3 | after | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | CLEAN (0) | NOT_APPLICABLE (0) |
 | F1-08 | F1 | 3 | before | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | DETECTED_STOCK (1) | NOT_APPLICABLE (0) |
 | F1-08 | F1 | 3 | after | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | CLEAN (0) | NOT_APPLICABLE (0) |
 | F1-09 | F1 | 3 | before | NOT_APPLICABLE (0) | UNSUPPORTED (0) | UNSUPPORTED (0) | UNSUPPORTED (0) | UNSUPPORTED (0) | DETECTED_STOCK (1) | CRASHED (0) |
@@ -31,7 +31,7 @@ Timing label for every elapsed value: EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263
 | F1-13 | F1 | 2 | before | NOT_APPLICABLE (0) | MISSED (0) | NOT_APPLICABLE (0) | MISSED (0) | MISSED (0) | DETECTED_STOCK (1) | NOT_APPLICABLE (0) |
 | F1-13 | F1 | 2 | after | NOT_APPLICABLE (0) | CLEAN (0) | NOT_APPLICABLE (0) | CLEAN (0) | CLEAN (0) | CLEAN (0) | NOT_APPLICABLE (0) |
 | F1-14 | F1 | 2 | before | DETECTED_STOCK (3) | DETECTED_STOCK (2) | DETECTED_STOCK (5) | DETECTED_CONFIGURED (3) | DETECTED_STOCK (3) | DETECTED_STOCK (4) | DETECTED_STOCK (3) |
-| F1-14 | F1 | 2 | after | FALSE_POSITIVE_STOCK (3) | FALSE_POSITIVE_STOCK (2) | FALSE_POSITIVE_STOCK (5) | FALSE_POSITIVE_CONFIGURED (3) | FALSE_POSITIVE_STOCK (3) | FALSE_POSITIVE_STOCK (4) | FALSE_POSITIVE_STOCK (3) |
+| F1-14 | F1 | 2 | after |  |  |  |  |  |  |  |
 | F2-01 | F2 | 3 | before | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | DETECTED_STOCK (1) | NOT_APPLICABLE (0) |
 | F2-01 | F2 | 3 | after | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | CLEAN (0) | NOT_APPLICABLE (0) |
 | F2-02 | F2 | 3 | before | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | DETECTED_STOCK (1) | NOT_APPLICABLE (0) |
@@ -99,10 +99,37 @@ Timing label for every elapsed value: EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263
 
 | tool/config | discriminates | detected but FP on fix | missed | n/a | unsupported/crashed |
 |---|---|---|---|---|---|
-| codeql/stock | 1: F3-06 | 1: F1-14 | 16: F3-01 F3-02 F3-03 F3-04 F3-05 F3-07 F3-08 F3-09 F3-10 F3-S1 F3-S2 F3-S3 F3-S4 F3-S5 F3-S6 F4-S2 | 27 | 0:  |
-| idisp/stock | 8: F3-01 F3-04 F3-06 F3-07 F3-08 F3-09 F3-10 F4-S2 | 3: F1-14 F3-05 F4-S1 | 9: F1-13 F3-02 F3-03 F3-S1 F3-S2 F3-S3 F3-S4 F3-S5 F3-S6 | 21 | 4: F1-09 F1-11 F1-12 F9-03 |
-| infersharp/stock | 2: F3-08 F3-09 | 1: F1-14 | 15: F3-01 F3-02 F3-03 F3-04 F3-05 F3-06 F3-07 F3-10 F3-S1 F3-S2 F3-S3 F3-S4 F3-S5 F3-S6 F4-S2 | 23 | 4: F1-09 F1-11 F1-12 F9-03 |
-| netanalyzers/configured | 5: F3-04 F3-06 F3-08 F3-09 F4-S2 | 11: F1-14 F3-01 F3-02 F3-03 F3-05 F3-S1 F3-S2 F3-S3 F3-S4 F3-S6 F5-S1 | 4: F1-13 F3-07 F3-10 F3-S5 | 21 | 4: F1-09 F1-11 F1-12 F9-03 |
-| netanalyzers/stock | 6: F3-01 F3-04 F3-06 F3-08 F3-09 F4-S2 | 7: F1-14 F3-05 F3-S1 F3-S2 F3-S3 F3-S4 F5-S1 | 7: F1-13 F3-02 F3-03 F3-07 F3-10 F3-S5 F3-S6 | 21 | 4: F1-09 F1-11 F1-12 F9-03 |
-| owen/stock | 34: F1-01 F1-02 F1-03 F1-04 F1-05 F1-06 F1-08 F1-09 F1-10 F1-11 F1-12 F1-13 F2-01 F2-02 F2-03 F2-04 F2-05 F2-06 F3-01 F3-02 F3-03 F3-04 F3-05 F3-06 F3-07 F3-08 F3-09 F3-10 F3-S5 F3-S6 F4-S2 F9-01 F9-02 F9-03 | 3: F1-07 F1-14 F6-S1 | 6: F3-S1 F3-S2 F3-S3 F3-S4 F4-S1 F5-S1 | 2 | 0:  |
-| rlc/stock | 6: F3-01 F3-04 F3-06 F3-08 F3-09 F3-10 | 2: F1-14 F3-05 | 10: F3-02 F3-03 F3-07 F3-S1 F3-S2 F3-S3 F3-S4 F3-S5 F3-S6 F4-S2 | 23 | 4: F1-09 F1-11 F1-12 F9-03 |
+| codeql/stock | 2: F1-14 F3-06 | 0:  | 16: F3-01 F3-02 F3-03 F3-04 F3-05 F3-07 F3-08 F3-09 F3-10 F3-S1 F3-S2 F3-S3 F3-S4 F3-S5 F3-S6 F4-S2 | 27 | 0:  |
+| idisp/stock | 9: F1-14 F3-01 F3-04 F3-06 F3-07 F3-08 F3-09 F3-10 F4-S2 | 2: F3-05 F4-S1 | 9: F1-13 F3-02 F3-03 F3-S1 F3-S2 F3-S3 F3-S4 F3-S5 F3-S6 | 21 | 4: F1-09 F1-11 F1-12 F9-03 |
+| infersharp/stock | 3: F1-14 F3-08 F3-09 | 0:  | 15: F3-01 F3-02 F3-03 F3-04 F3-05 F3-06 F3-07 F3-10 F3-S1 F3-S2 F3-S3 F3-S4 F3-S5 F3-S6 F4-S2 | 23 | 4: F1-09 F1-11 F1-12 F9-03 |
+| netanalyzers/configured | 6: F1-14 F3-04 F3-06 F3-08 F3-09 F4-S2 | 10: F3-01 F3-02 F3-03 F3-05 F3-S1 F3-S2 F3-S3 F3-S4 F3-S6 F5-S1 | 4: F1-13 F3-07 F3-10 F3-S5 | 21 | 4: F1-09 F1-11 F1-12 F9-03 |
+| netanalyzers/stock | 7: F1-14 F3-01 F3-04 F3-06 F3-08 F3-09 F4-S2 | 6: F3-05 F3-S1 F3-S2 F3-S3 F3-S4 F5-S1 | 7: F1-13 F3-02 F3-03 F3-07 F3-10 F3-S5 F3-S6 | 21 | 4: F1-09 F1-11 F1-12 F9-03 |
+| owen/stock | 36: F1-01 F1-02 F1-03 F1-04 F1-05 F1-06 F1-07 F1-08 F1-09 F1-10 F1-11 F1-12 F1-13 F1-14 F2-01 F2-02 F2-03 F2-04 F2-05 F2-06 F3-01 F3-02 F3-03 F3-04 F3-05 F3-06 F3-07 F3-08 F3-09 F3-10 F3-S5 F3-S6 F4-S2 F9-01 F9-02 F9-03 | 1: F6-S1 | 6: F3-S1 F3-S2 F3-S3 F3-S4 F4-S1 F5-S1 | 2 | 0:  |
+| rlc/stock | 7: F1-14 F3-01 F3-04 F3-06 F3-08 F3-09 F3-10 | 1: F3-05 | 10: F3-02 F3-03 F3-07 F3-S1 F3-S2 F3-S3 F3-S4 F3-S5 F3-S6 F4-S2 | 23 | 4: F1-09 F1-11 F1-12 F9-03 |
+
+## Mechanical decision inputs (D1 / D2 / D4; D3 and D6 are judgments in the note)
+
+- D1 holds for families: ['F2', 'F9']
+- D2 global: True; per family: {'F3': True, 'F4': True, 'F5': True}
+- D4 evidenced families: []
+
+| family | class-1 | Owen discriminates | Owen FP on fix | Owen missed | comparators discriminating (stock/configured) |
+|---|---|---|---|---|---|
+| F1 | 4 | 14: F1-01 F1-02 F1-03 F1-04 F1-05 F1-06 F1-07 F1-08 F1-09 F1-10 F1-11 F1-12 F1-13 F1-14 | 0:  | 0:  | codeql/stock: F1-14; idisp/stock: F1-14; infersharp/stock: F1-14; netanalyzers/configured: F1-14; netanalyzers/stock: F1-14; rlc/stock: F1-14 |
+| F2 | 0 | 6: F2-01 F2-02 F2-03 F2-04 F2-05 F2-06 | 0:  | 0:  | none |
+| F3 | 5 | 12: F3-01 F3-02 F3-03 F3-04 F3-05 F3-06 F3-07 F3-08 F3-09 F3-10 F3-S5 F3-S6 | 0:  | 4: F3-S1 F3-S2 F3-S3 F3-S4 | codeql/stock: F3-06; idisp/stock: F3-01 F3-04 F3-06 F3-07 F3-08 F3-09 F3-10; infersharp/stock: F3-08 F3-09; netanalyzers/configured: F3-04 F3-06 F3-08 F3-09; netanalyzers/stock: F3-01 F3-04 F3-06 F3-08 F3-09; rlc/stock: F3-01 F3-04 F3-06 F3-08 F3-09 F3-10 |
+| F4 | 0 | 1: F4-S2 | 0:  | 1: F4-S1 | idisp/stock: F4-S2; netanalyzers/configured: F4-S2; netanalyzers/stock: F4-S2 |
+| F5 | 0 | 0:  | 0:  | 1: F5-S1 | none |
+| F6 | 0 | 0:  | 1: F6-S1 | 0:  | none |
+| F7 | 0 | 0:  | 0:  | 0:  | none |
+| F8 | 0 | 0:  | 0:  | 0:  | none |
+| F9 | 0 | 3: F9-01 F9-02 F9-03 | 0:  | 0:  | none |
+
+D2-scope cases (Owen MISSED inside the P-036 scope) and who commoditises them:
+
+- F3-S1 (F3): nobody
+- F3-S2 (F3): nobody
+- F3-S3 (F3): nobody
+- F3-S4 (F3): nobody
+- F4-S1 (F4): nobody
+- F5-S1 (F5): nobody
