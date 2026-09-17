@@ -2,15 +2,32 @@
 
 ```text
 Status:
-  NOT_FROZEN.
-  collection_authorized: false
-  CONTENT COMPLETE. HOSTILE FREEZE REVIEW PENDING.
+  FROZEN.
+  collection_authorized: true
+  CONTENT COMPLETE. HOSTILE FREEZE REVIEW PASSED.
   MANDATORY UNRESOLVED SLOTS: 0 (T0-completion).
   OPEN NORMATIVE CONFLICTS: none. The #262 ratification blocker was withdrawn
     as a misreading — see T0-3.
   NO T0-GOVERNED CLOCK HAS RUN. NO TRAINING OR DECISIVE OBSERVATION EXISTS.
     (Historical calibration and Round-7 observations exist and are untouched
      by this contract; they are not training or decisive evidence.)
+
+  What this freeze claims, and what it does not:
+    Execution isolation is NOT claimed. Evidence admissibility isolation IS
+    claimed and mechanically enforced.
+    The instrument's IdentityGate arms from the D7 payload and attestation
+    alone, so a clock can physically run outside a registered campaign. Such a
+    run cannot become admissible evidence: admissibility is the postflight
+    record, and it cannot be issued without the campaign link closing on this
+    exact freeze. Read this before reopening perf_baseline.py in search of a
+    firewall that was never claimed.
+
+  collection_authorized: true is NECESSARY, NEVER SUFFICIENT. Host
+    qualification, an exact execution binding, the campaign link and the
+    session preflight are still required, and each may still refuse.
+
+  Amendments after this line are a new state of the contract, never an edit of
+    this one. This commit is not to be amended, rebased or force-pushed.
 ```
 
 **What this is.** The contract that fixes *how numbers will be judged*, before any
