@@ -94,10 +94,10 @@ Timing label for every elapsed value: EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263
 | F9-02 | F9 | 2 | after | CLEAN (0) | CLEAN (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | CLEAN (0) | NOT_APPLICABLE (0) |
 | F9-03 | F9 | 2 | before | DETECTED_CUSTOM_QUERY (1) | DETECTED_CUSTOM_QUERY (1) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | DETECTED_STOCK (1) | NOT_APPLICABLE (0) |
 | F9-03 | F9 | 2 | after | CLEAN (0) | CLEAN (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | CLEAN (0) | NOT_APPLICABLE (0) |
-| F4-C1 | F4 | 5 | before |  |  |  |  |  |  |  |  |  |
-| F4-C1 | F4 | 5 | after |  |  |  |  |  |  |  |  |  |
-| F4-C2 | F4 | 5 | before |  |  |  |  |  |  |  |  |  |
-| F4-C2 | F4 | 5 | after |  |  |  |  |  |  |  |  |  |
+| F4-C1 | F4 | 5 | before | MISSED (0) | MISSED (0) | MISSED (0) | DETECTED_STOCK (1) | MISSED (0) | DETECTED_CONFIGURED (1) | DETECTED_STOCK (1) | DETECTED_STOCK (1) | MISSED (0) |
+| F4-C1 | F4 | 5 | after | CLEAN (0) | CLEAN (0) | CLEAN (0) | CLEAN (0) | CLEAN (0) | CLEAN (0) | CLEAN (0) | CLEAN (0) | CLEAN (0) |
+| F4-C2 | F4 | 5 | before | MISSED (0) | MISSED (0) | NOT_APPLICABLE (0) | DETECTED_STOCK (1) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | MISSED (0) | NOT_APPLICABLE (0) |
+| F4-C2 | F4 | 5 | after | CLEAN (0) | CLEAN (0) | NOT_APPLICABLE (0) | FALSE_POSITIVE_STOCK (1) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | NOT_APPLICABLE (0) | CLEAN (0) | NOT_APPLICABLE (0) |
 
 ## Discrimination per tool/config (before flagged AND fix silent; preregistered cases only)
 
@@ -142,23 +142,25 @@ D2-scope cases (Owen MISSED inside the P-036 scope) and who commoditises them:
 
 ## Post-hoc re-analysis (provenance-5 controls; NOT part of the preregistered inputs)
 
-- F4-C1 (F4; post-hoc (owner audit of c57a919): isolates the owner-enrollment variable with the interface held present): owen/stock=ABSENT/ABSENT; codeql/stock=ABSENT/ABSENT; idisp/stock=ABSENT/ABSENT; infersharp/stock=ABSENT/ABSENT; netanalyzers/configured=ABSENT/ABSENT; netanalyzers/stock=ABSENT/ABSENT; rlc/stock=ABSENT/ABSENT
-- F4-C2 (F4; post-hoc (owner audit of c57a919): isolates the owner-enrollment variable with the interface held absent — does IDISP009 fire on a fixed lifecycle?): owen/stock=ABSENT/ABSENT; codeql/stock=ABSENT/ABSENT; idisp/stock=ABSENT/ABSENT; infersharp/stock=ABSENT/ABSENT; netanalyzers/configured=ABSENT/ABSENT; netanalyzers/stock=ABSENT/ABSENT; rlc/stock=ABSENT/ABSENT
+- F4-C1 (F4; post-hoc (owner audit of c57a919): isolates the owner-enrollment variable with the interface held present): owen/stock=DETECTED_STOCK/CLEAN DISC; codeql/stock=MISSED/CLEAN; idisp/stock=DETECTED_STOCK/CLEAN DISC; infersharp/stock=MISSED/CLEAN; netanalyzers/configured=DETECTED_CONFIGURED/CLEAN DISC; netanalyzers/stock=DETECTED_STOCK/CLEAN DISC; rlc/stock=MISSED/CLEAN; codeql/custom_query_naive=MISSED/CLEAN; codeql/custom_query_teardown=MISSED/CLEAN
+- F4-C2 (F4; post-hoc (owner audit of c57a919): isolates the owner-enrollment variable with the interface held absent — does IDISP009 fire on a fixed lifecycle?): owen/stock=MISSED/CLEAN; codeql/stock=NOT_APPLICABLE/NOT_APPLICABLE; idisp/stock=DETECTED_STOCK/FALSE_POSITIVE_STOCK; infersharp/stock=NOT_APPLICABLE/NOT_APPLICABLE; netanalyzers/configured=NOT_APPLICABLE/NOT_APPLICABLE; netanalyzers/stock=NOT_APPLICABLE/NOT_APPLICABLE; rlc/stock=NOT_APPLICABLE/NOT_APPLICABLE; codeql/custom_query_naive=MISSED/CLEAN; codeql/custom_query_teardown=MISSED/CLEAN
 
 F4 2x2 factorial around F4-S1 (I = type implements IDisposable, O = owner enrolls/disposes; I-O- and I+O+ are F4-S1's own sides re-run):
 
 | tool/config | I-O- (bug) | I+O- (bug) | I-O+ (fixed) | I+O+ (fixed) | reading |
 |---|---|---|---|---|---|
-| owen/stock | silent | silent | silent | silent | not_run_or_failed:I-O-,I-O+,I+O-,I+O+ |
-| codeql/stock | silent | silent | silent | silent | not_run_or_failed:I-O-,I-O+,I+O-,I+O+ |
-| idisp/stock | silent | silent | silent | silent | not_run_or_failed:I-O-,I-O+,I+O-,I+O+ |
-| infersharp/stock | silent | silent | silent | silent | not_run_or_failed:I-O-,I-O+,I+O-,I+O+ |
-| netanalyzers/configured | silent | silent | silent | silent | not_run_or_failed:I-O-,I-O+,I+O-,I+O+ |
-| netanalyzers/stock | silent | silent | silent | silent | not_run_or_failed:I-O-,I-O+,I+O-,I+O+ |
-| rlc/stock | silent | silent | silent | silent | not_run_or_failed:I-O-,I-O+,I+O-,I+O+ |
+| owen/stock | silent | fires OWN001 | silent | silent | raii_half_only (per rule: OWN001: raii_half_only) |
+| codeql/stock | silent | silent | silent | silent | silent_on_all_cells |
+| idisp/stock | fires IDISP009 | fires IDISP001 | fires IDISP009 | silent | other (per rule: IDISP001: raii_half_only; IDISP009: interface_convention) |
+| infersharp/stock | silent | silent | silent | silent | silent_on_all_cells |
+| netanalyzers/configured | silent | fires CA2000 | silent | silent | raii_half_only (per rule: CA2000: raii_half_only) |
+| netanalyzers/stock | silent | fires CA2000 | silent | silent | raii_half_only (per rule: CA2000: raii_half_only) |
+| rlc/stock | silent | silent | silent | silent | silent_on_all_cells |
+| codeql/custom_query_naive | silent | silent | silent | silent | silent_on_all_cells |
+| codeql/custom_query_teardown | silent | silent | silent | silent | silent_on_all_cells |
 
-Duplicate-cell agreement with F4-S1's original rows: DISAGREE I-O-:owen/stock I-O-:codeql/stock I-O-:idisp/stock I-O-:infersharp/stock I-O-:netanalyzers/configured I-O-:netanalyzers/stock I-O-:rlc/stock I+O+:owen/stock I+O+:codeql/stock I+O+:idisp/stock I+O+:infersharp/stock I+O+:netanalyzers/configured I+O+:netanalyzers/stock I+O+:rlc/stock
-D2 de-confounded (F4-S1 counts only 'lifecycle'-reading configs): global False; per family {'F3': True, 'F4': False, 'F5': True}; removed as confounded: none
+Duplicate-cell agreement with F4-S1's original rows — tool behaviour (fired, rules): all configs agree; label-only differences (manifest N/A vs CLEAN): I+O+:codeql/stock(NOT_APPLICABLE->CLEAN) I+O+:idisp/stock(NOT_APPLICABLE->CLEAN) I+O+:infersharp/stock(NOT_APPLICABLE->CLEAN) I+O+:netanalyzers/configured(NOT_APPLICABLE->CLEAN) I+O+:netanalyzers/stock(NOT_APPLICABLE->CLEAN) I+O+:rlc/stock(NOT_APPLICABLE->CLEAN)
+D2 de-confounded (F4-S1 counts only 'lifecycle'-reading configs): global True; per family {'F3': True, 'F4': True, 'F5': True}; removed as confounded: F4-S1: idisp/stock
 
 ## Literal-contract recomputation (§0.6 wording read literally; family->domain mapping and every reading's definition in results.json)
 

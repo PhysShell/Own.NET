@@ -1,5 +1,5 @@
 {
- "head": "c57a919c5f2ec3cbfca0580ea4224099f88e6603",
+ "head": "35996ac3288a8fe46788fbd655c9865f9d36ff23",
  "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST",
  "discrimination": {
   "codeql/custom_query_naive": {
@@ -1842,50 +1842,72 @@
      "provenance_note": "post-hoc (owner audit of c57a919): isolates the owner-enrollment variable with the interface held present",
      "per_config": {
       "owen/stock": {
-       "before": "ABSENT",
-       "after": "ABSENT",
-       "rules_before": [],
+       "before": "DETECTED_STOCK",
+       "after": "CLEAN",
+       "rules_before": [
+        "OWN001"
+       ],
        "rules_after": [],
-       "discriminates": false
+       "discriminates": true
       },
       "codeql/stock": {
-       "before": "ABSENT",
-       "after": "ABSENT",
+       "before": "MISSED",
+       "after": "CLEAN",
        "rules_before": [],
        "rules_after": [],
        "discriminates": false
       },
       "idisp/stock": {
-       "before": "ABSENT",
-       "after": "ABSENT",
-       "rules_before": [],
+       "before": "DETECTED_STOCK",
+       "after": "CLEAN",
+       "rules_before": [
+        "IDISP001"
+       ],
        "rules_after": [],
-       "discriminates": false
+       "discriminates": true
       },
       "infersharp/stock": {
-       "before": "ABSENT",
-       "after": "ABSENT",
+       "before": "MISSED",
+       "after": "CLEAN",
        "rules_before": [],
        "rules_after": [],
        "discriminates": false
       },
       "netanalyzers/configured": {
-       "before": "ABSENT",
-       "after": "ABSENT",
-       "rules_before": [],
+       "before": "DETECTED_CONFIGURED",
+       "after": "CLEAN",
+       "rules_before": [
+        "CA2000"
+       ],
        "rules_after": [],
-       "discriminates": false
+       "discriminates": true
       },
       "netanalyzers/stock": {
-       "before": "ABSENT",
-       "after": "ABSENT",
+       "before": "DETECTED_STOCK",
+       "after": "CLEAN",
+       "rules_before": [
+        "CA2000"
+       ],
+       "rules_after": [],
+       "discriminates": true
+      },
+      "rlc/stock": {
+       "before": "MISSED",
+       "after": "CLEAN",
        "rules_before": [],
        "rules_after": [],
        "discriminates": false
       },
-      "rlc/stock": {
-       "before": "ABSENT",
-       "after": "ABSENT",
+      "codeql/custom_query_naive": {
+       "before": "MISSED",
+       "after": "CLEAN",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      },
+      "codeql/custom_query_teardown": {
+       "before": "MISSED",
+       "after": "CLEAN",
        "rules_before": [],
        "rules_after": [],
        "discriminates": false
@@ -1897,50 +1919,68 @@
      "provenance_note": "post-hoc (owner audit of c57a919): isolates the owner-enrollment variable with the interface held absent \u2014 does IDISP009 fire on a fixed lifecycle?",
      "per_config": {
       "owen/stock": {
-       "before": "ABSENT",
-       "after": "ABSENT",
+       "before": "MISSED",
+       "after": "CLEAN",
        "rules_before": [],
        "rules_after": [],
        "discriminates": false
       },
       "codeql/stock": {
-       "before": "ABSENT",
-       "after": "ABSENT",
+       "before": "NOT_APPLICABLE",
+       "after": "NOT_APPLICABLE",
        "rules_before": [],
        "rules_after": [],
        "discriminates": false
       },
       "idisp/stock": {
-       "before": "ABSENT",
-       "after": "ABSENT",
-       "rules_before": [],
-       "rules_after": [],
+       "before": "DETECTED_STOCK",
+       "after": "FALSE_POSITIVE_STOCK",
+       "rules_before": [
+        "IDISP009"
+       ],
+       "rules_after": [
+        "IDISP009"
+       ],
        "discriminates": false
       },
       "infersharp/stock": {
-       "before": "ABSENT",
-       "after": "ABSENT",
+       "before": "NOT_APPLICABLE",
+       "after": "NOT_APPLICABLE",
        "rules_before": [],
        "rules_after": [],
        "discriminates": false
       },
       "netanalyzers/configured": {
-       "before": "ABSENT",
-       "after": "ABSENT",
+       "before": "NOT_APPLICABLE",
+       "after": "NOT_APPLICABLE",
        "rules_before": [],
        "rules_after": [],
        "discriminates": false
       },
       "netanalyzers/stock": {
-       "before": "ABSENT",
-       "after": "ABSENT",
+       "before": "NOT_APPLICABLE",
+       "after": "NOT_APPLICABLE",
        "rules_before": [],
        "rules_after": [],
        "discriminates": false
       },
       "rlc/stock": {
-       "before": "ABSENT",
-       "after": "ABSENT",
+       "before": "NOT_APPLICABLE",
+       "after": "NOT_APPLICABLE",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      },
+      "codeql/custom_query_naive": {
+       "before": "MISSED",
+       "after": "CLEAN",
+       "rules_before": [],
+       "rules_after": [],
+       "discriminates": false
+      },
+      "codeql/custom_query_teardown": {
+       "before": "MISSED",
+       "after": "CLEAN",
        "rules_before": [],
        "rules_after": [],
        "discriminates": false
@@ -1982,16 +2022,29 @@
       "fires": {
        "I-O-": false,
        "I-O+": false,
-       "I+O-": false,
+       "I+O-": true,
        "I+O+": false
       },
       "rules": {
        "I-O-": [],
        "I-O+": [],
-       "I+O-": [],
+       "I+O-": [
+        "OWN001"
+       ],
        "I+O+": []
       },
-      "reading": "not_run_or_failed:I-O-,I-O+,I+O-,I+O+"
+      "reading": "raii_half_only",
+      "per_rule": {
+       "OWN001": {
+        "fires": {
+         "I-O-": false,
+         "I-O+": false,
+         "I+O-": true,
+         "I+O+": false
+        },
+        "reading": "raii_half_only"
+       }
+      }
      },
      "codeql/stock": {
       "fires": {
@@ -2006,22 +2059,49 @@
        "I+O-": [],
        "I+O+": []
       },
-      "reading": "not_run_or_failed:I-O-,I-O+,I+O-,I+O+"
+      "reading": "silent_on_all_cells",
+      "per_rule": {}
      },
      "idisp/stock": {
       "fires": {
-       "I-O-": false,
-       "I-O+": false,
-       "I+O-": false,
+       "I-O-": true,
+       "I-O+": true,
+       "I+O-": true,
        "I+O+": false
       },
       "rules": {
-       "I-O-": [],
-       "I-O+": [],
-       "I+O-": [],
+       "I-O-": [
+        "IDISP009"
+       ],
+       "I-O+": [
+        "IDISP009"
+       ],
+       "I+O-": [
+        "IDISP001"
+       ],
        "I+O+": []
       },
-      "reading": "not_run_or_failed:I-O-,I-O+,I+O-,I+O+"
+      "reading": "other",
+      "per_rule": {
+       "IDISP001": {
+        "fires": {
+         "I-O-": false,
+         "I-O+": false,
+         "I+O-": true,
+         "I+O+": false
+        },
+        "reading": "raii_half_only"
+       },
+       "IDISP009": {
+        "fires": {
+         "I-O-": true,
+         "I-O+": true,
+         "I+O-": false,
+         "I+O+": false
+        },
+        "reading": "interface_convention"
+       }
+      }
      },
      "infersharp/stock": {
       "fires": {
@@ -2036,37 +2116,64 @@
        "I+O-": [],
        "I+O+": []
       },
-      "reading": "not_run_or_failed:I-O-,I-O+,I+O-,I+O+"
+      "reading": "silent_on_all_cells",
+      "per_rule": {}
      },
      "netanalyzers/configured": {
       "fires": {
        "I-O-": false,
        "I-O+": false,
-       "I+O-": false,
+       "I+O-": true,
        "I+O+": false
       },
       "rules": {
        "I-O-": [],
        "I-O+": [],
-       "I+O-": [],
+       "I+O-": [
+        "CA2000"
+       ],
        "I+O+": []
       },
-      "reading": "not_run_or_failed:I-O-,I-O+,I+O-,I+O+"
+      "reading": "raii_half_only",
+      "per_rule": {
+       "CA2000": {
+        "fires": {
+         "I-O-": false,
+         "I-O+": false,
+         "I+O-": true,
+         "I+O+": false
+        },
+        "reading": "raii_half_only"
+       }
+      }
      },
      "netanalyzers/stock": {
       "fires": {
        "I-O-": false,
        "I-O+": false,
-       "I+O-": false,
+       "I+O-": true,
        "I+O+": false
       },
       "rules": {
        "I-O-": [],
        "I-O+": [],
-       "I+O-": [],
+       "I+O-": [
+        "CA2000"
+       ],
        "I+O+": []
       },
-      "reading": "not_run_or_failed:I-O-,I-O+,I+O-,I+O+"
+      "reading": "raii_half_only",
+      "per_rule": {
+       "CA2000": {
+        "fires": {
+         "I-O-": false,
+         "I-O+": false,
+         "I+O-": true,
+         "I+O+": false
+        },
+        "reading": "raii_half_only"
+       }
+      }
      },
      "rlc/stock": {
       "fires": {
@@ -2081,82 +2188,153 @@
        "I+O-": [],
        "I+O+": []
       },
-      "reading": "not_run_or_failed:I-O-,I-O+,I+O-,I+O+"
+      "reading": "silent_on_all_cells",
+      "per_rule": {}
+     },
+     "codeql/custom_query_naive": {
+      "fires": {
+       "I-O-": false,
+       "I-O+": false,
+       "I+O-": false,
+       "I+O+": false
+      },
+      "rules": {
+       "I-O-": [],
+       "I-O+": [],
+       "I+O-": [],
+       "I+O+": []
+      },
+      "reading": "silent_on_all_cells",
+      "per_rule": {}
+     },
+     "codeql/custom_query_teardown": {
+      "fires": {
+       "I-O-": false,
+       "I-O+": false,
+       "I+O-": false,
+       "I+O+": false
+      },
+      "rules": {
+       "I-O-": [],
+       "I-O+": [],
+       "I+O-": [],
+       "I+O+": []
+      },
+      "reading": "silent_on_all_cells",
+      "per_rule": {}
      }
     },
     "duplicate_cell_agreement": {
      "I-O-": {
       "owen/stock": {
        "original": "MISSED",
-       "rerun": "ABSENT",
-       "agree": false
+       "rerun": "MISSED",
+       "agree_fires": true,
+       "agree_label": true
       },
       "codeql/stock": {
        "original": "NOT_APPLICABLE",
-       "rerun": "ABSENT",
-       "agree": false
+       "rerun": "NOT_APPLICABLE",
+       "agree_fires": true,
+       "agree_label": true
       },
       "idisp/stock": {
        "original": "DETECTED_STOCK",
-       "rerun": "ABSENT",
-       "agree": false
+       "rerun": "DETECTED_STOCK",
+       "agree_fires": true,
+       "agree_label": true
       },
       "infersharp/stock": {
        "original": "NOT_APPLICABLE",
-       "rerun": "ABSENT",
-       "agree": false
+       "rerun": "NOT_APPLICABLE",
+       "agree_fires": true,
+       "agree_label": true
       },
       "netanalyzers/configured": {
        "original": "NOT_APPLICABLE",
-       "rerun": "ABSENT",
-       "agree": false
+       "rerun": "NOT_APPLICABLE",
+       "agree_fires": true,
+       "agree_label": true
       },
       "netanalyzers/stock": {
        "original": "NOT_APPLICABLE",
-       "rerun": "ABSENT",
-       "agree": false
+       "rerun": "NOT_APPLICABLE",
+       "agree_fires": true,
+       "agree_label": true
       },
       "rlc/stock": {
        "original": "NOT_APPLICABLE",
-       "rerun": "ABSENT",
-       "agree": false
+       "rerun": "NOT_APPLICABLE",
+       "agree_fires": true,
+       "agree_label": true
+      },
+      "codeql/custom_query_naive": {
+       "original": "MISSED",
+       "rerun": "MISSED",
+       "agree_fires": true,
+       "agree_label": true
+      },
+      "codeql/custom_query_teardown": {
+       "original": "MISSED",
+       "rerun": "MISSED",
+       "agree_fires": true,
+       "agree_label": true
       }
      },
      "I+O+": {
       "owen/stock": {
        "original": "CLEAN",
-       "rerun": "ABSENT",
-       "agree": false
+       "rerun": "CLEAN",
+       "agree_fires": true,
+       "agree_label": true
       },
       "codeql/stock": {
        "original": "NOT_APPLICABLE",
-       "rerun": "ABSENT",
-       "agree": false
+       "rerun": "CLEAN",
+       "agree_fires": true,
+       "agree_label": false
       },
       "idisp/stock": {
        "original": "NOT_APPLICABLE",
-       "rerun": "ABSENT",
-       "agree": false
+       "rerun": "CLEAN",
+       "agree_fires": true,
+       "agree_label": false
       },
       "infersharp/stock": {
        "original": "NOT_APPLICABLE",
-       "rerun": "ABSENT",
-       "agree": false
+       "rerun": "CLEAN",
+       "agree_fires": true,
+       "agree_label": false
       },
       "netanalyzers/configured": {
        "original": "NOT_APPLICABLE",
-       "rerun": "ABSENT",
-       "agree": false
+       "rerun": "CLEAN",
+       "agree_fires": true,
+       "agree_label": false
       },
       "netanalyzers/stock": {
        "original": "NOT_APPLICABLE",
-       "rerun": "ABSENT",
-       "agree": false
+       "rerun": "CLEAN",
+       "agree_fires": true,
+       "agree_label": false
       },
       "rlc/stock": {
        "original": "NOT_APPLICABLE",
-       "rerun": "ABSENT",
-       "agree": false
+       "rerun": "CLEAN",
+       "agree_fires": true,
+       "agree_label": false
+      },
+      "codeql/custom_query_naive": {
+       "original": "CLEAN",
+       "rerun": "CLEAN",
+       "agree_fires": true,
+       "agree_label": true
+      },
+      "codeql/custom_query_teardown": {
+       "original": "CLEAN",
+       "rerun": "CLEAN",
+       "agree_fires": true,
+       "agree_label": true
       }
      }
     }
@@ -2185,10 +2363,10 @@
      },
      "F4-S1": {
       "family": "F4",
-      "commoditised_by": [
+      "commoditised_by": [],
+      "removed_as_confounded": [
        "idisp/stock"
-      ],
-      "removed_as_confounded": []
+      ]
      },
      "F5-S1": {
       "family": "F5",
@@ -2196,10 +2374,10 @@
       "removed_as_confounded": []
      }
     },
-    "global_holds": false,
+    "global_holds": true,
     "per_family_holds": {
      "F3": true,
-     "F4": false,
+     "F4": true,
      "F5": true
     }
    }
@@ -12164,6 +12342,495 @@
    "other": [],
    "elapsed_s": 180.51,
    "notes": "inferred annotations: 2",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.72,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.85,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "after",
+   "tool": "codeql",
+   "config": "stock",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 85.39,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "after",
+   "tool": "idisp",
+   "config": "stock",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.71,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "after",
+   "tool": "infersharp",
+   "config": "stock",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 19.21,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "after",
+   "tool": "netanalyzers",
+   "config": "configured",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 2.12,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "after",
+   "tool": "netanalyzers",
+   "config": "stock",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 4.34,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "after",
+   "tool": "owen",
+   "config": "stock",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 58.75,
+   "notes": "ing>.HashSet(IEnumerable<string> collection, IEqualityComparer<string>? comparer)' due to differences in the nullability of reference types. [/home/user/Own.NET/frontend/roslyn/OwnSharp.Extractor/OwnSharp.Extractor.csproj]\nextractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.lUQxsZL4h8: ok \u2014 no subscription leaks found\n\n0 findings.\n",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "after",
+   "tool": "rlc",
+   "config": "stock",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 203.7,
+   "notes": "inferred annotations: 0",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.98,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 8.05,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "before",
+   "tool": "codeql",
+   "config": "stock",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 85.1,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "before",
+   "tool": "idisp",
+   "config": "stock",
+   "status": "DETECTED_STOCK",
+   "findings": [
+    {
+     "rule": "IDISP001",
+     "line": 32,
+     "message": "Dispose created",
+     "level": "warning",
+     "path": "Case.cs",
+     "extra": {}
+    }
+   ],
+   "other": [],
+   "elapsed_s": 7.31,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "before",
+   "tool": "infersharp",
+   "config": "stock",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 19.2,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "before",
+   "tool": "netanalyzers",
+   "config": "configured",
+   "status": "DETECTED_CONFIGURED",
+   "findings": [
+    {
+     "rule": "CA2000",
+     "line": 32,
+     "message": "Call System.IDisposable.Dispose on object created by 'new Cache(settings)' before all references to it are out of scope",
+     "level": "warning",
+     "path": "Case.cs",
+     "extra": {}
+    }
+   ],
+   "other": [],
+   "elapsed_s": 1.79,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "before",
+   "tool": "netanalyzers",
+   "config": "stock",
+   "status": "DETECTED_STOCK",
+   "findings": [
+    {
+     "rule": "CA2000",
+     "line": 32,
+     "message": "Call System.IDisposable.Dispose on object created by 'new Cache(settings)' before all references to it are out of scope",
+     "level": "warning",
+     "path": "Case.cs",
+     "extra": {}
+    }
+   ],
+   "other": [],
+   "elapsed_s": 2.04,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "before",
+   "tool": "owen",
+   "config": "stock",
+   "status": "DETECTED_STOCK",
+   "findings": [
+    {
+     "rule": "OWN001",
+     "line": 32,
+     "message": "IDisposable local 'cache' is never disposed (leak) [resource: disposable]",
+     "level": "warning",
+     "path": "Case.cs",
+     "extra": {
+      "codeFlows": 0,
+      "relatedLocations": 0
+     }
+    }
+   ],
+   "other": [],
+   "elapsed_s": 61.86,
+   "notes": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n\n1 finding.\n",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C1",
+   "side": "before",
+   "tool": "rlc",
+   "config": "stock",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 205.37,
+   "notes": "inferred annotations: 0",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.02,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "after",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 8.07,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "after",
+   "tool": "codeql",
+   "config": "stock",
+   "status": "NOT_APPLICABLE",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 65.51,
+   "notes": "n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "after",
+   "tool": "idisp",
+   "config": "stock",
+   "status": "FALSE_POSITIVE_STOCK",
+   "findings": [
+    {
+     "rule": "IDISP009",
+     "line": 19,
+     "message": "Add IDisposable interface",
+     "level": "warning",
+     "path": "Case.cs",
+     "extra": {}
+    }
+   ],
+   "other": [],
+   "elapsed_s": 1.75,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "after",
+   "tool": "infersharp",
+   "config": "stock",
+   "status": "NOT_APPLICABLE",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 8.55,
+   "notes": "n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "after",
+   "tool": "netanalyzers",
+   "config": "configured",
+   "status": "NOT_APPLICABLE",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 1.37,
+   "notes": "n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "after",
+   "tool": "netanalyzers",
+   "config": "stock",
+   "status": "NOT_APPLICABLE",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 1.44,
+   "notes": "n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "after",
+   "tool": "owen",
+   "config": "stock",
+   "status": "CLEAN",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 7.01,
+   "notes": "extractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.mXUNDa6kKL: ok \u2014 no subscription leaks found\n\n0 findings.\n",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "after",
+   "tool": "rlc",
+   "config": "stock",
+   "status": "NOT_APPLICABLE",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 58.54,
+   "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_naive",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 6.95,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "before",
+   "tool": "codeql",
+   "config": "custom_query_teardown",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 8.06,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "before",
+   "tool": "codeql",
+   "config": "stock",
+   "status": "NOT_APPLICABLE",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 64.38,
+   "notes": "n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "before",
+   "tool": "idisp",
+   "config": "stock",
+   "status": "DETECTED_STOCK",
+   "findings": [
+    {
+     "rule": "IDISP009",
+     "line": 19,
+     "message": "Add IDisposable interface",
+     "level": "warning",
+     "path": "Case.cs",
+     "extra": {}
+    }
+   ],
+   "other": [],
+   "elapsed_s": 1.6,
+   "notes": "",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "before",
+   "tool": "infersharp",
+   "config": "stock",
+   "status": "NOT_APPLICABLE",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 8.47,
+   "notes": "n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "before",
+   "tool": "netanalyzers",
+   "config": "configured",
+   "status": "NOT_APPLICABLE",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 1.35,
+   "notes": "n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "before",
+   "tool": "netanalyzers",
+   "config": "stock",
+   "status": "NOT_APPLICABLE",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 1.47,
+   "notes": "n/a: no event-subscription/lifetime rule",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "before",
+   "tool": "owen",
+   "config": "stock",
+   "status": "MISSED",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 5.82,
+   "notes": "ing>.HashSet(IEnumerable<string> collection, IEqualityComparer<string>? comparer)' due to differences in the nullability of reference types. [/home/user/Own.NET/frontend/roslyn/OwnSharp.Extractor/OwnSharp.Extractor.csproj]\nextractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.GTacBsk2Ur: ok \u2014 no subscription leaks found\n\n0 findings.\n",
+   "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+  },
+  {
+   "case": "F4-C2",
+   "side": "before",
+   "tool": "rlc",
+   "config": "stock",
+   "status": "NOT_APPLICABLE",
+   "findings": [],
+   "other": [],
+   "elapsed_s": 59.45,
+   "notes": "inferred annotations: 0; n/a: no event-subscription/lifetime rule",
    "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
   },
   {

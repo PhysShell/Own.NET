@@ -1,0 +1,11 @@
+{
+ "case": "F4-C2",
+ "side": "before",
+ "tool": "owen",
+ "config": "stock",
+ "status": "MISSED",
+ "findings": [],
+ "note": "ing>.HashSet(IEnumerable<string> collection, IEqualityComparer<string>? comparer)' due to differences in the nullability of reference types. [/home/user/Own.NET/frontend/roslyn/OwnSharp.Extractor/OwnSharp.Extractor.csproj]\nextractor: +44 extra references from /root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.31/ref/net8.0\n/tmp/tmp.GTacBsk2Ur: ok \u2014 no subscription leaks found\n\n0 findings.\n",
+ "elapsed_s": 5.82,
+ "timing_label": "EXPLORATORY ONLY / NON-ADMISSIBLE FOR #263 / NON-PUBLICATION-GRADE / UNCONTROLLED SHARED HOST"
+}

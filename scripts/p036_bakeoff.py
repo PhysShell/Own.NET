@@ -1633,6 +1633,23 @@ def literal_contract(
     }
 
 
+def factorial_reading(f: dict[str, bool]) -> str:
+    """Classify a fires-per-cell pattern of the F4 2x2 (see FACTORIAL_CELLS)."""
+    bug = all(f[c] for c in FACTORIAL_BUG_CELLS)
+    fixed_silent = not any(f[c] for c in FACTORIAL_FIXED_CELLS)
+    iface = f["I-O-"] and f["I-O+"] and not f["I+O-"] and not f["I+O+"]
+    raii = f["I+O-"] and not f["I+O+"] and not f["I-O-"] and not f["I-O+"]
+    if bug and fixed_silent:
+        return "lifecycle"
+    if iface:
+        return "interface_convention"
+    if raii:
+        return "raii_half_only"
+    if not any(f.values()):
+        return "silent_on_all_cells"
+    return "other"
+
+
 def posthoc_reanalysis(
     cases: list[dict[str, Any]],
     status: Any,
@@ -1640,13 +1657,15 @@ def posthoc_reanalysis(
     rules_at: Any,
     comparator_cfgs: list[tuple[str, str]],
     d2_prereg: dict[str, Any],
+    custom_cfgs: list[tuple[str, str]] | None = None,
 ) -> dict[str, Any]:
     """Provenance-5 controls: statuses, the F4 factorial reading, and a
-    de-confounded D2. Never replaces the preregistered block."""
+    de-confounded D2. Never replaces the preregistered block. Custom-query
+    configs are shown for information only and never enter D2."""
     ph = [c for c in cases if c["provenance"] == 5]
     if not ph:
         return {}
-    cfgs = [("owen", "stock"), *comparator_cfgs]
+    cfgs = [("owen", "stock"), *comparator_cfgs, *(custom_cfgs or [])]
 
     def fires(cid: str, side: str, t: str, g: str) -> bool:
         return status(cid, side, t, g).startswith(("DETECTED", "FALSE_POSITIVE"))
@@ -1695,23 +1714,19 @@ def posthoc_reanalysis(
             for cell, (cid, side) in FACTORIAL_CELLS.items()
             if status(cid, side, t, g) in ("ABSENT", "CRASHED", "UNSUPPORTED")
         ]
-        bug = all(f[c] for c in FACTORIAL_BUG_CELLS)
-        fixed_silent = not any(f[c] for c in FACTORIAL_FIXED_CELLS)
-        iface = f["I-O-"] and f["I-O+"] and not f["I+O-"] and not f["I+O+"]
-        raii = f["I+O-"] and not f["I+O+"] and not f["I-O-"] and not f["I-O+"]
-        if unobserved:
-            reading = "not_run_or_failed:" + ",".join(unobserved)
-        elif bug and fixed_silent:
-            reading = "lifecycle"
-        elif iface:
-            reading = "interface_convention"
-        elif raii:
-            reading = "raii_half_only"
-        elif not any(f.values()):
-            reading = "silent_on_all_cells"
-        else:
-            reading = "other"
-        fac[f"{t}/{g}"] = {"fires": f, "rules": r, "reading": reading}
+        reading = (
+            "not_run_or_failed:" + ",".join(unobserved) if unobserved else factorial_reading(f)
+        )
+        # a config that ships several rules is read per rule as well: IDISP009
+        # (convention) and IDISP001 (RAII) fire on different cells
+        per_rule = {
+            rule: {
+                "fires": {cell: rule in r[cell] for cell in FACTORIAL_CELLS},
+                "reading": factorial_reading({cell: rule in r[cell] for cell in FACTORIAL_CELLS}),
+            }
+            for rule in sorted({x for cell in FACTORIAL_CELLS for x in r[cell]})
+        }
+        fac[f"{t}/{g}"] = {"fires": f, "rules": r, "reading": reading, "per_rule": per_rule}
     dup: dict[str, Any] = {}
     for cell, (ocid, oside) in FACTORIAL_DUPLICATES.items():
         ccid, cside = FACTORIAL_CELLS[cell]
@@ -1719,7 +1734,12 @@ def posthoc_reanalysis(
             f"{t}/{g}": {
                 "original": status(ocid, oside, t, g),
                 "rerun": status(ccid, cside, t, g),
-                "agree": status(ocid, oside, t, g) == status(ccid, cside, t, g),
+                # the manifest may label one copy N/A and the other CLEAN (F4-S1
+                # declares the RAII tools N/A, F4-C1 does not): compare the tool's
+                # behaviour (did it fire, with which rules), then the label
+                "agree_fires": fires(ocid, oside, t, g) == fires(ccid, cside, t, g)
+                and rules_at(ocid, oside, t, g) == rules_at(ccid, cside, t, g),
+                "agree_label": status(ocid, oside, t, g) == status(ccid, cside, t, g),
             }
             for t, g in cfgs
         }
@@ -1883,8 +1903,13 @@ def decision_inputs(results: list[RunResult], cases: list[dict[str, Any]]) -> di
         "families_holding": [f for f, v in out["families"].items() if v["D1_holds_for_family"]]
     }
     out["D4"] = {"families_evidenced": [f for f, v in out["families"].items() if v["D4_evidenced"]]}
+    custom_cfgs = sorted(
+        {(r.tool, r.config) for r in results if r.config.startswith("custom_query")}
+    )
     out["literal_contract"] = literal_contract(prereg, status, disc, comparator_cfgs)
-    out["posthoc"] = posthoc_reanalysis(cases, status, disc, rules_at, comparator_cfgs, out["D2"])
+    out["posthoc"] = posthoc_reanalysis(
+        cases, status, disc, rules_at, comparator_cfgs, out["D2"], custom_cfgs
+    )
     return out
 
 
@@ -1920,17 +1945,30 @@ def posthoc_lines(dec: dict[str, Any]) -> list[str]:
                     ("fires " + " ".join(v["rules"][c])) if v["fires"][c] else "silent"
                     for c in ("I-O-", "I+O-", "I-O+", "I+O+")
                 ]
-                lines.append(f"| {k} | " + " | ".join(cells) + f" | {v['reading']} |")
-            bad = [
+                per_rule = "; ".join(
+                    f"{rule}: {pr['reading']}" for rule, pr in v.get("per_rule", {}).items()
+                )
+                reading = v["reading"] + (f" (per rule: {per_rule})" if per_rule else "")
+                lines.append(f"| {k} | " + " | ".join(cells) + f" | {reading} |")
+            bad_fires = [
                 f"{cell}:{k}"
                 for cell, m in fac["duplicate_cell_agreement"].items()
                 for k, a in m.items()
-                if not a["agree"]
+                if not a["agree_fires"]
+            ]
+            bad_label = [
+                f"{cell}:{k}({a['original']}->{a['rerun']})"
+                for cell, m in fac["duplicate_cell_agreement"].items()
+                for k, a in m.items()
+                if a["agree_fires"] and not a["agree_label"]
             ]
             lines += [
                 "",
-                "Duplicate-cell agreement with F4-S1's original rows: "
-                + ("all configs agree" if not bad else "DISAGREE " + " ".join(bad)),
+                "Duplicate-cell agreement with F4-S1's original rows — tool behaviour "
+                "(fired, rules): "
+                + ("all configs agree" if not bad_fires else "DISAGREE " + " ".join(bad_fires))
+                + "; label-only differences (manifest N/A vs CLEAN): "
+                + (" ".join(bad_label) or "none"),
             ]
             d2d = ph["D2_deconfounded"]
             removed = "; ".join(

@@ -1,11 +1,18 @@
 # P-036 comparative bakeoff — Infer# / RLC# / CodeQL / CA2000 vs Owen (capability, not speed)
 
-> Status: **research record, complete** (opened and closed 2026-09-17; Owen at
-> `70189a3`; results at `docs/evidence/p036-bakeoff/`). Verdict: §8.1
-> PREREGISTERED VERDICT **NO-GO** (one commoditised case under the frozen
-> global D2); §8.2 METHODOLOGY SENSITIVITY reads the same evidence as
-> **SHRINK** to the P-037 guarded-transfer core plus exceptional-exit teardown
-> reasoning. Both are reported; neither replaces the other.
+> Status: **research record, complete; post-audit follow-up appended**
+> (opened and closed 2026-09-17; Owen at `70189a3`; results at
+> `docs/evidence/p036-bakeoff/`; §1.1, §3.4.1 and §8.4 added after the
+> owner's hostile audit of `c57a919`, the preregistration untouched).
+> Verdict, in three labelled parts that never replace one another:
+> §8.1 PREREGISTERED VERDICT **NO-GO** (frozen contract, mechanically
+> reproducible from `results.json`); §8.4 **NOT DECISION-GRADE** — the one
+> case that returns NO-GO was confounded, shown by a 2×2 control run (the
+> comparator tracked the `IDisposable` convention, not the lifecycle), and the
+> harness had approximated the frozen D1/D4 text; §8.2 / §8.4 EVIDENCE
+> DIRECTION **SHRINK** to the P-037 guarded-transfer core plus exceptional-exit
+> teardown reasoning — the broad generic P-036 platform is not supported by
+> this evidence.
 > Owner ruling that frames this note (OWNER RULING, verbatim from the task):
 > physical-host qualification is **deferred**; the current host is accepted for
 > exploratory comparative research and functional capability evaluation, and
@@ -1099,6 +1106,149 @@ anything about F7/F8, and F9 is covered by landed work.
   handoffs today; and `Diagnostic.evidence` carries no steps for the
   subscription class (§5.4), so no tool — Owen included — produces the
   witness P-036 §Evidence promises.
+- Carried forward for #304's enrollment half (post-audit, §8.4.1): the
+  cheap interface check (the audit's bounded fix D, IDISP009's rule) tracks
+  the `IDisposable` convention, not whether the teardown runs — it flags an
+  explicitly disposed non-`IDisposable` instance and misses a dropped
+  `IDisposable` one. Enrollment is a reachability question about the owner's
+  teardown call; evidence class 5 (post-hoc synthetic) only.
 - Carried forward for the contract itself: Defects 1, 2, 3 and 5 (§7.0,
-  §8.2). A re-run under a repaired contract must be a new preregistration,
-  not an amendment of this one.
+  §8.2) plus the two implementation divergences found by the audit (§3.4.1:
+  D1 "whole family", D4 "domains"). A re-run under a repaired contract must
+  be a new preregistration, not an amendment of this one; §8.4.3 lists what
+  it needs.
+
+### 8.4 Post-audit follow-up: the F4 confound resolved, the contract re-read, the decision-grade assessment
+
+The owner's independent audit of `c57a919` reproduced every mechanical
+number (D1 `['F2','F9']`, D2 global `False` / per family F3 `True` F4 `False`
+F5 `True`, D4 `[]`, CA2000's F3-S/F5 hits correctly filed as FP-on-fix) and
+found three defects in what those numbers rest on: (1) F4-S1's fixed side
+toggles two variables at once, so the sole D2-failing witness could not tell
+which one IDISP009 tracked; (2) the harness D4 counted defect families where
+§0.6 says P-036 domains; (3) the harness D1 accepted one discriminated case
+where §0.6 says a whole family. This section answers each with executed
+evidence or a literal recomputation, and then records the assessment in the
+owner's structure. Nothing in §0, §8.1 or §8.2 was edited.
+
+#### 8.4.1 The F4 2×2 factorial (MEASURED OBSERVATIONS; class 5, post-hoc; raw under `raw/*/F4-C*`)
+
+Cells: I = the type implements `IDisposable`, O = the owner enrolls/disposes.
+I−O− and I+O+ are F4-S1's own sides, re-run byte-identically inside the
+controls (§1.1). "fires" = a leak-family finding on the cell.
+
+| tool/config | I−O− (bug) | I+O− (bug) | I−O+ (fixed) | I+O+ (fixed) | reading |
+|---|---|---|---|---|---|
+| owen/stock | silent (MISSED) | OWN001 `:32` "IDisposable local 'cache' is never disposed" | silent | silent | RAII half only |
+| netanalyzers stock / configured | silent | CA2000 `:32` | silent | silent | RAII half only |
+| idisp/stock | **IDISP009** `:19` "Add IDisposable interface" | IDISP001 `:32` "Dispose created" | **IDISP009** `:19` — on the fixed lifecycle | silent | per rule: IDISP009 = **interface convention**; IDISP001 = RAII half only |
+| codeql/stock, infersharp/stock, rlc/stock | silent (N/A by rule scope) | silent (MISSED: first-party type) | silent | silent | silent on all cells |
+| custom_query naive / teardown | silent | silent | silent | silent | silent on all cells (both credit the `-=` in `Dispose` by name: the enrollment hole, inherited by construction) |
+
+Duplicate-cell check: on I−O− every config reproduces F4-S1's original row
+exactly (behaviour and label, Owen `MISSED` and IDISP009 included); on I+O+
+every config reproduces the behaviour (nobody fires) and six labels differ
+(the five RAII tools, CA2000 in both configurations: `NOT_APPLICABLE` on
+F4-S1, whose manifest declares them N/A, vs `CLEAN` on F4-C1, which declares
+nothing) — a labelling artifact, recorded in
+`results.json` as `agree_fires` vs `agree_label`.
+
+What the factorial says, plainly:
+
+- **Nobody tracks the lifecycle across the interface variable.** No config,
+  no rule, fires on both bug cells and stays silent on both fixed cells.
+- **IDISP009 tracks the convention.** It fires on the *fixed* lifecycle
+  (I−O+, the owner calls `cache.Dispose()` explicitly) at the same `Dispose`
+  declaration it flagged on the bug, and it is silent on the *bug* once the
+  interface is present (I+O−, where a different rule, IDISP001, takes over).
+  The owner's hypothesis about F4-S1 is confirmed by execution, not by
+  argument.
+- **The RAII half is commodity.** I+O− is caught by Owen (the undisposed-local
+  path, not the subscription rule), CA2000 in both configurations and
+  IDISP001, and missed by CodeQL / Infer# / RLC# on a first-party type — the
+  F4-S2 picture again.
+- **Owen is silent on both no-interface cells**: right on I−O+ by accident
+  (the type is not modelled at all) and wrong on I−O− (the audit's attack D,
+  unchanged).
+
+Consequence for D2 (post-hoc re-analysis, labelled as such): with IDISP009
+read as a convention rule, F4-S1 is commoditised by nobody
+(`posthoc.D2_deconfounded`: global **TRUE**, per family F3/F4/F5 **TRUE**;
+`idisp/stock` removed as confounded). The **preregistered D2 is and remains
+FALSE**: class-5 cases cannot enter the frozen computation (§0.4 anti-goalpost
+rule), so this is reported beside §8.1, not inside it.
+
+Consequence for D3 on F4 (INFERENCE, not executed): the cheap bounded fix D
+("credit a name-root `Dispose` only when the type implements `IDisposable`")
+is confounded exactly as IDISP009 — it would flag I−O− (right) *and* I−O+
+(a false positive on an instance the owner explicitly disposes), and it says
+nothing about I+O−. Telling I−O+ from I−O− needs the owner's teardown call to
+be found and proven reachable: enrollment/reachability machinery, which is
+what P-036 calls LifecycleEnrollment. §8.1 recorded D3 as FALSE for F4-S1 on
+the *convention* question; on the *lifecycle* question the factorial says
+TRUE. §8.1 is not amended; the two readings stand side by side, and the
+evidence for the second is class 5 only.
+
+#### 8.4.2 The contract re-read literally (from §3.4.1)
+
+D1 as written ("whole family", zero FPs on its fixes): **TRUE** in both
+readings of the comparator clause — `['F2','F9']` when "no comparator catches
+any case", `['F1','F2','F9']` when "no comparator catches the whole family".
+D4 as written (domains, class-1 present, "a semantic gap in every
+comparator"): **1 domain** (ownership) under the natural reading, **0** under
+the strong reading the harness had implemented; obligations, progress and
+regions are plausible-unevidenced, tasks has no case. Under the weak reading
+the frozen mapping has a defined cell (D4 ∈ {1, 2} → SHRINK given D1 ∧ D2 ∧
+D3); under the strong reading it has none (Defect 5). Which the contract meant
+is not decidable after the fact.
+
+#### 8.4.3 Decision-grade assessment (the owner's structure; supersedes nothing above, states what it all adds up to)
+
+```text
+FROZEN CONTRACT RESULT:
+    NO-GO — mechanically reproducible from results.json with the rules
+    exactly as written there; unchanged by anything in §8.4.
+
+BUT: not decision-grade.
+    1. The sole D2-failing witness, F4-S1 / IDISP009, is confounded:
+       shown by execution (§8.4.1) — the rule fires on the fixed lifecycle
+       and is silent on the bug once the interface is present.
+    2. The harness D4 implemented "families" where §0.6 says "domains";
+       recomputed literally: 1 domain (weak reading) / 0 (strong reading),
+       and the mapping has no cell at 0 (Defect 5).
+    3. The harness D1 implemented ">= 1 case" where §0.6 says "whole
+       family"; recomputed literally the outcome is unchanged (F2, F9 are
+       whole families), but the machine had not computed the frozen text.
+    4. The D2 scope is synthetic end to end (class 4, and class 5 for the
+       controls): the de-confounded D2 rests on eight executed synthetic
+       cells and no historical bug (T3).
+
+EVIDENCE DIRECTION:
+    SHRINK — strongly supported.
+
+    supported subset (executed, every comparator stock/configured/custom):
+      (i)  P-037 guarded-transfer summaries: F3-S1..S4 caught by nobody;
+           CA2000 fires on both sides (no call-site constant selection);
+           Owen-current silent without an advisory (may-as-must, §3.1).
+      (ii) exceptional-exit teardown reasoning: F5-S1 caught by nobody;
+           CA2213 fires on both sides about an unrelated field.
+      (iii) weaker, post-hoc: enrollment as a reachability question — no
+           executed tool or design rule tracks it across the interface
+           variable (§8.4.1); class-5 synthetic evidence only, ranked
+           below (i) and (ii).
+
+    not supported by this evidence:
+      - the broad generic P-036 platform: obligations, progress, regions,
+        tasks stay plausible-unevidenced (no class-1 case; nobody executed
+        anything on F7/F8; F9 is covered by landed work);
+      - delegate/virtual target resolution as novelty (F6-S1: CodeQL's
+        stock call graph resolves it; Owen's own fix side is a FP);
+      - the IDisposable convention itself (IDISP009 has it, cheaply).
+
+WHAT WOULD MAKE IT DECISION-GRADE (a NEW preregistration, not an amendment):
+    per-domain D2; D4 over domains with a defined cell at 0; D1 computed as
+    written; at least one class-1 (historical) case per claimed domain —
+    a real guarded-transfer bug and a real exceptional-exit teardown bug at
+    minimum; the same harness, the same status vocabulary, the same
+    provenance discipline.
+```
