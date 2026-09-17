@@ -64,9 +64,12 @@ def guarded(check: str, control: Callable[[], None]) -> None:
         fail(check, f"the control raised {type(exc).__name__}: {exc}")
 
 
-def run(*args: str) -> tuple[int, str]:
+def invoke(*args: str) -> tuple[int, str]:
     """The wrapper's exit code and everything it said, captured. A green run that
-    prints REFUSED teaches readers to skim past refusals."""
+    prints REFUSED teaches readers to skim past refusals.
+
+    Not named `run`: that name belongs to this module's own entry point, which
+    tests/run_tests.py calls."""
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
         rc = ci.main(list(args))
@@ -87,7 +90,7 @@ def wired(tmp: Path, name: str, **kwargs: object) -> tuple[Path, str, str]:
 def control_not_applicable() -> None:
     with tempfile.TemporaryDirectory() as raw:
         repo, _, before = wired(Path(raw), "na")
-        rc, said = run("--repo", str(repo), "--commit", before)
+        rc, said = invoke("--repo", str(repo), "--commit", before)
         if rc != 0:
             fail("ci-not-applicable", f"a tree with no frozen contract was refused: {said[:160]}")
             return
@@ -102,7 +105,7 @@ def control_not_applicable() -> None:
 def control_applies_in_full() -> None:
     with tempfile.TemporaryDirectory() as raw:
         repo, head, before = wired(Path(raw), "full")
-        rc, said = run("--repo", str(repo), "--commit", head, "--base", before)
+        rc, said = invoke("--repo", str(repo), "--commit", head, "--base", before)
         if rc != 0:
             fail("ci-applies-in-full", f"a satisfying tree was refused: {said[:200]}")
             return
@@ -119,7 +122,7 @@ def control_applies_in_full() -> None:
 def control_refusal_survives() -> None:
     with tempfile.TemporaryDirectory() as raw:
         repo, head, before = wired(Path(raw), "stale", rebound=False)
-        rc, said = run("--repo", str(repo), "--commit", head, "--base", before)
+        rc, said = invoke("--repo", str(repo), "--commit", head, "--base", before)
         if rc != 1 or "REFUSED" not in said:
             fail("ci-refusal-survives",
                  f"a stale binding came back as rc={rc}: {said[:200]}")
@@ -136,7 +139,7 @@ def control_co_change_refused() -> None:
         attacked = mgt.commit_tree(repo, {
             ci.GATE_FILES[0]: "# a gate that says yes\n",
             ci.GATE_FILES[2]: "name: P-022 merge gate\n"})
-        rc, said = run("--repo", str(repo), "--commit", attacked, "--base", before)
+        rc, said = invoke("--repo", str(repo), "--commit", attacked, "--base", before)
         if rc != 1:
             fail("ci-co-change-refused",
                  "a merge carrying both the freeze and a rewritten gate was allowed")
@@ -155,7 +158,7 @@ def control_gate_repair_allowed() -> None:
         repo, head, _ = wired(Path(raw), "repair")
         # the contract is already in the base and does not move; only the gate does
         repaired = mgt.commit_tree(repo, {ci.GATE_FILES[0]: "# a repaired gate\n"})
-        rc, said = run("--repo", str(repo), "--commit", repaired, "--base", head)
+        rc, said = invoke("--repo", str(repo), "--commit", repaired, "--base", head)
         if rc != 0:
             fail("ci-gate-repair-allowed",
                  f"an ordinary repair of the gate was refused: {said[:200]}")
@@ -171,7 +174,7 @@ def control_gate_repair_allowed() -> None:
 def control_no_base_is_stated() -> None:
     with tempfile.TemporaryDirectory() as raw:
         repo, head, _ = wired(Path(raw), "nobase")
-        rc, said = run("--repo", str(repo), "--commit", head)
+        rc, said = invoke("--repo", str(repo), "--commit", head)
         if rc != 0:
             fail("ci-no-base-is-stated", f"a satisfying tree was refused: {said[:200]}")
             return
@@ -187,7 +190,7 @@ def control_no_base_is_stated() -> None:
 def control_misuse_is_two() -> None:
     with tempfile.TemporaryDirectory() as raw:
         repo, _, _ = wired(Path(raw), "misuse")
-        rc, said = run("--repo", str(repo), "--commit", "f" * 40)
+        rc, said = invoke("--repo", str(repo), "--commit", "f" * 40)
         if rc != 2:
             fail("ci-misuse-is-two", f"a commit that does not exist returned {rc}: {said[:160]}")
             return
@@ -200,7 +203,7 @@ def control_absent_base_is_two() -> None:
     """A shallow checkout must not be able to manufacture a refusal."""
     with tempfile.TemporaryDirectory() as raw:
         repo, head, _ = wired(Path(raw), "absentbase")
-        rc, said = run("--repo", str(repo), "--commit", head, "--base", "e" * 40)
+        rc, said = invoke("--repo", str(repo), "--commit", head, "--base", "e" * 40)
         if rc == 1:
             fail("ci-absent-base-is-two",
                  "a base that is not in the clone was reported as a rewritten gate; every gate "
