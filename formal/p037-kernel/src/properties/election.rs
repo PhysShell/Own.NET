@@ -151,9 +151,7 @@ mod tests {
 
 #[cfg(kani)]
 mod proofs {
-    use super::super::symbolic::{
-        any_election_system, any_index, any_schedule, any_small_election_system,
-    };
+    use super::super::symbolic::{any_election_system, any_schedule, any_small_election_system};
     use crate::{elect, elect_with, import, Election, GuardBinding, MAX_COORDS};
 
     #[kani::proof]
@@ -173,9 +171,12 @@ mod proofs {
         let sys = any_election_system();
         let x: [Election; MAX_COORDS] = kani::any();
         let y: [Election; MAX_COORDS] = kani::any();
-        kani::assume(x.iter().zip(y.iter()).all(|(a, b)| a.leq(*b)));
-        let i = any_index(sys.n);
-        assert!(sys.step(i, &x).leq(sys.step(i, &y)));
+        let [x0, x1, x2] = x;
+        let [y0, y1, y2] = y;
+        kani::assume(x0.leq(y0) && x1.leq(y1) && x2.leq(y2));
+        for i in 0..MAX_COORDS {
+            assert!(sys.step(i, &x).leq(sys.step(i, &y)));
+        }
     }
 
     #[kani::proof]
@@ -185,12 +186,12 @@ mod proofs {
         let lfp = elect(&sys);
         assert!(lfp.is_some(), "terminates within the height bound");
         if let Some(x) = lfp {
-            for i in 0..sys.n {
-                assert_eq!(x.get(i).copied(), Some(sys.step(i, &x)));
-            }
+            let [x0, x1, x2] = x;
+            assert!(sys.step(0, &x) == x0 && sys.step(1, &x) == x1 && sys.step(2, &x) == x2);
             let y: [Election; MAX_COORDS] = kani::any();
-            kani::assume((0..sys.n).all(|i| y.get(i).copied() == Some(sys.step(i, &y))));
-            assert!(x.iter().zip(y.iter()).all(|(a, b)| a.leq(*b)), "least");
+            let [y0, y1, y2] = y;
+            kani::assume(sys.step(0, &y) == y0 && sys.step(1, &y) == y1 && sys.step(2, &y) == y2);
+            assert!(x0.leq(y0) && x1.leq(y1) && x2.leq(y2), "least");
         }
     }
 

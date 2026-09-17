@@ -352,7 +352,9 @@ pub mod symbolic {
     /// inductive hypothesis).
     pub fn any_state_diagonal_where_uncond(sys: &System) -> [Cells; MAX_COORDS] {
         let x: [Cells; MAX_COORDS] = kani::any();
-        for (c, v) in sys.coords.iter().zip(x.iter()) {
+        let [x0, x1, x2] = x;
+        let [c0, c1, c2] = sys.coords;
+        for (c, v) in [(c0, x0), (c1, x1), (c2, x2)] {
             if matches!(c.shape, Shape::Uncond) {
                 kani::assume(v.is_diag());
             }
@@ -363,7 +365,10 @@ pub mod symbolic {
     /// A fair per-pass schedule over `0..n`.
     pub fn any_schedule(n: usize) -> [usize; MAX_COORDS] {
         let s = [any_index(n), any_index(n), any_index(n)];
-        kani::assume((0..n).all(|i| s.contains(&i)));
+        let [a, b, c] = s;
+        for i in 0..n {
+            kani::assume(a == i || b == i || c == i);
+        }
         s
     }
 

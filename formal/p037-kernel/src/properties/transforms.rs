@@ -85,9 +85,7 @@ mod tests {
 
 #[cfg(kani)]
 mod proofs {
-    use super::super::symbolic::{
-        any_index, any_small_system, any_state_diagonal_where_uncond, any_system,
-    };
+    use super::super::symbolic::{any_small_system, any_state_diagonal_where_uncond, any_system};
     use crate::{contribute, read, solve, Cells, Mask, Shape, Transform};
 
     #[kani::proof]
@@ -121,8 +119,8 @@ mod proofs {
         // diagonal, one application of F_G keeps them diagonal
         let sys = any_system();
         let x = any_state_diagonal_where_uncond(&sys);
-        let i = any_index(sys.n);
-        if let Some(c) = sys.coords.get(i) {
+        let [c0, c1, c2] = sys.coords;
+        for (i, c) in [(0, c0), (1, c1), (2, c2)] {
             if matches!(c.shape, Shape::Uncond) {
                 assert!(sys.step(i, &x).is_diag());
             }
@@ -136,11 +134,10 @@ mod proofs {
         let x = solve(&sys);
         assert!(x.is_some(), "terminates within the height bound");
         if let Some(x) = x {
-            for (c, v) in sys.coords.iter().zip(x.iter()).take(sys.n) {
-                if matches!(c.shape, Shape::Uncond) {
-                    assert!(v.is_diag());
-                }
-            }
+            let [x0, x1, _] = x;
+            let [c0, c1, _] = sys.coords;
+            assert!(!matches!(c0.shape, Shape::Uncond) || x0.is_diag());
+            assert!(!matches!(c1.shape, Shape::Uncond) || x1.is_diag());
         }
     }
 }

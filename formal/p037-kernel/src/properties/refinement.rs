@@ -202,7 +202,7 @@ mod tests {
 
 #[cfg(kani)]
 mod proofs {
-    use super::super::symbolic::{any_index, any_small_system, any_system};
+    use super::super::symbolic::{any_small_system, any_system};
     use super::{no_unknown_seed, release_cells_have_no_edges};
     use crate::{lemma_guarded, lemma_today, solve, Cells, Grounding, Transfer, MAX_COORDS};
 
@@ -228,8 +228,9 @@ mod proofs {
             Cells::diag(x2.collapse()),
         ];
         let c = sys.collapsed();
-        let i = any_index(sys.n);
-        assert!(sys.step(i, &x).collapse().leq(c.step(i, &cx).collapse()));
+        for i in 0..MAX_COORDS {
+            assert!(sys.step(i, &x).collapse().leq(c.step(i, &cx).collapse()));
+        }
     }
 
     #[kani::proof]
@@ -240,9 +241,9 @@ mod proofs {
         let t = solve(&sys.collapsed());
         assert!(g.is_some() && t.is_some());
         if let (Some(g), Some(t)) = (g, t) {
-            for (gv, tv) in g.iter().zip(t.iter()).take(sys.n) {
-                assert!(gv.collapse().leq(tv.collapse()));
-            }
+            let [g0, g1, _] = g;
+            let [t0, t1, _] = t;
+            assert!(g0.collapse().leq(t0.collapse()) && g1.collapse().leq(t1.collapse()));
         }
     }
 
@@ -255,9 +256,10 @@ mod proofs {
         let t = solve(&sys.today());
         assert!(g.is_some() && t.is_some());
         if let (Some(g), Some(t)) = (g, t) {
-            for (gv, tv) in g.iter().zip(t.iter()).take(sys.n) {
-                assert!(gv.fin().collapse().leq(tv.fin().collapse()));
-            }
+            let [g0, g1, _] = g;
+            let [t0, t1, _] = t;
+            assert!(g0.fin().collapse().leq(t0.fin().collapse()));
+            assert!(g1.fin().collapse().leq(t1.fin().collapse()));
         }
     }
 }

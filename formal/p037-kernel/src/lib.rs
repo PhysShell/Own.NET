@@ -430,25 +430,39 @@ impl System {
     /// targets a live coordinate; an `Uncond` coordinate has a diagonal seed,
     /// `Both` masks and no `id`/`neg` edge; an `id`/`neg` edge joins two
     /// `Split` coordinates.
+    // plain loops for the model checker (this runs under every `assume`)
+    #[allow(clippy::manual_flatten)]
     #[must_use]
     pub fn well_formed(&self) -> bool {
         if self.n > MAX_COORDS {
             return false;
         }
-        self.coords.iter().take(self.n).all(|c| {
+        for (i, c) in self.coords.iter().enumerate() {
+            if i >= self.n {
+                break;
+            }
             let uncond = matches!(c.shape, Shape::Uncond);
-            (!uncond || c.seed.is_diag())
-                && c.edges.iter().flatten().all(|e| {
+            if uncond && !c.seed.is_diag() {
+                return false;
+            }
+            for slot in &c.edges {
+                if let Some(e) = slot {
                     let through_guard = matches!(e.transform, Transform::Id | Transform::Neg);
                     let callee_split = self
                         .coords
                         .get(e.callee)
+                        .copied()
                         .is_some_and(|k| matches!(k.shape, Shape::Split(_)));
-                    e.callee < self.n
-                        && (!uncond || (matches!(e.mask, Mask::Both) && !through_guard))
-                        && (!through_guard || callee_split)
-                })
-        })
+                    if e.callee >= self.n
+                        || (uncond && (!matches!(e.mask, Mask::Both) || through_guard))
+                        || (through_guard && !callee_split)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        true
     }
 
     /// `F_G` at one coordinate: seed joined with every masked, transformed
@@ -461,7 +475,10 @@ impl System {
         if i >= self.n {
             return Cells::BOT;
         }
-        let Some(c) = self.coords.get(i) else {
+        // by value: a reference at a symbolic index is a symbolic-offset
+        // pointer for the model checker, and every field read through it
+        // costs a case split; a copy of a small Copy struct is one array read
+        let Some(c) = self.coords.get(i).copied() else {
             return Cells::BOT;
         };
         let mut acc = c.seed;
@@ -648,14 +665,25 @@ pub struct ElectionSystem {
 
 impl ElectionSystem {
     /// Every edge targets a live coordinate.
+    #[allow(clippy::manual_flatten)]
     #[must_use]
     pub fn well_formed(&self) -> bool {
-        self.n <= MAX_COORDS
-            && self
-                .coords
-                .iter()
-                .take(self.n)
-                .all(|c| c.edges.iter().flatten().all(|e| e.callee < self.n))
+        if self.n > MAX_COORDS {
+            return false;
+        }
+        for (i, c) in self.coords.iter().enumerate() {
+            if i >= self.n {
+                break;
+            }
+            for slot in &c.edges {
+                if let Some(e) = slot {
+                    if e.callee >= self.n {
+                        return false;
+                    }
+                }
+            }
+        }
+        true
     }
 
     /// Seed joined with every import (G-S1).
@@ -666,7 +694,7 @@ impl ElectionSystem {
         if i >= self.n {
             return Election::None;
         }
-        let Some(c) = self.coords.get(i) else {
+        let Some(c) = self.coords.get(i).copied() else {
             return Election::None;
         };
         let mut acc = c.seed;

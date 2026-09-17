@@ -58,11 +58,18 @@ mod proofs {
     //! monotone in the state, (b) `solve` returns a fixpoint below every
     //! fixpoint, and (c) on 2-coordinate SCCs with ≤ 1 edge each the chaotic
     //! result equals the Jacobi result under every fair schedule, directly.
-    use super::super::symbolic::{any_index, any_schedule, any_small_system, any_system};
+    use super::super::symbolic::{any_schedule, any_small_system, any_system};
     use crate::{solve, solve_with, Cells, MAX_COORDS};
 
     fn leq_all(a: &[Cells; MAX_COORDS], b: &[Cells; MAX_COORDS]) -> bool {
-        a.iter().zip(b.iter()).all(|(x, y)| x.leq(*y))
+        let [a0, a1, a2] = *a;
+        let [b0, b1, b2] = *b;
+        a0.leq(b0) && a1.leq(b1) && a2.leq(b2)
+    }
+
+    fn is_fixpoint(sys: &crate::System, y: &[Cells; MAX_COORDS]) -> bool {
+        let [y0, y1, y2] = *y;
+        sys.step(0, y) == y0 && sys.step(1, y) == y1 && sys.step(2, y) == y2
     }
 
     #[kani::proof]
@@ -71,8 +78,9 @@ mod proofs {
         let x: [Cells; MAX_COORDS] = kani::any();
         let y: [Cells; MAX_COORDS] = kani::any();
         kani::assume(leq_all(&x, &y));
-        let i = any_index(sys.n);
-        assert!(sys.step(i, &x).leq(sys.step(i, &y)));
+        for i in 0..MAX_COORDS {
+            assert!(sys.step(i, &x).leq(sys.step(i, &y)));
+        }
     }
 
     #[kani::proof]
@@ -82,11 +90,9 @@ mod proofs {
         let lfp = solve(&sys);
         assert!(lfp.is_some(), "terminates within the height bound");
         if let Some(x) = lfp {
-            for i in 0..sys.n {
-                assert_eq!(x.get(i).copied(), Some(sys.step(i, &x)));
-            }
+            assert!(is_fixpoint(&sys, &x));
             let y: [Cells; MAX_COORDS] = kani::any();
-            kani::assume((0..sys.n).all(|i| y.get(i).copied() == Some(sys.step(i, &y))));
+            kani::assume(is_fixpoint(&sys, &y));
             assert!(leq_all(&x, &y), "least");
         }
     }
