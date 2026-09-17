@@ -117,7 +117,7 @@ class QualificationRefused(Exception):
 
 
 def _now() -> str:
-    return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+    return datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds")
 
 
 def sha256_bytes(raw: bytes) -> str:
@@ -334,11 +334,12 @@ def validate_provisioning(doc: dict) -> list[str]:
 
     virt = doc.get("virtualization")
     if not isinstance(virt, dict):
-        return problems + ["virtualization is missing"]
+        return [*problems, "virtualization is missing"]
     is_vm = virt.get("is_vm")
     if not isinstance(is_vm, bool):
-        return problems + [f"virtualization.is_vm must be a real boolean, got {is_vm!r}: "
-                           "whether this is a VM is not a question a host may decline"]
+        return [*problems,
+                f"virtualization.is_vm must be a real boolean, got {is_vm!r}: "
+                "whether this is a VM is not a question a host may decline"]
     # Applicability is shape; the answers themselves are the predicate's business.
     for key in PROVISIONING_VM_BOOLEANS:
         value = virt.get(key, "<missing>")

@@ -95,7 +95,8 @@ def refuses(call: Callable[[], object]) -> str | None:
 
 T0_FROZEN = "# T0\n\n```text\nStatus:\n  FROZEN.\n  collection_authorized: true\n```\n"
 T0_OPEN = "# T0\n\n```text\nStatus:\n  NOT_FROZEN.\n  collection_authorized: false\n```\n"
-T0_FROZEN_UNAUTHORIZED = "# T0\n\n```text\nStatus:\n  FROZEN.\n  collection_authorized: false\n```\n"
+T0_FROZEN_UNAUTHORIZED = ("# T0\n\n```text\nStatus:\n  FROZEN.\n"
+                          "  collection_authorized: false\n```\n")
 T0_OPEN_AUTHORIZED = "# T0\n\n```text\nStatus:\n  NOT_FROZEN.\n  collection_authorized: true\n```\n"
 
 # A compliant Windows snapshot, used as a fixture on every platform so the
@@ -201,7 +202,7 @@ def qualification(stratum: str = "linux", t0: dict | None = None, **overrides) -
         "environment_manifest": {"sha256": "1" * 64},
         "qualification_tool": {"sha256": "2" * 64},
         "power_snapshot": dict(COMPLIANT_POWER),
-        "predicate": {k: "pass" for k in hq.PREDICATE_KEYS},
+        "predicate": dict.fromkeys(hq.PREDICATE_KEYS, "pass"),
         "memory_metric": hq.STRATUM_METRIC[stratum],
         "qualified": True, "qualified_at": "2026-09-16T00:00:00+00:00"}
     doc.update(overrides)
@@ -368,8 +369,8 @@ def control_artifact_boundary() -> None:
             qual = path if slot == "qual" else good_q
             fresh = path if slot == "manifest" else good_m
             with fixed_power(COMPLIANT_POWER):
-                message = refuses(lambda: hq.session_eligibility(
-                    binding, qual, fresh, good_d, cand, good_link, crepo,
+                message = refuses(lambda b=binding, q=qual, f=fresh: hq.session_eligibility(
+                    b, q, f, good_d, cand, good_link, crepo,
                     quiesce_result=quiet))
             if message is None:
                 fail("hostqual-artifact-boundary", f"{label} was consumed as a real artifact")
@@ -621,7 +622,7 @@ def control_candidate_at_start() -> None:
 def control_postflight() -> None:
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
-        pre, (bpath, qpath, mpath, dpath, cpath, lpath, crepo) = session_fixture(tmp)
+        pre, (bpath, qpath, mpath, _dpath, cpath, lpath, crepo) = session_fixture(tmp)
         ppath = write(tmp, "pre.json", pre)
         probe = tmp / "probe.json"
         probe.write_text("{}", encoding="utf-8")
@@ -658,14 +659,15 @@ def control_postflight() -> None:
 def control_one_binding() -> None:
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
-        pre, (bpath, qpath, mpath, dpath, cpath, lpath, crepo) = session_fixture(tmp)
+        pre, (bpath, qpath, mpath, _dpath, cpath, lpath, crepo) = session_fixture(tmp)
         ppath = write(tmp, "pre.json", pre)
         probe = tmp / "probe.json"
         probe.write_text("{}", encoding="utf-8")
         original = json.loads(bpath.read_text(encoding="utf-8"))
         second = write(tmp, "b2.json", {**original, "bound_at": "a later moment"})
         with fixed_power(COMPLIANT_POWER):
-            mixed = hq.session_admissibility(second, qpath, ppath, mpath, cpath, probe, lpath, crepo)
+            mixed = hq.session_admissibility(second, qpath, ppath, mpath, cpath,
+                                             probe, lpath, crepo)
         if mixed["admissible"]:
             fail("hostqual-one-binding",
                  "a preflight from one binding and a postflight from another were admissible")
@@ -975,7 +977,8 @@ def control_negative_evidence() -> None:
             record = hq.session_eligibility(bpath, qpath, mpath, dpath, cpath, lpath, crepo,
                                             quiesce_result=quiet)
         if record["eligible"]:
-            fail("hostqual-negative-evidence", "a declared prohibited job left the session eligible")
+            fail("hostqual-negative-evidence",
+                 "a declared prohibited job left the session eligible")
             return
         if not any("declaration" in r for r in record["reasons"]):
             fail("hostqual-negative-evidence",
@@ -1019,7 +1022,7 @@ def control_campaign_link() -> None:
                  "a D7 payload edited after the campaign was linked to it was accepted")
             return
 
-        pre, (bpath, qpath, mpath, dpath, cpath, lpath, crepo) = session_fixture(tmp)
+        pre, (bpath, qpath, mpath, _dpath, cpath, _lpath, _crepo) = session_fixture(tmp)
         ppath = write(tmp, "pre.json", pre)
         probe = tmp / "probe.json"
         probe.write_text("{}", encoding="utf-8")
