@@ -42,7 +42,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import mergegate as mg  # noqa: E402
+import mergegate as mg
 
 # The gate's own surface: the predicates, this wrapper, and the workflow that
 # runs them. A change to any of these changes what "the gate passed" means.
