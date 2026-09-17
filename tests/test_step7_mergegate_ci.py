@@ -285,7 +285,9 @@ CONTROLS: list[tuple[str, Callable[[], None]]] = [
 ]
 
 
-def main() -> int:
+def run() -> int:
+    # `run`, not `main`: tests/run_tests.py imports every test_*.py and calls
+    # run() on it, and a module without one is a suite that reports nothing.
     for name, control in CONTROLS:
         guarded(name, control)
     print()
@@ -294,4 +296,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(run())
