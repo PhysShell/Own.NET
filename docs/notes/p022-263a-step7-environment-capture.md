@@ -8,10 +8,41 @@ Status:
   EXECUTION BINDING AUTHORISED.
   FIRST STEP-7 CLOCK BLOCKED until dedicated Linux and Windows hosts exist
     and the exact binding is frozen against them.
-  SINGLE STEP-7 COLLECTION AUTHORISED automatically after that gate.
+  AUTOMATIC AUTHORISATION OF THE FIRST STEP-7 COLLECTION IS REVOKED (T0-0).
+  NO STEP-7 COLLECTION IS AUTHORISED until the PRETRAINING PROTOCOL FREEZE (T0)
+    is itself frozen. Hosts ready plus binding frozen is not authority to collect.
   STEP 8 FIT, HOLDOUT, D7 / #263-B NOT AUTHORISED.
   NO CLOCK HAS RUN. NO OBSERVATION EXISTS.
 ```
+
+## T0-0 — what this amendment changes, and what it does not
+
+This status block used to end the host gate with *SINGLE STEP-7 COLLECTION
+AUTHORISED automatically after that gate*. That sentence made the first training
+collection start on an infrastructure event: two dedicated hosts appear, the
+binding freezes, and the clock is legally free to run. Nothing in the chain then
+required the rules for reading that data to exist first — so the protocol could
+be written after a look at what the training produced, which is the one failure
+mode preregistration exists to prevent. The defect is in the ordering of
+authority, not in anything already accepted.
+
+    hosts ready + binding frozen              != authority to collect
+    hosts ready + binding frozen + T0 frozen  == collection may become eligible
+
+**Unchanged and still authorised:** the environment capture tooling, environment
+provisioning, the execution binding, and every part of #263-A instrumentation
+that was accepted before this amendment. None of it is reopened, and no digest
+moves — this file is outside all three frozen source sets.
+
+**Revoked:** the automatic authorisation of the first step-7 collection, and only
+that.
+
+**Added as a prerequisite:** the pretraining protocol freeze (T0), which fixes
+the comparison statistic, the pairing unit, the acceptance margins, the gate
+population, the decision automaton, the uncertainty rule, the retry policy and
+the host eligibility, selection and replacement rules **before** any training,
+first or decisive collection. T0 is a separate document and sets no thresholds
+here: this amendment carries no number, no statistic and no gate.
 
 ## Why this is a separate tool and not a harness change
 
