@@ -1,18 +1,25 @@
 #!/usr/bin/env python3
 """P-022 — controls on the merge gate.
 
-    mergegate-complete-tree      a world that satisfies the freeze is allowed
-    mergegate-missing-instrument the digest T0 names must exist in the tree
-    mergegate-stale-bindings     steps 4/5/6 must be re-bound to that digest
-    mergegate-missing-machinery  the campaign link and authority must be enforceable
-    mergegate-lingering-auto     the revoked automatic authority must stay revoked
-    mergegate-unfrozen-t0        an unfrozen or unauthorised T0 is not merged as frozen
-    mergegate-reads-t0-digest    the expected digest comes from T0, not from a constant
+    mergegate-complete-tree       a world that satisfies the freeze is allowed
+    mergegate-missing-instrument  the digest T0 names must exist in the tree
+    mergegate-stale-bindings      steps 4/5/6 must be re-bound to that digest
+    mergegate-exact-binding-field the digest is read at each artifact's own path
+    mergegate-decoy-digest        the right digest in a field nobody binds is not a binding
+    mergegate-noop-campaign-link  a permissive link check must not satisfy the gate
+    mergegate-dead-authority      an authority check that always passes must not satisfy it
+    mergegate-missing-machinery   the tools must be there at all
+    mergegate-lingering-auto      the revoked automatic authority must stay revoked
+    mergegate-unfrozen-t0         an unfrozen or unauthorised T0 is not merged as frozen
+    mergegate-reads-t0-digest     the expected digest comes from T0, not from a constant
+    control-inventory-complete    this list and the executed set are the same set
 
-Every control builds a throwaway repository, so the gate is exercised against
-real git objects rather than against a mock of the thing it exists to read.
+Fixtures ship the real tools, and two controls mutate them. An earlier revision
+shipped a stub whose check_campaign_link was a bare pass and called that world
+compliant: the fixture demonstrated the false positive it was meant to exclude.
+Checking for the name of a mechanism is not checking the mechanism.
 
-Failures print `FAIL[<check>]: <detail>`; nothing stops at the first one.
+Failures print FAIL[<check>]: <detail>; nothing stops at the first one.
 
 Run:  python tests/test_step7_mergegate.py
 """
@@ -21,6 +28,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
 import re
 import subprocess
 import sys
@@ -34,6 +42,8 @@ sys.path.insert(0, str(ROOT / "scripts" / "step7"))
 
 import execbinding as eb  # noqa: E402
 import mergegate as mg  # noqa: E402
+
+NL = chr(10)
 
 _FAILURES: list[tuple[str, str]] = []
 _PASSES: list[str] = []
@@ -56,12 +66,55 @@ def guarded(check: str, control: Callable[[], None]) -> None:
         fail(check, f"the control raised {type(exc).__name__}: {exc}")
 
 
-HOSTQUAL_STUB = ('CAMPAIGN_LINK_SCHEMA = "own.net/p022/campaign-link"\n'
-                 'def check_campaign_link():\n    pass\n'
-                 'def gate():\n    if authorized is not True:\n        return "refuse"\n')
-STEP7_NOTE_REVOKED = ("Status:\n  AUTOMATIC AUTHORISATION OF THE FIRST STEP-7 COLLECTION "
-                      "IS REVOKED (T0-0).\n")
-STEP7_NOTE_AUTO = "Status:\n  SINGLE STEP-7 COLLECTION AUTHORISED automatically after that gate.\n"
+NOTE_REVOKED = """Status:
+  AUTOMATIC AUTHORISATION OF THE FIRST STEP-7 COLLECTION IS REVOKED (T0-0).
+"""
+NOTE_AUTO = """Status:
+  SINGLE STEP-7 COLLECTION AUTHORISED automatically after that gate.
+"""
+
+T0_TEMPLATE = """```text
+Status:
+  {status}
+  collection_authorized: {flag}
+```
+
+    measurement_harness_digest
+    {digest}
+"""
+
+# The digest sits at a different exact path in each artifact, so a fixture that
+# wrote one flat shape everywhere would be exercising a gate that does not exist.
+BINDING_SHAPES = {
+    "docs/evidence/calibration/p022-263a-policy-freeze.json":
+        lambda d: {"measurement_harness_digest": d},
+    "docs/evidence/calibration/p022-263a-design-constants.json":
+        lambda d: {"bound_measurement_harness_digest": d},
+    "docs/evidence/calibration/p022-263a-training-preregistration.json":
+        lambda d: {"bindings": {"measurement_harness_digest": d}},
+}
+
+# Mutations appended to the real hostqual: a later definition wins, so each stub
+# disables exactly one enforcement point and leaves the rest genuine.
+NOOP_LINK = '''
+
+def check_campaign_link(link, binding_path, repo):
+    return check("campaign_link", True, "stubbed: what a lexical gate accepted")
+'''
+
+DEAD_AUTHORITY = '''
+
+def bind_t0(repo, path, commit):
+    block = {"commit": commit, "path": path, "blob_sha": "b" * 40,
+             "sha256": "f" * 64, "status": "FROZEN", "collection_authorized": True}
+    return block, check("t0", True, "stubbed: always authorised")
+'''
+
+
+def real_tools() -> dict[str, str]:
+    """The tools as they actually are. A fixture that shipped a stub would prove
+    only that the gate accepts stubs."""
+    return {t: (ROOT / t).read_text(encoding="utf-8") for t in mg.STEP7_TOOLS}
 
 
 def commit_tree(repo: Path, files: dict[str, str]) -> str:
@@ -85,29 +138,37 @@ def commit_tree(repo: Path, files: dict[str, str]) -> str:
 
 
 def world(tmp: Path, *, frozen: bool = True, authorized: bool = True,
-          instrument: str = "print('instrument')\n", rebound: bool = True,
-          machinery: bool = True, auto_authority: bool = False,
-          name: str = "w") -> tuple[Path, str]:
+          instrument: str = "print('instrument')" + NL, rebound: bool = True,
+          machinery: bool = True, auto_authority: bool = False, decoy: bool = False,
+          wrong_field: bool = False, mutate: str = "", name: str = "w") -> tuple[Path, str]:
     """A synthetic target tree, and the commit a merge into it would produce."""
     repo = tmp / name
-    # The digest T0 will name is whatever this tree's own sources hash to, so a
-    # fixture cannot pass by agreeing with a constant this file also wrote.
-    files = {mg.STEP7_TOOLS[0]: "# capture\n",
-             eb.INSTRUMENT_SOURCES[0]: instrument,
-             eb.INSTRUMENT_SOURCES[1]: '{"decisive": []}\n',
-             mg.STEP7_NOTE: STEP7_NOTE_AUTO if auto_authority else STEP7_NOTE_REVOKED}
+    files = {eb.INSTRUMENT_SOURCES[0]: instrument,
+             eb.INSTRUMENT_SOURCES[1]: '{"decisive": []}' + NL,
+             mg.STEP7_NOTE: NOTE_AUTO if auto_authority else NOTE_REVOKED}
     if machinery:
-        files[mg.STEP7_TOOLS[1]] = HOSTQUAL_STUB
-        files[mg.STEP7_TOOLS[2]] = "# binding\n"
+        tools = real_tools()
+        if mutate:
+            tools[mg.STEP7_TOOLS[1]] = tools[mg.STEP7_TOOLS[1]] + mutate
+        files.update(tools)
+    else:
+        files[mg.STEP7_TOOLS[0]] = "# capture only" + NL
     probe = commit_tree(repo, files)
+    # T0 names whatever THIS tree's own sources hash to, so a fixture cannot pass
+    # by agreeing with a constant this file also wrote.
     digest = eb.harness_digest_at(repo, probe) or ""
-    status = "FROZEN." if frozen else "NOT_FROZEN."
-    flag = "true" if authorized else "false"
-    files[mg.T0_PATH] = (f"```text\nStatus:\n  {status}\n  collection_authorized: {flag}\n```\n\n"
-                         f"    measurement_harness_digest\n    {digest}\n")
+    files[mg.T0_PATH] = T0_TEMPLATE.format(
+        status="FROZEN." if frozen else "NOT_FROZEN.",
+        flag="true" if authorized else "false",
+        digest=digest)
     bound = digest if rebound else "0" * 64
-    for artifact in mg.BINDING_ARTIFACTS:
-        files[artifact] = '{"measurement_harness_digest": "' + bound + '"}\n'
+    for artifact, shape in BINDING_SHAPES.items():
+        doc = shape(bound)
+        if decoy:                    # the right digest, in a field nobody binds
+            doc["decoy"] = digest
+        if wrong_field and "training" in artifact:   # right digest, wrong exact path
+            doc = {"measurement_harness_digest": digest}
+        files[artifact] = json.dumps(doc, indent=2) + NL
     return repo, commit_tree(repo, files)
 
 
@@ -115,13 +176,18 @@ def verdicts(repo: Path, commit: str) -> dict[str, str]:
     return {str(r["check"]): str(r["result"]) for r in mg.gate(repo, commit)}
 
 
+def details(repo: Path, commit: str) -> dict[str, str]:
+    return {str(r["check"]): str(r["detail"]) for r in mg.gate(repo, commit)}
+
+
 def control_complete_tree() -> None:
     with tempfile.TemporaryDirectory() as raw:
         repo, commit = world(Path(raw))
-        results = verdicts(repo, commit)
-        bad = sorted(k for k, v in results.items() if v != "pass")
+        bad = sorted(k for k, v in verdicts(repo, commit).items() if v != "pass")
         if bad:
-            fail("mergegate-complete-tree", f"a satisfying world was refused on {bad}")
+            seen = details(repo, commit)
+            fail("mergegate-complete-tree",
+                 f"a satisfying world was refused on {bad}: {[seen[k][:90] for k in bad]}")
             return
         # Captured: a green run that prints a refusal teaches readers to skim past
         # refusals, which is how the word stops meaning anything.
@@ -131,19 +197,17 @@ def control_complete_tree() -> None:
             fail("mergegate-complete-tree", "the CLI refused a satisfying world")
             return
     ok("mergegate-complete-tree",
-       "a tree carrying the named instrument, the re-bound artifacts, the machinery and the "
-       "revoked automatic authority is allowed")
+       "a tree carrying the named instrument, the exactly re-bound artifacts, the real tools "
+       "and the revoked automatic authority is allowed")
 
 
 def control_missing_instrument() -> None:
     with tempfile.TemporaryDirectory() as raw:
-        tmp = Path(raw)
-        repo, commit = world(tmp)
+        repo, commit = world(Path(raw))
         # the instrument moves after T0 named it — the exact intermediate state a
         # stray merge produces when the repair PR is not in yet
-        drifted = commit_tree(repo, {eb.INSTRUMENT_SOURCES[0]: "print('older instrument')\n"})
-        results = verdicts(repo, drifted)
-        if results.get("instrument_matches_t0") != "fail":
+        drifted = commit_tree(repo, {eb.INSTRUMENT_SOURCES[0]: "print('older')" + NL})
+        if verdicts(repo, drifted).get("instrument_matches_t0") != "fail":
             fail("mergegate-missing-instrument",
                  "a tree whose instrument does not hash to the digest T0 names was allowed")
             return
@@ -168,10 +232,78 @@ def control_stale_bindings() -> None:
        "steps 4, 5 and 6 must be re-bound to the digest T0 names, not merely present")
 
 
+def control_exact_binding_field() -> None:
+    """Each artifact binds at its own path, and only that path counts."""
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        repo, commit = world(tmp, name="exact")
+        if verdicts(repo, commit).get("steps_4_5_6_rebound") != "pass":
+            fail("mergegate-exact-binding-field",
+                 "correct exact fields were refused: "
+                 + details(repo, commit)["steps_4_5_6_rebound"])
+            return
+        moved_repo, moved = world(tmp, wrong_field=True, name="wrongfield")
+        if verdicts(moved_repo, moved).get("steps_4_5_6_rebound") != "fail":
+            fail("mergegate-exact-binding-field",
+                 "the training preregistration bound at the wrong path was accepted; the gate "
+                 "is searching the file rather than reading the binding")
+            return
+    ok("mergegate-exact-binding-field",
+       "policy freeze at measurement_harness_digest, design constants at "
+       "bound_measurement_harness_digest, training preregistration at "
+       "bindings.measurement_harness_digest — and nowhere else")
+
+
+def control_decoy_digest() -> None:
+    with tempfile.TemporaryDirectory() as raw:
+        repo, commit = world(Path(raw), rebound=False, decoy=True)
+        if verdicts(repo, commit).get("steps_4_5_6_rebound") != "fail":
+            fail("mergegate-decoy-digest",
+                 "a stale binding passed because the right digest sat in a decoy field")
+            return
+    ok("mergegate-decoy-digest",
+       "the right digest in a field nobody binds is not a binding, and a substring search "
+       "would have called it one")
+
+
+def control_noop_campaign_link() -> None:
+    """The attack the previous revision of this gate could not see."""
+    with tempfile.TemporaryDirectory() as raw:
+        repo, commit = world(Path(raw), mutate=NOOP_LINK, name="noop")
+        if verdicts(repo, commit).get("step7_machinery_enforces") != "fail":
+            fail("mergegate-noop-campaign-link",
+                 "a permissive check_campaign_link satisfied the gate; the name of a mechanism "
+                 "is not the mechanism")
+            return
+        detail = details(repo, commit)["step7_machinery_enforces"]
+        if "accepted" not in detail:
+            fail("mergegate-noop-campaign-link", f"refused for an unrelated reason: {detail}")
+            return
+    ok("mergegate-noop-campaign-link",
+       "a tree whose link check always passes is refused, and the refusal names the attack "
+       "that got through")
+
+
+def control_dead_authority() -> None:
+    with tempfile.TemporaryDirectory() as raw:
+        repo, commit = world(Path(raw), mutate=DEAD_AUTHORITY, name="deadauth")
+        if verdicts(repo, commit).get("step7_machinery_enforces") != "fail":
+            fail("mergegate-dead-authority",
+                 "a bind_t0 that always returns pass satisfied the gate")
+            return
+        detail = details(repo, commit)["step7_machinery_enforces"]
+        if "accepted" not in detail:
+            fail("mergegate-dead-authority", f"refused for an unrelated reason: {detail}")
+            return
+    ok("mergegate-dead-authority",
+       "a tree whose authority check always passes is refused, and the refusal says which "
+       "state it wrongly accepted")
+
+
 def control_missing_machinery() -> None:
     with tempfile.TemporaryDirectory() as raw:
         repo, commit = world(Path(raw), machinery=False)
-        if verdicts(repo, commit).get("step7_machinery_present") != "fail":
+        if verdicts(repo, commit).get("step7_machinery_enforces") != "fail":
             fail("mergegate-missing-machinery",
                  "a tree without the qualification and binding tools was allowed")
             return
@@ -193,12 +325,13 @@ def control_lingering_auto() -> None:
 
 
 def control_unfrozen_t0() -> None:
+    states = (("not frozen", {"frozen": False}),
+              ("frozen but unauthorised", {"authorized": False}),
+              ("unfrozen but authorised", {"frozen": False, "authorized": True}))
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
-        for label, kwargs in (("not frozen", {"frozen": False}),
-                              ("frozen but unauthorised", {"authorized": False}),
-                              ("unfrozen but authorised", {"frozen": False, "authorized": True})):
-            repo, commit = world(tmp, name=f"w-{len(list(tmp.glob('w-*')))}", **kwargs)
+        for i, (label, kwargs) in enumerate(states):
+            repo, commit = world(tmp, name=f"state{i}", **kwargs)
             if verdicts(repo, commit).get("t0_frozen_and_authorized") != "fail":
                 fail("mergegate-unfrozen-t0", f"{label} was treated as a freeze")
                 return
@@ -210,18 +343,18 @@ def control_unfrozen_t0() -> None:
 def control_reads_t0_digest() -> None:
     """The gate must not carry the expected digest in its own source."""
     source = (ROOT / "scripts" / "step7" / "mergegate.py").read_text(encoding="utf-8")
-    hardcoded = re.findall(r"\b[0-9a-f]{64}\b", source)
+    hardcoded = re.findall("(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])", source)
     if hardcoded:
         fail("mergegate-reads-t0-digest",
              f"the gate carries {len(hardcoded)} literal digest(s) in its own source; it would "
              "then be checking a constant it wrote rather than the contract")
         return
     with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
         # two different instruments, two different digests, both accepted because
-        # each tree's T0 names its own
-        for text in ("print('one')\n", "print('a completely different instrument')\n"):
-            repo, commit = world(Path(raw), instrument=text,
-                                 name=f"d{abs(hash(text)) % 1000}")
+        # each tree's own T0 names its own
+        for i, text in enumerate(("print('one')" + NL, "print('a different one')" + NL)):
+            repo, commit = world(tmp, instrument=text, name=f"digest{i}")
             if verdicts(repo, commit).get("instrument_matches_t0") != "pass":
                 fail("mergegate-reads-t0-digest",
                      "a tree whose T0 names its own instrument was refused")
@@ -231,14 +364,31 @@ def control_reads_t0_digest() -> None:
        "no digest is written into this gate's own source")
 
 
+def control_inventory_complete() -> None:
+    listed = set(re.findall("^    ([a-z0-9-]+) +[^ ]", __doc__ or "", re.MULTILINE))
+    executed = {name for name, _ in CONTROLS}
+    if listed != executed:
+        fail("control-inventory-complete",
+             f"listed but not executed: {sorted(listed - executed)}; executed but not listed: "
+             f"{sorted(executed - listed)}")
+        return
+    ok("control-inventory-complete",
+       f"{len(executed)} controls listed, {len(executed)} executed, same names in both")
+
+
 CONTROLS: list[tuple[str, Callable[[], None]]] = [
     ("mergegate-complete-tree", control_complete_tree),
     ("mergegate-missing-instrument", control_missing_instrument),
     ("mergegate-stale-bindings", control_stale_bindings),
+    ("mergegate-exact-binding-field", control_exact_binding_field),
+    ("mergegate-decoy-digest", control_decoy_digest),
+    ("mergegate-noop-campaign-link", control_noop_campaign_link),
+    ("mergegate-dead-authority", control_dead_authority),
     ("mergegate-missing-machinery", control_missing_machinery),
     ("mergegate-lingering-auto", control_lingering_auto),
     ("mergegate-unfrozen-t0", control_unfrozen_t0),
     ("mergegate-reads-t0-digest", control_reads_t0_digest),
+    ("control-inventory-complete", control_inventory_complete),
 ]
 
 
