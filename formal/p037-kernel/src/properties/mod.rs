@@ -281,13 +281,16 @@ pub fn random_election_system(rng: &mut Rng, n: usize) -> ElectionSystem {
 ///
 /// CBMC bit-blasts every field, so a symbolic `usize` index costs 64 bits
 /// where two would do. The harnesses draw `u8` symbols, convert, and assume
-/// well-formedness — the kernel types are untouched.
+/// well-formedness — the kernel types are untouched. The live-coordinate
+/// count is concrete (3, or 2 for the "small" systems the whole-solver
+/// harnesses use): a smaller SCC is the same thing with unreferenced
+/// coordinates, and a symbolic `n` only widens every loop bound.
 #[cfg(kani)]
 pub mod symbolic {
     use super::DEAD;
     use crate::{
-        Coord, Edge, Election, ElectionCoord, ElectionEdge, ElectionSystem, Guard, GuardBinding,
-        Shape, System, MAX_COORDS, MAX_EDGES,
+        Cells, Coord, Edge, Election, ElectionCoord, ElectionEdge, ElectionSystem, Guard,
+        GuardBinding, Shape, System, MAX_COORDS, MAX_EDGES,
     };
 
     /// A symbolic index below `n`.
@@ -313,25 +316,48 @@ pub mod symbolic {
         })
     }
 
-    /// A well-formed system of 1..=3 coordinates with up to 2 edges each.
-    pub fn any_system() -> System {
-        let n = any_index(MAX_COORDS).saturating_add(1);
-        let mut coords = [DEAD; MAX_COORDS];
-        for c in coords.iter_mut().take(n) {
-            let split: bool = kani::any();
-            *c = Coord {
-                shape: if split {
-                    Shape::Split(0)
-                } else {
-                    Shape::Uncond
-                },
-                seed: kani::any(),
-                edges: [any_edge(n), any_edge(n)],
-            };
+    fn any_coord(n: usize, edges: usize) -> Coord {
+        let split: bool = kani::any();
+        Coord {
+            shape: if split {
+                Shape::Split(0)
+            } else {
+                Shape::Uncond
+            },
+            seed: kani::any(),
+            edges: [any_edge(n), if edges > 1 { any_edge(n) } else { None }],
         }
+    }
+
+    /// A well-formed system of exactly 3 live coordinates, ≤ 2 edges each.
+    pub fn any_system() -> System {
+        let n = MAX_COORDS;
+        let coords = [any_coord(n, 2), any_coord(n, 2), any_coord(n, 2)];
         let sys = System { n, coords };
         kani::assume(sys.well_formed());
         sys
+    }
+
+    /// A well-formed system of 2 live coordinates, ≤ 1 edge each — the
+    /// bound at which the whole-solver harnesses stay tractable.
+    pub fn any_small_system() -> System {
+        let n = 2;
+        let coords = [any_coord(n, 1), any_coord(n, 1), DEAD];
+        let sys = System { n, coords };
+        kani::assume(sys.well_formed());
+        sys
+    }
+
+    /// A symbolic state whose `Uncond` coordinates are diagonal (K12's
+    /// inductive hypothesis).
+    pub fn any_state_diagonal_where_uncond(sys: &System) -> [Cells; MAX_COORDS] {
+        let x: [Cells; MAX_COORDS] = kani::any();
+        for (c, v) in sys.coords.iter().zip(x.iter()) {
+            if matches!(c.shape, Shape::Uncond) {
+                kani::assume(v.is_diag());
+            }
+        }
+        x
     }
 
     /// A fair per-pass schedule over `0..n`.
@@ -372,20 +398,41 @@ pub mod symbolic {
         })
     }
 
-    /// A well-formed election system of 1..=3 coordinates.
+    fn any_election_coord(n: usize, edges: usize) -> ElectionCoord {
+        ElectionCoord {
+            seed: any_election(),
+            edges: [
+                any_election_edge(n),
+                if edges > 1 {
+                    any_election_edge(n)
+                } else {
+                    None
+                },
+            ],
+        }
+    }
+
+    /// A well-formed election system of exactly 3 live coordinates.
     pub fn any_election_system() -> ElectionSystem {
-        let n = any_index(MAX_COORDS).saturating_add(1);
+        let n = MAX_COORDS;
+        let coords = [
+            any_election_coord(n, 2),
+            any_election_coord(n, 2),
+            any_election_coord(n, 2),
+        ];
+        let sys = ElectionSystem { n, coords };
+        kani::assume(sys.well_formed());
+        sys
+    }
+
+    /// A well-formed election system of 2 live coordinates, ≤ 1 edge each.
+    pub fn any_small_election_system() -> ElectionSystem {
+        let n = 2;
         let dead = ElectionCoord {
             seed: Election::None,
             edges: [None; MAX_EDGES],
         };
-        let mut coords = [dead; MAX_COORDS];
-        for c in coords.iter_mut().take(n) {
-            *c = ElectionCoord {
-                seed: any_election(),
-                edges: [any_election_edge(n), any_election_edge(n)],
-            };
-        }
+        let coords = [any_election_coord(n, 1), any_election_coord(n, 1), dead];
         let sys = ElectionSystem { n, coords };
         kani::assume(sys.well_formed());
         sys

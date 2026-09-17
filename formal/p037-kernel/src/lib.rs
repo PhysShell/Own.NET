@@ -453,17 +453,25 @@ impl System {
 
     /// `F_G` at one coordinate: seed joined with every masked, transformed
     /// edge read (G-F1/G-F2/G-S4). Dead coordinates stay `⊥`.
+    // plain loops, no iterator adapters: the model checker unrolls these and
+    // `flatten` costs it an order of magnitude
+    #[allow(clippy::manual_flatten)]
     #[must_use]
     pub fn step(&self, i: usize, x: &[Cells; MAX_COORDS]) -> Cells {
         if i >= self.n {
             return Cells::BOT;
         }
-        self.coords.get(i).map_or(Cells::BOT, |c| {
-            c.edges.iter().flatten().fold(c.seed, |acc, e| {
+        let Some(c) = self.coords.get(i) else {
+            return Cells::BOT;
+        };
+        let mut acc = c.seed;
+        for slot in &c.edges {
+            if let Some(e) = slot {
                 let callee = x.get(e.callee).copied().unwrap_or(Cells::BOT);
-                acc.join(contribute(e.mask, read(e.transform, callee)))
-            })
-        })
+                acc = acc.join(contribute(e.mask, read(e.transform, callee)));
+            }
+        }
+        acc
     }
 
     /// `F_0` of G-T2 §7.2: the same SCC with every coordinate `Uncond`, its
@@ -536,6 +544,9 @@ pub const fn max_passes(height: usize) -> usize {
 
 /// Synchronous (Jacobi) iteration from `⊥`; `None` if the bound is exceeded
 /// (impossible for a monotone step — asserted by the harnesses).
+// index loops keep the model checker's unrolling simple; the pedantic hint
+// to use iterator adapters would cost CBMC an order of magnitude
+#[allow(clippy::needless_range_loop)]
 pub fn lfp_jacobi<L: Lattice>(
     n: usize,
     step: impl Fn(usize, &[L; MAX_COORDS]) -> L,
@@ -543,8 +554,13 @@ pub fn lfp_jacobi<L: Lattice>(
     let mut x = [L::BOT; MAX_COORDS];
     for _ in 0..max_passes(L::HEIGHT) {
         let mut next = [L::BOT; MAX_COORDS];
-        for (i, slot) in next.iter_mut().enumerate().take(n) {
-            *slot = step(i, &x);
+        for i in 0..MAX_COORDS {
+            let Some(slot) = next.get_mut(i) else {
+                continue;
+            };
+            if i < n {
+                *slot = step(i, &x);
+            }
         }
         if next == x {
             return Some(x);
@@ -643,17 +659,24 @@ impl ElectionSystem {
     }
 
     /// Seed joined with every import (G-S1).
+    // plain loops for the model checker, as in `System::step`
+    #[allow(clippy::manual_flatten)]
     #[must_use]
     pub fn step(&self, i: usize, x: &[Election; MAX_COORDS]) -> Election {
         if i >= self.n {
             return Election::None;
         }
-        self.coords.get(i).map_or(Election::None, |c| {
-            c.edges.iter().flatten().fold(c.seed, |acc, e| {
+        let Some(c) = self.coords.get(i) else {
+            return Election::None;
+        };
+        let mut acc = c.seed;
+        for slot in &c.edges {
+            if let Some(e) = slot {
                 let callee = x.get(e.callee).copied().unwrap_or(Election::None);
-                acc.join(import(callee, e.binding))
-            })
-        })
+                acc = acc.join(import(callee, e.binding));
+            }
+        }
+        acc
     }
 }
 

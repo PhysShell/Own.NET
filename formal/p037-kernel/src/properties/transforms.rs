@@ -85,7 +85,9 @@ mod tests {
 
 #[cfg(kani)]
 mod proofs {
-    use super::super::symbolic::any_system;
+    use super::super::symbolic::{
+        any_index, any_small_system, any_state_diagonal_where_uncond, any_system,
+    };
     use crate::{contribute, read, solve, Cells, Mask, Shape, Transform};
 
     #[kani::proof]
@@ -114,9 +116,23 @@ mod proofs {
     }
 
     #[kani::proof]
-    #[kani::unwind(21)]
-    fn k12_uncond_coordinates_stay_diagonal() {
+    fn k12a_step_keeps_uncond_coordinates_diagonal() {
+        // the inductive step: from a state whose Uncond coordinates are
+        // diagonal, one application of F_G keeps them diagonal
         let sys = any_system();
+        let x = any_state_diagonal_where_uncond(&sys);
+        let i = any_index(sys.n);
+        if let Some(c) = sys.coords.get(i) {
+            if matches!(c.shape, Shape::Uncond) {
+                assert!(sys.step(i, &x).is_diag());
+            }
+        }
+    }
+
+    #[kani::proof]
+    #[kani::unwind(21)]
+    fn k12b_lfp_keeps_uncond_coordinates_diagonal_on_small_sccs() {
+        let sys = any_small_system();
         let x = solve(&sys);
         assert!(x.is_some(), "terminates within the height bound");
         if let Some(x) = x {

@@ -54,12 +54,33 @@ workspace's strict lints are copied verbatim (`unsafe` forbidden, no
 indexing, no unchecked arithmetic, no `unwrap`, no `panic`); `cargo clippy
 --all-targets` is clean.
 
-`src/properties/` — 1 395 code lines: every property twice over the same
-functions, a `#[kani::proof]` harness and a `#[test]` twin (exhaustive over
-the finite domains — all 5 transfers, 25 cell pairs, 5 elections, 20
+`src/properties/` — every property twice over the same functions, a
+`#[kani::proof]` harness (22 of them) and a `#[test]` twin (35; exhaustive
+over the finite domains — all 5 transfers, 25 cell pairs, 5 elections, 20
 bindings, every well-formed system of ≤ 2 coordinates with ≤ 1 edge each —
 and 20 000 seeded-random systems of 3 coordinates with ≤ 2 edges where
 exhaustion is out of reach).
+
+Harness engineering that turned out to matter (MEASURED OBSERVATION): the
+first whole-solver harness — a symbolic 3-coordinate SCC with a symbolic
+live count, `usize` indices and the kernel's iterator-adapter loops — ran
+CBMC's symbolic execution for 472 s, produced a 2.4-million-step program
+and **ran out of memory** in the SAT phase on a 16 GB host, for the
+*election* solver, the small one. Three changes made every harness
+tractable without touching what is proven: the harnesses draw `u8`
+symbols and convert (`properties::symbolic`), the live-coordinate count is
+concrete (3, or 2 for the "small" systems), and the kernel's `step` /
+Jacobi loops are plain loops instead of `flatten`/`fold`/`enumerate`
+chains (semantics unchanged: the 35 twins are the witnesses). The
+whole-solver properties are then checked in two forms: the *inductive*
+one-step lemma on a symbolic 3-coordinate SCC and a symbolic state (`step`
+monotone; F_G keeps `Uncond` diagonal; the §7.2 one-step inequality), plus
+the *direct* whole-solver statement on 2-coordinate SCCs with ≤ 1 edge each
+(chaotic = Jacobi under every fair schedule; the lfp inequalities). Order
+independence of the lfp follows from the inductive facts by the standard
+argument (a monotone operator on a finite lattice: every fair chaotic
+iteration from `⊥` reaches the least fixpoint); the direct harness is the
+model checker looking at the concrete solver as well.
 
 ## 3. Results (MEASURED OBSERVATIONS)
 
@@ -78,10 +99,11 @@ profile). `cargo kani` (Kani 0.68.0, CBMC 6.11.0, pinned nightly
 | K7 | unselected differing cells never consume; a selected `unknown` cell is `plain`; an opaque read of finalized cells consumes only when both are `must`; raw `⊥` lowers to `borrow`; **the unfinalized witness** `(must, ⊥)` reads as `must` inside the solver and `apply` therefore finalizes first (§4 F2) | exhaustive + pin | SUCCESSFUL | all values |
 | K8 | `read(id, read(id, c)) = c`, `read(neg, read(neg, c)) = c`; `const-pos`/`const-neg`/`opaque` reads are diagonal (G-F2) | exhaustive | running at this checkpoint | all values |
 | K9 | residual-⊥ lemma: `C(fin(other, ⊥)) ≤ fin(today)` for all three groundings and every `other`; the §7.3 non-commutation witness `C(fin(must, ⊥)) = may ≠ fin(C(must, ⊥)) = must` (G-T2.3) | exhaustive + pin | running at this checkpoint | all values |
-| K10 | the solver stabilizes within the height bound; its result is a fixpoint, the **least** fixpoint (checked against every fixpoint of the domain), and equal under every permutation schedule and a repeating fair schedule; the election pre-solver likewise; §8 row 11 (late `Conflict` cannot leave a stale import) (G-F1/G-F2, G-S1) | exhaustive n ≤ 2 + 20 000 random n = 3 | KANI_K10 / KANI_K10E | n ≤ 3, ≤ 2 edges, any permutation |
-| K11 | G-T2 §7.2 lax simulation against the **collapsed** system: one step `C(F_G(X)) ≤ F_0(C(X))` for every state, and at the lfp `C(lfp F_G) ≤ lfp F_0` — unconditional | exhaustive + 20 000 random | KANI_K11S / KANI_K11 | n ≤ 3, ≤ 2 edges |
-| K11′ | G-T2 as stated, against **today's derivation** post-finalization: `C(fin(lfp F_G)) ≤ fin(lfp F_0)` — holds under two trusted-input assumptions (release cells carry no edges; no `unknown` seed in the SCC) and **fails without the second** (§4 F1, pinned) | exhaustive + 20 000 random + counterexample pin | running at this checkpoint | n ≤ 3, ≤ 2 edges |
-| K12 | `Uncond` coordinates stay diagonal through the solver (justifies the pair representation of §3) | exhaustive + random | running at this checkpoint | n ≤ 3 |
+| K10 | the solver stabilizes within the height bound; its result is a fixpoint, the **least** fixpoint (test: against every fixpoint of the domain; Kani: against every symbolic fixpoint), and equal under every permutation schedule and a repeating fair schedule; §8 row 11 (late `Conflict` cannot leave a stale import) (G-F1/G-F2) | exhaustive n ≤ 2 + 20 000 random n = 3 | K10a `step` monotone in the state: KANI_K10A · K10b `solve` is a fixpoint below every fixpoint: KANI_K10B · K10c chaotic = Jacobi: KANI_K10C | K10a/b: n = 3, ≤ 2 edges, symbolic state; K10c: n = 2, ≤ 1 edge, any fair schedule |
+| K10e | the election pre-solver: the same three facts (G-S1) | exhaustive twins of K10 | step monotone: KANI_K10E1 · least fixpoint: KANI_K10E2 · chaotic = Jacobi: KANI_K10E3 | as K10 |
+| K11 | G-T2 §7.2 lax simulation against the **collapsed** system: one step `C(F_G(X)) ≤ F_0(C(X))` for every state, and at the lfp `C(lfp F_G) ≤ lfp F_0` — unconditional | exhaustive + 20 000 random | one step: KANI_K11S · lfp: KANI_K11L | one step: n = 3, ≤ 2 edges, symbolic state; lfp: n = 2, ≤ 1 edge |
+| K11′ | G-T2 as stated, against **today's derivation** post-finalization: `C(fin(lfp F_G)) ≤ fin(lfp F_0)` — holds under two trusted-input assumptions (release cells carry no edges; no `unknown` seed in the SCC) and **fails without the second** (§4 F1, pinned) | exhaustive + 20 000 random + counterexample pin | KANI_K11T | n = 2, ≤ 1 edge |
+| K12 | `Uncond` coordinates stay diagonal through the solver (justifies the pair representation of §3) | exhaustive + random | one step keeps them diagonal: KANI_K12A · lfp: KANI_K12B | one step: n = 3; lfp: n = 2, ≤ 1 edge |
 | K13 | P-037 §8 rows 1, 3, 7, 8, 9, 12, 13, 14, 16, 17, 18 as concrete pins, each with today's value where the row states one | pins | — | — |
 
 ## 4. Findings (the point of the exercise)

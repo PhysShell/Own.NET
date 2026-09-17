@@ -202,7 +202,7 @@ mod tests {
 
 #[cfg(kani)]
 mod proofs {
-    use super::super::symbolic::{any_index, any_system};
+    use super::super::symbolic::{any_index, any_small_system, any_system};
     use super::{no_unknown_seed, release_cells_have_no_edges};
     use crate::{lemma_guarded, lemma_today, solve, Cells, Grounding, Transfer, MAX_COORDS};
 
@@ -217,6 +217,8 @@ mod proofs {
 
     #[kani::proof]
     fn k11_one_step_lax_simulation() {
+        // the induction step of G-T2 §7.2 on a symbolic 3-coordinate SCC and
+        // a symbolic state: C(F_G(X)) ≤ F_0(C(X))
         let sys = any_system();
         let x: [Cells; MAX_COORDS] = kani::any();
         let [x0, x1, x2] = x;
@@ -232,8 +234,8 @@ mod proofs {
 
     #[kani::proof]
     #[kani::unwind(21)]
-    fn k11_lfp_lax_simulation_against_the_collapsed_system() {
-        let sys = any_system();
+    fn k11_lfp_lax_simulation_against_the_collapsed_system_on_small_sccs() {
+        let sys = any_small_system();
         let g = solve(&sys);
         let t = solve(&sys.collapsed());
         assert!(g.is_some() && t.is_some());
@@ -246,8 +248,8 @@ mod proofs {
 
     #[kani::proof]
     #[kani::unwind(21)]
-    fn k11_lfp_lax_simulation_against_today_post_finalization() {
-        let sys = any_system();
+    fn k11_lfp_lax_simulation_against_today_post_finalization_on_small_sccs() {
+        let sys = any_small_system();
         kani::assume(release_cells_have_no_edges(&sys) && no_unknown_seed(&sys));
         let g = solve(&sys);
         let t = solve(&sys.today());

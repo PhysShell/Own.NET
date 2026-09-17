@@ -151,8 +151,10 @@ mod tests {
 
 #[cfg(kani)]
 mod proofs {
-    use super::super::symbolic::{any_election_system, any_schedule};
-    use crate::{elect, elect_with, import, Election, GuardBinding};
+    use super::super::symbolic::{
+        any_election_system, any_index, any_schedule, any_small_election_system,
+    };
+    use crate::{elect, elect_with, import, Election, GuardBinding, MAX_COORDS};
 
     #[kani::proof]
     fn k4_import_is_monotone_and_conflict_propagates() {
@@ -167,12 +169,38 @@ mod proofs {
     }
 
     #[kani::proof]
-    #[kani::unwind(9)]
-    fn k10_election_lfp_is_schedule_independent() {
+    fn k10e_election_step_is_monotone_in_the_state() {
         let sys = any_election_system();
+        let x: [Election; MAX_COORDS] = kani::any();
+        let y: [Election; MAX_COORDS] = kani::any();
+        kani::assume(x.iter().zip(y.iter()).all(|(a, b)| a.leq(*b)));
+        let i = any_index(sys.n);
+        assert!(sys.step(i, &x).leq(sys.step(i, &y)));
+    }
+
+    #[kani::proof]
+    #[kani::unwind(9)]
+    fn k10e_elect_is_a_fixpoint_below_every_fixpoint() {
+        let sys = any_election_system();
+        let lfp = elect(&sys);
+        assert!(lfp.is_some(), "terminates within the height bound");
+        if let Some(x) = lfp {
+            for i in 0..sys.n {
+                assert_eq!(x.get(i).copied(), Some(sys.step(i, &x)));
+            }
+            let y: [Election; MAX_COORDS] = kani::any();
+            kani::assume((0..sys.n).all(|i| y.get(i).copied() == Some(sys.step(i, &y))));
+            assert!(x.iter().zip(y.iter()).all(|(a, b)| a.leq(*b)), "least");
+        }
+    }
+
+    #[kani::proof]
+    #[kani::unwind(9)]
+    fn k10e_chaotic_equals_jacobi_on_small_sccs() {
+        let sys = any_small_election_system();
         let sched = any_schedule(sys.n);
-        let jacobi = elect(&sys);
-        assert!(jacobi.is_some(), "terminates within the height bound");
-        assert_eq!(elect_with(&sys, &sched), jacobi);
+        let lfp = elect(&sys);
+        assert!(lfp.is_some());
+        assert_eq!(elect_with(&sys, &sched), lfp);
     }
 }
