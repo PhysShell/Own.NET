@@ -62,6 +62,11 @@ def applies(repo: Path, commit: str) -> bool:
     return blob_sha(repo, commit, mg.T0_PATH) is not None
 
 
+def is_commit(repo: Path, rev: str) -> bool:
+    return subprocess.run(["git", "-C", str(repo), "rev-parse", f"{rev}^{{commit}}"],
+                          capture_output=True, check=False).returncode == 0
+
+
 def co_change(repo: Path, commit: str, base: str) -> list[str]:
     """Which gate files this merge changes, if it also touches the contract.
 
@@ -82,10 +87,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base", help="the base commit the co-change rule compares against")
     args = parser.parse_args(argv)
 
-    proc = subprocess.run(["git", "-C", str(args.repo), "rev-parse", f"{args.commit}^{{commit}}"],
-                          capture_output=True, text=True, check=False)
-    if proc.returncode != 0:
+    if not is_commit(args.repo, args.commit):
         print(f"merge gate: MISUSE — {args.commit} is not a commit in {args.repo}")
+        return 2
+    # A base that is not in the clone would make every gate file look changed,
+    # and the co-change rule would refuse for a reason that is about the checkout
+    # rather than about the merge. A question that cannot be asked is not a no.
+    if args.base is not None and not is_commit(args.repo, args.base):
+        print(f"merge gate: MISUSE — the base {args.base} is not a commit in {args.repo}; "
+              "the co-change rule cannot be evaluated, and a shallow checkout must not be "
+              "reported as a rewritten gate")
         return 2
 
     if not applies(args.repo, args.commit):

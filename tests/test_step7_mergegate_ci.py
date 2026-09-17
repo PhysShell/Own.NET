@@ -8,6 +8,7 @@
     ci-gate-repair-allowed  repairing the gate on its own is ordinary work
     ci-no-base-is-stated    without a base the co-change rule says it did not run
     ci-misuse-is-two        a commit that does not exist is misuse, not a verdict
+    ci-absent-base-is-two   nor may an unavailable base be reported as a rewritten gate
     ci-gate-files-exist     every file the co-change rule watches is really there
     ci-workflow-names       the workflow names the contexts a ruleset must require
     ci-workflow-derives-t0  the workflow hard-codes no path the tools already own
@@ -195,6 +196,24 @@ def control_misuse_is_two() -> None:
        "the step-7 tools already use")
 
 
+def control_absent_base_is_two() -> None:
+    """A shallow checkout must not be able to manufacture a refusal."""
+    with tempfile.TemporaryDirectory() as raw:
+        repo, head, _ = wired(Path(raw), "absentbase")
+        rc, said = run("--repo", str(repo), "--commit", head, "--base", "e" * 40)
+        if rc == 1:
+            fail("ci-absent-base-is-two",
+                 "a base that is not in the clone was reported as a rewritten gate; every gate "
+                 "file looks changed against a base nobody has")
+            return
+        if rc != 2:
+            fail("ci-absent-base-is-two", f"an unavailable base returned {rc}: {said[:160]}")
+            return
+    ok("ci-absent-base-is-two",
+       "an unreachable base is exit 2 and says so; the co-change rule refuses to answer rather "
+       "than answering with the checkout's depth")
+
+
 def control_gate_files_exist() -> None:
     missing = [p for p in ci.GATE_FILES if not (ROOT / p).exists()]
     if missing:
@@ -258,6 +277,7 @@ CONTROLS: list[tuple[str, Callable[[], None]]] = [
     ("ci-gate-repair-allowed", control_gate_repair_allowed),
     ("ci-no-base-is-stated", control_no_base_is_stated),
     ("ci-misuse-is-two", control_misuse_is_two),
+    ("ci-absent-base-is-two", control_absent_base_is_two),
     ("ci-gate-files-exist", control_gate_files_exist),
     ("ci-workflow-names", control_workflow_names),
     ("ci-workflow-derives-t0", control_workflow_derives_t0),
