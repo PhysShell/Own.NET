@@ -1,0 +1,40 @@
+[package]
+name = "p037-kernel"
+description = "P-037 guarded-transfer kernel: the pure algebra (lattices, election, edge transforms, bounded SCC solver, call-site application) with Kani proof harnesses and exhaustive/randomized test twins. A0 formal spike — NOT an implementation of P-037 in the analyzer, NOT a member of the rust/ core workspace, wired to nothing."
+version = "0.0.1"
+edition = "2021"
+rust-version = "1.74"
+license = "MIT"
+publish = false
+
+# Its own workspace root on purpose: the rust/ crate graph IS the architecture
+# (P-022) and this spike must not appear in it. When A1 lands, these exact
+# functions move into the post-cutover summary engine; nothing is re-written.
+[workspace]
+
+[dependencies]
+
+# The rust/ workspace's strictness, copied verbatim so the move in A1 is
+# frictionless (rust/Cargo.toml [workspace.lints]).
+[lints.rust]
+unsafe_code = "forbid"
+# `cfg(kani)` gates the proof harnesses; declare it so rustc does not flag it.
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(kani)"] }
+unreachable_pub = "deny"
+missing_debug_implementations = "warn"
+rust_2018_idioms = { level = "deny", priority = -1 }
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "warn"
+indexing_slicing = "deny"
+arithmetic_side_effects = "deny"
+panic = "deny"
+dbg_macro = "deny"
+print_stdout = "deny"
+
+# Exhaustive twins enumerate millions of tiny systems; optimize the test build.
+[profile.test]
+opt-level = 2
