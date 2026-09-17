@@ -1,0 +1,70 @@
+name: P-022 merge gate
+
+# The merge order for the #263 preregistration, as a check rather than an
+# agreement. `mergegate.py` is run against the commit a merge would PRODUCE —
+# for a pull_request event that is `github.sha`, the merge ref, not the branch
+# head — because a PR number proves someone pressed a button and says nothing
+# about what the merged tree contains.
+#
+# Two jobs, and the gate needs the controls: a gate whose own controls are
+# failing must not be the thing that says a merge is safe. A failed controls job
+# leaves the gate job unreported, which a required check reads as unsatisfied.
+#
+# This workflow is one half of the wiring. The other half is a ruleset requiring
+# these two checks; without it the job reports and nothing is prevented. The
+# names below are the contexts that ruleset must name:
+#
+#     P-022 merge gate controls
+#     P-022 merge gate
+#
+# Least privilege as elsewhere in this repository: read-only, and every
+# third-party `uses:` pinned to a commit SHA with its version in a comment.
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  controls:
+    name: P-022 merge gate controls
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - name: the gate's own controls (fixtures ship the real tools and mutate them)
+        run: python tests/test_step7_mergegate.py
+      - name: the wiring's controls (applicability and co-change)
+        run: python tests/test_step7_mergegate_ci.py
+
+  gate:
+    name: P-022 merge gate
+    needs: controls
+    runs-on: ubuntu-latest
+    steps:
+      # Full history: the co-change rule compares the gate's own files against
+      # the base commit, which a shallow clone would not carry.
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - name: the gate, against the commit this merge would produce
+        env:
+          # Read through the environment rather than interpolated into the
+          # script body, so nothing from the event can be read as shell.
+          MERGE_COMMIT: ${{ github.sha }}
+          BASE_COMMIT: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "${BASE_COMMIT}" ]; then
+            python scripts/step7/mergegate_ci.py --repo . \
+              --commit "${MERGE_COMMIT}" --base "${BASE_COMMIT}"
+          else
+            python scripts/step7/mergegate_ci.py --repo . --commit "${MERGE_COMMIT}"
+          fi
