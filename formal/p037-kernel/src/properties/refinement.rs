@@ -202,10 +202,9 @@ mod tests {
 
 #[cfg(kani)]
 mod proofs {
+    use super::super::symbolic::{any_index, any_system};
     use super::{no_unknown_seed, release_cells_have_no_edges};
-    use crate::{
-        lemma_guarded, lemma_today, solve, Cells, Grounding, System, Transfer, MAX_COORDS,
-    };
+    use crate::{lemma_guarded, lemma_today, solve, Cells, Grounding, Transfer, MAX_COORDS};
 
     #[kani::proof]
     fn k9_residual_bottom_lemma_all_three_groundings() {
@@ -218,8 +217,7 @@ mod proofs {
 
     #[kani::proof]
     fn k11_one_step_lax_simulation() {
-        let sys: System = kani::any();
-        kani::assume(sys.n >= 1 && sys.n <= MAX_COORDS && sys.well_formed());
+        let sys = any_system();
         let x: [Cells; MAX_COORDS] = kani::any();
         let [x0, x1, x2] = x;
         let cx = [
@@ -228,16 +226,14 @@ mod proofs {
             Cells::diag(x2.collapse()),
         ];
         let c = sys.collapsed();
-        let i: usize = kani::any();
-        kani::assume(i < sys.n);
+        let i = any_index(sys.n);
         assert!(sys.step(i, &x).collapse().leq(c.step(i, &cx).collapse()));
     }
 
     #[kani::proof]
     #[kani::unwind(21)]
     fn k11_lfp_lax_simulation_against_the_collapsed_system() {
-        let sys: System = kani::any();
-        kani::assume(sys.n >= 1 && sys.n <= MAX_COORDS && sys.well_formed());
+        let sys = any_system();
         let g = solve(&sys);
         let t = solve(&sys.collapsed());
         assert!(g.is_some() && t.is_some());
@@ -251,8 +247,7 @@ mod proofs {
     #[kani::proof]
     #[kani::unwind(21)]
     fn k11_lfp_lax_simulation_against_today_post_finalization() {
-        let sys: System = kani::any();
-        kani::assume(sys.n >= 1 && sys.n <= MAX_COORDS && sys.well_formed());
+        let sys = any_system();
         kani::assume(release_cells_have_no_edges(&sys) && no_unknown_seed(&sys));
         let g = solve(&sys);
         let t = solve(&sys.today());

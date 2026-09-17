@@ -277,6 +277,121 @@ pub fn random_election_system(rng: &mut Rng, n: usize) -> ElectionSystem {
     ElectionSystem { n, coords }
 }
 
+/// Small-width symbolic inputs for the Kani harnesses.
+///
+/// CBMC bit-blasts every field, so a symbolic `usize` index costs 64 bits
+/// where two would do. The harnesses draw `u8` symbols, convert, and assume
+/// well-formedness — the kernel types are untouched.
+#[cfg(kani)]
+pub mod symbolic {
+    use super::DEAD;
+    use crate::{
+        Coord, Edge, Election, ElectionCoord, ElectionEdge, ElectionSystem, Guard, GuardBinding,
+        Shape, System, MAX_COORDS, MAX_EDGES,
+    };
+
+    /// A symbolic index below `n`.
+    pub fn any_index(n: usize) -> usize {
+        let v: u8 = kani::any();
+        kani::assume(usize::from(v) < n);
+        usize::from(v)
+    }
+
+    /// A guard index below 3.
+    fn any_guard() -> Guard {
+        let g: Guard = kani::any();
+        kani::assume(g < 3);
+        g
+    }
+
+    fn any_edge(n: usize) -> Option<Edge> {
+        let present: bool = kani::any();
+        present.then(|| Edge {
+            callee: any_index(n),
+            transform: kani::any(),
+            mask: kani::any(),
+        })
+    }
+
+    /// A well-formed system of 1..=3 coordinates with up to 2 edges each.
+    pub fn any_system() -> System {
+        let n = any_index(MAX_COORDS).saturating_add(1);
+        let mut coords = [DEAD; MAX_COORDS];
+        for c in coords.iter_mut().take(n) {
+            let split: bool = kani::any();
+            *c = Coord {
+                shape: if split {
+                    Shape::Split(0)
+                } else {
+                    Shape::Uncond
+                },
+                seed: kani::any(),
+                edges: [any_edge(n), any_edge(n)],
+            };
+        }
+        let sys = System { n, coords };
+        kani::assume(sys.well_formed());
+        sys
+    }
+
+    /// A fair per-pass schedule over `0..n`.
+    pub fn any_schedule(n: usize) -> [usize; MAX_COORDS] {
+        let s = [any_index(n), any_index(n), any_index(n)];
+        kani::assume((0..n).all(|i| s.contains(&i)));
+        s
+    }
+
+    fn any_election() -> Election {
+        match any_index(3) {
+            0 => Election::None,
+            1 => Election::One(any_guard()),
+            _ => Election::Conflict,
+        }
+    }
+
+    fn any_binding() -> GuardBinding {
+        match any_index(4) {
+            0 => GuardBinding::Const,
+            1 => GuardBinding::Opaque,
+            2 => GuardBinding::Id {
+                callee: any_guard(),
+                caller: any_guard(),
+            },
+            _ => GuardBinding::Neg {
+                callee: any_guard(),
+                caller: any_guard(),
+            },
+        }
+    }
+
+    fn any_election_edge(n: usize) -> Option<ElectionEdge> {
+        let present: bool = kani::any();
+        present.then(|| ElectionEdge {
+            callee: any_index(n),
+            binding: any_binding(),
+        })
+    }
+
+    /// A well-formed election system of 1..=3 coordinates.
+    pub fn any_election_system() -> ElectionSystem {
+        let n = any_index(MAX_COORDS).saturating_add(1);
+        let dead = ElectionCoord {
+            seed: Election::None,
+            edges: [None; MAX_EDGES],
+        };
+        let mut coords = [dead; MAX_COORDS];
+        for c in coords.iter_mut().take(n) {
+            *c = ElectionCoord {
+                seed: any_election(),
+                edges: [any_election_edge(n), any_election_edge(n)],
+            };
+        }
+        let sys = ElectionSystem { n, coords };
+        kani::assume(sys.well_formed());
+        sys
+    }
+}
+
 /// All permutations of `0..n` for `n ≤ 3`.
 #[must_use]
 pub fn permutations(n: usize) -> Vec<Vec<usize>> {

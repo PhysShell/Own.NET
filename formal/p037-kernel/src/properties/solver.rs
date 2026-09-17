@@ -52,16 +52,14 @@ mod tests {
 
 #[cfg(kani)]
 mod proofs {
-    use crate::{solve, solve_with, System, MAX_COORDS};
+    use super::super::symbolic::{any_schedule, any_system};
+    use crate::{solve, solve_with};
 
     #[kani::proof]
     #[kani::unwind(21)]
     fn k10_lfp_is_a_schedule_independent_fixpoint() {
-        let sys: System = kani::any();
-        kani::assume(sys.n >= 1 && sys.n <= MAX_COORDS && sys.well_formed());
-        let sched: [usize; MAX_COORDS] = kani::any();
-        kani::assume(sched.iter().all(|&i| i < sys.n));
-        kani::assume((0..sys.n).all(|i| sched.contains(&i)));
+        let sys = any_system();
+        let sched = any_schedule(sys.n);
         let lfp = solve(&sys);
         assert!(lfp.is_some(), "terminates within the height bound");
         if let Some(x) = lfp {

@@ -151,7 +151,8 @@ mod tests {
 
 #[cfg(kani)]
 mod proofs {
-    use crate::{elect, elect_with, import, Election, ElectionSystem, GuardBinding, MAX_COORDS};
+    use super::super::symbolic::{any_election_system, any_schedule};
+    use crate::{elect, elect_with, import, Election, GuardBinding};
 
     #[kani::proof]
     fn k4_import_is_monotone_and_conflict_propagates() {
@@ -168,11 +169,8 @@ mod proofs {
     #[kani::proof]
     #[kani::unwind(9)]
     fn k10_election_lfp_is_schedule_independent() {
-        let sys: ElectionSystem = kani::any();
-        kani::assume(sys.n >= 1 && sys.n <= MAX_COORDS && sys.well_formed());
-        let sched: [usize; MAX_COORDS] = kani::any();
-        kani::assume(sched.iter().all(|&i| i < sys.n));
-        kani::assume((0..sys.n).all(|i| sched.contains(&i)));
+        let sys = any_election_system();
+        let sched = any_schedule(sys.n);
         let jacobi = elect(&sys);
         assert!(jacobi.is_some(), "terminates within the height bound");
         assert_eq!(elect_with(&sys, &sched), jacobi);

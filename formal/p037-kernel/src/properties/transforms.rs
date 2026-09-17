@@ -85,7 +85,8 @@ mod tests {
 
 #[cfg(kani)]
 mod proofs {
-    use crate::{contribute, read, solve, Cells, Mask, Shape, System, Transform, MAX_COORDS};
+    use super::super::symbolic::any_system;
+    use crate::{contribute, read, solve, Cells, Mask, Shape, Transform};
 
     #[kani::proof]
     fn k3_reads_and_contributions_are_monotone() {
@@ -115,8 +116,7 @@ mod proofs {
     #[kani::proof]
     #[kani::unwind(21)]
     fn k12_uncond_coordinates_stay_diagonal() {
-        let sys: System = kani::any();
-        kani::assume(sys.n >= 1 && sys.n <= MAX_COORDS && sys.well_formed());
+        let sys = any_system();
         let x = solve(&sys);
         assert!(x.is_some(), "terminates within the height bound");
         if let Some(x) = x {
