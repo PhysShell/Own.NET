@@ -222,19 +222,49 @@ into. **Both halves of every pair are committed**, and run B records run A's
 path and sha256, so the verdict can be recomputed from evidence rather than
 trusted.
 
-## 9. Peak RSS
+## 9. Peak memory
 
-By a named mechanism, recorded, never eyeballed:
+By a named mechanism **and a named quantity**, recorded, never eyeballed. The
+quantity is not the same on both platforms, and the field says which one it is:
 
-- POSIX: `os.wait4` — the kernel's per-child `ru_maxrss`, for exactly the
-  process spawned. Chosen over `/usr/bin/time -v` as primary because GNU time is
-  a package that may simply be absent, and "the tool was missing" is not a
-  memory measurement. `/usr/bin/time -v` remains the documented fallback.
-- Windows: a Job Object, `PeakProcessMemoryUsed` via `QueryInformationJobObject`.
+| platform | mechanism | `memory_metric` | what it counts |
+|---|---|---|---|
+| POSIX | `os.wait4` — the kernel's `ru_maxrss` | `max_process_peak_resident` | peak **resident** set, over the child and the descendants it waited for |
+| POSIX fallback | `/usr/bin/time -v` | `max_process_peak_resident` | the same quantity |
+| Windows | Job Object `PeakProcessMemoryUsed` via `QueryInformationJobObject` | `max_process_peak_commit` | peak **committed** memory of any process ever associated with the job |
 
-Where nothing is available the value is `null` **with a reason**, so a silent
-absence can never be read as a measured zero. Allocation counts are not yet
-captured — recorded as owed on population B's track rather than quietly dropped.
+`os.wait4` was chosen over `/usr/bin/time -v` as primary because GNU time is a
+package that may simply be absent, and "the tool was missing" is not a memory
+measurement.
+
+**This used to be one field called `peak_rss_bytes`, and on Windows that was
+false.** A witness settles it rather than a manual page: a child that commits
+256 MiB and never touches a page is reported as 262.5 MiB through the job
+object, while on Linux nothing becomes resident — job and process memory limits
+are defined on committed virtual memory. The same witness refuted the other half
+of the suspicion: `wait4` on the immediate child does *not* stop at a wrapping
+shell. `shell -> heavy child` and `shell -> shell -> heavy child` both returned
+the descendant's 260 MiB against 13 MiB for a light control.
+
+So the two strata answer different, honest questions. The numbers are comparable
+Rust-vs-Python **within** a platform and **may not be pooled or compared across
+platforms**. The resident analogue on Windows is `PeakWorkingSetSize`, and
+obtaining it for a tree of processes that come and go needs handle tracking or
+polling; this instrument does not sample, and will not perturb the elapsed-time
+interval so that two operating systems can pronounce the same noun.
+
+A value produced under any metric kind outside that closed set raises rather
+than being recorded, and no alias lets a Windows commit number go on being read
+as an RSS number. Where nothing is available the value is `null` **with a
+reason**, so a silent absence can never be read as a measured zero. Allocation
+counts are not yet captured — recorded as owed on population B's track rather
+than quietly dropped.
+
+The repair moved `measurement_harness_digest` from `562a7f7232da` to
+`104c384d01bf`. Steps 4, 5 and 6 were re-bound to the new digest in their own
+commit; the committed evidence of runs that already happened was **not** rewritten
+and still carries the old field name, because it records what the old instrument
+produced.
 
 On POSIX the same `wait4` call also carries the child's CPU split, fault counts
 and context-switch counts. Those are now kept rather than discarded — see *The

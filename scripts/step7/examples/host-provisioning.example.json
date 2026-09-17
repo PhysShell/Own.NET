@@ -1,0 +1,27 @@
+{
+  "_EXAMPLE": "EXAMPLE / NOT EVIDENCE. This file is a shape to copy, never a declaration. It lives outside docs/evidence/ so it cannot be mistaken for one, and it carries no real environment id, fingerprint, operator or host name. A real declaration is signed off by an operator who has checked every line of it, and is content-addressed into a host qualification.",
+  "_FORM": "This is the PHYSICAL-HOST form: is_vm is false, so the four VM-only fields are explicit 'n/a: <reason>' strings. On a VM invert it — is_vm true, and fixed_vcpu, fixed_ram, live_migration_disabled and dynamic_memory_disabled must ALL be literal true. A VM that cannot promise fixed vCPU, fixed RAM, no live migration and no dynamic memory is not a measurement host, and 'n/a' is not available there.",
+  "_DECLARED": "Everything here is DECLARED evidence. A guest operating system cannot establish that nobody else is using the machine or that the hypervisor will not migrate it; the checker validates shape and value and binds these bytes by sha256, and never calls them machine proof.",
+  "_SESSION": "Per-session facts are NOT here. 'No campaign workload is running', 'no interactive user', 'no prohibited background job' are properties of a moment, not of a machine, and belong in own.net/p022/session-declaration, taken fresh for each session.",
+
+  "kind": "own.net/p022/host-provisioning",
+  "schema": 1,
+
+  "environment_id": "EXAMPLE-environment-id-assigned-by-the-owner",
+  "host_fingerprint": "sha256:EXAMPLE-copy-the-value-the-environment-manifest-observed",
+
+  "dedicated_to_p022": true,
+  "no_concurrent_user_workload": true,
+  "hosted_ci_runner": false,
+
+  "virtualization": {
+    "is_vm": false,
+    "fixed_vcpu": "n/a: physical host, no hypervisor allocates its CPUs",
+    "fixed_ram": "n/a: physical host, installed memory does not balloon",
+    "live_migration_disabled": "n/a: physical host, nothing can migrate it",
+    "dynamic_memory_disabled": "n/a: physical host, no dynamic memory to disable"
+  },
+
+  "operator": "EXAMPLE-operator-name",
+  "recorded_at": "EXAMPLE-2026-01-01T00:00:00+00:00"
+}

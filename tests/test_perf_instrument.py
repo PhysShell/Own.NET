@@ -59,7 +59,7 @@ def _harness(tmp: Path, gate: pb.IdentityGate, candidate: Path | None = None) ->
     cand = candidate or (tmp / "fake-candidate")
     if not cand.exists():
         cand.write_bytes(b"not a real binary, but it has an identity\n")
-    return pb.Harness(gate=gate, session=pb.SessionIdentity.freeze(cand), rss=pb.RssProbe(),
+    return pb.Harness(gate=gate, session=pb.SessionIdentity.freeze(cand), memory=pb.MemoryProbe(),
                       tmp=tmp, candidate=cand, warmup_discards=0, repetitions=1, seed=1)
 
 
@@ -1041,7 +1041,7 @@ def control_child_accounting() -> None:
     # (0) Two structural hazards, both of which would surface only mid-run.
     # The accounting is spread into the sample row, so a field named like an
     # existing key would silently overwrite the thing it collided with.
-    reserved = {"elapsed_ns", "rc", "peak_rss_bytes", "rss_unavailable_reason",
+    reserved = {"elapsed_ns", "rc", "peak_memory_bytes", "memory_unavailable_reason",
                 "accounting_unavailable_reason"}
     collide = sorted(reserved & set(pb.ACCOUNTING_FIELDS))
     if collide:
@@ -1146,10 +1146,10 @@ def control_child_accounting() -> None:
         # Windows test and does not claim to be one: it drives the real
         # non-POSIX path of the real function, which is where a Windows run
         # would land, and checks that absence is stated rather than zeroed.
-        probe = pb.RssProbe()
+        probe = pb.MemoryProbe()
         probe.mechanism = "none"
         probe.reason = "forced non-POSIX path for the accounting control"
-        h2 = pb.Harness(gate=h.gate, session=h.session, rss=probe, tmp=tmp,
+        h2 = pb.Harness(gate=h.gate, session=h.session, memory=probe, tmp=tmp,
                         candidate=h.candidate, warmup_discards=0, repetitions=1, seed=1)
         off = h2._run_once([sys.executable, "-c", "pass"], dict(os.environ), ROOT)
         zeroed = [f for f in pb.ACCOUNTING_FIELDS if off.get(f) is not None]
