@@ -33,6 +33,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -197,18 +198,17 @@ def take(source: str, out: Path, timeout: float, population_commit: str) -> int:
         profile = ev.execution_profile(include_rust=True)
         artifact = ev.build_rust_artifact("own-shadow", "own-shadow-engine")
         _refuse(ev.artifact_problems(artifact))
-        adapter = engine_identity(str(artifact["executable"]))
-        if adapter["sha256"] != artifact["sha256"]:
-            raise ev.EvidenceRefused("the adapter about to run is not the qualified build")
         lease = ev.acquire_population(ev.materialization_root(
             provenance["population_commit"], provenance["analysis_manifest_sha256"]))
     except (RuntimeError, SystemExit, ev.EvidenceRefused) as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
+    take_dir = ev.new_take_dir()
     try:
-        return _measure(source, out, timeout, provenance, profile, artifact, adapter)
+        return _measure(source, out, timeout, provenance, profile, artifact, take_dir)
     finally:
         ev.release_population(lease)
+        shutil.rmtree(take_dir, ignore_errors=True)
 
 
 def _measure(
@@ -218,9 +218,15 @@ def _measure(
     provenance: dict[str, Any],
     profile: dict[str, Any],
     artifact: dict[str, Any],
-    adapter: dict[str, Any],
+    take_dir: Path,
 ) -> int:
     try:
+        # The run executes the SEALED copy only; target/release/ is shared and
+        # any later cargo build may rewrite it mid-run.
+        ev.seal_artifact(artifact, take_dir)
+        adapter = engine_identity(str(artifact["executed"]["sealed_path"]))
+        if adapter["sha256"] != artifact["sha256"]:
+            raise ev.EvidenceRefused("the adapter about to run is not the qualified build")
         root = ev.materialize_population(provenance)
         _refuse(ev.external_ancestor_problems(root))
         files = ev.analysis_paths(provenance, root)
@@ -272,14 +278,7 @@ def _measure(
             flush=True,
         )
 
-    tampered = ev.population_intact(provenance, root)
-    snapshot["post_run_population_intact"] = not tampered
-    if tampered:
-        snapshot["is_evidence"] = False
-        snapshot["population_tampered"] = tampered
-    if ev.tree_is_dirty():
-        snapshot["is_evidence"] = False
-        snapshot["post_run_dirty"] = True
+    ev.finalize_run(snapshot, provenance, root)
     if failures or parity_moved:
         snapshot["is_evidence"] = False
     if failures:

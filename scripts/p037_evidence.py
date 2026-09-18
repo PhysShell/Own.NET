@@ -56,6 +56,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -605,11 +606,24 @@ def build_rust_artifact(package: str, binary: str, *, repo: Path = ROOT) -> dict
     guessed target/ layout; the digest is taken from that file; the lock file,
     toolchain and source commit are recorded next to it.
     """
+    # The package's own artifacts are removed first so that the executable this
+    # call qualifies is the one THIS build produced from HEAD's sources: cargo
+    # judges freshness by source fingerprints, never by the output's bytes, so
+    # a target/ file rewritten by anyone would otherwise be "fresh" and qualified
+    # as is. Dependencies stay cached; only the package is recompiled and linked.
+    clean = ["cargo", "clean", "--release", "-p", package]
     argv = [
         "cargo", "build", "--locked", "--release", "--message-format=json",
         "-p", package, "--bin", binary,
     ]
     try:
+        cleaned = subprocess.run(
+            clean, cwd=repo / "rust", capture_output=True, text=True, check=False, timeout=600,
+        )
+        if cleaned.returncode != 0:
+            raise EvidenceRefused(
+                f"{' '.join(clean)} failed: {cleaned.stderr.strip()[-800:]}"
+            )
         proc = subprocess.run(
             argv, cwd=repo / "rust", capture_output=True, text=True, check=False,
             timeout=1800,
@@ -621,6 +635,7 @@ def build_rust_artifact(package: str, binary: str, *, repo: Path = ROOT) -> dict
             f"{' '.join(argv)} failed: {proc.stderr.strip()[-1200:]}"
         )
     executable: str | None = None
+    fresh: bool | None = None
     for line in proc.stdout.splitlines():
         try:
             message = json.loads(line)
@@ -639,9 +654,15 @@ def build_rust_artifact(package: str, binary: str, *, repo: Path = ROOT) -> dict
             and isinstance(message.get("executable"), str)
         ):
             executable = str(message["executable"])
+            fresh = bool(message.get("fresh"))
     if executable is None:
         raise EvidenceRefused(
             f"cargo reported no compiler-artifact executable for {package}/{binary}"
+        )
+    if fresh:
+        raise EvidenceRefused(
+            f"cargo did not rebuild {package}/{binary} after cleaning it; refusing to "
+            "qualify an executable this build did not produce"
         )
     path = Path(executable)
     try:
@@ -669,6 +690,8 @@ def build_rust_artifact(package: str, binary: str, *, repo: Path = ROOT) -> dict
         "source_commit": current_commit(repo=repo),
         "dirty": tree_is_dirty(repo=repo),
         "cargo_argv": argv,
+        "cargo_clean_argv": clean,
+        "rebuilt_by_this_call": True,
         "rustc": rust["rustc"],
         "cargo": rust["cargo"],
         "host": rust["host"],
@@ -697,6 +720,94 @@ def artifact_problems(artifact: dict[str, Any]) -> list[str]:
             f"executable {artifact['executable']} does not match the qualified build's digest"
         )
     return problems
+
+
+def new_take_dir() -> Path:
+    """A private, unique directory for one take's sealed executables. Outside
+    the checkout on purpose: nothing that runs against the tree can reach it."""
+    return Path(tempfile.mkdtemp(prefix="p037-take-"))
+
+
+def seal_artifact(artifact: dict[str, Any], take_dir: Path) -> dict[str, Any]:
+    """Copy the qualified executable into the take's private directory; the run
+    executes ONLY that copy.
+
+    target/release/<bin> is shared mutable state: any cargo build, anyone's,
+    can replace it while a take is running, and the launcher would open the new
+    file under the old digest on record. Sealing prevents that; finalize_run's
+    re-hash of the sealed copy afterwards attests that prevention held.
+    """
+    source = Path(str(artifact["executable"]))
+    try:
+        raw = source.read_bytes()
+    except OSError as exc:
+        raise EvidenceRefused(f"qualified executable cannot be read for sealing: {exc}") from exc
+    if hashlib.sha256(raw).hexdigest() != artifact["sha256"] or len(raw) != artifact["bytes"]:
+        raise EvidenceRefused(
+            f"{source} no longer matches the qualified build at sealing time"
+        )
+    take_dir.mkdir(parents=True, exist_ok=True)
+    sealed = take_dir / source.name
+    sealed.write_bytes(raw)
+    sealed.chmod(0o700)
+    check = sealed.read_bytes()
+    if hashlib.sha256(check).hexdigest() != artifact["sha256"] or len(check) != artifact["bytes"]:
+        raise EvidenceRefused("the sealed copy does not match the qualified build")
+    artifact["executed"] = {
+        "sealed_path": str(sealed),
+        "sha256": artifact["sha256"],
+        "bytes": len(check),
+    }
+    return artifact
+
+
+def executed_artifact_problems(artifact: dict[str, Any]) -> list[str]:
+    """Post-run attestation: the file that ran still IS the qualified build."""
+    executed = artifact.get("executed")
+    if not isinstance(executed, dict) or not isinstance(executed.get("sealed_path"), str):
+        return ["artifact was never sealed for execution"]
+    try:
+        raw = Path(str(executed["sealed_path"])).read_bytes()
+    except OSError as exc:
+        return [f"the sealed executable cannot be read after the run: {exc}"]
+    digest = hashlib.sha256(raw).hexdigest()
+    if digest != artifact.get("sha256") or len(raw) != artifact.get("bytes"):
+        return ["the executable that ran no longer matches the qualified build's digest"]
+    return []
+
+
+def finalize_run(
+    snapshot: dict[str, Any], provenance: dict[str, Any], root: Path, *, repo: Path = ROOT
+) -> None:
+    """The post-run attestations every take makes before writing its record.
+
+    The population must still re-hash to its blobs, every sealed executable
+    must still re-hash to its qualified build, and the tree must still be
+    clean. Any failure makes the snapshot not evidence; the reasons are kept.
+    """
+    tampered = population_intact(provenance, root, repo=repo)
+    snapshot["post_run_population_intact"] = not tampered
+    if tampered:
+        snapshot["is_evidence"] = False
+        snapshot["population_tampered"] = tampered
+    artifacts = snapshot.get("artifacts")
+    if isinstance(artifacts, dict):
+        for name, artifact in artifacts.items():
+            if not isinstance(artifact, dict):
+                continue
+            problems = executed_artifact_problems(artifact)
+            executed = artifact.get("executed")
+            if not isinstance(executed, dict):
+                executed = {}
+                artifact["executed"] = executed
+            executed["post_run_intact"] = not problems
+            if problems:
+                snapshot["is_evidence"] = False
+                tampered_artifacts = snapshot.setdefault("artifact_tampered", {})
+                tampered_artifacts[name] = problems
+    if tree_is_dirty(repo=repo):
+        snapshot["is_evidence"] = False
+        snapshot["post_run_dirty"] = True
 
 
 def sanitized_env(**overrides: str) -> dict[str, str]:
@@ -874,6 +985,18 @@ def record_problems(record: dict[str, Any], *, repo: Path = ROOT) -> list[str]:
                 problems.append(f"artifact {name!r} was built on a dirty tree")
             if not isinstance(artifact.get("sha256"), str):
                 problems.append(f"artifact {name!r} carries no sha256")
+            executed = artifact.get("executed")
+            if not isinstance(executed, dict):
+                problems.append(f"artifact {name!r} carries no executed attestation")
+            else:
+                if executed.get("sha256") != artifact.get("sha256"):
+                    problems.append(
+                        f"artifact {name!r} executed a file other than the qualified build"
+                    )
+                if executed.get("post_run_intact") is not True:
+                    problems.append(
+                        f"artifact {name!r} does not attest it stayed intact through the run"
+                    )
     return problems
 
 
@@ -987,17 +1110,26 @@ def _cli_profile() -> int:
 
 def _cli_artifacts() -> int:
     rc = 0
-    for name, (package, binary) in RUST_ARTIFACTS.items():
-        artifact = build_rust_artifact(package, binary)
-        problems = artifact_problems(artifact)
-        for problem in problems:
-            print(f"FAIL[{name}]: {problem}")
-            rc = 1
-        print(
-            f"{'ok' if not problems else 'FAIL'}[{name}] {artifact['executable']} "
-            f"sha256={artifact['sha256']} bytes={artifact['bytes']} "
-            f"source={artifact['source_commit'][:12]} host={artifact['host']}"
-        )
+    take_dir = new_take_dir()
+    try:
+        for name, (package, binary) in RUST_ARTIFACTS.items():
+            artifact = build_rust_artifact(package, binary)
+            problems = artifact_problems(artifact)
+            if not problems:
+                seal_artifact(artifact, take_dir)
+                problems = executed_artifact_problems(artifact)
+            for problem in problems:
+                print(f"FAIL[{name}]: {problem}")
+                rc = 1
+            print(
+                f"{'ok' if not problems else 'FAIL'}[{name}] {artifact['executable']} "
+                f"sha256={artifact['sha256']} bytes={artifact['bytes']} "
+                f"source={artifact['source_commit'][:12]} host={artifact['host']}"
+                + (f" sealed={artifact['executed']['sealed_path']}" if "executed" in artifact
+                   else "")
+            )
+    finally:
+        shutil.rmtree(take_dir, ignore_errors=True)
     return rc
 
 

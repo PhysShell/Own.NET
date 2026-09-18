@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -107,21 +108,21 @@ def take(engine: str, out: Path, dirs: tuple[str, ...], population_commit: str) 
             raise ev.EvidenceRefused("the tree is dirty before the run; evidence starts clean")
         profile = ev.execution_profile(include_rust=engine == "rust")
         artifacts: dict[str, Any] = {}
-        overrides: dict[str, str] = {}
         if engine == "rust":
             artifact = ev.build_rust_artifact("own-cli", "own-cli")
             _refuse(ev.artifact_problems(artifact))
             artifacts["own-cli"] = artifact
-            overrides["OWEN_RUST_CORE"] = str(artifact["executable"])
         lease = ev.acquire_population(ev.materialization_root(
             provenance["population_commit"], provenance["analysis_manifest_sha256"]))
     except ev.EvidenceRefused as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
+    take_dir = ev.new_take_dir()
     try:
-        return _measure(engine, out, dirs, provenance, profile, artifacts, overrides)
+        return _measure(engine, out, dirs, provenance, profile, artifacts, take_dir)
     finally:
         ev.release_population(lease)
+        shutil.rmtree(take_dir, ignore_errors=True)
 
 
 def _measure(
@@ -131,9 +132,15 @@ def _measure(
     provenance: dict[str, Any],
     profile: dict[str, Any],
     artifacts: dict[str, Any],
-    overrides: dict[str, str],
+    take_dir: Path,
 ) -> int:
+    overrides: dict[str, str] = {}
     try:
+        for artifact in artifacts.values():
+            # The launcher runs the SEALED copy only; target/release/ is shared
+            # and any later cargo build may rewrite it mid-run.
+            ev.seal_artifact(artifact, take_dir)
+            overrides["OWEN_RUST_CORE"] = str(artifact["executed"]["sealed_path"])
         root = ev.materialize_population(provenance)
         _refuse(ev.external_ancestor_problems(root))
         files = ev.analysis_paths(provenance, root)
@@ -166,14 +173,7 @@ def _measure(
         print(f"  [{i:3}/{len(files)}] {rel}  ({n} finding(s))", flush=True)
     broken = [k for k, r in snap["files"].items()
               if "parse_error" in r or "reference_contamination" in r]
-    tampered = ev.population_intact(provenance, root)
-    snap["post_run_population_intact"] = not tampered
-    if tampered:
-        snap["is_evidence"] = False
-        snap["population_tampered"] = tampered
-    if ev.tree_is_dirty():
-        snap["is_evidence"] = False
-        snap["post_run_dirty"] = True
+    ev.finalize_run(snap, provenance, root)
     if broken:
         # A snapshot with an unreadable run is not a snapshot with fewer findings.
         # The first version of this tool asked for a `--severity note` that does

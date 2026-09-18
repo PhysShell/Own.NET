@@ -369,18 +369,88 @@ def record_level_controls() -> None:
         }
         check("control-10-qualified-artifact-accepted", not ev.artifact_problems(artifact),
               "; ".join(ev.artifact_problems(artifact)))
+        attested = {**artifact, "executed": {"sealed_path": str(exe), "sha256": artifact["sha256"],
+                                             "bytes": artifact["bytes"], "post_run_intact": True}}
+        before, after = pair()
+        after["artifacts"] = {"own-cli": copy.deepcopy(attested)}
+        check("control-10-attested-artifact-record-accepted",
+              not ev.comparison_problems(before, after),
+              "; ".join(ev.comparison_problems(before, after)))
         exe.write_bytes(b"some other binary that happened to be lying around\n")
         expect_problem("control-10-artifact-digest-mismatch-refused",
                        ev.artifact_problems(artifact), "does not match the qualified build")
         before, after = pair()
-        after["artifacts"] = {"own-cli": {**artifact, "source_commit": "0" * 40}}
+        after["artifacts"] = {"own-cli": {**attested, "source_commit": "0" * 40}}
         expect_problem("control-10b-artifact-from-other-commit-refused",
                        ev.comparison_problems(before, after),
                        "was not built from the record's source commit")
         before, after = pair()
-        after["artifacts"] = {"own-cli": {**artifact, "dirty": True}}
+        after["artifacts"] = {"own-cli": {**attested, "dirty": True}}
         expect_problem("control-10c-artifact-from-dirty-tree-refused",
                        ev.comparison_problems(before, after), "built on a dirty tree")
+        before, after = pair()
+        after["artifacts"] = {"own-cli": {**attested, "executed": {**attested["executed"],
+                                                                   "sha256": "f" * 64}}}
+        expect_problem("control-10d-executed-other-than-qualified-refused",
+                       ev.comparison_problems(before, after),
+                       "executed a file other than the qualified build")
+        before, after = pair()
+        after["artifacts"] = {"own-cli": {**attested, "executed": {**attested["executed"],
+                                                                   "post_run_intact": False}}}
+        expect_problem("control-10d-not-intact-through-run-refused",
+                       ev.comparison_problems(before, after),
+                       "does not attest it stayed intact through the run")
+        before, after = pair()
+        after["artifacts"] = {"own-cli": {k: v for k, v in attested.items() if k != "executed"}}
+        expect_problem("control-10d-unsealed-artifact-refused",
+                       ev.comparison_problems(before, after), "no executed attestation")
+
+    # 10d, through the real lifecycle: seal, mutate, finalize_run flips is_evidence.
+    with tempfile.TemporaryDirectory(prefix="p037-seal-") as td:
+        built = Path(td) / "target" / "own-cli"
+        built.parent.mkdir()
+        built.write_bytes(b"qualified build bytes\n")
+        artifact = {
+            "package": "own-cli", "binary": "own-cli", "executable": str(built),
+            "sha256": hashlib.sha256(built.read_bytes()).hexdigest(),
+            "bytes": built.stat().st_size, "source_commit": base["source_commit"],
+            "dirty": False, "rustc": "rustc", "cargo": "cargo", "host": "x86_64",
+            "cargo_lock_blob": "0" * 40,
+        }
+        take_dir = Path(td) / "take"
+        ev.seal_artifact(artifact, take_dir)
+        sealed = Path(artifact["executed"]["sealed_path"])
+        check("control-10d-sealed-copy-is-private-and-identical",
+              sealed.parent == take_dir and sealed != built
+              and sealed.read_bytes() == b"qualified build bytes\n"
+              and not ev.executed_artifact_problems(artifact),
+              "the sealed copy is not a private, verified copy of the qualified build")
+        # a rebuild of the shared target/ path after sealing must not reach the run
+        built.write_bytes(b"a later cargo build of somebody else\n")
+        check("control-10d-rebuild-after-sealing-does-not-reach-the-run",
+              not ev.executed_artifact_problems(artifact),
+              "; ".join(ev.executed_artifact_problems(artifact)))
+        # the sealed copy itself rewritten under the run: the record cannot be evidence
+        sealed.chmod(0o600)
+        with sealed.open("ab") as handle:
+            handle.write(b"tampered under the run\n")
+        expect_problem("control-10d-post-run-artifact-integrity-fails",
+                       ev.executed_artifact_problems(artifact),
+                       "no longer matches the qualified build")
+        snapshot: dict[str, Any] = {**copy.deepcopy(base), "artifacts": {"own-cli": artifact}}
+        pop_root = ev.materialize_population(snapshot)
+        try:
+            ev.finalize_run(snapshot, snapshot, pop_root)
+        finally:
+            shutil.rmtree(pop_root, ignore_errors=True)
+        check("control-10d-finalize-run-drops-evidence",
+              snapshot["is_evidence"] is False
+              and snapshot["artifacts"]["own-cli"]["executed"]["post_run_intact"] is False
+              and "own-cli" in snapshot.get("artifact_tampered", {}),
+              f"finalize_run kept is_evidence={snapshot.get('is_evidence')}")
+        expect_problem("control-10d-tampered-run-refused-as-evidence",
+                       ev.record_problems(snapshot),
+                       "does not attest it stayed intact through the run")
 
     # 14: an external weaver config above the population, present or unprovable.
     with tempfile.TemporaryDirectory(prefix="p037-ancestors-") as td:
