@@ -90,10 +90,33 @@ git clone https://github.com/PhysShell/Own.NET && cd Own.NET
 scripts/own-check.sh --format human -- /path/to/your/csharp/repo
 ```
 
-Needs Python 3.11+ and the .NET SDK on `PATH` — nothing to build, nothing to
-`pip install`. A packaged single-command CLI (`owen check`, package
-`Owen.Cli`) also exists — build-and-install-locally today, not yet published
-to nuget.org; see
+Needs the .NET SDK on `PATH`, plus **one analysis engine**. Since P-022 Stage 3
+(#262) the default engine is the **Rust core**, and this script runs from a
+checkout, so it needs a candidate binary — build one and point the ratified
+locator at it:
+
+```bash
+(cd rust && cargo build -p own-cli --release)
+export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli"
+```
+
+…or skip the build entirely and run the **Python reference** engine, which needs
+Python 3.11+ and is the documented rollback:
+
+```bash
+scripts/own-check.sh --engine python --format human -- /path/to/your/csharp/repo
+```
+
+There is no discovery and no fallback: an unset or unusable `OWEN_RUST_CORE` is
+a visible configuration error (exit 2) that tells you both of the above, never a
+silent switch to the other engine. See
+[`docs/notes/owen-engine-rollback.md`](docs/notes/owen-engine-rollback.md) for
+the full engine-selection contract.
+
+The packaged single-command CLI (`owen check`, package `Owen.Cli`) needs none of
+this: it **ships** the Rust core inside the package and resolves it itself, so a
+bare `owen check` works with no environment variables and no Python at all. It
+is build-and-install-locally today, not yet published to nuget.org; see
 [`frontend/roslyn/OwnSharp.Cli/README.md`](frontend/roslyn/OwnSharp.Cli/README.md)
 and [`docs/notes/alpha-readiness.md`](docs/notes/alpha-readiness.md) gate **A**.
 

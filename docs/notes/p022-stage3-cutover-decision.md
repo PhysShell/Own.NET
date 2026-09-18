@@ -247,6 +247,40 @@ removal; #345 work; #257 work.
 
 ## Decision packet
 
-Filled from evidence at the end of the implementation, not from prose memory.
-See [the packet section](#cutover-decision-packet-262) appended below when the
-gates are taken.
+**Generated, not written.** The packet lives at
+[`docs/generated/p022-stage3-packet.md`](../generated/p022-stage3-packet.md) and
+is produced by `scripts/stage3_packet.py` from the measurement ledger
+[`docs/evidence/p022-stage3-cutover.json`](../evidence/p022-stage3-cutover.json).
+No number in it is typed.
+
+`tests/test_stage3_packet.py` holds the ledger to the rules that make the
+derivation worth anything — each named for the misreading it stops, and each
+mutation-proved: a deferral cannot soften into a claim, performance language
+cannot appear outside the deferred fields, an OWED Windows row cannot be filled
+in from the Linux one beside it, a bug this change CLOSED cannot be re-listed as
+a standing difference, a ratified difference cannot go missing, Python removal
+must say Stage 4, and the committed packet must match what the ledger produces.
+
+## Final status
+
+The state these surfaces must agree on, and do:
+
+```text
+Stage 1    DONE
+Stage 2    DONE
+Stage 3    DONE — Rust is public default
+Stage 4    NOT STARTED — Python distribution removal remains separate
+
+Python:      explicit rollback/reference available during the observation policy
+Rust:        public/default production engine
+compare:     retained as development/CI evidence
+performance: DEFERRED BY OWNER; no Stage-3 performance claim; #263 remains open
+```
+
+P-022 is **not** complete: Stage 4 is open and #263 still owes the baselines
+this decision deferred.
+
+With the cutover complete, the P-022 feature freeze on verdict-changing
+inference lifts and the **P-037 A1 production gate opens**. It was deliberately
+not started here: A1 is a semantic change and this was a cutover, and #262's
+guardrails say no semantic cleanup is mixed into one.
