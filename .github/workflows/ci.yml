@@ -187,6 +187,34 @@ jobs:
       # logic is platform-neutral and a Linux run catches regressions early —
       # but only the Windows leg is evidence for a PowerShell-targeted
       # mutation, which is what the stage1-windows-mutations job below settles.
+      # P-022 Stage 3 (#262): the cutover's own controls. They live here because
+      # this is the job that already builds the candidate, the fault-injection
+      # binary and the launcher, and they run on BOTH legs of its matrix -- the
+      # rollback and the cancellation disposition are platform claims, and the
+      # Windows one cannot be inferred from the Linux one.
+      - name: Stage-3 rollback controls (the four states, kept distinct)
+        env:
+          OWEN_STAGE3_REQUIRE: "1"
+        run: |
+          ext=""
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then ext=".exe"; fi
+          export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli$ext"
+          export OWEN_STAGE1_LAUNCHER_DLL="$PWD/frontend/roslyn/OwnSharp.Cli/bin/Release/net8.0/ownsharp.dll"
+          python tests/test_stage3_rollback.py
+      # Cancellation is MEASURED per platform, not contracted as a number: #262
+      # forbids inventing a universal 130, and the two platforms do not even
+      # offer the same mechanism. The control asserts only what the evidence
+      # supports and PRINTS the disposition it found, on a line prefixed
+      # STAGE3-CANCELLATION-RECORD, so the Windows measurement is read off this
+      # job rather than predicted anywhere.
+      - name: Stage-3 cancellation, measured on this platform
+        env:
+          OWEN_STAGE3_REQUIRE: "1"
+        run: |
+          ext=""
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then ext=".exe"; fi
+          export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli$ext"
+          python tests/test_stage3_cancellation.py
       - name: Stage-1 PowerShell controls
         env:
           OWEN_STAGE1_REQUIRE: "1"
