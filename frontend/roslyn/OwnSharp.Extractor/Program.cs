@@ -6447,6 +6447,46 @@ foreach (var (file, tree) in parsed)
             {
                 if (method.Body is not { } mbody)
                     continue;
+                // P-037 A1.1-a1 (#304): this method's OWNERSHIP-RELEVANT parameters.
+                //
+                // Why this exists: `build_skeletons` (own-bridge/src/lower.rs and its Python
+                // twin) reads `functions[].params` to derive each parameter's transfer, and the
+                // C# frontend has never emitted that field. The MOS layer — solver, transfer
+                // lattice, the whole INF rule set — has therefore had NO parameter input from
+                // C#, and "does this call consume its argument?" was answered instead by
+                // `ConsumesParam`: syntactically, flow-insensitively, inside the extractor.
+                // Measured: fed the same shapes, the inference layer already discriminates
+                // `if (g) release p` -> may, `release p` -> must, `use p` -> no, correctly and
+                // without flattening. It was simply never asked.
+                //
+                // This step only makes the frontend SAY what a callee does with its parameters.
+                // Nothing reads the new field to change a verdict yet and `ConsumesParam` is
+                // untouched — the semantic cut is a later step, deliberately, so a verdict
+                // movement HERE is a defect rather than a feature.
+                //
+                // The predicate is `IsOwnedDisposableType`, the same one locals use, and NOT
+                // `ConsumesParam`'s stricter `ImplementsIDisposable`. That matters: the strict
+                // form demands a resolved symbol and silently answers false for a type the
+                // compilation cannot see, which on a single-file run is most of the BCL. A
+                // frontend that tracks a `Stream` local but not a `Stream` parameter would be
+                // inconsistent about one type for no reason a reader could defend.
+                var ownedParams = new List<object>();
+                var ownedParamNames = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var psyn in method.ParameterList.Parameters)
+                {
+                    // By-value only, like `ConsumesParam`: a `ref`/`out`/`in` parameter is not
+                    // an ownership handoff. Read off the SYNTAX so this agrees with itself when
+                    // the symbol does not resolve.
+                    if (psyn.Modifiers.Any(SyntaxKind.RefKeyword)
+                        || psyn.Modifiers.Any(SyntaxKind.OutKeyword)
+                        || psyn.Modifiers.Any(SyntaxKind.InKeyword))
+                        continue;
+                    if (psyn.Type is { } ptype && IsOwnedDisposableType(ptype, model))
+                    {
+                        ownedParams.Add(new { name = psyn.Identifier.Text, line = LineOf(psyn) });
+                        ownedParamNames.Add(psyn.Identifier.Text);
+                    }
+                }
                 var candidates = new HashSet<string>();
                 var poolBuffers = new HashSet<string>();   // candidates that are ArrayPool<T> buffers
                 var usingMemoryOwners = new HashSet<string>();   // `using`-declared MemoryPool owners
@@ -6506,7 +6546,17 @@ foreach (var (file, tree) in parsed)
                                 candidates.Add(v.Identifier.Text);
                                 usingMemoryOwners.Add(v.Identifier.Text);
                             }
-                if (candidates.Count == 0)
+                // Eligibility, NOT a deleted guard. This is the gate that drops a method
+                // whose only ownership-relevant thing is a PARAMETER — `Close(Stream s, bool
+                // keep)` never reached the second gate below, it exited here. Removing the test
+                // outright would emit every method in the compilation, most carrying nothing an
+                // ownership analysis can read: a five-figure fact diff bought with one line that
+                // looked suspicious. A method earns a record by having something to say —
+                // tracked locals, or a parameter whose ownership a caller must reason about.
+                // (The third case the design names, "required as an interprocedural summary
+                // target", is subsumed: a summary is consulted for its PARAMETERS, so a method
+                // with none has no summary anyone can read.)
+                if (candidates.Count == 0 && ownedParamNames.Count == 0)
                     continue;
                 // A local that escapes (returned / assigned out) is conservatively not
                 // tracked — its release may be the caller's job. For an IDisposable,
@@ -6618,10 +6668,18 @@ foreach (var (file, tree) in parsed)
                 }
                 var tracked = new HashSet<string>(candidates);
                 tracked.ExceptWith(escapedLocals);
-                if (tracked.Count == 0)
+                if (tracked.Count == 0 && ownedParamNames.Count == 0)
                     continue;
                 statMethodsWithLocal++;
-                var fbody = LowerFlowBody(mbody, tracked, model);
+                // Lower over locals AND owned parameters, so `param_signals` /
+                // `definite_release` / `forward_targets` have a body to read. A parameter has no
+                // declarator in this body and every `acquire` site is gated on a declarator
+                // (checked, not assumed), so no acquire is emitted for it: it appears only as
+                // the `use` / `release` / `call` ops describing its fate, which is exactly the
+                // shape `params[]` is paired with.
+                var flowNames = new HashSet<string>(tracked, StringComparer.Ordinal);
+                flowNames.UnionWith(ownedParamNames);
+                var fbody = LowerFlowBody(mbody, flowNames, model);
                 if (fbody is null || fbody.Count == 0)
                 {
                     statMethodsSkipped++;   // unmodelled construct -> honestly skipped
@@ -6632,19 +6690,22 @@ foreach (var (file, tree) in parsed)
                 // symbol resolves, so an overloaded method gets its own summary beside
                 // the name-merge; an unresolved symbol omits the field (the bridge then
                 // keeps the merged-fallback behaviour — degraded, never mis-keyed).
-                flowFunctions.Add(model.GetDeclaredSymbol(method) is IMethodSymbol msym
-                    ? new
+                // `params` rides only when non-empty: a method with no owned parameter keeps
+                // byte-for-byte the record shape it had before this change, so the fact-stream
+                // diff is confined to the methods this step is actually about.
+                var fname = model.GetDeclaredSymbol(method) is IMethodSymbol msym
+                    ? $"{msym.ContainingType.ToDisplayString()}.{msym.Name}"
+                    : FlowFunctionName(method, cls.Identifier.Text, model);
+                var fsig = model.GetDeclaredSymbol(method) is IMethodSymbol sigsym
+                    ? CanonicalSig(sigsym)
+                    : null;
+                flowFunctions.Add(
+                    (fsig, ownedParams.Count > 0) switch
                     {
-                        name = $"{msym.ContainingType.ToDisplayString()}.{msym.Name}",
-                        file,
-                        sig = CanonicalSig(msym),
-                        body = fbody,
-                    }
-                    : (object)new
-                    {
-                        name = FlowFunctionName(method, cls.Identifier.Text, model),
-                        file,
-                        body = fbody,
+                        (not null, true) => new { name = fname, file, sig = fsig, @params = ownedParams, body = fbody },
+                        (not null, false) => (object)new { name = fname, file, sig = fsig, body = fbody },
+                        (null, true) => new { name = fname, file, @params = ownedParams, body = fbody },
+                        (null, false) => new { name = fname, file, body = fbody },
                     });
             }
 
