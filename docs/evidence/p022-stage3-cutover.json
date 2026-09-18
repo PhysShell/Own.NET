@@ -2,7 +2,7 @@
   "schema": 1,
   "comment": "GENERATED-BY-HAND ledger of the #262 Stage-3 cutover measurements, ENFORCED by tests/test_stage3_packet.py and rendered into docs/generated/p022-stage3-packet.md by scripts/stage3_packet.py. Every row names WHAT was asked, WHERE it was taken and WHAT it returned, and carries an evidence label. A row whose platform is 'windows' and whose result is 'OWED' is exactly that: not measured yet, never a prediction from the Linux row beside it. The packet is derived from this file and never typed.",
   "stage": "P-022 Stage 3 — public Rust-default cutover",
-  "candidate_sha": "2ecf5017a89242dd64c6f420eedac6452b130ce0",
+  "candidate_sha": "f1d3681e96e31bba7a36dda09967d0af7c3e9b56",
   "owner_ruling_performance": "Performance evidence is deferred by owner for the Stage-3 public-default decision. Stage 3 makes no performance claim. #263 remains required before any published/reproducible performance claim and remains the performance-baseline tracker.",
   "deferred_fields": {
     "startup_delta": "DEFERRED BY OWNER — NOT MEASURED",
@@ -144,6 +144,14 @@
       "label": "MEASURED OBSERVATION",
       "method": "CI job `owen --engine (#262 Stage 1 controls)` on windows-latest (run 35304488082, job 105473759377, at 2ecf501); https://github.com/PhysShell/Own.NET/actions/runs/35304488082",
       "result": "19 controls passed, 0 failed, 0 skipped, 1 not applicable (a non-executable candidate cannot be constructed for the shell surface under git-bash). Includes default-is-rust, unset-locator-is-d6, rust-failure-no-fallback and an unexpected child status mapped to public exit 5 with the raw WINDOWS-NATIVE status (-1073740791) retained. The job as a whole went red on a HARNESS defect in the Stage-3 rollback control that ran after these, not on any of them"
+    },
+    {
+      "id": "terminal-ci",
+      "question": "does the whole matrix pass on the terminal candidate?",
+      "platform": "n/a",
+      "label": "MEASURED OBSERVATION",
+      "method": "CI run 35312190310 at f1d3681e96e3; https://github.com/PhysShell/Own.NET/actions/runs/35312190310",
+      "result": "31/31 jobs green. Includes both Stage-1 control legs, both packed-artifact legs, both dogfood legs, the Windows-native and Stage-2 Windows campaigns, own-check.ps1's exit-code tiers, both shadow-compare gates, the Rust-default code-scanning dogfood, rust fmt/clippy/tests and the Python suite on 3.11/3.12/3.13"
     }
   ],
   "known_differences": [
@@ -228,5 +236,38 @@
       "url": "https://github.com/PhysShell/Own.NET/actions/runs/35307467735",
       "result": "30/31 jobs green. The single failure was own-check.ps1's exit-code tiers, which caught the PS1-CAPTURE regression above -- a real defect in the product surface, not a harness fault. Reproduced locally on pwsh (it is not Windows-specific; the Windows job is simply the only place own-check.ps1 is exercised with output capture), fixed, and re-qualified."
     }
+  },
+  "stage_3_status": "COMPLETE",
+  "terminal_run": {
+    "sha": "f1d3681e96e31bba7a36dda09967d0af7c3e9b56",
+    "run": "https://github.com/PhysShell/Own.NET/actions/runs/35312190310",
+    "result": "31/31 jobs green, 0 failures, 0 non-success",
+    "comment": "The terminal qualification run. Every Stage-3 predicate is confirmed on THIS commit rather than assembled from earlier ones."
+  },
+  "defects_found_and_closed_during_qualification": {
+    "comment": "Recorded here and NOT under known_differences, which is the distinction that matters: after the fixes these are not permitted Stage-3 behaviour. Each was invisible while Python was the default, and each was found by the qualification round rather than by review.",
+    "items": [
+      {
+        "id": "PS1-CAPTURE",
+        "what": "own-check.ps1's Rust branch spawned a child that inherited the console handle, bypassing PowerShell's pipeline, so `$out = & ./scripts/own-check.ps1 ...` captured NOTHING while the text still appeared on screen. The Python branch uses the call operator and was unaffected.",
+        "closed": "streams redirected and replayed -- stdout to the pipeline, stderr to the error stream, UTF-8 with no BOM, both pipes drained concurrently. Measured: both engines now capture the same single OWN001 line, identically; exit tiers unchanged; SARIF 1413 bytes, no BOM, one result from either engine."
+      },
+      {
+        "id": "PS1-NOTMATCH-ASSERTION",
+        "what": "the Windows Stage-2 dogfood step asserted `$out -notmatch 'OWN001'`. On an ARRAY PowerShell's -notmatch is a FILTER, not a boolean. SCOPE, stated precisely: it is the Windows Stage-2 dogfood's OWN001 OUTPUT-OBSERVATION assertion that had never constituted evidence on the Rust path -- before the capture repair it received $null, and filtering an empty collection is falsy, so it passed on an empty capture. The other Stage-2 controls and the actual Rust-default execution (exit code, no-fallback, candidate identity) remain separately evidenced; this is NOT a claim that Stage 2 as a whole was unproven.",
+        "closed": "rewritten as `-not ($out -match 'OWN001')`, the idiom the rest of the file uses. Measured correct in both directions: no throw on the real 166-line capture (137 OWN001 lines), throw on an empty capture. Only instance in any workflow. Confirmed passing on windows-latest at the terminal run."
+      },
+      {
+        "id": "CI-SURFACES-HOLLOW",
+        "what": "five CI steps injected a broken or crashing Python and then invoked a launcher BARE; after the cutover a bare invocation never consults OWEN_PYTHON, so the injected fault could not happen and each step would have passed vacuously. Two further call sites lived inside scripts rather than workflow YAML.",
+        "closed": "each step now names the engine it is actually about, and tests/test_stage3_surfaces.py asserts the property over every workflow AND script -- 63 invocations over 26 files -- with all of its own escape hatches mutation-proved shut."
+      }
+    ]
+  },
+  "p037_a1_gate": {
+    "before": "BLOCKED BY DESIGN — the P-022 freeze on verdict-changing inference held until the cutover completed",
+    "after": "UNBLOCKED",
+    "not_started": true,
+    "comment": "Unblocked by this Stage-3 terminal commit and deliberately NOT started in it. A1 begins on a new branch from the Rust-default baseline, so the provenance line stays legible: the last P-022 semantic state, then the Stage-3 terminal commit, then A1. Nobody should have to work out later whether the first ConsumesParam change belonged to the migration or to a new inference feature."
   }
 }

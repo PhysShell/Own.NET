@@ -280,7 +280,76 @@ performance: DEFERRED BY OWNER; no Stage-3 performance claim; #263 remains open
 P-022 is **not** complete: Stage 4 is open and #263 still owes the baselines
 this decision deferred.
 
-With the cutover complete, the P-022 feature freeze on verdict-changing
-inference lifts and the **P-037 A1 production gate opens**. It was deliberately
-not started here: A1 is a semantic change and this was a cutover, and #262's
-guardrails say no semantic cleanup is mixed into one.
+## Terminal evidence
+
+```text
+Stage-3 terminal candidate:  f1d3681e96e31bba7a36dda09967d0af7c3e9b56
+Terminal qualification run:  31/31 jobs green
+                             https://github.com/PhysShell/Own.NET/actions/runs/35312190310
+```
+
+Every predicate below is confirmed on **that** commit, not assembled from
+earlier ones: both Stage-1 control legs, both packed-artifact legs, both
+dogfood legs, the Windows-native and Stage-2 Windows campaigns,
+`own-check.ps1`'s exit-code tiers, both shadow-compare gates, the Rust-default
+code-scanning dogfood, rust fmt/clippy/tests, and the Python suite on
+3.11/3.12/3.13.
+
+## Defects found and closed during qualification
+
+Recorded as **closures**, deliberately not under *Known differences*: after the
+fixes these are not permitted Stage-3 behaviour. All three were invisible while
+Python was the default, and all three were found by running the thing rather
+than by reading it — which is the entire argument for the qualification round.
+
+They also form one sequence, and it is worth seeing whole:
+
+```text
+1. an invocation that could reach no engine at all
+2. a capture that captured nothing
+3. an assertion that passed BECAUSE the capture was empty
+```
+
+Each looked perfectly respectable on its own.
+
+* **PS1-CAPTURE.** `own-check.ps1`'s Rust branch spawned a child that inherited
+  the console handle, bypassing PowerShell's pipeline, so
+  `$out = & ./scripts/own-check.ps1 ...` captured nothing while the text still
+  appeared on screen. Closed by redirecting and replaying the streams.
+* **PS1-NOTMATCH-ASSERTION**, and its scope stated precisely because the loose
+  version would be untrue: it is the **Windows Stage-2 dogfood's OWN001
+  output-observation assertion** that had never constituted evidence on the
+  Rust path — before the capture repair it received `$null`, and PowerShell's
+  array/filter semantics make an empty capture pass. The other Stage-2 controls
+  and the actual Rust-default execution (exit code, no-fallback, candidate
+  identity) remain separately evidenced. This is **not** a claim that Stage 2
+  as a whole was unproven.
+* **CI-SURFACES-HOLLOW.** Five steps injected a broken Python and then invoked
+  a launcher bare, so the injected fault could no longer happen and each would
+  have passed vacuously; two more call sites lived inside scripts rather than
+  workflow YAML.
+
+## Hand-off
+
+```text
+P-037 A1 PRODUCTION GATE:  BLOCKED BY DESIGN  ->  UNBLOCKED
+```
+
+The P-022 freeze on verdict-changing inference held until the cutover
+completed; this commit completes it. A1 is **not started here**, and not in
+this PR: it is a semantic change and this was a cutover, and #262's guardrails
+say the two are never mixed.
+
+A1 begins on a new branch from the Rust-default baseline, which keeps the
+provenance line legible:
+
+```text
+last P-022 semantic state
+        |
+        +-- Stage-3 terminal commit  (f1d3681)
+                    |
+                    +-- P-037 A1 starts here
+```
+
+Nobody should have to work out, later, whether the first `ConsumesParam` change
+belonged to the Rust migration or to a new inference feature.

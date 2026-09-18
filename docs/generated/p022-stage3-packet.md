@@ -2,7 +2,7 @@
 # P-022 Stage 3 — #262 cutover decision packet
 
 ```text
-Stage-3 candidate SHA:    f69f0988a14e00c0925a68b9fddd101aff7b3ebe (DIRTY TREE — not evidence)
+Stage-3 candidate SHA:    f1d3681e96e31bba7a36dda09967d0af7c3e9b56 (DIRTY TREE — not evidence)
 Observation window:       the repository's own CI on the candidate branch, plus the release workflow's packed-artifact smoke test; first run b590bf46e9f1: 7 job failures, every one a real consequence of the cutover, all diagnosed and fixed
 Fast compare result:      104 documents, 104 agreed, 0 acceptance-unexplained | samples: 1 document, 1 agreed, 0 acceptance-unexplained
 Five-repo compare result: 10/10 documents agreed over 6 targets; 0 acceptance-unexplained, 0 declared-boundary; at b590bf46e9f1; local run (no CI anchor)
@@ -67,3 +67,4 @@ CLI contract campaign: 24/24 mutants caught at b5d9272a0a85
 * `stage2-controls` [linux] **MEASURED OBSERVATION** — 9 controls passed, including public-default-is-rust
 * `ci-surfaces` [n/a] **MEASURED OBSERVATION** — 63 invocations over 26 files; 23 explicit, 40 bare and all resolvable; 0 hollow Python injections
 * `stage1-controls-windows` [windows] **MEASURED OBSERVATION** — 19 controls passed, 0 failed, 0 skipped, 1 not applicable (a non-executable candidate cannot be constructed for the shell surface under git-bash). Includes default-is-rust, unset-locator-is-d6, rust-failure-no-fallback and an unexpected child status mapped to public exit 5 with the raw WINDOWS-NATIVE status (-1073740791) retained. The job as a whole went red on a HARNESS defect in the Stage-3 rollback control that ran after these, not on any of them
+* `terminal-ci` [n/a] **MEASURED OBSERVATION** — 31/31 jobs green. Includes both Stage-1 control legs, both packed-artifact legs, both dogfood legs, the Windows-native and Stage-2 Windows campaigns, own-check.ps1's exit-code tiers, both shadow-compare gates, the Rust-default code-scanning dogfood, rust fmt/clippy/tests and the Python suite on 3.11/3.12/3.13
