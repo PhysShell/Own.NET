@@ -1,0 +1,43 @@
+{
+  "schema": "p037-control-expectation/2",
+  "control": "gv4-control-mutated-guard",
+  "p037": "§8 row 18a — G-V4, mutated guard (direct write)",
+  "classification": "KNOWN_FALSE_POSITIVE",
+  "measured_at": "70189a3",
+  "owner_ruling": "2026-09-18: accepted as pre-A1 regression anchors, not as authorization for a pre-cutover fix; no ConsumesParam change before P-022 Stage 3",
+  "call_site_line": 39,
+  "defensive_dispose_line": 40,
+  "current": {
+    "findings": [
+      "OWN003"
+    ],
+    "fabricated_release_at_call_site": true
+  },
+  "post_a1": {
+    "findings": [],
+    "fabricated_release_at_call_site": false
+  },
+  "remeasured": [
+    {
+      "at": "63148d0",
+      "on": "2026-09-18",
+      "why": "P-022 Stage 3 (#262, merged as #359) made Rust the PUBLIC default engine. The `current` record above was measured at 70189a3, when a bare launcher invocation still meant Python, so it had to be re-taken before A1 could rest on it — and re-taken, not rewritten. Re-measured on both engines explicitly, at origin/main 63148d0 plus the A1.0 port, which adds no code under frontend/, ownlang/ or rust/ (verified: the port's changed-path set contains none).",
+      "engines": {
+        "python": {
+          "findings": [
+            "OWN003"
+          ],
+          "fabricated_release_at_call_site": true
+        },
+        "rust": {
+          "findings": [
+            "OWN003"
+          ],
+          "fabricated_release_at_call_site": true
+        }
+      },
+      "result": "UNCHANGED — both engines reproduce the `current` record above exactly, on both layers. Stage 3 moved none of this control, which is what the two-layer design predicted: the fabricated release is decided in the Roslyn extractor, before either engine runs."
+    }
+  ],
+  "note": "Today the extractor lowers Outer(r, true) to a release of r (may-as-must ConsumesParam), so the honest r.Dispose() is a false OWN003. After A1 the call must carry no release op and lower to plain + OWN051; the dispose is clean."
+}

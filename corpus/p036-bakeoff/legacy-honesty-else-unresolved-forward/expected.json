@@ -1,0 +1,37 @@
+{
+  "schema": "p037-control-expectation/2",
+  "control": "legacy-honesty-else-unresolved-forward",
+  "p037": "G-T2b class 3 — guarded local release, unresolved forward on the other branch",
+  "classification": "VERDICT_COMPATIBLE_VALUE_DIFFERENCE",
+  "measured_at": "70189a3",
+  "owner_ruling": "2026-09-18: accepted as pre-A1 regression anchors, not as authorization for a pre-cutover fix; no ConsumesParam change before P-022 Stage 3",
+  "call_site_line": 41,
+  "defensive_dispose_line": null,
+  "current": {
+    "findings": [],
+    "fabricated_release_at_call_site": true
+  },
+  "post_a1": {
+    "findings": [],
+    "fabricated_release_at_call_site": false
+  },
+  "remeasured": [
+    {
+      "at": "63148d0",
+      "on": "2026-09-18",
+      "why": "P-022 Stage 3 (#262, merged as #359) made Rust the PUBLIC default engine. The `current` record above was measured at 70189a3, when a bare launcher invocation still meant Python, so it had to be re-taken before A1 could rest on it — and re-taken, not rewritten. Re-measured on both engines explicitly, at origin/main 63148d0 plus the A1.0 port, which adds no code under frontend/, ownlang/ or rust/ (verified: the port's changed-path set contains none).",
+      "engines": {
+        "python": {
+          "findings": [],
+          "fabricated_release_at_call_site": true
+        },
+        "rust": {
+          "findings": [],
+          "fabricated_release_at_call_site": true
+        }
+      },
+      "result": "UNCHANGED — both engines reproduce the `current` record above exactly, on both layers. Stage 3 moved none of this control, which is what the two-layer design predicted: the fabricated release is decided in the Roslyn extractor, before either engine runs."
+    }
+  ],
+  "note": "0 findings at warning severity today AND after A1 (class 3 is verdict-equivalent). The facts layer differs: today the extractor lowers M(r, flag, sink) to a release (may-as-must) and even the OWN051 advisory is suppressed; after A1 the guarded value is unknown, the call is plain + OWN051 at note level, and no release op may appear at the call site. The value-level pin (unknown, never repaired to may) is the kernel test k11_finding_release_priority_drops_an_unresolved_forward."
+}

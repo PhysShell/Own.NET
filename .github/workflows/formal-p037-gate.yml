@@ -1,0 +1,51 @@
+name: formal-p037-gate
+
+# The heavy half of the P-037 formal kernel's proof harnesses
+# (formal/p037-kernel): the whole-solver statements — least fixpoint at the
+# full 3-coordinate bound, chaotic = Jacobi, the G-T2a lfp form, G-T2b, and
+# Uncond-stays-diagonal at the lfp. Minutes of CBMC each, ~15 minutes in all;
+# the owner's ruling after the A0 spike keeps them off the PR gate (ci.yml's
+# formal-p037 job runs the fast half on every push) and here, nightly and on
+# demand. A red run here is a real finding about the kernel or the contract,
+# never a flake to re-run: every harness is deterministic.
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  heavy-kani:
+    name: formal kernel (whole-solver Kani harnesses)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: formal/p037-kernel
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: install Kani (pinned) and its toolchain bundle
+        run: |
+          cargo install --locked kani-verifier --version 0.68.0
+          cargo kani setup
+      - name: whole-solver harnesses
+        run: |
+          set -e
+          for h in \
+            k10b_solve_is_a_fixpoint_below_every_fixpoint \
+            k10c_chaotic_equals_jacobi_on_small_sccs \
+            k10e_elect_is_a_fixpoint_below_every_fixpoint \
+            k10e_chaotic_equals_jacobi_on_small_sccs \
+            k11_lfp_lax_simulation_against_the_collapsed_system_on_small_sccs \
+            k11b_legacy_observational_compatibility_on_small_sccs \
+            k11_lfp_lax_simulation_against_today_post_finalization_on_small_sccs \
+            k12b_lfp_keeps_uncond_coordinates_diagonal_on_small_sccs; do
+            echo "== $h"
+            cargo kani --harness "$h"
+          done

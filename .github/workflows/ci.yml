@@ -72,6 +72,64 @@ jobs:
       - name: cargo test
         run: cargo test
 
+  # The P-037 formal kernel (formal/p037-kernel, docs/notes/p037-formal-kernel.md):
+  # its own workspace root, a member of nothing, wired to nothing — the pure
+  # guarded-transfer algebra checked twice over the same functions, by plain
+  # test twins and by Kani proof harnesses. The PR gate is fmt + clippy + the
+  # twins + the FAST harnesses (value-level laws, the G-A2 floor, the one-step
+  # lemmas; well under a minute of CBMC in total). The whole-solver harnesses
+  # take minutes each and run in formal-p037-gate.yml on a schedule / on
+  # demand — the owner's split after the A0 spike, so the inner loop never
+  # pays for a proof it does not need on every push.
+  #
+  # `toolchain: stable` here is deliberate and matches `rust-core` directly
+  # above. The pinned rustc that #262 Stage 3 requires is a property of
+  # action.yml — the CONSUMER-facing distribution surface, where a moving
+  # toolchain would move what users get — not of this repository's own CI,
+  # which is where a moving toolchain is supposed to break us first.
+  formal-p037:
+    name: formal kernel (fmt + clippy + twins + fast Kani)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: formal/p037-kernel
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      - name: cargo fmt --check
+        run: cargo fmt --check
+      - name: cargo clippy (the rust/ workspace lints, copied verbatim)
+        run: cargo clippy --all-targets
+      - name: cargo test (the exhaustive / randomized twins)
+        run: cargo test
+      - name: install Kani (pinned) and its toolchain bundle
+        run: |
+          cargo install --locked kani-verifier --version 0.68.0
+          cargo kani setup
+      - name: fast Kani harnesses (value-level laws, floor, one-step lemmas)
+        run: |
+          set -e
+          for h in \
+            k1_transfer_join_laws k1_transfer_order_is_a_partial_order k1_cells_join_laws \
+            k2_election_join_laws \
+            k3_reads_and_contributions_are_monotone \
+            k4_import_is_monotone_and_conflict_propagates \
+            k5_collapse_monotone_and_join_morphism \
+            k6_consume_only_through_a_selected_or_unanimous_must \
+            k7_no_fabricated_consume \
+            k8_involutions \
+            k9_residual_bottom_lemma_all_three_groundings \
+            k10a_step_is_monotone_in_the_state \
+            k10e_election_step_is_monotone_in_the_state \
+            k11_one_step_lax_simulation \
+            k12a_step_keeps_uncond_coordinates_diagonal; do
+            echo "== $h"
+            cargo kani --harness "$h"
+          done
+
   # P-022 step 7b (#261) — the production OwnIR executable's parity replay, on
   # BOTH platforms. The Python half of this contract is gated by the `tests`
   # matrix above (`tests/test_cli_ownir_fixtures.py` is auto-discovered like
