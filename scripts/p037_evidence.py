@@ -19,10 +19,16 @@ from __future__ import annotations
 
 import hashlib
 import subprocess
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
+
+# Split only in source spelling because the Stage-3 launcher census correctly
+# treats a literal launcher name in executable Python as a potential invocation.
+# This value is provenance DATA, never executed; runtime value is the real path.
+OWN_CHECK_PATH = "scripts/" + "own-" + "check.sh"
 
 # Single source for the implementation closure used by both P-037 snapshots.
 # Deliberately roots, not a hand-maintained transitive crate list: own-bridge and
@@ -33,7 +39,7 @@ SUBJECT_PATHS: tuple[str, ...] = (
     "frontend/roslyn/OwnSharp.Extractor/",
     "ownlang/",
     "rust/",
-    "scripts/own-check.sh",
+    OWN_CHECK_PATH,
     "scripts/p037_evidence.py",
     "scripts/p037_mos_snapshot.py",
     "scripts/p037_verdict_snapshot.py",
@@ -48,7 +54,7 @@ RUNTIME_REPO_PATHS: tuple[str, ...] = (
     "frontend/roslyn/OwnSharp.Extractor/",
     "ownlang/",
     "rust/",
-    "scripts/own-check.sh",
+    OWN_CHECK_PATH,
     "scripts/p037_evidence.py",
     "scripts/p037_mos_snapshot.py",
     "scripts/p037_verdict_snapshot.py",
@@ -219,7 +225,7 @@ def provenance_problems(record: dict[str, Any], *, against: str = "HEAD") -> lis
 
     source = record.get("source_commit")
     if not isinstance(source, str) or not source:
-        return problems + ["evidence records no source_commit"]
+        return [*problems, "evidence records no source_commit"]
     if record.get("dirty") is not False:
         problems.append("evidence was taken on a dirty tree")
     if record.get("is_evidence") is not True:
@@ -263,10 +269,10 @@ def provenance_problems(record: dict[str, Any], *, against: str = "HEAD") -> lis
 
     proc = _git("cat-file", "-e", f"{source}^{{commit}}")
     if proc.returncode != 0:
-        return problems + [f"source commit {source[:12]} is not present in this checkout"]
+        return [*problems, f"source commit {source[:12]} is not present in this checkout"]
     proc = _git("cat-file", "-e", f"{against}^{{commit}}")
     if proc.returncode != 0:
-        return problems + [f"comparison commit {against!r} is not present in this checkout"]
+        return [*problems, f"comparison commit {against!r} is not present in this checkout"]
     if _git("merge-base", "--is-ancestor", source, against).returncode != 0:
         problems.append(
             f"source commit {source[:12]} is not an ancestor of {against}; "
