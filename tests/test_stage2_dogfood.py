@@ -22,7 +22,8 @@ The controls, and the direction each one guards:
 
     stage2-census                every core/launcher call site is classified
     internal-default-not-rust    every Class-D call site selects Rust explicitly
-    public-default-moved         all four public surfaces still resolve Python
+    public-default-is-rust       a public surface is left behind on Python, or
+                                 the rollback engine disappears with the cutover
     rust-job-falls-back          a forced Rust failure is never rescued by Python
     wrong-rust-candidate         Class-D runs the production own-cli, and says which
     locator-contract-bypassed    no discovery: OWEN_RUST_CORE or nothing
@@ -557,27 +558,27 @@ def control_python_reference_lost() -> None:
 # --- controls: the public contract -----------------------------------------
 
 
-def control_public_default_moved() -> None:
-    """All four public surfaces still resolve PYTHON when asked for nothing.
+def control_public_default_is_rust() -> None:
+    """All four public surfaces resolve RUST when asked for nothing (#262 Stage 3).
 
-    The positive direction, which no amount of grepping for the word "rust"
-    can give: a bare invocation is RUN, with OWEN_RUST_CORE set to something
-    that CANNOT work, and it must still produce a verdict. If the public
-    default had moved to Rust, that run would die on the locator (exit 2)
-    instead. An unusable candidate is the falsifier here precisely because a
-    usable one proves nothing — a Rust-default launcher and a Python-default
-    launcher both succeed when the candidate is fine.
+    This control used to assert the opposite, and it is the same control: its
+    job is that the public default is whatever the stage says it is, and that
+    nobody can move it quietly. Stage 3 authorized the move, so the assertion
+    turned over with it. Anything that could still reach the OLD answer is a
+    surface the cutover did not reach.
 
-    The `owen` surface additionally gets the other direction: with the
-    interpreter broken it must fail ON PYTHON (exit 3, no usable runtime),
-    which is a positive statement about which engine it resolved rather than
-    an inference from a missing error. own-check.sh cannot be asked that
-    question the same way — it invokes a bare `python` and has no OWEN_PYTHON
-    override, which is a real asymmetry between the surfaces and is recorded
-    here rather than papered over; the unusable-candidate falsifier above does
-    not depend on it.
+    The falsifier is inverted along with the claim. A bare invocation is RUN
+    with a deliberately unusable PYTHON, and it must still produce a verdict: a
+    Python default would die on the interpreter, and so would a default that
+    drifted to `compare`, which needs both engines. A usable interpreter would
+    prove nothing, because both defaults succeed when everything works.
+
+    And the other direction, because "did not use Python" is not "used Rust": a
+    bare invocation with an unusable RUST CANDIDATE must FAIL, visibly, and must
+    not fall back to a Python success. That pair cannot both hold unless the
+    bare path really is the Rust path.
     """
-    check = "public-default-moved"
+    check = "public-default-is-rust"
     problems = []
 
     # The two written-down defaults.
@@ -585,13 +586,23 @@ def control_public_default_moved() -> None:
     m = re.search(r"^  engine:\n(?:.*\n)*?    default: \"([a-z]+)\"", action, re.M)
     if not m:
         problems.append("action.yml: could not read the engine input's default at all")
-    elif m.group(1) != "python":
-        problems.append(f"action.yml: the PUBLIC engine default is {m.group(1)!r}, not python")
+    elif m.group(1) != "rust":
+        problems.append(f"action.yml: the PUBLIC engine default is {m.group(1)!r}, not rust — "
+                        "this surface did not move with the others")
 
     sel = (ROOT / "frontend/roslyn/OwnSharp.Cli/EngineSelection.cs").read_text(encoding="utf-8")
-    if not re.search(r"public const Engine Default = Engine\.Python;", sel):
-        problems.append("EngineSelection.Default is no longer Engine.Python — the product "
-                        "default moved, which is Stage 3 and is not authorized here")
+    if not re.search(r"public const Engine Default = Engine\.Rust;", sel):
+        problems.append("EngineSelection.Default is not Engine.Rust — the `owen` surface did "
+                        "not move with the others")
+
+    # The two shell surfaces carry the same default in their own idiom, and a
+    # cutover that reached three of four is the failure this names.
+    sh = (ROOT / "scripts/own-check.sh").read_text(encoding="utf-8")
+    if not re.search(r'^engine="rust"$', sh, re.M):
+        problems.append("scripts/own-check.sh does not default to rust")
+    ps1 = (ROOT / "scripts/own-check.ps1").read_text(encoding="utf-8")
+    if not re.search(r'^\s*\[string\]\$Engine = "rust",$', ps1, re.M):
+        problems.append("scripts/own-check.ps1 does not default to rust")
 
     # The Action forwards its input to own-check.sh, so a default changed in
     # the forwarding would not show in the input's declared default.
@@ -599,65 +610,79 @@ def control_public_default_moved() -> None:
         problems.append("action.yml no longer forwards its engine input verbatim to "
                         "own-check.sh — the public default could be overridden in transit")
 
+    # Python must remain EXPLICITLY selectable on every surface: Stage 3 moved
+    # the default, and Stage 4 (removing Python) is a different change that has
+    # not happened. A cutover that quietly took the rollback with it would pass
+    # every assertion above.
+    if "python" not in EngineSelection_names(sel):
+        problems.append("EngineSelection no longer accepts 'python' — the rollback engine "
+                        "disappeared, which is Stage 4 and is not authorized here")
+
     if not have_dotnet():
         skip(check, "no dotnet, so the bare surfaces could not be run")
         return
-    with tempfile.TemporaryDirectory(prefix="owen-stage2-pub-") as td:
+    with tempfile.TemporaryDirectory(prefix="owen-stage3-pub-") as td:
         sample = Path(td) / "sample"
         sample.mkdir()
         (sample / "Leak.cs").write_text(SAMPLE_CS, encoding="utf-8")
 
-        # A candidate that exists and cannot possibly run. If a bare surface
-        # selected Rust, this is fatal to it; if it selects Python, it is
-        # irrelevant to it.
-        unusable = Path(td) / "not-a-core"
-        unusable.write_text("this is not an executable image\n", encoding="utf-8")
-        env = dict(os.environ)
-        env["OWEN_RUST_CORE"] = str(unusable)
+        core = rust_core()
+        if core is None:
+            skip(check + "/run", "no OWEN_RUST_CORE, so the bare surfaces could not be run")
+        else:
+            # 1 — an unusable INTERPRETER must be irrelevant to a bare run.
+            env = dict(os.environ)
+            env["OWEN_RUST_CORE"] = core
+            env["OWEN_PYTHON"] = str(Path(td) / "no-such-python")
+            surfaces: list[tuple[str, list[str]]] = [
+                ("own-check.sh", [bash_exe(), str(ROOT / "scripts/own-check.sh"),
+                                  "--format", "human", "--", str(sample)]),
+            ]
+            dll = launcher_dll()
+            if dll is not None:
+                surfaces.append(("owen", ["dotnet", dll, "check", str(sample)]))
+            for name, argv in surfaces:
+                r = subprocess.run(argv, capture_output=True, env=env, cwd=str(ROOT), check=False)
+                if b"OWN001" not in r.stdout:
+                    problems.append(
+                        f"{name}: a BARE invocation produced no verdict while only PYTHON was "
+                        f"unusable (exit {r.returncode}) — the default still needs the "
+                        f"reference engine [{tail(r)}]")
 
-        surfaces: list[tuple[str, list[str]]] = [
-            ("own-check.sh", [bash_exe(), str(ROOT / "scripts/own-check.sh"),
-                              "--format", "human", "--", str(sample)]),
-        ]
-        dll = launcher_dll()
-        if dll is not None:
-            surfaces.append(("owen", ["dotnet", dll, "check", str(sample)]))
-        for name, argv in surfaces:
-            r = subprocess.run(argv, capture_output=True, env=env, cwd=str(ROOT), check=False)
-            merged = (r.stdout + r.stderr).decode("utf-8", "replace")
-            if b"OWN001" not in r.stdout:
-                problems.append(
-                    f"{name}: a BARE invocation produced no verdict with an unusable "
-                    f"OWEN_RUST_CORE present (exit {r.returncode}) — it tried to use the Rust "
-                    f"candidate, so the public default has moved [{tail(r)}]")
-            if "OWEN_RUST_CORE" in merged:
-                problems.append(f"{name}: a bare invocation complained about OWEN_RUST_CORE — "
-                                "it consulted the Rust locator, which the Python path must not")
-
-        # The other direction, on the one surface that can be asked: with the
-        # interpreter unusable the default must fail ON PYTHON.
-        dll = launcher_dll()
-        if dll is not None:
+            # 2 — an unusable CANDIDATE must be fatal to a bare run, and must
+            # not be rescued by the interpreter that is sitting right there.
+            unusable = Path(td) / "not-a-core"
+            unusable.write_text("this is not an executable image\n", encoding="utf-8")
             env2 = dict(os.environ)
-            env2["OWEN_RUST_CORE"] = str(rust_core() or unusable)
-            env2["OWEN_PYTHON"] = str(Path(td) / "no-such-python")
-            r = subprocess.run(["dotnet", dll, "check", str(sample)],
-                               capture_output=True, env=env2, cwd=str(ROOT), check=False)
-            merged = (r.stdout + r.stderr).decode("utf-8", "replace").lower()
-            if b"OWN001" in r.stdout:
-                problems.append("owen: a bare invocation produced a verdict while the "
-                                "interpreter was unusable and a GOOD Rust candidate was "
-                                "present — the default resolved Rust")
-            elif "python" not in merged:
-                problems.append(f"owen: a bare invocation failed without naming Python "
-                                f"(exit {r.returncode}) [{tail(r)}]")
+            env2["OWEN_RUST_CORE"] = str(unusable)
+            for name, argv in surfaces:
+                r = subprocess.run(argv, capture_output=True, env=env2, cwd=str(ROOT), check=False)
+                merged = (r.stdout + r.stderr).decode("utf-8", "replace")
+                if b"OWN001" in r.stdout:
+                    problems.append(
+                        f"{name}: a bare invocation produced a verdict with an UNUSABLE Rust "
+                        f"candidate — something fell back to Python, which no stage allows")
+                elif r.returncode != 2:
+                    problems.append(
+                        f"{name}: a bare invocation with an unusable candidate exited "
+                        f"{r.returncode}, expected the configuration-error tier 2 [{tail(r)}]")
+                elif "did not fall back to Python" not in merged:
+                    problems.append(
+                        f"{name}: the failure does not deny a Python fallback in as many words")
 
     if problems:
         fail(check, "; ".join(problems))
     else:
-        ok(check, "action.yml and EngineSelection still default to python, the Action still "
-                  "forwards its input verbatim, and a bare invocation ignores an unusable "
-                  "Rust candidate entirely")
+        ok(check, "all four surfaces default to rust, the Action still forwards its input "
+                  "verbatim, python remains explicitly selectable, a bare run ignores a broken "
+                  "interpreter, and a broken candidate fails it visibly with no fallback")
+
+
+def EngineSelection_names(source: str) -> list[str]:
+    """The engine spellings the launcher still accepts, read from its own
+    Names array rather than assumed."""
+    m = re.search(r"Names = \[(.*?)\];", source, re.S)
+    return re.findall(r'"([a-z]+)"', m.group(1)) if m else []
 
 
 def control_rust_job_falls_back() -> None:
@@ -712,7 +737,7 @@ def control_rust_job_falls_back() -> None:
 def run() -> int:
     control_census()
     control_internal_default_not_rust()
-    control_public_default_moved()
+    control_public_default_is_rust()
     control_rust_job_falls_back()
     control_wrong_rust_candidate()
     control_locator_contract_bypassed()

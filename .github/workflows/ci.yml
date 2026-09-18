@@ -2068,14 +2068,22 @@ jobs:
           # Action plumbing: own-check --config own.toml parses [weak-subscription] and
           # forwards it to the extractor, so the wrapper is silent end-to-end.
           printf '[weak-subscription]\nsubscribe = ["WeakEvents.AddPropertyChanged"]\n' > "$RUNNER_TEMP/own.toml"
-          cout=$(scripts/own-check.sh --config "$RUNNER_TEMP/own.toml" "$sample" || true)
+          # --engine python is EXPLICIT here, and became explicit at #262 Stage 3.
+          # This is a class-B call site in the Stage-2 census: the reference
+          # implementation is the instrument, and the step above asserted the
+          # same sample through `python -m ownlang ownir` directly. When the
+          # public default moved to Rust, a bare call here would have quietly
+          # changed which engine this comparison is against -- the measurement
+          # would still have passed, and would no longer have been the
+          # measurement it says it is.
+          cout=$(scripts/own-check.sh --engine python --config "$RUNNER_TEMP/own.toml" "$sample" || true)
           ! echo "$cout" | grep -q "WeaklySubscribed" \
             || { echo "FAIL: own-check --config did not silence the declared wrapper"; exit 1; }
           echo "$cout" | grep -q "OrdinaryPlusEquals" \
             || { echo "FAIL: own-check --config lost the ordinary += leak"; exit 1; }
           # A malformed config is a hard error (non-zero), never a silent skip.
           printf '[weak-subscription]\nsubscribe = ["bad_no_dot"]\n' > "$RUNNER_TEMP/bad.toml"
-          if scripts/own-check.sh --config "$RUNNER_TEMP/bad.toml" "$sample" >/dev/null 2>&1; then
+          if scripts/own-check.sh --engine python --config "$RUNNER_TEMP/bad.toml" "$sample" >/dev/null 2>&1; then
             echo "FAIL: malformed --config was silently accepted"; exit 1
           fi
           echo "OK: declared weak-subscribe wrapper = accepted release; += unaffected; own.toml plumbed; malformed config is a hard error"
@@ -2400,6 +2408,25 @@ jobs:
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: "8.0.x"
+      # #262 Stage 3: this is a PUBLIC-CONTRACT VERIFIER (Stage-2 census class A),
+      # so it invokes the surface BARE and gets whatever the public default is.
+      # That default is now Rust, so the job supplies a candidate the way a real
+      # install would. It builds the production `own-cli` rather than probing
+      # rust/target for one: probing is the discovery D3 forbids, and is how a
+      # stale binary stands in for the one under test.
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build the production own-cli and select it (the public default is Rust)
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd rust && cargo build -p own-cli --release)
+          ext=""
+          if [ "$RUNNER_OS" = "Windows" ]; then ext=".exe"; fi
+          core="$PWD/rust/target/release/own-cli$ext"
+          "$core" --version
+          echo "OWEN_RUST_CORE=$core" >> "$GITHUB_ENV"
       - name: GitHub-annotation format over the sample tree (directory walk)
         run: |
           # stdout (captured) carries only the annotations; the extractor's build
@@ -2608,6 +2635,25 @@ jobs:
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: "8.0.x"
+      # #262 Stage 3: this is a PUBLIC-CONTRACT VERIFIER (Stage-2 census class A),
+      # so it invokes the surface BARE and gets whatever the public default is.
+      # That default is now Rust, so the job supplies a candidate the way a real
+      # install would. It builds the production `own-cli` rather than probing
+      # rust/target for one: probing is the discovery D3 forbids, and is how a
+      # stale binary stands in for the one under test.
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build the production own-cli and select it (the public default is Rust)
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd rust && cargo build -p own-cli --release)
+          ext=""
+          if [ "$RUNNER_OS" = "Windows" ]; then ext=".exe"; fi
+          core="$PWD/rust/target/release/own-cli$ext"
+          "$core" --version
+          echo "OWEN_RUST_CORE=$core" >> "$GITHUB_ENV"
       - name: A clean tree to check against
         run: |
           $clean = Join-Path $env:RUNNER_TEMP "ps1-clean"
@@ -3202,8 +3248,26 @@ jobs:
       # published there yet, see P-013's Non-goals) -- pack from the source
       # this job already checked out. Deliberately OUTSIDE the timed window
       # below: it is not part of the "install -> check" claim being proven.
+      # #262 Stage 3, D6: Rust is the public default, so the PACKAGE has to carry
+      # the binary that default resolves to. Built natively on each leg of this
+      # matrix, which is what makes this job the Windows packed-path evidence as
+      # well as the Linux one -- a cross-compiled candidate would be a binary no
+      # Windows machine had executed.
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build and stage this platform's own-cli for packing
+        run: |
+          set -euo pipefail
+          (cd rust && cargo build -p own-cli --release)
+          if [ "$RUNNER_OS" = "Windows" ]; then key=win-x64; bin=own-cli.exe; else key=linux-x64; bin=own-cli; fi
+          mkdir -p "$RUNNER_TEMP/rust-stage/$key"
+          cp "rust/target/release/$bin" "$RUNNER_TEMP/rust-stage/$key/$bin"
+          "rust/target/release/$bin" --version
       - name: Pack Owen.Cli (pulls in the extractor via ProjectReference)
-        run: dotnet pack frontend/roslyn/OwnSharp.Cli/OwnSharp.Cli.csproj -c Release -o "$RUNNER_TEMP/owen-nupkg"
+        run: |
+          dotnet pack frontend/roslyn/OwnSharp.Cli/OwnSharp.Cli.csproj -c Release \
+            -o "$RUNNER_TEMP/owen-nupkg" -p:OwenRustCoreDir="$RUNNER_TEMP/rust-stage"
       # --add-source alone is not enough (Codex review, PR #244): `dotnet tool
       # install` queries every configured source (nuget.org included) IN
       # PARALLEL and takes whichever answers first — once a same-numbered
@@ -3374,7 +3438,15 @@ jobs:
           EOF
           chmod +x "$RUNNER_TEMP/crashing-python"
           set +e
-          out=$(OWEN_PYTHON="$RUNNER_TEMP/crashing-python" owen check "$RUNNER_TEMP/owen-sample" 2>&1)
+          # --engine python is EXPLICIT, and became explicit at #262 Stage 3.
+          # This step injects a crashing PYTHON, so it has to be running the
+          # Python engine to mean anything. Once the public default became Rust,
+          # a bare `owen check` here would never consult OWEN_PYTHON at all: the
+          # crash would not happen, the scan would succeed, and the step would
+          # go green while proving nothing. The Rust core's own crash path is
+          # measured separately, through #261's fault-injection feature, by the
+          # Stage-1 engine controls.
+          out=$(OWEN_PYTHON="$RUNNER_TEMP/crashing-python" owen check --engine python "$RUNNER_TEMP/owen-sample" 2>&1)
           rc=$?
           set -e
           echo "$out"
@@ -3389,7 +3461,10 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           set +e
-          out=$(OWEN_PYTHON="$RUNNER_TEMP/crashing-python" owen check --debug "$RUNNER_TEMP/owen-sample" 2>&1)
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the PYTHON
+          # resolution path, and a bare invocation now runs Rust and never consults
+          # OWEN_PYTHON at all -- it would go green while proving nothing.
+          out=$(OWEN_PYTHON="$RUNNER_TEMP/crashing-python" owen check --engine python --debug "$RUNNER_TEMP/owen-sample" 2>&1)
           rc=$?
           set -e
           echo "$out"
@@ -3733,10 +3808,32 @@ jobs:
           elapsed=$(( $(date +%s) - SMOKE_START ))
           echo "install -> check -> findings: ${elapsed}s"
           [ "$elapsed" -lt 240 ] || { echo "FAIL: took ${elapsed}s (ceiling 240s) — see alpha-readiness.md gate A"; exit 1; }
+      # #262 Stage 3, the cutover assertion on the INSTALLED surface, on both
+      # platforms. A bare `owen check` must produce a verdict while the
+      # interpreter is deliberately unusable: only a default that resolves the
+      # PACKAGED Rust core can. A Python default -- or a default that drifted to
+      # compare -- exits 3 here, which is what the step below still asserts for
+      # the explicitly-selected Python engine.
+      - name: "Stage 3: the DEFAULT engine needs no Python (packaged Rust core, D6)"
+        run: |
+          set +e
+          out=$(OWEN_PYTHON=/definitely/does/not/exist/python3 owen check "$RUNNER_TEMP/owen-sample" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: bare owen check with an unusable OWEN_PYTHON exited $rc, expected 1 (findings) — the public default still needs Python, so the Stage-3 cutover did not reach this surface"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001 from the default (Rust) engine"; exit 1; }
+          case "$out" in
+            *OWEN_RUST_CORE*) echo "FAIL: the default consulted the development locator instead of the packaged core"; exit 1 ;;
+          esac
+          echo "OK: the installed package's DEFAULT engine is Rust and resolved its own packaged binary"
       - name: No Python found via OWEN_PYTHON -> a fast, actionable failure (never an auto-download)
         run: |
           set +e
-          out=$(OWEN_PYTHON=/definitely/does/not/exist/python3 owen check "$RUNNER_TEMP/owen-sample" 2>&1)
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the PYTHON
+          # resolution path, and a bare invocation now runs Rust and never consults
+          # OWEN_PYTHON at all -- it would go green while proving nothing.
+          out=$(OWEN_PYTHON=/definitely/does/not/exist/python3 owen check --engine python "$RUNNER_TEMP/owen-sample" 2>&1)
           rc=$?
           set -e
           echo "$out"
@@ -3748,7 +3845,10 @@ jobs:
           own_python="$(command -v python3 || command -v python)"
           [ -n "$own_python" ] || { echo "FAIL: could not find a python3/python on PATH to test the fallback with"; exit 1; }
           set +e
-          out=$(OWN_PYTHON="$own_python" owen check "$RUNNER_TEMP/owen-sample" --fail-on-finding 2>&1)
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the PYTHON
+          # resolution path, and a bare invocation now runs Rust and never consults
+          # OWEN_PYTHON at all -- it would go green while proving nothing.
+          out=$(OWN_PYTHON="$own_python" owen check --engine python "$RUNNER_TEMP/owen-sample" --fail-on-finding 2>&1)
           rc=$?
           set -e
           echo "$out"

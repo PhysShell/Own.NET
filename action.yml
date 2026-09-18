@@ -34,16 +34,16 @@ inputs:
     default: "error"
   engine:
     description: >-
-      Which analysis engine runs (#262 Stage 1): python (the DEFAULT and the
-      reference), rust (the Rust core `own-cli ownir`), or compare (both over
-      one captured input, exposing the reference's result only when they agree
-      byte for byte). rust and compare require the candidate binary's absolute
-      path in the OWEN_RUST_CORE environment variable — the Action does no
-      discovery, so an unset or unusable OWEN_RUST_CORE is a configuration
-      error (exit 2) and never a silent fall back to Python. compare is a
-      development/CI seam for the migration, not yet a promised feature.
+      Which analysis engine runs. Since #262 Stage 3 the DEFAULT is rust (the
+      Rust core `own-cli ownir`); python selects the reference implementation
+      and is the documented ROLLBACK for the observation window; compare runs
+      both over one captured input and exposes the reference's result only when
+      they agree byte for byte. A Rust failure is never turned into a Python
+      success: there is no fallback, and selecting python is something you do
+      on purpose. compare is a development/CI seam for the migration, not yet a
+      promised feature.
     required: false
-    default: "python"
+    default: "rust"
   fail-on-finding:
     description: >-
       Whether a FINDING fails the step. Default false: findings are published
@@ -80,7 +80,11 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Set up Python (Owen core)
+    # Python is still set up unconditionally, and on purpose: it is the
+    # documented ROLLBACK (engine: python) for the observation window, and
+    # `compare` needs both engines. Stage 3 changes which engine answers by
+    # default, not what the Action ships with. Removing this is Stage 4.
+    - name: Set up Python (Owen reference engine / rollback)
       uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
@@ -89,6 +93,58 @@ runs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ inputs.dotnet-version }}
+
+    # #262 Stage 3: the Rust core, for the engines that need one.
+    #
+    # The Action resolves its candidate by BUILDING the production `own-cli`
+    # crate from this action's own pinned ref. That is not a developer adapter
+    # and it is never own-shadow-engine or a stub: it is the same crate, the
+    # same --release profile and the same binary the release package carries,
+    # built from exactly the revision the caller pinned, which is also what
+    # makes the engine and the fixtures provably the same vintage.
+    #
+    # It is, however, a real cost to every consumer: a Rust toolchain and a
+    # first build. It is what is available today -- this repository publishes
+    # no release, so there is no `own-cli` artifact to download and no
+    # published Owen.Cli package to install -- and it should be revisited the
+    # moment a release exists, at which point downloading the released binary
+    # for the runner's platform is strictly better. Recorded rather than
+    # smoothed over, because the cost lands on users of this Action.
+    #
+    # Skipped entirely for `engine: python`, so the rollback path stays as
+    # cheap as it was before Stage 3.
+    - name: Set up Rust (Owen core)
+      if: inputs.engine != 'python'
+      uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+      with:
+        toolchain: stable
+    - name: Cache the built Owen core
+      if: inputs.engine != 'python'
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ github.action_path }}/rust/target
+          ~/.cargo/registry
+          ~/.cargo/git
+        # Keyed by the action's REF, so a caller who bumps the pinned version
+        # gets a rebuild rather than a stale binary from the previous one --
+        # the "a stale binary silently stands in" failure D3 exists to prevent.
+        key: owen-core-${{ runner.os }}-${{ github.action_ref || github.sha }}
+    - name: Build the Owen core (own-cli)
+      if: inputs.engine != 'python'
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "${{ github.action_path }}/rust"
+        cargo build -p own-cli --release
+        ext=""
+        if [ "$RUNNER_OS" = "Windows" ]; then ext=".exe"; fi
+        core="$(cd target/release && pwd)/own-cli$ext"
+        # Prove it runs on THIS runner before anything depends on it, so a
+        # broken candidate is a clear failure here rather than an obscure one
+        # inside a check.
+        "$core" --version
+        echo "OWEN_RUST_CORE=$core" >> "$GITHUB_ENV"
 
     - name: Owen leak check
       id: own

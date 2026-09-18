@@ -349,10 +349,33 @@ jobs:
           set -e
           echo "$out"
           [ "$rc" -eq 0 ] || { echo "FAIL: expected exit 0 on clean code, got $rc"; exit 1; }
+      # #262 Stage 3: the packed artifact's DEFAULT engine is Rust and carries
+      # its own binary (D6), so a bare check must work with no usable Python.
+      - name: "Stage 3: the packed artifact's default engine needs no Python"
+        run: |
+          set +e
+          out=$(OWEN_PYTHON=/definitely/does/not/exist/python3 owen check "$RUNNER_TEMP/sample" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: bare owen check with an unusable OWEN_PYTHON exited $rc, expected 1 (findings) — the packed default still needs Python"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001 from the default (Rust) engine"; exit 1; }
+      - name: "Stage 3: --engine python is the tested ROLLBACK, on the same install"
+        run: |
+          set +e
+          out=$(owen check --engine python "$RUNNER_TEMP/sample" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: the documented rollback exited $rc, expected 1 (findings)"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: the rollback engine produced no finding"; exit 1; }
+          echo "OK: Python remains selectable and working on the shipped package"
       - name: No Python found -> fast actionable failure (never an auto-download)
         run: |
           set +e
-          out=$(OWEN_PYTHON=/definitely/does/not/exist/python3 owen check "$RUNNER_TEMP/sample" 2>&1)
+          # --engine python is EXPLICIT (#262 Stage 3): a bare invocation now
+          # runs Rust and never consults OWEN_PYTHON.
+          out=$(OWEN_PYTHON=/definitely/does/not/exist/python3 owen check --engine python "$RUNNER_TEMP/sample" 2>&1)
           rc=$?
           set -e
           echo "$out"

@@ -10,7 +10,9 @@ code, the streams, the evidence file.
 The fifteen ratified adversarial controls, each named by the misreading it
 catches:
 
-    default-stays-python      the default silently becomes Rust
+    default-is-rust           the public default silently goes back to Python,
+                              drifts to compare, or stops reaching the
+                              candidate at all
     rust-actually-runs-rust   explicit Rust selection actually runs Python
     rust-failure-no-fallback  a Rust failure runs Python
     unexpected-rc-maps-to-5   an unexpected rc escapes as itself instead of 5
@@ -591,23 +593,67 @@ def control_compare_failure_is_classified(sample: Path, tmp: Path) -> None:
         ok(check, "a Python-only failure is recorded as execution-failure, not divergence")
 
 
-def control_default_stays_python(sample: Path) -> None:
-    """D1: the default engine is Python. Proved NEGATIVELY and positively: a
-    default run with a deliberately unusable Python must fail on Python (the
-    launcher's exit 3), which it cannot do if the default silently moved to
-    Rust; and it must not produce a Rust-only success."""
-    check = "default-stays-python"
+def control_default_is_rust(sample: Path) -> None:
+    """#262 Stage 3: the default engine is RUST.
+
+    This control is the inverse of the Stage-1 one it replaces, and it is built
+    the same way: by breaking the engine that must NOT be reached and by
+    breaking the engine that must.
+
+    1. NEGATIVE — a default run with a deliberately unusable OWEN_PYTHON must
+       SUCCEED. A Python default would exit 3 here (it did, for the whole of
+       Stages 1 and 2, and that was this control's assertion); so would a
+       default that had drifted to `compare`, which needs both engines. Passing
+       proves the default run never resolved Python at all.
+
+    2. POSITIVE — "did not use Python" is not "used Rust": a default that
+       silently became a no-op would also pass step 1. So the default run is
+       repeated with the candidate pointed at a binary forced to fail, and it
+       must now fail on the RUST path. Only a default that actually routes to
+       Rust can do both.
+
+    Together those are what make the constant in EngineSelection.Default
+    load-bearing rather than decorative.
+    """
+    check = "default-is-rust"
     r = run_owen(["--format", "human", str(sample)],
                  env={"OWEN_PYTHON": "/definitely/not/a/python"})
     if r is None:
         skip(check, "no built launcher/dotnet")
         return
-    if r.returncode != 3:
-        fail(check, f"default run with a broken OWEN_PYTHON exited {r.returncode}, expected 3 "
-                    "(the default engine is not Python any more, or Python is no longer resolved "
-                    "for it)")
-        return
-    ok(check, "the default still resolves Python and fails on it (exit 3)")
+    problems = []
+    if r.returncode == 3:
+        problems.append(
+            "a default run with a broken OWEN_PYTHON exited 3 — the default engine still "
+            "resolves Python, so the Stage-3 cutover did not reach this surface")
+    elif r.returncode not in (0, 1):
+        problems.append(
+            f"a default run with a broken OWEN_PYTHON exited {r.returncode}, expected a verdict "
+            f"(0 clean / 1 findings): the default must not need Python at all. stderr: "
+            f"{r.stderr.decode('utf-8', 'replace')[:400]}")
+
+    # 2 — and it is Rust specifically, not "not Python".
+    fault = rust_fault_core()
+    if fault is None:
+        skip(check + "/positive", "no OWEN_STAGE1_RUST_FAULT")
+    else:
+        rf = run_owen(["--format", "human", str(sample)],
+                      env={"OWEN_RUST_CORE": fault, "OWN_CLI_FAULT_PANIC": "1"})
+        if rf is None:
+            skip(check + "/positive", "no built launcher/dotnet")
+        elif rf.returncode != 5:
+            problems.append(
+                f"a default run whose CANDIDATE was forced to panic exited {rf.returncode}, "
+                f"expected the public internal-error path 5 — the default did not route to the "
+                f"Rust candidate, or a Rust failure was turned into something else")
+        elif b"finding" in rf.stdout:
+            problems.append("a forced Rust failure still published a verdict on the default path")
+
+    if problems:
+        fail(check, "; ".join(problems))
+    else:
+        ok(check, "the default runs Rust: it needs no Python, and a forced candidate "
+                  "failure fails it on the Rust path (exit 5)")
 
 
 def control_rust_actually_runs_rust(sample: Path) -> None:
@@ -1179,7 +1225,7 @@ def run() -> int:
             "compare-failure-classified":
                 lambda: control_compare_failure_is_classified(sample_dir, tmp),
             "no-selector-in-own-cli": control_no_selector_in_own_cli,
-            "default-stays-python": lambda: control_default_stays_python(sample_dir),
+            "default-is-rust": lambda: control_default_is_rust(sample_dir),
             "rust-actually-runs-rust": lambda: control_rust_actually_runs_rust(sample_dir),
             "rust-failure-no-fallback": lambda: control_rust_failure_no_fallback(sample_dir),
             "rc70-is-not-a-verdict": lambda: control_rc70_is_not_a_verdict(sample_dir),

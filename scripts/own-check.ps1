@@ -22,13 +22,18 @@
   How a host shows findings: error (default) or warning (advisory).
 
 .PARAMETER Engine
-  Which analysis engine runs (#262 Stage 1): python (DEFAULT and reference),
-  rust (the Rust core `own-cli ownir`), or compare (both over one captured
-  input, exposing the reference's result only when they agree byte for byte).
+  Which analysis engine runs. Since #262 Stage 3 the DEFAULT is rust (the Rust
+  core `own-cli ownir`); python selects the reference implementation and is the
+  documented ROLLBACK; compare runs both over one captured input, exposing the
+  reference's result only when they agree byte for byte.
   rust and compare require the candidate binary's absolute path in
   OWEN_RUST_CORE — there is no discovery of any kind, so an unset or unusable
   OWEN_RUST_CORE is a configuration error (exit 2), never a silent fall back to
   Python. A Rust failure is never turned into a Python success in any mode.
+  This surface runs from a CHECKOUT and has no packaged binary to fall back on
+  the way the `owen` tool does (#262 D6): build one with
+  `cargo build -p own-cli --release` in rust\ and point OWEN_RUST_CORE at it, or
+  pass -Engine python.
 
 .PARAMETER Verbosity
   How much to print: quiet (errors only — hide the advisory OWN050 "leakage
@@ -58,11 +63,11 @@ param(
     [string]$Root,
     [string]$Format = "human",
     [string]$Severity = "error",
-    # D1: Python is the Stage-1 default on every launcher surface. ValidateSet
+    # #262 Stage 3: Rust is the default on every launcher surface. ValidateSet
     # makes an unknown engine a parameter-binding failure rather than a value
     # that reaches the dispatch below.
     [ValidateSet("python", "rust", "compare")]
-    [string]$Engine = "python",
+    [string]$Engine = "rust",
     [ValidateSet("quiet", "normal", "verbose")]
     [string]$Verbosity = "normal",
     [switch]$Legacy,
