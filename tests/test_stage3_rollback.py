@@ -40,6 +40,7 @@ Environment:
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -63,6 +64,32 @@ public class Leaky
 
 # The one finding every state below is measured against.
 EXPECT_CODE = b"OWN001"
+
+
+def verdict(proc: subprocess.CompletedProcess[bytes]) -> tuple[int, tuple[str, ...]]:
+    """What a run ANSWERED, as opposed to what bytes it wrote.
+
+    The difference is not pedantry here, it is #262's Windows ruling. On a piped
+    Windows stdout the Python reference encodes cp1252 and translates line
+    endings to CRLF; the Rust core emits canonical UTF-8 on both platforms. So
+    the two engines' BYTES legitimately differ on Windows, and #262 records that
+    as a deliberate behaviour change with native-Windows Python parity
+    explicitly NOT claimed.
+
+    An earlier version of this control compared raw stdout between the default
+    and the rollback. It passed on Linux, where the reference IS canonical, and
+    failed on Windows -- correctly, because it was asserting the one claim #262
+    says is not made. Comparing the verdict instead asks the question the
+    rollback actually has to answer: did the way back reach the same finding at
+    the same exit code? The BYTE-level relationship between the engines is
+    #260's compare matrix's business, not this control's.
+    """
+    text = proc.stdout.decode("utf-8", "replace").replace("\r\n", "\n")
+    codes = tuple(sorted({
+        m for line in text.splitlines()
+        for m in re.findall(r"\[(OWN\d{3}|OBL\d{3})\]", line)
+    }))
+    return proc.returncode, codes
 
 # D3.1: a candidate that cannot be resolved or started is a CONFIGURATION
 # error, in the same tier as a usage mistake. Never 3 (Python-specific), never
@@ -171,13 +198,13 @@ def run() -> int:
                     f"{name}: the explicit rollback produced no {EXPECT_CODE.decode()} "
                     f"(exit {r2.returncode}) — the documented way back does not work",
                     check="rollback-state-2-explicit-python")
-            elif r2.stdout != r1.stdout:
+            elif verdict(r2) != verdict(r1):
                 # Not a parity gate (that is #260's job over the whole matrix) —
                 # a rollback-specific one: the way back must lead to the same
                 # answer, or it is a different product rather than a rollback.
                 failures += _fail(
-                    f"{name}: the rollback's verdict differs from the default's on the same "
-                    f"sample.\n    default: {r1.stdout!r}\n    rollback: {r2.stdout!r}",
+                    f"{name}: the rollback's VERDICT differs from the default's on the same "
+                    f"sample.\n    default : {verdict(r1)}\n    rollback: {verdict(r2)}",
                     check="rollback-state-2-agrees")
 
             # STATE 3 — candidate broken, NOTHING asked for. Visible failure.
@@ -214,10 +241,12 @@ def run() -> int:
                     f"is a way back from. stderr: "
                     f"{r4.stderr.decode('utf-8', 'replace')[:300]}",
                     check="rollback-state-4-works-when-rust-is-broken")
-            elif r4.stdout != r1.stdout:
+            elif verdict(r4) != verdict(r1):
                 failures += _fail(
                     f"{name}: the rollback under a broken candidate answered differently from "
-                    f"the default's baseline", check="rollback-state-4-works-when-rust-is-broken")
+                    f"the default's baseline.\n    default : {verdict(r1)}\n    "
+                    f"rollback: {verdict(r4)}",
+                    check="rollback-state-4-works-when-rust-is-broken")
 
             if not failures:
                 print(f"  ok[{name}]: default=Rust; explicit python agrees; broken candidate "
@@ -230,7 +259,10 @@ def run() -> int:
         "default runs Rust, an explicit --engine python runs the reference and agrees with it, "
         "a broken candidate with nothing asked for is a visible configuration error that denies "
         "a fallback in as many words, and an explicit --engine python still runs when the "
-        "candidate is broken. No state produced an answer from an engine nobody selected")
+        "candidate is broken. No state produced an answer from an engine nobody selected. "
+        "Agreement is measured as the VERDICT, not the bytes: #262 declares the Windows "
+        "reference's cp1252/CRLF output a behaviour change and does not claim byte parity "
+        "with it")
     return 0
 
 

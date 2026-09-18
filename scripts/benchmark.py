@@ -152,7 +152,16 @@ def _scan(root: str, cs_file: str, timeout: int = 300) -> set[str]:
     script = os.path.join(root, "scripts", "own-check.sh")
     try:
         proc = subprocess.run(
-            [script, "--root", root, "--format", "sarif", "--", cs_file],
+            # --engine python is EXPLICIT (#262 Stage 3). This benchmark's
+            # recall/specificity numbers are regression-pinned, and the engine
+            # underneath is part of what they mean: switching it silently
+            # redefines the measurement rather than re-taking it. The Stage-2
+            # census classifies this call site B for exactly that reason. When
+            # the public default moved to Rust a bare call here would have
+            # exited 2 (no candidate) -- it did, in CI -- and "fix it by giving
+            # the job a candidate" would have quietly changed the number.
+            [script, "--root", root, "--engine", "python",
+             "--format", "sarif", "--", cs_file],
             capture_output=True, text=True, timeout=timeout,
         )
     except subprocess.TimeoutExpired as e:
@@ -232,7 +241,7 @@ def scorecard(scores: list[CaseScore], min_recall: int,
                            "false positive)",
             "gate": "specificity and zero FPs are unconditional; recall is "
                     "gated against the pinned floor and ratchets up",
-            "runner": "scripts/own-check.sh --format sarif per file",
+            "runner": "scripts/own-check.sh --engine python --format sarif per file",
         },
         "corpus": [{"dir": d, "cases": n} for d, n in corpus_counts],
         "totals": {"cases": total, "caught": caught, "clean": clean,

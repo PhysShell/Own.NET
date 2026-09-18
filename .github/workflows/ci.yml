@@ -3892,7 +3892,12 @@ jobs:
           rm -rf "$HOME/.owen" "$HOME/.ownsharp"
           mkdir -p "$HOME/.ownsharp/core/0.1.0/ownlang"
           cp ownlang/*.py "$HOME/.ownsharp/core/0.1.0/ownlang/"
-          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the
+          # VENDORED PYTHON core's cache, and only the Python engine unpacks it.
+          # Since the cutover a bare invocation runs Rust and never touches
+          # ~/.owen/core, so these assertions would be about a directory nothing
+          # wrote -- this one failed in CI exactly that way.
+          driver=$(owen check --engine python "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
           [ "$driver" = "Owen" ] || { echo "FAIL: driver name '$driver' via the legacy cache"; exit 1; }
           if [ -d "$HOME/.owen" ]; then
             echo "FAIL: ~/.owen was created despite a legitimate matching legacy cache (fallback not reused in place)"; exit 1
@@ -3907,7 +3912,12 @@ jobs:
           mkdir -p "$HOME/.ownsharp/core/0.1.0/ownlang"
           cp ownlang/*.py "$HOME/.ownsharp/core/0.1.0/ownlang/"
           echo "# stale leftover module" > "$HOME/.ownsharp/core/0.1.0/ownlang/removed_module.py"
-          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the
+          # VENDORED PYTHON core's cache, and only the Python engine unpacks it.
+          # Since the cutover a bare invocation runs Rust and never touches
+          # ~/.owen/core, so these assertions would be about a directory nothing
+          # wrote -- this one failed in CI exactly that way.
+          driver=$(owen check --engine python "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
           [ "$driver" = "Owen" ] || { echo "FAIL: driver name '$driver'"; exit 1; }
           [ -d "$HOME/.owen" ] || { echo "FAIL: expected a fresh ~/.owen unpack (extra-file legacy cache should have been rejected)"; exit 1; }
           if find "$HOME/.owen" -name "removed_module.py" | grep -q .; then
@@ -3922,7 +3932,12 @@ jobs:
           mkdir -p "$HOME/.ownsharp/core/0.1.0/ownlang"
           cp ownlang/*.py "$HOME/.ownsharp/core/0.1.0/ownlang/"
           echo "# tampered" >> "$HOME/.ownsharp/core/0.1.0/ownlang/ownir.py"
-          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the
+          # VENDORED PYTHON core's cache, and only the Python engine unpacks it.
+          # Since the cutover a bare invocation runs Rust and never touches
+          # ~/.owen/core, so these assertions would be about a directory nothing
+          # wrote -- this one failed in CI exactly that way.
+          driver=$(owen check --engine python "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
           [ "$driver" = "Owen" ] || { echo "FAIL: driver name '$driver'"; exit 1; }
           [ -d "$HOME/.owen" ] || { echo "FAIL: expected a fresh ~/.owen unpack (modified-content legacy cache should have been rejected)"; exit 1; }
           echo "OK: modified-content legacy cache correctly rejected"
@@ -4057,12 +4072,22 @@ jobs:
         # stale file is gone from whatever cache directory actually got used.
         run: |
           rm -rf "$HOME/.owen" "$HOME/.ownsharp"
-          owen check "$RUNNER_TEMP/owen-sample" --fail-on-finding > /dev/null 2>&1 || true
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the
+          # VENDORED PYTHON core's cache, and only the Python engine unpacks it.
+          # Since the cutover a bare invocation runs Rust and never touches
+          # ~/.owen/core, so these assertions would be about a directory nothing
+          # wrote -- this one failed in CI exactly that way.
+          owen check --engine python "$RUNNER_TEMP/owen-sample" --fail-on-finding > /dev/null 2>&1 || true
           cache_dir=$(find "$HOME/.owen/core" -mindepth 2 -maxdepth 2 -type d)
           [ -n "$cache_dir" ] || { echo "FAIL: first run did not create a current-cache directory"; exit 1; }
           echo "# tampered" >> "$cache_dir/ownlang/ownir.py"
           echo "# stale leftover module" > "$cache_dir/ownlang/stale_module.py"
-          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the
+          # VENDORED PYTHON core's cache, and only the Python engine unpacks it.
+          # Since the cutover a bare invocation runs Rust and never touches
+          # ~/.owen/core, so these assertions would be about a directory nothing
+          # wrote -- this one failed in CI exactly that way.
+          driver=$(owen check --engine python "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
           [ "$driver" = "Owen" ] || { echo "FAIL: driver name '$driver' after rebuild"; exit 1; }
           if find "$HOME/.owen" -name "stale_module.py" | grep -q .; then
             echo "FAIL: the stale extra file survived under a used cache directory"; exit 1

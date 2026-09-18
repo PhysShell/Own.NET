@@ -78,6 +78,12 @@ echo "mine: scanning $scan (commit $commit)" >&2
 # stderr; keep them apart. Without --fail-on-finding it exits 0 even with leaks;
 # rc>=2 is a hard error (bad facts) — note it but still report what we captured.
 set +e
+# #262 Stage 3: no --engine here on purpose. This tool reports what OWEN finds,
+# so it follows the PUBLIC default, which is now the Rust core. That means the
+# caller must supply a candidate (OWEN_RUST_CORE) exactly as any other bare
+# invocation does; the mining workflows build one. Pinning this to --engine
+# python would freeze the miner to the reference engine and quietly make its
+# reports describe an engine users no longer run.
 "$root/scripts/own-check.sh" --root "$root" --format "$format" --stats -- "$scan" \
   >"$outdir/findings.txt" 2>"$outdir/extract.log"
 rc=$?

@@ -583,7 +583,10 @@ fn every_declared_boundary_case_is_eligible_for_the_boundary_it_names() {
         let Some(boundary) = case.get("boundary") else {
             continue;
         };
-        let id = field(boundary, "id").as_str().expect("a boundary id").to_owned();
+        let id = field(boundary, "id")
+            .as_str()
+            .expect("a boundary id")
+            .to_owned();
         assert_eq!(
             boundary_eligible(&case, &id),
             Ok(()),
