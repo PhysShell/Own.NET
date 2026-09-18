@@ -13,6 +13,19 @@ A2 requires richer facts with ZERO MOS movement. The comparison is therefore
 whole-document equality, not a projection to transfer: returns/source/degraded/
 unresolved are part of the summary surface and a1 already demonstrated why a
 returns-shape change cannot be treated as decoration.
+
+A2.0 hardening (scripts/p037_evidence.py holds the contract): a snapshot
+analyses a FROZEN population materialized from a named commit, never the working
+tree; runs only the qualified own-shadow-engine build; removes OWN_EXTRA_REF_DIRS
+from the extractor's environment and reads its stderr for the attestation that
+no extra reference was loaded; records the execution profile; checks the tree
+clean before and after; and refuses to write evidence into a tracked location.
+
+Usage:
+  p037_mos_snapshot.py take    --source repo --out /scratch/mos-repo.json
+  p037_mos_snapshot.py take    --source repo --population-commit <T> --out ...
+  p037_mos_snapshot.py compare --before base.json --after new.json [--against <T>]
+  p037_mos_snapshot.py verify  snapshot.json [--against <T>]
 """
 
 from __future__ import annotations
@@ -35,17 +48,26 @@ import p037_evidence as ev  # noqa: E402
 from shadow_compare import (  # noqa: E402
     DEFAULT_TIMEOUT_SECONDS,
     ExecutionFailure,
+    engine_identity,
     run_port,
     run_reference,
 )
 
 from ownlang.repro import ENGINE_PYTHON, ENGINE_RUST, hash_bytes  # noqa: E402
 
-SCHEMA = "p037-mos-snapshot/1"
+SCHEMA = "p037-mos-snapshot/2"
 SOURCES: dict[str, tuple[str, ...]] = {
     "corpus": ev.CORPUS_DIRS,
     "repo": ev.REPO_TREE_DIRS,
 }
+
+
+class ReferenceContamination(RuntimeError):
+    """The extractor attested that it loaded references from the environment."""
+
+    def __init__(self, document: str, lines: list[str]) -> None:
+        super().__init__(f"{document}: the extractor loaded extra references: {lines}")
+        self.lines = lines
 
 
 def _bash() -> str:
@@ -61,12 +83,13 @@ def _bash() -> str:
     raise RuntimeError("p037_mos_snapshot requires a real bash (Git Bash on Windows)")
 
 
-def source_files(roots: tuple[str, ...]) -> list[Path]:
-    return ev.input_paths(roots)
-
-
 def extract_facts(paths: list[Path], document: str) -> bytes:
-    """One extractor execution; the emitted facts are the bytes both engines see."""
+    """One extractor execution; the emitted facts are the bytes both engines see.
+
+    The child environment is sanitized (no OWN_EXTRA_REF_DIRS) and the
+    launcher's stderr, which carries the extractor's own messages, is read for
+    the line the extractor prints when it did widen its reference set.
+    """
     if not paths:
         raise RuntimeError(f"{document}: zero source files")
     with tempfile.TemporaryDirectory(prefix="p037-mos-") as td:
@@ -79,11 +102,17 @@ def extract_facts(paths: list[Path], document: str) -> bytes:
             "--emit-facts", str(facts),
             "--", *(str(path) for path in paths),
         ]
-        proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, check=False)
+        proc = subprocess.run(
+            cmd, cwd=ROOT, capture_output=True, check=False, env=ev.sanitized_env()
+        )
+        stderr = proc.stderr.decode("utf-8", "replace")
+        contamination = ev.reference_contamination(stderr)
+        if contamination:
+            raise ReferenceContamination(document, contamination)
         if proc.returncode != 0:
             raise RuntimeError(
                 f"extractor/launcher failed for {document}: "
-                f"exit {proc.returncode}; stderr={proc.stderr.decode('utf-8', 'replace')[-800:]}"
+                f"exit {proc.returncode}; stderr={stderr[-800:]}"
             )
         try:
             return facts.read_bytes()
@@ -91,16 +120,19 @@ def extract_facts(paths: list[Path], document: str) -> bytes:
             raise RuntimeError(f"no emitted facts for {document}: {exc}") from exc
 
 
-def source_documents(source: str, files: list[Path]) -> list[tuple[str, list[Path]]]:
+def source_documents(
+    source: str, files: list[Path], root: Path
+) -> list[tuple[str, list[Path]]]:
     """The two independent source semantics.
 
     The labelled corpus is a set of independent programs and is therefore
     measured one file at a time, matching its verdict labels. The repository
-    tree is one program: all 81 tracked C# files are handed to one Roslyn
-    compilation so inter-file calls and summaries remain observable.
+    tree is one program: all tracked C# files are handed to one Roslyn
+    compilation so inter-file calls and summaries remain observable. Document
+    ids are population-relative, so they are identical across a pair.
     """
     if source == "corpus":
-        return [(path.relative_to(ROOT).as_posix(), [path]) for path in files]
+        return [(path.relative_to(root).as_posix(), [path]) for path in files]
     if source == "repo":
         return [("repo-tree", files)]
     raise RuntimeError(f"unknown source {source!r}")
@@ -150,47 +182,68 @@ def capture_pair(raw: bytes, adapter: dict[str, Any], timeout: float
     return py, rs
 
 
-def take(source: str, out: Path, timeout: float) -> int:
+def _refuse(problems: list[str]) -> None:
+    if problems:
+        raise ev.EvidenceRefused("; ".join(problems))
+
+
+def take(source: str, out: Path, timeout: float, population_commit: str) -> int:
     roots = SOURCES[source]
     try:
-        candidate = ev.build_rust_binary("own-shadow", "own-shadow-engine")
-        toolchains = ev.tool_versions(include_rust=True)
-        provenance = ev.evidence_fields(roots)
-        files = source_files(roots)
-        adapter = candidate
+        _refuse(ev.scratch_problems(out))
+        provenance = ev.evidence_fields(roots, population_commit=population_commit)
+        if provenance["dirty"]:
+            raise ev.EvidenceRefused("the tree is dirty before the run; evidence starts clean")
+        profile = ev.execution_profile(include_rust=True)
+        artifact = ev.build_rust_artifact("own-shadow", "own-shadow-engine")
+        _refuse(ev.artifact_problems(artifact))
+        adapter = engine_identity(str(artifact["executable"]))
+        if adapter["sha256"] != artifact["sha256"]:
+            raise ev.EvidenceRefused("the adapter about to run is not the qualified build")
+        lease = ev.acquire_population(ev.materialization_root(
+            provenance["population_commit"], provenance["analysis_manifest_sha256"]))
     except (RuntimeError, SystemExit, ev.EvidenceRefused) as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
-    if not files:
-        print(f"REFUSED: source {source!r} contains zero committed C# files", file=sys.stderr)
-        return 2
-    absent = [p for p in files if not p.is_file()]
-    if absent:
-        print(
-            f"REFUSED: {len(absent)} committed input(s) are absent from the working tree; "
-            f"first: {absent[0].relative_to(ROOT)}",
-            file=sys.stderr,
-        )
+    try:
+        return _measure(source, out, timeout, provenance, profile, artifact, adapter)
+    finally:
+        ev.release_population(lease)
+
+
+def _measure(
+    source: str,
+    out: Path,
+    timeout: float,
+    provenance: dict[str, Any],
+    profile: dict[str, Any],
+    artifact: dict[str, Any],
+    adapter: dict[str, Any],
+) -> int:
+    try:
+        root = ev.materialize_population(provenance)
+        _refuse(ev.external_ancestor_problems(root))
+        files = ev.analysis_paths(provenance, root)
+    except ev.EvidenceRefused as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
 
-    documents = source_documents(source, files)
+    documents = source_documents(source, files, root)
+    reference_profile = ev.clean_reference_profile()
     snapshot: dict[str, Any] = {
         "schema": SCHEMA,
         "source": source,
         **provenance,
-        "toolchains": toolchains,
-        "adapter": {
-            "repo_path": candidate["repo_path"],
-            "sha256": candidate["sha256"],
-            "bytes": candidate["bytes"],
-            "build": candidate["build"],
-        },
+        "materialization_root": root.relative_to(ROOT).as_posix(),
+        "execution_profile": profile,
+        "artifacts": {"own-shadow-engine": artifact},
+        "reference_profile": reference_profile,
         "documents": {},
     }
     failures: list[str] = []
     parity_moved: list[str] = []
     for i, (doc_id, paths) in enumerate(documents, 1):
-        rels = [path.relative_to(ROOT).as_posix() for path in paths]
+        rels = [path.relative_to(root).as_posix() for path in paths]
         try:
             raw = extract_facts(paths, doc_id)
             py, rs = capture_pair(raw, adapter, timeout)
@@ -204,6 +257,12 @@ def take(source: str, out: Path, timeout: float) -> int:
             }
             if py_surface != rs_surface:
                 parity_moved.append(doc_id)
+        except ReferenceContamination as exc:
+            reference_profile["observed_extra_reference_lines"] = (
+                int(reference_profile["observed_extra_reference_lines"]) + len(exc.lines)
+            )
+            failures.append(f"{doc_id}: {exc}")
+            record = {"inputs": rels, "error": str(exc)}
         except (RuntimeError, ExecutionFailure) as exc:
             failures.append(f"{doc_id}: {exc}")
             record = {"inputs": rels, "error": str(exc)}
@@ -213,6 +272,11 @@ def take(source: str, out: Path, timeout: float) -> int:
             flush=True,
         )
 
+    tampered = ev.population_intact(provenance, root)
+    snapshot["post_run_population_intact"] = not tampered
+    if tampered:
+        snapshot["is_evidence"] = False
+        snapshot["population_tampered"] = tampered
     if ev.tree_is_dirty():
         snapshot["is_evidence"] = False
         snapshot["post_run_dirty"] = True
@@ -226,11 +290,13 @@ def take(source: str, out: Path, timeout: float) -> int:
     out.write_text(json.dumps(snapshot, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     print(
         f"snapshot: {len(documents)} document(s) / {len(files)} source file(s), source={source}, "
+        f"population={provenance['population_commit'][:12]}, "
         f"cross-engine mismatches={len(parity_moved)}, failures={len(failures)}, "
         f"at {snapshot['source_commit'][:7]}"
+        f"{'' if snapshot['is_evidence'] else ' (NOT evidence)'}"
     )
     print(f"wrote {out}")
-    return 0 if not failures and not parity_moved else 1
+    return 0 if snapshot["is_evidence"] else 1
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -241,10 +307,11 @@ def _load(path: Path) -> dict[str, Any]:
 
 
 def _snapshot_problems(record: dict[str, Any]) -> list[str]:
+    """The documents measured are exactly the frozen population, all of them."""
     problems: list[str] = []
-    manifest = record.get("input_manifest")
+    manifest = record.get("analysis_manifest")
     if not isinstance(manifest, list):
-        return ["snapshot carries no input_manifest list"]
+        return ["snapshot carries no analysis_manifest list"]
     expected = {
         entry["path"]
         for entry in manifest
@@ -268,30 +335,28 @@ def _snapshot_problems(record: dict[str, Any]) -> list[str]:
     if len(seen) != len(set(seen)):
         problems.append("a source input appears in more than one MOS document")
     if set(seen) != expected:
-        problems.append("MOS document inputs do not equal the recorded input manifest")
+        problems.append("MOS document inputs do not equal the frozen population manifest")
+    if "own-shadow-engine" not in (record.get("artifacts") or {}):
+        problems.append("snapshot names no qualified own-shadow-engine artifact")
     return problems
 
 
-def compare(before: Path, after: Path) -> int:
+def compare(before: Path, after: Path, against: str) -> int:
     try:
         a, b = _load(before), _load(after)
-    except (OSError, ValueError, RuntimeError) as exc:
+        problems = [
+            *ev.comparison_problems(a, b, against=against),
+            *(f"before: {p}" for p in _snapshot_problems(a)),
+            *(f"after: {p}" for p in _snapshot_problems(b)),
+        ]
+    except (OSError, ValueError, RuntimeError, ev.EvidenceRefused) as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
-    problems = [
-        *ev.comparison_problems(a, b),
-        *(f"before: {p}" for p in _snapshot_problems(a)),
-        *(f"after: {p}" for p in _snapshot_problems(b)),
-    ]
+    if a.get("source") != b.get("source"):
+        problems.append(f"sources differ ({a.get('source')!r} vs {b.get('source')!r})")
     if problems:
         for problem in problems:
             print(f"REFUSED: {problem}", file=sys.stderr)
-        return 2
-    if a.get("source") != b.get("source"):
-        print(
-            f"REFUSED: sources differ ({a.get('source')!r} vs {b.get('source')!r})",
-            file=sys.stderr,
-        )
         return 2
 
     moved: dict[str, list[str]] = {ENGINE_PYTHON: [], ENGINE_RUST: [], "facts": []}
@@ -327,8 +392,8 @@ def compare(before: Path, after: Path) -> int:
     print(
         "RESULT: "
         + ("MOVED" if failed else "UNCHANGED")
-        + f" — source={a.get('source')}, documents={len(names)}, "
-          f"facts_moved={len(moved['facts'])}, "
+        + f" — source={a.get('source')}, population={str(a.get('population_commit'))[:12]}, "
+          f"documents={len(names)}, facts_moved={len(moved['facts'])}, "
           f"python_mos_moved={len(moved[ENGINE_PYTHON])}, "
           f"rust_mos_moved={len(moved[ENGINE_RUST])}, "
           f"after_parity_moved={len(after_parity)}"
@@ -336,10 +401,13 @@ def compare(before: Path, after: Path) -> int:
     return 1 if failed else 0
 
 
-def verify(path: Path) -> int:
+def verify(path: Path, against: str) -> int:
     try:
         record = _load(path)
-        problems = ev.provenance_problems(record)
+        problems = [
+            *ev.provenance_problems(record, against=against),
+            *_snapshot_problems(record),
+        ]
     except (OSError, ValueError, RuntimeError, ev.EvidenceRefused) as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
@@ -348,8 +416,10 @@ def verify(path: Path) -> int:
             print(f"FAIL[provenance]: {problem}")
         return 1
     print(
-        f"OK: {path} is fresh evidence at HEAD; source={record['source_commit'][:12]}, "
-        f"inputs={len(record['input_manifest'])}"
+        f"OK: {path} is fresh evidence at {against}; source={record['source_commit'][:12]}, "
+        f"population={record['population_commit'][:12]}, "
+        f"inputs={len(record['analysis_manifest'])}, "
+        f"support={len(record['support_manifest'])}"
     )
     return 0
 
@@ -387,27 +457,34 @@ def selftest() -> int:
 
 
 def main(argv: list[str]) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--selftest", action="store_true")
     sub = ap.add_subparsers(dest="cmd")
     t = sub.add_parser("take")
     t.add_argument("--source", required=True, choices=tuple(SOURCES))
     t.add_argument("--out", required=True, type=Path)
+    t.add_argument("--population-commit", default="HEAD",
+                   help="the commit whose blobs are analysed (default HEAD; the after "
+                        "side of a pair names the baseline's commit)")
     t.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT_SECONDS)
     c = sub.add_parser("compare")
     c.add_argument("--before", required=True, type=Path)
     c.add_argument("--after", required=True, type=Path)
+    c.add_argument("--against", default="HEAD",
+                   help="the commit the after side must be fresh at (default HEAD)")
     v = sub.add_parser("verify")
     v.add_argument("snapshot", type=Path)
+    v.add_argument("--against", default="HEAD")
     args = ap.parse_args(argv)
     if args.selftest:
         return selftest()
     if args.cmd == "take":
-        return take(args.source, args.out, args.timeout)
+        return take(args.source, args.out, args.timeout, args.population_commit)
     if args.cmd == "compare":
-        return compare(args.before, args.after)
+        return compare(args.before, args.after, args.against)
     if args.cmd == "verify":
-        return verify(args.snapshot)
+        return verify(args.snapshot, args.against)
     ap.error("one command is required (or --selftest)")
     return 2
 

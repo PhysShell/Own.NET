@@ -28,21 +28,27 @@ Rust candidate and exits 2 on a machine without one, and the A1.1 change is in
 the EXTRACTOR — shared by both engines — so a snapshot that did not name its
 engine would not say which half of the seam it had measured.
 
-A snapshot records the commit it was taken at and whether the tree was dirty.
-A dirty snapshot is not evidence and says so in its own payload; it is still
-written, because the inner development loop needs it.
+A2.0 hardening (scripts/p037_evidence.py holds the contract): the files
+measured are the FROZEN population materialized from a named commit, never the
+working tree; the Rust engine is the qualified own-cli build and nothing else
+(OWEN_RUST_CORE is set to exactly that executable, never inherited);
+OWN_EXTRA_REF_DIRS is removed from the launcher's environment and the
+extractor's stderr is read for the attestation that no extra reference was
+loaded; the execution profile is recorded; the tree is checked clean before and
+after; evidence is never written into a tracked location.
 
 Usage:
-  p037_verdict_snapshot.py take    --engine rust --out base.json
-  p037_verdict_snapshot.py compare --before base.json --after new.json
+  p037_verdict_snapshot.py take    --engine rust --out /scratch/verdict-rust.json
+  p037_verdict_snapshot.py take    --engine rust --population-commit <T> --out ...
+  p037_verdict_snapshot.py compare --before base.json --after new.json [--against <T>]
   p037_verdict_snapshot.py compare --before base.json --after new.json --level all
+  p037_verdict_snapshot.py verify  snapshot.json [--against <T>]
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -51,22 +57,15 @@ from typing import Any
 import p037_evidence as ev
 
 ROOT = Path(__file__).resolve().parent.parent
+SCHEMA = "p037-verdict-snapshot/3"
 VERDICT_LEVELS = ("error", "warning")
 
 
-def corpus_files(dirs: tuple[str, ...]) -> list[Path]:
-    """The exact committed C# denominator named by the provenance manifest."""
-    return ev.input_paths(dirs)
-
-
-def run_one(path: Path, engine: str, rust_core: str | None) -> dict[str, Any]:
+def run_one(path: Path, engine: str, env: dict[str, str]) -> dict[str, Any]:
     """One file through the launcher; SARIF in, (exit, findings) out."""
     cmd = [str(ROOT / "scripts" / "own-check.sh"), "--engine", engine,
-           "--format", "sarif", "--severity", "warning", str(path)]
-    env = os.environ.copy()
-    if rust_core is not None:
-        env["OWEN_RUST_CORE"] = rust_core
-    proc = subprocess.run(cmd, capture_output=True, text=True, check=False, env=env)
+           "--format", "sarif", "--severity", "warning", "--", str(path)]
+    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, check=False, env=env)
     findings: list[dict[str, Any]] = []
     parse_error = ""
     try:
@@ -89,53 +88,89 @@ def run_one(path: Path, engine: str, rust_core: str | None) -> dict[str, Any]:
     if parse_error:
         rec["parse_error"] = parse_error
         rec["stderr_tail"] = proc.stderr.strip()[-400:]
+    contamination = ev.reference_contamination(proc.stderr)
+    if contamination:
+        rec["reference_contamination"] = contamination
     return rec
 
 
-def take(engine: str, out: Path, dirs: tuple[str, ...]) -> int:
+def _refuse(problems: list[str]) -> None:
+    if problems:
+        raise ev.EvidenceRefused("; ".join(problems))
+
+
+def take(engine: str, out: Path, dirs: tuple[str, ...], population_commit: str) -> int:
     try:
-        candidate = (
-            ev.build_rust_binary("own-cli", "own-cli")
-            if engine == "rust"
-            else None
-        )
-        toolchains = ev.tool_versions(include_rust=engine == "rust")
-        provenance = ev.evidence_fields(dirs)
-        files = corpus_files(dirs)
+        _refuse(ev.scratch_problems(out))
+        provenance = ev.evidence_fields(dirs, population_commit=population_commit)
+        if provenance["dirty"]:
+            raise ev.EvidenceRefused("the tree is dirty before the run; evidence starts clean")
+        profile = ev.execution_profile(include_rust=engine == "rust")
+        artifacts: dict[str, Any] = {}
+        overrides: dict[str, str] = {}
+        if engine == "rust":
+            artifact = ev.build_rust_artifact("own-cli", "own-cli")
+            _refuse(ev.artifact_problems(artifact))
+            artifacts["own-cli"] = artifact
+            overrides["OWEN_RUST_CORE"] = str(artifact["executable"])
+        lease = ev.acquire_population(ev.materialization_root(
+            provenance["population_commit"], provenance["analysis_manifest_sha256"]))
     except ev.EvidenceRefused as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
-    if not files:
-        print("no committed corpus files found", file=sys.stderr)
+    try:
+        return _measure(engine, out, dirs, provenance, profile, artifacts, overrides)
+    finally:
+        ev.release_population(lease)
+
+
+def _measure(
+    engine: str,
+    out: Path,
+    dirs: tuple[str, ...],
+    provenance: dict[str, Any],
+    profile: dict[str, Any],
+    artifacts: dict[str, Any],
+    overrides: dict[str, str],
+) -> int:
+    try:
+        root = ev.materialize_population(provenance)
+        _refuse(ev.external_ancestor_problems(root))
+        files = ev.analysis_paths(provenance, root)
+    except ev.EvidenceRefused as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
-    rust_core = str(candidate["path"]) if candidate is not None else None
+    env = ev.sanitized_env(**overrides)
+    reference_profile = ev.clean_reference_profile()
     snap: dict[str, Any] = {
-        "schema": "p037-verdict-snapshot/2",
+        "schema": SCHEMA,
         "engine": engine,
         **provenance,
-        "toolchains": toolchains,
-        **(
-            {
-                "rust_candidate": {
-                    "repo_path": candidate["repo_path"],
-                    "sha256": candidate["sha256"],
-                    "bytes": candidate["bytes"],
-                    "build": candidate["build"],
-                }
-            }
-            if candidate is not None
-            else {}
-        ),
+        "materialization_root": root.relative_to(ROOT).as_posix(),
+        "execution_profile": profile,
+        "artifacts": artifacts,
+        "reference_profile": reference_profile,
         "corpus": list(dirs),
         "files": {},
     }
-    dirty = bool(snap["dirty"])
     for i, f in enumerate(files, 1):
-        rel = f.relative_to(ROOT).as_posix()
-        snap["files"][rel] = run_one(f, engine, rust_core)
-        n = len(snap["files"][rel]["findings"])
+        rel = f.relative_to(root).as_posix()
+        rec = run_one(f, engine, env)
+        snap["files"][rel] = rec
+        if "reference_contamination" in rec:
+            reference_profile["observed_extra_reference_lines"] = (
+                int(reference_profile["observed_extra_reference_lines"])
+                + len(rec["reference_contamination"])
+            )
+        n = len(rec["findings"])
         print(f"  [{i:3}/{len(files)}] {rel}  ({n} finding(s))", flush=True)
-    broken = [k for k, r in snap["files"].items() if "parse_error" in r]
+    broken = [k for k, r in snap["files"].items()
+              if "parse_error" in r or "reference_contamination" in r]
+    tampered = ev.population_intact(provenance, root)
+    snap["post_run_population_intact"] = not tampered
+    if tampered:
+        snap["is_evidence"] = False
+        snap["population_tampered"] = tampered
     if ev.tree_is_dirty():
         snap["is_evidence"] = False
         snap["post_run_dirty"] = True
@@ -150,44 +185,19 @@ def take(engine: str, out: Path, dirs: tuple[str, ...]) -> int:
     out.write_text(json.dumps(snap, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     total = sum(len(r["findings"]) for r in snap["files"].values())
     print(f"\nsnapshot: {len(files)} file(s), {total} finding(s), engine={engine}, "
-          f"at {snap['source_commit'][:7]}{' (DIRTY — not evidence)' if dirty else ''}")
+          f"population={provenance['population_commit'][:12]}, "
+          f"at {snap['source_commit'][:7]}"
+          f"{'' if snap['is_evidence'] else ' (NOT evidence)'}")
     print(f"wrote {out}")
     if broken:
         print(f"\nREFUSED as evidence: {len(broken)}/{len(files)} file(s) produced "
-              f"unparsable SARIF. First few: {broken[:5]}", file=sys.stderr)
+              f"unparsable SARIF or loaded extra references. First few: {broken[:5]}",
+              file=sys.stderr)
         for k in broken[:3]:
             print(f"  {k}: exit={snap['files'][k]['exit']} "
-                  f"{snap['files'][k].get('stderr_tail','')[:160]}", file=sys.stderr)
+                  f"{snap['files'][k].get('stderr_tail', '')[:160]}", file=sys.stderr)
         return 1
-    return 0
-
-
-def verify(path: Path) -> int:
-    try:
-        snap: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        print(f"REFUSED: {path}: {exc}", file=sys.stderr)
-        return 2
-    if snap.get("schema") != "p037-verdict-snapshot/2":
-        print(
-            f"REFUSED: {path}: schema {snap.get('schema')!r} has no A2.0 provenance closure",
-            file=sys.stderr,
-        )
-        return 2
-    try:
-        problems = ev.provenance_problems(snap)
-    except ev.EvidenceRefused as exc:
-        print(f"REFUSED: {exc}", file=sys.stderr)
-        return 2
-    if problems:
-        for problem in problems:
-            print(f"FAIL[provenance]: {problem}")
-        return 1
-    print(
-        f"OK: {path} is fresh evidence at HEAD; "
-        f"source={snap['source_commit'][:12]}, inputs={len(snap['input_manifest'])}"
-    )
-    return 0
+    return 0 if snap["is_evidence"] else 1
 
 
 def key_set(rec: dict[str, Any], level: str) -> set[tuple[int, str, str]]:
@@ -197,15 +207,17 @@ def key_set(rec: dict[str, Any], level: str) -> set[tuple[int, str, str]]:
 
 def _load(path: Path) -> dict[str, Any]:
     data = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict) or data.get("schema") != "p037-verdict-snapshot/2":
-        raise RuntimeError(f"{path}: not a p037-verdict-snapshot/2 document")
+    if not isinstance(data, dict) or data.get("schema") != SCHEMA:
+        raise RuntimeError(f"{path}: not a {SCHEMA} document (older schemas carry no "
+                           "A2.0 provenance closure)")
     return data
 
 
 def _snapshot_problems(record: dict[str, Any]) -> list[str]:
-    manifest = record.get("input_manifest")
+    """The files measured are exactly the frozen population, all readable."""
+    manifest = record.get("analysis_manifest")
     if not isinstance(manifest, list):
-        return ["snapshot carries no input_manifest list"]
+        return ["snapshot carries no analysis_manifest list"]
     expected = {
         entry["path"]
         for entry in manifest
@@ -216,34 +228,58 @@ def _snapshot_problems(record: dict[str, Any]) -> list[str]:
         return ["snapshot carries no files object"]
     problems: list[str] = []
     if set(files) != expected:
-        problems.append("snapshot file keys do not equal the recorded input manifest")
+        problems.append("snapshot file keys do not equal the frozen population manifest")
     if record.get("unreadable"):
         problems.append("snapshot contains unreadable runs")
+    if any(isinstance(r, dict) and "reference_contamination" in r for r in files.values()):
+        problems.append("a run loaded references from the environment")
+    if record.get("engine") == "rust" and "own-cli" not in (record.get("artifacts") or {}):
+        problems.append("a rust snapshot names no qualified own-cli artifact")
     return problems
 
 
-def compare(before: Path, after: Path, level: str) -> int:
+def verify(path: Path, against: str) -> int:
     try:
-        a, b = _load(before), _load(after)
-    except (OSError, ValueError, RuntimeError) as exc:
+        snap = _load(path)
+        problems = [
+            *ev.provenance_problems(snap, against=against),
+            *_snapshot_problems(snap),
+        ]
+    except (OSError, ValueError, RuntimeError, ev.EvidenceRefused) as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
-    problems = [
-        *ev.comparison_problems(a, b),
-        *(f"before: {p}" for p in _snapshot_problems(a)),
-        *(f"after: {p}" for p in _snapshot_problems(b)),
-    ]
+    if problems:
+        for problem in problems:
+            print(f"FAIL[provenance]: {problem}")
+        return 1
+    print(
+        f"OK: {path} is fresh evidence at {against}; "
+        f"source={snap['source_commit'][:12]}, population={snap['population_commit'][:12]}, "
+        f"inputs={len(snap['analysis_manifest'])}, support={len(snap['support_manifest'])}"
+    )
+    return 0
+
+
+def compare(before: Path, after: Path, level: str, against: str) -> int:
+    try:
+        a, b = _load(before), _load(after)
+        problems = [
+            *ev.comparison_problems(a, b, against=against),
+            *(f"before: {p}" for p in _snapshot_problems(a)),
+            *(f"after: {p}" for p in _snapshot_problems(b)),
+        ]
+    except (OSError, ValueError, RuntimeError, ev.EvidenceRefused) as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
+        return 2
+    if a["engine"] != b["engine"]:
+        problems.append(f"engines differ ({a['engine']} vs {b['engine']}); a comparison "
+                        "across engines measures the engine, not the change")
     if problems:
         for problem in problems:
             print(f"REFUSED: {problem}", file=sys.stderr)
         return 2
-    if a["engine"] != b["engine"]:
-        print(f"REFUSED: engines differ ({a['engine']} vs {b['engine']}). A snapshot "
-              f"comparison across engines measures the engine, not the change.",
-              file=sys.stderr)
-        return 2
     print(f"comparing engine={a['engine']} at {a['source_commit'][:7]} -> "
-          f"{b['source_commit'][:7]}, level={level}")
+          f"{b['source_commit'][:7]}, population={a['population_commit'][:12]}, level={level}")
     moved = 0
     for rel in sorted(set(a["files"]) | set(b["files"])):
         ra, rb = a["files"].get(rel), b["files"].get(rel)
@@ -280,20 +316,26 @@ def main(argv: list[str]) -> int:
     t.add_argument("--engine", required=True, choices=("rust", "python"))
     t.add_argument("--out", required=True, type=Path)
     t.add_argument("--corpus", action="append", default=None, metavar="DIR")
+    t.add_argument("--population-commit", default="HEAD",
+                   help="the commit whose blobs are analysed (default HEAD; the after "
+                        "side of a pair names the baseline's commit)")
     c = sub.add_parser("compare", help="diff two snapshots")
     c.add_argument("--before", required=True, type=Path)
     c.add_argument("--after", required=True, type=Path)
     c.add_argument("--level", default="verdict", choices=("verdict", "all"),
                    help="verdict = error/warning only (default); all = advisories too")
-    v = sub.add_parser("verify", help="prove a snapshot is still fresh evidence at HEAD")
+    c.add_argument("--against", default="HEAD",
+                   help="the commit the after side must be fresh at (default HEAD)")
+    v = sub.add_parser("verify", help="prove a snapshot is still fresh evidence at a commit")
     v.add_argument("snapshot", type=Path)
+    v.add_argument("--against", default="HEAD")
     args = ap.parse_args(argv)
     if args.cmd == "take":
         dirs = tuple(args.corpus) if args.corpus else ev.CORPUS_DIRS
-        return take(args.engine, args.out, dirs)
+        return take(args.engine, args.out, dirs, args.population_commit)
     if args.cmd == "verify":
-        return verify(args.snapshot)
-    return compare(args.before, args.after, args.level)
+        return verify(args.snapshot, args.against)
+    return compare(args.before, args.after, args.level, args.against)
 
 
 if __name__ == "__main__":

@@ -3032,6 +3032,13 @@ jobs:
           # P-022 capture envelope. This cheap control pins that returns and
           # unresolved fields cannot disappear behind a transfer-only projection.
           python scripts/p037_mos_snapshot.py --selftest
+          # A2.0: the machinery a baseline run stands on, exercised where cargo,
+          # git and dotnet are real. Both Rust executables are built qualified
+          # (path from cargo's own compiler-artifact message, digest verified),
+          # the frozen repo population is derived, materialized from blobs,
+          # re-hashed and removed again. No baseline is taken here.
+          python scripts/p037_evidence.py artifacts
+          python scripts/p037_evidence.py population --source repo --materialize --cleanup
       # The Windows launcher is a separate implementation, not a wrapper around
       # the shell one, so the Windows leg has to go through it to mean anything.
       - name: Own.NET's own tree, through own-check.ps1 on the Rust core
