@@ -1,0 +1,143 @@
+//! K3 (every G-F2 transform and the G-S4 mask are monotone), K8 (id/neg
+//! involutions), K12 (`Uncond` coordinates stay diagonal under the solver),
+//! and the read-below-collapse lemma K11 rests on.
+
+#[cfg(test)]
+mod tests {
+    use super::super::{all_cells, lfp, random_system, systems_exhaustive, Rng};
+    use crate::{contribute, read, Cells, Mask, Shape, Transform};
+
+    #[test]
+    fn k3_reads_and_contributions_are_monotone() {
+        for &t in &Transform::ALL {
+            for a in all_cells() {
+                for b in all_cells() {
+                    if a.leq(b) {
+                        assert!(read(t, a).leq(read(t, b)), "{t:?} {a:?} {b:?}");
+                        for &m in &Mask::ALL {
+                            assert!(contribute(m, read(t, a)).leq(contribute(m, read(t, b))));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn k3_every_read_component_is_below_the_collapse() {
+        // the one-line lemma behind G-T2 §7.2: a projected, swapped or mapped
+        // cell is ≤ the join of the cells, and masking only lowers.
+        for &t in &Transform::ALL {
+            for c in all_cells() {
+                let r = read(t, c);
+                assert!(
+                    r.pos.leq(c.collapse()) && r.neg.leq(c.collapse()),
+                    "{t:?} {c:?}"
+                );
+                for &m in &Mask::ALL {
+                    assert!(contribute(m, r).leq(r));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn k8_id_and_neg_are_involutions_and_the_rest_are_diagonal() {
+        for c in all_cells() {
+            assert_eq!(read(Transform::Id, read(Transform::Id, c)), c);
+            assert_eq!(read(Transform::Neg, read(Transform::Neg, c)), c);
+            assert_eq!(read(Transform::Neg, c), c.swap());
+            assert_eq!(read(Transform::ConstPos, c), Cells::diag(c.pos));
+            assert_eq!(read(Transform::ConstNeg, c), Cells::diag(c.neg));
+            assert_eq!(read(Transform::Opaque, c), Cells::diag(c.collapse()));
+            assert!(read(Transform::Opaque, c).is_diag());
+        }
+    }
+
+    #[test]
+    fn k12_uncond_coordinates_stay_diagonal_exhaustive() {
+        for n in 1..=2 {
+            for sys in systems_exhaustive(n) {
+                let x = lfp(&sys);
+                for (c, v) in sys.coords.iter().zip(x.iter()).take(sys.n) {
+                    if matches!(c.shape, Shape::Uncond) {
+                        assert!(v.is_diag(), "{sys:?} -> {x:?}");
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn k12_uncond_coordinates_stay_diagonal_random() {
+        let mut rng = Rng::new(0xd1a6);
+        for _ in 0..20_000 {
+            let sys = random_system(&mut rng, 3);
+            let x = lfp(&sys);
+            for (c, v) in sys.coords.iter().zip(x.iter()).take(sys.n) {
+                if matches!(c.shape, Shape::Uncond) {
+                    assert!(v.is_diag(), "{sys:?} -> {x:?}");
+                }
+            }
+        }
+    }
+}
+
+#[cfg(kani)]
+mod proofs {
+    use super::super::symbolic::{any_small_system, any_state_diagonal_where_uncond, any_system};
+    use crate::{contribute, read, solve, Cells, Mask, Shape, Transform};
+
+    #[kani::proof]
+    fn k3_reads_and_contributions_are_monotone() {
+        let t: Transform = kani::any();
+        let m: Mask = kani::any();
+        let a: Cells = kani::any();
+        let b: Cells = kani::any();
+        if a.leq(b) {
+            assert!(read(t, a).leq(read(t, b)));
+            assert!(contribute(m, read(t, a)).leq(contribute(m, read(t, b))));
+        }
+        let r = read(t, a);
+        assert!(r.pos.leq(a.collapse()) && r.neg.leq(a.collapse()));
+        assert!(contribute(m, r).leq(r));
+    }
+
+    #[kani::proof]
+    fn k8_involutions() {
+        let c: Cells = kani::any();
+        assert_eq!(read(Transform::Id, read(Transform::Id, c)), c);
+        assert_eq!(read(Transform::Neg, read(Transform::Neg, c)), c);
+        assert!(read(Transform::Opaque, c).is_diag());
+        assert!(read(Transform::ConstPos, c).is_diag());
+        assert!(read(Transform::ConstNeg, c).is_diag());
+    }
+
+    #[kani::proof]
+    fn k12a_step_keeps_uncond_coordinates_diagonal() {
+        // the inductive step: from a state whose Uncond coordinates are
+        // diagonal, one application of F_G keeps them diagonal
+        let sys = any_system();
+        let x = any_state_diagonal_where_uncond(&sys);
+        let [c0, c1, c2] = sys.coords;
+        for (i, c) in [(0, c0), (1, c1), (2, c2)] {
+            if matches!(c.shape, Shape::Uncond) {
+                assert!(sys.step(i, &x).is_diag());
+            }
+        }
+    }
+
+    #[kani::proof]
+    #[kani::unwind(21)]
+    fn k12b_lfp_keeps_uncond_coordinates_diagonal_on_small_sccs() {
+        let sys = any_small_system();
+        let x = solve(&sys);
+        assert!(x.is_some(), "terminates within the height bound");
+        if let Some(x) = x {
+            let [x0, x1, _] = x;
+            let [c0, c1, _] = sys.coords;
+            assert!(!matches!(c0.shape, Shape::Uncond) || x0.is_diag());
+            assert!(!matches!(c1.shape, Shape::Uncond) || x1.is_diag());
+        }
+    }
+}
