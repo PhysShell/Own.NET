@@ -21,7 +21,24 @@ Statfier line: testing the analyzer, not the program.
    invariant under N classes of meaning-preserving transformation across the
    corpus." The research-landscape note files this as a separable contribution.
 4. **Free corpus amplification** — each real case spawns many variants that must
-   all behave identically.
+   all behave identically. Amplification of *robustness* coverage; see the
+   counting rule below before quoting it as corpus size.
+
+### Counting rule
+
+Metamorphic variants amplify perturbation/robustness coverage, **not** semantic
+case count. Report these dimensions separately:
+
+- **semantic cases** — independently distinct behaviour/invariant scenarios;
+- **project/environment cases** — independent source/project contexts;
+- **metamorphic variants** — meaning-preserving perturbations of a parent case;
+- **executions** — total generated/checker runs.
+
+A parent case and N metamorphic variants count as **one** semantic case and N
+metamorphic variants. Metamorphic variants MUST NOT be used to satisfy a minimum
+semantic-corpus size or an independence-based evaluation threshold. A harness
+that renames `x` to `y` 376 times has not produced 376 observations, and an
+evaluation that reports it as one number is decoratively green.
 
 It is *also* the conformance check a future LLM fix-loop needs (RLVR reward =
 checker-green **and** behavior-preserved, see `research-landscape-2026.md`) — but
