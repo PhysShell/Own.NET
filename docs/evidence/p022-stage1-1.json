@@ -23,12 +23,12 @@
     {
       "id": "M01",
       "rule": "default-is-python",
-      "description": "the Stage-1 default engine is Rust — the cutover read as already decided, instead of Python remaining default until Gate G3",
+      "description": "the public default engine goes back to Python -- the cutover silently REVERSED. Until #262 Stage 3 this mutant ran the other way (Python -> Rust, 'the covert Stage 3'); the cutover made that the correct state, so the defect it guards against turned over with it. What the mutant is FOR did not change: one edit to one constant moves what every user gets",
       "target": "frontend/roslyn/OwnSharp.Cli/EngineSelection.cs",
-      "pattern": "public const Engine Default = Engine\\.Python;",
-      "replacement": "public const Engine Default = Engine.Rust;",
+      "pattern": "public const Engine Default = Engine\\.Rust;",
+      "replacement": "public const Engine Default = Engine.Python;",
       "expected_catchers": [
-        "stage1::default-stays-python"
+        "stage1::default-is-rust"
       ]
     },
     {

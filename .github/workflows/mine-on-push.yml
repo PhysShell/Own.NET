@@ -68,6 +68,17 @@ jobs:
           fi
           { echo "target=$target"; echo "ref=$ref"; echo "paths=$paths"; } >> "$GITHUB_OUTPUT"
           echo "mine-on-push: $target (ref='${ref:-HEAD}' paths='${paths:-*}')"
+      # #262 Stage 3: scripts/mine.sh drives the BARE launcher surface, whose
+      # default engine is now the Rust core, so this job supplies a candidate.
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build the production own-cli and select it
+        run: |
+          set -euo pipefail
+          (cd rust && cargo build -p own-cli --release)
+          "$PWD/rust/target/release/own-cli" --version
+          echo "OWEN_RUST_CORE=$PWD/rust/target/release/own-cli" >> "$GITHUB_ENV"
       - name: Mine the target
         env:
           REPO: ${{ steps.target.outputs.target }}

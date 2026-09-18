@@ -3,10 +3,10 @@
   "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
   "campaign": "p022-stage2-1",
   "definition": "docs/evidence/p022-stage2-1.json",
-  "definition_sha256": "fd96f37ba882a9b94e7bedf4158574816702ee2023936b7ef27f56656740af3b",
-  "source_commit": "345cf04fe9f9880a2b316f220b565412e9cb9855",
+  "definition_sha256": "51118fd9c55f5825d2753451662ca75981e180fe615164cbb16c7cc488180fdd",
+  "source_commit": "0d6686eddc91613385ce39bccf3f581e9d7a7f05",
   "dirty": false,
-  "recorded_at": "2026-09-09T15:14:43Z",
+  "recorded_at": "2026-09-18T04:30:28Z",
   "layers": [
     "stage2"
   ],
@@ -15,7 +15,7 @@
     "id": "M00",
     "outcome": "survived",
     "catchers": [],
-    "elapsed_seconds": 8.6
+    "elapsed_seconds": 10.3
   },
   "mutations": [
     {
@@ -24,7 +24,7 @@
       "catchers": [
         "stage2::internal-default-not-rust"
       ],
-      "elapsed_seconds": 6.0
+      "elapsed_seconds": 6.9
     },
     {
       "id": "S02",
@@ -32,7 +32,7 @@
       "catchers": [
         "stage2::wrong-rust-candidate"
       ],
-      "elapsed_seconds": 6.0
+      "elapsed_seconds": 6.9
     },
     {
       "id": "S03",
@@ -40,7 +40,7 @@
       "catchers": [
         "stage2::platform-leg-lost"
       ],
-      "elapsed_seconds": 6.0
+      "elapsed_seconds": 7.1
     },
     {
       "id": "S04",
@@ -48,7 +48,7 @@
       "catchers": [
         "stage2::locator-contract-bypassed"
       ],
-      "elapsed_seconds": 6.1
+      "elapsed_seconds": 6.9
     },
     {
       "id": "S05",
@@ -56,23 +56,23 @@
       "catchers": [
         "stage2::rust-job-falls-back"
       ],
-      "elapsed_seconds": 6.3
+      "elapsed_seconds": 6.8
     },
     {
       "id": "S06",
       "outcome": "caught",
       "catchers": [
-        "stage2::public-default-moved"
+        "stage2::public-default-is-rust"
       ],
-      "elapsed_seconds": 6.1
+      "elapsed_seconds": 6.9
     },
     {
       "id": "S07",
       "outcome": "caught",
       "catchers": [
-        "stage2::public-default-moved"
+        "stage2::public-default-is-rust"
       ],
-      "elapsed_seconds": 6.3
+      "elapsed_seconds": 7.1
     },
     {
       "id": "S08",
@@ -80,7 +80,7 @@
       "catchers": [
         "stage2::compare-gate-dropped"
       ],
-      "elapsed_seconds": 6.3
+      "elapsed_seconds": 6.9
     },
     {
       "id": "S09",
@@ -88,7 +88,7 @@
       "catchers": [
         "stage2::stage2-census"
       ],
-      "elapsed_seconds": 6.0
+      "elapsed_seconds": 7.0
     },
     {
       "id": "S10",
@@ -96,7 +96,7 @@
       "catchers": [
         "stage2::stage2-census"
       ],
-      "elapsed_seconds": 6.1
+      "elapsed_seconds": 7.0
     },
     {
       "id": "S11",
@@ -104,7 +104,7 @@
       "catchers": [
         "stage2::internal-default-not-rust"
       ],
-      "elapsed_seconds": 5.9
+      "elapsed_seconds": 6.9
     }
   ]
 }

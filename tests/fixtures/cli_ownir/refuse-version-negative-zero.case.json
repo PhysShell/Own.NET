@@ -1,0 +1,19 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "inputs/version_negative_zero.facts.json"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 2,
+    "stdout": "",
+    "stderr": "inputs/version_negative_zero.facts.json: error: OwnIR 'ownir_version' must be an integer, got -0: the literal -0 is refused at the OwnIR input boundary because the two supported parsers do not agree on what it means (this reference reads it as the integer 0, serde_json as the float -0.0). Write 0.\n",
+    "os_error_tail": null
+  },
+  "boundary": {
+    "id": "CLI-B2",
+    "expected_kind": "version"
+  }
+}

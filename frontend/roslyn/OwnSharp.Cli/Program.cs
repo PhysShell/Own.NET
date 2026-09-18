@@ -61,7 +61,7 @@ static string HelpText() => """
     Options (mirrors scripts/own-check.sh):
       --format {human|github|msbuild|sarif}   finding surface (default: human)
       --severity {error|warning}               how findings are shown (default: error)
-      --engine {python|rust|compare}           analysis engine (default: python)
+      --engine {python|rust|compare}           analysis engine (default: rust)
       --fail-on-finding                        exit with the core's code (1 = findings) instead of always 0
       --emit-facts <path>                      also write the intermediate OwnIR facts.json here
       --legacy                                 use the flat name-based local-IDisposable detector

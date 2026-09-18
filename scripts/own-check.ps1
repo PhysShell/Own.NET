@@ -22,13 +22,18 @@
   How a host shows findings: error (default) or warning (advisory).
 
 .PARAMETER Engine
-  Which analysis engine runs (#262 Stage 1): python (DEFAULT and reference),
-  rust (the Rust core `own-cli ownir`), or compare (both over one captured
-  input, exposing the reference's result only when they agree byte for byte).
+  Which analysis engine runs. Since #262 Stage 3 the DEFAULT is rust (the Rust
+  core `own-cli ownir`); python selects the reference implementation and is the
+  documented ROLLBACK; compare runs both over one captured input, exposing the
+  reference's result only when they agree byte for byte.
   rust and compare require the candidate binary's absolute path in
   OWEN_RUST_CORE — there is no discovery of any kind, so an unset or unusable
   OWEN_RUST_CORE is a configuration error (exit 2), never a silent fall back to
   Python. A Rust failure is never turned into a Python success in any mode.
+  This surface runs from a CHECKOUT and has no packaged binary to fall back on
+  the way the `owen` tool does (#262 D6): build one with
+  `cargo build -p own-cli --release` in rust\ and point OWEN_RUST_CORE at it, or
+  pass -Engine python.
 
 .PARAMETER Verbosity
   How much to print: quiet (errors only — hide the advisory OWN050 "leakage
@@ -58,11 +63,11 @@ param(
     [string]$Root,
     [string]$Format = "human",
     [string]$Severity = "error",
-    # D1: Python is the Stage-1 default on every launcher surface. ValidateSet
+    # #262 Stage 3: Rust is the default on every launcher surface. ValidateSet
     # makes an unknown engine a parameter-binding failure rather than a value
     # that reaches the dispatch below.
     [ValidateSet("python", "rust", "compare")]
-    [string]$Engine = "python",
+    [string]$Engine = "rust",
     [ValidateSet("quiet", "normal", "verbose")]
     [string]$Verbosity = "normal",
     [switch]$Legacy,
@@ -101,8 +106,30 @@ function Invoke-CandidateProcess {
       D3.1's configuration exit (2), which is the seam this whole path exists
       to honour.
 
-      Nothing is redirected, so the child inherits this process's stdout and
-      stderr and its output streams live, exactly as the call operator's did.
+      The child's streams are REDIRECTED and replayed by the caller, and that
+      is not an implementation detail -- it is what keeps this surface
+      composable. An earlier version redirected nothing, on the reasoning that
+      an inherited console handle leaves the child's output "live, exactly as
+      the call operator's did". The second half of that is false, and it was
+      the cutover that made it matter: PowerShell's call operator routes a
+      child's stdout through its PIPELINE, which is what makes
+
+          $out = & ./scripts/own-check.ps1 -Format github -Paths src
+
+      capture anything at all. A child writing straight to an inherited console
+      handle bypasses the pipeline entirely, so the text appears on screen and
+      `$out` is EMPTY. While Python was the default nobody noticed, because the
+      Python branch uses the call operator; the moment Rust became the default,
+      every Windows caller capturing or piping this script's output silently
+      got nothing. MEASURED both ways on one tree: `-Engine python` captured the
+      OWN001 annotation, `-Engine rust` captured 0 lines.
+
+      So the caller emits what this returns, and the surface behaves as it did:
+      stdout decoded and written to the pipeline, stderr to the error stream.
+      Decoding is not a new liberty either -- the call operator has always
+      decoded a child's stdout and re-encoded it on the way out; this only does
+      it explicitly, and as UTF-8, which is what the Rust core emits on both
+      platforms.
     #>
     param(
         [Parameter(Mandatory = $true)][string]$FilePath,
@@ -112,9 +139,46 @@ function Invoke-CandidateProcess {
     $psi.FileName = $FilePath
     foreach ($a in $ArgumentList) { $psi.ArgumentList.Add($a) }
     $psi.UseShellExecute = $false
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    # No BOM: a byte-order mark in front of a SARIF document or a GitHub
+    # workflow command is not a decoding detail, it is corrupt output.
+    $psi.StandardOutputEncoding = New-Object System.Text.UTF8Encoding($false)
+    $psi.StandardErrorEncoding = New-Object System.Text.UTF8Encoding($false)
     $proc = [System.Diagnostics.Process]::Start($psi)
+    # Both pipes are drained CONCURRENTLY. Reading one to the end and then the
+    # other deadlocks the moment the child fills the pipe it is not being read
+    # from, which for a large SARIF log is not a hypothetical.
+    $outTask = $proc.StandardOutput.ReadToEndAsync()
+    $errTask = $proc.StandardError.ReadToEndAsync()
     $proc.WaitForExit()
-    return $proc.ExitCode
+    return [pscustomobject]@{
+        ExitCode = $proc.ExitCode
+        StdOut   = $outTask.GetAwaiter().GetResult()
+        StdErr   = $errTask.GetAwaiter().GetResult()
+    }
+}
+
+function Write-CandidateOutput {
+    <#
+    .SYNOPSIS
+      Replay a captured candidate result on this script's own streams.
+
+    .DESCRIPTION
+      stdout goes to the PIPELINE (so a caller can capture it), stderr to the
+      error stream. The trailing newline is dropped before splitting so a
+      normal one-line-terminated stream does not gain an empty final element,
+      which would show up as a blank line in a captured array.
+    #>
+    param([Parameter(Mandatory = $true)]$Result)
+    if ($Result.StdOut.Length -gt 0) {
+        $text = $Result.StdOut -replace "`r`n", "`n"
+        if ($text.EndsWith("`n")) { $text = $text.Substring(0, $text.Length - 1) }
+        foreach ($line in ($text -split "`n")) { Write-Output $line }
+    }
+    if ($Result.StdErr.Length -gt 0) {
+        [Console]::Error.Write($Result.StdErr)
+    }
 }
 
 function Invoke-CapturedProcess {
@@ -249,7 +313,9 @@ try {
         # The PRODUCTION Rust executable, never own-shadow-engine.
         $rustArgs = @("ownir") + $ownirArgs
         try {
-            $rc = Invoke-CandidateProcess -FilePath $rustCore -ArgumentList $rustArgs
+            $candidate = Invoke-CandidateProcess -FilePath $rustCore -ArgumentList $rustArgs
+            Write-CandidateOutput -Result $candidate
+            $rc = $candidate.ExitCode
         }
         catch {
             # D3.1's seam: the candidate never STARTED — an existing file the

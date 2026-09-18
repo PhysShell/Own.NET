@@ -174,7 +174,13 @@ jobs:
         run: |
           scan="target"; [[ -n "$PATHS" ]] && scan="target/$PATHS"
           set +e
-          scripts/own-check.sh --format sarif --severity warning -- "$scan" > own.txt 2> own-extract.log
+          # --engine python is EXPLICIT (#262 Stage 3). This is a class-B call
+          # site in the Stage-2 census: a cross-tool comparison against Infer#
+          # and CodeQL, where the reference implementation is the INSTRUMENT.
+          # When the public default moved to Rust a bare call here would have
+          # silently changed which engine the comparison is of, so the engine
+          # this oracle has always measured is now named rather than inherited.
+          scripts/own-check.sh --engine python --format sarif --severity warning -- "$scan" > own.txt 2> own-extract.log
           echo "own-check rc=$? ; own.txt is a SARIF log ($(wc -c < own.txt) bytes)"
 
       # CodeQL — database from source (no build). The dispose/leak queries

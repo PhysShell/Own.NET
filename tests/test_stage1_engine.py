@@ -10,7 +10,9 @@ code, the streams, the evidence file.
 The fifteen ratified adversarial controls, each named by the misreading it
 catches:
 
-    default-stays-python      the default silently becomes Rust
+    default-is-rust           the public default silently goes back to Python,
+                              drifts to compare, or stops reaching the
+                              candidate at all
     rust-actually-runs-rust   explicit Rust selection actually runs Python
     rust-failure-no-fallback  a Rust failure runs Python
     unexpected-rc-maps-to-5   an unexpected rc escapes as itself instead of 5
@@ -32,6 +34,9 @@ catches:
     bad-locator-is-2          an invalid OWEN_RUST_CORE produces anything other
                               than exit 2, falls back to Python, or is mapped
                               to 3 or 5
+    unset-locator-is-d6       an ABSENT OWEN_RUST_CORE stops resolving this
+                              install's packaged candidate, or starts producing
+                              a Python answer when there is none
 
 Failures print `FAIL[<check>]: <detail>` so a mutation campaign names the CHECK
 that caught it rather than whichever case tripped first, and the run never
@@ -67,6 +72,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -164,6 +170,32 @@ def launcher_dll() -> str | None:
 
 def have_dotnet() -> bool:
     return shutil.which("dotnet") is not None
+
+
+def packaged_core() -> str | None:
+    """The candidate the launcher under test would resolve with OWEN_RUST_CORE
+    ABSENT (#262 Stage 3, D6), or None if this install carries none.
+
+    Computed the same way RustCoreLocator does — the directory beside the
+    launcher assembly, keyed by platform — because "unset" stopped meaning "no
+    candidate" at Stage 3 and the controls below have to know which of the two
+    situations they are in. A plain `dotnet build` produces an install with no
+    packaged core; a `dotnet pack -p:OwenRustCoreDir=...` produces one with it.
+    Both are legitimate states of this tree, so the answer is MEASURED from the
+    tree rather than assumed from how it was last built.
+    """
+    dll = launcher_dll()
+    if dll is None:
+        return None
+    arch = "arm64" if platform.machine() in ("arm64", "aarch64") else "x64"
+    if os.name == "nt":
+        key, binary = f"win-{arch}", "own-cli.exe"
+    elif sys.platform == "darwin":
+        key, binary = f"osx-{arch}", "own-cli"
+    else:
+        key, binary = f"linux-{arch}", "own-cli"
+    cand = Path(dll).parent / "rust-core" / key / binary
+    return str(cand) if cand.is_file() else None
 
 
 def bash_exe() -> str:
@@ -297,8 +329,14 @@ def control_bad_locator_is_2(sample: Path, tmp: Path) -> None:
     a_dir = tmp / "a-directory"
     a_dir.mkdir(exist_ok=True)
 
+    # `unset` is deliberately NOT in this list any more. At Stage 3 an absent
+    # OWEN_RUST_CORE stopped meaning "no candidate" and started meaning "use the
+    # one this install ships" (#262 D6) — so on an install that carries a
+    # packaged core, an unset variable is a SUCCESSFUL resolution and asserting
+    # exit 2 for it would be asserting that D6 does not work. The unset case has
+    # its own control below, which asks the question that actually survived the
+    # cutover: unset must never produce a PYTHON answer.
     cases = {
-        "unset": None,
         "empty": "",
         "nonexistent": str(tmp / "definitely-absent"),
         "directory": str(a_dir),
@@ -367,6 +405,70 @@ def control_bad_locator_is_2(sample: Path, tmp: Path) -> None:
                            "candidate cannot be constructed for the shell surface on Windows; "
                            "the launcher half of this case does run")
         ok(check, f"{total} invalid-locator cases all exit 2, no fallback")
+
+
+def control_unset_locator_is_d6(sample: Path, tmp: Path) -> None:
+    """D6: an ABSENT OWEN_RUST_CORE resolves this install's own packaged
+    candidate — and, when there is none, fails visibly rather than running
+    Python.
+
+    Both halves are the same claim from two sides, and which one this tree can
+    answer depends on how it was built, so the control MEASURES that first
+    instead of assuming it.
+
+    * install carries a packaged core -> an unset variable must produce a
+      VERDICT, and must not have consulted the development locator to do it;
+    * install carries none -> exit 2, naming the packaging problem, and denying
+      a Python fallback in as many words.
+
+    What is common to both, and is the part that matters: an unset variable
+    never yields a Python answer. Before Stage 3 it could not, because the
+    default was Python and the locator was never consulted. After Stage 3 the
+    locator is consulted on every bare run, which is exactly why this case
+    needed a control of its own rather than a line in the invalid-locator list
+    it used to live in.
+    """
+    check = "unset-locator-is-d6"
+    if launcher_dll() is None or not have_dotnet():
+        skip(check, "no built launcher/dotnet")
+        return
+    env = dict(os.environ)
+    env.pop("OWEN_RUST_CORE", None)
+    r = subprocess.run(["dotnet", str(launcher_dll()), "check", str(sample)],
+                       capture_output=True, env=env, cwd=str(ROOT), check=False)
+    merged = (r.stdout + r.stderr).decode("utf-8", "replace")
+    shipped = packaged_core()
+    problems = []
+    if shipped is not None:
+        if b"OWN001" not in r.stdout:
+            problems.append(
+                f"this install ships a packaged core at {shipped} but an unset locator "
+                f"produced no verdict (exit {r.returncode}) — D6 did not resolve it")
+        if "OWEN_RUST_CORE" in merged:
+            problems.append("an unset locator complained about OWEN_RUST_CORE — the packaged "
+                            "path must not route through the development locator's diagnostic")
+    else:
+        if r.returncode != RustCoreLocatorExitCode:
+            problems.append(
+                f"this install ships no packaged core, so an unset locator must be a visible "
+                f"configuration error (exit {RustCoreLocatorExitCode}), got {r.returncode}")
+        if b"OWN001" in r.stdout:
+            problems.append("an unset locator produced a verdict on an install that ships no "
+                            "candidate — something fell back to Python")
+        if "did not fall back to Python" not in merged:
+            problems.append("the failure does not deny a Python fallback in as many words")
+    if problems:
+        fail(check, "; ".join(problems))
+    else:
+        ok(check, ("an unset locator resolved this install's packaged core"
+                   if shipped is not None
+                   else "an unset locator on an install with no packaged core is a visible "
+                        "configuration error, not a Python answer"))
+
+
+# D3.1's public tier, named once so the control above and the list below cannot
+# drift apart on what "a configuration error" means.
+RustCoreLocatorExitCode = 2
 
 
 def control_absolute_locator_only(sample: Path, tmp: Path) -> None:
@@ -591,23 +693,67 @@ def control_compare_failure_is_classified(sample: Path, tmp: Path) -> None:
         ok(check, "a Python-only failure is recorded as execution-failure, not divergence")
 
 
-def control_default_stays_python(sample: Path) -> None:
-    """D1: the default engine is Python. Proved NEGATIVELY and positively: a
-    default run with a deliberately unusable Python must fail on Python (the
-    launcher's exit 3), which it cannot do if the default silently moved to
-    Rust; and it must not produce a Rust-only success."""
-    check = "default-stays-python"
+def control_default_is_rust(sample: Path) -> None:
+    """#262 Stage 3: the default engine is RUST.
+
+    This control is the inverse of the Stage-1 one it replaces, and it is built
+    the same way: by breaking the engine that must NOT be reached and by
+    breaking the engine that must.
+
+    1. NEGATIVE — a default run with a deliberately unusable OWEN_PYTHON must
+       SUCCEED. A Python default would exit 3 here (it did, for the whole of
+       Stages 1 and 2, and that was this control's assertion); so would a
+       default that had drifted to `compare`, which needs both engines. Passing
+       proves the default run never resolved Python at all.
+
+    2. POSITIVE — "did not use Python" is not "used Rust": a default that
+       silently became a no-op would also pass step 1. So the default run is
+       repeated with the candidate pointed at a binary forced to fail, and it
+       must now fail on the RUST path. Only a default that actually routes to
+       Rust can do both.
+
+    Together those are what make the constant in EngineSelection.Default
+    load-bearing rather than decorative.
+    """
+    check = "default-is-rust"
     r = run_owen(["--format", "human", str(sample)],
                  env={"OWEN_PYTHON": "/definitely/not/a/python"})
     if r is None:
         skip(check, "no built launcher/dotnet")
         return
-    if r.returncode != 3:
-        fail(check, f"default run with a broken OWEN_PYTHON exited {r.returncode}, expected 3 "
-                    "(the default engine is not Python any more, or Python is no longer resolved "
-                    "for it)")
-        return
-    ok(check, "the default still resolves Python and fails on it (exit 3)")
+    problems = []
+    if r.returncode == 3:
+        problems.append(
+            "a default run with a broken OWEN_PYTHON exited 3 — the default engine still "
+            "resolves Python, so the Stage-3 cutover did not reach this surface")
+    elif r.returncode not in (0, 1):
+        problems.append(
+            f"a default run with a broken OWEN_PYTHON exited {r.returncode}, expected a verdict "
+            f"(0 clean / 1 findings): the default must not need Python at all. stderr: "
+            f"{r.stderr.decode('utf-8', 'replace')[:400]}")
+
+    # 2 — and it is Rust specifically, not "not Python".
+    fault = rust_fault_core()
+    if fault is None:
+        skip(check + "/positive", "no OWEN_STAGE1_RUST_FAULT")
+    else:
+        rf = run_owen(["--format", "human", str(sample)],
+                      env={"OWEN_RUST_CORE": fault, "OWN_CLI_FAULT_PANIC": "1"})
+        if rf is None:
+            skip(check + "/positive", "no built launcher/dotnet")
+        elif rf.returncode != 5:
+            problems.append(
+                f"a default run whose CANDIDATE was forced to panic exited {rf.returncode}, "
+                f"expected the public internal-error path 5 — the default did not route to the "
+                f"Rust candidate, or a Rust failure was turned into something else")
+        elif b"finding" in rf.stdout:
+            problems.append("a forced Rust failure still published a verdict on the default path")
+
+    if problems:
+        fail(check, "; ".join(problems))
+    else:
+        ok(check, "the default runs Rust: it needs no Python, and a forced candidate "
+                  "failure fails it on the Rust path (exit 5)")
 
 
 def control_rust_actually_runs_rust(sample: Path) -> None:
@@ -1174,12 +1320,13 @@ def run() -> int:
         only = [n.strip() for n in os.environ.get("OWEN_STAGE1_ONLY", "").split(",") if n.strip()]
         controls = {
             "bad-locator-is-2": lambda: control_bad_locator_is_2(sample_dir, tmp),
+            "unset-locator-is-d6": lambda: control_unset_locator_is_d6(sample_dir, tmp),
             "absolute-locator-only": lambda: control_absolute_locator_only(sample_dir, tmp),
             "locator-shapes": lambda: control_locator_shapes(sample_dir),
             "compare-failure-classified":
                 lambda: control_compare_failure_is_classified(sample_dir, tmp),
             "no-selector-in-own-cli": control_no_selector_in_own_cli,
-            "default-stays-python": lambda: control_default_stays_python(sample_dir),
+            "default-is-rust": lambda: control_default_is_rust(sample_dir),
             "rust-actually-runs-rust": lambda: control_rust_actually_runs_rust(sample_dir),
             "rust-failure-no-fallback": lambda: control_rust_failure_no_fallback(sample_dir),
             "rc70-is-not-a-verdict": lambda: control_rc70_is_not_a_verdict(sample_dir),

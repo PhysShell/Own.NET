@@ -51,9 +51,68 @@ env:
   CLI_PROJECT: frontend/roslyn/OwnSharp.Cli/OwnSharp.Cli.csproj
 
 jobs:
+  # P-022 Stage 3 (#262), D6: the Rust core ships INSIDE the package, so it has
+  # to be built before the package is made, and built for every platform the
+  # package supports.
+  #
+  # Natively, on each platform's own runner, rather than cross-compiled from
+  # one. Cross-compiling would be cheaper and would prove less: the binary a
+  # Windows user runs would then be one no Windows machine had ever executed,
+  # and #262's whole distribution section exists because "it built" and "it
+  # works where it lands" are different claims. The platform key each leg
+  # stages under is the one RustCoreLocator.PlatformKey() computes at runtime,
+  # so the two sides cannot drift into disagreeing about where the binary is.
+  build-rust-core:
+    name: build own-cli (${{ matrix.platform_key }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform_key: linux-x64
+            binary: own-cli
+          - os: windows-latest
+            platform_key: win-x64
+            binary: own-cli.exe
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: cargo build -p own-cli --release
+        working-directory: rust
+        run: cargo build -p own-cli --release
+      # The binary is exercised HERE, on the machine that built it, before it is
+      # allowed anywhere near a package. A candidate that cannot answer
+      # --version is not one to ship, and finding that out at pack time beats
+      # finding it out from a user.
+      - name: The built candidate runs on its own platform
+        run: |
+          set -euo pipefail
+          "rust/target/release/${{ matrix.binary }}" --version
+      - name: Stage it under the platform key the locator computes
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rust-stage/${{ matrix.platform_key }}"
+          cp "rust/target/release/${{ matrix.binary }}" \
+             "$RUNNER_TEMP/rust-stage/${{ matrix.platform_key }}/${{ matrix.binary }}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: own-cli-${{ matrix.platform_key }}
+          path: ${{ runner.temp }}/rust-stage/${{ matrix.platform_key }}/${{ matrix.binary }}
+          retention-days: 14
+          if-no-files-found: error
+
   build-test-pack:
     name: build + test + pack
     runs-on: ubuntu-latest
+    needs: build-rust-core
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -113,8 +172,34 @@ jobs:
           fi
           echo "OK: tag matches csproj Version ($csproj_version)"
 
+      # D6: collect every platform's candidate, then pack with them.
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: own-cli-*
+          path: ${{ runner.temp }}/rust-stage
+      - name: Stage the Rust cores for packing
+        run: |
+          set -euo pipefail
+          # download-artifact lands each artifact in a directory named after
+          # itself (own-cli-linux-x64/own-cli), and the locator looks under the
+          # PLATFORM KEY (linux-x64/own-cli). Rename rather than reshape the
+          # artifact names: the platform key is the contract, and the artifact
+          # name is just how CI moves bytes between jobs.
+          cd "$RUNNER_TEMP/rust-stage"
+          for d in own-cli-*; do
+            mv "$d" "${d#own-cli-}"
+          done
+          chmod +x linux-x64/own-cli
+          ls -laR .
+          # Both platforms, named. A pack that quietly lost a leg would produce
+          # a package whose default engine is missing on exactly one OS, and
+          # the smoke test on the OTHER leg would still be green.
+          test -f linux-x64/own-cli || { echo "FAIL: no linux-x64 own-cli staged"; exit 1; }
+          test -f win-x64/own-cli.exe || { echo "FAIL: no win-x64 own-cli.exe staged"; exit 1; }
       - name: dotnet pack
-        run: dotnet pack "$CLI_PROJECT" -c Release -o "$RUNNER_TEMP/nupkg"
+        run: |
+          dotnet pack "$CLI_PROJECT" -c Release -o "$RUNNER_TEMP/nupkg" \
+            -p:OwenRustCoreDir="$RUNNER_TEMP/rust-stage"
       - name: Inspect package contents (bundled runtime/core assets present)
         run: |
           set -euo pipefail
@@ -133,7 +218,24 @@ jobs:
           core_py_count=$(find "$RUNNER_TEMP/nupkg-inspect/tools/net8.0/any/ownlang-core/ownlang" -name "*.py" 2>/dev/null | wc -l)
           [ "$core_py_count" -gt 0 ] \
             || { echo "FAIL: vendored ownlang core .py files missing from the package"; exit 1; }
-          echo "OK: package contains the CLI, the bundled extractor, and $core_py_count vendored core .py files"
+          # D6 (#262 Stage 3): the engine the package makes DEFAULT must be in
+          # the package, for every supported platform. Asserted per platform
+          # and by size: a zero-byte or truncated payload would satisfy a bare
+          # existence test and fail at the only moment that matters.
+          rc_root="$RUNNER_TEMP/nupkg-inspect/tools/net8.0/any/rust-core"
+          for leg in "linux-x64/own-cli" "win-x64/own-cli.exe"; do
+            test -s "$rc_root/$leg" \
+              || { echo "FAIL: packed Rust core missing or empty: rust-core/$leg"; exit 1; }
+            echo "  rust-core/$leg: $(wc -c < "$rc_root/$leg") bytes"
+          done
+          # And nothing ELSE is under rust-core/: a stray file there is either a
+          # platform nobody supports or a payload packed twice, and both have
+          # happened while this was being built.
+          extra=$(find "$rc_root" -type f | wc -l)
+          [ "$extra" -eq 2 ] \
+            || { echo "FAIL: rust-core/ holds $extra files, expected exactly 2"; \
+                 find "$rc_root" -type f; exit 1; }
+          echo "OK: package contains the CLI, the bundled extractor, $core_py_count vendored core .py files, and both platforms' Rust core"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: owen-cli-nupkg
@@ -247,10 +349,33 @@ jobs:
           set -e
           echo "$out"
           [ "$rc" -eq 0 ] || { echo "FAIL: expected exit 0 on clean code, got $rc"; exit 1; }
+      # #262 Stage 3: the packed artifact's DEFAULT engine is Rust and carries
+      # its own binary (D6), so a bare check must work with no usable Python.
+      - name: "Stage 3: the packed artifact's default engine needs no Python"
+        run: |
+          set +e
+          out=$(OWEN_PYTHON=/definitely/does/not/exist/python3 owen check "$RUNNER_TEMP/sample" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: bare owen check with an unusable OWEN_PYTHON exited $rc, expected 1 (findings) — the packed default still needs Python"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001 from the default (Rust) engine"; exit 1; }
+      - name: "Stage 3: --engine python is the tested ROLLBACK, on the same install"
+        run: |
+          set +e
+          out=$(owen check --engine python "$RUNNER_TEMP/sample" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: the documented rollback exited $rc, expected 1 (findings)"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: the rollback engine produced no finding"; exit 1; }
+          echo "OK: Python remains selectable and working on the shipped package"
       - name: No Python found -> fast actionable failure (never an auto-download)
         run: |
           set +e
-          out=$(OWEN_PYTHON=/definitely/does/not/exist/python3 owen check "$RUNNER_TEMP/sample" 2>&1)
+          # --engine python is EXPLICIT (#262 Stage 3): a bare invocation now
+          # runs Rust and never consults OWEN_PYTHON.
+          out=$(OWEN_PYTHON=/definitely/does/not/exist/python3 owen check --engine python "$RUNNER_TEMP/sample" 2>&1)
           rc=$?
           set -e
           echo "$out"

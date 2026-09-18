@@ -1,0 +1,19 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "inputs/version_nan.facts.broken"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 2,
+    "stdout": "",
+    "stderr": "inputs/version_nan.facts.broken: error: inputs/version_nan.facts.broken is not valid JSON: NaN is not a JSON value (RFC 8259 has no NaN, Infinity or -Infinity)\n",
+    "os_error_tail": null
+  },
+  "boundary": {
+    "id": "CLI-B1",
+    "expected_kind": "json"
+  }
+}

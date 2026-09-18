@@ -78,6 +78,62 @@
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <!-- #262 Stage 3, D6: the Rust core rides in the package.
+
+       Rust is the public DEFAULT from Stage 3, so the binary a user runs has
+       to be one they already have. OWEN_RUST_CORE stays exactly what it was:
+       a development locator. The packaged payload below is what resolves
+       when it is absent (see RustCoreLocator.ResolvePackaged).
+
+       Staged EXPLICITLY, never picked up from the tree. $(OwenRustCoreDir)
+       must be passed to the pack, laid out as <platform-key>/own-cli[.exe]:
+
+         dotnet pack ... -p:OwenRustCoreDir=/abs/path/to/staged
+
+       That is the whole point of requiring the property. If this globbed
+       rust/target/release instead, whether a package carried a Rust core (and
+       WHICH one) would depend on whether someone had run cargo in this
+       checkout, and in which profile. A package's contents must not be a
+       function of the build machine's history. A plain `dotnet build` with no
+       property therefore packs no Rust core at all and behaves exactly as it
+       did before Stage 3, which is also what keeps the Stage-1 locator
+       controls meaningful: they need an install that carries none.
+
+       The payload is cross-platform on purpose. `tools/&lt;tfw&gt;/any/` holds
+       every supported platform's binary and the locator picks by the platform
+       it is running on, because Owen.Cli is one RID-agnostic dotnet tool and
+       splitting it into per-RID packages would change how users install it.
+       The release workflow builds each binary natively on its own runner and
+       stages them all before packing; the RustCorePacked target below fails the
+       pack if the staging directory it was pointed at is empty, so a release
+       cannot quietly ship without the engine it just made the default. -->
+  <!-- Carried by the OUTPUT, not by an explicit PackagePath, which is the same
+       route the bundled extractor already rides: PackAsTool packs this
+       project's full publish closure, so a file placed in the output under
+       rust-core/ lands in the package under tools/<tfw>/any/rust-core/.
+
+       Adding Pack="true" with a PackagePath ON TOP of that packs each binary
+       TWICE, which is what the first attempt did, measured on the built
+       package, not reasoned about. It is worth knowing why, because the
+       duplicate path is not symmetrical: NuGet decides whether a PackagePath
+       is a file or a folder by whether it looks like it has an extension, so
+       `own-cli.exe` behaved differently from `own-cli`, and the extensionless
+       Unix binary is the one that had to be right. -->
+  <ItemGroup Condition="'$(OwenRustCoreDir)' != ''">
+    <OwenRustCoreFiles Include="$(OwenRustCoreDir)/**/own-cli;$(OwenRustCoreDir)/**/own-cli.exe" />
+    <None Include="@(OwenRustCoreFiles)"
+          CopyToOutputDirectory="PreserveNewest"
+          Link="rust-core\%(RecursiveDir)%(Filename)%(Extension)"
+          Visible="false" />
+  </ItemGroup>
+
+  <Target Name="OwenRustCorePacked" BeforeTargets="GenerateNuspec"
+          Condition="'$(OwenRustCoreDir)' != ''">
+    <Error Condition="'@(OwenRustCoreFiles)' == ''"
+           Text="OwenRustCoreDir was set to '$(OwenRustCoreDir)' but no own-cli binary was found under it. Stage 3 makes Rust the default engine, so a package without one would install an Owen whose default engine is missing. Stage the binaries as &lt;platform-key&gt;/own-cli[.exe] first." />
+    <Message Importance="high" Text="Owen.Cli: packing Rust core(s): @(OwenRustCoreFiles->'%(RecursiveDir)%(Filename)%(Extension)', ', ')" />
+  </Target>
+
   <ItemGroup>
     <!-- Vendor the Python core's source as-is (no build step needed — it is
          zero-dependency pure Python, pyproject.toml: requires-python >=3.11).

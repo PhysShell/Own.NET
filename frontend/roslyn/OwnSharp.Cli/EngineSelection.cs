@@ -8,10 +8,12 @@ namespace OwnSharp.Cli;
 /// </summary>
 internal enum Engine
 {
-    /// <summary>The vendored Python core. Stage-1 default and the reference.</summary>
+    /// <summary>The vendored Python core. The reference implementation, and the
+    /// explicit rollback from Stage 3 (#262) — never a fallback.</summary>
     Python,
 
-    /// <summary>The Rust core (`own-cli ownir`), opt-in at Stage 1.</summary>
+    /// <summary>The Rust core (`own-cli ownir`). Opt-in at Stage 1, Own.NET's
+    /// own default at Stage 2, the PUBLIC default from Stage 3.</summary>
     Rust,
 
     /// <summary>Both engines over one captured input, compared (D4/D4.1).</summary>
@@ -21,17 +23,37 @@ internal enum Engine
 /// <summary>
 /// Parsing and the shared exit-code contract for the selected engine.
 ///
-/// <para><b>Python is the Stage-1 default</b> (D1) and this type is where that
-/// is written down once: <see cref="Default"/> is the single place a reader —
-/// or a mutation — can move it, which is what makes the "the default silently
-/// became Rust" control load-bearing rather than a matter of reading four
-/// launchers and hoping.</para>
+/// <para><b>Rust is the default from Stage 3</b> (#262) and this type is where
+/// that is written down once: <see cref="Default"/> is the single place a
+/// reader — or a mutation — can move it, which is what makes the control on it
+/// load-bearing rather than a matter of reading four launchers and hoping.</para>
+///
+/// <para>Python is not gone and is not hidden. It is the tested ROLLBACK and it
+/// remains the reference: <c>--engine python</c> selects it explicitly on every
+/// surface, and it keeps working for the whole observation window. What Stage 3
+/// changed is which engine answers when nobody says. Stage 4 — removing Python
+/// from the distribution — is a separate, separately reviewable change and none
+/// of it happens here.</para>
 /// </summary>
 internal static class EngineSelection
 {
-    /// <summary>D1: Python remains the default for the whole of Stage 1. The
-    /// public default does not move before Gate G3 (#262 Stage 3).</summary>
-    public const Engine Default = Engine.Python;
+    /// <summary>
+    /// #262 Stage 3: the public default is Rust.
+    ///
+    /// <para>This constant moved from <see cref="Engine.Python"/> at the
+    /// cutover, and it is the whole cutover as far as this surface is
+    /// concerned — which is the point of having written it down in one place at
+    /// Stage 1 rather than in four. The other three launcher surfaces
+    /// (own-check.sh, own-check.ps1, the Action) carry the same default in
+    /// their own idiom and are held to it together.</para>
+    ///
+    /// <para>What does NOT follow from this line: a Rust failure never becomes
+    /// a Python success. There is no fallback here, automatic or otherwise. A
+    /// candidate that cannot be resolved or cannot be started is a visible
+    /// configuration error (exit 2), and selecting Python is something a caller
+    /// does on purpose.</para>
+    /// </summary>
+    public const Engine Default = Engine.Rust;
 
     /// <summary>The spellings accepted by every launcher surface. One contract
     /// across `owen`, own-check.sh, own-check.ps1 and the Action (D2).</summary>

@@ -34,16 +34,16 @@ inputs:
     default: "error"
   engine:
     description: >-
-      Which analysis engine runs (#262 Stage 1): python (the DEFAULT and the
-      reference), rust (the Rust core `own-cli ownir`), or compare (both over
-      one captured input, exposing the reference's result only when they agree
-      byte for byte). rust and compare require the candidate binary's absolute
-      path in the OWEN_RUST_CORE environment variable — the Action does no
-      discovery, so an unset or unusable OWEN_RUST_CORE is a configuration
-      error (exit 2) and never a silent fall back to Python. compare is a
-      development/CI seam for the migration, not yet a promised feature.
+      Which analysis engine runs. Since #262 Stage 3 the DEFAULT is rust (the
+      Rust core `own-cli ownir`); python selects the reference implementation
+      and is the documented ROLLBACK for the observation window; compare runs
+      both over one captured input and exposes the reference's result only when
+      they agree byte for byte. A Rust failure is never turned into a Python
+      success: there is no fallback, and selecting python is something you do
+      on purpose. compare is a development/CI seam for the migration, not yet a
+      promised feature.
     required: false
-    default: "python"
+    default: "rust"
   fail-on-finding:
     description: >-
       Whether a FINDING fails the step. Default false: findings are published
@@ -80,7 +80,11 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Set up Python (Owen core)
+    # Python is still set up unconditionally, and on purpose: it is the
+    # documented ROLLBACK (engine: python) for the observation window, and
+    # `compare` needs both engines. Stage 3 changes which engine answers by
+    # default, not what the Action ships with. Removing this is Stage 4.
+    - name: Set up Python (Owen reference engine / rollback)
       uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
@@ -89,6 +93,98 @@ runs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ inputs.dotnet-version }}
+
+    # #262 Stage 3: the Rust core, for the engines that need one.
+    #
+    # The Action resolves its candidate by BUILDING the production `own-cli`
+    # crate from this action's own pinned ref. That is not a developer adapter
+    # and it is never own-shadow-engine or a stub: it is the same crate, the
+    # same --release profile and the same binary the release package carries,
+    # built from exactly the revision the caller pinned, which is also what
+    # makes the engine and the fixtures provably the same vintage.
+    #
+    # It is, however, a real cost to every consumer: a Rust toolchain and a
+    # first build. It is what is available today -- this repository publishes
+    # no release, so there is no `own-cli` artifact to download and no
+    # published Owen.Cli package to install -- and it should be revisited the
+    # moment a release exists, at which point downloading the released binary
+    # for the runner's platform is strictly better. Recorded rather than
+    # smoothed over, because the cost lands on users of this Action.
+    #
+    # OWNER RULING (#262 Stage 3): ACTION-BUILD is ACCEPTED for Stage 3 as a
+    # DECLARED TEMPORARY DISTRIBUTION COST. It is not a parity difference, not a
+    # semantic difference and not a Stage-3 blocker: the default is rust, Python
+    # stays the explicit rollback until Stage 4, the Rust toolchain is installed
+    # by this Action rather than assumed, and what is built is the production
+    # `own-cli` crate -- never own-shadow-engine and never a test adapter. So it
+    # is not an undeclared runtime dependency. It is simply a heavy way to
+    # deliver a binary: a consumer today pays setup-python, setup-dotnet,
+    # setup-rust and a cargo build to run a static analyzer.
+    #
+    # EXIT CONDITION: the first suitable published own-cli / Owen.Cli artifact.
+    # At that point this Action downloads an immutable platform binary and the
+    # consumer-side Rust build disappears. That is a separate post-Stage-3
+    # packaging follow-up and deliberately NOT Stage 4, which is about removing
+    # the Python distribution dependency -- a different question.
+    #
+    # Skipped entirely for `engine: python`, so the rollback path stays as
+    # cheap as it was before Stage 3.
+    # THE PINNED QUALIFICATION TOOLCHAIN. This is the canonical place it is
+    # written down, and `tests/test_stage3_surfaces.py` refuses a floating
+    # channel here.
+    #
+    # `stable` was wrong for a consumer-facing surface, and wrong in a way that
+    # only shows up later: the action ref is pinned, the dependency graph is
+    # pinned by rust/Cargo.lock, and the compiler was the one input left
+    # drifting in time. A caller who pins PhysShell/Own.NET@<tag> is entitled to
+    # have that tag mean one thing; with a moving channel the same tag would
+    # build with whatever rustc shipped that month, and a future release that
+    # compiled the crate differently -- or refused it -- would change the
+    # behaviour of a revision nobody touched. For a migration cutover that is a
+    # variable with no upside.
+    - name: Set up Rust (Owen core)
+      if: inputs.engine != 'python'
+      uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+      with:
+        toolchain: "1.98.1"
+    - name: Cache the built Owen core
+      if: inputs.engine != 'python'
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ github.action_path }}/rust/target
+          ~/.cargo/registry
+          ~/.cargo/git
+        # The cache is an OPTIMIZATION; the Cargo build below is authoritative.
+        #
+        # An earlier comment here claimed this key gives a caller who bumps the
+        # pinned version a rebuild rather than a stale binary. It does not, and
+        # the claim was worth more than the key: `github.action_ref` is whatever
+        # the caller wrote, so a moving major tag like `v1` keeps one key across
+        # every commit it ever points at. What actually prevents a stale binary
+        # is Cargo -- it rebuilds a local crate whose sources changed, cache hit
+        # or not -- so the correctness argument belongs there and not here.
+        key: owen-core-${{ runner.os }}-${{ github.action_ref || github.sha }}
+    - name: Build the Owen core (own-cli)
+      if: inputs.engine != 'python'
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "${{ github.action_path }}/rust"
+        # --locked: rust/Cargo.lock is committed, so there is no reason for a
+        # production build on a consumer's runner to be allowed to recompute the
+        # dependency graph. Without it a yanked or newly published version can
+        # change what gets built from an unchanged source revision, and the
+        # build would succeed while quietly not being the qualified one.
+        cargo build -p own-cli --release --locked
+        ext=""
+        if [ "$RUNNER_OS" = "Windows" ]; then ext=".exe"; fi
+        core="$(cd target/release && pwd)/own-cli$ext"
+        # Prove it runs on THIS runner before anything depends on it, so a
+        # broken candidate is a clear failure here rather than an obscure one
+        # inside a check.
+        "$core" --version
+        echo "OWEN_RUST_CORE=$core" >> "$GITHUB_ENV"
 
     - name: Owen leak check
       id: own

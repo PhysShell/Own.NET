@@ -81,23 +81,23 @@
     {
       "id": "S06",
       "rule": "the-public-default-does-not-move",
-      "description": "the PRODUCT default flips to Rust — the covert Stage 3, and the single edit that would make every internal Rust job pass by accident while changing what every user gets",
+      "description": "the PRODUCT default goes back to Python -- the cutover silently reversed through the C# launcher. Inverted at #262 Stage 3: it used to mutate Python -> Rust, which is now the shipped state",
       "target": "frontend/roslyn/OwnSharp.Cli/EngineSelection.cs",
-      "pattern": "public const Engine Default = Engine\\.Python;",
-      "replacement": "public const Engine Default = Engine.Rust;",
+      "pattern": "public const Engine Default = Engine\\.Rust;",
+      "replacement": "public const Engine Default = Engine.Python;",
       "expected_catchers": [
-        "stage2::public-default-moved"
+        "stage2::public-default-is-rust"
       ]
     },
     {
       "id": "S07",
       "rule": "the-public-default-does-not-move",
-      "description": "the ACTION's public engine input defaults to rust — the same cutover through the other public door, and the one a C#-only control would miss",
+      "description": "the ACTION's public engine input goes back to python -- the same reversal through the other public door, and the one a C#-only control would miss. Inverted at #262 Stage 3 for the same reason as S06",
       "target": "action.yml",
-      "pattern": "    required: false\n    default: \"python\"",
-      "replacement": "    required: false\n    default: \"rust\"",
+      "pattern": "    required: false\n    default: \"rust\"",
+      "replacement": "    required: false\n    default: \"python\"",
       "expected_catchers": [
-        "stage2::public-default-moved"
+        "stage2::public-default-is-rust"
       ]
     },
     {

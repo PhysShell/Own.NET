@@ -3,10 +3,10 @@
   "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
   "campaign": "p022-stage1-1",
   "definition": "docs/evidence/p022-stage1-1.json",
-  "definition_sha256": "c8bd2180f285a130dfadc153e966e48b2c2d8d6072d90651906112719c0040eb",
-  "source_commit": "da897b42fcd76ea1914d286bd6bae6065c072c70",
+  "definition_sha256": "076165178704095f9d0d2fbec1efea37256831ba4f92c62c71534576b27f5f85",
+  "source_commit": "f988c8e1be7ff12a99b46d5bff444c68d00b8743",
   "dirty": false,
-  "recorded_at": "2026-09-09T08:36:00Z",
+  "recorded_at": "2026-09-18T04:22:24Z",
   "layers": [
     "stage1"
   ],
@@ -15,44 +15,48 @@
     "id": "M00",
     "outcome": "survived",
     "catchers": [],
-    "elapsed_seconds": 34.4
+    "elapsed_seconds": 39.0
   },
   "mutations": [
     {
       "id": "M01",
       "outcome": "caught",
       "catchers": [
-        "stage1::default-stays-python"
+        "stage1::default-is-rust",
+        "stage1::unset-locator-is-d6"
       ],
-      "elapsed_seconds": 27.6
+      "elapsed_seconds": 32.1
     },
     {
       "id": "M02",
       "outcome": "caught",
       "catchers": [
+        "stage1::default-is-rust",
         "stage1::rust-actually-runs-rust"
       ],
-      "elapsed_seconds": 25.5
+      "elapsed_seconds": 29.3
     },
     {
       "id": "M03",
       "outcome": "caught",
       "catchers": [
+        "stage1::default-is-rust",
         "stage1::rc70-is-not-a-verdict",
         "stage1::rust-failure-no-fallback"
       ],
-      "elapsed_seconds": 27.3
+      "elapsed_seconds": 31.3
     },
     {
       "id": "M04",
       "outcome": "caught",
       "catchers": [
+        "stage1::default-is-rust",
         "stage1::raw-rc-retained",
         "stage1::rc70-is-not-a-verdict",
         "stage1::rust-failure-no-fallback",
         "stage1::unexpected-rc-maps-to-5"
       ],
-      "elapsed_seconds": 27.1
+      "elapsed_seconds": 31.9
     },
     {
       "id": "M05",
@@ -60,25 +64,27 @@
       "catchers": [
         "stage1::raw-rc-retained"
       ],
-      "elapsed_seconds": 27.7
+      "elapsed_seconds": 32.2
     },
     {
       "id": "M06",
       "outcome": "caught",
       "catchers": [
         "stage1::absolute-locator-only",
-        "stage1::bad-locator-is-2"
+        "stage1::bad-locator-is-2",
+        "stage1::unset-locator-is-d6"
       ],
-      "elapsed_seconds": 26.9
+      "elapsed_seconds": 31.8
     },
     {
       "id": "M07",
       "outcome": "caught",
       "catchers": [
         "stage1::absolute-locator-only",
-        "stage1::bad-locator-is-2"
+        "stage1::bad-locator-is-2",
+        "stage1::unset-locator-is-d6"
       ],
-      "elapsed_seconds": 27.1
+      "elapsed_seconds": 31.5
     },
     {
       "id": "M08",
@@ -86,7 +92,7 @@
       "catchers": [
         "stage1::rust-failure-no-fallback"
       ],
-      "elapsed_seconds": 26.7
+      "elapsed_seconds": 31.7
     },
     {
       "id": "M09",
@@ -95,7 +101,7 @@
         "stage1::absolute-locator-only",
         "stage1::bad-locator-is-2"
       ],
-      "elapsed_seconds": 27.4
+      "elapsed_seconds": 31.7
     },
     {
       "id": "M10",
@@ -105,7 +111,7 @@
         "stage1::compare-same-input",
         "stage1::divergence-is-5"
       ],
-      "elapsed_seconds": 25.8
+      "elapsed_seconds": 31.2
     },
     {
       "id": "M11",
@@ -114,7 +120,7 @@
         "stage1::compare-failure-classified",
         "stage1::exec-failure-is-5"
       ],
-      "elapsed_seconds": 26.2
+      "elapsed_seconds": 32.1
     },
     {
       "id": "M12",
@@ -122,7 +128,7 @@
       "catchers": [
         "stage1::compare-zero-document"
       ],
-      "elapsed_seconds": 26.9
+      "elapsed_seconds": 32.0
     },
     {
       "id": "M13",
@@ -130,7 +136,7 @@
       "catchers": [
         "stage1::candidate-identity"
       ],
-      "elapsed_seconds": 26.7
+      "elapsed_seconds": 32.1
     },
     {
       "id": "M14",
@@ -139,7 +145,7 @@
         "stage1::compare-no-substitution",
         "stage1::divergence-is-5"
       ],
-      "elapsed_seconds": 25.9
+      "elapsed_seconds": 32.1
     },
     {
       "id": "M15",
@@ -147,7 +153,7 @@
       "catchers": [
         "stage1::divergence-is-5"
       ],
-      "elapsed_seconds": 26.7
+      "elapsed_seconds": 32.5
     },
     {
       "id": "M16",
@@ -155,7 +161,7 @@
       "catchers": [
         "stage1::compare-zero-document"
       ],
-      "elapsed_seconds": 26.1
+      "elapsed_seconds": 32.0
     },
     {
       "id": "M17",
@@ -164,7 +170,7 @@
         "stage1::absolute-locator-only",
         "stage1::locator-shapes"
       ],
-      "elapsed_seconds": 28.7
+      "elapsed_seconds": 34.3
     },
     {
       "id": "M18",
@@ -173,7 +179,7 @@
         "stage1::absolute-locator-only",
         "stage1::locator-shapes"
       ],
-      "elapsed_seconds": 31.0
+      "elapsed_seconds": 37.2
     },
     {
       "id": "M19",
@@ -181,7 +187,7 @@
       "catchers": [
         "stage1::compare-failure-classified"
       ],
-      "elapsed_seconds": 26.5
+      "elapsed_seconds": 32.2
     },
     {
       "id": "M20",
@@ -195,7 +201,7 @@
         "stage1::locator-shapes",
         "stage1::rust-failure-no-fallback"
       ],
-      "elapsed_seconds": 13.0
+      "elapsed_seconds": 17.6
     },
     {
       "id": "M21",
@@ -206,6 +212,7 @@
         "stage1::compare-failure-classified",
         "stage1::compare-same-input",
         "stage1::compare-zero-document",
+        "stage1::default-is-rust",
         "stage1::divergence-is-5",
         "stage1::exec-failure-is-5",
         "stage1::locator-shapes",
@@ -215,7 +222,7 @@
         "stage1::rust-failure-no-fallback",
         "stage1::unexpected-rc-maps-to-5"
       ],
-      "elapsed_seconds": 17.2
+      "elapsed_seconds": 19.9
     }
   ]
 }

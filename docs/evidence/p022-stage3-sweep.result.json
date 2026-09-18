@@ -1,0 +1,455 @@
+{
+  "schema": 1,
+  "comment": "#262 STAGE 3 RE-QUALIFICATION of the #260 sweep, on the cutover candidate tree. Same frozen definition (docs/evidence/p022-shadow-sweep.json), same pins, same driver, assembled by tests/shadow_sweep.py --collect. It exists BESIDE p022-shadow-sweep.result.json rather than replacing it because they answer different questions: that file is #260's acceptance, anchored to a CI run; this one is whether the same measurement still holds on the tree that moves the public default. It was owed rather than optional -- the #260 record was taken at 321ab8b4, which predates both #261's changes to own-ir's strict door and the Stage-3 hygiene repair to the reference's OwnIR input boundary, so it is not evidence for this candidate however well it validates. workflow_run_url is null and stays null: this run was taken locally, which is a weaker provenance anchor than a CI run and is recorded as such rather than dressed up. The scheduled shadow-sweep workflow re-takes it in CI.",
+  "sweep": "p022-shadow-sweep",
+  "definition": "docs/evidence/p022-shadow-sweep.json",
+  "definition_sha256": "9edfaedd3ba1d1f918cd0f386f33b856f473fa5f2c1cbd4025265ecc06eacd74",
+  "source_commit": "b590bf46e9f1c4cbf6bb28978c81afea5ffa1af2",
+  "recorded_at": "2026-09-18T03:28:45Z",
+  "host": "Linux x86_64",
+  "workflow_run_url": null,
+  "driver_version": 2,
+  "adapters": [
+    {
+      "sha256": "e28fde7a0c1d2313e0c17d6563b33211398e7a6a1646e0ab5f060521746845cb",
+      "bytes": 1819168
+    }
+  ],
+  "documents": [
+    {
+      "id": "AvalonEdit.repo",
+      "source": "AvalonEdit.repo.facts.json",
+      "target": "AvalonEdit",
+      "target_commit": "ed0bd149059469ac9bd39b13cf8a341b12a6c1da",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/AvalonEdit",
+      "facts_sha256": "deae577744ff74afa1c427d9a28304eb7a0f8cfcc9137b7e4422aa64a8f1bdad",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "deae577744ff74afa1c427d9a28304eb7a0f8cfcc9137b7e4422aa64a8f1bdad",
+        "bytes": 35279
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "0833085ec608b40d14e919beb82fd6984640bda19b1fadab170638c071ac541c",
+        "bytes": 24006
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.046
+    },
+    {
+      "id": "AvalonEdit.sln",
+      "source": "AvalonEdit.sln.facts.json",
+      "target": "AvalonEdit",
+      "target_commit": "ed0bd149059469ac9bd39b13cf8a341b12a6c1da",
+      "extraction_mode": "solution",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/AvalonEdit/ICSharpCode.AvalonEdit.sln",
+      "facts_sha256": "57fa442681e9fff2e0d38548bd27a6e0fc071fc6931de6b1cef583d8474305b4",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "57fa442681e9fff2e0d38548bd27a6e0fc071fc6931de6b1cef583d8474305b4",
+        "bytes": 35279
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "7155f02a072bd6b755dbf1d2220c7d2f63fe18531554a873117392bb12cb53fc",
+        "bytes": 24006
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.05
+    },
+    {
+      "id": "ClosedXML.repo",
+      "source": "ClosedXML.repo.facts.json",
+      "target": "ClosedXML",
+      "target_commit": "4e89dcedd83cad553e84d2d97f77fc3d7deb630f",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ClosedXML",
+      "facts_sha256": "7b2bf42f4d6f58077e7b01bce2eb873b129dfb024fd3c5284c0b311732a8a4d2",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "7b2bf42f4d6f58077e7b01bce2eb873b129dfb024fd3c5284c0b311732a8a4d2",
+        "bytes": 205587
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "1b688c50aa1e4df083a791b724d9452a6cf6c03436a50f90e78dfd3f037cb21c",
+        "bytes": 121095
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.238
+    },
+    {
+      "id": "ClosedXML.sln",
+      "source": "ClosedXML.sln.facts.json",
+      "target": "ClosedXML",
+      "target_commit": "4e89dcedd83cad553e84d2d97f77fc3d7deb630f",
+      "extraction_mode": "solution",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ClosedXML/ClosedXML.sln",
+      "facts_sha256": "c93b3da2e5c53ca94a1f0f33511300fe83fc81696a0225bb1b3090438d7140e1",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "c93b3da2e5c53ca94a1f0f33511300fe83fc81696a0225bb1b3090438d7140e1",
+        "bytes": 205587
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "37bd932dfd595d406b9e3b8d1fa23add4aa5f4639447e69233a6ecf161388d95",
+        "bytes": 121095
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.235
+    },
+    {
+      "id": "MahApps.Metro.repo",
+      "source": "MahApps.Metro.repo.facts.json",
+      "target": "MahApps.Metro",
+      "target_commit": "72099e310bac2d12ac98fd7560b69679252519f5",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/MahApps.Metro",
+      "facts_sha256": "997abb7e2d0d5acb6c4603d420535b7c8aab594b46a20a29f84dfe5175d5be38",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "997abb7e2d0d5acb6c4603d420535b7c8aab594b46a20a29f84dfe5175d5be38",
+        "bytes": 44960
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "9a6609b7053a74821c9f4d1c60f17cda77cb13af81fbcdf0d02388f7e4bb4c5a",
+        "bytes": 30399
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.051
+    },
+    {
+      "id": "MahApps.Metro.sln",
+      "source": "MahApps.Metro.sln.facts.json",
+      "target": "MahApps.Metro",
+      "target_commit": "72099e310bac2d12ac98fd7560b69679252519f5",
+      "extraction_mode": "solution",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/MahApps.Metro/src/MahApps.Metro.sln",
+      "facts_sha256": "76baa8e068ee8bf3c4d607d404036d4bb9fb473dde9214f0d87391d7868c7eac",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "76baa8e068ee8bf3c4d607d404036d4bb9fb473dde9214f0d87391d7868c7eac",
+        "bytes": 44960
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "8a4fff21fa88b5e37b72fa43ab1a43066b0d28e572127c74ff6a4786ae65f707",
+        "bytes": 30399
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.051
+    },
+    {
+      "id": "MaterialDesignInXamlToolkit.repo",
+      "source": "MaterialDesignInXamlToolkit.repo.facts.json",
+      "target": "MaterialDesignInXamlToolkit",
+      "target_commit": "ef3a5ea434e39182b1848f5e11aaea6b3890581f",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/MaterialDesignInXamlToolkit",
+      "facts_sha256": "e1e8a568d0db5aba411026fc18a882ec5176fe4c9d7acad5cc019f9328d65471",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "e1e8a568d0db5aba411026fc18a882ec5176fe4c9d7acad5cc019f9328d65471",
+        "bytes": 54031
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "a57afa2bb4247d264d5d83aeb22264eed8a81b4ea11de0f9828fb5c834e68f4c",
+        "bytes": 38064
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.054
+    },
+    {
+      "id": "ShareX.repo",
+      "source": "ShareX.repo.facts.json",
+      "target": "ShareX",
+      "target_commit": "0df9ca4d83eed9d2489048c539d7d1fc2860fdec",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ShareX",
+      "facts_sha256": "078e4df63f8da207803bfab938acc49d8b8ffec145748d6447f38d9423dc1c11",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "078e4df63f8da207803bfab938acc49d8b8ffec145748d6447f38d9423dc1c11",
+        "bytes": 248611
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "3966d3d8f736d587e07a7e9c85de5a109fac52ea53c1b9f22311662333fe457b",
+        "bytes": 136590
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.223
+    },
+    {
+      "id": "ShareX.sln",
+      "source": "ShareX.sln.facts.json",
+      "target": "ShareX",
+      "target_commit": "0df9ca4d83eed9d2489048c539d7d1fc2860fdec",
+      "extraction_mode": "solution",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ShareX/ShareX.sln",
+      "facts_sha256": "62732f41579911d710feec0e2ec228721fe6090eab99422571e5a489dbffa233",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "62732f41579911d710feec0e2ec228721fe6090eab99422571e5a489dbffa233",
+        "bytes": 248611
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "a00bbe481dc23b4f21d0367d95876321eba8d2c5f94e4f21ab53d4e952259781",
+        "bytes": 136590
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.224
+    },
+    {
+      "id": "examples",
+      "source": "examples.facts.json",
+      "target": "examples",
+      "target_commit": "b590bf46e9f1c4cbf6bb28978c81afea5ffa1af2",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- examples",
+      "facts_sha256": "b53e82ab254407d65a5e6533b1bd18af7c6bcbf19fb89464b8917adc80c4093a",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "b53e82ab254407d65a5e6533b1bd18af7c6bcbf19fb89464b8917adc80c4093a",
+        "bytes": 12721
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "4345a12f5b1e10bb0e7600c272070eff541b893bb24dd3bf095c236be9a2dc0a",
+        "bytes": 6705
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.03
+    }
+  ],
+  "targets": [
+    {
+      "target": "AvalonEdit",
+      "documents_extracted": 2,
+      "compare_attempted": 2,
+      "agreed": 2,
+      "diverged": 0,
+      "execution_failures": 0,
+      "input_refusals": 0,
+      "input_disagreements": 0,
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0
+    },
+    {
+      "target": "ClosedXML",
+      "documents_extracted": 2,
+      "compare_attempted": 2,
+      "agreed": 2,
+      "diverged": 0,
+      "execution_failures": 0,
+      "input_refusals": 0,
+      "input_disagreements": 0,
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0
+    },
+    {
+      "target": "MahApps.Metro",
+      "documents_extracted": 2,
+      "compare_attempted": 2,
+      "agreed": 2,
+      "diverged": 0,
+      "execution_failures": 0,
+      "input_refusals": 0,
+      "input_disagreements": 0,
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0
+    },
+    {
+      "target": "MaterialDesignInXamlToolkit",
+      "documents_extracted": 1,
+      "compare_attempted": 1,
+      "agreed": 1,
+      "diverged": 0,
+      "execution_failures": 0,
+      "input_refusals": 0,
+      "input_disagreements": 0,
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0
+    },
+    {
+      "target": "ShareX",
+      "documents_extracted": 2,
+      "compare_attempted": 2,
+      "agreed": 2,
+      "diverged": 0,
+      "execution_failures": 0,
+      "input_refusals": 0,
+      "input_disagreements": 0,
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0
+    },
+    {
+      "target": "examples",
+      "documents_extracted": 1,
+      "compare_attempted": 1,
+      "agreed": 1,
+      "diverged": 0,
+      "execution_failures": 0,
+      "input_refusals": 0,
+      "input_disagreements": 0,
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0
+    }
+  ],
+  "totals": {
+    "documents_extracted": 10,
+    "compare_attempted": 10,
+    "agreed": 10,
+    "diverged": 0,
+    "execution_failures": 0,
+    "input_refusals": 0,
+    "input_disagreements": 0,
+    "declared_boundary_observations": 0,
+    "acceptance_unexplained_observations": 0
+  }
+}

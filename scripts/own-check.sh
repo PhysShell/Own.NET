@@ -17,14 +17,21 @@
 #                        [--emit-facts <path>] [--config <own.toml>] [--root <own.net checkout>]
 #                        [--] <path|file> [more ...]
 #
-# --engine selects the analysis engine (#262 Stage 1). Python is the DEFAULT and
-# the reference; `rust` runs the Rust core (`own-cli ownir`) instead; `compare`
-# runs both over one captured input and exposes the reference's result only when
-# they agree byte for byte. `rust` and `compare` require the candidate binary's
-# absolute path in OWEN_RUST_CORE — there is no discovery of any kind, so an
-# unset or unusable OWEN_RUST_CORE is a configuration error (exit 2) and NEVER a
-# silent fall back to Python. A Rust failure is never turned into a Python
-# success in any mode.
+# --engine selects the analysis engine. Since #262 Stage 3 the DEFAULT is `rust`
+# (the Rust core, `own-cli ownir`); `python` selects the reference implementation
+# and is the documented ROLLBACK; `compare` runs both over one captured input and
+# exposes the reference's result only when they agree byte for byte. `rust` and
+# `compare` require the candidate binary's absolute path in OWEN_RUST_CORE —
+# there is no discovery of any kind, so an unset or unusable OWEN_RUST_CORE is a
+# configuration error (exit 2) and NEVER a silent fall back to Python. A Rust
+# failure is never turned into a Python success in any mode.
+#
+# This surface runs from a CHECKOUT, so it has no packaged binary to fall back
+# on the way the `owen` tool does (#262 D6) — build one with
+# `cargo build -p own-cli --release` in rust/ and point OWEN_RUST_CORE at it, or
+# pass `--engine python` to run the reference. Probing rust/target for it is
+# exactly the discovery D3 forbids: it is how a stale binary from some earlier
+# build silently stands in for the one you think you are running.
 #
 # --config <own.toml> reads the project's [weak-subscription].subscribe wrapper
 # names (P-035) and teaches the extractor to treat those calls as already-released
@@ -52,9 +59,10 @@ set -euo pipefail
 root=""
 format="human"
 severity="error"
-# D1: Python is the Stage-1 default on every launcher surface. This line is the
-# one that decides it for this surface.
-engine="python"
+# #262 Stage 3: Rust is the default on every launcher surface. This line is the
+# one that decides it for this surface; the other three carry the same default
+# in their own idiom and are held to it together.
+engine="rust"
 fail_on_finding=0
 legacy=0
 stats=0
@@ -176,7 +184,7 @@ if [[ "$engine" == "rust" || "$engine" == "compare" ]]; then
   fi
   if [[ -n "$problem" ]]; then
     echo "own-check: --engine $engine needs the candidate \`own-cli\` binary, but OWEN_RUST_CORE $problem." >&2
-    echo "own-check: set OWEN_RUST_CORE to the absolute path of the \`own-cli\` executable to run. Owen did not fall back to Python." >&2
+    echo "own-check: set OWEN_RUST_CORE to the absolute path of the \`own-cli\` executable to run (build one with: cd rust && cargo build -p own-cli --release), or pass --engine python to run the reference engine. Owen did not fall back to Python." >&2
     exit 2
   fi
 fi

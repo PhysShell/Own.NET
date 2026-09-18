@@ -187,6 +187,34 @@ jobs:
       # logic is platform-neutral and a Linux run catches regressions early —
       # but only the Windows leg is evidence for a PowerShell-targeted
       # mutation, which is what the stage1-windows-mutations job below settles.
+      # P-022 Stage 3 (#262): the cutover's own controls. They live here because
+      # this is the job that already builds the candidate, the fault-injection
+      # binary and the launcher, and they run on BOTH legs of its matrix -- the
+      # rollback and the cancellation disposition are platform claims, and the
+      # Windows one cannot be inferred from the Linux one.
+      - name: Stage-3 rollback controls (the four states, kept distinct)
+        env:
+          OWEN_STAGE3_REQUIRE: "1"
+        run: |
+          ext=""
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then ext=".exe"; fi
+          export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli$ext"
+          export OWEN_STAGE1_LAUNCHER_DLL="$PWD/frontend/roslyn/OwnSharp.Cli/bin/Release/net8.0/ownsharp.dll"
+          python tests/test_stage3_rollback.py
+      # Cancellation is MEASURED per platform, not contracted as a number: #262
+      # forbids inventing a universal 130, and the two platforms do not even
+      # offer the same mechanism. The control asserts only what the evidence
+      # supports and PRINTS the disposition it found, on a line prefixed
+      # STAGE3-CANCELLATION-RECORD, so the Windows measurement is read off this
+      # job rather than predicted anywhere.
+      - name: Stage-3 cancellation, measured on this platform
+        env:
+          OWEN_STAGE3_REQUIRE: "1"
+        run: |
+          ext=""
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then ext=".exe"; fi
+          export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli$ext"
+          python tests/test_stage3_cancellation.py
       - name: Stage-1 PowerShell controls
         env:
           OWEN_STAGE1_REQUIRE: "1"
@@ -2068,14 +2096,22 @@ jobs:
           # Action plumbing: own-check --config own.toml parses [weak-subscription] and
           # forwards it to the extractor, so the wrapper is silent end-to-end.
           printf '[weak-subscription]\nsubscribe = ["WeakEvents.AddPropertyChanged"]\n' > "$RUNNER_TEMP/own.toml"
-          cout=$(scripts/own-check.sh --config "$RUNNER_TEMP/own.toml" "$sample" || true)
+          # --engine python is EXPLICIT here, and became explicit at #262 Stage 3.
+          # This is a class-B call site in the Stage-2 census: the reference
+          # implementation is the instrument, and the step above asserted the
+          # same sample through `python -m ownlang ownir` directly. When the
+          # public default moved to Rust, a bare call here would have quietly
+          # changed which engine this comparison is against -- the measurement
+          # would still have passed, and would no longer have been the
+          # measurement it says it is.
+          cout=$(scripts/own-check.sh --engine python --config "$RUNNER_TEMP/own.toml" "$sample" || true)
           ! echo "$cout" | grep -q "WeaklySubscribed" \
             || { echo "FAIL: own-check --config did not silence the declared wrapper"; exit 1; }
           echo "$cout" | grep -q "OrdinaryPlusEquals" \
             || { echo "FAIL: own-check --config lost the ordinary += leak"; exit 1; }
           # A malformed config is a hard error (non-zero), never a silent skip.
           printf '[weak-subscription]\nsubscribe = ["bad_no_dot"]\n' > "$RUNNER_TEMP/bad.toml"
-          if scripts/own-check.sh --config "$RUNNER_TEMP/bad.toml" "$sample" >/dev/null 2>&1; then
+          if scripts/own-check.sh --engine python --config "$RUNNER_TEMP/bad.toml" "$sample" >/dev/null 2>&1; then
             echo "FAIL: malformed --config was silently accepted"; exit 1
           fi
           echo "OK: declared weak-subscribe wrapper = accepted release; += unaffected; own.toml plumbed; malformed config is a hard error"
@@ -2400,6 +2436,28 @@ jobs:
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: "8.0.x"
+      # #262 Stage 3: this is a PUBLIC-CONTRACT VERIFIER (Stage-2 census class A),
+      # so it invokes the surface BARE and gets whatever the public default is.
+      # That default is now Rust, so the job supplies a candidate the way a real
+      # install would. It builds the production `own-cli` rather than probing
+      # rust/target for one: probing is the discovery D3 forbids, and is how a
+      # stale binary stands in for the one under test.
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build the production own-cli and select it (the public default is Rust)
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd rust && cargo build -p own-cli --release)
+          ext=""
+          if [ "$RUNNER_OS" = "Windows" ]; then ext=".exe"; fi
+          # Named owen_core rather than core: the Stage-2 campaign anchors a
+          # mutant on the dogfood job's own `core="..."` line, and a second
+          # identical line in this file made that anchor ambiguous.
+          owen_core="$PWD/rust/target/release/own-cli$ext"
+          "$owen_core" --version
+          echo "OWEN_RUST_CORE=$owen_core" >> "$GITHUB_ENV"
       - name: GitHub-annotation format over the sample tree (directory walk)
         run: |
           # stdout (captured) carries only the annotations; the extractor's build
@@ -2608,6 +2666,31 @@ jobs:
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: "8.0.x"
+      # #262 Stage 3: this is a PUBLIC-CONTRACT VERIFIER (Stage-2 census class A),
+      # so it invokes the surface BARE and gets whatever the public default is.
+      # That default is now Rust, so the job supplies a candidate the way a real
+      # install would. It builds the production `own-cli` rather than probing
+      # rust/target for one: probing is the discovery D3 forbids, and is how a
+      # stale binary stands in for the one under test.
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      # The locator is set from POWERSHELL's $PWD, not bash's, and that is the
+      # whole point of not reusing the bash step the sibling jobs use. In
+      # git-bash on a Windows runner $PWD is the MSYS form (/d/a/Own.NET/...),
+      # and own-check.ps1 correctly refuses it: D3 ratified an ABSOLUTE path,
+      # and /d/... is not one to PowerShell. Writing that form into $GITHUB_ENV
+      # exported it to every later step and turned a correct configuration into
+      # a usage error -- which is exactly what happened on the first run of this
+      # job after the cutover.
+      - name: Build the production own-cli and select it (the public default is Rust)
+        run: |
+          Push-Location rust
+          cargo build -p own-cli --release
+          Pop-Location
+          $core = Join-Path $PWD "rust\target\release\own-cli.exe"
+          & $core --version
+          "OWEN_RUST_CORE=$core" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       - name: A clean tree to check against
         run: |
           $clean = Join-Path $env:RUNNER_TEMP "ps1-clean"
@@ -2869,7 +2952,18 @@ jobs:
           $rc = $LASTEXITCODE
           $out | Write-Host
           if ($rc -ne 1) { throw "expected exit 1 (findings), got $rc" }
-          if ($out -notmatch 'OWN001') { throw "the Rust core found no OWN001" }
+          # `-not ($out -match ...)`, NOT `$out -notmatch ...`. On an ARRAY
+          # PowerShell's -notmatch is a FILTER, not a boolean: it returns the
+          # elements that do not match, and a non-empty result is truthy. So
+          # over a 166-line capture where 137 lines carry OWN001 it returns the
+          # other 29 and the assertion fires anyway.
+          #
+          # The mirror image is how it passed before: while the Rust branch
+          # wrote to an inherited console handle, $out was $null, -notmatch
+          # filtered an empty collection to an empty collection, and the step
+          # went green having captured and verified NOTHING. Both directions
+          # are the same bug, and this is the idiom the rest of this file uses.
+          if (-not ($out -match 'OWN001')) { throw "the Rust core found no OWN001" }
           Write-Host "OK: Rust-default dogfood on windows (own-check.ps1)"
           exit 0
       # No fallback, measured rather than asserted: with the candidate broken,
@@ -3202,8 +3296,26 @@ jobs:
       # published there yet, see P-013's Non-goals) -- pack from the source
       # this job already checked out. Deliberately OUTSIDE the timed window
       # below: it is not part of the "install -> check" claim being proven.
+      # #262 Stage 3, D6: Rust is the public default, so the PACKAGE has to carry
+      # the binary that default resolves to. Built natively on each leg of this
+      # matrix, which is what makes this job the Windows packed-path evidence as
+      # well as the Linux one -- a cross-compiled candidate would be a binary no
+      # Windows machine had executed.
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build and stage this platform's own-cli for packing
+        run: |
+          set -euo pipefail
+          (cd rust && cargo build -p own-cli --release)
+          if [ "$RUNNER_OS" = "Windows" ]; then key=win-x64; bin=own-cli.exe; else key=linux-x64; bin=own-cli; fi
+          mkdir -p "$RUNNER_TEMP/rust-stage/$key"
+          cp "rust/target/release/$bin" "$RUNNER_TEMP/rust-stage/$key/$bin"
+          "rust/target/release/$bin" --version
       - name: Pack Owen.Cli (pulls in the extractor via ProjectReference)
-        run: dotnet pack frontend/roslyn/OwnSharp.Cli/OwnSharp.Cli.csproj -c Release -o "$RUNNER_TEMP/owen-nupkg"
+        run: |
+          dotnet pack frontend/roslyn/OwnSharp.Cli/OwnSharp.Cli.csproj -c Release \
+            -o "$RUNNER_TEMP/owen-nupkg" -p:OwenRustCoreDir="$RUNNER_TEMP/rust-stage"
       # --add-source alone is not enough (Codex review, PR #244): `dotnet tool
       # install` queries every configured source (nuget.org included) IN
       # PARALLEL and takes whichever answers first — once a same-numbered
@@ -3374,7 +3486,15 @@ jobs:
           EOF
           chmod +x "$RUNNER_TEMP/crashing-python"
           set +e
-          out=$(OWEN_PYTHON="$RUNNER_TEMP/crashing-python" owen check "$RUNNER_TEMP/owen-sample" 2>&1)
+          # --engine python is EXPLICIT, and became explicit at #262 Stage 3.
+          # This step injects a crashing PYTHON, so it has to be running the
+          # Python engine to mean anything. Once the public default became Rust,
+          # a bare `owen check` here would never consult OWEN_PYTHON at all: the
+          # crash would not happen, the scan would succeed, and the step would
+          # go green while proving nothing. The Rust core's own crash path is
+          # measured separately, through #261's fault-injection feature, by the
+          # Stage-1 engine controls.
+          out=$(OWEN_PYTHON="$RUNNER_TEMP/crashing-python" owen check --engine python "$RUNNER_TEMP/owen-sample" 2>&1)
           rc=$?
           set -e
           echo "$out"
@@ -3389,7 +3509,10 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           set +e
-          out=$(OWEN_PYTHON="$RUNNER_TEMP/crashing-python" owen check --debug "$RUNNER_TEMP/owen-sample" 2>&1)
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the PYTHON
+          # resolution path, and a bare invocation now runs Rust and never consults
+          # OWEN_PYTHON at all -- it would go green while proving nothing.
+          out=$(OWEN_PYTHON="$RUNNER_TEMP/crashing-python" owen check --engine python --debug "$RUNNER_TEMP/owen-sample" 2>&1)
           rc=$?
           set -e
           echo "$out"
@@ -3733,10 +3856,32 @@ jobs:
           elapsed=$(( $(date +%s) - SMOKE_START ))
           echo "install -> check -> findings: ${elapsed}s"
           [ "$elapsed" -lt 240 ] || { echo "FAIL: took ${elapsed}s (ceiling 240s) — see alpha-readiness.md gate A"; exit 1; }
+      # #262 Stage 3, the cutover assertion on the INSTALLED surface, on both
+      # platforms. A bare `owen check` must produce a verdict while the
+      # interpreter is deliberately unusable: only a default that resolves the
+      # PACKAGED Rust core can. A Python default -- or a default that drifted to
+      # compare -- exits 3 here, which is what the step below still asserts for
+      # the explicitly-selected Python engine.
+      - name: "Stage 3: the DEFAULT engine needs no Python (packaged Rust core, D6)"
+        run: |
+          set +e
+          out=$(OWEN_PYTHON=/definitely/does/not/exist/python3 owen check "$RUNNER_TEMP/owen-sample" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: bare owen check with an unusable OWEN_PYTHON exited $rc, expected 1 (findings) — the public default still needs Python, so the Stage-3 cutover did not reach this surface"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001 from the default (Rust) engine"; exit 1; }
+          case "$out" in
+            *OWEN_RUST_CORE*) echo "FAIL: the default consulted the development locator instead of the packaged core"; exit 1 ;;
+          esac
+          echo "OK: the installed package's DEFAULT engine is Rust and resolved its own packaged binary"
       - name: No Python found via OWEN_PYTHON -> a fast, actionable failure (never an auto-download)
         run: |
           set +e
-          out=$(OWEN_PYTHON=/definitely/does/not/exist/python3 owen check "$RUNNER_TEMP/owen-sample" 2>&1)
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the PYTHON
+          # resolution path, and a bare invocation now runs Rust and never consults
+          # OWEN_PYTHON at all -- it would go green while proving nothing.
+          out=$(OWEN_PYTHON=/definitely/does/not/exist/python3 owen check --engine python "$RUNNER_TEMP/owen-sample" 2>&1)
           rc=$?
           set -e
           echo "$out"
@@ -3748,7 +3893,10 @@ jobs:
           own_python="$(command -v python3 || command -v python)"
           [ -n "$own_python" ] || { echo "FAIL: could not find a python3/python on PATH to test the fallback with"; exit 1; }
           set +e
-          out=$(OWN_PYTHON="$own_python" owen check "$RUNNER_TEMP/owen-sample" --fail-on-finding 2>&1)
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the PYTHON
+          # resolution path, and a bare invocation now runs Rust and never consults
+          # OWEN_PYTHON at all -- it would go green while proving nothing.
+          out=$(OWN_PYTHON="$own_python" owen check --engine python "$RUNNER_TEMP/owen-sample" --fail-on-finding 2>&1)
           rc=$?
           set -e
           echo "$out"
@@ -3764,7 +3912,12 @@ jobs:
           rm -rf "$HOME/.owen" "$HOME/.ownsharp"
           mkdir -p "$HOME/.ownsharp/core/0.1.0/ownlang"
           cp ownlang/*.py "$HOME/.ownsharp/core/0.1.0/ownlang/"
-          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the
+          # VENDORED PYTHON core's cache, and only the Python engine unpacks it.
+          # Since the cutover a bare invocation runs Rust and never touches
+          # ~/.owen/core, so these assertions would be about a directory nothing
+          # wrote -- this one failed in CI exactly that way.
+          driver=$(owen check --engine python "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
           [ "$driver" = "Owen" ] || { echo "FAIL: driver name '$driver' via the legacy cache"; exit 1; }
           if [ -d "$HOME/.owen" ]; then
             echo "FAIL: ~/.owen was created despite a legitimate matching legacy cache (fallback not reused in place)"; exit 1
@@ -3779,7 +3932,12 @@ jobs:
           mkdir -p "$HOME/.ownsharp/core/0.1.0/ownlang"
           cp ownlang/*.py "$HOME/.ownsharp/core/0.1.0/ownlang/"
           echo "# stale leftover module" > "$HOME/.ownsharp/core/0.1.0/ownlang/removed_module.py"
-          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the
+          # VENDORED PYTHON core's cache, and only the Python engine unpacks it.
+          # Since the cutover a bare invocation runs Rust and never touches
+          # ~/.owen/core, so these assertions would be about a directory nothing
+          # wrote -- this one failed in CI exactly that way.
+          driver=$(owen check --engine python "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
           [ "$driver" = "Owen" ] || { echo "FAIL: driver name '$driver'"; exit 1; }
           [ -d "$HOME/.owen" ] || { echo "FAIL: expected a fresh ~/.owen unpack (extra-file legacy cache should have been rejected)"; exit 1; }
           if find "$HOME/.owen" -name "removed_module.py" | grep -q .; then
@@ -3794,7 +3952,12 @@ jobs:
           mkdir -p "$HOME/.ownsharp/core/0.1.0/ownlang"
           cp ownlang/*.py "$HOME/.ownsharp/core/0.1.0/ownlang/"
           echo "# tampered" >> "$HOME/.ownsharp/core/0.1.0/ownlang/ownir.py"
-          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the
+          # VENDORED PYTHON core's cache, and only the Python engine unpacks it.
+          # Since the cutover a bare invocation runs Rust and never touches
+          # ~/.owen/core, so these assertions would be about a directory nothing
+          # wrote -- this one failed in CI exactly that way.
+          driver=$(owen check --engine python "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
           [ "$driver" = "Owen" ] || { echo "FAIL: driver name '$driver'"; exit 1; }
           [ -d "$HOME/.owen" ] || { echo "FAIL: expected a fresh ~/.owen unpack (modified-content legacy cache should have been rejected)"; exit 1; }
           echo "OK: modified-content legacy cache correctly rejected"
@@ -3929,12 +4092,22 @@ jobs:
         # stale file is gone from whatever cache directory actually got used.
         run: |
           rm -rf "$HOME/.owen" "$HOME/.ownsharp"
-          owen check "$RUNNER_TEMP/owen-sample" --fail-on-finding > /dev/null 2>&1 || true
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the
+          # VENDORED PYTHON core's cache, and only the Python engine unpacks it.
+          # Since the cutover a bare invocation runs Rust and never touches
+          # ~/.owen/core, so these assertions would be about a directory nothing
+          # wrote -- this one failed in CI exactly that way.
+          owen check --engine python "$RUNNER_TEMP/owen-sample" --fail-on-finding > /dev/null 2>&1 || true
           cache_dir=$(find "$HOME/.owen/core" -mindepth 2 -maxdepth 2 -type d)
           [ -n "$cache_dir" ] || { echo "FAIL: first run did not create a current-cache directory"; exit 1; }
           echo "# tampered" >> "$cache_dir/ownlang/ownir.py"
           echo "# stale leftover module" > "$cache_dir/ownlang/stale_module.py"
-          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
+          # --engine python is EXPLICIT (#262 Stage 3): this step is about the
+          # VENDORED PYTHON core's cache, and only the Python engine unpacks it.
+          # Since the cutover a bare invocation runs Rust and never touches
+          # ~/.owen/core, so these assertions would be about a directory nothing
+          # wrote -- this one failed in CI exactly that way.
+          driver=$(owen check --engine python "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
           [ "$driver" = "Owen" ] || { echo "FAIL: driver name '$driver' after rebuild"; exit 1; }
           if find "$HOME/.owen" -name "stale_module.py" | grep -q .; then
             echo "FAIL: the stale extra file survived under a used cache directory"; exit 1

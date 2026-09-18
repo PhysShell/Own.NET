@@ -186,6 +186,66 @@ class OwnIRError(ValueError):
     driver turns it into a clear one-line error rather than a traceback."""
 
 
+# --- The OwnIR input boundary: the three cutover hygiene tails (#262) --------
+#
+# These close defects of THIS reference implementation that #262 recorded as
+# owed before the public Rust-default cutover. They are input-boundary
+# decisions only: nothing below changes a diagnostic, a severity, or any
+# analysis semantics.
+
+
+class _NonStandardConstant(ValueError):
+    """CPython's `json` accepts the non-standard constants `NaN`, `Infinity`
+    and `-Infinity`; RFC 8259 has no such tokens and `serde_json` refuses them
+    at the JSON door.
+
+    V1 of #262 rules that acceptance a defect of this reference. The refusal
+    belongs at the JSON door — the same door the other parser rejects them at —
+    rather than downstream at the Version type check, where the document has
+    already been decoded and the diagnostic would describe a `float` the source
+    text never contained. Carried as its own exception so `load()` can convert
+    it with the path in hand.
+    """
+
+    def __init__(self, token: str) -> None:
+        super().__init__(token)
+        self.token = token
+
+
+class _NegativeZeroInt(int):
+    """The literal `-0`, remembered as having been spelled that way.
+
+    V2 of #262: CPython reads `-0` as the integer `0`, so a top-level
+    `{"ownir_version": -0}` is ACCEPTED as v0 by this reference; `serde_json`
+    reads the same token as the float `-0.0` and refuses it. #260 froze that
+    ambiguity as a refusal rather than reconciling it, and #262 rules the
+    acceptance the defect to repair here.
+
+    Repairing it needs the one thing the decoded value no longer carries: how
+    the number was SPELLED. `int` subclassing is what preserves it without
+    changing anything else — this compares, hashes and formats exactly as `0`,
+    so a `-0` anywhere OTHER than the top-level scalar keeps rendering byte for
+    byte as it does today (`{"ownir_version": [-0]}` still reports `got [0]`,
+    pinned by #261's Version census as byte parity with the port). Only an
+    identity test distinguishes it, and only `load()` makes one.
+    """
+
+    __slots__ = ()
+
+
+def _parse_int_preserving_negative_zero(literal: str) -> int:
+    """`json`'s `parse_int` hook: identical to `int` for every literal except
+    `-0`, which is the only spelling JSON admits for a negative zero integer
+    (leading zeros are a syntax error, so `-00` cannot occur)."""
+    return _NegativeZeroInt(0) if literal == "-0" else int(literal)
+
+
+def _reject_non_standard_constant(token: str) -> float:
+    """`json`'s `parse_constant` hook. Reached only for `NaN` / `Infinity` /
+    `-Infinity`, which is exactly the set V1 refuses."""
+    raise _NonStandardConstant(token)
+
+
 def _esc_data(s: str) -> str:
     """Escape a GitHub workflow-command message (the text after `::`). Per the
     Actions command spec, only `%`, CR and LF are special there."""
@@ -660,15 +720,50 @@ def _check_flow_coordinates(nodes: Any, where: str, depth: int = 0) -> None:
 def load(path: str) -> dict[str, Any]:
     """Load and shape-check an OwnIR facts file (it is external input — a
     malformed file should fail with a clear error, not a deep traceback)."""
+    # Read ONCE, as bytes, and decode once. The port does the same, and doing
+    # it here rather than leaving the decode to `open(..., encoding="utf-8")`
+    # is what lets an undecodable file be refused as input (below) instead of
+    # escaping this function as a `UnicodeDecodeError` nobody caught.
     try:
-        f = open(path, encoding="utf-8")
+        with open(path, "rb") as f:
+            raw = f.read()
     except OSError as e:
         raise OwnIRError(f"cannot read {path}: {e}") from e
-    with f:
-        try:
-            result: Any = json.load(f)
-        except json.JSONDecodeError as e:
-            raise OwnIRError(f"{path} is not valid JSON: {e}") from e
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as e:
+        # #262 hygiene tail: a facts file that is not UTF-8 is ORDINARY BAD
+        # INPUT, not an analyzer bug. Before this, the decode happened inside
+        # `json.load` and `UnicodeDecodeError` is not a `JSONDecodeError`, so
+        # it escaped to the driver's catch-all and surfaced as rc 70 —
+        # "this is a bug in the analyzer" — about a file the user handed us.
+        #
+        # The message is OURS, deliberately: CPython's decoder text ("'utf-8'
+        # codec can't decode byte 0xff in position 46") and Rust's ("invalid
+        # utf-8 sequence of 1 bytes from index 46") describe the same fact in
+        # two library voices, and #261 declined to make either one a
+        # cross-language contract. Stated in terms of the FILE — the first
+        # offending byte and its offset — it is a fact about the input that
+        # both implementations can report identically, so this is byte parity
+        # rather than one more declared boundary.
+        raise OwnIRError(
+            f"{path} is not valid UTF-8: byte 0x{raw[e.start]:02x} "
+            f"at offset {e.start}") from e
+    try:
+        result: Any = json.loads(
+            text,
+            parse_int=_parse_int_preserving_negative_zero,
+            parse_constant=_reject_non_standard_constant,
+        )
+    except json.JSONDecodeError as e:
+        raise OwnIRError(f"{path} is not valid JSON: {e}") from e
+    except _NonStandardConstant as e:
+        # V1: refused AT THE JSON DOOR, in the `is not valid JSON` family, so
+        # the refusal has the same shape and category as the port's. The text
+        # after that prefix is the parser detail CLI-B1 already declares.
+        raise OwnIRError(
+            f"{path} is not valid JSON: {e.token} is not a JSON value "
+            f"(RFC 8259 has no NaN, Infinity or -Infinity)") from e
     if not isinstance(result, dict):
         raise OwnIRError("OwnIR root must be a JSON object")
     # version gate first: a vocabulary mismatch makes every later shape-check
@@ -676,6 +771,17 @@ def load(path: str) -> dict[str, Any]:
     # field is treated as the current version (the only producers that omit it
     # predate versioning, i.e. are v0 by definition).
     ver = result.get("ownir_version", OWNIR_VERSION)
+    # V2, and scoped exactly as #262 ratified it: the TOP-LEVEL SCALAR value
+    # the type check below reads, and nothing else. `type(...) is` rather than
+    # `isinstance(...)` is the scope — a `-0` nested inside a wrong-type
+    # container leaves `ver` a list or a dict, never the marker, so
+    # `{"ownir_version": [-0]}` is untouched and still reports `got [0]`.
+    if type(ver) is _NegativeZeroInt:
+        raise OwnIRError(
+            "OwnIR 'ownir_version' must be an integer, got -0: the literal -0 "
+            "is refused at the OwnIR input boundary because the two supported "
+            "parsers do not agree on what it means (this reference reads it as "
+            "the integer 0, serde_json as the float -0.0). Write 0.")
     if not isinstance(ver, int) or isinstance(ver, bool):
         raise OwnIRError(f"OwnIR 'ownir_version' must be an integer, got {ver!r}")
     if ver != OWNIR_VERSION:

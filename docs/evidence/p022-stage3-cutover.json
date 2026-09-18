@@ -1,0 +1,287 @@
+{
+  "schema": 1,
+  "comment": "GENERATED-BY-HAND ledger of the #262 Stage-3 cutover measurements, ENFORCED by tests/test_stage3_packet.py and rendered into docs/generated/p022-stage3-packet.md by scripts/stage3_packet.py. Every row names WHAT was asked, WHERE it was taken and WHAT it returned, and carries an evidence label. A row whose platform is 'windows' and whose result is 'OWED' is exactly that: not measured yet, never a prediction from the Linux row beside it. The packet is derived from this file and never typed.",
+  "stage": "P-022 Stage 3 — public Rust-default cutover",
+  "candidate_sha": "b22543680da9e8fa6b2607435bb54a5437815bff",
+  "owner_ruling_performance": "Performance evidence is deferred by owner for the Stage-3 public-default decision. Stage 3 makes no performance claim. #263 remains required before any published/reproducible performance claim and remains the performance-baseline tracker.",
+  "deferred_fields": {
+    "startup_delta": "DEFERRED BY OWNER — NOT MEASURED",
+    "end_to_end_delta": "DEFERRED BY OWNER — NOT MEASURED",
+    "peak_memory_delta": "DEFERRED BY OWNER — NOT MEASURED"
+  },
+  "supported_platforms": {
+    "comment": "The set the release workflow actually builds and smoke-tests, not a wider claim. Naming it here is what lets a packaging row say 'every supported platform' without that phrase quietly meaning whatever the reader assumes.",
+    "keys": [
+      "linux-x64",
+      "win-x64"
+    ]
+  },
+  "measurements": [
+    {
+      "id": "fast-compare",
+      "question": "does the committed corpus agree through both engines?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "scripts/shadow_compare.py --engine compare --corpus, adapter own-shadow-engine",
+      "result": "104 documents, 104 agreed, 0 acceptance-unexplained"
+    },
+    {
+      "id": "samples-compare",
+      "question": "do the extracted C# sample facts agree?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "extract once via OwnSharp.Extractor, then shadow_compare over those bytes",
+      "result": "1 document, 1 agreed, 0 acceptance-unexplained"
+    },
+    {
+      "id": "compare-driver-controls",
+      "question": "is the compare driver itself honest?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_shadow_compare.py with OWN_SHADOW_COMPARE_REQUIRED=1",
+      "result": "10 double-driven + 6 manifest/identity + 5 raw-variant + 3 negative controls held"
+    },
+    {
+      "id": "broad-sweep",
+      "question": "do the five pinned OSS repositories and the large solutions agree?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "the frozen #260 sweep definition, re-taken on the candidate tree; see p022-stage3-sweep.result.json",
+      "result": "10 documents over 6 targets, all agreed, 0 acceptance-unexplained, 0 declared-boundary"
+    },
+    {
+      "id": "cli-replay",
+      "question": "does the production own-cli still reproduce the frozen CLI contract?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "rust/crates/own-cli/tests/replay.rs against the built binary, zero Python",
+      "result": "94 frozen cases replayed byte-for-byte; 2 declared boundaries (CLI-B1, CLI-B2)"
+    },
+    {
+      "id": "hygiene-tails",
+      "question": "are the three Python-first tails closed on the production path?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_ownir_input_boundary.py through `python -m ownlang ownir`, plus the CLI replay",
+      "result": "invalid UTF-8 rc 70 -> rc 2 (byte parity); V1 moved to the JSON door; V2 top-level -0 was ACCEPTED as v0 and is now refused; nested -0 unmoved"
+    },
+    {
+      "id": "packaging-linux",
+      "question": "does the packed public artifact run Rust with no Python runtime?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "dotnet pack -p:OwenRustCoreDir, install from an isolated feed into a scratch tool-path, run with a PATH carrying no python",
+      "result": "bare `owen check` -> OWN001, rc 1, no Python present; --engine python -> same finding; packaged binary chmod 644 -> materialised to ~/.owen/rust-core/<sha256> and ran; packaged binary absent -> rc 2 denying a fallback"
+    },
+    {
+      "id": "packaging-windows",
+      "question": "the same, natively on Windows",
+      "platform": "windows",
+      "label": "MEASURED OBSERVATION",
+      "method": "CI job `owen CLI (gate A)` on windows-latest (run 35304488082, job 105473759598, at 2ecf501), which builds own-cli natively on that runner, packs it into the Owen.Cli nupkg, installs the PACKED artifact from an isolated feed and then runs it",
+      "result": "PASS. The job concluded success, and it carries the unconditional Stage-3 assertion that a bare `owen check` with a deliberately unusable OWEN_PYTHON still finds OWN001 at rc 1 and never consults the development locator -- under `bash -e` with an explicit `exit 1`, so a success conclusion is that step passing. Nothing here is carried over from the Linux row: this is windows-latest reporting on itself. Its install -> check -> findings, clean-code, uninstall/reinstall and vendored-cache steps passed in the same job"
+    },
+    {
+      "id": "cancellation-linux",
+      "question": "what does an interrupted engine do?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_stage3_cancellation.py, both engines interrupted while genuinely running",
+      "result": "python reference: SIGINT -> died by signal 2, stdout 0b, stderr 1478b (a KeyboardInterrupt traceback); rust own-cli: SIGINT -> died by signal 2, stdout 0b, stderr 0b. Neither has an exit code in that state; neither returned a verdict"
+    },
+    {
+      "id": "cancellation-windows",
+      "question": "the same, natively on Windows",
+      "platform": "windows",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_stage3_cancellation.py on windows-latest, CI job 105482499346 at f69f098, sending CTRL_BREAK_EVENT to a child process group; https://github.com/PhysShell/Own.NET/actions/runs/35307467735",
+      "result": "PASS, and the disposition is NOTHING like the Linux one, which is why #262 forbade inventing a universal 130. Both engines interrupted while genuinely running: python reference CTRL_BREAK_EVENT -> EXITED with code 3221225786 (0xC000013A, STATUS_CONTROL_C_EXIT), stdout 0b, stderr 0b; rust own-cli the same, 3221225786, stdout 0b, stderr 0b. On Linux both DIE BY SIGNAL 2 and have no exit code at all. Neither platform is 130. Invariants held on both: terminated, never a verdict code (0/1), no ok line, no findings summary"
+    },
+    {
+      "id": "rollback-linux",
+      "question": "do the four rollback states stay distinct?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_stage3_rollback.py over own-check.sh and owen",
+      "result": "all four held on both surfaces: default=Rust; explicit python agrees on the verdict; broken candidate with nothing asked -> rc 2 denying a fallback; broken candidate with python asked -> python runs"
+    },
+    {
+      "id": "rollback-windows",
+      "question": "the same, natively on Windows",
+      "platform": "windows",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_stage3_rollback.py on windows-latest, CI job 105482499346 at f69f098; https://github.com/PhysShell/Own.NET/actions/runs/35307467735",
+      "result": "PASS. All four states held on both runnable surfaces (own-check.sh under git-bash, and owen): default=Rust; explicit python agrees on the verdict; broken candidate with nothing asked -> exit 2 denying a fallback in as many words; broken candidate with python asked -> python runs anyway"
+    },
+    {
+      "id": "stage1-controls",
+      "question": "do the Stage-1 engine-seam controls still hold after the cutover?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_stage1_engine.py with the full toolchain and OWEN_STAGE1_REQUIRE=1",
+      "result": "19 controls passed, 0 failed, 0 skipped — including default-is-rust and unset-locator-is-d6"
+    },
+    {
+      "id": "stage2-controls",
+      "question": "is the CI/dogfood census still true and complete?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_stage2_dogfood.py",
+      "result": "9 controls passed, including public-default-is-rust"
+    },
+    {
+      "id": "ci-surfaces",
+      "question": "can every CI launcher invocation reach an engine, and does any of them test nothing?",
+      "platform": "n/a",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_stage3_surfaces.py over every workflow and script",
+      "result": "63 invocations over 26 files; 23 explicit, 40 bare and all resolvable; 0 hollow Python injections"
+    },
+    {
+      "id": "stage1-controls-windows",
+      "question": "do the Stage-1 engine-seam controls hold natively on Windows after the cutover?",
+      "platform": "windows",
+      "label": "MEASURED OBSERVATION",
+      "method": "CI job `owen --engine (#262 Stage 1 controls)` on windows-latest (run 35304488082, job 105473759377, at 2ecf501); https://github.com/PhysShell/Own.NET/actions/runs/35304488082",
+      "result": "19 controls passed, 0 failed, 0 skipped, 1 not applicable (a non-executable candidate cannot be constructed for the shell surface under git-bash). Includes default-is-rust, unset-locator-is-d6, rust-failure-no-fallback and an unexpected child status mapped to public exit 5 with the raw WINDOWS-NATIVE status (-1073740791) retained. The job as a whole went red on a HARNESS defect in the Stage-3 rollback control that ran after these, not on any of them"
+    },
+    {
+      "id": "terminal-ci",
+      "question": "does the whole matrix pass on the implementation candidate itself, the cleaned head?",
+      "platform": "n/a",
+      "label": "MEASURED OBSERVATION",
+      "method": "CI run 35320877147 at b22543680da9; https://github.com/PhysShell/Own.NET/actions/runs/35320877147 -- the same push-triggered ci.yml matrix as the decision run 35312190310 at f1d3681e96e3, re-run on the cleaned head",
+      "result": "31/31 jobs green, 0 failures, 0 non-success, on b22543680da9 -- the implementation qualification point. The Stage-3 decision was established on f1d3681e96e3 (run 35312190310, 31/31); the cleaned head differs from it by the reconciliation record 7622a3b and the repository-hygiene commit b225436, which untracked 223 files of Cargo build output under rust/target-fault, so the matrix was re-run rather than inherited. The terminal MERGE qualification is CI on the reconciliation-only head that carries this record; its canonical SHA and run are recorded on #262, never inside the commit that creates the SHA. Includes both Stage-1 control legs, both packed-artifact legs, both dogfood legs, the Windows-native and Stage-2 Windows campaigns, own-check.ps1's exit-code tiers, both shadow-compare gates, the Rust-default code-scanning dogfood, rust fmt/clippy/tests and the Python suite on 3.11/3.12/3.13"
+    }
+  ],
+  "known_differences": [
+    {
+      "id": "WIN-ABC",
+      "status": "carried forward from #262, unchanged",
+      "summary": "Windows canonical UTF-8. A: canonical reference parity CLAIMED. B: Rust portability CLAIMED. C: native-Windows Python parity NOT CLAIMED — the reference emits cp1252/CRLF there and can fail with UnicodeEncodeError, so a Windows user's bytes change at cutover. This is a DECLARED BEHAVIOR CHANGE, not a regression, and it bit a Stage-3 control that had compared raw bytes across engines on Windows; that control now compares the verdict."
+    },
+    {
+      "id": "CLI-B1",
+      "status": "carried forward, now 6 cases",
+      "summary": "JSON_PARSER_DETAIL. Applies iff the strict door's kind is Json. The full CLI-owned wrapper is pinned byte-exact; only the parser library's own text after it is declared."
+    },
+    {
+      "id": "CLI-B2",
+      "status": "NEW, and a NARROWING of #262's V2",
+      "summary": "TOP_LEVEL_NEGATIVE_ZERO. Was an ACCEPT-versus-REJECT divergence: the reference read a top-level `-0` as the integer 0 and analysed the document as v0, while serde_json refused it. The Python-first hygiene fix makes both sides refuse; what is left declared is how each spells the token it refused (`-0` vs `-0.0`), at the same exit code and the same door. Reconciling it would mean teaching one parser the other's reading of `-0`, which #262 ruled out and #260 froze a refusal for."
+    },
+    {
+      "id": "V4",
+      "status": "carried forward, unchanged, reopen predicate verified NOT fired",
+      "summary": "str.isprintable() is answered from a version-dependent Unicode table. A representation/diagnostic boundary only, excluded from the byte-parity denominator and separately measured. Verified on this tree: the supported Python matrix is still 3.11/3.12/3.13 and the Rust snapshot is still unicode-properties 0.1.4."
+    },
+    {
+      "id": "CANCEL-TRACEBACK",
+      "status": "NEW, measured, and LINUX-ONLY",
+      "summary": "On LINUX an interrupted Python reference prints a KeyboardInterrupt traceback (1478 bytes measured) while the Rust core prints nothing, so a cancelled run stops printing a stack trace after the cutover. On WINDOWS neither engine prints anything (stderr 0b for both): the default CTRL_BREAK handler terminates the process before Python's handler runs. Measured on each platform rather than carried across -- the difference exists on one of them and not the other, which a single-platform measurement would have got wrong in either direction. User-visible, caused by the cutover, recorded rather than fixed: Stage 3 changes the default engine, not the reference."
+    },
+    {
+      "id": "ACTION-BUILD",
+      "status": "OWNER RULING: ACCEPTED FOR STAGE 3 — a declared temporary distribution cost",
+      "summary": "The Owen Action builds the production `own-cli` from its own pinned ref, because this repository publishes no release: there is no own-cli artifact to download and no published Owen.Cli package to install. Ruled NOT a parity difference, NOT a semantic difference and NOT a Stage-3 blocker -- the default is rust, Python stays the explicit rollback until Stage 4, the Rust toolchain is installed by the Action rather than assumed, and what is built is the production crate, never own-shadow-engine or a test adapter. So it is not an undeclared runtime dependency; it is a heavy way to deliver a binary. A consumer today pays setup-python, setup-dotnet, setup-rust and a cargo build to run a static analyzer. EXIT CONDITION: the first suitable published own-cli/Owen.Cli artifact, at which point the Action downloads an immutable platform binary and the consumer-side Rust build disappears -- a separate post-Stage-3 packaging follow-up, deliberately NOT Stage 4, which is about removing the Python distribution dependency. HARDENED for reproducibility at the ruling: rustc pinned to the concrete qualification toolchain (1.98.1) instead of the moving `stable` channel, and `cargo build --locked` so an unchanged source revision cannot silently resolve a different dependency graph. The build cache is an optimization and the Cargo build is authoritative: an earlier comment claimed the cache key gives a caller who bumps a pinned version a rebuild, which it does not -- a moving major tag keeps one key across every commit it points at."
+    }
+  ],
+  "closed_in_this_change": [
+    {
+      "id": "UTF8-TAIL",
+      "was": "#262 known difference: invalid UTF-8 escaped the reference's load() and surfaced as rc 70",
+      "now": "CLOSED — both engines refuse it as input at rc 2 with a byte-identical message. Recorded as a closure, NOT as a standing difference."
+    },
+    {
+      "id": "V1",
+      "was": "#262 V1: the reference accepted NaN/Infinity/-Infinity and described a float the source never contained",
+      "now": "CLOSED — refused at the JSON door on both sides; the residual text difference is CLI-B1, which already existed."
+    },
+    {
+      "id": "V2-ACCEPTANCE",
+      "was": "#262 V2: the reference ACCEPTED a top-level -0 as v0 and analysed the document",
+      "now": "CLOSED as an acceptance divergence; narrowed to CLI-B2 above."
+    },
+    {
+      "id": "V3",
+      "was": "#262 V3: oversized integral version values",
+      "now": "Already closed at #261; VERIFIED not reopened by the parse_int hook the V2 fix installs, at both signs."
+    },
+    {
+      "id": "PS1-CAPTURE",
+      "was": "a REGRESSION the cutover introduced in the own-check.ps1 surface, found by the qualification round: PowerShell's call operator routes a child's stdout through its PIPELINE, which is what makes `$out = & ./scripts/own-check.ps1 ...` capture anything. The Python branch uses the call operator; the Rust branch spawned a process that inherited the console handle and so bypassed the pipeline. While Python was the default nobody noticed. The moment Rust became the default, every caller capturing or piping this script's output silently got NOTHING -- the text still appeared on screen, so it looked fine",
+      "now": "CLOSED. The candidate's streams are redirected and replayed by the caller: stdout to the pipeline, stderr to the error stream, decoded as UTF-8 with no BOM and both pipes drained concurrently so a large SARIF log cannot deadlock. MEASURED after: both engines capture the same single OWN001 line and the captured arrays are IDENTICAL; exit tiers unchanged (1 with -FailOnFinding, 0 without); SARIF is 1413 bytes from either engine, no BOM, parses, one result. Not a declared difference -- an accidental behaviour change beyond the engine, which #262's guardrails forbid, so it was repaired rather than recorded"
+    }
+  ],
+  "observation": {
+    "mechanism": "the repository's own CI on the candidate branch, plus the release workflow's packed-artifact smoke test",
+    "what_is_observed": [
+      "correctness",
+      "crashes",
+      "packaging",
+      "platform behaviour",
+      "rollback",
+      "unexplained differences"
+    ],
+    "what_is_NOT_observed": [
+      "performance — deferred by owner for this decision; #263 remains the tracker"
+    ],
+    "first_run": {
+      "sha": "b590bf46e9f1c4cbf6bb28978c81afea5ffa1af2",
+      "result": "7 job failures, every one a real consequence of the cutover, all diagnosed and fixed",
+      "url": "https://github.com/PhysShell/Own.NET/actions/runs/35302954263"
+    },
+    "qualification_run": {
+      "sha": "f69f0988a14e00c0925a68b9fddd101aff7b3ebe",
+      "url": "https://github.com/PhysShell/Own.NET/actions/runs/35307467735",
+      "result": "30/31 jobs green. The single failure was own-check.ps1's exit-code tiers, which caught the PS1-CAPTURE regression above -- a real defect in the product surface, not a harness fault. Reproduced locally on pwsh (it is not Windows-specific; the Windows job is simply the only place own-check.ps1 is exercised with output capture), fixed, and re-qualified."
+    }
+  },
+  "stage_3_status": "COMPLETE",
+  "qualification_points": {
+    "comment": "Three points, kept apart because they answer three different questions. A commit cannot name its own SHA, so the point that goes to main is recorded outside the tree, on #262, and never inside the commit that creates it.",
+    "decision": {
+      "sha": "f1d3681e96e31bba7a36dda09967d0af7c3e9b56",
+      "run": "https://github.com/PhysShell/Own.NET/actions/runs/35312190310",
+      "result": "31/31 jobs green, 0 failures, 0 non-success",
+      "role": "the qualification candidate on which the Stage-3 decision was established; every predicate confirmed on that commit rather than assembled from earlier ones"
+    },
+    "implementation": {
+      "sha": "b22543680da9e8fa6b2607435bb54a5437815bff",
+      "run": "https://github.com/PhysShell/Own.NET/actions/runs/35320877147",
+      "result": "31/31 jobs green, 0 failures, 0 non-success",
+      "role": "the implementation candidate: the decision tree plus the reconciliation record 7622a3b and the repository-hygiene commit b225436, which untracked the 223 files of Cargo build output under rust/target-fault that 04c3303 had committed by accident (build output is not evidence and is never versioned). No production behaviour changed; the matrix was re-run on the cleaned head because the SHA that goes to main is qualified as itself, not as its ancestor"
+    },
+    "terminal_merge": {
+      "established_by": "CI on the reconciliation-only head that carries this record -- a documentation commit with no production behaviour change on top of the implementation point",
+      "canonical_record": "#262 (the body and the Stage-3 record comment) and #250",
+      "role": "the merge candidate. Its SHA and run are deliberately not written here: a commit cannot name its own SHA, and the external record is authoritative"
+    }
+  },
+  "defects_found_and_closed_during_qualification": {
+    "comment": "Recorded here and NOT under known_differences, which is the distinction that matters: after the fixes these are not permitted Stage-3 behaviour. Each was invisible while Python was the default, and each was found by the qualification round rather than by review.",
+    "items": [
+      {
+        "id": "PS1-CAPTURE",
+        "what": "own-check.ps1's Rust branch spawned a child that inherited the console handle, bypassing PowerShell's pipeline, so `$out = & ./scripts/own-check.ps1 ...` captured NOTHING while the text still appeared on screen. The Python branch uses the call operator and was unaffected.",
+        "closed": "streams redirected and replayed -- stdout to the pipeline, stderr to the error stream, UTF-8 with no BOM, both pipes drained concurrently. Measured: both engines now capture the same single OWN001 line, identically; exit tiers unchanged; SARIF 1413 bytes, no BOM, one result from either engine."
+      },
+      {
+        "id": "PS1-NOTMATCH-ASSERTION",
+        "what": "the Windows Stage-2 dogfood step asserted `$out -notmatch 'OWN001'`. On an ARRAY PowerShell's -notmatch is a FILTER, not a boolean. SCOPE, stated precisely: it is the Windows Stage-2 dogfood's OWN001 OUTPUT-OBSERVATION assertion that had never constituted evidence on the Rust path -- before the capture repair it received $null, and filtering an empty collection is falsy, so it passed on an empty capture. The other Stage-2 controls and the actual Rust-default execution (exit code, no-fallback, candidate identity) remain separately evidenced; this is NOT a claim that Stage 2 as a whole was unproven.",
+        "closed": "rewritten as `-not ($out -match 'OWN001')`, the idiom the rest of the file uses. Measured correct in both directions: no throw on the real 166-line capture (137 OWN001 lines), throw on an empty capture. Only instance in any workflow. Confirmed passing on windows-latest at the terminal run."
+      },
+      {
+        "id": "CI-SURFACES-HOLLOW",
+        "what": "five CI steps injected a broken or crashing Python and then invoked a launcher BARE; after the cutover a bare invocation never consults OWEN_PYTHON, so the injected fault could not happen and each step would have passed vacuously. Two further call sites lived inside scripts rather than workflow YAML.",
+        "closed": "each step now names the engine it is actually about, and tests/test_stage3_surfaces.py asserts the property over every workflow AND script -- 63 invocations over 26 files -- with all of its own escape hatches mutation-proved shut."
+      }
+    ]
+  },
+  "p037_a1_gate": {
+    "before": "BLOCKED BY DESIGN — the P-022 freeze on verdict-changing inference held until the cutover completed",
+    "after": "UNBLOCKED",
+    "not_started": true,
+    "comment": "Unblocked by the Stage-3 cutover (decision established at f1d3681, implementation qualified at b225436) and deliberately NOT started in it. A1 begins on a new branch from the Rust-default baseline, so the provenance line stays legible: the last P-022 semantic state, then the Stage-3 terminal commit, then A1. Nobody should have to work out later whether the first ConsumesParam change belonged to the migration or to a new inference feature."
+  }
+}
