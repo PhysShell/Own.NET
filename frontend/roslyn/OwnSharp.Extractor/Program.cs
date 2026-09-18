@@ -3441,8 +3441,29 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                 // fresh-factory transfer — emit it as the return's `var` so the core models the
                 // escape (a discharge: ownership moves to the caller) and classifies the method
                 // `returnsOwned: fresh`. A non-identifier / non-tracked return is a bare CFG exit.
+                //
+                // P-037 A1.1-a1: "tracked LOCAL" is the rule as written above, and it held for
+                // free until a1 put owned PARAMETERS into the same set. Returning a parameter is
+                // not a fresh factory: the resource belongs to the caller and outlives the call.
+                // Modelled as a fresh return it reads as an escaping borrow — measured, on
+                // samples/OverloadSigSample.cs `Open(FileStream existing, bool flush)`:
+                // `[OWN004] 'parg_59' is a borrow and cannot be returned`.
+                //
+                // What this return actually IS is an ALIAS of the parameter, and OwnIR has no
+                // way to say that: `aliasOf`/`aliased` are reserved in the schema and the
+                // production skeleton builder has never emitted them (own-bridge/src/mos.rs
+                // says so in its own header). So the frontend keeps the silence it has always
+                // kept here — a bare CFG exit, claiming no owned return — rather than asserting
+                // a kind that is false. Closing that gap means teaching the IR alias returns,
+                // which is a semantic change and not this step's business.
+                //
+                // The parameter test is semantic on purpose: a parameter symbol resolves from
+                // source even when its TYPE does not (single-file runs see little of the BCL),
+                // and a local never resolves to IParameterSymbol, so no local loses its fresh
+                // return to this.
                 var rvar = rs.Expression is IdentifierNameSyntax rid
                            && tracked.Contains(rid.Identifier.Text)
+                           && model.GetSymbolInfo(rid).Symbol is not IParameterSymbol
                     ? rid.Identifier.Text : (string?)null;
                 nodes.Add(new { op = "return", var = rvar, line = LineOf(rs) });
             }
