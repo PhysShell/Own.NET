@@ -47,9 +47,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from p037_evidence import (
+    CORPUS_DIRS,
+    EvidenceRefused,
+    evidence_fields,
+    provenance_problems,
+)
+
 ROOT = Path(__file__).resolve().parent.parent
-CORPUS_DIRS = ("corpus/real-world", "corpus/wpf", "corpus/di", "corpus/fixtures",
-               "corpus/p036-bakeoff")
 VERDICT_LEVELS = ("error", "warning")
 
 
@@ -102,16 +107,19 @@ def take(engine: str, out: Path, dirs: tuple[str, ...]) -> int:
     if not files:
         print("no corpus files found", file=sys.stderr)
         return 2
-    dirty = bool(git("status", "--porcelain"))
+    try:
+        provenance = evidence_fields(dirs)
+    except EvidenceRefused as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
+        return 2
     snap: dict[str, Any] = {
-        "schema": "p037-verdict-snapshot/1",
+        "schema": "p037-verdict-snapshot/2",
         "engine": engine,
-        "source_commit": git("rev-parse", "HEAD"),
-        "dirty": dirty,
-        "is_evidence": not dirty,
+        **provenance,
         "corpus": list(dirs),
         "files": {},
     }
+    dirty = bool(snap["dirty"])
     for i, f in enumerate(files, 1):
         rel = f.relative_to(ROOT).as_posix()
         snap["files"][rel] = run_one(f, engine)
@@ -138,6 +146,34 @@ def take(engine: str, out: Path, dirs: tuple[str, ...]) -> int:
             print(f"  {k}: exit={snap['files'][k]['exit']} "
                   f"{snap['files'][k].get('stderr_tail','')[:160]}", file=sys.stderr)
         return 1
+    return 0
+
+
+def verify(path: Path) -> int:
+    try:
+        snap: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"REFUSED: {path}: {exc}", file=sys.stderr)
+        return 2
+    if snap.get("schema") != "p037-verdict-snapshot/2":
+        print(
+            f"REFUSED: {path}: schema {snap.get('schema')!r} has no A2.0 provenance closure",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        problems = provenance_problems(snap)
+    except EvidenceRefused as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
+        return 2
+    if problems:
+        for problem in problems:
+            print(f"FAIL[provenance]: {problem}")
+        return 1
+    print(
+        f"OK: {path} is fresh evidence at HEAD; "
+        f"source={snap['source_commit'][:12]}, inputs={len(snap['input_manifest'])}"
+    )
     return 0
 
 
@@ -205,10 +241,14 @@ def main(argv: list[str]) -> int:
     c.add_argument("--after", required=True, type=Path)
     c.add_argument("--level", default="verdict", choices=("verdict", "all"),
                    help="verdict = error/warning only (default); all = advisories too")
+    v = sub.add_parser("verify", help="prove a snapshot is still fresh evidence at HEAD")
+    v.add_argument("snapshot", type=Path)
     args = ap.parse_args(argv)
     if args.cmd == "take":
         dirs = tuple(args.corpus) if args.corpus else CORPUS_DIRS
         return take(args.engine, args.out, dirs)
+    if args.cmd == "verify":
+        return verify(args.snapshot)
     return compare(args.before, args.after, args.level)
 
 
