@@ -155,6 +155,22 @@ jobs:
       - name: Build the dev-only engine adapter
         working-directory: rust
         run: cargo build --release -p own-shadow --bin own-shadow-engine
+      # #262 Stage 3: the extraction below invokes `own-check.sh` BARE, and the
+      # bare surface now runs Rust, so this leg needs a candidate or it exits 2
+      # before writing a single fact.
+      #
+      # The candidate is supplied rather than the command changed. The
+      # extraction command is part of this sweep's frozen definition and is
+      # compared against it (tests/shadow_sweep.py), so adding `--engine python`
+      # here would have meant re-writing the definition and the recorded runs
+      # that match it. Supplying a candidate also keeps the extraction running
+      # the actual PUBLIC default, which for a gate about the public product is
+      # the better of the two.
+      - name: Build the production own-cli (the bare surface's default engine)
+        working-directory: rust
+        run: cargo build --release -p own-cli
+      - name: Select it
+        run: echo "OWEN_RUST_CORE=$PWD/rust/target/release/own-cli" >> "$GITHUB_ENV"
       # ONE extraction. `--emit-facts` persists the file stage 1 already wrote;
       # stage 2 is the reference's verdict path and is neither a second
       # extraction nor the comparison.
@@ -243,6 +259,13 @@ jobs:
       - name: Build the dev-only engine adapter
         working-directory: rust
         run: cargo build --release -p own-shadow --bin own-shadow-engine
+      # #262 Stage 3, same reason as the matrix leg above: the bare surface's
+      # default engine is Rust, so this leg needs a candidate to extract at all.
+      - name: Build the production own-cli (the bare surface's default engine)
+        working-directory: rust
+        run: cargo build --release -p own-cli
+      - name: Select it
+        run: echo "OWEN_RUST_CORE=$PWD/rust/target/release/own-cli" >> "$GITHUB_ENV"
       - name: Extract the OwnIR facts, exactly once
         run: |
           scripts/own-check.sh --format sarif --severity warning \
