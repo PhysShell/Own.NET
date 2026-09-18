@@ -67,8 +67,10 @@ def source_files(roots: tuple[str, ...]) -> list[Path]:
     return ev.input_paths(roots)
 
 
-def extract_facts(path: Path) -> bytes:
+def extract_facts(paths: list[Path], document: str) -> bytes:
     """One extractor execution; the emitted facts are the bytes both engines see."""
+    if not paths:
+        raise RuntimeError(f"{document}: zero source files")
     with tempfile.TemporaryDirectory(prefix="p037-mos-") as td:
         facts = Path(td) / "facts.json"
         cmd = [
@@ -77,18 +79,33 @@ def extract_facts(path: Path) -> bytes:
             "--format", "sarif",
             "--severity", "warning",
             "--emit-facts", str(facts),
-            "--", str(path),
+            "--", *(str(path) for path in paths),
         ]
         proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, check=False)
         if proc.returncode != 0:
             raise RuntimeError(
-                f"extractor/launcher failed for {path.relative_to(ROOT)}: "
+                f"extractor/launcher failed for {document}: "
                 f"exit {proc.returncode}; stderr={proc.stderr.decode('utf-8', 'replace')[-800:]}"
             )
         try:
             return facts.read_bytes()
         except OSError as exc:
-            raise RuntimeError(f"no emitted facts for {path.relative_to(ROOT)}: {exc}") from exc
+            raise RuntimeError(f"no emitted facts for {document}: {exc}") from exc
+
+
+def source_documents(source: str, files: list[Path]) -> list[tuple[str, list[Path]]]:
+    """The two independent source semantics.
+
+    The labelled corpus is a set of independent programs and is therefore
+    measured one file at a time, matching its verdict labels. The repository
+    tree is one program: all 81 tracked C# files are handed to one Roslyn
+    compilation so inter-file calls and summaries remain observable.
+    """
+    if source == "corpus":
+        return [(path.relative_to(ROOT).as_posix(), [path]) for path in files]
+    if source == "repo":
+        return [("repo-tree", files)]
+    raise RuntimeError(f"unknown source {source!r}")
 
 
 def summary_surface(entry: dict[str, Any]) -> dict[str, Any]:
@@ -157,34 +174,39 @@ def take(source: str, out: Path, engine_binary: str | None, timeout: float) -> i
         )
         return 2
 
+    documents = source_documents(source, files)
     snapshot: dict[str, Any] = {
         "schema": SCHEMA,
         "source": source,
         **provenance,
         "adapter": {"sha256": adapter["sha256"], "bytes": adapter["bytes"]},
-        "files": {},
+        "documents": {},
     }
     failures: list[str] = []
     parity_moved: list[str] = []
-    for i, path in enumerate(files, 1):
-        rel = path.relative_to(ROOT).as_posix()
+    for i, (doc_id, paths) in enumerate(documents, 1):
+        rels = [path.relative_to(ROOT).as_posix() for path in paths]
         try:
-            raw = extract_facts(path)
+            raw = extract_facts(paths, doc_id)
             py, rs = capture_pair(raw, adapter, timeout)
             py_surface = summary_surface(py)
             rs_surface = summary_surface(rs)
             record = {
+                "inputs": rels,
                 "facts": hash_bytes(raw),
                 ENGINE_PYTHON: py_surface,
                 ENGINE_RUST: rs_surface,
             }
             if py_surface != rs_surface:
-                parity_moved.append(rel)
+                parity_moved.append(doc_id)
         except (RuntimeError, ExecutionFailure) as exc:
-            failures.append(f"{rel}: {exc}")
-            record = {"error": str(exc)}
-        snapshot["files"][rel] = record
-        print(f"  [{i:3}/{len(files)}] {rel}", flush=True)
+            failures.append(f"{doc_id}: {exc}")
+            record = {"inputs": rels, "error": str(exc)}
+        snapshot["documents"][doc_id] = record
+        print(
+            f"  [{i:3}/{len(documents)}] {doc_id} ({len(paths)} source file(s))",
+            flush=True,
+        )
 
     if failures or parity_moved:
         snapshot["is_evidence"] = False
@@ -195,7 +217,7 @@ def take(source: str, out: Path, engine_binary: str | None, timeout: float) -> i
 
     out.write_text(json.dumps(snapshot, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     print(
-        f"snapshot: {len(files)} file(s), source={source}, "
+        f"snapshot: {len(documents)} document(s) / {len(files)} source file(s), source={source}, "
         f"cross-engine mismatches={len(parity_moved)}, failures={len(failures)}, "
         f"at {snapshot['source_commit'][:7]}"
     )
@@ -224,10 +246,10 @@ def compare(before: Path, after: Path) -> int:
         return 2
 
     moved: dict[str, list[str]] = {ENGINE_PYTHON: [], ENGINE_RUST: [], "facts": []}
-    names = sorted(set(a.get("files", {})) | set(b.get("files", {})))
+    names = sorted(set(a.get("documents", {})) | set(b.get("documents", {})))
     for rel in names:
-        left = a.get("files", {}).get(rel)
-        right = b.get("files", {}).get(rel)
+        left = a.get("documents", {}).get(rel)
+        right = b.get("documents", {}).get(rel)
         if not isinstance(left, dict) or not isinstance(right, dict):
             moved[ENGINE_PYTHON].append(rel)
             moved[ENGINE_RUST].append(rel)
@@ -240,7 +262,7 @@ def compare(before: Path, after: Path) -> int:
                 moved[engine].append(rel)
 
     after_parity = [
-        rel for rel, rec in b.get("files", {}).items()
+        rel for rel, rec in b.get("documents", {}).items()
         if isinstance(rec, dict) and rec.get(ENGINE_PYTHON) != rec.get(ENGINE_RUST)
     ]
 
@@ -256,7 +278,7 @@ def compare(before: Path, after: Path) -> int:
     print(
         "RESULT: "
         + ("MOVED" if failed else "UNCHANGED")
-        + f" — source={a.get('source')}, files={len(names)}, "
+        + f" — source={a.get('source')}, documents={len(names)}, "
           f"facts_moved={len(moved['facts'])}, "
           f"python_mos_moved={len(moved[ENGINE_PYTHON])}, "
           f"rust_mos_moved={len(moved[ENGINE_RUST])}, "
