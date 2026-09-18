@@ -1,0 +1,214 @@
+{
+  "schema": 1,
+  "comment": "GENERATED-BY-HAND ledger of the #262 Stage-3 cutover measurements, ENFORCED by tests/test_stage3_packet.py and rendered into docs/generated/p022-stage3-packet.md by scripts/stage3_packet.py. Every row names WHAT was asked, WHERE it was taken and WHAT it returned, and carries an evidence label. A row whose platform is 'windows' and whose result is 'OWED' is exactly that: not measured yet, never a prediction from the Linux row beside it. The packet is derived from this file and never typed.",
+  "stage": "P-022 Stage 3 — public Rust-default cutover",
+  "candidate_sha": "2ecf5017a89242dd64c6f420eedac6452b130ce0",
+  "owner_ruling_performance": "Performance evidence is deferred by owner for the Stage-3 public-default decision. Stage 3 makes no performance claim. #263 remains required before any published/reproducible performance claim and remains the performance-baseline tracker.",
+  "deferred_fields": {
+    "startup_delta": "DEFERRED BY OWNER — NOT MEASURED",
+    "end_to_end_delta": "DEFERRED BY OWNER — NOT MEASURED",
+    "peak_memory_delta": "DEFERRED BY OWNER — NOT MEASURED"
+  },
+  "supported_platforms": {
+    "comment": "The set the release workflow actually builds and smoke-tests, not a wider claim. Naming it here is what lets a packaging row say 'every supported platform' without that phrase quietly meaning whatever the reader assumes.",
+    "keys": [
+      "linux-x64",
+      "win-x64"
+    ]
+  },
+  "measurements": [
+    {
+      "id": "fast-compare",
+      "question": "does the committed corpus agree through both engines?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "scripts/shadow_compare.py --engine compare --corpus, adapter own-shadow-engine",
+      "result": "104 documents, 104 agreed, 0 acceptance-unexplained"
+    },
+    {
+      "id": "samples-compare",
+      "question": "do the extracted C# sample facts agree?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "extract once via OwnSharp.Extractor, then shadow_compare over those bytes",
+      "result": "1 document, 1 agreed, 0 acceptance-unexplained"
+    },
+    {
+      "id": "compare-driver-controls",
+      "question": "is the compare driver itself honest?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_shadow_compare.py with OWN_SHADOW_COMPARE_REQUIRED=1",
+      "result": "10 double-driven + 6 manifest/identity + 5 raw-variant + 3 negative controls held"
+    },
+    {
+      "id": "broad-sweep",
+      "question": "do the five pinned OSS repositories and the large solutions agree?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "the frozen #260 sweep definition, re-taken on the candidate tree; see p022-stage3-sweep.result.json",
+      "result": "10 documents over 6 targets, all agreed, 0 acceptance-unexplained, 0 declared-boundary"
+    },
+    {
+      "id": "cli-replay",
+      "question": "does the production own-cli still reproduce the frozen CLI contract?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "rust/crates/own-cli/tests/replay.rs against the built binary, zero Python",
+      "result": "94 frozen cases replayed byte-for-byte; 2 declared boundaries (CLI-B1, CLI-B2)"
+    },
+    {
+      "id": "hygiene-tails",
+      "question": "are the three Python-first tails closed on the production path?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_ownir_input_boundary.py through `python -m ownlang ownir`, plus the CLI replay",
+      "result": "invalid UTF-8 rc 70 -> rc 2 (byte parity); V1 moved to the JSON door; V2 top-level -0 was ACCEPTED as v0 and is now refused; nested -0 unmoved"
+    },
+    {
+      "id": "packaging-linux",
+      "question": "does the packed public artifact run Rust with no Python runtime?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "dotnet pack -p:OwenRustCoreDir, install from an isolated feed into a scratch tool-path, run with a PATH carrying no python",
+      "result": "bare `owen check` -> OWN001, rc 1, no Python present; --engine python -> same finding; packaged binary chmod 644 -> materialised to ~/.owen/rust-core/<sha256> and ran; packaged binary absent -> rc 2 denying a fallback"
+    },
+    {
+      "id": "packaging-windows",
+      "question": "the same, natively on Windows",
+      "platform": "windows",
+      "label": "DEFERRED EVIDENCE",
+      "method": "CI job ownsharp-cli-smoke (windows-latest), which now builds own-cli natively and packs it before installing",
+      "result": "OWED — measured by CI, not predicted here"
+    },
+    {
+      "id": "cancellation-linux",
+      "question": "what does an interrupted engine do?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_stage3_cancellation.py, both engines interrupted while genuinely running",
+      "result": "python reference: SIGINT -> died by signal 2, stdout 0b, stderr 1478b (a KeyboardInterrupt traceback); rust own-cli: SIGINT -> died by signal 2, stdout 0b, stderr 0b. Neither has an exit code in that state; neither returned a verdict"
+    },
+    {
+      "id": "cancellation-windows",
+      "question": "the same, natively on Windows",
+      "platform": "windows",
+      "label": "DEFERRED EVIDENCE",
+      "method": "the same control on windows-latest, which sends CTRL_BREAK_EVENT (a parent cannot deliver Ctrl-C to a specific child group there) and records what it finds",
+      "result": "OWED — measured by CI. 130 is NOT invented, and the Linux disposition is NOT carried across"
+    },
+    {
+      "id": "rollback-linux",
+      "question": "do the four rollback states stay distinct?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_stage3_rollback.py over own-check.sh and owen",
+      "result": "all four held on both surfaces: default=Rust; explicit python agrees on the verdict; broken candidate with nothing asked -> rc 2 denying a fallback; broken candidate with python asked -> python runs"
+    },
+    {
+      "id": "rollback-windows",
+      "question": "the same, natively on Windows",
+      "platform": "windows",
+      "label": "DEFERRED EVIDENCE",
+      "method": "the same control on windows-latest",
+      "result": "OWED — measured by CI"
+    },
+    {
+      "id": "stage1-controls",
+      "question": "do the Stage-1 engine-seam controls still hold after the cutover?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_stage1_engine.py with the full toolchain and OWEN_STAGE1_REQUIRE=1",
+      "result": "19 controls passed, 0 failed, 0 skipped — including default-is-rust and unset-locator-is-d6"
+    },
+    {
+      "id": "stage2-controls",
+      "question": "is the CI/dogfood census still true and complete?",
+      "platform": "linux",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_stage2_dogfood.py",
+      "result": "9 controls passed, including public-default-is-rust"
+    },
+    {
+      "id": "ci-surfaces",
+      "question": "can every CI launcher invocation reach an engine, and does any of them test nothing?",
+      "platform": "n/a",
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_stage3_surfaces.py over every workflow and script",
+      "result": "63 invocations over 26 files; 23 explicit, 40 bare and all resolvable; 0 hollow Python injections"
+    }
+  ],
+  "known_differences": [
+    {
+      "id": "WIN-ABC",
+      "status": "carried forward from #262, unchanged",
+      "summary": "Windows canonical UTF-8. A: canonical reference parity CLAIMED. B: Rust portability CLAIMED. C: native-Windows Python parity NOT CLAIMED — the reference emits cp1252/CRLF there and can fail with UnicodeEncodeError, so a Windows user's bytes change at cutover. This is a DECLARED BEHAVIOR CHANGE, not a regression, and it bit a Stage-3 control that had compared raw bytes across engines on Windows; that control now compares the verdict."
+    },
+    {
+      "id": "CLI-B1",
+      "status": "carried forward, now 6 cases",
+      "summary": "JSON_PARSER_DETAIL. Applies iff the strict door's kind is Json. The full CLI-owned wrapper is pinned byte-exact; only the parser library's own text after it is declared."
+    },
+    {
+      "id": "CLI-B2",
+      "status": "NEW, and a NARROWING of #262's V2",
+      "summary": "TOP_LEVEL_NEGATIVE_ZERO. Was an ACCEPT-versus-REJECT divergence: the reference read a top-level `-0` as the integer 0 and analysed the document as v0, while serde_json refused it. The Python-first hygiene fix makes both sides refuse; what is left declared is how each spells the token it refused (`-0` vs `-0.0`), at the same exit code and the same door. Reconciling it would mean teaching one parser the other's reading of `-0`, which #262 ruled out and #260 froze a refusal for."
+    },
+    {
+      "id": "V4",
+      "status": "carried forward, unchanged, reopen predicate verified NOT fired",
+      "summary": "str.isprintable() is answered from a version-dependent Unicode table. A representation/diagnostic boundary only, excluded from the byte-parity denominator and separately measured. Verified on this tree: the supported Python matrix is still 3.11/3.12/3.13 and the Rust snapshot is still unicode-properties 0.1.4."
+    },
+    {
+      "id": "CANCEL-TRACEBACK",
+      "status": "NEW, measured",
+      "summary": "On Linux an interrupted Python reference prints a KeyboardInterrupt traceback (1478 bytes measured) while the Rust core prints nothing. After the cutover a cancelled run therefore stops printing a stack trace. User-visible, caused by the cutover, and recorded rather than fixed: Stage 3 changes the default engine, not the reference."
+    },
+    {
+      "id": "ACTION-BUILD",
+      "status": "NEW, a cost rather than a difference",
+      "summary": "The Owen Action builds the production own-cli from its own pinned ref, because this repository publishes no release: there is no own-cli artifact to download and no published Owen.Cli package to install. Consumers pay a Rust toolchain and a first build (cached by action ref). Revisit the moment a release exists."
+    }
+  ],
+  "closed_in_this_change": [
+    {
+      "id": "UTF8-TAIL",
+      "was": "#262 known difference: invalid UTF-8 escaped the reference's load() and surfaced as rc 70",
+      "now": "CLOSED — both engines refuse it as input at rc 2 with a byte-identical message. Recorded as a closure, NOT as a standing difference."
+    },
+    {
+      "id": "V1",
+      "was": "#262 V1: the reference accepted NaN/Infinity/-Infinity and described a float the source never contained",
+      "now": "CLOSED — refused at the JSON door on both sides; the residual text difference is CLI-B1, which already existed."
+    },
+    {
+      "id": "V2-ACCEPTANCE",
+      "was": "#262 V2: the reference ACCEPTED a top-level -0 as v0 and analysed the document",
+      "now": "CLOSED as an acceptance divergence; narrowed to CLI-B2 above."
+    },
+    {
+      "id": "V3",
+      "was": "#262 V3: oversized integral version values",
+      "now": "Already closed at #261; VERIFIED not reopened by the parse_int hook the V2 fix installs, at both signs."
+    }
+  ],
+  "observation": {
+    "mechanism": "the repository's own CI on the candidate branch, plus the release workflow's packed-artifact smoke test",
+    "what_is_observed": [
+      "correctness",
+      "crashes",
+      "packaging",
+      "platform behaviour",
+      "rollback",
+      "unexplained differences"
+    ],
+    "what_is_NOT_observed": [
+      "performance — deferred by owner for this decision; #263 remains the tracker"
+    ],
+    "first_run": {
+      "sha": "b590bf46e9f1c4cbf6bb28978c81afea5ffa1af2",
+      "result": "7 job failures, every one a real consequence of the cutover, all diagnosed and fixed",
+      "url": "https://github.com/PhysShell/Own.NET/actions/runs/35302954263"
+    }
+  }
+}
