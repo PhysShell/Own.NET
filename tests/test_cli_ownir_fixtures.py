@@ -74,6 +74,32 @@ _READ_MARK = "cannot read "
 # double as the negative control proving CLI-B1 cannot reach a non-Json kind.
 CLI_B1 = {"id": "CLI-B1", "expected_kind": "json"}
 
+# The second — and, deliberately, the last — declared boundary.
+#
+#   CLI-B2  TOP_LEVEL_NEGATIVE_ZERO   (applies iff the facts are exactly the
+#                                      top-level scalar `ownir_version: -0`)
+#     pinned:   exit 2 · stderr · kind == Version · the shared refusal opening,
+#               byte-exact: "{path}: error: OwnIR 'ownir_version' must be an
+#               integer, got "
+#     declared: only the bytes AFTER that opening — how each side SPELLS the
+#               token it could not accept (`-0` here, `-0.0` in the port)
+#
+# This is V2 of #262, and it is a boundary the owner had already declared: the
+# two supported parsers do not agree on what `-0` MEANS (this reference read it
+# as the integer 0, `serde_json` as the float -0.0), and #260 froze the
+# ambiguity as a REFUSAL rather than reconciling it. What Stage 3 changed is
+# only which side of the ambiguity the reference sits on: it used to ACCEPT the
+# document as v0 and now refuses it. So the declared difference has narrowed
+# from accept-versus-reject to the spelling of one token inside a refusal both
+# sides now make, at the same exit code, at the same door.
+#
+# It is NOT an extension of CLI-B1 and cannot become one: CLI-B1 applies iff
+# the kind is Json and this kind is Version — the very property
+# `refuse-version-mismatch` exists to hold. Reconciling the spelling would mean
+# teaching one parser the other's reading of `-0`, which is the reconciliation
+# #262 ruled out, so it stays declared and stays this narrow.
+CLI_B2 = {"id": "CLI-B2", "expected_kind": "version"}
+
 
 class NonDeterministic(RuntimeError):
     """Two runs of the reference disagreed. A case like that is not a contract,
@@ -184,6 +210,17 @@ _VER_STRING = "inputs/version_wrong_type_string.facts.json"
 _VER_BOOL = "inputs/version_wrong_type_bool.facts.json"
 _VER_FLOAT = "inputs/version_wrong_type_float.facts.json"
 _VER_NULL = "inputs/version_wrong_type_null.facts.json"
+# The three #262 Stage-3 hygiene tails, each now CLOSED Python-first. The
+# non-standard JSON constants and the undecodable file take `.broken` for the
+# same reason the other unparseable inputs do, and additionally carry NO
+# trailing newline: their contracts are a parser offset and a byte offset, and
+# a checkout that rewrote a line ending would move them.
+_NOT_UTF8 = "inputs/not_utf8.facts.broken"
+_VER_NAN = "inputs/version_nan.facts.broken"
+_VER_INFINITY = "inputs/version_infinity.facts.broken"
+_VER_NEG_INFINITY = "inputs/version_negative_infinity.facts.broken"
+_VER_NEG_ZERO = "inputs/version_negative_zero.facts.json"
+_VER_NEG_ZERO_NESTED = "inputs/version_negative_zero_nested.facts.json"
 
 
 class Case:
@@ -480,6 +517,78 @@ def _refusal_cases() -> list[Case]:
              pins=["a UTF-8 BOM: valid UTF-8, invalid JSON — it must reach "
                    "CLI-B1 and not R4's invalid-UTF-8 defect"]),
 
+        # --- #262 Stage 3: the three Python-first hygiene tails, CLOSED -----
+        #
+        # Each of these was a recorded defect of THIS reference that #262 owed
+        # before the public cutover, and each is frozen here so the repair is
+        # asserted on the PRODUCTION path — the executable a user runs — rather
+        # than only in a unit helper that calls `load()` directly.
+
+        # Tail 1: invalid UTF-8. It used to escape `load()` as an uncaught
+        # UnicodeDecodeError and surface as rc 70 ("a bug in the analyzer")
+        # about a file the user supplied. It is now ordinary refused input, and
+        # it carries NO boundary on purpose: the reference states the reason as
+        # a fact about the file rather than in its decoder's voice, so the port
+        # reports it identically and this is BYTE PARITY. A boundary here would
+        # be declaring a difference that no longer exists.
+        Case("refuse-not-utf8", ["ownir", _NOT_UTF8], oracle="python",
+             rules=["strict-door", "utf8-byte-parity"],
+             pins=["an undecodable facts file is refused as INPUT (exit 2), "
+                   "never reported as an analyzer bug (exit 70); and the "
+                   "offending byte and its offset are byte-identical in both "
+                   "implementations"]),
+
+        # Tail 2, V1: the non-standard constants. CPython's `json` accepts
+        # them, so the reference used to reach the VERSION door and describe a
+        # float (`got nan`) that the source text never contained; `serde_json`
+        # refuses them at the JSON door. The reference now refuses at the JSON
+        # door too, which puts both sides at the same exit code, the same door
+        # and the same rejection KIND — so the only difference left is the
+        # parser detail CLI-B1 already declares, and no new boundary is needed.
+        Case("refuse-json-nan", ["ownir", _VER_NAN], oracle="python",
+             rules=["strict-door", "cli-b1-json-parser-detail",
+                    "v1-non-standard-constants"],
+             boundary=CLI_B1,
+             pins=["NaN is refused at the JSON door, not accepted and then "
+                   "described as a float by the Version door"]),
+        Case("refuse-json-infinity", ["ownir", _VER_INFINITY],
+             oracle="python",
+             rules=["strict-door", "cli-b1-json-parser-detail",
+                    "v1-non-standard-constants"],
+             boundary=CLI_B1,
+             pins=["Infinity: the same refusal, the same door"]),
+        Case("refuse-json-negative-infinity", ["ownir", _VER_NEG_INFINITY],
+             oracle="python",
+             rules=["strict-door", "cli-b1-json-parser-detail",
+                    "v1-non-standard-constants"],
+             boundary=CLI_B1,
+             pins=["-Infinity: the third constant, enumerated rather than "
+                   "assumed to follow from the other two"]),
+
+        # Tail 3, V2: the literal top-level `-0`. The defect was ACCEPTANCE —
+        # the reference read it as the integer 0 and ANALYSED the document as
+        # v0. It is refused now, and the residual spelling difference is
+        # CLI-B2.
+        Case("refuse-version-negative-zero", ["ownir", _VER_NEG_ZERO],
+             oracle="python",
+             rules=["strict-door", "v2-top-level-negative-zero"],
+             boundary=CLI_B2,
+             pins=["the literal top-level -0 is REFUSED at the OwnIR input "
+                   "boundary; it used to be accepted as v0 and analysed"]),
+        # V2's scope control, and the reason it is a separate case rather than
+        # a sentence in the one above: the ruling is scoped to the TOP-LEVEL
+        # SCALAR, and a `-0` anywhere else is untouched. #261's Version census
+        # pinned this as byte parity, and it must STAY byte parity — so this
+        # case carries no boundary, and a repair that widened to nested values
+        # would break it here rather than silently.
+        Case("refuse-version-negative-zero-nested", ["ownir",
+                                                     _VER_NEG_ZERO_NESTED],
+             oracle="python",
+             rules=["strict-door", "version-byte-parity",
+                    "v2-top-level-negative-zero"],
+             pins=["a -0 BELOW the top level is not V2: both sides render "
+                   "`got [0]`, byte for byte, exactly as before"]),
+
         # The stdin ruling, recorded EXPLICITLY rather than silently: `-` is not
         # a stdin marker to the reference, it is a file name.
         Case("stdin-dash-is-out-of-contract", ["ownir", "-"], oracle="python",
@@ -663,6 +772,29 @@ def write() -> int:
                 "guard": "rust/crates/own-cli/tests/replay.rs proves valid "
                          "UTF-8, then OwnIr::from_json rejecting, then "
                          "kind == Json, BEFORE relaxing anything",
+            },
+            "CLI-B2": {
+                "name": "TOP_LEVEL_NEGATIVE_ZERO",
+                "applies_iff": "the facts are exactly the top-level scalar "
+                               "`ownir_version: -0`, which the two supported "
+                               "parsers read as different values (#262 V2)",
+                "pinned": "exit 2, stderr, kind == Version, and the shared "
+                          "refusal opening byte-exact: '{path}: error: OwnIR "
+                          "'ownir_version' must be an integer, got '",
+                "declared": "only the bytes AFTER that opening — how each side "
+                            "spells the token it refused (`-0` in the "
+                            "reference, `-0.0` in the port)",
+                "guard": "rust/crates/own-cli/tests/replay.rs proves valid "
+                         "UTF-8, then OwnIr::from_json rejecting, then "
+                         "kind == Version, BEFORE relaxing anything; and "
+                         "`refuse-version-negative-zero-nested` holds the "
+                         "scope by staying byte-exact with no boundary",
+                "narrowed_by": "#262 Stage 3 — this was an ACCEPT-versus-"
+                               "REJECT divergence (the reference accepted the "
+                               "document as v0 and analysed it) until the "
+                               "Python-first hygiene tail closed; it is now a "
+                               "one-token spelling difference inside a refusal "
+                               "both sides make",
             },
         },
         "cases": entries,

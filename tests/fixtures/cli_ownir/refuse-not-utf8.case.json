@@ -1,0 +1,15 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "inputs/not_utf8.facts.broken"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 2,
+    "stdout": "",
+    "stderr": "inputs/not_utf8.facts.broken: error: inputs/not_utf8.facts.broken is not valid UTF-8: byte 0xff at offset 46\n",
+    "os_error_tail": null
+  }
+}

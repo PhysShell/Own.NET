@@ -25,7 +25,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
@@ -110,15 +110,13 @@ fn matches(expected: &str, actual: &str) -> bool {
     !consumed.is_empty() && remainder == tail
 }
 
-/// The prefix CLI-B1 pins, built from the case's own argv rather than from the
-/// expectation it is about to relax — deriving it from the thing under test
-/// would make the check circular.
+/// The single positional a boundary case is allowed to have.
 ///
-/// A CLI-B1 case is required to be exactly `["ownir", <path>]`: no flags, one
+/// A boundary case is required to be exactly `["ownir", <path>]`: no flags, one
 /// positional. That is not a limitation worth working around, it is what makes
-/// the prefix unambiguous, and a case that grows a flag fails here rather than
-/// silently relaxing more than it declared.
-fn cli_b1_pinned_prefix(case: &Value) -> String {
+/// the pinned prefix unambiguous, and a case that grows a flag fails here
+/// rather than silently relaxing more than it declared.
+fn boundary_case_path(case: &Value, id: &str) -> String {
     let argv: Vec<&str> = field(case, "argv")
         .as_array()
         .expect("argv is an array")
@@ -128,38 +126,56 @@ fn cli_b1_pinned_prefix(case: &Value) -> String {
     assert_eq!(
         argv.len(),
         2,
-        "a CLI-B1 case must be exactly [ownir, <path>], got {argv:?}"
+        "a {id} case must be exactly [ownir, <path>], got {argv:?}"
     );
     assert_eq!(argv.first().copied(), Some("ownir"), "{argv:?}");
-    let path = argv.get(1).copied().unwrap_or_default();
-    format!("{path}: error: {path} is not valid JSON: ")
+    argv.get(1).copied().unwrap_or_default().to_owned()
 }
 
-/// Where a CLI-B1 case's facts live: its own `cwd` joined with its own single
+/// The prefix a boundary pins, built from the case's own argv rather than from
+/// the expectation it is about to relax — deriving it from the thing under test
+/// would make the check circular.
+///
+/// The two boundaries pin different openings because they sit at different
+/// doors, and that is the point: CLI-B1's wrapper names the JSON door and
+/// carries the path twice, CLI-B2's opening is the Version door's own sentence
+/// up to the token it could not accept.
+fn boundary_pinned_prefix(case: &Value, id: &str) -> String {
+    let path = boundary_case_path(case, id);
+    match id {
+        "CLI-B1" => format!("{path}: error: {path} is not valid JSON: "),
+        "CLI-B2" => format!("{path}: error: OwnIR 'ownir_version' must be an integer, got "),
+        other => panic!("unknown declared boundary {other:?}"),
+    }
+}
+
+/// Where a boundary case's facts live: its own `cwd` joined with its own single
 /// positional. Resolved in one place so the on-disk reading and the negative
 /// control cannot drift on to different paths.
-fn cli_b1_facts_path(case: &Value) -> Result<PathBuf, String> {
+fn boundary_facts_path(case: &Value, id: &str) -> Result<PathBuf, String> {
     let cwd = fixture_dir().join(field(case, "cwd").as_str().expect("cwd is a string"));
     let path = field(case, "argv")
         .as_array()
         .expect("argv is an array")
         .get(1)
         .and_then(Value::as_str)
-        .ok_or_else(|| "a CLI-B1 case needs a facts path as its only positional".to_owned())?;
+        .ok_or_else(|| format!("a {id} case needs a facts path as its only positional"))?;
     Ok(cwd.join(path))
 }
 
-/// Would CLI-B1's relaxed tail apply to **these bytes**? Proven, never assumed.
+/// Would a boundary's relaxed tail apply to **these bytes**? Proven, never
+/// assumed.
 ///
-/// The boundary applies **iff** the strict door rejects with
-/// `OwnIrErrorKind::Json`, so the guard establishes exactly that before
-/// anything is relaxed:
+/// A boundary applies **iff** the strict door rejects with the kind it declares,
+/// so the guard establishes exactly that before anything is relaxed:
 ///
 /// 1. decode the supplied bytes with `str::from_utf8`, no normalization;
-/// 2. the decode must SUCCEED — invalid UTF-8 is #261 ruling 1's declared
-///    reference defect and must never borrow this boundary;
+/// 2. the decode must SUCCEED — an undecodable file is its own refusal family
+///    (byte-identical in both implementations since #262 Stage 3 closed that
+///    hygiene tail) and must never borrow a boundary;
 /// 3. `OwnIr::from_json` on that exact `&str` must REJECT;
-/// 4. the rejection's kind must be `Json`.
+/// 4. the rejection's kind must be the declared one;
+/// 5. for CLI-B2 only, one further step — see [`top_level_negative_zero`].
 ///
 /// Any of those failing means the bytes are not eligible and the caller fails
 /// the case. `Err(reason)` says which step, so a broken control names itself.
@@ -170,35 +186,78 @@ fn cli_b1_facts_path(case: &Value) -> Result<PathBuf, String> {
 /// route, and eligibility can only turn on the bytes. A version of this guard
 /// that reached for the file itself would make the control compare two
 /// different documents at two different paths and prove nothing about either.
-fn cli_b1_eligible_for(facts: &[u8]) -> Result<(), String> {
-    // Steps 1 and 2. Invalid UTF-8 belongs to ruling 1, never here.
+fn boundary_eligible_for(id: &str, facts: &[u8]) -> Result<(), String> {
+    let want = match id {
+        "CLI-B1" => OwnIrErrorKind::Json,
+        "CLI-B2" => OwnIrErrorKind::Version,
+        other => return Err(format!("unknown declared boundary {other:?}")),
+    };
+    // Steps 1 and 2.
     let text = std::str::from_utf8(facts).map_err(|e| {
         format!(
-            "the facts are not valid UTF-8 ({e}) — that is #261 ruling 1's \
-             declared reference defect, never CLI-B1"
+            "the facts are not valid UTF-8 ({e}) — an undecodable file is its \
+             own byte-identical refusal family, never {id}"
         )
     })?;
     // Steps 3 and 4. The typed door is the authority on the kind; nothing here
     // reads the message to decide.
     match OwnIr::from_json(text) {
         Ok(_) => {
-            Err("the strict door ACCEPTED these facts; CLI-B1 needs a Json rejection".to_owned())
+            return Err(format!(
+                "the strict door ACCEPTED these facts; {id} needs a {want:?} rejection"
+            ))
         }
-        Err(refused) if refused.kind == OwnIrErrorKind::Json => Ok(()),
-        Err(refused) => Err(format!(
-            "the strict door rejected with kind {:?}, not Json — CLI-B1 applies \
-             iff the kind is Json, and every other family is pinned byte-exact",
-            refused.kind
+        Err(refused) if refused.kind == want => {}
+        Err(refused) => {
+            return Err(format!(
+                "the strict door rejected with kind {:?}, not {want:?} — {id} applies \
+                 iff the kind is {want:?}",
+                refused.kind
+            ))
+        }
+    }
+    // Step 5. `Version` is a whole FAMILY and it is otherwise pinned byte-exact
+    // (#261 ruling 2a), so unlike CLI-B1 the kind alone is nowhere near enough
+    // to admit a case here: every wrong-type version rejection shares it,
+    // including `{"ownir_version": [-0]}`, whose byte parity is the control
+    // that keeps V2 scoped. CLI-B2 therefore also requires the exact document
+    // shape its ruling names.
+    if id == "CLI-B2" {
+        top_level_negative_zero(text)?;
+    }
+    Ok(())
+}
+
+/// CLI-B2's scope, checked on the SPELLING rather than on the decoded value.
+///
+/// #262 scopes V2 to the literal `-0` at the top level. `serde_json::Value`
+/// cannot express that scope — it reads `-0` and `-0.0` into the same `f64`
+/// negative zero — and the difference matters: `-0.0` is a float to BOTH
+/// implementations, so they already agree on it byte for byte and it must not
+/// be allowed to borrow a boundary. `RawValue` keeps the original token, so the
+/// check is on what the document actually says.
+fn top_level_negative_zero(text: &str) -> Result<(), String> {
+    use std::collections::BTreeMap;
+    let root: BTreeMap<String, &serde_json::value::RawValue> = serde_json::from_str(text)
+        .map_err(|e| format!("CLI-B2 needs a JSON object at the root ({e})"))?;
+    match root.get("ownir_version") {
+        None => Err("CLI-B2 needs a top-level 'ownir_version'; this document has none".to_owned()),
+        Some(raw) if raw.get().trim() == "-0" => Ok(()),
+        Some(raw) => Err(format!(
+            "CLI-B2 is scoped to the literal top-level `-0`; this document's \
+             ownir_version is spelled {:?}",
+            raw.get().trim()
         )),
     }
 }
 
-/// Is this case eligible for CLI-B1, judged on the facts it actually ran with?
-fn cli_b1_eligible(case: &Value) -> Result<(), String> {
-    let path = cli_b1_facts_path(case)?;
+/// Is this case eligible for its declared boundary, judged on the facts it
+/// actually ran with?
+fn boundary_eligible(case: &Value, id: &str) -> Result<(), String> {
+    let path = boundary_facts_path(case, id)?;
     let bytes = std::fs::read(&path)
         .map_err(|e| format!("cannot read the case's facts bytes {}: {e}", path.display()))?;
-    cli_b1_eligible_for(&bytes)
+    boundary_eligible_for(id, &bytes)
 }
 
 fn describe(label: &str, expected: &str, actual: &str) -> String {
@@ -266,22 +325,27 @@ fn replays_the_whole_cli_contract_byte_for_byte() {
         let got_err = String::from_utf8_lossy(&output.stderr);
         let got_exit = output.status.code();
 
-        // CLI-B1: prove the kind BEFORE relaxing anything, then relax only
-        // the parser detail after the pinned, byte-exact CLI-owned wrapper.
+        // A declared boundary: prove the KIND (and, for CLI-B2, the document
+        // shape) BEFORE relaxing anything, then relax only what follows the
+        // pinned, byte-exact opening.
         if let Some(boundary) = case.get("boundary") {
             let id = field(boundary, "id").as_str().unwrap_or("?");
-            assert_eq!(id, "CLI-B1", "{name}: unknown declared boundary {id:?}");
+            let want_kind = match id {
+                "CLI-B1" => "json",
+                "CLI-B2" => "version",
+                other => panic!("{name}: unknown declared boundary {other:?}"),
+            };
             assert_eq!(
                 field(boundary, "expected_kind").as_str(),
-                Some("json"),
-                "{name}: CLI-B1 applies iff the kind is Json"
+                Some(want_kind),
+                "{name}: {id} applies iff the kind is {want_kind}"
             );
-            if let Err(reason) = cli_b1_eligible(&case) {
-                failures.push(format!("{name} [CLI-B1 NOT eligible]: {reason}"));
+            if let Err(reason) = boundary_eligible(&case, id) {
+                failures.push(format!("{name} [{id} NOT eligible]: {reason}"));
                 replayed = replayed.saturating_add(1);
                 continue;
             }
-            let prefix = cli_b1_pinned_prefix(&case);
+            let prefix = boundary_pinned_prefix(&case, id);
             let mut why = String::new();
             if got_exit != Some(2) {
                 why.push_str(&format!("\n  exit expected: 2, actual: {got_exit:?}"));
@@ -289,19 +353,19 @@ fn replays_the_whole_cli_contract_byte_for_byte() {
             if !got_out.is_empty() {
                 why.push_str(&describe("stdout", "", &got_out));
             }
-            // The wrapper is pinned byte-exact; only what follows is declared.
+            // The opening is pinned byte-exact; only what follows is declared.
             if got_err.starts_with(&prefix) {
                 if got_err.len() <= prefix.len() {
-                    why.push_str("\n  the declared parser detail was empty");
+                    why.push_str("\n  the declared tail was empty");
                 }
             } else {
                 why.push_str(&format!(
-                    "\n  the CLI-owned wrapper is pinned and did not match\n  \
+                    "\n  the pinned opening did not match\n  \
                      expected prefix: {prefix:?}\n  actual stderr  : {got_err:?}"
                 ));
             }
             if !why.is_empty() {
-                failures.push(format!("{name} [boundary: CLI-B1]{why}"));
+                failures.push(format!("{name} [boundary: {id}]{why}"));
             }
             replayed = replayed.saturating_add(1);
             continue;
@@ -443,12 +507,12 @@ fn cli_b1_flips_on_the_facts_bytes_and_nothing_else() {
         case.get("boundary").is_some(),
         "the control's carrier must itself be a declared CLI-B1 case"
     );
-    let path = cli_b1_facts_path(&case).expect("the carrier case has a facts path");
+    let path = boundary_facts_path(&case, "CLI-B1").expect("the carrier case has a facts path");
 
     // Run 1 — the carrier's own bytes: a JSON-syntax failure, so eligible.
     let json_failure = std::fs::read(&path).expect("the carrier's facts are readable");
     assert_eq!(
-        cli_b1_eligible_for(&json_failure),
+        boundary_eligible_for("CLI-B1", &json_failure),
         Ok(()),
         "the carrier's own bytes must be CLI-B1 eligible, or the control has \
          nothing to contrast against"
@@ -462,7 +526,7 @@ fn cli_b1_flips_on_the_facts_bytes_and_nothing_else() {
             .join("version_mismatch.facts.json"),
     )
     .expect("the frozen version-mismatch facts are readable");
-    let reason = cli_b1_eligible_for(&version_rejection)
+    let reason = boundary_eligible_for("CLI-B1", &version_rejection)
         .expect_err("a Version rejection must not be CLI-B1 eligible");
     assert!(
         reason.contains("Version"),
@@ -475,7 +539,7 @@ fn cli_b1_flips_on_the_facts_bytes_and_nothing_else() {
         "the two runs must supply different bytes"
     );
     assert_eq!(
-        cli_b1_facts_path(&case).ok(),
+        boundary_facts_path(&case, "CLI-B1").ok(),
         Some(path),
         "both runs must resolve the same path from the same case"
     );
@@ -485,7 +549,7 @@ fn cli_b1_flips_on_the_facts_bytes_and_nothing_else() {
     for name in ["refuse-json-empty-file", "refuse-json-bom"] {
         let positive = read_json(&fixture_dir().join(format!("{name}.case.json")));
         assert_eq!(
-            cli_b1_eligible(&positive),
+            boundary_eligible(&positive, "CLI-B1"),
             Ok(()),
             "{name} must be CLI-B1 eligible"
         );
@@ -501,31 +565,121 @@ fn cli_b1_flips_on_the_facts_bytes_and_nothing_else() {
     );
 }
 
-/// Every case that carries CLI-B1 metadata really does reject with `Json`, and
-/// every case that does NOT carry it is pinned byte-exact. Stated as a sweep so
-/// a future case cannot acquire the relaxed matcher by accident.
+/// Every case that carries boundary metadata really is eligible for the
+/// boundary it names, and every case that does NOT carry any is pinned
+/// byte-exact. Stated as a sweep so a future case cannot acquire the relaxed
+/// matcher by accident, and counted PER BOUNDARY so a boundary whose every case
+/// disappeared fails here instead of silently becoming untested.
 #[test]
-fn only_json_rejections_carry_the_declared_boundary() {
+fn every_declared_boundary_case_is_eligible_for_the_boundary_it_names() {
     let manifest = manifest();
-    let mut declared = 0_usize;
+    let mut declared: BTreeMap<String, usize> = BTreeMap::new();
     for entry in field(&manifest, "cases")
         .as_array()
         .expect("cases is an array")
     {
         let name = field(entry, "name").as_str().expect("a case name");
         let case = read_json(&fixture_dir().join(format!("{name}.case.json")));
-        if case.get("boundary").is_some() {
-            assert_eq!(
-                cli_b1_eligible(&case),
-                Ok(()),
-                "{name} declares CLI-B1 but is not a Json rejection"
-            );
-            declared = declared.saturating_add(1);
-        }
+        let Some(boundary) = case.get("boundary") else {
+            continue;
+        };
+        let id = field(boundary, "id").as_str().expect("a boundary id").to_owned();
+        assert_eq!(
+            boundary_eligible(&case, &id),
+            Ok(()),
+            "{name} declares {id} but is not eligible for it"
+        );
+        *declared.entry(id).or_default() += 1;
     }
+    // Both ratified boundaries, named rather than counted in the aggregate: a
+    // sweep that only asserted "more than zero" would stay green after the last
+    // CLI-B2 case was deleted.
+    for id in ["CLI-B1", "CLI-B2"] {
+        assert!(
+            declared.get(id).copied().unwrap_or(0) > 0,
+            "no case declares {id} — the boundary would be untested. \
+             Declared: {declared:?}"
+        );
+    }
+    // And no THIRD boundary appeared without this test learning about it.
+    let known: BTreeSet<&str> = ["CLI-B1", "CLI-B2"].into_iter().collect();
+    for id in declared.keys() {
+        assert!(
+            known.contains(id.as_str()),
+            "an undeclared boundary {id:?} reached the fixtures"
+        );
+    }
+}
+
+/// CLI-B2's SCOPE CONTROL, and the twin of CLI-B1's.
+///
+/// V2 is scoped to the literal top-level `-0`. The two documents below reject
+/// with the SAME kind (`Version`) — which is exactly why the kind cannot be the
+/// whole guard — and differ only in where the `-0` sits:
+///
+/// | bytes | strict door | eligible |
+/// |---|---|---|
+/// | `{"ownir_version": -0}` | `Version` | yes |
+/// | `{"ownir_version": [-0]}` | `Version` | no — the `-0` is nested |
+///
+/// If CLI-B2 could match the nested one, the boundary would have widened from
+/// "one token at the top level" into "Version wording may differ", and #261
+/// ruling 2a's byte parity for that whole family would be relaxed by accident.
+/// The nested case is frozen byte-exact with no boundary, and this proves the
+/// guard is what keeps it that way.
+#[test]
+fn cli_b2_does_not_reach_a_nested_negative_zero() {
+    let top = fixture_dir()
+        .join("inputs")
+        .join("version_negative_zero.facts.json");
+    let nested = fixture_dir()
+        .join("inputs")
+        .join("version_negative_zero_nested.facts.json");
+    let top_bytes = std::fs::read(&top).expect("the frozen top-level -0 facts are readable");
+    let nested_bytes = std::fs::read(&nested).expect("the frozen nested -0 facts are readable");
+
+    assert_eq!(
+        boundary_eligible_for("CLI-B2", &top_bytes),
+        Ok(()),
+        "the top-level -0 must be CLI-B2 eligible, or the control has nothing \
+         to contrast against"
+    );
+    let reason = boundary_eligible_for("CLI-B2", &nested_bytes)
+        .expect_err("a nested -0 must not be CLI-B2 eligible");
     assert!(
-        declared > 0,
-        "no case declares CLI-B1 — the boundary would be untested"
+        reason.contains("scoped to the literal top-level"),
+        "the refusal must name the scope that disqualified it, got: {reason}"
+    );
+
+    // Both really do reject with the same kind, so the flip above is about the
+    // document shape and not about one of them taking a different door.
+    for bytes in [&top_bytes, &nested_bytes] {
+        let text = std::str::from_utf8(bytes).expect("both documents are valid UTF-8");
+        let refused = OwnIr::from_json(text).expect_err("both documents are refused");
+        assert_eq!(
+            refused.kind,
+            OwnIrErrorKind::Version,
+            "both documents must reject with Version, or the contrast is not \
+             about the scope"
+        );
+    }
+
+    // A float negative zero is not V2 either: both implementations already read
+    // `-0.0` as a float and agree byte for byte, so borrowing the boundary for
+    // it would relax a check that never needed relaxing.
+    let float_zero = br#"{"ownir_version": -0.0}"#;
+    let reason = boundary_eligible_for("CLI-B2", float_zero)
+        .expect_err("a float negative zero must not be CLI-B2 eligible");
+    assert!(
+        reason.contains("spelled"),
+        "the refusal must name the spelling that disqualified it, got: {reason}"
+    );
+
+    // The nested case is pinned byte-exact in its own right.
+    let pinned = read_json(&fixture_dir().join("refuse-version-negative-zero-nested.case.json"));
+    assert!(
+        pinned.get("boundary").is_none(),
+        "a nested -0 is pinned byte-exact and must carry NO boundary metadata"
     );
 }
 

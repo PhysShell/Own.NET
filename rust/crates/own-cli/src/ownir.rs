@@ -232,17 +232,38 @@ fn check(parsed: &Parsed) -> Outcome {
     };
     let text = match std::str::from_utf8(&bytes) {
         Ok(text) => text,
-        // A DECLARED REFERENCE DEFECT (#261 ruling 1; note §5.1): the
-        // reference's `load()` converts OSError and JSONDecodeError and nothing
-        // else, so a UnicodeDecodeError escapes to its exit-70 catch-all — a
-        // quirk of the reference rather than a designed refusal. rc 70 with the
-        // internal-error shape is sufficient for #261 and no fixture case
-        // freezes the bytes: an oracle exists (Python printed one), and we
-        // DECLINE to make a CPython exception's wording a cross-language
-        // contract. The Python-first repair — UnicodeDecodeError -> OwnIRError
-        // -> rc 2 — is a hygiene tail under #250/#262, to close before public
-        // cutover.
-        Err(err) => return Outcome::internal_error(&format!("{path}: {err}")),
+        // #262 Stage-3 hygiene tail, CLOSED — and closed Python-first, which is
+        // why this is byte parity and not a boundary.
+        //
+        // It used to be a DECLARED REFERENCE DEFECT (#261 ruling 1): the
+        // reference's `load()` converted OSError and JSONDecodeError and
+        // nothing else, so a UnicodeDecodeError escaped to its exit-70
+        // catch-all and this side reproduced the code and shape without
+        // claiming a byte contract for it. The reference now refuses an
+        // undecodable facts file as ordinary bad input (rc 2), and states the
+        // reason as a fact about the FILE rather than in its decoder's voice —
+        // the first offending byte and its offset — precisely so this side can
+        // report it identically. #261's refusal to make a CPython exception's
+        // wording a cross-language contract still stands; what changed is that
+        // there is no longer a CPython exception's wording involved.
+        //
+        // `valid_up_to()` is the index the invalid sequence STARTS at, so the
+        // byte is always present; `get` rather than an index because a panic
+        // here would be an analyzer crash over a malformed input file, which is
+        // the exact class this whole path exists to prevent.
+        Err(err) => {
+            let at = err.valid_up_to();
+            return match bytes.get(at) {
+                Some(byte) => refusal(
+                    path,
+                    &format!("{path} is not valid UTF-8: byte 0x{byte:02x} at offset {at}"),
+                ),
+                None => Outcome::internal_error(&format!(
+                    "a utf-8 error at offset {at} of a {} byte file reports no offending byte",
+                    bytes.len()
+                )),
+            };
+        }
     };
     let facts = match OwnIr::from_json(text) {
         Ok(facts) => facts,

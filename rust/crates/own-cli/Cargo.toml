@@ -50,3 +50,12 @@ fault-injection = []
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+# `raw_value` is enabled for the REPLAY ONLY, and for exactly one job: CLI-B2's
+# eligibility guard has to see how a number was SPELLED. `serde_json::Value`
+# cannot answer that -- it reads `-0` and `-0.0` into the same `f64` negative
+# zero -- and #262 scopes V2 to the literal `-0`, so a guard built on the
+# decoded value would let a `-0.0` case borrow a boundary it does not need.
+# Dev-only: no production build gains the feature.
+serde_json = { workspace = true, features = ["raw_value"] }
