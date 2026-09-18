@@ -282,18 +282,44 @@ this decision deferred.
 
 ## Terminal evidence
 
+Three qualification points, kept apart because they answer three different
+questions:
+
 ```text
-Stage-3 terminal candidate:  f1d3681e96e31bba7a36dda09967d0af7c3e9b56
-Terminal qualification run:  31/31 jobs green
-                             https://github.com/PhysShell/Own.NET/actions/runs/35312190310
+Decision qualification:        f1d3681e96e31bba7a36dda09967d0af7c3e9b56
+                               31/31 jobs green
+                               https://github.com/PhysShell/Own.NET/actions/runs/35312190310
+Implementation qualification:  b22543680da9e8fa6b2607435bb54a5437815bff
+                               31/31 jobs green
+                               https://github.com/PhysShell/Own.NET/actions/runs/35320877147
+Terminal merge qualification:  established by CI on the reconciliation-only
+                               head that carries this record; canonical SHA
+                               and run recorded on #262, never inside the
+                               commit that creates the SHA
 ```
 
-Every predicate below is confirmed on **that** commit, not assembled from
-earlier ones: both Stage-1 control legs, both packed-artifact legs, both
-dogfood legs, the Windows-native and Stage-2 Windows campaigns,
-`own-check.ps1`'s exit-code tiers, both shadow-compare gates, the Rust-default
-code-scanning dogfood, rust fmt/clippy/tests, and the Python suite on
-3.11/3.12/3.13.
+The decision was established on `f1d3681`: every predicate below is confirmed
+on **that** commit, not assembled from earlier ones — both Stage-1 control
+legs, both packed-artifact legs, both dogfood legs, the Windows-native and
+Stage-2 Windows campaigns, `own-check.ps1`'s exit-code tiers, both
+shadow-compare gates, the Rust-default code-scanning dogfood, rust
+fmt/clippy/tests, and the Python suite on 3.11/3.12/3.13.
+
+The implementation candidate `b225436` is that tree plus the reconciliation
+record `7622a3b` and one repository-hygiene commit: `04c3303` had committed
+223 files of Cargo build output under `rust/target-fault/`, the build
+directory of the fault-injection candidate. Build output is not evidence and
+is never versioned, so it was untracked and both Cargo directories are now
+ignored explicitly. No production behaviour changed, and the decision run
+rightly never saw the difference: CI checks the program, not the tree's
+manners. The full matrix was nevertheless re-run on the cleaned head rather
+than inherited from its ancestor, because the rule this record lives by is
+that the SHA which goes to `main` is qualified as itself.
+
+The SHA that goes to `main` is the reconciliation-only head carrying this
+record. A commit cannot name its own SHA — recording it here would be a
+fixed-point hunt, not evidence — so the terminal merge qualification is CI on
+that head, and its canonical SHA and run are recorded externally on #262.
 
 ## Defects found and closed during qualification
 
@@ -346,9 +372,11 @@ provenance line legible:
 ```text
 last P-022 semantic state
         |
-        +-- Stage-3 terminal commit  (f1d3681)
+        +-- Stage-3 decision qualification         (f1d3681)
+        +-- Stage-3 implementation qualification   (b225436; hygiene only)
+        +-- Stage-3 terminal merge candidate       (the record head; SHA on #262)
                     |
-                    +-- P-037 A1 starts here
+                    +-- P-037 A1 starts here, from the Rust-default baseline
 ```
 
 Nobody should have to work out, later, whether the first `ConsumesParam` change

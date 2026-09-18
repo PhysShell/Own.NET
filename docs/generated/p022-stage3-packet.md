@@ -2,7 +2,7 @@
 # P-022 Stage 3 — #262 cutover decision packet
 
 ```text
-Stage-3 candidate SHA:    f1d3681e96e31bba7a36dda09967d0af7c3e9b56 (DIRTY TREE — not evidence)
+Stage-3 candidate SHA:    b22543680da9e8fa6b2607435bb54a5437815bff (DIRTY TREE — not evidence)
 Observation window:       the repository's own CI on the candidate branch, plus the release workflow's packed-artifact smoke test; first run b590bf46e9f1: 7 job failures, every one a real consequence of the cutover, all diagnosed and fixed
 Fast compare result:      104 documents, 104 agreed, 0 acceptance-unexplained | samples: 1 document, 1 agreed, 0 acceptance-unexplained
 Five-repo compare result: 10/10 documents agreed over 6 targets; 0 acceptance-unexplained, 0 declared-boundary; at b590bf46e9f1; local run (no CI anchor)
@@ -67,4 +67,4 @@ CLI contract campaign: 24/24 mutants caught at b5d9272a0a85
 * `stage2-controls` [linux] **MEASURED OBSERVATION** — 9 controls passed, including public-default-is-rust
 * `ci-surfaces` [n/a] **MEASURED OBSERVATION** — 63 invocations over 26 files; 23 explicit, 40 bare and all resolvable; 0 hollow Python injections
 * `stage1-controls-windows` [windows] **MEASURED OBSERVATION** — 19 controls passed, 0 failed, 0 skipped, 1 not applicable (a non-executable candidate cannot be constructed for the shell surface under git-bash). Includes default-is-rust, unset-locator-is-d6, rust-failure-no-fallback and an unexpected child status mapped to public exit 5 with the raw WINDOWS-NATIVE status (-1073740791) retained. The job as a whole went red on a HARNESS defect in the Stage-3 rollback control that ran after these, not on any of them
-* `terminal-ci` [n/a] **MEASURED OBSERVATION** — 31/31 jobs green. Includes both Stage-1 control legs, both packed-artifact legs, both dogfood legs, the Windows-native and Stage-2 Windows campaigns, own-check.ps1's exit-code tiers, both shadow-compare gates, the Rust-default code-scanning dogfood, rust fmt/clippy/tests and the Python suite on 3.11/3.12/3.13
+* `terminal-ci` [n/a] **MEASURED OBSERVATION** — 31/31 jobs green, 0 failures, 0 non-success, on b22543680da9 -- the implementation qualification point. The Stage-3 decision was established on f1d3681e96e3 (run 35312190310, 31/31); the cleaned head differs from it by the reconciliation record 7622a3b and the repository-hygiene commit b225436, which untracked 223 files of Cargo build output under rust/target-fault, so the matrix was re-run rather than inherited. The terminal MERGE qualification is CI on the reconciliation-only head that carries this record; its canonical SHA and run are recorded on #262, never inside the commit that creates the SHA. Includes both Stage-1 control legs, both packed-artifact legs, both dogfood legs, the Windows-native and Stage-2 Windows campaigns, own-check.ps1's exit-code tiers, both shadow-compare gates, the Rust-default code-scanning dogfood, rust fmt/clippy/tests and the Python suite on 3.11/3.12/3.13
