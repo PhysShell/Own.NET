@@ -243,12 +243,12 @@ def _load(path: Path) -> dict[str, Any]:
 def _snapshot_problems(record: dict[str, Any]) -> list[str]:
     problems: list[str] = []
     manifest = record.get("input_manifest")
+    if not isinstance(manifest, list):
+        return ["snapshot carries no input_manifest list"]
     expected = {
         entry["path"]
         for entry in manifest
-        if isinstance(manifest, list)
-        and isinstance(entry, dict)
-        and isinstance(entry.get("path"), str)
+        if isinstance(entry, dict) and isinstance(entry.get("path"), str)
     }
     documents = record.get("documents")
     if not isinstance(documents, dict):
