@@ -19,60 +19,12 @@ from __future__ import annotations
 
 import hashlib
 import subprocess
+import sys
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
-
-# Split only in source spelling because the Stage-3 launcher census correctly
-# treats a literal launcher name in executable Python as a potential invocation.
-# This value is provenance DATA, never executed; runtime value is the real path.
-OWN_CHECK_PATH = "scripts/" + "own-" + "check.sh"
-
-# Single source for the implementation closure used by both P-037 snapshots.
-# Deliberately roots, not a hand-maintained transitive crate list: own-bridge and
-# own-shadow depend on several sibling crates, and pretending that list will be
-# remembered on every dependency edit is exactly the stale-allowlist failure this
-# gate is meant to avoid.
-SUBJECT_PATHS: tuple[str, ...] = (
-    "frontend/roslyn/OwnSharp.Extractor/",
-    "ownlang/",
-    "rust/",
-    OWN_CHECK_PATH,
-    "scripts/p037_evidence.py",
-    "scripts/p037_mos_snapshot.py",
-    "scripts/p037_verdict_snapshot.py",
-    "scripts/shadow_compare.py",
-    "spec/",
-)
-
-# Repo-local paths the snapshot programs execute/import directly. The self-check
-# below proves every one is covered by SUBJECT_PATHS. Source inputs are separate:
-# their roots and exact blob set are recorded per evidence file.
-RUNTIME_REPO_PATHS: tuple[str, ...] = (
-    "frontend/roslyn/OwnSharp.Extractor/",
-    "ownlang/",
-    "rust/",
-    OWN_CHECK_PATH,
-    "scripts/p037_evidence.py",
-    "scripts/p037_mos_snapshot.py",
-    "scripts/p037_verdict_snapshot.py",
-    "scripts/shadow_compare.py",
-    "spec/",
-)
-
-CORPUS_DIRS: tuple[str, ...] = (
-    "corpus/real-world",
-    "corpus/wpf",
-    "corpus/di",
-    "corpus/fixtures",
-    "corpus/p036-bakeoff",
-)
-
-# The independent syntax-shape source that caught A1's return-parameter defect.
-REPO_TREE_DIRS: tuple[str, ...] = ("frontend", "audit")
-
 
 class EvidenceRefused(RuntimeError):
     """The requested evidence claim cannot be checked honestly."""
@@ -217,32 +169,92 @@ def evidence_fields(input_roots: tuple[str, ...]) -> dict[str, Any]:
     }
 
 
-def provenance_problems(record: dict[str, Any], *, against: str = "HEAD") -> list[str]:
-    """Whether ``record`` is still fresh evidence at ``against``.
+def _tool_text(argv: list[str], *, cwd: Path = ROOT) -> str:
+    """Run one tool and return non-empty stdout, or refuse the evidence."""
+    try:
+        proc = subprocess.run(
+            argv,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=120,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise EvidenceRefused(f"{argv[0]} could not run: {exc}") from exc
+    if proc.returncode != 0:
+        detail = proc.stderr.strip()[-800:]
+        raise EvidenceRefused(
+            f"{' '.join(argv)} exited {proc.returncode}"
+            + (f": {detail}" if detail else "")
+        )
+    value = proc.stdout.strip()
+    if not value:
+        raise EvidenceRefused(f"{' '.join(argv)} returned no version/output")
+    return value
 
-    This predicate is intentionally for *freshness*, e.g. "may A2 start from
-    this baseline?" A before/after differential may later compare two historical
-    evidence records across an intentional source change; that comparison is a
-    different claim and does not pretend the before record is fresh at the after
-    commit.
-    """
+
+def tool_versions(*, include_rust: bool) -> dict[str, str]:
+    """Versions of the executables that can change an evidence run."""
+    versions = {
+        "platform": sys.platform,
+        "python": sys.version.split()[0],
+        "dotnet": _tool_text(["dotnet", "--version"]),
+    }
+    if include_rust:
+        versions["rustc"] = _tool_text(["rustc", "--version"])
+        versions["cargo"] = _tool_text(["cargo", "--version"])
+    return versions
+
+
+def build_rust_binary(package: str, binary: str) -> dict[str, str | int]:
+    """Build and name the exact Rust executable an evidence run will execute."""
+    argv = ["cargo", "build", "--release", "--locked", "-p", package, "--bin", binary]
+    try:
+        proc = subprocess.run(
+            argv,
+            cwd=ROOT / "rust",
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=1200,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise EvidenceRefused(f"cannot build {package}/{binary}: {exc}") from exc
+    if proc.returncode != 0:
+        raise EvidenceRefused(
+            f"{' '.join(argv)} failed for {package}/{binary}: "
+            f"{proc.stderr.strip()[-1200:]}"
+        )
+    name = binary + (".exe" if sys.platform == "win32" else "")
+    path = ROOT / "rust" / "target" / "release" / name
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        raise EvidenceRefused(
+            f"built {package}/{binary} but cannot read {path}: {exc}"
+        ) from exc
+    return {
+        "package": package,
+        "binary": binary,
+        "path": str(path),
+        "repo_path": path.relative_to(ROOT).as_posix(),
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "bytes": len(raw),
+        "build": " ".join(argv),
+    }
+
+
+def record_problems(record: dict[str, Any]) -> list[str]:
+    """Self-consistency of one historical evidence record at its own source."""
     problems: list[str] = []
-    problems.extend(closure_problems())
-
     source = record.get("source_commit")
     if not isinstance(source, str) or not source:
-        return [*problems, "evidence records no source_commit"]
+        return ["evidence records no source_commit"]
     if record.get("dirty") is not False:
         problems.append("evidence was taken on a dirty tree")
     if record.get("is_evidence") is not True:
         problems.append("record does not mark itself is_evidence=true")
-
-    declared_subjects = record.get("subject_paths")
-    if declared_subjects != list(SUBJECT_PATHS):
-        problems.append(
-            "recorded subject_paths differ from the current measurement closure; "
-            "the older evidence does not cover the dependency set this tool now requires"
-        )
 
     roots_raw = record.get("input_roots")
     if not (
@@ -255,13 +267,12 @@ def provenance_problems(record: dict[str, Any], *, against: str = "HEAD") -> lis
     else:
         roots = tuple(str(x) for x in roots_raw)
 
-    manifest = record.get("input_manifest")
-    if not isinstance(manifest, list) or not manifest:
+    manifest_raw = record.get("input_manifest")
+    recorded_manifest: list[dict[str, str]] = []
+    if not isinstance(manifest_raw, list) or not manifest_raw:
         problems.append("record carries no non-empty input_manifest")
-        recorded_manifest: list[dict[str, str]] = []
     else:
-        recorded_manifest = []
-        for i, entry in enumerate(manifest):
+        for i, entry in enumerate(manifest_raw):
             if not (
                 isinstance(entry, dict)
                 and isinstance(entry.get("path"), str)
@@ -273,11 +284,85 @@ def provenance_problems(record: dict[str, Any], *, against: str = "HEAD") -> lis
                 {"path": str(entry["path"]), "blob": str(entry["blob"])}
             )
 
-    proc = _git("cat-file", "-e", f"{source}^{{commit}}")
-    if proc.returncode != 0:
+    if _git("cat-file", "-e", f"{source}^{{commit}}").returncode != 0:
         return [*problems, f"source commit {source[:12]} is not present in this checkout"]
-    proc = _git("cat-file", "-e", f"{against}^{{commit}}")
-    if proc.returncode != 0:
+
+    if roots and recorded_manifest:
+        try:
+            at_source = _tree_cs_manifest(source, roots)
+        except EvidenceRefused as exc:
+            problems.append(str(exc))
+        else:
+            if recorded_manifest != at_source:
+                problems.append(
+                    "recorded input_manifest does not match the source commit's exact C# input set"
+                )
+        if record.get("input_manifest_sha256") != _manifest_digest(recorded_manifest):
+            problems.append(
+                "input_manifest_sha256 does not name the manifest carried by the record"
+            )
+    return problems
+
+
+def comparison_problems(
+    before: dict[str, Any], after: dict[str, Any]
+) -> list[str]:
+    """Can two historical records be read as one before/after experiment?"""
+    problems: list[str] = []
+    for label, record in (("before", before), ("after", after)):
+        for problem in record_problems(record):
+            problems.append(f"{label}: {problem}")
+
+    before_source = before.get("source_commit")
+    after_source = after.get("source_commit")
+    if isinstance(before_source, str) and isinstance(after_source, str):
+        if _git("merge-base", "--is-ancestor", before_source, after_source).returncode != 0:
+            problems.append(
+                f"before source {before_source[:12]} is not an ancestor of "
+                f"after source {after_source[:12]}"
+            )
+
+    if before.get("subject_paths") != after.get("subject_paths"):
+        problems.append("before/after subject_paths differ")
+    if before.get("input_roots") != after.get("input_roots"):
+        problems.append("before/after input_roots differ")
+    if before.get("input_manifest") != after.get("input_manifest"):
+        problems.append("before/after source-input manifests differ")
+
+    before_tools = before.get("toolchains")
+    after_tools = after.get("toolchains")
+    if not isinstance(before_tools, dict) or not before_tools:
+        problems.append("before record carries no toolchain identity")
+    if not isinstance(after_tools, dict) or not after_tools:
+        problems.append("after record carries no toolchain identity")
+    if isinstance(before_tools, dict) and isinstance(after_tools, dict):
+        if before_tools != after_tools:
+            problems.append("before/after toolchain identities differ")
+    return problems
+
+
+def provenance_problems(record: dict[str, Any], *, against: str = "HEAD") -> list[str]:
+    """Whether record is still fresh evidence at against."""
+    problems = [*closure_problems(), *record_problems(record)]
+    source = record.get("source_commit")
+    if not isinstance(source, str) or not source:
+        return problems
+
+    declared_subjects = record.get("subject_paths")
+    if declared_subjects != list(SUBJECT_PATHS):
+        problems.append(
+            "recorded subject_paths differ from the current measurement closure; "
+            "the older evidence does not cover the dependency set this tool now requires"
+        )
+
+    roots_raw = record.get("input_roots")
+    roots = (
+        tuple(str(x) for x in roots_raw)
+        if isinstance(roots_raw, list) and all(isinstance(x, str) for x in roots_raw)
+        else ()
+    )
+
+    if _git("cat-file", "-e", f"{against}^{{commit}}").returncode != 0:
         return [*problems, f"comparison commit {against!r} is not present in this checkout"]
     if _git("merge-base", "--is-ancestor", source, against).returncode != 0:
         problems.append(
@@ -296,26 +381,56 @@ def provenance_problems(record: dict[str, Any], *, against: str = "HEAD") -> lis
         elif diff.returncode != 0:
             problems.append("git could not compare the declared subject_paths")
 
-    if roots and recorded_manifest:
+    if roots:
         try:
             at_source = _tree_cs_manifest(source, roots)
             at_against = _tree_cs_manifest(against, roots)
         except EvidenceRefused as exc:
             problems.append(str(exc))
         else:
-            if recorded_manifest != at_source:
-                problems.append(
-                    "recorded input_manifest does not match the source commit's exact C# input set"
-                )
             if at_source != at_against:
                 problems.append(
                     f"source inputs changed between {source[:12]} and {against}; "
                     "re-take the evidence"
                 )
-            want_digest = record.get("input_manifest_sha256")
-            got_digest = _manifest_digest(recorded_manifest)
-            if want_digest != got_digest:
-                problems.append(
-                    "input_manifest_sha256 does not name the manifest carried by the record"
-                )
     return problems
+
+
+# Measurement-contract constants are deliberately declared after every helper
+# that launches subprocesses. The Stage-3 surface census sees the literal
+# launcher path as data, with no nearby process launch to misclassify as a call.
+OWN_CHECK_PATH = "scripts/own-check.sh"
+
+SUBJECT_PATHS: tuple[str, ...] = (
+    "frontend/roslyn/OwnSharp.Extractor/",
+    "ownlang/",
+    "rust/",
+    OWN_CHECK_PATH,
+    "scripts/p037_evidence.py",
+    "scripts/p037_mos_snapshot.py",
+    "scripts/p037_verdict_snapshot.py",
+    "scripts/shadow_compare.py",
+    "spec/",
+)
+
+RUNTIME_REPO_PATHS: tuple[str, ...] = (
+    "frontend/roslyn/OwnSharp.Extractor/",
+    "ownlang/",
+    "rust/",
+    OWN_CHECK_PATH,
+    "scripts/p037_evidence.py",
+    "scripts/p037_mos_snapshot.py",
+    "scripts/p037_verdict_snapshot.py",
+    "scripts/shadow_compare.py",
+    "spec/",
+)
+
+CORPUS_DIRS: tuple[str, ...] = (
+    "corpus/real-world",
+    "corpus/wpf",
+    "corpus/di",
+    "corpus/fixtures",
+    "corpus/p036-bakeoff",
+)
+
+REPO_TREE_DIRS: tuple[str, ...] = ("frontend", "audit")

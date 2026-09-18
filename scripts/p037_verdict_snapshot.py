@@ -42,41 +42,31 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
-from p037_evidence import (
-    CORPUS_DIRS,
-    EvidenceRefused,
-    evidence_fields,
-    provenance_problems,
-)
+import p037_evidence as ev
 
 ROOT = Path(__file__).resolve().parent.parent
 VERDICT_LEVELS = ("error", "warning")
 
 
 def corpus_files(dirs: tuple[str, ...]) -> list[Path]:
-    """Every .cs file under the named corpus directories, repo-relative, sorted."""
-    out: list[Path] = []
-    for d in dirs:
-        out.extend(sorted((ROOT / d).rglob("*.cs")))
-    return sorted(set(out))
+    """The exact committed C# denominator named by the provenance manifest."""
+    return ev.input_paths(dirs)
 
 
-def git(*args: str) -> str:
-    proc = subprocess.run(["git", "-C", str(ROOT), *args],
-                          capture_output=True, text=True, check=False)
-    return proc.stdout.strip()
-
-
-def run_one(path: Path, engine: str) -> dict[str, Any]:
+def run_one(path: Path, engine: str, rust_core: str | None) -> dict[str, Any]:
     """One file through the launcher; SARIF in, (exit, findings) out."""
     cmd = [str(ROOT / "scripts" / "own-check.sh"), "--engine", engine,
            "--format", "sarif", "--severity", "warning", str(path)]
-    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    env = os.environ.copy()
+    if rust_core is not None:
+        env["OWEN_RUST_CORE"] = rust_core
+    proc = subprocess.run(cmd, capture_output=True, text=True, check=False, env=env)
     findings: list[dict[str, Any]] = []
     parse_error = ""
     try:
@@ -103,29 +93,52 @@ def run_one(path: Path, engine: str) -> dict[str, Any]:
 
 
 def take(engine: str, out: Path, dirs: tuple[str, ...]) -> int:
-    files = corpus_files(dirs)
-    if not files:
-        print("no corpus files found", file=sys.stderr)
-        return 2
     try:
-        provenance = evidence_fields(dirs)
-    except EvidenceRefused as exc:
+        candidate = (
+            ev.build_rust_binary("own-cli", "own-cli")
+            if engine == "rust"
+            else None
+        )
+        toolchains = ev.tool_versions(include_rust=engine == "rust")
+        provenance = ev.evidence_fields(dirs)
+        files = corpus_files(dirs)
+    except ev.EvidenceRefused as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
+    if not files:
+        print("no committed corpus files found", file=sys.stderr)
+        return 2
+    rust_core = str(candidate["path"]) if candidate is not None else None
     snap: dict[str, Any] = {
         "schema": "p037-verdict-snapshot/2",
         "engine": engine,
         **provenance,
+        "toolchains": toolchains,
+        **(
+            {
+                "rust_candidate": {
+                    "repo_path": candidate["repo_path"],
+                    "sha256": candidate["sha256"],
+                    "bytes": candidate["bytes"],
+                    "build": candidate["build"],
+                }
+            }
+            if candidate is not None
+            else {}
+        ),
         "corpus": list(dirs),
         "files": {},
     }
     dirty = bool(snap["dirty"])
     for i, f in enumerate(files, 1):
         rel = f.relative_to(ROOT).as_posix()
-        snap["files"][rel] = run_one(f, engine)
+        snap["files"][rel] = run_one(f, engine, rust_core)
         n = len(snap["files"][rel]["findings"])
         print(f"  [{i:3}/{len(files)}] {rel}  ({n} finding(s))", flush=True)
     broken = [k for k, r in snap["files"].items() if "parse_error" in r]
+    if ev.tree_is_dirty():
+        snap["is_evidence"] = False
+        snap["post_run_dirty"] = True
     if broken:
         # A snapshot with an unreadable run is not a snapshot with fewer findings.
         # The first version of this tool asked for a `--severity note` that does
@@ -162,8 +175,8 @@ def verify(path: Path) -> int:
         )
         return 2
     try:
-        problems = provenance_problems(snap)
-    except EvidenceRefused as exc:
+        problems = ev.provenance_problems(snap)
+    except ev.EvidenceRefused as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
     if problems:
@@ -182,9 +195,48 @@ def key_set(rec: dict[str, Any], level: str) -> set[tuple[int, str, str]]:
             if level == "all" or f["level"] in VERDICT_LEVELS}
 
 
+def _load(path: Path) -> dict[str, Any]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict) or data.get("schema") != "p037-verdict-snapshot/2":
+        raise RuntimeError(f"{path}: not a p037-verdict-snapshot/2 document")
+    return data
+
+
+def _snapshot_problems(record: dict[str, Any]) -> list[str]:
+    manifest = record.get("input_manifest")
+    expected = {
+        entry["path"]
+        for entry in manifest
+        if isinstance(manifest, list)
+        and isinstance(entry, dict)
+        and isinstance(entry.get("path"), str)
+    }
+    files = record.get("files")
+    if not isinstance(files, dict):
+        return ["snapshot carries no files object"]
+    problems: list[str] = []
+    if set(files) != expected:
+        problems.append("snapshot file keys do not equal the recorded input manifest")
+    if record.get("unreadable"):
+        problems.append("snapshot contains unreadable runs")
+    return problems
+
+
 def compare(before: Path, after: Path, level: str) -> int:
-    a: dict[str, Any] = json.loads(before.read_text(encoding="utf-8"))
-    b: dict[str, Any] = json.loads(after.read_text(encoding="utf-8"))
+    try:
+        a, b = _load(before), _load(after)
+    except (OSError, ValueError, RuntimeError) as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
+        return 2
+    problems = [
+        *ev.comparison_problems(a, b),
+        *(f"before: {p}" for p in _snapshot_problems(a)),
+        *(f"after: {p}" for p in _snapshot_problems(b)),
+    ]
+    if problems:
+        for problem in problems:
+            print(f"REFUSED: {problem}", file=sys.stderr)
+        return 2
     if a["engine"] != b["engine"]:
         print(f"REFUSED: engines differ ({a['engine']} vs {b['engine']}). A snapshot "
               f"comparison across engines measures the engine, not the change.",
@@ -192,14 +244,6 @@ def compare(before: Path, after: Path, level: str) -> int:
         return 2
     print(f"comparing engine={a['engine']} at {a['source_commit'][:7]} -> "
           f"{b['source_commit'][:7]}, level={level}")
-    for name, snap in (("before", a), ("after", b)):
-        if snap.get("unreadable"):
-            print(f"REFUSED: the {name} snapshot has {len(snap['unreadable'])} unreadable "
-                  f"run(s); comparing it would report their absence as agreement.",
-                  file=sys.stderr)
-            return 2
-        if snap.get("dirty"):
-            print(f"  NOTE: the {name} snapshot was taken on a DIRTY tree — not evidence")
     moved = 0
     for rel in sorted(set(a["files"]) | set(b["files"])):
         ra, rb = a["files"].get(rel), b["files"].get(rel)
@@ -245,7 +289,7 @@ def main(argv: list[str]) -> int:
     v.add_argument("snapshot", type=Path)
     args = ap.parse_args(argv)
     if args.cmd == "take":
-        dirs = tuple(args.corpus) if args.corpus else CORPUS_DIRS
+        dirs = tuple(args.corpus) if args.corpus else ev.CORPUS_DIRS
         return take(args.engine, args.out, dirs)
     if args.cmd == "verify":
         return verify(args.snapshot)

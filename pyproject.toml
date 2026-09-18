@@ -44,6 +44,8 @@ files = [
   "tests/test_obligation_fact_parity.py",
   "scripts/perf_baseline.py",
   "scripts/p037_controls.py",
+  "scripts/p037_evidence.py",
+  "scripts/p037_mos_snapshot.py",
   "scripts/p037_verdict_snapshot.py",
   "scripts/p037_fact_shapes.py",
   "scripts/round7/classify.py",

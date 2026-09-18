@@ -31,17 +31,15 @@ SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(ROOT))
 
-from ownlang.repro import ENGINE_PYTHON, ENGINE_RUST, hash_bytes  # noqa: E402
-
 import p037_evidence as ev  # noqa: E402
 from shadow_compare import (  # noqa: E402
     DEFAULT_TIMEOUT_SECONDS,
     ExecutionFailure,
-    engine_identity,
-    resolve_engine_binary,
     run_port,
     run_reference,
 )
+
+from ownlang.repro import ENGINE_PYTHON, ENGINE_RUST, hash_bytes  # noqa: E402
 
 SCHEMA = "p037-mos-snapshot/1"
 SOURCES: dict[str, tuple[str, ...]] = {
@@ -152,13 +150,14 @@ def capture_pair(raw: bytes, adapter: dict[str, Any], timeout: float
     return py, rs
 
 
-def take(source: str, out: Path, engine_binary: str | None, timeout: float) -> int:
+def take(source: str, out: Path, timeout: float) -> int:
     roots = SOURCES[source]
     try:
+        candidate = ev.build_rust_binary("own-shadow", "own-shadow-engine")
+        toolchains = ev.tool_versions(include_rust=True)
         provenance = ev.evidence_fields(roots)
         files = source_files(roots)
-        binary = resolve_engine_binary(engine_binary)
-        adapter = engine_identity(binary)
+        adapter = candidate
     except (RuntimeError, SystemExit, ev.EvidenceRefused) as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
@@ -179,7 +178,13 @@ def take(source: str, out: Path, engine_binary: str | None, timeout: float) -> i
         "schema": SCHEMA,
         "source": source,
         **provenance,
-        "adapter": {"sha256": adapter["sha256"], "bytes": adapter["bytes"]},
+        "toolchains": toolchains,
+        "adapter": {
+            "repo_path": candidate["repo_path"],
+            "sha256": candidate["sha256"],
+            "bytes": candidate["bytes"],
+            "build": candidate["build"],
+        },
         "documents": {},
     }
     failures: list[str] = []
@@ -208,6 +213,9 @@ def take(source: str, out: Path, engine_binary: str | None, timeout: float) -> i
             flush=True,
         )
 
+    if ev.tree_is_dirty():
+        snapshot["is_evidence"] = False
+        snapshot["post_run_dirty"] = True
     if failures or parity_moved:
         snapshot["is_evidence"] = False
     if failures:
@@ -232,11 +240,52 @@ def _load(path: Path) -> dict[str, Any]:
     return data
 
 
+def _snapshot_problems(record: dict[str, Any]) -> list[str]:
+    problems: list[str] = []
+    manifest = record.get("input_manifest")
+    expected = {
+        entry["path"]
+        for entry in manifest
+        if isinstance(manifest, list)
+        and isinstance(entry, dict)
+        and isinstance(entry.get("path"), str)
+    }
+    documents = record.get("documents")
+    if not isinstance(documents, dict):
+        return ["snapshot carries no documents object"]
+    seen: list[str] = []
+    for doc_id, doc in documents.items():
+        if not isinstance(doc, dict):
+            problems.append(f"document {doc_id!r} is not an object")
+            continue
+        inputs = doc.get("inputs")
+        if not isinstance(inputs, list) or not all(isinstance(x, str) for x in inputs):
+            problems.append(f"document {doc_id!r} carries no valid inputs list")
+            continue
+        seen.extend(str(x) for x in inputs)
+        if "error" in doc:
+            problems.append(f"document {doc_id!r} records an execution error")
+    if len(seen) != len(set(seen)):
+        problems.append("a source input appears in more than one MOS document")
+    if set(seen) != expected:
+        problems.append("MOS document inputs do not equal the recorded input manifest")
+    return problems
+
+
 def compare(before: Path, after: Path) -> int:
     try:
         a, b = _load(before), _load(after)
     except (OSError, ValueError, RuntimeError) as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
+        return 2
+    problems = [
+        *ev.comparison_problems(a, b),
+        *(f"before: {p}" for p in _snapshot_problems(a)),
+        *(f"after: {p}" for p in _snapshot_problems(b)),
+    ]
+    if problems:
+        for problem in problems:
+            print(f"REFUSED: {problem}", file=sys.stderr)
         return 2
     if a.get("source") != b.get("source"):
         print(
@@ -344,7 +393,6 @@ def main(argv: list[str]) -> int:
     t = sub.add_parser("take")
     t.add_argument("--source", required=True, choices=tuple(SOURCES))
     t.add_argument("--out", required=True, type=Path)
-    t.add_argument("--engine-binary")
     t.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT_SECONDS)
     c = sub.add_parser("compare")
     c.add_argument("--before", required=True, type=Path)
@@ -355,7 +403,7 @@ def main(argv: list[str]) -> int:
     if args.selftest:
         return selftest()
     if args.cmd == "take":
-        return take(args.source, args.out, args.engine_binary, args.timeout)
+        return take(args.source, args.out, args.timeout)
     if args.cmd == "compare":
         return compare(args.before, args.after)
     if args.cmd == "verify":
