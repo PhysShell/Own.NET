@@ -312,8 +312,8 @@ finalization, `_build_skeletons` with the release-priority ladder,
 `rust/crates/own-bridge/src/mos.rs` (`Transfer`, `ParamSummary`,
 `MethodSummary`, `solve_with_log`, `solve`) with `lower.rs::lower_fn_params`.
 Landing P-037 in one engine only would make the Stage-2 compare gates
-diverge, which is exactly what they exist to refuse. The options, for the
-owner, none taken here:
+diverge, which is exactly what they exist to refuse. The options that were
+put to the owner, with the ruling that followed:
 
 1. **Wait for Stage 3** (P-037 §10 literally): A1 starts when the Rust core
    is the only engine to change. The kernel is ready; nothing is lost but
@@ -328,11 +328,110 @@ owner, none taken here:
    it turns the shadow gates' "zero acceptance-unexplained" into a ledger
    entry, and the public engine would not carry the fix.
 
+```text
+OWNER RULING (2026-09-18)
+
+Choose option 1.
+
+A1 production implementation MUST wait for completion of P-022 Stage 3.
+
+Do not implement P-037 in Python.
+Do not implement P-037 in the Rust production engine before cutover.
+Do not introduce a declared compare-mode exception for P-037.
+Do not weaken, reinterpret, or bypass the P-022 zero-diff/cutover boundary.
+
+A0/A0.5 and all non-production A1 preparation are complete and may remain.
+
+The next legitimate transition for A1 is:
+
+    P-022 Stage 3 complete
+        ->
+    Rust is the production/default core
+        ->
+    land A1 in the Rust summary engine using the checked kernel
+        ->
+    discharge the P-037 acceptance matrix and formal gates.
+
+P-022 Stage 3 must be decided on its own evidence and must not be accelerated
+or re-scoped merely to unblock P-037.
+```
+
+Why not option 2, in the owner's words: a dual-engine A1 changes the
+reference and the shadow at the same time for a new verdict-changing
+feature; zero-diff stays green because both sides are changed identically,
+and the compare gate stops answering the question it exists for ("does Rust
+reproduce the frozen Python behaviour?") and starts answering "do two
+implementations of a new feature, written together, agree?" — a convenient
+way to win parity against oneself. Why not option 3: a Rust-only
+pre-cutover landing creates a deliberately *explained* diff in exactly the
+period when P-022 is proving the absence of such diffs; the exclusion
+ledger grows, and the migration gate turns into a Christmas tree. This is a
+**sequencing dependency, not a blocker to route around**: A1 is ready on
+the starting line and loses nothing by waiting — and after Stage 3, Python
+need not learn P-037 at all if its role becomes legacy / reference /
+rollback under #262, so waiting also removes the need to implement a
+non-trivial semantics twice right before one implementation stops being the
+production core.
+
+State, as ruled:
+
+```text
+A0            9523fac   PASS / KEEP                                   DONE
+A0.5          7cf1f93   G-T2a / G-T2b, formal CI split                DONE
+A1 PREP                 kernel, fixtures, seam map, acceptance        DONE
+A1 PRODUCTION           BLOCKED BY DESIGN — guard: P-022 Stage 3 complete
+```
+
+Allowed until Stage 3 (non-production work around A1 only): the formal
+kernel and its CI; the regression anchors already in place (F3-S1..S4, the
+F1 witness); the documented mapping kernel → Rust summary engine (above);
+fixture families for the G-V4 / trusted-input assumptions (§8.2); the
+backlog item with the exact acceptance (#304 is the post-cutover tracker).
+Not allowed: any change to `ownlang/ownir.py`, `rust/crates/own-bridge`, or
+launcher-visible behaviour.
+
 The A1 preparation that is engine-independent is done: the kernel API
 (`Transfer`, `Cells`, `Election`, `import`, `read`, `contribute`, `solve`,
-`apply`) is what both `mos.rs` and `ownir.py` would call; the seam is the
-per-parameter `ParamSkeleton` path actions (cells and edges are their guarded
-form), `solve_with_log`'s lattice (the kernel's `Lattice` for `Cells`) and
-`_lower_fn_params` / `lower_fn_params` (the kernel's `apply`, finalized
-input only). The Python side has no Kani; its twin is the exhaustive test
-set, which is language-independent by construction.
+`apply`) is what `mos.rs` would call; the seam is the per-parameter
+`ParamSkeleton` path actions (cells and edges are their guarded form),
+`solve_with_log`'s lattice (the kernel's `Lattice` for `Cells`) and
+`lower_fn_params` (the kernel's `apply`, finalized input only).
+
+### 8.2 G-V4 / trusted-input negative controls (class 4, executable today)
+
+The kernel trusts three things (§5); P-037 §8 rows 18–19 and the G-T2b
+class-3 shape are their negative controls, now executable fixtures under
+`corpus/p036-bakeoff/` (`control.cs` + an empty `expected-diagnostics.txt`:
+the required verdict at `--severity warning` is *no findings*, today and
+after A1 — a fabricated `must` would surface as a false OWN003 on the
+honest defensive dispose each control carries):
+
+| fixture | P-037 | what a wrong kernel would do | measured today (MEASURED OBSERVATION) |
+|---|---|---|---|
+| `gv4-control-mutated-guard` | §8 row 18a | read `Inner(p, g)` after `g = !g` as an `id` edge, select `must`, charge the defensive dispose OWN003 | **OWN003 (false positive)** on `r.Dispose()` — the may-as-must `ConsumesParam` lowers `Inner(p, g)` to a release because `Inner` disposes on some path; the mutated guard never gets a say |
+| `gv4-control-ref-alias-guard` | §8 row 18b | same through `ref bool a = ref g; a = !a;` | **OWN003 (false positive)** — same mechanism |
+| `gv4-control-aliased-self-null` | §8 row 19 | a self-null `must` on `q` after `ref Stream a = ref q; a = r;`, charging the caller's `s.Dispose()` | **OWN003 (false positive)** on `s.Dispose()` — `q.Dispose()` somewhere in `Close` ⇒ the call is a release of the caller's argument, which the alias write makes untrue |
+| `legacy-honesty-else-unresolved-forward` | G-T2b class 3 | "repair" the guarded `unknown` to legacy's `may` (value level; verdict-equivalent) | 0 findings (plain + OWN051 for the unknown guard) — as required |
+
+These are conformance anchors for A1, not bakeoff cases: the bakeoff
+manifest does not list them, the benchmark does not scan them, and today's
+measurement is recorded so that A1 cannot change it unnoticed. **Three of
+the four are red today**: the measurement turned a design-level worry
+(G-V4: "a wrong kernel *would* fabricate `must`") into a production fact —
+Owen at `70189a3` already charges the honest defensive dispose a false
+OWN003 on every G-V4 shape, not through any guard reasoning but through the
+flow-insensitive `ConsumesParam` that the bakeoff note §3.1 documented as
+may-as-must. Confirmed at the facts level: `own-check.sh --emit-facts` on
+`gv4-control-mutated-guard` emits, for `Guarded.Use`, a
+`{"op": "release", "var": "r", "line": 36}` for the `Outer(r, true)` call
+itself, beside the explicit release at line 37 — the consume is decided in
+the extractor before either engine runs, which is also why both engines
+agree on the false positive. That is the bug the owner named as A1's first
+target, now with
+three executable witnesses that fail until it is fixed and must pass
+without a fabricated consume appearing anywhere else. It lives in the
+extractor (`frontend/roslyn/OwnSharp.Extractor/Program.cs`), which both
+engines share — a fix there would not split the compare gate, but it is
+launcher-visible behaviour and therefore waits, per the ruling, unless the
+owner rules otherwise for the extractor-side floor specifically (the #305
+precedent).

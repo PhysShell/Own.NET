@@ -45,3 +45,27 @@ from every preregistered decision predicate and read only in
 |---|---|---|---|
 | `enrollment-control-interface-owner-drops` | F4 | I+O− (bug) → I+O+ (fixed, = the original fix) | the dropped `IDisposable` cache still leaks its subscription |
 | `enrollment-control-dispose-without-interface` | F4 | I−O− (bug, = the original bug) → I−O+ (fixed: explicit `cache.Dispose()`, still no interface) | same leak; the fix releases it without ever adding `IDisposable` |
+
+## G-V4 / trusted-input negative controls and the class-3 shape (class 4)
+
+Not bug fixtures and not bakeoff cases: each `control.cs` carries an honest
+defensive dispose that a *fabricated* `must` would charge a false OWN003,
+so the required verdict at `--severity warning` is **no findings** (the empty
+`expected-diagnostics.txt` is the post-A1 target). They are the executable
+form of P-037 §8 rows 18–19 and G-T2b class 3, and A1's acceptance items 5
+and 8 (`docs/notes/p037-formal-kernel.md` §8.1). Measured on Owen today
+(`70189a3`, `scripts/own-check.sh --severity warning`):
+
+| control | P-037 | today | why |
+|---|---|---|---|
+| `gv4-control-mutated-guard` | §8 row 18a | **OWN003 (false)** on `r.Dispose()` | the extractor's flow-insensitive `ConsumesParam` lowers `Inner(p, g)` to a release because `Inner` disposes on *some* path — the may-as-must hole, A1's first bug; the mutated guard never even gets a say |
+| `gv4-control-ref-alias-guard` | §8 row 18b | **OWN003 (false)** | same mechanism |
+| `gv4-control-aliased-self-null` | §8 row 19 | **OWN003 (false)** on `s.Dispose()` | `q.Dispose()` somewhere in `Close` ⇒ the call is a release of the caller's argument, which the alias write makes untrue |
+| `legacy-honesty-else-unresolved-forward` | G-T2b class 3 | 0 findings | plain + OWN051 for the unknown guard, as required; the value-level pin (`unknown`, never repaired to `may`) is the kernel test `k11_finding_release_priority_drops_an_unresolved_forward` |
+
+Three of four are therefore **red today**: they pin a production false-positive
+class that A1's first target removes, and they must turn green without any
+of them turning into a fabricated consume elsewhere. Owner ruling: nothing in
+the extractor, the engines or the launcher surfaces changes before P-022
+Stage 3; these anchors wait with A1.
+
