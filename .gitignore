@@ -22,3 +22,13 @@ node_modules/
 # Never commit other projects' code; promote interesting findings into
 # corpus/real-world/ as minimal reduced cases instead.
 corpus/mined/
+
+# Cargo build directories, ignored explicitly at the root. `rust/.gitignore`
+# already ignores `target/`, which is why `rust/target/` never entered the tree
+# and why `rust/target-fault/` did: that pattern does not match a sibling with
+# a different name. `target-fault` is the build directory of the
+# fault-injection candidate (`cargo build -p own-cli --release --features
+# fault-injection --target-dir target-fault`, ci.yml); commit 04c3303 tracked
+# 223 files of it. Build output is not evidence and is never versioned.
+/rust/target/
+/rust/target-fault/
