@@ -1,10 +1,13 @@
-//! K9 (the residual-⊥ lemma) and K11 (G-T2's lax simulation).
+//! K9 (the residual-⊥ lemma) and K11 (G-T2a / G-T2b).
 //!
-//! K9 covers all three groundings for every cell value. K11's pure-lattice
-//! half over the collapsed system holds unconditionally; against TODAY'S
-//! derivation (release priority, synthetic borrows) it holds only when no
-//! unresolved (`unknown`) read reaches a release-priority coordinate — the
-//! pinned counterexample is the design finding of the A0 spike.
+//! K9 covers all three groundings for every cell value. K11 is G-T2a: the
+//! pure-lattice lax simulation against the collapsed semantic system, which
+//! holds unconditionally pre-finalization (and, pinned, NOT post-finalization:
+//! row 14). K11b is G-T2b as amended after the A0 spike: against TODAY'S
+//! derivation (release priority, synthetic borrows) the finalized guarded
+//! collapse is below today's value or the pair is exactly (unknown, may),
+//! the declared verdict-equivalent class 3 — the pinned counterexample that
+//! forced the amendment is `k11_finding_release_priority_drops_an_unresolved_forward`.
 
 /// The frontend's cell-local facts are consistent.
 ///
@@ -154,6 +157,85 @@ mod tests {
     }
 
     #[test]
+    fn k11b_legacy_observational_compatibility_g_t2b() {
+        // G-T2b as amended (A0.5): for consistent cell facts, the finalized
+        // guarded collapse is below today's finalized value, OR the pair is
+        // exactly (unknown, may) — the declared class-3 legacy-honesty
+        // difference. No `no_unknown_seed` hypothesis.
+        let check = |sys: &System| {
+            if !release_cells_have_no_edges(sys) {
+                return;
+            }
+            let g = lfp(sys);
+            let t = lfp(&sys.today());
+            for (gv, tv) in g.iter().zip(t.iter()).take(sys.n) {
+                let (gc, tc) = (gv.fin().collapse(), tv.fin().collapse());
+                assert!(
+                    gc.leq(tc) || (gc == Transfer::Unknown && tc == Transfer::May),
+                    "{sys:?}: guarded {gc:?} vs today {tc:?}"
+                );
+                // class 3 is verdict-equivalent under INF-A1
+                if !gc.leq(tc) {
+                    assert_eq!(crate::lower(gc), crate::lower(tc));
+                }
+            }
+        };
+        for n in 1..=2 {
+            for sys in systems_exhaustive(n) {
+                check(&sys);
+            }
+        }
+        let mut rng = Rng::new(0x67b2);
+        for _ in 0..20_000 {
+            check(&random_system(&mut rng, 3));
+        }
+    }
+
+    #[test]
+    fn row14_bare_collapsed_baseline_is_not_a_post_finalization_bound() {
+        // G-T2a is stated pre-finalization on purpose: F(p, g){ if (g)
+        // release p; else F(p, g); } has guarded fin (must, no) → may, while
+        // the collapsed semantic system says must — wrong for F(p, false).
+        let f = Coord {
+            shape: Shape::Split(0),
+            seed: Cells {
+                pos: Transfer::Must,
+                neg: Transfer::Bot,
+            },
+            edges: [
+                Some(Edge {
+                    callee: 0,
+                    transform: Transform::Id,
+                    mask: Mask::NegOnly,
+                }),
+                None,
+            ],
+        };
+        let sys = System {
+            n: 1,
+            coords: [f, DEAD, DEAD],
+        };
+        let g = first(lfp(&sys));
+        let c = first(lfp(&sys.collapsed()));
+        assert_eq!(g.fin().collapse(), Transfer::May);
+        assert_eq!(c.fin().collapse(), Transfer::Must);
+        assert!(
+            g.collapse().leq(c.collapse()),
+            "G-T2a holds pre-finalization: must ≤ must"
+        );
+        assert!(
+            !g.fin().collapse().leq(c.fin().collapse()),
+            "and fails post-finalization"
+        );
+        let t = first(lfp(&sys.today()));
+        assert_eq!(
+            t.fin().collapse(),
+            Transfer::May,
+            "today's synthetic borrow restores it (G-T2b)"
+        );
+    }
+
+    #[test]
     fn k11_finding_release_priority_drops_an_unresolved_forward() {
         // if (g) p.Dispose(); else Extern(p);   with Extern unresolved (unknown)
         // guarded: (must, unknown) ⇒ collapse unknown; today: release priority
@@ -244,6 +326,26 @@ mod proofs {
             let [g0, g1, _] = g;
             let [t0, t1, _] = t;
             assert!(g0.collapse().leq(t0.collapse()) && g1.collapse().leq(t1.collapse()));
+        }
+    }
+
+    #[kani::proof]
+    #[kani::unwind(21)]
+    fn k11b_legacy_observational_compatibility_on_small_sccs() {
+        // G-T2b: guarded ≤ today, or exactly (unknown, may) — no no-unknown
+        // hypothesis, consistent cell facts only
+        let sys = any_small_system();
+        kani::assume(release_cells_have_no_edges(&sys));
+        let g = solve(&sys);
+        let t = solve(&sys.today());
+        assert!(g.is_some() && t.is_some());
+        if let (Some(g), Some(t)) = (g, t) {
+            let [g0, g1, _] = g;
+            let [t0, t1, _] = t;
+            for (gv, tv) in [(g0, t0), (g1, t1)] {
+                let (gc, tc) = (gv.fin().collapse(), tv.fin().collapse());
+                assert!(gc.leq(tc) || (gc == Transfer::Unknown && tc == Transfer::May));
+            }
         }
     }
 

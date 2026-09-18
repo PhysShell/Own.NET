@@ -1,6 +1,8 @@
 # P-037 formal kernel — the A0 spike (Kani now, Verus maybe)
 
-> Status: **A0 spike complete; kernel kept** (kill criterion evaluated in §6).
+> Status: **A0 spike complete, terminal at `9523fac` — PASS / KEEP (OWNER
+> RULING, §8); A0.5 (the G-T2 correction) done in the same branch.** Kill
+> criterion evaluated in §6.
 > Crate: [`formal/p037-kernel/`](../../formal/p037-kernel/). Not a P-037
 > implementation (P-037 §10 keeps that post-cutover), not a member of the
 > `rust/` workspace (P-022's crate graph is the architecture), wired to
@@ -115,7 +117,7 @@ the two heaviest are the cells solver's least-fixpoint harness at the full
 | K10 | the solver stabilizes within the height bound; its result is a fixpoint, the **least** fixpoint (test: against every fixpoint of the domain; Kani: against every symbolic fixpoint), and equal under every permutation schedule and a repeating fair schedule; §8 row 11 (late `Conflict` cannot leave a stale import) (G-F1/G-F2) | exhaustive n ≤ 2 + 20 000 random n = 3 | K10a `step` monotone in the state: SUCCESSFUL (6.3 s) · K10b `solve` is a fixpoint below every fixpoint: SUCCESSFUL (300 s) · K10c chaotic = Jacobi: SUCCESSFUL (240 s) | K10a/b: n = 3, ≤ 2 edges, symbolic state; K10c: n = 2, ≤ 1 edge, any fair schedule |
 | K10e | the election pre-solver: the same three facts (G-S1) | exhaustive twins of K10 | step monotone: SUCCESSFUL (3.9 s) · least fixpoint: SUCCESSFUL (24 s) · chaotic = Jacobi: SUCCESSFUL (44 s) | as K10 |
 | K11 | G-T2 §7.2 lax simulation against the **collapsed** system: one step `C(F_G(X)) ≤ F_0(C(X))` for every state, and at the lfp `C(lfp F_G) ≤ lfp F_0` — unconditional | exhaustive + 20 000 random | one step: SUCCESSFUL (8.9 s) · lfp: SUCCESSFUL (73 s) | one step: n = 3, ≤ 2 edges, symbolic state; lfp: n = 2, ≤ 1 edge |
-| K11′ | G-T2 as stated, against **today's derivation** post-finalization: `C(fin(lfp F_G)) ≤ fin(lfp F_0)` — holds under two trusted-input assumptions (release cells carry no edges; no `unknown` seed in the SCC) and **fails without the second** (§4 F1, pinned) | exhaustive + 20 000 random + counterexample pin | SUCCESSFUL (79 s) | n = 2, ≤ 1 edge |
+| K11′ | G-T2 *as originally stated*, against **today's derivation** post-finalization: `C(fin(lfp F_G)) ≤ fin(lfp F_0)` — holds under two trusted-input assumptions (release cells carry no edges; no `unknown` seed in the SCC) and **fails without the second** (§4 F1, pinned). **K11b — G-T2b as amended (A0.5):** with consistent cell facts only, `C(fin(lfp F_G)) ≤ fin(lfp F_legacy)` **or** the pair is exactly (`unknown`, `may`), the declared class 3; plus the row-14 pin that the bare collapsed system is *not* a post-finalization bound | exhaustive + 20 000 random + counterexample pin; K11b exhaustive + 20 000 random | SUCCESSFUL (79 s) · K11b: SUCCESSFUL (100 s) | n = 2, ≤ 1 edge |
 | K12 | `Uncond` coordinates stay diagonal through the solver (justifies the pair representation of §3) | exhaustive + random | one step keeps them diagonal: SUCCESSFUL (5.3 s) · lfp: SUCCESSFUL (26 s) | one step: n = 3; lfp: n = 2, ≤ 1 edge |
 | K13 | P-037 §8 rows 1, 3, 7, 8, 9, 12, 13, 14, 16, 17, 18 as concrete pins, each with today's value where the row states one | pins | — | — |
 
@@ -142,6 +144,23 @@ the two heaviest are the cells solver's least-fixpoint harness at the full
   release-priority coordinate"; (c) accept `unknown` as the honest answer and
   retire the §7.1 sentence "today says `may`" as a claim of *refinement* for
   that shape (today is optimistic there, not conservative).
+  **Resolution (A0.5, OWNER RULING — (a) + (c), explicitly not (b)):** P-037
+  §7 now states **G-T2a**, the algebraic collapse refinement against the
+  collapsed semantic system `F_C`, pre-finalization (`C(F_G(X)) ≤ F_C(C(X))`,
+  hence `C(lfp F_G) ≤ lfp F_C` — K11), with §8 row 14 recorded as the witness
+  that the bare `F_C` is *not* a post-finalization bound (pinned:
+  `row14_bare_collapsed_baseline_is_not_a_post_finalization_bound`); and
+  **G-T2b**, observational compatibility with today's derivation at the
+  INF-A1 lowering, within three declared classes — application refinement,
+  summary refinement, and the new **class 3, legacy-honesty difference**
+  (guarded `unknown` for today's `may`, verdict-equivalent, and never
+  allowed to change a verdict without a separate declared class). The
+  value-level residue that survives is the disjunction the kernel now checks
+  with no `no_unknown_seed` hypothesis (K11b, exhaustive + random + Kani on
+  small SCCs): guarded `≤` legacy **or** exactly (`unknown`, `may`). The
+  migration consequence in P-037 lists the three classes and forbids a
+  fourth by fiat. The residual-⊥ lemma stays as the finalization half of
+  G-T2b, all three branches pinned.
 - **F2 — application must finalize before it collapses or selects, and the
   order is load-bearing.** The first version of the K7 twin lowered an opaque
   read of *unfinalized* cells and failed: inside the solver `⊥` is the join
@@ -202,16 +221,118 @@ discharge matrix already lists the G-V4 negative controls).
 - **A1 (P-037 implementation, first target the may-as-must `ConsumesParam`
   hole).** Move `formal/p037-kernel/src/lib.rs` into the post-cutover summary
   engine as-is; the twins go with it and keep running under `cargo test`;
-  `cargo kani` stays an opt-in job until it has a CI budget. Application must
-  call `fin` before selecting or collapsing (F2). The G-T2 claim the
-  implementation discharges with tests must be the one that is true (F1).
-- **A2 (Verus, optional).** The candidate theorem is exactly K11's lfp form
-  generalized past the bound: `∀ S well-formed: C(lfp F_G(S)) ≤ lfp F_0(C(S))`,
+  `cargo kani` runs the fast harnesses on every push and the whole-solver
+  ones nightly (§8, CI split). Application must call `fin` before selecting
+  or collapsing (F2). The G-T2 claims the implementation discharges with
+  tests are G-T2a (against `F_C`) and G-T2b (three classes, the class-3 shape
+  pinned) — the amended contract, not the original (F1).
+- **A2 (Verus, deferred by ruling until after A1).** The candidate theorem
+  is G-T2a without the bound: `∀ S well-formed: C(lfp F_G(S)) ≤ lfp F_C(C(S))`,
   by induction over iterations with K11's one-step lemma — a compact
   statement over `Lattice` and `System::step`, no allocation, no `unsafe`,
-  finite domains. Verus-shaped. G-T2 *as stated post-finalization* needs
-  F1 resolved first, or the `no_unknown_seed` hypothesis carried into the
-  statement.
+  finite domains. Verus-shaped, and now a theorem that is true as stated. A
+  second candidate: monotone `F` + finite height + fair chaotic iteration ⇒
+  the same lfp as Jacobi (K10's inductive facts, unbounded). Not started:
+  proving a contract we had just caught mis-stated would have been the
+  classic mistake, and A1 must first use the same kernel API.
 - **Not inherited:** any claim about G-T1 as a whole. The precision floor
   from honest facts is K6/K7; the honesty of the facts is Roslyn/CFG/G-V4
   territory and stays in the fixture matrix.
+
+## 8. Owner ruling after A0 (OWNER RULING, recorded; terminal at `9523fac`)
+
+- **A0: PASS / KEEP.** Kani earned its seat: not "a test was missing" but
+  two contract defects that would have surfaced inside the implementation —
+  finalize-before-apply (F2) and G-T2 being false against the legacy
+  derivation (F1). The formal kernel stays in the project permanently.
+- **A0.5 (done here): the G-T2 correction**, options (a) + (c), explicitly
+  not (b) — a hypothesis "no unresolved callee" would fix the theorem and
+  ruin it as a static-analyzer contract. §4 F1 resolution above; P-037 §7,
+  §0, §6, §8 rows 12/14/16 and §10 amended; the third verdict-change class
+  declared and fenced ("may not change a verdict without a separate declared
+  class"); the migration consequence corrected.
+- **A2 (Verus): deferred** until A1 uses the same kernel API — then G-T2a
+  unbounded, and perhaps the generic lfp / order-independence theorem.
+- **CI split (done here):** `ci.yml` job `formal-p037` on every push — fmt,
+  clippy, the 37 twins, and the fast harnesses (K1–K9 value-level, K10a,
+  K10e step, K11 one-step, K12a: seconds each); `formal-p037-gate.yml`
+  nightly and on demand — K10b, K10c, the K10e whole-solver pair, the K11
+  lfp forms, K11b, K11′, K12b (≈ 15 min). A red nightly is a finding, never a
+  flake: every harness is deterministic.
+- **Formal-checkability as a *local* design constraint of the kernel, not a
+  dictate to the system:** keep the semantic kernel value-oriented (copy at a
+  symbolic index, by-value transforms, plain loops; §2) so it stays
+  model-checkable; nothing else in Owen is asked to please CBMC.
+
+### 8.1 A1 — the production guarded-transfer kernel (next; acceptance as ruled)
+
+Move / reuse `formal/p037-kernel/src/lib.rs` into the production summary
+engine with minimal changes — the promise of A0, not a rewrite "inspired by"
+it. First bug: the `ConsumesParam` may-as-must hole
+([`p036-bakeoff.md`](p036-bakeoff.md) §3.1). Acceptance, verbatim from the
+ruling, made checkable:
+
+```text
+A1 ACCEPTANCE
+1. F3-S1..S4 (corpus/p036-bakeoff guarded-consume-*): correct guarded-transfer
+   verdicts — Teardown(true) keeps the obligation (OWN001), Teardown(false)
+   consumes, the wrapper and negation wrappers inherit the split.
+2. Existing transfer corpus (corpus/real-world, corpus/wpf, corpus/di, the
+   #305 fixtures): zero unintended regression — every difference in a
+   collapsed-view diff falls in one of the three declared classes.
+3. Unknown guard: may / unknown -> plain + OWN051, never consume.
+4. Application on FINALIZED state only: a raw solver cell is never consumable
+   (kernel K7 witness ported as a production test).
+5. G-V4 failures — mutable / ref / out / aliased guard: the edge degrades to
+   opaque, never fabricates must (P-037 §8 rows 18-19 as fixtures).
+6. The formal kernel's twins run over the SAME production functions, not a
+   copy: the kernel is moved, its properties move with it.
+7. Kani: value-level harnesses mandatory (PR gate); solver-heavy harnesses
+   opt-in / nightly.
+8. The F1 pin: `if (g) p.Dispose(); else Extern(p);` with Extern unresolved
+   yields the collapsed value UNKNOWN (class 3), lowered to plain + OWN051 —
+   an implementation that "repairs" it to legacy's optimistic MAY fails.
+```
+
+**The gate, as a REPOSITORY FACT that needs a ruling before any production
+line changes.** P-037 §10: "nothing here may be implemented in Python (a
+moving parity target) or in Rust (a deliberate divergence) before the P-022
+cutover; the implementation home is the post-cutover summary engine (#304)".
+P-022's status (`docs/proposals/README.md`, step 8): Stage 1 (opt-in Rust
+behind the launcher) and Stage 2 (Own.NET's own CI and dogfood on Rust)
+have landed; **Stage 3, the public cutover, has not** — it "needs its own
+authorization"; Python remains the public default and the reference on all
+four launcher surfaces. The production summary engine today is therefore
+*two* engines kept byte-equal by the differential oracle and the compare
+gates: `ownlang/ownir.py` (`Transfer` + `join` at the top, `PathAction` /
+`ParamSkeleton` / `MethodSkeleton` / `ParamSummary` / `MethodSummary`,
+`solve_with_log` with its `lookup` / `contrib` and the `⊥ → no`
+finalization, `_build_skeletons` with the release-priority ladder,
+`_lower_fn_params` as the INF-A1 application) and its mirror
+`rust/crates/own-bridge/src/mos.rs` (`Transfer`, `ParamSummary`,
+`MethodSummary`, `solve_with_log`, `solve`) with `lower.rs::lower_fn_params`.
+Landing P-037 in one engine only would make the Stage-2 compare gates
+diverge, which is exactly what they exist to refuse. The options, for the
+owner, none taken here:
+
+1. **Wait for Stage 3** (P-037 §10 literally): A1 starts when the Rust core
+   is the only engine to change. The kernel is ready; nothing is lost but
+   time.
+2. **Authorize a dual-engine landing now**: Python-first as the reference
+   (the moving parity target moves once, deliberately), the Rust mirror in
+   the same PR series, the collapsed-view diff against the golden dumps as
+   the parity witness, the exclusion ledger untouched. Roughly twice the
+   work of a single-engine A1 and it keeps every existing gate honest.
+3. **Authorize a Rust-only landing behind `--engine rust`** with a declared
+   compare-mode boundary for the P-037 verdict-change classes. Cheapest, but
+   it turns the shadow gates' "zero acceptance-unexplained" into a ledger
+   entry, and the public engine would not carry the fix.
+
+The A1 preparation that is engine-independent is done: the kernel API
+(`Transfer`, `Cells`, `Election`, `import`, `read`, `contribute`, `solve`,
+`apply`) is what both `mos.rs` and `ownir.py` would call; the seam is the
+per-parameter `ParamSkeleton` path actions (cells and edges are their guarded
+form), `solve_with_log`'s lattice (the kernel's `Lattice` for `Cells`) and
+`_lower_fn_params` / `lower_fn_params` (the kernel's `apply`, finalized
+input only). The Python side has no Kani; its twin is the exhaustive test
+set, which is language-independent by construction.
