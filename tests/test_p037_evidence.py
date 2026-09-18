@@ -88,5 +88,10 @@ def main() -> int:
     return 0
 
 
+def run() -> int:
+    """Entry point required by tests/run_tests.py's test_*.py census."""
+    return main()
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(run())
