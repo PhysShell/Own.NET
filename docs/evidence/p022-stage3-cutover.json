@@ -93,9 +93,9 @@
       "id": "cancellation-windows",
       "question": "the same, natively on Windows",
       "platform": "windows",
-      "label": "DEFERRED EVIDENCE",
-      "method": "the same control on windows-latest, which sends CTRL_BREAK_EVENT (a parent cannot deliver Ctrl-C to a specific child group there) and records what it finds",
-      "result": "OWED — measured by CI. 130 is NOT invented, and the Linux disposition is NOT carried across"
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_stage3_cancellation.py on windows-latest, CI job 105482499346 at f69f098, sending CTRL_BREAK_EVENT to a child process group; https://github.com/PhysShell/Own.NET/actions/runs/35307467735",
+      "result": "PASS, and the disposition is NOTHING like the Linux one, which is why #262 forbade inventing a universal 130. Both engines interrupted while genuinely running: python reference CTRL_BREAK_EVENT -> EXITED with code 3221225786 (0xC000013A, STATUS_CONTROL_C_EXIT), stdout 0b, stderr 0b; rust own-cli the same, 3221225786, stdout 0b, stderr 0b. On Linux both DIE BY SIGNAL 2 and have no exit code at all. Neither platform is 130. Invariants held on both: terminated, never a verdict code (0/1), no ok line, no findings summary"
     },
     {
       "id": "rollback-linux",
@@ -109,9 +109,9 @@
       "id": "rollback-windows",
       "question": "the same, natively on Windows",
       "platform": "windows",
-      "label": "DEFERRED EVIDENCE",
-      "method": "the same control on windows-latest",
-      "result": "OWED — measured by CI"
+      "label": "MEASURED OBSERVATION",
+      "method": "tests/test_stage3_rollback.py on windows-latest, CI job 105482499346 at f69f098; https://github.com/PhysShell/Own.NET/actions/runs/35307467735",
+      "result": "PASS. All four states held on both runnable surfaces (own-check.sh under git-bash, and owen): default=Rust; explicit python agrees on the verdict; broken candidate with nothing asked -> exit 2 denying a fallback in as many words; broken candidate with python asked -> python runs anyway"
     },
     {
       "id": "stage1-controls",
@@ -169,8 +169,8 @@
     },
     {
       "id": "CANCEL-TRACEBACK",
-      "status": "NEW, measured",
-      "summary": "On Linux an interrupted Python reference prints a KeyboardInterrupt traceback (1478 bytes measured) while the Rust core prints nothing. After the cutover a cancelled run therefore stops printing a stack trace. User-visible, caused by the cutover, and recorded rather than fixed: Stage 3 changes the default engine, not the reference."
+      "status": "NEW, measured, and LINUX-ONLY",
+      "summary": "On LINUX an interrupted Python reference prints a KeyboardInterrupt traceback (1478 bytes measured) while the Rust core prints nothing, so a cancelled run stops printing a stack trace after the cutover. On WINDOWS neither engine prints anything (stderr 0b for both): the default CTRL_BREAK handler terminates the process before Python's handler runs. Measured on each platform rather than carried across -- the difference exists on one of them and not the other, which a single-platform measurement would have got wrong in either direction. User-visible, caused by the cutover, recorded rather than fixed: Stage 3 changes the default engine, not the reference."
     },
     {
       "id": "ACTION-BUILD",
@@ -198,6 +198,11 @@
       "id": "V3",
       "was": "#262 V3: oversized integral version values",
       "now": "Already closed at #261; VERIFIED not reopened by the parse_int hook the V2 fix installs, at both signs."
+    },
+    {
+      "id": "PS1-CAPTURE",
+      "was": "a REGRESSION the cutover introduced in the own-check.ps1 surface, found by the qualification round: PowerShell's call operator routes a child's stdout through its PIPELINE, which is what makes `$out = & ./scripts/own-check.ps1 ...` capture anything. The Python branch uses the call operator; the Rust branch spawned a process that inherited the console handle and so bypassed the pipeline. While Python was the default nobody noticed. The moment Rust became the default, every caller capturing or piping this script's output silently got NOTHING -- the text still appeared on screen, so it looked fine",
+      "now": "CLOSED. The candidate's streams are redirected and replayed by the caller: stdout to the pipeline, stderr to the error stream, decoded as UTF-8 with no BOM and both pipes drained concurrently so a large SARIF log cannot deadlock. MEASURED after: both engines capture the same single OWN001 line and the captured arrays are IDENTICAL; exit tiers unchanged (1 with -FailOnFinding, 0 without); SARIF is 1413 bytes from either engine, no BOM, parses, one result. Not a declared difference -- an accidental behaviour change beyond the engine, which #262's guardrails forbid, so it was repaired rather than recorded"
     }
   ],
   "observation": {
@@ -217,6 +222,11 @@
       "sha": "b590bf46e9f1c4cbf6bb28978c81afea5ffa1af2",
       "result": "7 job failures, every one a real consequence of the cutover, all diagnosed and fixed",
       "url": "https://github.com/PhysShell/Own.NET/actions/runs/35302954263"
+    },
+    "qualification_run": {
+      "sha": "f69f0988a14e00c0925a68b9fddd101aff7b3ebe",
+      "url": "https://github.com/PhysShell/Own.NET/actions/runs/35307467735",
+      "result": "30/31 jobs green. The single failure was own-check.ps1's exit-code tiers, which caught the PS1-CAPTURE regression above -- a real defect in the product surface, not a harness fault. Reproduced locally on pwsh (it is not Windows-specific; the Windows job is simply the only place own-check.ps1 is exercised with output capture), fixed, and re-qualified."
     }
   }
 }

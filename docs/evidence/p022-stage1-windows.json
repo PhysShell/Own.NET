@@ -101,10 +101,10 @@
     {
       "id": "P07",
       "rule": "the-candidate-is-spawned-not-opened",
-      "description": "own-check.ps1 goes back to invoking the candidate with the call operator — 'PowerShell runs it either way, why the ceremony?'. It does not run it: it asks the platform to OPEN it, so a file the loader cannot start is handed to a desktop handler (notepad on Windows, xdg-open on Linux), the run exits 0 with empty streams, and Owen reports a clean finding-free analysis of nothing",
+      "description": "own-check.ps1 goes back to invoking the candidate with the call operator -- 'PowerShell runs it either way, why the ceremony?'. It does not run it: it asks the platform to OPEN it, so a file the loader cannot start is handed to a desktop handler (notepad on Windows, xdg-open on Linux), the run exits 0 with empty streams, and own-check.ps1 reports a clean finding-free scan having analysed nothing. Re-anchored at #262 Stage 3, when this function grew stream redirection: the candidate's output has to reach PowerShell's PIPELINE or a caller capturing this script gets nothing, so the spawn now returns a result object. The defect the mutant describes is unchanged -- only the lines it replaces moved.",
       "target": "scripts/own-check.ps1",
-      "pattern": "    \\$psi\\.UseShellExecute = \\$false\n    \\$proc = \\[System\\.Diagnostics\\.Process\\]::Start\\(\\$psi\\)\n    \\$proc\\.WaitForExit\\(\\)\n    return \\$proc\\.ExitCode",
-      "replacement": "    & $FilePath @ArgumentList\n    return $LASTEXITCODE",
+      "pattern": "    \\$psi\\.UseShellExecute = \\$false\n    \\$psi\\.RedirectStandardOutput = \\$true",
+      "replacement": "    $out = & $FilePath @ArgumentList\n    return [pscustomobject]@{ ExitCode = $LASTEXITCODE; StdOut = ($out -join \"`n\"); StdErr = \"\" }\n    $psi.UseShellExecute = $false\n    $psi.RedirectStandardOutput = $true",
       "expected_catchers": [
         "ps1::ps1-not-started-is-2"
       ]

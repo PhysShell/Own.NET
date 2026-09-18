@@ -2,7 +2,7 @@
 # P-022 Stage 3 — #262 cutover decision packet
 
 ```text
-Stage-3 candidate SHA:    6ed880dd70564c9c20b23f4b53401ec9769fdaea (DIRTY TREE — not evidence)
+Stage-3 candidate SHA:    f69f0988a14e00c0925a68b9fddd101aff7b3ebe (DIRTY TREE — not evidence)
 Observation window:       the repository's own CI on the candidate branch, plus the release workflow's packed-artifact smoke test; first run b590bf46e9f1: 7 job failures, every one a real consequence of the cutover, all diagnosed and fixed
 Fast compare result:      104 documents, 104 agreed, 0 acceptance-unexplained | samples: 1 document, 1 agreed, 0 acceptance-unexplained
 Five-repo compare result: 10/10 documents agreed over 6 targets; 0 acceptance-unexplained, 0 declared-boundary; at b590bf46e9f1; local run (no CI anchor)
@@ -31,8 +31,8 @@ CLI contract campaign: 24/24 mutants caught at b5d9272a0a85
   TOP_LEVEL_NEGATIVE_ZERO. Was an ACCEPT-versus-REJECT divergence: the reference read a top-level `-0` as the integer 0 and analysed the document as v0, while serde_json refused it. The Python-first hygiene fix makes both sides refuse; what is left declared is how each spells the token it refused (`-0` vs `-0.0`), at the same exit code and the same door. Reconciling it would mean teaching one parser the other's reading of `-0`, which #262 ruled out and #260 froze a refusal for.
 * **V4** — _carried forward, unchanged, reopen predicate verified NOT fired_  
   str.isprintable() is answered from a version-dependent Unicode table. A representation/diagnostic boundary only, excluded from the byte-parity denominator and separately measured. Verified on this tree: the supported Python matrix is still 3.11/3.12/3.13 and the Rust snapshot is still unicode-properties 0.1.4.
-* **CANCEL-TRACEBACK** — _NEW, measured_  
-  On Linux an interrupted Python reference prints a KeyboardInterrupt traceback (1478 bytes measured) while the Rust core prints nothing. After the cutover a cancelled run therefore stops printing a stack trace. User-visible, caused by the cutover, and recorded rather than fixed: Stage 3 changes the default engine, not the reference.
+* **CANCEL-TRACEBACK** — _NEW, measured, and LINUX-ONLY_  
+  On LINUX an interrupted Python reference prints a KeyboardInterrupt traceback (1478 bytes measured) while the Rust core prints nothing, so a cancelled run stops printing a stack trace after the cutover. On WINDOWS neither engine prints anything (stderr 0b for both): the default CTRL_BREAK handler terminates the process before Python's handler runs. Measured on each platform rather than carried across -- the difference exists on one of them and not the other, which a single-platform measurement would have got wrong in either direction. User-visible, caused by the cutover, recorded rather than fixed: Stage 3 changes the default engine, not the reference.
 * **ACTION-BUILD** — _OWNER RULING: ACCEPTED FOR STAGE 3 — a declared temporary distribution cost_  
   The Owen Action builds the production `own-cli` from its own pinned ref, because this repository publishes no release: there is no own-cli artifact to download and no published Owen.Cli package to install. Ruled NOT a parity difference, NOT a semantic difference and NOT a Stage-3 blocker -- the default is rust, Python stays the explicit rollback until Stage 4, the Rust toolchain is installed by the Action rather than assumed, and what is built is the production crate, never own-shadow-engine or a test adapter. So it is not an undeclared runtime dependency; it is a heavy way to deliver a binary. A consumer today pays setup-python, setup-dotnet, setup-rust and a cargo build to run a static analyzer. EXIT CONDITION: the first suitable published own-cli/Owen.Cli artifact, at which point the Action downloads an immutable platform binary and the consumer-side Rust build disappears -- a separate post-Stage-3 packaging follow-up, deliberately NOT Stage 4, which is about removing the Python distribution dependency. HARDENED for reproducibility at the ruling: rustc pinned to the concrete qualification toolchain (1.98.1) instead of the moving `stable` channel, and `cargo build --locked` so an unchanged source revision cannot silently resolve a different dependency graph. The build cache is an optimization and the Cargo build is authoritative: an earlier comment claimed the cache key gives a caller who bumps a pinned version a rebuild, which it does not -- a moving major tag keeps one key across every commit it points at.
 
@@ -46,13 +46,8 @@ CLI contract campaign: 24/24 mutants caught at b5d9272a0a85
   CLOSED as an acceptance divergence; narrowed to CLI-B2 above.
 * **V3** — _#262 V3: oversized integral version values_  
   Already closed at #261; VERIFIED not reopened by the parse_int hook the V2 fix installs, at both signs.
-
-## Owed, and named rather than predicted
-
-* **cancellation-windows** (windows) — OWED — measured by CI. 130 is NOT invented, and the Linux disposition is NOT carried across  
-  via the same control on windows-latest, which sends CTRL_BREAK_EVENT (a parent cannot deliver Ctrl-C to a specific child group there) and records what it finds
-* **rollback-windows** (windows) — OWED — measured by CI  
-  via the same control on windows-latest
+* **PS1-CAPTURE** — _a REGRESSION the cutover introduced in the own-check.ps1 surface, found by the qualification round: PowerShell's call operator routes a child's stdout through its PIPELINE, which is what makes `$out = & ./scripts/own-check.ps1 ...` capture anything. The Python branch uses the call operator; the Rust branch spawned a process that inherited the console handle and so bypassed the pipeline. While Python was the default nobody noticed. The moment Rust became the default, every caller capturing or piping this script's output silently got NOTHING -- the text still appeared on screen, so it looked fine_  
+  CLOSED. The candidate's streams are redirected and replayed by the caller: stdout to the pipeline, stderr to the error stream, decoded as UTF-8 with no BOM and both pipes drained concurrently so a large SARIF log cannot deadlock. MEASURED after: both engines capture the same single OWN001 line and the captured arrays are IDENTICAL; exit tiers unchanged (1 with -FailOnFinding, 0 without); SARIF is 1413 bytes from either engine, no BOM, parses, one result. Not a declared difference -- an accidental behaviour change beyond the engine, which #262's guardrails forbid, so it was repaired rather than recorded
 
 ## Measurements
 
@@ -65,9 +60,9 @@ CLI contract campaign: 24/24 mutants caught at b5d9272a0a85
 * `packaging-linux` [linux] **MEASURED OBSERVATION** — bare `owen check` -> OWN001, rc 1, no Python present; --engine python -> same finding; packaged binary chmod 644 -> materialised to ~/.owen/rust-core/<sha256> and ran; packaged binary absent -> rc 2 denying a fallback
 * `packaging-windows` [windows] **MEASURED OBSERVATION** — PASS. The job concluded success, and it carries the unconditional Stage-3 assertion that a bare `owen check` with a deliberately unusable OWEN_PYTHON still finds OWN001 at rc 1 and never consults the development locator -- under `bash -e` with an explicit `exit 1`, so a success conclusion is that step passing. Nothing here is carried over from the Linux row: this is windows-latest reporting on itself. Its install -> check -> findings, clean-code, uninstall/reinstall and vendored-cache steps passed in the same job
 * `cancellation-linux` [linux] **MEASURED OBSERVATION** — python reference: SIGINT -> died by signal 2, stdout 0b, stderr 1478b (a KeyboardInterrupt traceback); rust own-cli: SIGINT -> died by signal 2, stdout 0b, stderr 0b. Neither has an exit code in that state; neither returned a verdict
-* `cancellation-windows` [windows] **DEFERRED EVIDENCE** — OWED — measured by CI. 130 is NOT invented, and the Linux disposition is NOT carried across
+* `cancellation-windows` [windows] **MEASURED OBSERVATION** — PASS, and the disposition is NOTHING like the Linux one, which is why #262 forbade inventing a universal 130. Both engines interrupted while genuinely running: python reference CTRL_BREAK_EVENT -> EXITED with code 3221225786 (0xC000013A, STATUS_CONTROL_C_EXIT), stdout 0b, stderr 0b; rust own-cli the same, 3221225786, stdout 0b, stderr 0b. On Linux both DIE BY SIGNAL 2 and have no exit code at all. Neither platform is 130. Invariants held on both: terminated, never a verdict code (0/1), no ok line, no findings summary
 * `rollback-linux` [linux] **MEASURED OBSERVATION** — all four held on both surfaces: default=Rust; explicit python agrees on the verdict; broken candidate with nothing asked -> rc 2 denying a fallback; broken candidate with python asked -> python runs
-* `rollback-windows` [windows] **DEFERRED EVIDENCE** — OWED — measured by CI
+* `rollback-windows` [windows] **MEASURED OBSERVATION** — PASS. All four states held on both runnable surfaces (own-check.sh under git-bash, and owen): default=Rust; explicit python agrees on the verdict; broken candidate with nothing asked -> exit 2 denying a fallback in as many words; broken candidate with python asked -> python runs anyway
 * `stage1-controls` [linux] **MEASURED OBSERVATION** — 19 controls passed, 0 failed, 0 skipped — including default-is-rust and unset-locator-is-d6
 * `stage2-controls` [linux] **MEASURED OBSERVATION** — 9 controls passed, including public-default-is-rust
 * `ci-surfaces` [n/a] **MEASURED OBSERVATION** — 63 invocations over 26 files; 23 explicit, 40 bare and all resolvable; 0 hollow Python injections
