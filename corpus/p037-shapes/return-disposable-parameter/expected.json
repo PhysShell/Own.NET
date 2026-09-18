@@ -1,0 +1,32 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "return-disposable-parameter",
+  "status": "anchored",
+  "why": "A1.1-a1 REGRESSION ANCHOR. Putting owned parameters into the lowering set made `return s` lower as a fresh-factory return, and the core read a fresh return of something it never saw acquired as an escaping borrow: [OWN004] 'parg_N' is a borrow and cannot be returned. Six CI jobs, and the 137-file verdict corpus never saw it, because no corpus case returns its own disposable parameter. The recorded facts pin the fix: Echo's `return` carries var=None. What the return really is, is an ALIAS of the parameter; OwnIR reserves `aliasOf`/`aliased` and has never emitted them, so the frontend claims no owned return rather than asserting a false kind. If this record ever shows `return:s`, the alias gap has been filled by accident instead of on purpose.",
+  "measured_at": "464308b",
+  "facts": {
+    "ShapeReturnParam.Echo": {
+      "params": [
+        {
+          "name": "s",
+          "line": 16
+        }
+      ],
+      "body": [
+        "use:s@18",
+        "return:None@18"
+      ]
+    },
+    "ShapeReturnParam.Use": {
+      "params": null,
+      "body": [
+        "call:ShapeReturnParam.Echo@24[args=[]]",
+        "release:same@25"
+      ]
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

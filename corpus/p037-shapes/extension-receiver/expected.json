@@ -1,0 +1,37 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "extension-receiver",
+  "status": "pending_a2",
+  "why": "A reduced extension method. Roslyn's reduced symbol drops `this` from Parameters while the summary lives on the UNREDUCED declaration, where the receiver is parameter 0.\n\nTwo things measured here, and the second was a surprise. (1) `CallReleasesReceiver` — the `ConsumesParam` consumer that handles this shape — is reached ONLY from two sites gated on `ThisFieldName(...)`: it is part of the FIELD disposal detector and never runs on a local. (2) Consequently `var s = ...; s.WaitForDispose(5);` is charged OWN001 even when the extension disposes its receiver UNCONDITIONALLY — verified with an unguarded probe, so it is not the guard doing it. That is a pre-existing false positive of exactly the family P-037 addresses (a first-party callee that releases, unrecognised), arriving through the RECEIVER rather than the argument. It is not A1's to fix and is recorded here so it is not mistaken for something A1 caused.",
+  "a2_contract": "a2 synthesises the receiver binding against the UNREDUCED declaration: receiver -> declared parameter 0, `timeout` -> declared parameter 1. Without it `CallReleasesReceiver` can never be honestly retired — the guarded summaries would be complete except for one old tunnel under the fence, on the field path where nobody is looking.",
+  "measured_at": "464308b",
+  "facts": {
+    "ShapeExtensionReceiver.WaitForDispose": {
+      "params": [
+        {
+          "name": "self",
+          "line": 12
+        }
+      ],
+      "body": [
+        "if:None@14",
+        "then:release:self@16"
+      ]
+    },
+    "ShapeExtensionReceiver.Caller": {
+      "params": null,
+      "body": [
+        "acquire:s@22",
+        "use:s@23"
+      ]
+    }
+  },
+  "verdict": {
+    "rust": [
+      "OWN001:warning@22"
+    ],
+    "python": [
+      "OWN001:warning@22"
+    ]
+  }
+}

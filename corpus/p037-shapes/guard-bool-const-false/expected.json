@@ -1,0 +1,33 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "guard-bool-const-false",
+  "status": "pending_a2",
+  "why": "The same call with `false`. Present so the two constants are distinguishable in the facts: a single `is a constant` bit would collapse the exact distinction cell selection turns on, and would do it invisibly.",
+  "a2_contract": "{\"param\":1,\"kind\":\"bool_const\",\"value\":false}; Rust derives `const-neg`.",
+  "measured_at": "464308b",
+  "facts": {
+    "ShapeConstFalse.Inner": {
+      "params": [
+        {
+          "name": "s",
+          "line": 8
+        }
+      ],
+      "body": [
+        "if:None@10",
+        "then:release:s@12"
+      ]
+    },
+    "ShapeConstFalse.Caller": {
+      "params": null,
+      "body": [
+        "acquire:r@18",
+        "release:r@19"
+      ]
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

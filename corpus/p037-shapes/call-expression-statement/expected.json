@@ -1,0 +1,33 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "call-expression-statement",
+  "status": "pending_a2",
+  "why": "The heart of the a2 gap. The C# lowering emits a `call` op in exactly ONE place and only for `var x = Foo(...)` — a call whose RESULT binds to a local. `Inner(r, true);` as a STATEMENT produces no `call` node, which the recorded facts show: `Caller`'s body is `acquire:r`, `release:r` — the fabricated release — and no call at all. So F3 cannot be carried through the existing summary layer today: there is no node for a guarded summary to specialise.",
+  "a2_contract": "a2 emits a real `call` op for relevant first-party statement-level calls. This is also where a2's zero-semantic-cut risk lives, and it must be measured rather than hoped: a real `call` op is ALREADY semantically active and MOS reads it, so emitting one here can move an existing summary long before the guarded kernel is anywhere near. A verdict that happens to stay the same is not a pass — an unintended MOS collapsed-view change means a2 began the semantic cut early, and the answer is to isolate it or restage, never to note that the tests are green.",
+  "measured_at": "464308b",
+  "facts": {
+    "ShapeStatementCall.Inner": {
+      "params": [
+        {
+          "name": "s",
+          "line": 15
+        }
+      ],
+      "body": [
+        "if:None@17",
+        "then:release:s@19"
+      ]
+    },
+    "ShapeStatementCall.Caller": {
+      "params": null,
+      "body": [
+        "acquire:r@25",
+        "release:r@26"
+      ]
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "guard-forward-negated",
+  "status": "pending_a2",
+  "why": "The wrapper negates the flag: `Inner(s, !stop)`. The cells must swap, and the swap has to be derivable from the facts rather than guessed.",
+  "a2_contract": "{\"param\":1,\"kind\":\"param\",\"source_param\":1,\"negated\":true}; Rust reads the `neg` edge.",
+  "measured_at": "464308b",
+  "facts": {
+    "ShapeForwardNegated.Inner": {
+      "params": [
+        {
+          "name": "s",
+          "line": 7
+        }
+      ],
+      "body": [
+        "if:None@9",
+        "then:release:s@11"
+      ]
+    },
+    "ShapeForwardNegated.Outer": {
+      "params": [
+        {
+          "name": "s",
+          "line": 15
+        }
+      ],
+      "body": [
+        "release:s@17"
+      ]
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

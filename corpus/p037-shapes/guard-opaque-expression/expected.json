@@ -1,0 +1,33 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "guard-opaque-expression",
+  "status": "pending_a2",
+  "why": "An arbitrary expression in the guard argument position. The case exists to pin what the frontend must NOT do.",
+  "a2_contract": "{\"param\":1,\"kind\":\"opaque\"} and nothing else. Specifically NOT `\"expr\": \"n > 0 && !flag\"` for something downstream to parse later: humanity already has one C# front end and does not need a second one growing quietly inside a summary engine.",
+  "measured_at": "464308b",
+  "facts": {
+    "ShapeOpaqueArg.Inner": {
+      "params": [
+        {
+          "name": "s",
+          "line": 9
+        }
+      ],
+      "body": [
+        "if:None@11",
+        "then:release:s@13"
+      ]
+    },
+    "ShapeOpaqueArg.Caller": {
+      "params": null,
+      "body": [
+        "acquire:r@19",
+        "release:r@20"
+      ]
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

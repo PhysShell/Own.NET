@@ -1,0 +1,38 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "guard-mutated",
+  "status": "pending_a2",
+  "why": "The guard parameter is WRITTEN before the branch reads it, so its entry value no longer decides anything. Recorded verdict today: a false OWN003 — the same defect the gv4-control-mutated-guard control carries, reproduced here in minimal form and independently of it.",
+  "a2_contract": "G-V4 fails closed: NOT eligible, therefore NO guard metadata on the `if`. Absence is the signal. The frontend must not emit `\"stable\": false` — an old producer, an unstable parameter, an unsupported predicate and unknown syntax all have to degrade the same way, and one of them will always be `a producer that predates this field`.",
+  "measured_at": "464308b",
+  "facts": {
+    "ShapeMutatedGuard.Inner": {
+      "params": [
+        {
+          "name": "p",
+          "line": 10
+        }
+      ],
+      "body": [
+        "if:None@13",
+        "then:release:p@15"
+      ]
+    },
+    "ShapeMutatedGuard.Caller": {
+      "params": null,
+      "body": [
+        "acquire:r@21",
+        "release:r@22",
+        "release:r@23"
+      ]
+    }
+  },
+  "verdict": {
+    "rust": [
+      "OWN003:warning@21"
+    ],
+    "python": [
+      "OWN003:warning@21"
+    ]
+  }
+}
