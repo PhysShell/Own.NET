@@ -12,13 +12,16 @@ run per FILE, never per directory. A directory run compiles the case's
 other's symbols; the per-file runs are what the corpus was labelled against, so
 a snapshot taken any other way would measure a different program.
 
-Captured at ``--severity note``, which is strictly more information than the
-verdict threshold: every finding is recorded WITH its level, so a comparison
-can be read at verdict level (error/warning) or including advisories. That
-separation is load-bearing for A1 — an ``OWN051`` that appears where a
+Captured at ``--severity warning``, the most inclusive threshold the launcher
+offers (``--severity`` takes ``error|warning`` and nothing else; there is no
+``note`` level on that flag, and asking for one is a usage error that exits 2
+having analysed nothing). Whatever the core reports at that threshold is
+recorded WITH its level, advisories included if they ride along, so a
+comparison can be read at verdict level (error/warning) or over everything.
+That separation is load-bearing for A1 — an ``OWN051`` appearing where a
 fabricated ``release`` used to sit is the LEGACY_HONESTY class arriving, not a
-regression, and a snapshot that had thrown the advisories away could not tell
-the two apart.
+regression, and a snapshot that had collapsed the levels could not tell the two
+apart.
 
 ENGINE is explicit and required (#262 Stage 3). A bare invocation resolves the
 Rust candidate and exits 2 on a machine without one, and the A1.1 change is in
@@ -67,7 +70,7 @@ def git(*args: str) -> str:
 def run_one(path: Path, engine: str) -> dict[str, Any]:
     """One file through the launcher; SARIF in, (exit, findings) out."""
     cmd = [str(ROOT / "scripts" / "own-check.sh"), "--engine", engine,
-           "--format", "sarif", "--severity", "note", str(path)]
+           "--format", "sarif", "--severity", "warning", str(path)]
     proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
     findings: list[dict[str, Any]] = []
     parse_error = ""
@@ -114,14 +117,27 @@ def take(engine: str, out: Path, dirs: tuple[str, ...]) -> int:
         snap["files"][rel] = run_one(f, engine)
         n = len(snap["files"][rel]["findings"])
         print(f"  [{i:3}/{len(files)}] {rel}  ({n} finding(s))", flush=True)
+    broken = [k for k, r in snap["files"].items() if "parse_error" in r]
+    if broken:
+        # A snapshot with an unreadable run is not a snapshot with fewer findings.
+        # The first version of this tool asked for a `--severity note` that does
+        # not exist, every run exited 2 having analysed nothing, and the result
+        # was a confident, entirely empty baseline. Fail closed: a run that could
+        # not be read cannot be evidence, and the exit code has to say so.
+        snap["is_evidence"] = False
+        snap["unreadable"] = broken
     out.write_text(json.dumps(snap, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     total = sum(len(r["findings"]) for r in snap["files"].values())
-    broken = [k for k, r in snap["files"].items() if "parse_error" in r]
     print(f"\nsnapshot: {len(files)} file(s), {total} finding(s), engine={engine}, "
           f"at {snap['source_commit'][:7]}{' (DIRTY — not evidence)' if dirty else ''}")
-    if broken:
-        print(f"WARNING: {len(broken)} file(s) produced unparsable SARIF: {broken[:5]}")
     print(f"wrote {out}")
+    if broken:
+        print(f"\nREFUSED as evidence: {len(broken)}/{len(files)} file(s) produced "
+              f"unparsable SARIF. First few: {broken[:5]}", file=sys.stderr)
+        for k in broken[:3]:
+            print(f"  {k}: exit={snap['files'][k]['exit']} "
+                  f"{snap['files'][k].get('stderr_tail','')[:160]}", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -141,6 +157,11 @@ def compare(before: Path, after: Path, level: str) -> int:
     print(f"comparing engine={a['engine']} at {a['source_commit'][:7]} -> "
           f"{b['source_commit'][:7]}, level={level}")
     for name, snap in (("before", a), ("after", b)):
+        if snap.get("unreadable"):
+            print(f"REFUSED: the {name} snapshot has {len(snap['unreadable'])} unreadable "
+                  f"run(s); comparing it would report their absence as agreement.",
+                  file=sys.stderr)
+            return 2
         if snap.get("dirty"):
             print(f"  NOTE: the {name} snapshot was taken on a DIRTY tree — not evidence")
     moved = 0
