@@ -63,10 +63,7 @@ def _bash() -> str:
 
 
 def source_files(roots: tuple[str, ...]) -> list[Path]:
-    files: list[Path] = []
-    for root in roots:
-        files.extend((ROOT / root).rglob("*.cs"))
-    return sorted({p.resolve() for p in files if p.is_file()})
+    return ev.input_paths(roots)
 
 
 def extract_facts(path: Path) -> bytes:
@@ -139,16 +136,24 @@ def capture_pair(raw: bytes, adapter: dict[str, Any], timeout: float
 
 def take(source: str, out: Path, engine_binary: str | None, timeout: float) -> int:
     roots = SOURCES[source]
-    files = source_files(roots)
-    if not files:
-        print(f"REFUSED: source {source!r} contains zero C# files", file=sys.stderr)
-        return 2
     try:
+        provenance = ev.evidence_fields(roots)
+        files = source_files(roots)
         binary = resolve_engine_binary(engine_binary)
         adapter = engine_identity(binary)
-        provenance = ev.evidence_fields(roots)
     except (RuntimeError, SystemExit, ev.EvidenceRefused) as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
+        return 2
+    if not files:
+        print(f"REFUSED: source {source!r} contains zero committed C# files", file=sys.stderr)
+        return 2
+    absent = [p for p in files if not p.is_file()]
+    if absent:
+        print(
+            f"REFUSED: {len(absent)} committed input(s) are absent from the working tree; "
+            f"first: {absent[0].relative_to(ROOT)}",
+            file=sys.stderr,
+        )
         return 2
 
     snapshot: dict[str, Any] = {

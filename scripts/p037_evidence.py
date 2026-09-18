@@ -167,6 +167,17 @@ def _manifest_digest(entries: list[dict[str, str]]) -> str:
     return h.hexdigest()
 
 
+def input_paths(input_roots: tuple[str, ...], *, commit: str = "HEAD") -> list[Path]:
+    """Exact committed C# denominator as working-tree paths.
+
+    The path set comes from git, not filesystem rglob: after a .NET build the
+    checkout contains generated obj/**/*.cs files, and measuring them while the
+    evidence manifest names only committed blobs would be two denominators
+    pretending to be one.
+    """
+    return [ROOT / entry["path"] for entry in _tree_cs_manifest(commit, input_roots)]
+
+
 def current_commit() -> str:
     return _git_text("rev-parse", "HEAD")
 
