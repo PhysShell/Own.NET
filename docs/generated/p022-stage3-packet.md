@@ -2,17 +2,17 @@
 # P-022 Stage 3 — #262 cutover decision packet
 
 ```text
-Stage-3 candidate SHA:    2ecf5017a89242dd64c6f420eedac6452b130ce0 (DIRTY TREE — not evidence)
+Stage-3 candidate SHA:    6ed880dd70564c9c20b23f4b53401ec9769fdaea (DIRTY TREE — not evidence)
 Observation window:       the repository's own CI on the candidate branch, plus the release workflow's packed-artifact smoke test; first run b590bf46e9f1: 7 job failures, every one a real consequence of the cutover, all diagnosed and fixed
 Fast compare result:      104 documents, 104 agreed, 0 acceptance-unexplained | samples: 1 document, 1 agreed, 0 acceptance-unexplained
 Five-repo compare result: 10/10 documents agreed over 6 targets; 0 acceptance-unexplained, 0 declared-boundary; at b590bf46e9f1; local run (no CI anchor)
 Large-solution result:    the largest .sln of every target that has one is inside the same run (4 solution documents); 0 diverged, 0 execution-failure
-Windows packaging result: OWED — measured by CI, not predicted here
+Windows packaging result: PASS. The job concluded success, and it carries the unconditional Stage-3 assertion that a bare `owen check` with a deliberately unusable OWEN_PYTHON still finds OWN001 at rc 1 and never consults the development locator -- under `bash -e` with an explicit `exit 1`, so a success conclusion is that step passing. Nothing here is carried over from the Linux row: this is windows-latest reporting on itself. Its install -> check -> findings, clean-code, uninstall/reinstall and vendored-cache steps passed in the same job
 Linux packaging result:   bare `owen check` -> OWN001, rc 1, no Python present; --engine python -> same finding; packaged binary chmod 644 -> materialised to ~/.owen/rust-core/<sha256> and ran; packaged binary absent -> rc 2 denying a fallback
 Startup delta:            DEFERRED BY OWNER — NOT MEASURED
 End-to-end delta:         DEFERRED BY OWNER — NOT MEASURED
 Peak memory delta:        DEFERRED BY OWNER — NOT MEASURED
-Known differences:        WIN-ABC (carried forward from #262); CLI-B1 (carried forward); CLI-B2 (NEW); V4 (carried forward); CANCEL-TRACEBACK (NEW); ACTION-BUILD (NEW)
+Known differences:        WIN-ABC (carried forward from #262); CLI-B1 (carried forward); CLI-B2 (NEW); V4 (carried forward); CANCEL-TRACEBACK (NEW); ACTION-BUILD (OWNER RULING: ACCEPTED FOR STAGE 3 — a declared temporary distribution cost)
 Rollback command/config:  `--engine python` / `-Engine python` / `engine: python`; see `docs/notes/owen-engine-rollback.md`
 Python-removal timing:    Stage 4 — a separate, separately reviewable PR, after the observation policy. NOT now.
 ```
@@ -33,8 +33,8 @@ CLI contract campaign: 24/24 mutants caught at b5d9272a0a85
   str.isprintable() is answered from a version-dependent Unicode table. A representation/diagnostic boundary only, excluded from the byte-parity denominator and separately measured. Verified on this tree: the supported Python matrix is still 3.11/3.12/3.13 and the Rust snapshot is still unicode-properties 0.1.4.
 * **CANCEL-TRACEBACK** — _NEW, measured_  
   On Linux an interrupted Python reference prints a KeyboardInterrupt traceback (1478 bytes measured) while the Rust core prints nothing. After the cutover a cancelled run therefore stops printing a stack trace. User-visible, caused by the cutover, and recorded rather than fixed: Stage 3 changes the default engine, not the reference.
-* **ACTION-BUILD** — _NEW, a cost rather than a difference_  
-  The Owen Action builds the production own-cli from its own pinned ref, because this repository publishes no release: there is no own-cli artifact to download and no published Owen.Cli package to install. Consumers pay a Rust toolchain and a first build (cached by action ref). Revisit the moment a release exists.
+* **ACTION-BUILD** — _OWNER RULING: ACCEPTED FOR STAGE 3 — a declared temporary distribution cost_  
+  The Owen Action builds the production `own-cli` from its own pinned ref, because this repository publishes no release: there is no own-cli artifact to download and no published Owen.Cli package to install. Ruled NOT a parity difference, NOT a semantic difference and NOT a Stage-3 blocker -- the default is rust, Python stays the explicit rollback until Stage 4, the Rust toolchain is installed by the Action rather than assumed, and what is built is the production crate, never own-shadow-engine or a test adapter. So it is not an undeclared runtime dependency; it is a heavy way to deliver a binary. A consumer today pays setup-python, setup-dotnet, setup-rust and a cargo build to run a static analyzer. EXIT CONDITION: the first suitable published own-cli/Owen.Cli artifact, at which point the Action downloads an immutable platform binary and the consumer-side Rust build disappears -- a separate post-Stage-3 packaging follow-up, deliberately NOT Stage 4, which is about removing the Python distribution dependency. HARDENED for reproducibility at the ruling: rustc pinned to the concrete qualification toolchain (1.98.1) instead of the moving `stable` channel, and `cargo build --locked` so an unchanged source revision cannot silently resolve a different dependency graph. The build cache is an optimization and the Cargo build is authoritative: an earlier comment claimed the cache key gives a caller who bumps a pinned version a rebuild, which it does not -- a moving major tag keeps one key across every commit it points at.
 
 ## Closed by this change (recorded as closures, not as differences)
 
@@ -49,8 +49,6 @@ CLI contract campaign: 24/24 mutants caught at b5d9272a0a85
 
 ## Owed, and named rather than predicted
 
-* **packaging-windows** (windows) — OWED — measured by CI, not predicted here  
-  via CI job ownsharp-cli-smoke (windows-latest), which now builds own-cli natively and packs it before installing
 * **cancellation-windows** (windows) — OWED — measured by CI. 130 is NOT invented, and the Linux disposition is NOT carried across  
   via the same control on windows-latest, which sends CTRL_BREAK_EVENT (a parent cannot deliver Ctrl-C to a specific child group there) and records what it finds
 * **rollback-windows** (windows) — OWED — measured by CI  
@@ -65,7 +63,7 @@ CLI contract campaign: 24/24 mutants caught at b5d9272a0a85
 * `cli-replay` [linux] **MEASURED OBSERVATION** — 94 frozen cases replayed byte-for-byte; 2 declared boundaries (CLI-B1, CLI-B2)
 * `hygiene-tails` [linux] **MEASURED OBSERVATION** — invalid UTF-8 rc 70 -> rc 2 (byte parity); V1 moved to the JSON door; V2 top-level -0 was ACCEPTED as v0 and is now refused; nested -0 unmoved
 * `packaging-linux` [linux] **MEASURED OBSERVATION** — bare `owen check` -> OWN001, rc 1, no Python present; --engine python -> same finding; packaged binary chmod 644 -> materialised to ~/.owen/rust-core/<sha256> and ran; packaged binary absent -> rc 2 denying a fallback
-* `packaging-windows` [windows] **DEFERRED EVIDENCE** — OWED — measured by CI, not predicted here
+* `packaging-windows` [windows] **MEASURED OBSERVATION** — PASS. The job concluded success, and it carries the unconditional Stage-3 assertion that a bare `owen check` with a deliberately unusable OWEN_PYTHON still finds OWN001 at rc 1 and never consults the development locator -- under `bash -e` with an explicit `exit 1`, so a success conclusion is that step passing. Nothing here is carried over from the Linux row: this is windows-latest reporting on itself. Its install -> check -> findings, clean-code, uninstall/reinstall and vendored-cache steps passed in the same job
 * `cancellation-linux` [linux] **MEASURED OBSERVATION** — python reference: SIGINT -> died by signal 2, stdout 0b, stderr 1478b (a KeyboardInterrupt traceback); rust own-cli: SIGINT -> died by signal 2, stdout 0b, stderr 0b. Neither has an exit code in that state; neither returned a verdict
 * `cancellation-windows` [windows] **DEFERRED EVIDENCE** — OWED — measured by CI. 130 is NOT invented, and the Linux disposition is NOT carried across
 * `rollback-linux` [linux] **MEASURED OBSERVATION** — all four held on both surfaces: default=Rust; explicit python agrees on the verdict; broken candidate with nothing asked -> rc 2 denying a fallback; broken candidate with python asked -> python runs
@@ -73,3 +71,4 @@ CLI contract campaign: 24/24 mutants caught at b5d9272a0a85
 * `stage1-controls` [linux] **MEASURED OBSERVATION** — 19 controls passed, 0 failed, 0 skipped — including default-is-rust and unset-locator-is-d6
 * `stage2-controls` [linux] **MEASURED OBSERVATION** — 9 controls passed, including public-default-is-rust
 * `ci-surfaces` [n/a] **MEASURED OBSERVATION** — 63 invocations over 26 files; 23 explicit, 40 bare and all resolvable; 0 hollow Python injections
+* `stage1-controls-windows` [windows] **MEASURED OBSERVATION** — 19 controls passed, 0 failed, 0 skipped, 1 not applicable (a non-executable candidate cannot be constructed for the shell surface under git-bash). Includes default-is-rust, unset-locator-is-d6, rust-failure-no-fallback and an unexpected child status mapped to public exit 5 with the raw WINDOWS-NATIVE status (-1073740791) retained. The job as a whole went red on a HARNESS defect in the Stage-3 rollback control that ran after these, not on any of them

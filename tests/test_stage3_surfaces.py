@@ -194,8 +194,63 @@ def _job_text(text: str, jobs: list[tuple[int, str]], job: str) -> str:
     return "\n".join(lines[start:after[0] if after else len(lines)])
 
 
-def run() -> int:
+def _action_build_is_reproducible() -> int:
+    """The Action builds `own-cli` on a consumer's runner, so that build has to
+    mean one thing over time.
+
+    OWNER RULING (#262 Stage 3): ACTION-BUILD is accepted as a declared
+    TEMPORARY distribution cost, not a parity difference and not a blocker. The
+    exit condition is the first published own-cli/Owen.Cli artifact, at which
+    point this Action downloads an immutable platform binary instead. Until
+    then, the inputs to that build are pinned -- all of them.
+
+    Three were, and one was not:
+
+        source       pinned by the action ref the caller writes
+        dependencies pinned by rust/Cargo.lock ... only with --locked
+        actions      pinned by SHA
+        rustc        FLOATING on `stable`
+
+    A caller who pins `PhysShell/Own.NET@<tag>` is entitled to have that tag
+    mean one thing. With a moving channel the same tag builds with whatever
+    rustc shipped that month, so a future release that compiled the crate
+    differently -- or refused it -- would change the behaviour of a revision
+    nobody touched. For a migration cutover that is a variable with no upside,
+    which is why it is asserted here rather than left to a comment.
+    """
     failures = 0
+    text = open(os.path.join(ROOT, "action.yml"), encoding="utf-8").read()
+
+    m = re.search(r"toolchain:\s*[\"']?([^\"'\s]+)", text)
+    if not m:
+        failures += _fail("action.yml names no Rust toolchain at all",
+                          check="action-build-is-reproducible")
+    elif m.group(1) in ("stable", "beta", "nightly"):
+        failures += _fail(
+            f"action.yml pins the Rust toolchain to the moving channel {m.group(1)!r}. A "
+            f"consumer-facing surface needs a concrete version, or the same action tag builds "
+            f"with a different compiler over time", check="action-build-is-reproducible")
+    elif not re.fullmatch(r"\d+\.\d+(\.\d+)?", m.group(1)):
+        failures += _fail(
+            f"action.yml's toolchain {m.group(1)!r} is not a concrete version",
+            check="action-build-is-reproducible")
+
+    # Comment lines are excluded, for the third time in this file: the prose
+    # justifying these pins contains the phrase "cargo build" and was duly
+    # reported as an unlocked build. Only code counts.
+    code = "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("#"))
+    for build in re.findall(r"cargo build[^\n]*", code):
+        if "--locked" not in build:
+            failures += _fail(
+                f"action.yml builds without --locked ({build.strip()!r}). rust/Cargo.lock is "
+                f"committed; without --locked a yanked or newly published dependency can change "
+                f"what an unchanged source revision builds, and the build succeeds while quietly "
+                f"not being the qualified one", check="action-build-is-reproducible")
+    return failures
+
+
+def run() -> int:
+    failures = _action_build_is_reproducible()
     bare = explicit = ignored_ok = 0
     checked_files = 0
 
@@ -354,7 +409,8 @@ def run() -> int:
         f"the public default and "
         f"every one of them is in a job that can resolve it. {ignored_ok} step(s) inject a broken "
         f"Python into a bare invocation and assert it is IGNORED, which is the cutover "
-        f"assertion; none assert an injection that can no longer happen")
+        f"assertion; none assert an injection that can no longer happen. The Action's own build "
+        f"is reproducible: a concrete rustc, --locked, SHA-pinned actions")
     return 0
 
 

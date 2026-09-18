@@ -77,9 +77,9 @@
       "id": "packaging-windows",
       "question": "the same, natively on Windows",
       "platform": "windows",
-      "label": "DEFERRED EVIDENCE",
-      "method": "CI job ownsharp-cli-smoke (windows-latest), which now builds own-cli natively and packs it before installing",
-      "result": "OWED — measured by CI, not predicted here"
+      "label": "MEASURED OBSERVATION",
+      "method": "CI job `owen CLI (gate A)` on windows-latest (run 35304488082, job 105473759598, at 2ecf501), which builds own-cli natively on that runner, packs it into the Owen.Cli nupkg, installs the PACKED artifact from an isolated feed and then runs it",
+      "result": "PASS. The job concluded success, and it carries the unconditional Stage-3 assertion that a bare `owen check` with a deliberately unusable OWEN_PYTHON still finds OWN001 at rc 1 and never consults the development locator -- under `bash -e` with an explicit `exit 1`, so a success conclusion is that step passing. Nothing here is carried over from the Linux row: this is windows-latest reporting on itself. Its install -> check -> findings, clean-code, uninstall/reinstall and vendored-cache steps passed in the same job"
     },
     {
       "id": "cancellation-linux",
@@ -136,6 +136,14 @@
       "label": "MEASURED OBSERVATION",
       "method": "tests/test_stage3_surfaces.py over every workflow and script",
       "result": "63 invocations over 26 files; 23 explicit, 40 bare and all resolvable; 0 hollow Python injections"
+    },
+    {
+      "id": "stage1-controls-windows",
+      "question": "do the Stage-1 engine-seam controls hold natively on Windows after the cutover?",
+      "platform": "windows",
+      "label": "MEASURED OBSERVATION",
+      "method": "CI job `owen --engine (#262 Stage 1 controls)` on windows-latest (run 35304488082, job 105473759377, at 2ecf501); https://github.com/PhysShell/Own.NET/actions/runs/35304488082",
+      "result": "19 controls passed, 0 failed, 0 skipped, 1 not applicable (a non-executable candidate cannot be constructed for the shell surface under git-bash). Includes default-is-rust, unset-locator-is-d6, rust-failure-no-fallback and an unexpected child status mapped to public exit 5 with the raw WINDOWS-NATIVE status (-1073740791) retained. The job as a whole went red on a HARNESS defect in the Stage-3 rollback control that ran after these, not on any of them"
     }
   ],
   "known_differences": [
@@ -166,8 +174,8 @@
     },
     {
       "id": "ACTION-BUILD",
-      "status": "NEW, a cost rather than a difference",
-      "summary": "The Owen Action builds the production own-cli from its own pinned ref, because this repository publishes no release: there is no own-cli artifact to download and no published Owen.Cli package to install. Consumers pay a Rust toolchain and a first build (cached by action ref). Revisit the moment a release exists."
+      "status": "OWNER RULING: ACCEPTED FOR STAGE 3 — a declared temporary distribution cost",
+      "summary": "The Owen Action builds the production `own-cli` from its own pinned ref, because this repository publishes no release: there is no own-cli artifact to download and no published Owen.Cli package to install. Ruled NOT a parity difference, NOT a semantic difference and NOT a Stage-3 blocker -- the default is rust, Python stays the explicit rollback until Stage 4, the Rust toolchain is installed by the Action rather than assumed, and what is built is the production crate, never own-shadow-engine or a test adapter. So it is not an undeclared runtime dependency; it is a heavy way to deliver a binary. A consumer today pays setup-python, setup-dotnet, setup-rust and a cargo build to run a static analyzer. EXIT CONDITION: the first suitable published own-cli/Owen.Cli artifact, at which point the Action downloads an immutable platform binary and the consumer-side Rust build disappears -- a separate post-Stage-3 packaging follow-up, deliberately NOT Stage 4, which is about removing the Python distribution dependency. HARDENED for reproducibility at the ruling: rustc pinned to the concrete qualification toolchain (1.98.1) instead of the moving `stable` channel, and `cargo build --locked` so an unchanged source revision cannot silently resolve a different dependency graph. The build cache is an optimization and the Cargo build is authoritative: an earlier comment claimed the cache key gives a caller who bumps a pinned version a rebuild, which it does not -- a moving major tag keeps one key across every commit it points at."
     }
   ],
   "closed_in_this_change": [

@@ -111,13 +111,42 @@ runs:
     # for the runner's platform is strictly better. Recorded rather than
     # smoothed over, because the cost lands on users of this Action.
     #
+    # OWNER RULING (#262 Stage 3): ACTION-BUILD is ACCEPTED for Stage 3 as a
+    # DECLARED TEMPORARY DISTRIBUTION COST. It is not a parity difference, not a
+    # semantic difference and not a Stage-3 blocker: the default is rust, Python
+    # stays the explicit rollback until Stage 4, the Rust toolchain is installed
+    # by this Action rather than assumed, and what is built is the production
+    # `own-cli` crate -- never own-shadow-engine and never a test adapter. So it
+    # is not an undeclared runtime dependency. It is simply a heavy way to
+    # deliver a binary: a consumer today pays setup-python, setup-dotnet,
+    # setup-rust and a cargo build to run a static analyzer.
+    #
+    # EXIT CONDITION: the first suitable published own-cli / Owen.Cli artifact.
+    # At that point this Action downloads an immutable platform binary and the
+    # consumer-side Rust build disappears. That is a separate post-Stage-3
+    # packaging follow-up and deliberately NOT Stage 4, which is about removing
+    # the Python distribution dependency -- a different question.
+    #
     # Skipped entirely for `engine: python`, so the rollback path stays as
     # cheap as it was before Stage 3.
+    # THE PINNED QUALIFICATION TOOLCHAIN. This is the canonical place it is
+    # written down, and `tests/test_stage3_surfaces.py` refuses a floating
+    # channel here.
+    #
+    # `stable` was wrong for a consumer-facing surface, and wrong in a way that
+    # only shows up later: the action ref is pinned, the dependency graph is
+    # pinned by rust/Cargo.lock, and the compiler was the one input left
+    # drifting in time. A caller who pins PhysShell/Own.NET@<tag> is entitled to
+    # have that tag mean one thing; with a moving channel the same tag would
+    # build with whatever rustc shipped that month, and a future release that
+    # compiled the crate differently -- or refused it -- would change the
+    # behaviour of a revision nobody touched. For a migration cutover that is a
+    # variable with no upside.
     - name: Set up Rust (Owen core)
       if: inputs.engine != 'python'
       uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
       with:
-        toolchain: stable
+        toolchain: "1.98.1"
     - name: Cache the built Owen core
       if: inputs.engine != 'python'
       uses: actions/cache@v4
@@ -126,9 +155,15 @@ runs:
           ${{ github.action_path }}/rust/target
           ~/.cargo/registry
           ~/.cargo/git
-        # Keyed by the action's REF, so a caller who bumps the pinned version
-        # gets a rebuild rather than a stale binary from the previous one --
-        # the "a stale binary silently stands in" failure D3 exists to prevent.
+        # The cache is an OPTIMIZATION; the Cargo build below is authoritative.
+        #
+        # An earlier comment here claimed this key gives a caller who bumps the
+        # pinned version a rebuild rather than a stale binary. It does not, and
+        # the claim was worth more than the key: `github.action_ref` is whatever
+        # the caller wrote, so a moving major tag like `v1` keeps one key across
+        # every commit it ever points at. What actually prevents a stale binary
+        # is Cargo -- it rebuilds a local crate whose sources changed, cache hit
+        # or not -- so the correctness argument belongs there and not here.
         key: owen-core-${{ runner.os }}-${{ github.action_ref || github.sha }}
     - name: Build the Owen core (own-cli)
       if: inputs.engine != 'python'
@@ -136,7 +171,12 @@ runs:
       run: |
         set -euo pipefail
         cd "${{ github.action_path }}/rust"
-        cargo build -p own-cli --release
+        # --locked: rust/Cargo.lock is committed, so there is no reason for a
+        # production build on a consumer's runner to be allowed to recompute the
+        # dependency graph. Without it a yanked or newly published version can
+        # change what gets built from an unchanged source revision, and the
+        # build would succeed while quietly not being the qualified one.
+        cargo build -p own-cli --release --locked
         ext=""
         if [ "$RUNNER_OS" = "Windows" ]; then ext=".exe"; fi
         core="$(cd target/release && pwd)/own-cli$ext"
