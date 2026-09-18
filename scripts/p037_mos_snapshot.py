@@ -31,6 +31,8 @@ SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(ROOT))
 
+from ownlang.repro import ENGINE_PYTHON, ENGINE_RUST, hash_bytes  # noqa: E402
+
 import p037_evidence as ev  # noqa: E402
 from shadow_compare import (  # noqa: E402
     DEFAULT_TIMEOUT_SECONDS,
@@ -40,7 +42,6 @@ from shadow_compare import (  # noqa: E402
     run_port,
     run_reference,
 )
-from ownlang.repro import ENGINE_PYTHON, ENGINE_RUST, hash_bytes  # noqa: E402
 
 SCHEMA = "p037-mos-snapshot/1"
 SOURCES: dict[str, tuple[str, ...]] = {
