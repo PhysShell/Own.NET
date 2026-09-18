@@ -123,6 +123,12 @@ def closure_problems() -> list[str]:
                 f"runtime path {path!r} is outside SUBJECT_PATHS; a measurement "
                 "could change without invalidating its evidence"
             )
+        obj = _norm(path)
+        if _git("cat-file", "-e", f"HEAD:{obj}").returncode != 0:
+            problems.append(
+                f"runtime path {path!r} is declared but does not exist in HEAD; "
+                "a misspelled dependency would otherwise protect an empty path"
+            )
     if len(set(SUBJECT_PATHS)) != len(SUBJECT_PATHS):
         problems.append("SUBJECT_PATHS contains duplicate entries")
     return problems
