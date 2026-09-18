@@ -2952,7 +2952,18 @@ jobs:
           $rc = $LASTEXITCODE
           $out | Write-Host
           if ($rc -ne 1) { throw "expected exit 1 (findings), got $rc" }
-          if ($out -notmatch 'OWN001') { throw "the Rust core found no OWN001" }
+          # `-not ($out -match ...)`, NOT `$out -notmatch ...`. On an ARRAY
+          # PowerShell's -notmatch is a FILTER, not a boolean: it returns the
+          # elements that do not match, and a non-empty result is truthy. So
+          # over a 166-line capture where 137 lines carry OWN001 it returns the
+          # other 29 and the assertion fires anyway.
+          #
+          # The mirror image is how it passed before: while the Rust branch
+          # wrote to an inherited console handle, $out was $null, -notmatch
+          # filtered an empty collection to an empty collection, and the step
+          # went green having captured and verified NOTHING. Both directions
+          # are the same bug, and this is the idiom the rest of this file uses.
+          if (-not ($out -match 'OWN001')) { throw "the Rust core found no OWN001" }
           Write-Host "OK: Rust-default dogfood on windows (own-check.ps1)"
           exit 0
       # No fallback, measured rather than asserted: with the candidate broken,

@@ -55,7 +55,7 @@ Definition: `docs/evidence/p022-stage1-windows.json` (sha256 `656c5e69e4ec0167�
 
 | measure                                          | value |
 |--------------------------------------------------|---|
-| recorded at commit                               | `da897b42fcd76ea1914d286bd6bae6065c072c70` |
+| recorded at commit                               | `baf3771cd0106bf9a2242261c203445cf24f85c7` |
 | layers run (every one, for every mutation)       | `ps1`, `shapes` |
 | mutations                                        | 9 |
 | caught                                           | 9 |
@@ -66,17 +66,13 @@ Definition: `docs/evidence/p022-stage1-windows.json` (sha256 `656c5e69e4ec0167�
 | caught without every expected catcher            | none |
 | honesty control `M00` (unmutated tree must pass) | survived — as required |
 
-**This run is not evidence:**
-
-- the recorded result was taken over a different campaign definition (sha256 or campaign name differs) — re-run the campaign
-
 | id | rule | mutation | outcome | caught by |
 |---|---|---|---|---|
 | P01 | ps1-locator-must-be-absolute | own-check.ps1 accepts a relative OWEN_RUST_CORE — Test-Path says the file is there, which is true and not the question D3 asks | caught | `ps1::ps1-absolute-locator` |
 | P02 | ps1-not-started-is-configuration | own-check.ps1 reports a candidate that never started as an internal failure — 'the engine blew up' read as Owen's bug rather than the caller's configuration, which is the exact side of D3.1's seam the old comment got backwards | caught | `ps1::ps1-not-started-is-2` |
 | P03 | ps1-agreement-replays-raw-bytes | own-check.ps1 replays STDOUT through `Get-Content -Raw | Write-Output` — a decode-and-re-encode read as an echo. Scoped to stdout ONLY: it leaves the stderr replay intact, so it can be killed by nothing but the stdout half of the byte-faithfulness assertion. The earlier version of this mutation also emptied $errBytes, which meant its death proved only that stdout was checked and left 'both streams' as grammar | caught | `ps1::ps1-agreement-replays` |
 | P04 | ps1-failure-evidence-survives | own-check.ps1 deletes the reproduction directory it just named — cleanup reads as tidiness, and the message that pointed at it is left describing something that no longer exists | caught | `ps1::ps1-failure-evidence` |
-| P05 | absolute-locator-is-accepted | the shell's drive-rooted arm stops matching — this is the defect that actually shipped: `[/\]` escapes the closing bracket, so the set is unterminated and matches NEITHER `C:/` nor `C:\`, and every correct Windows locator was refused as 'not absolute' while every Linux control stayed green | caught | `shapes::locator-shapes` |
+| P05 | absolute-locator-is-accepted | the shell's drive-rooted arm stops matching — this is the defect that actually shipped: `[/\]` escapes the closing bracket, so the set is unterminated and matches NEITHER `C:/` nor `C:\`, and every correct Windows locator was refused as 'not absolute' while every Linux control stayed green | caught | `ps1::ps1-agreement-replays`<br>`shapes::locator-shapes` |
 | P06 | absolute-locator-is-accepted | own-check.ps1's absoluteness test is inverted — the over-rejection direction on this surface: every fully qualified locator is refused as 'not absolute' and every relative one is admitted, which no assertion that only feeds it a relative path can see | caught | `ps1::ps1-absolute-locator`<br>`ps1::ps1-agreement-replays`<br>`ps1::ps1-failure-evidence`<br>`ps1::ps1-not-started-is-2` |
 | P07 | the-candidate-is-spawned-not-opened | own-check.ps1 goes back to invoking the candidate with the call operator -- 'PowerShell runs it either way, why the ceremony?'. It does not run it: it asks the platform to OPEN it, so a file the loader cannot start is handed to a desktop handler (notepad on Windows, xdg-open on Linux), the run exits 0 with empty streams, and own-check.ps1 reports a clean finding-free scan having analysed nothing. Re-anchored at #262 Stage 3, when this function grew stream redirection: the candidate's output has to reach PowerShell's PIPELINE or a caller capturing this script gets nothing, so the spawn now returns a result object. The defect the mutant describes is unchanged -- only the lines it replaces moved. | caught | `ps1::ps1-not-started-is-2` |
 | P08 | ps1-agreement-replays-raw-bytes | own-check.ps1 drops the STDERR half of the agreement replay while leaving stdout byte-faithful — 'stderr is diagnostics, the result is stdout', which is how the original defect was written in the first place. It is the twin of P03 and exists because a single mutation that broke both streams could be killed by the stdout assertion alone: with this one, the stderr assertion is the only thing standing between the mutant and a green run | caught | `ps1::ps1-agreement-replays` |
