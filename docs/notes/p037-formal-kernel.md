@@ -284,14 +284,20 @@ A1 ACCEPTANCE
 4. Application on FINALIZED state only: a raw solver cell is never consumable
    (kernel K7 witness ported as a production test).
 5. G-V4 failures — mutable / ref / out / aliased guard: the edge degrades to
-   opaque, never fabricates must (P-037 §8 rows 18-19 as fixtures).
+   opaque, never fabricates must (P-037 §8 rows 18-19 as fixtures) — on BOTH
+   layers: no fabricated `release` op at the call site in the emitted facts
+   (extractor-fact acceptance) AND no false OWN003 end to end
+   (`scripts/p037_controls.py --post-a1`, the three KNOWN_FALSE_POSITIVE
+   controls turning red -> green).
 6. The formal kernel's twins run over the SAME production functions, not a
    copy: the kernel is moved, its properties move with it.
 7. Kani: value-level harnesses mandatory (PR gate); solver-heavy harnesses
    opt-in / nightly.
 8. The F1 pin: `if (g) p.Dispose(); else Extern(p);` with Extern unresolved
    yields the collapsed value UNKNOWN (class 3), lowered to plain + OWN051 —
-   an implementation that "repairs" it to legacy's optimistic MAY fails.
+   an implementation that "repairs" it to legacy's optimistic MAY fails;
+   on the facts layer the call site carries no release op (today it does:
+   the class-3 control's `current` record), and the OWN051 advisory appears.
 ```
 
 **The gate, as a REPOSITORY FACT that needs a ruling before any production
@@ -431,7 +437,62 @@ target, now with
 three executable witnesses that fail until it is fixed and must pass
 without a fabricated consume appearing anywhere else. It lives in the
 extractor (`frontend/roslyn/OwnSharp.Extractor/Program.cs`), which both
-engines share — a fix there would not split the compare gate, but it is
-launcher-visible behaviour and therefore waits, per the ruling, unless the
-owner rules otherwise for the extractor-side floor specifically (the #305
-precedent).
+engines share. The owner ruled on the carve-out question the same day:
+
+```text
+OWNER RULING — ConsumesParam false OWN003 controls (2026-09-18)
+
+The three newly measured false-OWN003 cases are accepted as
+pre-A1 regression anchors, not as authorization for a pre-cutover fix.
+
+Do NOT change Roslyn ConsumesParam semantics before P-022 Stage 3.
+
+Reason:
+- the defect is launcher-visible;
+- fixing it changes interprocedural inference verdicts;
+- the P-022 freeze is on verdict-changing inference, not merely
+  on Python/Rust divergence;
+- the shared-extractor location therefore does not create an exception.
+
+#305 is not controlling precedent:
+- it repaired bounded P1 false-negative soundness holes in teardown
+  crediting under the explicit pre-cutover floor doctrine;
+- this defect is a false-positive / precision failure in cross-call
+  consume inference and is the first target of post-cutover A1.
+
+Keep the three failing controls exactly as measured.
+They become mandatory red→green acceptance witnesses for A1 after Stage 3.
+
+No production fix before cutover.
+```
+
+In the owner's words on why a "small bounded fix" is a trap here: the
+moment `ConsumesParam` is restricted to unconditional disposes, the next
+questions are `if (x) Dispose(); else Dispose();`, early return,
+`try/finally`, the self-null guard, forwarding helpers, exception paths,
+guards on parameters vs locals vs fields, callee forwarding into another
+consumer — three patches later the guarded-summary semantics is being
+written into the Roslyn extractor under the name of a bugfix, which is the
+road the bakeoff already mapped. The freeze stopped exactly the kind of work
+it exists to stop; drilling neat holes in it right after it first worked
+would be comic.
+
+**Consequences applied.** The controls no longer carry an empty
+`expected-diagnostics.txt` that would read as "clean today": each has an
+`expected.json` with `classification` (`KNOWN_FALSE_POSITIVE` for the three
+G-V4 controls, `VERDICT_COMPATIBLE_VALUE_DIFFERENCE` for the class-3 shape),
+the `current` record measured at `70189a3`, and the `post_a1` acceptance —
+so the evidence lies about neither. `scripts/p037_controls.py` checks them
+on **two layers**, because the facts showed the defect is decided before the
+engine boundary: (1) the extractor-fact layer — does the call site carry a
+fabricated `release` op in the emitted facts; (2) the end-to-end layer — the
+finding codes at `--severity warning`. Default mode checks `current` and
+must pass today (a mismatch means Owen's behaviour moved and the record must
+be re-measured, never silently); `--post-a1` checks the acceptance and is
+expected to fail until A1 lands after Stage 3. Two layers so that a Rust
+summary engine can never compensate a bad extractor fact with another
+heuristic and hand A1 a green end-to-end result over a still-broken seam.
+Measured today, all four controls carry the fabricated release at the call
+site — including the class-3 shape, where it also suppresses the OWN051
+advisory the unknown guard should earn (0 findings either way at warning
+severity: verdict-compatible, value-different, exactly class 3).

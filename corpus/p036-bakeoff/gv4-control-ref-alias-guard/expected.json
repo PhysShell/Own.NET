@@ -1,0 +1,21 @@
+{
+  "schema": "p037-control-expectation/1",
+  "control": "gv4-control-ref-alias-guard",
+  "p037": "§8 row 18b — G-V4, writable ref-alias of the guard",
+  "classification": "KNOWN_FALSE_POSITIVE",
+  "measured_at": "70189a3",
+  "owner_ruling": "2026-09-18: accepted as pre-A1 regression anchors, not as authorization for a pre-cutover fix; no ConsumesParam change before P-022 Stage 3",
+  "call_site_line": 36,
+  "defensive_dispose_line": 37,
+  "current": {
+    "findings": [
+      "OWN003"
+    ],
+    "fabricated_release_at_call_site": true
+  },
+  "post_a1": {
+    "findings": [],
+    "fabricated_release_at_call_site": false
+  },
+  "note": "Same mechanism as row 18a; the alias write must disqualify the guard (fail-closed) and the call must not fabricate a consume."
+}

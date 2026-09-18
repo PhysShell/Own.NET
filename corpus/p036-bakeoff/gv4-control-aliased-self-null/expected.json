@@ -1,0 +1,21 @@
+{
+  "schema": "p037-control-expectation/1",
+  "control": "gv4-control-aliased-self-null",
+  "p037": "§8 row 19 — G-V4, writably aliased self-null resource parameter",
+  "classification": "KNOWN_FALSE_POSITIVE",
+  "measured_at": "70189a3",
+  "owner_ruling": "2026-09-18: accepted as pre-A1 regression anchors, not as authorization for a pre-cutover fix; no ConsumesParam change before P-022 Stage 3",
+  "call_site_line": 29,
+  "defensive_dispose_line": 30,
+  "current": {
+    "findings": [
+      "OWN003"
+    ],
+    "fabricated_release_at_call_site": true
+  },
+  "post_a1": {
+    "findings": [],
+    "fabricated_release_at_call_site": false
+  },
+  "note": "Close disposes r through the alias, not the caller's s; today Close(s, other) is lowered to a release of s (may-as-must), so s.Dispose() is a false OWN003. After A1: no split for the aliased q, no release op at the call, the dispose is clean."
+}

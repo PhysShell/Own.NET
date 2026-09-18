@@ -1,0 +1,19 @@
+{
+  "schema": "p037-control-expectation/1",
+  "control": "legacy-honesty-else-unresolved-forward",
+  "p037": "G-T2b class 3 — guarded local release, unresolved forward on the other branch",
+  "classification": "VERDICT_COMPATIBLE_VALUE_DIFFERENCE",
+  "measured_at": "70189a3",
+  "owner_ruling": "2026-09-18: accepted as pre-A1 regression anchors, not as authorization for a pre-cutover fix; no ConsumesParam change before P-022 Stage 3",
+  "call_site_line": 41,
+  "defensive_dispose_line": null,
+  "current": {
+    "findings": [],
+    "fabricated_release_at_call_site": true
+  },
+  "post_a1": {
+    "findings": [],
+    "fabricated_release_at_call_site": false
+  },
+  "note": "0 findings at warning severity today AND after A1 (class 3 is verdict-equivalent). The facts layer differs: today the extractor lowers M(r, flag, sink) to a release (may-as-must) and even the OWN051 advisory is suppressed; after A1 the guarded value is unknown, the call is plain + OWN051 at note level, and no release op may appear at the call site. The value-level pin (unknown, never repaired to may) is the kernel test k11_finding_release_priority_drops_an_unresolved_forward."
+}

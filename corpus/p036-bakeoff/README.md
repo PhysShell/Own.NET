@@ -49,23 +49,34 @@ from every preregistered decision predicate and read only in
 ## G-V4 / trusted-input negative controls and the class-3 shape (class 4)
 
 Not bug fixtures and not bakeoff cases: each `control.cs` carries an honest
-defensive dispose that a *fabricated* `must` would charge a false OWN003,
-so the required verdict at `--severity warning` is **no findings** (the empty
-`expected-diagnostics.txt` is the post-A1 target). They are the executable
-form of P-037 §8 rows 18–19 and G-T2b class 3, and A1's acceptance items 5
-and 8 (`docs/notes/p037-formal-kernel.md` §8.1). Measured on Owen today
-(`70189a3`, `scripts/own-check.sh --severity warning`):
+defensive dispose that a *fabricated* `must` would charge a false OWN003.
+Each directory holds `expected.json` with **both** the `current` record
+(measured on Owen at `70189a3`) and the `post_a1` acceptance, plus a
+`classification` — three are `KNOWN_FALSE_POSITIVE`, the class-3 shape is
+`VERDICT_COMPATIBLE_VALUE_DIFFERENCE` — so the evidence lies about neither
+today nor the target. `scripts/p037_controls.py` verifies them on two layers
+(the fabricated `release` op at the call site in the emitted facts; the
+finding codes at `--severity warning`): the default mode must pass today,
+`--post-a1` is the acceptance A1 discharges after P-022 Stage 3 and fails
+until then. They are the executable form of P-037 §8 rows 18–19 and G-T2b
+class 3, and A1's acceptance items 5 and 8
+(`docs/notes/p037-formal-kernel.md` §8.1). Owner ruling (2026-09-18): the
+three false positives are pre-A1 regression anchors, **not** authorization
+for a pre-cutover `ConsumesParam` fix — the P-022 freeze is on
+verdict-changing inference, and the shared-extractor location is no
+exception. Measured today:
 
 | control | P-037 | today | why |
 |---|---|---|---|
 | `gv4-control-mutated-guard` | §8 row 18a | **OWN003 (false)** on `r.Dispose()` | the extractor's flow-insensitive `ConsumesParam` lowers `Inner(p, g)` to a release because `Inner` disposes on *some* path — the may-as-must hole, A1's first bug; the mutated guard never even gets a say |
 | `gv4-control-ref-alias-guard` | §8 row 18b | **OWN003 (false)** | same mechanism |
 | `gv4-control-aliased-self-null` | §8 row 19 | **OWN003 (false)** on `s.Dispose()` | `q.Dispose()` somewhere in `Close` ⇒ the call is a release of the caller's argument, which the alias write makes untrue |
-| `legacy-honesty-else-unresolved-forward` | G-T2b class 3 | 0 findings | plain + OWN051 for the unknown guard, as required; the value-level pin (`unknown`, never repaired to `may`) is the kernel test `k11_finding_release_priority_drops_an_unresolved_forward` |
+| `legacy-honesty-else-unresolved-forward` | G-T2b class 3 | 0 findings at warning severity — but the facts layer shows the same fabricated release at the call site, which today also suppresses the OWN051 advisory | verdict-compatible today and after A1; after A1 the call is plain + OWN051 with no release op; the value-level pin (`unknown`, never repaired to `may`) is the kernel test `k11_finding_release_priority_drops_an_unresolved_forward` |
 
-Three of four are therefore **red today**: they pin a production false-positive
-class that A1's first target removes, and they must turn green without any
-of them turning into a fabricated consume elsewhere. Owner ruling: nothing in
-the extractor, the engines or the launcher surfaces changes before P-022
-Stage 3; these anchors wait with A1.
+Three of four are therefore **red today** on the end-to-end layer and all
+four on the facts layer: they pin a production false-positive class that
+A1's first target removes, and they must turn green on both layers without
+any of them turning into a fabricated consume elsewhere. Nothing in the
+extractor, the engines or the launcher surfaces changes before P-022 Stage
+3; these anchors wait with A1.
 
