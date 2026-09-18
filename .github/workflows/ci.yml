@@ -2452,9 +2452,12 @@ jobs:
           (cd rust && cargo build -p own-cli --release)
           ext=""
           if [ "$RUNNER_OS" = "Windows" ]; then ext=".exe"; fi
-          core="$PWD/rust/target/release/own-cli$ext"
-          "$core" --version
-          echo "OWEN_RUST_CORE=$core" >> "$GITHUB_ENV"
+          # Named owen_core rather than core: the Stage-2 campaign anchors a
+          # mutant on the dogfood job's own `core="..."` line, and a second
+          # identical line in this file made that anchor ambiguous.
+          owen_core="$PWD/rust/target/release/own-cli$ext"
+          "$owen_core" --version
+          echo "OWEN_RUST_CORE=$owen_core" >> "$GITHUB_ENV"
       - name: GitHub-annotation format over the sample tree (directory walk)
         run: |
           # stdout (captured) carries only the annotations; the extractor's build
@@ -2672,16 +2675,22 @@ jobs:
       - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
         with:
           toolchain: stable
+      # The locator is set from POWERSHELL's $PWD, not bash's, and that is the
+      # whole point of not reusing the bash step the sibling jobs use. In
+      # git-bash on a Windows runner $PWD is the MSYS form (/d/a/Own.NET/...),
+      # and own-check.ps1 correctly refuses it: D3 ratified an ABSOLUTE path,
+      # and /d/... is not one to PowerShell. Writing that form into $GITHUB_ENV
+      # exported it to every later step and turned a correct configuration into
+      # a usage error -- which is exactly what happened on the first run of this
+      # job after the cutover.
       - name: Build the production own-cli and select it (the public default is Rust)
-        shell: bash
         run: |
-          set -euo pipefail
-          (cd rust && cargo build -p own-cli --release)
-          ext=""
-          if [ "$RUNNER_OS" = "Windows" ]; then ext=".exe"; fi
-          core="$PWD/rust/target/release/own-cli$ext"
-          "$core" --version
-          echo "OWEN_RUST_CORE=$core" >> "$GITHUB_ENV"
+          Push-Location rust
+          cargo build -p own-cli --release
+          Pop-Location
+          $core = Join-Path $PWD "rust\target\release\own-cli.exe"
+          & $core --version
+          "OWEN_RUST_CORE=$core" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       - name: A clean tree to check against
         run: |
           $clean = Join-Path $env:RUNNER_TEMP "ps1-clean"

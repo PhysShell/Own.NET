@@ -107,7 +107,29 @@ def _skip(check: str, why: str) -> None:
 
 
 def _bash() -> str:
-    return os.environ.get("OWEN_BASH", "bash")
+    """The bash that can actually run `own-check.sh`.
+
+    On a Windows runner `bash` on PATH is C:\\Windows\\System32\\bash.exe -- the
+    WSL launcher, not a shell. With no distribution installed it exits 1 having
+    run nothing, and 1 is the launcher's code for FINDINGS. So this control read
+    "WSL is not installed" as "the default engine ran and found nothing", and
+    reported that state 1 had failed. It is a harness concern, not a product
+    one: a Windows user runs own-check.sh from a git-bash prompt, where `bash`
+    is already the right one. The same helper exists in test_stage1_engine.py
+    for the same reason.
+    """
+    if os.name != "nt":
+        return "bash"
+    candidates = [
+        os.environ.get("SHELL"),
+        r"C:\Program Files\Git\bin\bash.exe",
+        r"C:\Program Files\Git\usr\bin\bash.exe",
+        shutil.which("bash"),
+    ]
+    for cand in candidates:
+        if cand and "system32" not in cand.lower() and os.path.isfile(cand):
+            return cand
+    return "bash"
 
 
 def _launcher() -> str | None:

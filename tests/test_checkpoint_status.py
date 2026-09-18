@@ -61,16 +61,26 @@ from render_checkpoint_status import (  # noqa: E402
     SHADOW_CENSUS_MD,
     SHADOW_MUTATIONS_MD,
     SHADOW_SWEEP_MD,
+    STAGE1_CAMPAIGNS,
+    STAGE2_CAMPAIGNS,
     check,
 )
 
 EVIDENCE = os.path.join(ROOT, "docs", "evidence")
 # Every campaign definition in the tree, gated for replayability. A campaign
 # nobody listed is a campaign nobody re-anchors.
+# The Stage-1 and Stage-2 campaigns were NOT in this list until #262 Stage 3,
+# and their absence is exactly why the cutover's drift into them stayed hidden
+# until a Windows job that actually runs one went red: three of their mutants
+# had turned into no-ops (they mutated Python -> Rust, which the cutover made
+# the shipped state) and a fourth had become ambiguous, and nothing in the
+# ordinary suite asked. A campaign nobody re-anchors is a campaign nobody
+# notices has stopped applying.
 DEFINITIONS = (CAMPAIGN,
                *(os.path.join(EVIDENCE, f"{campaign}.json")
                  for _, campaign in (*CP4B_CAMPAIGNS, *CP5_CAMPAIGNS, *SHADOW_CAMPAIGNS,
-                                     *COORD_CAMPAIGNS, *CLI_CAMPAIGNS)))
+                                     *COORD_CAMPAIGNS, *CLI_CAMPAIGNS,
+                                     *STAGE1_CAMPAIGNS, *STAGE2_CAMPAIGNS)))
 
 
 def _anchors() -> list[str]:
