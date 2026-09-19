@@ -1,0 +1,2672 @@
+{
+ "analysis_manifest": [
+  {
+   "blob": "db9868f0e8b9fcbe286f8f810ccc988416f10b1e",
+   "path": "audit/runtime/DuplicateDetector/Program.cs"
+  },
+  {
+   "blob": "61d10bce7d57789882a0b9c1e3269bede7ee5271",
+   "path": "audit/runtime/LeakHarness/HeapCounter.cs"
+  },
+  {
+   "blob": "0e6a1d74575c72c621b6aa5afe9f3e3bc2594e19",
+   "path": "audit/runtime/LeakHarness/Program.cs"
+  },
+  {
+   "blob": "76f0aa4c197925c0cbbe5094986c25ef8c5f57fc",
+   "path": "audit/runtime/LeakHarness/Scenario.cs"
+  },
+  {
+   "blob": "0de2cf83746dcb98f28bd774eeeb0b4cc6915b0f",
+   "path": "audit/runtime/PropertyChangedStorm/Program.cs"
+  },
+  {
+   "blob": "14234cabf0d3f931dda84c0f921980e4f9bbd612",
+   "path": "audit/runtime/RetentionPath/Heap.cs"
+  },
+  {
+   "blob": "72f149c65a97590f677bc76afcff933107afac20",
+   "path": "audit/runtime/RetentionPath/Program.cs"
+  },
+  {
+   "blob": "f803433a54e23a6845792fd2050969d3f4da5a85",
+   "path": "frontend/roslyn/Owen.CSharp.Rewriter/Program.cs"
+  },
+  {
+   "blob": "e2a7caf1437892347df186a7a5636c032651d320",
+   "path": "frontend/roslyn/OwnSharp.Cli/CheckCommand.cs"
+  },
+  {
+   "blob": "14d9afdfcae183bcc1a36cb66713e5cac1ee2779",
+   "path": "frontend/roslyn/OwnSharp.Cli/CompareMode.cs"
+  },
+  {
+   "blob": "29b16c9d30bd974e04125a32bec345ca5596334a",
+   "path": "frontend/roslyn/OwnSharp.Cli/CoreVendor.cs"
+  },
+  {
+   "blob": "a51855e9f0a5f7ad5dd942dca5c4313fd99b032e",
+   "path": "frontend/roslyn/OwnSharp.Cli/CrashReport.cs"
+  },
+  {
+   "blob": "58453947817b0e874d5ad6e17e1e4a49b7c125b5",
+   "path": "frontend/roslyn/OwnSharp.Cli/EngineRunner.cs"
+  },
+  {
+   "blob": "ad30d037b862776072d3474d367f9f1628cb139a",
+   "path": "frontend/roslyn/OwnSharp.Cli/EngineSelection.cs"
+  },
+  {
+   "blob": "6674fe0270f82f12e4472078d8e2b4a2a57cf5bd",
+   "path": "frontend/roslyn/OwnSharp.Cli/Program.cs"
+  },
+  {
+   "blob": "d78c5d2a072fe22a6cdc39c416506df77e51bdf5",
+   "path": "frontend/roslyn/OwnSharp.Cli/PythonResolver.cs"
+  },
+  {
+   "blob": "c83babf3a205f81e86581c418dcb97bbe3226fd5",
+   "path": "frontend/roslyn/OwnSharp.Cli/RustCoreLocator.cs"
+  },
+  {
+   "blob": "07cb275070130437ec22207978e3b9fd9718c13f",
+   "path": "frontend/roslyn/OwnSharp.Cli/ToolVersion.cs"
+  },
+  {
+   "blob": "33bd542eed196609315330b524086c6e6d5d117f",
+   "path": "frontend/roslyn/OwnSharp.Extractor/Program.cs"
+  },
+  {
+   "blob": "b90d2916e1d6725d20c7a97af1647f73215413eb",
+   "path": "frontend/roslyn/OwnSharp.WeakTargetProbe/Program.cs"
+  },
+  {
+   "blob": "faf652745bc629ad77f51f8aaeeb220fbf810463",
+   "path": "frontend/roslyn/project-input-sample/CustomerSubscription.cs"
+  },
+  {
+   "blob": "8ea4797f7c567316194b4a452bbf6e0d8ee10a9d",
+   "path": "frontend/roslyn/samples/AliasDisposeSample.cs"
+  },
+  {
+   "blob": "6031f887cfb754c9de522b843d8d8a547eab32e6",
+   "path": "frontend/roslyn/samples/AliasedSourceViewModel.cs"
+  },
+  {
+   "blob": "55ff2b817a92c0da3d2081ca91d6d29671de54d9",
+   "path": "frontend/roslyn/samples/AppDomainShutdownSample.cs"
+  },
+  {
+   "blob": "a7dbe6708effae84dfcf9f8057bb756de6e980f2",
+   "path": "frontend/roslyn/samples/AppLifetimeSample.cs"
+  },
+  {
+   "blob": "37f8adf21b1e9b2d27e6baf91e84b83de163cb8b",
+   "path": "frontend/roslyn/samples/AppScopedSourceSample.cs"
+  },
+  {
+   "blob": "08096e0cc1b6aafc79eed60e5c6ef547e4056e4f",
+   "path": "frontend/roslyn/samples/AssociatedObjectSourceSample.cs"
+  },
+  {
+   "blob": "9e6a77034b2e031631fb76745ef55a00d82bc3c8",
+   "path": "frontend/roslyn/samples/BodyThrowEdgesSample.cs"
+  },
+  {
+   "blob": "c5ac84d050c01ed6139a2f691b71dce1b014b41b",
+   "path": "frontend/roslyn/samples/CloseReleaseSample.cs"
+  },
+  {
+   "blob": "02fb37ca09d02cea02e2a47ed117a0152ad573a9",
+   "path": "frontend/roslyn/samples/ColumnAnchorsSample.cs"
+  },
+  {
+   "blob": "21aa5461b2218dd5ca3f5e7af4180ac439ed9e46",
+   "path": "frontend/roslyn/samples/CustomerViewModel.cs"
+  },
+  {
+   "blob": "c10f0f0ec7276d6662a2b373a37b90190d2515eb",
+   "path": "frontend/roslyn/samples/DiCaptiveSample.cs"
+  },
+  {
+   "blob": "101d4360a6975cd22ff53878c1d8fe1285dd3625",
+   "path": "frontend/roslyn/samples/DisposableFieldViewModel.cs"
+  },
+  {
+   "blob": "a51987e54a530a7599e0b380b14f997156567547",
+   "path": "frontend/roslyn/samples/DpRotationSample.cs"
+  },
+  {
+   "blob": "cd7d85bb4c42d6fa4765440ba02573a8d904e4ce",
+   "path": "frontend/roslyn/samples/EmptyDisposeSample.cs"
+  },
+  {
+   "blob": "b2ac5868a5b4a14f1c9581ccc08e36bea2a96c1d",
+   "path": "frontend/roslyn/samples/EventSourceCountersSample.cs"
+  },
+  {
+   "blob": "91e723c120a686971ca2b7efaabfa306b9d831b2",
+   "path": "frontend/roslyn/samples/ExternalRefSubscription.cs"
+  },
+  {
+   "blob": "60233494795aa9b81fd7fabe227343305acb3548",
+   "path": "frontend/roslyn/samples/FactoryAdoptSample.cs"
+  },
+  {
+   "blob": "9fb14588b0d77049f20cc9cfd94b1c8bc01bcf8f",
+   "path": "frontend/roslyn/samples/FactoryLeakSample.cs"
+  },
+  {
+   "blob": "b85092085ad8b6cd5b5b199cc26c8921c41dd605",
+   "path": "frontend/roslyn/samples/FieldReleaseSample.cs"
+  },
+  {
+   "blob": "4c8a6927f8ed6437ca50e4dba61093e79b907e61",
+   "path": "frontend/roslyn/samples/FixCandidatesSample.cs"
+  },
+  {
+   "blob": "5d63dcb6470a2c50a8f4cbe0fe2d19cf7fd3a465",
+   "path": "frontend/roslyn/samples/FixRewriteSample.cs"
+  },
+  {
+   "blob": "8139f06f89bda2826ac092cf9895bb1d52c2e930",
+   "path": "frontend/roslyn/samples/FlowLocalsSample.cs"
+  },
+  {
+   "blob": "b9ba1bd05f7c3a4ba3447905cf1f8cd8e0efc561",
+   "path": "frontend/roslyn/samples/InjectedDcViewSample.xaml.cs"
+  },
+  {
+   "blob": "b1526d6820914accc93cf517094dcd9e6362b57b",
+   "path": "frontend/roslyn/samples/LambdaHandlerViewModel.cs"
+  },
+  {
+   "blob": "d9e97be3849357732f4cddd71692866d54b08909",
+   "path": "frontend/roslyn/samples/LambdaTiersSample.cs"
+  },
+  {
+   "blob": "a1c7d3cdd2f59a9e9f295456c7900b65c86c5fcb",
+   "path": "frontend/roslyn/samples/LocalDisposableSample.cs"
+  },
+  {
+   "blob": "20f7002ac617caae05053efad11b1c6626830493",
+   "path": "frontend/roslyn/samples/MemoryOwnerEscapeSample.cs"
+  },
+  {
+   "blob": "d7d17688ee408e9f400840f42cd649edd67098a3",
+   "path": "frontend/roslyn/samples/MessengerViewModel.cs"
+  },
+  {
+   "blob": "8c78b8537be0bd6dd22a9d331bbbc3649030e07a",
+   "path": "frontend/roslyn/samples/OrdersViewModel.cs"
+  },
+  {
+   "blob": "b27be0a78d81e6d40117f627c01c70686dbb9309",
+   "path": "frontend/roslyn/samples/OverloadSigSample.cs"
+  },
+  {
+   "blob": "2a151381d555094a533c99ad6de777562c5e29e3",
+   "path": "frontend/roslyn/samples/OwnIgnoreSample.cs"
+  },
+  {
+   "blob": "ed6813a5ab0a7c0c4b83099851665d7981e66e12",
+   "path": "frontend/roslyn/samples/OwnedCollectionElementSample.cs"
+  },
+  {
+   "blob": "0337264bc3de8a385aa34868a25e106b21a5c0ef",
+   "path": "frontend/roslyn/samples/PipeFieldsSample.cs"
+  },
+  {
+   "blob": "76592f6a3b5a4ff9267281cec30f85a6ea73c9e3",
+   "path": "frontend/roslyn/samples/PooledBufferSample.cs"
+  },
+  {
+   "blob": "51825daad0d71588bc131cea2f8a141df116fc40",
+   "path": "frontend/roslyn/samples/RequerySuggestedAllowlistSample.cs"
+  },
+  {
+   "blob": "2d9c2b2f1e9968d779ee1c143ebf9700a06e04eb",
+   "path": "frontend/roslyn/samples/ResolvedDisposableSample.cs"
+  },
+  {
+   "blob": "af288a010502b698abe3f3c89c8b926d02602ed5",
+   "path": "frontend/roslyn/samples/ReturnedPublisherSample.cs"
+  },
+  {
+   "blob": "b333b55e02c363f7fdf1a3b4dd6614c30ee809de",
+   "path": "frontend/roslyn/samples/SampleTypes.cs"
+  },
+  {
+   "blob": "43775ca64f0fa022bad0a0e5fd4ab81a0388a63a",
+   "path": "frontend/roslyn/samples/SelfDetachingHandlerSample.cs"
+  },
+  {
+   "blob": "2dc120c7cc0da9897b2dedbc4cf08a18f41e09bb",
+   "path": "frontend/roslyn/samples/SelfOwnedControlParts.cs"
+  },
+  {
+   "blob": "c5d9e33e7aab3b008fdd49b6ea678340ab5805df",
+   "path": "frontend/roslyn/samples/SelfOwnedViewModel.cs"
+  },
+  {
+   "blob": "76b04623e0e45ef8710cca1ad27733f67b62dafa",
+   "path": "frontend/roslyn/samples/SemaphoreFieldSample.cs"
+  },
+  {
+   "blob": "e31cab4f6892f48041a3e881c980a8bbdd4773ea",
+   "path": "frontend/roslyn/samples/StaticClassEscapeSample.cs"
+  },
+  {
+   "blob": "c3f958ded180e900a396f73bed3173fefcd44a6a",
+   "path": "frontend/roslyn/samples/StaticEventEscapeViewModel.cs"
+  },
+  {
+   "blob": "921a969a9e683e1168d5fa4df1be86d216c1b272",
+   "path": "frontend/roslyn/samples/StaticHandlerViewModel.cs"
+  },
+  {
+   "blob": "8d7ffe27b6b75c063b8f2d87bdefa12993737035",
+   "path": "frontend/roslyn/samples/TemplatePartLocalCaptureSample.cs"
+  },
+  {
+   "blob": "31961de2bbd09e3cf564ae1b32d1d5ec31312ca8",
+   "path": "frontend/roslyn/samples/TierBSample.cs"
+  },
+  {
+   "blob": "0b7d93c5d460dac3d2b08c209a3fb6de20c6eeb2",
+   "path": "frontend/roslyn/samples/TimerViewModel.cs"
+  },
+  {
+   "blob": "369eeb6b860eb57766bf925ca432e73e8a4e2d55",
+   "path": "frontend/roslyn/samples/UnitOfWorkFlowSample.cs"
+  },
+  {
+   "blob": "56c7601cf82f008e0c1c3bc7fcd19203b076fcb3",
+   "path": "frontend/roslyn/samples/UsingFieldAcquisitionSample.cs"
+  },
+  {
+   "blob": "c704b62363503bdf08ff441d1e0ddbe2646af939",
+   "path": "frontend/roslyn/samples/ViewOwnsVmSample.xaml.cs"
+  },
+  {
+   "blob": "fa1e6e2ba28c9c61679a373afd42cedf0fc6f6df",
+   "path": "frontend/roslyn/samples/VoidSubscribeSample.cs"
+  },
+  {
+   "blob": "f067d4bbaba417247264b614a5b64e24283a3e47",
+   "path": "frontend/roslyn/samples/WeakSubscribeAllowlistSample.cs"
+  },
+  {
+   "blob": "49d4b1aa29d6fffb4a66bef39698c14e4e3e1d03",
+   "path": "frontend/roslyn/samples/WeakSubscribeRxNoEventsSample.cs"
+  },
+  {
+   "blob": "e4a3925648e8f40e4659b3ee87ed6da7b8160d98",
+   "path": "frontend/roslyn/samples/WeakSubscribeUnresolvedSample.cs"
+  },
+  {
+   "blob": "24a344692519d34e6b3eea683e854c7d2973abab",
+   "path": "frontend/roslyn/samples/WhenAnyValueViewModel.cs"
+  },
+  {
+   "blob": "47242c681bca9f6e98cf06e0cfddd46764205140",
+   "path": "frontend/roslyn/samples/WinFormsDisposalSample.cs"
+  },
+  {
+   "blob": "dcc97874007b671df84d40bf24c48a76ebd40fe2",
+   "path": "frontend/roslyn/samples/WinFormsModelessSample.cs"
+  },
+  {
+   "blob": "0487e4847c221f7256c2598a523a0a4037ed0906",
+   "path": "frontend/roslyn/samples/weaved-linked/Shared/SharedEnumerator.cs"
+  },
+  {
+   "blob": "ce79c24883be50189a02547d148aca4bff80b770",
+   "path": "frontend/roslyn/samples/weaved/WeavedEmptyDispose.cs"
+  }
+ ],
+ "analysis_manifest_sha256": "325a580da5dc78493744e080fb497a4bba5fc6b21c8a01058793b99686cb894a",
+ "artifacts": {
+  "own-shadow-engine": {
+   "binary": "own-shadow-engine",
+   "bytes": 1819088,
+   "cargo": "cargo 1.94.1 (29ea6fb6a 2026-03-24)",
+   "cargo_argv": [
+    "cargo",
+    "build",
+    "--locked",
+    "--release",
+    "--message-format=json",
+    "-p",
+    "own-shadow",
+    "--bin",
+    "own-shadow-engine"
+   ],
+   "cargo_clean_argv": [
+    "cargo",
+    "clean",
+    "--release",
+    "-p",
+    "own-shadow"
+   ],
+   "cargo_lock_blob": "d8adbb1dc4d90da0c80aa1a2d8ba85bef805620f",
+   "cargo_lock_sha256": "17553420691d96febcfac54bd8f530b4f9e2a1ad7c79e6aaa022510e56692f45",
+   "dirty": false,
+   "executable": "/home/tandem/cargo-target/release/own-shadow-engine",
+   "executed": {
+    "bytes": 1819088,
+    "post_run_intact": true,
+    "sealed_path": "/home/tandem/owen-p037-a2/tmp/p037-take-yky8i08r/own-shadow-engine",
+    "sha256": "21a311088337be0875d8803a51ce1be726bba5a5efe672359ed9dfdb8511e210"
+   },
+   "host": "x86_64-unknown-linux-gnu",
+   "package": "own-shadow",
+   "profile": "release",
+   "rebuilt_by_this_call": true,
+   "repo_path": null,
+   "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)\nbinary: rustc\ncommit-hash: e408947bfd200af42db322daf0fadfe7e26d3bd1\ncommit-date: 2026-03-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.94.1\nLLVM version: 21.1.8",
+   "sha256": "21a311088337be0875d8803a51ce1be726bba5a5efe672359ed9dfdb8511e210",
+   "source_commit": "5a0de070af241a2612859153887ad6ae04afcce2"
+  }
+ },
+ "dirty": false,
+ "documents": {
+  "repo-tree": {
+   "facts": {
+    "algorithm": "sha256",
+    "bytes": 159726,
+    "digest": "e963718057f4a29115513fad4dbb621d9e79d50460d139e8bfb6c1294956942b"
+   },
+   "inputs": [
+    "audit/runtime/DuplicateDetector/Program.cs",
+    "audit/runtime/LeakHarness/HeapCounter.cs",
+    "audit/runtime/LeakHarness/Program.cs",
+    "audit/runtime/LeakHarness/Scenario.cs",
+    "audit/runtime/PropertyChangedStorm/Program.cs",
+    "audit/runtime/RetentionPath/Heap.cs",
+    "audit/runtime/RetentionPath/Program.cs",
+    "frontend/roslyn/Owen.CSharp.Rewriter/Program.cs",
+    "frontend/roslyn/OwnSharp.Cli/CheckCommand.cs",
+    "frontend/roslyn/OwnSharp.Cli/CompareMode.cs",
+    "frontend/roslyn/OwnSharp.Cli/CoreVendor.cs",
+    "frontend/roslyn/OwnSharp.Cli/CrashReport.cs",
+    "frontend/roslyn/OwnSharp.Cli/EngineRunner.cs",
+    "frontend/roslyn/OwnSharp.Cli/EngineSelection.cs",
+    "frontend/roslyn/OwnSharp.Cli/Program.cs",
+    "frontend/roslyn/OwnSharp.Cli/PythonResolver.cs",
+    "frontend/roslyn/OwnSharp.Cli/RustCoreLocator.cs",
+    "frontend/roslyn/OwnSharp.Cli/ToolVersion.cs",
+    "frontend/roslyn/OwnSharp.Extractor/Program.cs",
+    "frontend/roslyn/OwnSharp.WeakTargetProbe/Program.cs",
+    "frontend/roslyn/project-input-sample/CustomerSubscription.cs",
+    "frontend/roslyn/samples/AliasDisposeSample.cs",
+    "frontend/roslyn/samples/AliasedSourceViewModel.cs",
+    "frontend/roslyn/samples/AppDomainShutdownSample.cs",
+    "frontend/roslyn/samples/AppLifetimeSample.cs",
+    "frontend/roslyn/samples/AppScopedSourceSample.cs",
+    "frontend/roslyn/samples/AssociatedObjectSourceSample.cs",
+    "frontend/roslyn/samples/BodyThrowEdgesSample.cs",
+    "frontend/roslyn/samples/CloseReleaseSample.cs",
+    "frontend/roslyn/samples/ColumnAnchorsSample.cs",
+    "frontend/roslyn/samples/CustomerViewModel.cs",
+    "frontend/roslyn/samples/DiCaptiveSample.cs",
+    "frontend/roslyn/samples/DisposableFieldViewModel.cs",
+    "frontend/roslyn/samples/DpRotationSample.cs",
+    "frontend/roslyn/samples/EmptyDisposeSample.cs",
+    "frontend/roslyn/samples/EventSourceCountersSample.cs",
+    "frontend/roslyn/samples/ExternalRefSubscription.cs",
+    "frontend/roslyn/samples/FactoryAdoptSample.cs",
+    "frontend/roslyn/samples/FactoryLeakSample.cs",
+    "frontend/roslyn/samples/FieldReleaseSample.cs",
+    "frontend/roslyn/samples/FixCandidatesSample.cs",
+    "frontend/roslyn/samples/FixRewriteSample.cs",
+    "frontend/roslyn/samples/FlowLocalsSample.cs",
+    "frontend/roslyn/samples/InjectedDcViewSample.xaml.cs",
+    "frontend/roslyn/samples/LambdaHandlerViewModel.cs",
+    "frontend/roslyn/samples/LambdaTiersSample.cs",
+    "frontend/roslyn/samples/LocalDisposableSample.cs",
+    "frontend/roslyn/samples/MemoryOwnerEscapeSample.cs",
+    "frontend/roslyn/samples/MessengerViewModel.cs",
+    "frontend/roslyn/samples/OrdersViewModel.cs",
+    "frontend/roslyn/samples/OverloadSigSample.cs",
+    "frontend/roslyn/samples/OwnIgnoreSample.cs",
+    "frontend/roslyn/samples/OwnedCollectionElementSample.cs",
+    "frontend/roslyn/samples/PipeFieldsSample.cs",
+    "frontend/roslyn/samples/PooledBufferSample.cs",
+    "frontend/roslyn/samples/RequerySuggestedAllowlistSample.cs",
+    "frontend/roslyn/samples/ResolvedDisposableSample.cs",
+    "frontend/roslyn/samples/ReturnedPublisherSample.cs",
+    "frontend/roslyn/samples/SampleTypes.cs",
+    "frontend/roslyn/samples/SelfDetachingHandlerSample.cs",
+    "frontend/roslyn/samples/SelfOwnedControlParts.cs",
+    "frontend/roslyn/samples/SelfOwnedViewModel.cs",
+    "frontend/roslyn/samples/SemaphoreFieldSample.cs",
+    "frontend/roslyn/samples/StaticClassEscapeSample.cs",
+    "frontend/roslyn/samples/StaticEventEscapeViewModel.cs",
+    "frontend/roslyn/samples/StaticHandlerViewModel.cs",
+    "frontend/roslyn/samples/TemplatePartLocalCaptureSample.cs",
+    "frontend/roslyn/samples/TierBSample.cs",
+    "frontend/roslyn/samples/TimerViewModel.cs",
+    "frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
+    "frontend/roslyn/samples/UsingFieldAcquisitionSample.cs",
+    "frontend/roslyn/samples/ViewOwnsVmSample.xaml.cs",
+    "frontend/roslyn/samples/VoidSubscribeSample.cs",
+    "frontend/roslyn/samples/WeakSubscribeAllowlistSample.cs",
+    "frontend/roslyn/samples/WeakSubscribeRxNoEventsSample.cs",
+    "frontend/roslyn/samples/WeakSubscribeUnresolvedSample.cs",
+    "frontend/roslyn/samples/WhenAnyValueViewModel.cs",
+    "frontend/roslyn/samples/WinFormsDisposalSample.cs",
+    "frontend/roslyn/samples/WinFormsModelessSample.cs",
+    "frontend/roslyn/samples/weaved-linked/Shared/SharedEnumerator.cs",
+    "frontend/roslyn/samples/weaved/WeavedEmptyDispose.cs"
+   ],
+   "python-ownlang": {
+    "document": {
+     "degraded": null,
+     "module": "Extracted",
+     "ownir_version": 0,
+     "summaries": [
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
+       "line": 0,
+       "method": "Catalog.CatalogService.CreateUnitOfWork",
+       "params": [],
+       "returns": {
+        "owned": "fresh"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
+       "line": 0,
+       "method": "Catalog.CatalogService.GetProductsFromCatalogWODocuments",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
+       "line": 0,
+       "method": "Catalog.CatalogService.ImportProducts",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/ColumnAnchorsSample.cs",
+       "line": 0,
+       "method": "ColumnAnchorsSample.TwoLeaksOneLine",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryLeakSample.cs",
+       "line": 0,
+       "method": "Factories.FactoryConsumers.Clean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryLeakSample.cs",
+       "line": 0,
+       "method": "Factories.FactoryConsumers.Leaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryLeakSample.cs",
+       "line": 0,
+       "method": "Factories.StreamFactory.Make",
+       "params": [],
+       "returns": {
+        "owned": "fresh"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.CatchThenDisposeAfter",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.Clean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.CryptoFactoryDisposed",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.CryptoFactoryLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.CtorInLambdaNotThrow",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.CtorThrowLeaksPrior",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DisposeAsyncConfiguredInTry",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DisposeInsideIfWithThrow",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DisposeOnThrow",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DisposedAsync",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DisposedAsyncConfigured",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DoClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DoLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DoubleDispose",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.EarlyReturnLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.Escapes",
+       "params": [],
+       "returns": {
+        "owned": "fresh"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ForIncrementorBodyUseAfterReturn",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ForLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ForeachLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.HasLoop",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.LeakOnElse",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.NameofInLambda",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.NestedThrowLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.NullCondFinallyDispose",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.OutArgRebindSuppressesLaterUse",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.OutArgSiblingUseAfterReturn",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.PoolReturnedOnOnePath",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.QualifiedTypedCatchLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ReassignedView",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.RefArgUseAfterReturn",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.SemaphoreLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.SliceReassignAfterReturn",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.SwitchAllDispose",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.SwitchOneLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.TcpListenerNeverStopped",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.TcpListenerStopped",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ThrowAfterAcquireLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ThrowAfterDisposeClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.TimerLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.TryFinallyClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.TryFinallyReturn",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.TryNeverDisposed",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.TypedCatchLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.UseAfterDispose",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ValidatedThenClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ValidatedThenLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.WhileClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.WhileLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
+       "line": 0,
+       "method": "Own.Samples.BodyThrowEdgesSample.AdjacentDisposeClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
+       "line": 0,
+       "method": "Own.Samples.BodyThrowEdgesSample.MayThrowInFinallyClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
+       "line": 0,
+       "method": "Own.Samples.BodyThrowEdgesSample.MayThrowLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/CloseReleaseSample.cs",
+       "line": 0,
+       "method": "Own.Samples.ClosesOtherInstanceField.CloseOther",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "other",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.LeakAsync",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.LeakBareInheritedAsync",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.LeakDerived",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.LeakInheritedAsync",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.LeakLegacy",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.LeakReader",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.LeakReal",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.UseScratch",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/WinFormsDisposalSample.cs",
+       "line": 0,
+       "method": "Own.Samples.ForeignContainerAdder.AttachTo",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "other",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/MemoryOwnerEscapeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.MemoryOwnerEscape.PoolOwnerNotEscaped",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/MemoryOwnerEscapeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.MemoryOwnerEscape.ReadOnlyLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/AppDomainShutdownSample.cs",
+       "line": 0,
+       "method": "Own.Samples.NonAppDomainSubscriber..ctor",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "cts",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/AliasDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.ScopedAliasNameLeak.Other",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/weaved/WeavedEmptyDispose.cs",
+       "line": 0,
+       "method": "Own.Samples.Weaved.WeavedConsumer.Count",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/audit/runtime/RetentionPath/Program.cs",
+       "line": 0,
+       "method": "OwnNet.Audit.Runtime.Program.Census",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "walker",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/OwnSharp.Cli/EngineRunner.cs",
+       "line": 0,
+       "method": "OwnSharp.Cli.EngineRunner.DrainAsync",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "stream",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.AdoptConsumers.AdoptClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.AdoptConsumers.AdoptDouble",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.AdoptConsumers.AdoptInnerOnly",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.AdoptConsumers.AdoptLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.AdoptConsumers.AdoptTargetTyped",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.AdoptConsumers.NonAdoptDoubleOk",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.StreamAdopter..ctor",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "inner",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.StreamHolder..ctor",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "held",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/PooledBufferSample.cs",
+       "line": 0,
+       "method": "PoolApp.Hasher.CleanHash",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/PooledBufferSample.cs",
+       "line": 0,
+       "method": "PoolApp.Hasher.LeakyHash",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "line": 0,
+       "method": "Sample.ConnectionResolver.Warm",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "line": 0,
+       "method": "Sample.ExprBodiedResolver.Warm",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "line": 0,
+       "method": "Sample.RequestResolver.Warm",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "line": 0,
+       "method": "Sample.ScopedResolver.Warm",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/OverloadSigSample.cs",
+       "line": 0,
+       "method": "SigOverloads.Drop",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/OverloadSigSample.cs",
+       "line": 0,
+       "method": "SigOverloads.Open",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "existing",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "unknown"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/OverloadSigSample.cs",
+       "line": 0,
+       "method": "SigOverloads.Open(System.IO.FileStream,System.Boolean)",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "existing",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/OverloadSigSample.cs",
+       "line": 0,
+       "method": "SigOverloads.Open(System.String)",
+       "params": [],
+       "returns": {
+        "owned": "fresh"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/LocalDisposableSample.cs",
+       "line": 0,
+       "method": "Streams.Loader.Leaky",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/LocalDisposableSample.cs",
+       "line": 0,
+       "method": "Streams.Loader.Transfer",
+       "params": [],
+       "returns": {
+        "owned": "fresh"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "line": 0,
+       "method": "WinFormsModelessSample.OpenModalLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "line": 0,
+       "method": "WinFormsModelessSample.OpenModalOk",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "line": 0,
+       "method": "WinFormsModelessSample.OpenModeless",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "line": 0,
+       "method": "WinFormsModelessSample.OpenModelessConditional",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      }
+     ],
+     "unresolved": []
+    },
+    "status": "produced"
+   },
+   "rust-own-bridge": {
+    "document": {
+     "degraded": null,
+     "module": "Extracted",
+     "ownir_version": 0,
+     "summaries": [
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
+       "line": 0,
+       "method": "Catalog.CatalogService.CreateUnitOfWork",
+       "params": [],
+       "returns": {
+        "owned": "fresh"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
+       "line": 0,
+       "method": "Catalog.CatalogService.GetProductsFromCatalogWODocuments",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
+       "line": 0,
+       "method": "Catalog.CatalogService.ImportProducts",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/ColumnAnchorsSample.cs",
+       "line": 0,
+       "method": "ColumnAnchorsSample.TwoLeaksOneLine",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryLeakSample.cs",
+       "line": 0,
+       "method": "Factories.FactoryConsumers.Clean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryLeakSample.cs",
+       "line": 0,
+       "method": "Factories.FactoryConsumers.Leaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryLeakSample.cs",
+       "line": 0,
+       "method": "Factories.StreamFactory.Make",
+       "params": [],
+       "returns": {
+        "owned": "fresh"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.CatchThenDisposeAfter",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.Clean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.CryptoFactoryDisposed",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.CryptoFactoryLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.CtorInLambdaNotThrow",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.CtorThrowLeaksPrior",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DisposeAsyncConfiguredInTry",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DisposeInsideIfWithThrow",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DisposeOnThrow",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DisposedAsync",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DisposedAsyncConfigured",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DoClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DoLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.DoubleDispose",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.EarlyReturnLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.Escapes",
+       "params": [],
+       "returns": {
+        "owned": "fresh"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ForIncrementorBodyUseAfterReturn",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ForLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ForeachLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.HasLoop",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.LeakOnElse",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.NameofInLambda",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.NestedThrowLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.NullCondFinallyDispose",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.OutArgRebindSuppressesLaterUse",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.OutArgSiblingUseAfterReturn",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.PoolReturnedOnOnePath",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.QualifiedTypedCatchLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ReassignedView",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.RefArgUseAfterReturn",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.SemaphoreLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.SliceReassignAfterReturn",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.SwitchAllDispose",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.SwitchOneLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.TcpListenerNeverStopped",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.TcpListenerStopped",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ThrowAfterAcquireLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ThrowAfterDisposeClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.TimerLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.TryFinallyClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.TryFinallyReturn",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.TryNeverDisposed",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.TypedCatchLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.UseAfterDispose",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ValidatedThenClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.ValidatedThenLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.WhileClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "line": 0,
+       "method": "FlowLocalsSample.WhileLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
+       "line": 0,
+       "method": "Own.Samples.BodyThrowEdgesSample.AdjacentDisposeClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
+       "line": 0,
+       "method": "Own.Samples.BodyThrowEdgesSample.MayThrowInFinallyClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
+       "line": 0,
+       "method": "Own.Samples.BodyThrowEdgesSample.MayThrowLeaks",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/CloseReleaseSample.cs",
+       "line": 0,
+       "method": "Own.Samples.ClosesOtherInstanceField.CloseOther",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "other",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.LeakAsync",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.LeakBareInheritedAsync",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.LeakDerived",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.LeakInheritedAsync",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.LeakLegacy",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.LeakReader",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.LeakReal",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.EmptyDisposeConsumers.UseScratch",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/WinFormsDisposalSample.cs",
+       "line": 0,
+       "method": "Own.Samples.ForeignContainerAdder.AttachTo",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "other",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/MemoryOwnerEscapeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.MemoryOwnerEscape.PoolOwnerNotEscaped",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/MemoryOwnerEscapeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.MemoryOwnerEscape.ReadOnlyLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/AppDomainShutdownSample.cs",
+       "line": 0,
+       "method": "Own.Samples.NonAppDomainSubscriber..ctor",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "cts",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/AliasDisposeSample.cs",
+       "line": 0,
+       "method": "Own.Samples.ScopedAliasNameLeak.Other",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/weaved/WeavedEmptyDispose.cs",
+       "line": 0,
+       "method": "Own.Samples.Weaved.WeavedConsumer.Count",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/audit/runtime/RetentionPath/Program.cs",
+       "line": 0,
+       "method": "OwnNet.Audit.Runtime.Program.Census",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "walker",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/OwnSharp.Cli/EngineRunner.cs",
+       "line": 0,
+       "method": "OwnSharp.Cli.EngineRunner.DrainAsync",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "stream",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.AdoptConsumers.AdoptClean",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.AdoptConsumers.AdoptDouble",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.AdoptConsumers.AdoptInnerOnly",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.AdoptConsumers.AdoptLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.AdoptConsumers.AdoptTargetTyped",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.AdoptConsumers.NonAdoptDoubleOk",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.StreamAdopter..ctor",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "inner",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "line": 0,
+       "method": "OwnSharp.Samples.StreamHolder..ctor",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "held",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/PooledBufferSample.cs",
+       "line": 0,
+       "method": "PoolApp.Hasher.CleanHash",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/PooledBufferSample.cs",
+       "line": 0,
+       "method": "PoolApp.Hasher.LeakyHash",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "line": 0,
+       "method": "Sample.ConnectionResolver.Warm",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "line": 0,
+       "method": "Sample.ExprBodiedResolver.Warm",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "line": 0,
+       "method": "Sample.RequestResolver.Warm",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "line": 0,
+       "method": "Sample.ScopedResolver.Warm",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/OverloadSigSample.cs",
+       "line": 0,
+       "method": "SigOverloads.Drop",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/OverloadSigSample.cs",
+       "line": 0,
+       "method": "SigOverloads.Open",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "existing",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "unknown"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/OverloadSigSample.cs",
+       "line": 0,
+       "method": "SigOverloads.Open(System.IO.FileStream,System.Boolean)",
+       "params": [
+        {
+         "disposable": true,
+         "index": 0,
+         "name": "existing",
+         "transfer": "no"
+        }
+       ],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/OverloadSigSample.cs",
+       "line": 0,
+       "method": "SigOverloads.Open(System.String)",
+       "params": [],
+       "returns": {
+        "owned": "fresh"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/LocalDisposableSample.cs",
+       "line": 0,
+       "method": "Streams.Loader.Leaky",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/LocalDisposableSample.cs",
+       "line": 0,
+       "method": "Streams.Loader.Transfer",
+       "params": [],
+       "returns": {
+        "owned": "fresh"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "line": 0,
+       "method": "WinFormsModelessSample.OpenModalLeak",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "line": 0,
+       "method": "WinFormsModelessSample.OpenModalOk",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "line": 0,
+       "method": "WinFormsModelessSample.OpenModeless",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      },
+      {
+       "file": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "line": 0,
+       "method": "WinFormsModelessSample.OpenModelessConditional",
+       "params": [],
+       "returns": {
+        "owned": "none"
+       },
+       "source": "inferred"
+      }
+     ],
+     "unresolved": []
+    },
+    "status": "produced"
+   }
+  }
+ },
+ "execution_profile": {
+  "dotnet": {
+   "runtimes": [
+    "Microsoft.AspNetCore.App 8.0.31",
+    "Microsoft.NETCore.App 8.0.31"
+   ],
+   "sdk": "8.0.425"
+  },
+  "platform": {
+   "machine": "x86_64",
+   "system": "Linux"
+  },
+  "python": {
+   "implementation": "CPython",
+   "version": "3.11.15 (main, Sep 19 2026, 00:18:08) [GCC 16.1.1 20260625]"
+  },
+  "rust": {
+   "cargo": "cargo 1.94.1 (29ea6fb6a 2026-03-24)",
+   "host": "x86_64-unknown-linux-gnu",
+   "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)\nbinary: rustc\ncommit-hash: e408947bfd200af42db322daf0fadfe7e26d3bd1\ncommit-date: 2026-03-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.94.1\nLLVM version: 21.1.8"
+  }
+ },
+ "input_roots": [
+  "frontend",
+  "audit"
+ ],
+ "instrument_paths": [
+  "ownlang/",
+  "rust/",
+  "scripts/own-check.sh",
+  "scripts/p037_evidence.py",
+  "scripts/p037_mos_snapshot.py",
+  "scripts/p037_verdict_snapshot.py",
+  "scripts/shadow_compare.py"
+ ],
+ "is_evidence": true,
+ "materialization_root": ".p037-population/4a8e6582e10222403cd40adc9e95db7e0228a1c2/325a580da5dc7849",
+ "population_commit": "4a8e6582e10222403cd40adc9e95db7e0228a1c2",
+ "post_run_population_intact": true,
+ "reference_profile": {
+  "OWN_EXTRA_REF_DIRS": "removed-from-child-environment",
+  "observed_extra_reference_lines": 0
+ },
+ "schema": "p037-mos-snapshot/2",
+ "source": "repo",
+ "source_commit": "5a0de070af241a2612859153887ad6ae04afcce2",
+ "subject_paths": [
+  "ownlang/",
+  "rust/",
+  "scripts/own-check.sh",
+  "scripts/p037_evidence.py",
+  "scripts/p037_mos_snapshot.py",
+  "scripts/p037_verdict_snapshot.py",
+  "scripts/shadow_compare.py",
+  "frontend/roslyn/OwnSharp.Extractor/",
+  "spec/"
+ ],
+ "support_manifest": [
+  {
+   "blob": "a070b9f433e0c5fe22afc9f7b33a7efd41026d70",
+   "mechanism": "sibling-xaml",
+   "path": "frontend/roslyn/samples/InjectedDcViewSample.xaml"
+  },
+  {
+   "blob": "344654a106208d92789ff63672693ef823333743",
+   "mechanism": "sibling-xaml",
+   "path": "frontend/roslyn/samples/ViewOwnsVmSample.xaml"
+  },
+  {
+   "blob": "b41ca452d4adffe860129074c164062685b1e37d",
+   "mechanism": "ancestor-fody",
+   "path": "frontend/roslyn/samples/weaved/FodyWeavers.xml"
+  }
+ ],
+ "support_manifest_sha256": "9002111b5cdcce3f8d09beb75060b131678f315f6aca708713b884ebf2b553fa",
+ "treatment_paths": [
+  "frontend/roslyn/OwnSharp.Extractor/",
+  "spec/"
+ ]
+}
