@@ -73,6 +73,13 @@ A2.2-4 landed: the oracle reads all 28 rows as their frozen class
 record in either carrier, is finding F-MEMBER in `oracle_findings.json`. The
 generated hostile census lives in `corpus/p037-hostile`.
 
+A2.2-4R landed: R4 added the three exclusion rows PredicateResult,
+InterpolationHole and IndexerArgument, R5 the constructor row CtorInit
+(`orphan_call:constructor_initializer`; the freeze test's `constructor_rows`),
+and R6 repaired F-MEMBER, so `Box.op_Implicit` now carries its fact as an
+orphan. The probe has 32 rows, `a2_2_4r6_observed` moves none of them against
+`a2_2_4r5_observed`, and the oracle reads the file RED-free.
+
 Only an A2.2 step, deliberately, one row at a time: a transparent wrapper
 becomes `captured` in A2.2-1, a call-like form in A2.2-2, an orphan record
 appears in A2.2-3. A row that moves without a step meaning to move it is a

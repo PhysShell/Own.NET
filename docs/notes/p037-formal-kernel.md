@@ -1239,14 +1239,17 @@ RED by the letter of the sentence, never a bin, until the R4 ruling named the
 three it met (10.6.11). Every `var` / `param` fact must join an occurrence of the *same
 symbol* at its site and ordinal, so a fact bound by spelling is RED.
 
-It is held to a *designed* classification, not to production: the 28 probe
-rows read as their frozen class (recorded in `a2_2_4_oracle`, pinned by the
-freeze test), and the generated census `corpus/p037-hostile` (138 cases: 114
-pairwise over site form × value flow × binding × carrier admission, plus the
-named compositions, the shadowing witnesses, the member kinds and the
-vocabulary edges) reads as `expected.json` designs it, occurrence by
-occurrence, carrier included. The 52 A1.1/A2 census shapes and the
-repository's samples are RED-free (samples: 163 universe occurrences, 25
+It is held to a *designed* classification, not to production: the 32 probe
+rows (28 at A2.2-4, the three exclusion rows of R4, the constructor row of R5)
+read as their frozen class (recorded in `a2_2_4_oracle`, pinned by the
+freeze test), and the generated census `corpus/p037-hostile` (142 cases: 114
+pairwise over site form × value flow × binding × carrier admission, plus 28
+named: the compositions, the shadowing witnesses, the member kinds, the
+extension receivers, the vocabulary edges and the constructor initializers)
+reads as `expected.json` designs it, occurrence by occurrence, carrier
+included. The 55 A1.1/A2 census shapes (52 at A2.2-4, `sidecar-ctorinit-base`
+of R5, the two `orphan-*` shapes of R6) and the repository's samples are
+RED-free (samples: 163 universe occurrences, 25
 captured, 120 excluded, 18 not call-related, 32 var/param facts all matched
 by symbol).
 
