@@ -1,0 +1,513 @@
+{
+  "acceptance": {
+    "all": true,
+    "every_mutant_compiles": true,
+    "every_mutant_exercised_once": true,
+    "no_open_finding": true,
+    "no_survivor": true,
+    "no_unexpected_kill_reason": true,
+    "ordinary_oracle_red_free": true,
+    "producer_mutants_killed_by_preregistered_reason": true,
+    "production_tree_restored": true,
+    "source_metamorphs_green": true,
+    "taxonomy_mutant_unclassified": true
+  },
+  "baseline": {
+    "hostile": {
+      "red": {},
+      "universe_occurrences": 220
+    },
+    "probe": {
+      "red": {},
+      "universe_occurrences": 38
+    },
+    "shape:orphan-expression-bodied": {
+      "red": {},
+      "universe_occurrences": 3
+    },
+    "shape:orphan-struct-method": {
+      "red": {},
+      "universe_occurrences": 2
+    },
+    "shape:sidecar-ctorinit-base": {
+      "red": {},
+      "universe_occurrences": 5
+    }
+  },
+  "manifest_sha256": "b720820baee8392b109a6a2cc0cc2bea178bf309f04208b8f127691bc6f0e048",
+  "mutants": {
+    "K-COND-RECV": {
+      "build": "ok",
+      "expected": "killed",
+      "expected_red": {
+        "hostile": {
+          "ext-conditional-access": {
+            "occurrence_not_captured": 1
+          }
+        },
+        "probe": {}
+      },
+      "hostile_design_mismatches": [],
+      "kill_reason": "preregistered",
+      "observed_red": {
+        "hostile": {
+          "ext-conditional-access": {
+            "occurrence_not_captured": 1
+          }
+        },
+        "probe": {}
+      },
+      "outcome": "killed",
+      "reverts": "A2.2-4R3 (F-CONDITIONAL-RECEIVER)",
+      "surface": "producer"
+    },
+    "K-CTORINIT": {
+      "build": "ok",
+      "expected": "killed",
+      "expected_red": {
+        "hostile": {
+          "ctorinit-named-transparent": {
+            "occurrence_not_captured": 1
+          },
+          "vocab-constructor-initializer": {
+            "occurrence_not_captured": 1
+          }
+        },
+        "probe": {
+          "occurrence_not_captured": 1
+        },
+        "shape:sidecar-ctorinit-base": {
+          "occurrence_not_captured": 1
+        }
+      },
+      "hostile_design_mismatches": [
+        "ctorinit-named-transparent",
+        "vocab-constructor-initializer"
+      ],
+      "kill_reason": "preregistered",
+      "observed_red": {
+        "hostile": {
+          "ctorinit-named-transparent": {
+            "occurrence_not_captured": 1
+          },
+          "vocab-constructor-initializer": {
+            "occurrence_not_captured": 1
+          }
+        },
+        "probe": {
+          "occurrence_not_captured": 1
+        },
+        "shape:sidecar-ctorinit-base": {
+          "occurrence_not_captured": 1
+        }
+      },
+      "outcome": "killed",
+      "reverts": "A2.2-4R5 (F-CTOR-INIT)",
+      "surface": "producer"
+    },
+    "K-MEMBER": {
+      "build": "ok",
+      "expected": "killed",
+      "expected_red": {
+        "hostile": {
+          "member-accessor": {
+            "occurrence_not_captured": 1
+          },
+          "member-default-interface-method": {
+            "occurrence_not_captured": 1
+          },
+          "member-expression-bodied": {
+            "occurrence_not_captured": 1
+          },
+          "member-record": {
+            "occurrence_not_captured": 1
+          },
+          "member-record-struct": {
+            "occurrence_not_captured": 1
+          },
+          "member-struct": {
+            "occurrence_not_captured": 1
+          }
+        },
+        "probe": {
+          "occurrence_not_captured": 1
+        },
+        "shape:orphan-expression-bodied": {
+          "occurrence_not_captured": 1
+        },
+        "shape:orphan-struct-method": {
+          "occurrence_not_captured": 1
+        }
+      },
+      "hostile_design_mismatches": [
+        "member-accessor",
+        "member-default-interface-method",
+        "member-expression-bodied",
+        "member-record",
+        "member-record-struct",
+        "member-struct"
+      ],
+      "kill_reason": "preregistered",
+      "observed_red": {
+        "hostile": {
+          "member-accessor": {
+            "occurrence_not_captured": 1
+          },
+          "member-default-interface-method": {
+            "occurrence_not_captured": 1
+          },
+          "member-expression-bodied": {
+            "occurrence_not_captured": 1
+          },
+          "member-record": {
+            "occurrence_not_captured": 1
+          },
+          "member-record-struct": {
+            "occurrence_not_captured": 1
+          },
+          "member-struct": {
+            "occurrence_not_captured": 1
+          }
+        },
+        "probe": {
+          "occurrence_not_captured": 1
+        },
+        "shape:orphan-expression-bodied": {
+          "occurrence_not_captured": 1
+        },
+        "shape:orphan-struct-method": {
+          "occurrence_not_captured": 1
+        }
+      },
+      "outcome": "killed",
+      "reverts": "A2.2-4R6 (F-MEMBER)",
+      "surface": "producer"
+    },
+    "K-PARAMS": {
+      "build": "ok",
+      "expected": "killed",
+      "expected_red": {
+        "hostile": {
+          "pw-ctor-boxing-params-orphan-local": {
+            "fact_without_relevant_occurrence": 1
+          },
+          "pw-del-parens-params-record-local": {
+            "occurrence_not_captured": 1
+          },
+          "pw-ext-user-implicit-params-record-param": {
+            "fact_without_relevant_occurrence": 1
+          },
+          "pw-inv-bang-params-orphan-local": {
+            "occurrence_not_captured": 1
+          }
+        },
+        "probe": {}
+      },
+      "hostile_design_mismatches": [
+        "pw-ctor-boxing-params-orphan-local",
+        "pw-inv-bang-params-orphan-local"
+      ],
+      "kill_reason": "preregistered",
+      "observed_red": {
+        "hostile": {
+          "pw-ctor-boxing-params-orphan-local": {
+            "fact_without_relevant_occurrence": 1
+          },
+          "pw-del-parens-params-record-local": {
+            "occurrence_not_captured": 1
+          },
+          "pw-ext-user-implicit-params-record-param": {
+            "fact_without_relevant_occurrence": 1
+          },
+          "pw-inv-bang-params-orphan-local": {
+            "occurrence_not_captured": 1
+          }
+        },
+        "probe": {}
+      },
+      "outcome": "killed",
+      "reverts": "A2.2-4R2 (F-PARAMS-ELEMENT)",
+      "surface": "producer"
+    },
+    "K-SHADOW": {
+      "build": "ok",
+      "expected": "killed",
+      "expected_red": {
+        "hostile": {
+          "shadow-lambda-local": {
+            "fact_binds_other_symbol": 1
+          },
+          "shadow-sibling-scopes": {
+            "fact_binds_other_symbol": 1
+          },
+          "shadow-sibling-scopes-reversed": {
+            "fact_binds_other_symbol": 1
+          }
+        },
+        "probe": {}
+      },
+      "hostile_design_mismatches": [
+        "shadow-lambda-local"
+      ],
+      "kill_reason": "preregistered",
+      "observed_red": {
+        "hostile": {
+          "shadow-lambda-local": {
+            "fact_binds_other_symbol": 1
+          },
+          "shadow-sibling-scopes": {
+            "fact_binds_other_symbol": 1
+          },
+          "shadow-sibling-scopes-reversed": {
+            "fact_binds_other_symbol": 1
+          }
+        },
+        "probe": {}
+      },
+      "outcome": "killed",
+      "reverts": "A2.2-4R1 (F-SHADOW)",
+      "surface": "producer"
+    },
+    "M1-remove-handle": {
+      "carrier": {
+        "base": "functions",
+        "mutant": "functions"
+      },
+      "expected": "green",
+      "obligations": [
+        {
+          "detail": "reads as designed",
+          "name": "design:base",
+          "ok": true
+        },
+        {
+          "detail": "reads as designed",
+          "name": "design:mutant",
+          "ok": true
+        },
+        {
+          "detail": "base functions, mutant functions",
+          "name": "carrier_unchanged",
+          "ok": true
+        },
+        {
+          "detail": "args {'0': {'kind': 'var', 'name': 'r'}, '1': {'kind': 'bool_const', 'value': True}}",
+          "name": "fact:base:Mut_M1_RemoveHandle.Sink",
+          "ok": true
+        },
+        {
+          "detail": "no fact at the site",
+          "name": "no_fact:mutant:Mut_M1_RemoveHandle.Sink",
+          "ok": true
+        },
+        {
+          "detail": "no var/param(r)",
+          "name": "no_handle_fact_for:mutant:r",
+          "ok": true
+        }
+      ],
+      "operator": "REMOVE_HANDLE",
+      "outcome": "green",
+      "surface": "source"
+    },
+    "M2-add-parentheses": {
+      "carrier": {
+        "base": "functions",
+        "mutant": "functions"
+      },
+      "expected": "green",
+      "obligations": [
+        {
+          "detail": "reads as designed",
+          "name": "design:base",
+          "ok": true
+        },
+        {
+          "detail": "reads as designed",
+          "name": "design:mutant",
+          "ok": true
+        },
+        {
+          "detail": "base functions, mutant functions",
+          "name": "carrier_unchanged",
+          "ok": true
+        },
+        {
+          "detail": "equal; site unchanged",
+          "name": "fact_equal_modulo_site:Mut_M2_AddParentheses.Sink",
+          "ok": true
+        },
+        {
+          "detail": "{'symbol': 'r', 'verdict': 'captured', 'site_kind': 'invocation', 'ordinal': 0, 'expected': 'var', 'enclosing': []}",
+          "name": "occurrence_equal:r",
+          "ok": true
+        }
+      ],
+      "operator": "ADD_PARENTHESES",
+      "outcome": "green",
+      "surface": "source"
+    },
+    "M3-perturb-binding-named": {
+      "carrier": {
+        "base": "functions",
+        "mutant": "functions"
+      },
+      "expected": "green",
+      "obligations": [
+        {
+          "detail": "reads as designed",
+          "name": "design:base",
+          "ok": true
+        },
+        {
+          "detail": "reads as designed",
+          "name": "design:mutant",
+          "ok": true
+        },
+        {
+          "detail": "base functions, mutant functions",
+          "name": "carrier_unchanged",
+          "ok": true
+        },
+        {
+          "detail": "args {'0': {'kind': 'var', 'name': 'r'}, '1': {'kind': 'var', 'name': 'q'}}",
+          "name": "fact:base:Mut_M3_PerturbBindingNamed.Take",
+          "ok": true
+        },
+        {
+          "detail": "args {'0': {'kind': 'var', 'name': 'q'}, '1': {'kind': 'var', 'name': 'r'}}",
+          "name": "fact:mutant:Mut_M3_PerturbBindingNamed.Take",
+          "ok": true
+        }
+      ],
+      "operator": "PERTURB_BINDING",
+      "outcome": "green",
+      "surface": "source"
+    },
+    "M3-perturb-binding-params": {
+      "carrier": {
+        "base": "functions",
+        "mutant": "functions"
+      },
+      "expected": "green",
+      "obligations": [
+        {
+          "detail": "reads as designed",
+          "name": "design:base",
+          "ok": true
+        },
+        {
+          "detail": "reads as designed",
+          "name": "design:mutant",
+          "ok": true
+        },
+        {
+          "detail": "base functions, mutant functions",
+          "name": "carrier_unchanged",
+          "ok": true
+        },
+        {
+          "detail": "args {'0': {'kind': 'var', 'name': 'r'}, '1': {'kind': 'opaque'}}",
+          "name": "fact:base:Mut_M3_PerturbBindingParams.TakeP",
+          "ok": true
+        },
+        {
+          "detail": "args {'0': {'kind': 'var', 'name': 'q'}, '1': {'kind': 'opaque'}}",
+          "name": "fact:mutant:Mut_M3_PerturbBindingParams.TakeP",
+          "ok": true
+        }
+      ],
+      "operator": "PERTURB_BINDING",
+      "outcome": "green",
+      "surface": "source"
+    },
+    "M4-distinguish-nested": {
+      "carrier": {
+        "base": "functions",
+        "mutant": "functions"
+      },
+      "expected": "green",
+      "obligations": [
+        {
+          "detail": "reads as designed",
+          "name": "design:base",
+          "ok": true
+        },
+        {
+          "detail": "reads as designed",
+          "name": "design:mutant",
+          "ok": true
+        },
+        {
+          "detail": "base functions, mutant functions",
+          "name": "carrier_unchanged",
+          "ok": true
+        },
+        {
+          "detail": "args {'0': {'kind': 'var', 'name': 'r'}}",
+          "name": "fact:base:Mut_M4_DistinguishNested.Use",
+          "ok": true
+        },
+        {
+          "detail": "args {'0': {'kind': 'var', 'name': 'r'}}",
+          "name": "fact:mutant:Mut_M4_DistinguishNested.Wrap",
+          "ok": true
+        },
+        {
+          "detail": "0 fact(s) at Mut_M4_DistinguishNested.Use, 0 carrying var/param(r)",
+          "name": "no_handle_fact_at:mutant:Mut_M4_DistinguishNested.Use:r",
+          "ok": true
+        }
+      ],
+      "operator": "DISTINGUISH_NESTED",
+      "outcome": "green",
+      "surface": "source"
+    },
+    "T-PREDICATE-RESULT": {
+      "baseline_probe_row": {
+        "PredicateResult": "excluded:predicate_result"
+      },
+      "expected": "unclassified",
+      "failures": {
+        "freeze_test": {
+          "classification-valid": "PredicateResult: unknown exclusion 'predicate_result'",
+          "registry-non-vacuous": "unexercised wrappers [], forms [], call forms [], exclusions [], conversion edges []"
+        },
+        "hostile_test": {
+          "designs-use-frozen-vocabulary": "vocab-tested-operand: exclusion 'predicate_result' is not frozen"
+        },
+        "oracle_driver": {
+          "oracle-exclusions-frozen[hostile]": "the oracle excluded occurrences by ['predicate_result'], names the registry does not freeze: unclassified, not a bin",
+          "oracle-exclusions-frozen[probe]": "the oracle excluded occurrences by ['predicate_result'], names the registry does not freeze: unclassified, not a bin"
+        }
+      },
+      "outcome": "unclassified",
+      "removed": "predicate_result",
+      "surface": "taxonomy"
+    }
+  },
+  "production_digest": "74d600cf46aa9b7d2e3b7dbdea184243fe5ab413e9bb92154d46db165dcd1caa",
+  "provenance": {
+    "base_sha": "27aadf22ed38488d721f5217705326b7653a4bb6",
+    "pending_paths": [
+      " M AGENTS.md",
+      " M docs/notes/p037-formal-kernel.md",
+      " M frontend/roslyn/OwnSharp.Oracle/README.md",
+      " M pyproject.toml",
+      " M scripts/p037_completeness_oracle.py",
+      "?? corpus/p037-mutation/",
+      "?? scripts/p037_mutation_campaign.py",
+      "?? tests/test_p037_mutation_campaign.py",
+      "M .github/workflows/ci.yml"
+    ]
+  },
+  "schema": "p037-mutation-campaign/1",
+  "totals": {
+    "forbidden": 0,
+    "green": 5,
+    "killed": 5,
+    "mutants": 11,
+    "survived": 0,
+    "unclassified": 1
+  }
+}

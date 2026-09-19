@@ -12,8 +12,12 @@ the extractor and the oracle over
   * the repository's own samples frontend/roslyn/samples (one compilation),
   * the generated hostile census corpus/p037-hostile/cases (one compilation),
 
-and checks three things by name:
+and checks four things by name:
 
+  0. Every exclusion name the oracle assigns is one the registry freezes
+     (corpus/p037-relevance/registry.json). An occurrence excluded by a name the
+     registry does not carry is UNCLASSIFIED, the letter of the sentence, never
+     a bin; this is the check the A2.2-5 taxonomy mutant attacks.
   1. RED is exactly what the findings ledger expects. An input that is not in
      corpus/p037-relevance/oracle_findings.json must be RED-free; an input that
      is must raise exactly the RED kinds and counts pinned there, each tied to
@@ -53,6 +57,7 @@ SHAPES = ROOT / "corpus" / "p037-shapes"
 PROBE = ROOT / "corpus" / "p037-relevance" / "probe" / "case.cs"
 PROBE_EXPECTED = ROOT / "corpus" / "p037-relevance" / "probe" / "expected.json"
 FINDINGS = ROOT / "corpus" / "p037-relevance" / "oracle_findings.json"
+REGISTRY = ROOT / "corpus" / "p037-relevance" / "registry.json"
 SAMPLES = ROOT / "frontend" / "roslyn" / "samples"
 HOSTILE = ROOT / "corpus" / "p037-hostile"
 EXTRACTOR = ROOT / "frontend" / "roslyn" / "OwnSharp.Extractor"
@@ -124,6 +129,25 @@ def load_findings() -> dict[str, Any]:
         return {"findings": {}, "expected_red": {}}
     doc: dict[str, Any] = json.loads(FINDINGS.read_text(encoding="utf-8"))
     return doc
+
+
+# ---- 0. the oracle's exclusion names are the registry's ----
+
+def frozen_exclusions(registry: Path = REGISTRY) -> set[str]:
+    doc: dict[str, Any] = json.loads(registry.read_text(encoding="utf-8"))
+    return set(doc.get("exclusions", {}))
+
+
+def check_exclusions_frozen(name: str, report: dict[str, Any], frozen: set[str]) -> list[str]:
+    """Every exclusion name the oracle used on this input must be a frozen one.
+
+    Returns the unknown names (the reason the check failed, for the A2.2-5 campaign)."""
+    used = {str(k) for k, v in report.get("exclusions", {}).items() if v}
+    unknown = sorted(used - frozen)
+    check(f"oracle-exclusions-frozen[{name}]", not unknown,
+          f"the oracle excluded occurrences by {unknown}, names the registry does not freeze: "
+          "unclassified, not a bin")
+    return unknown
 
 
 # ---- 1. RED against the ledger ----
@@ -325,6 +349,7 @@ def main(argv: list[str]) -> int:
     extractor = build(EXTRACTOR, "ownsharp-extract.dll")
     oracle = build(ORACLE, "ownsharp-oracle.dll")
     ledger = load_findings()
+    frozen = frozen_exclusions()
     for fid, f in ledger.get("findings", {}).items():
         check(f"finding-classified[{fid}]", bool(f.get("class")) and bool(f.get("title")),
               "a finding needs a §10.1 class and a title")
@@ -348,6 +373,7 @@ def main(argv: list[str]) -> int:
                   f"{summary.get('captured')} captured, {summary.get('excluded')} excluded, "
                   f"{summary.get('not_call_related')} not call-related, "
                   f"RED {summary.get('red')} (rc {rc})")
+            check_exclusions_frozen(name, report, frozen)
             check_red(name, report, ledger)
             if name == "probe":
                 check_probe(report, record=args.cmd == "record")

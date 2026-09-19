@@ -17,6 +17,13 @@ The driver `scripts/p037_completeness_oracle.py` builds both projects once,
 runs the extractor and the oracle over every census input, and holds the
 result to the findings ledger, the relevance probe and the hostile census.
 
+The oracle is itself under test: the A2.2-5 mutation campaign
+(`scripts/p037_mutation_campaign.py`, `corpus/p037-mutation`) re-introduces each
+repaired defect into a copy of the extractor and demands the preregistered RED,
+rewrites call sites by meaning and demands green, and removes a frozen exclusion
+from the registry and demands `unclassified` from the driver's
+`oracle-exclusions-frozen` check.
+
 ## What it does
 
 1. **Inventory.** For every member body in every type declaration (class,

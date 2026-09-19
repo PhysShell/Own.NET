@@ -51,6 +51,7 @@ files = [
   "scripts/p037_sidecar_inertness.py",
   "scripts/p037_completeness_oracle.py",
   "scripts/p037_hostile_census.py",
+  "scripts/p037_mutation_campaign.py",
   "scripts/round7/classify.py",
   "scripts/round7/elfread.py",
   "scripts/round7/preflight.py",

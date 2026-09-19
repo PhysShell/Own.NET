@@ -1201,8 +1201,17 @@ causes of FACT-DIFF. Tracked in #364 with its own acceptance.
   member enumeration feeding the orphan carrier, the legacy `functions[]`
   untouched, and every finding is closed: the oracle reads every input
   RED-free;
-- **A2.2-5** mutation campaign: remove the handle, add parentheses, perturb the
-  binding, distinguish nested calls;
+- **A2.2-5** mutation campaign, landed in the commit carrying this line
+  (10.6.12): the control is itself put under test. Four frozen source
+  metamorphs (remove the handle, add parentheses, perturb the binding in its
+  named and its expanded-params form, distinguish nested calls) must stay
+  green under contracts on the facts, five compile-valid reversions of the
+  A2.2-4R repairs must be killed by exactly the RED the ledger pinned before
+  each repair, and a taxonomy mutant (`predicate_result` removed from the
+  registry) must read unclassified, never reclassified. A build failure, an
+  extractor crash or an unrelated failure is a forbidden kill reason. Measured:
+  5 metamorphs green, 5 producer mutants killed by their preregistered reason,
+  1 taxonomy mutant unclassified, 0 survivors, 0 forbidden reasons;
 - **A2.2-S** cumulative A2 after-evidence on M1 against the existing R with
   population T: fact shape MOVED as preregistered, MOS UNCHANGED, verdict
   UNCHANGED;
@@ -1417,3 +1426,86 @@ nested-function gap.
   every A2.2-4 finding is either repaired or a consciously frozen named
   exclusion: the completeness phase's goal, not merely "we know where the
   red is".
+
+#### 10.6.12 A2.2-5: the mutation campaign (REPOSITORY FACT)
+
+After A2.2-4R every finding is repaired or consciously frozen, and the only
+question left about the completeness control is whether it can still catch
+what it once caught, and whether it reads a call site by meaning rather than by
+spelling. A2.2-5 answers both with a campaign the tree carries
+(`scripts/p037_mutation_campaign.py`, `corpus/p037-mutation`: a generated
+manifest, the base programs, and a deterministic `report.json` recorded for one
+manifest digest and one production digest; `tests/test_p037_mutation_campaign.py`
+holds the three to each other without dotnet, and the campaign itself runs in
+CI beside the oracle and must reproduce the record).
+
+The rule comes first, because a mutation campaign without it proves nothing: a
+mutant is **killed** only when it stays valid C#, the extractor runs to
+completion, and the oracle or the frozen-vocabulary infrastructure raises
+exactly the RED / mismatch preregistered for it. A build failure, a compile
+error, an extractor crash, an oracle crash or an unrelated check failing is a
+**forbidden kill reason**, fails the whole campaign and never counts as a catch.
+Three surfaces:
+
+- **Source metamorphs** (expected green). A base program and one frozen
+  rewrite, each run through the extractor and the oracle, held to its own
+  designed classification and then to a contract on the facts. REMOVE_HANDLE
+  (`Sink(r, true)` → `Sink(Stream.Null, true); r.Dispose();`): the record stays
+  in `functions[]`, the `Sink` fact (`var r` at ordinal 0, the `true` literal
+  as `bool_const` at ordinal 1) disappears, no stale `var(r)` anywhere.
+  ADD_PARENTHESES (`Sink((((r))), true)`): the fact is equal modulo its source
+  coordinate and the oracle's occurrence is equal (same symbol, ordinal 0,
+  `var`, invocation). PERTURB_BINDING (`Take(first: r, second: q)` →
+  `Take(second: r, first: q)`): `r` moves to ordinal 1 and `q` to ordinal 0 by
+  declared parameter; its expanded-params twin (`TakeP(r, q)` → `TakeP(q, r)`
+  against `TakeP(Stream first, params Stream[] rest)`): `q` becomes the `var`
+  at ordinal 0 and `r` the opaque params slot at ordinal 1, the R2 machinery
+  under perturbation. DISTINGUISH_NESTED (`Use(r)` → `Use(Wrap(r))`): the inner
+  `Wrap` captures `var r` at ordinal 0, the outer occurrence reads
+  `nested_call_result`, no fact at `Use` carries `var(r)`. Measured: all five
+  green, every obligation met; the one obligation that failed on the first run
+  was the contract's, not production's (it had named ordinal 0 alone where the
+  fact truthfully also carries the `true` literal), and was completed.
+- **Producer regression mutants** (expected killed). Five compile-valid
+  reversions of the A2.2-4R repairs, each an exact `find` / `replace` on the
+  extractor whose anchor must occur exactly once, applied to a *copy* of the
+  project in a temporary directory and built there (the production tree is
+  never written; digests and `git status` before and after are part of the
+  record). Each runs over the inputs it names and must raise exactly the RED
+  map pinned before the repair: K-SHADOW (handle lookup by spelling again)
+  `fact_binds_other_symbol` on the three `shadow-*` witnesses; K-PARAMS (no
+  ParamArray-element recovery) `occurrence_not_captured` under parentheses and
+  `!`, `fact_without_relevant_occurrence` under boxing and `op_Implicit`, the
+  four cases the A2.2-4 ledger pinned; K-COND-RECV (no MemberBinding receiver)
+  `occurrence_not_captured` on `ext-conditional-access`; K-CTORINIT (no
+  `constructor_initializer` fact) `occurrence_not_captured` on two hostile
+  witnesses, the probe row `CtorInit` and the shape `sidecar-ctorinit-base`,
+  while `ctorinit-nested-call` stays green because the initializer's nested
+  calls are still walked; K-MEMBER (the guarded-only enumeration restricted to
+  class members with a block body, the legacy loop's own domain)
+  `occurrence_not_captured` on the six `member-*` witnesses, the probe helper
+  `Box.op_Implicit` and the two `orphan-*` shapes. Measured: all five killed,
+  each by exactly its preregistered map, nothing else red on any input.
+- **A taxonomy contract mutant** (expected unclassified). `predicate_result`
+  removed from a copy of the registry: the freeze test fails exactly
+  `classification-valid` ("unknown exclusion 'predicate_result'") and
+  `registry-non-vacuous`, the hostile-census test exactly
+  `designs-use-frozen-vocabulary` ("not frozen"), and the oracle driver's
+  check `oracle-exclusions-frozen[*]`, added for this, exactly on the probe and
+  the hostile census ("names the registry does not freeze: unclassified, not a
+  bin"), while the shape keeps its occurrences (the probe row `PredicateResult`
+  read `excluded:predicate_result` before the removal). Nothing folds the shape
+  into a neighbouring name; a future `other_expression` bucket dies here.
+
+Acceptance is the whole list or nothing: every declared mutant exercised
+exactly once, every C# mutant compiles, every metamorph green, every producer
+mutant killed by its preregistered reason, the taxonomy mutant unclassified, no
+survivor, no unexpected kill reason, the production tree byte-identical
+afterwards, the ordinary oracle RED-free on every campaign input, no open
+finding. Measured on the tree at the A2.2-4R-fix commit: 11 mutants, 5 green,
+5 killed, 1 unclassified, 0 survivors, 0 forbidden reasons, about a hundred
+seconds. What the campaign does not claim: it proves the control catches the
+six defects it once found and reads four rewrites by meaning; it does not
+enumerate the extractor's other seams, the hostile census remains pairwise, and
+lambdas / local functions stay the separate nested-function gap. After A2.2-5
+no functionality is added: A2.2-S measures the whole of A2 once against T/R.

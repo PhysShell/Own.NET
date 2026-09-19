@@ -3055,6 +3055,18 @@ jobs:
           # designed. The generator's drift check runs in the dotnet-free
           # tests job (tests/test_p037_hostile_census.py).
           python scripts/p037_completeness_oracle.py check
+          # A2.2-5: the mutation campaign against that oracle. Four frozen source
+          # metamorphs must stay green under their contracts, five compile-valid
+          # reversions of the A2.2-4R repairs (built from a COPY of the extractor)
+          # must be killed by exactly the RED the ledger pinned before each repair,
+          # and a taxonomy mutant (predicate_result removed from the registry)
+          # must read unclassified in the freeze test, the hostile test and the
+          # driver. A build failure, an extractor crash or an unrelated failure is
+          # a forbidden kill reason and fails the step; the run must reproduce
+          # corpus/p037-mutation/report.json (manifest and production digests
+          # included), so a stale record is red here and, without dotnet, in
+          # tests/test_p037_mutation_campaign.py.
+          python scripts/p037_mutation_campaign.py run
       # The Windows launcher is a separate implementation, not a wrapper around
       # the shell one, so the Windows leg has to go through it to mean anything.
       - name: Own.NET's own tree, through own-check.ps1 on the Rust core

@@ -1,0 +1,795 @@
+{
+ "schema": "p037-mutation-campaign/1",
+ "generator": "scripts/p037_mutation_campaign.py",
+ "rule": "A mutant is killed only when it stays valid C#, the extractor runs to completion and the oracle (or the frozen-vocabulary infrastructure) raises exactly the preregistered RED / mismatch. A compile failure, an extractor crash, an oracle crash or an unrelated check failing is a forbidden kill reason: it fails the campaign and never counts as a catch.",
+ "forbidden_kill_reasons": [
+  "build_failure",
+  "compile_error",
+  "extractor_crash",
+  "oracle_crash",
+  "unrelated_check_failure"
+ ],
+ "baseline_inputs": [
+  "hostile",
+  "probe",
+  "shape:sidecar-ctorinit-base",
+  "shape:orphan-expression-bodied",
+  "shape:orphan-struct-method"
+ ],
+ "mutants": [
+  {
+   "id": "M1-remove-handle",
+   "surface": "source",
+   "operator": "REMOVE_HANDLE",
+   "source": "sources/M1-remove-handle.cs",
+   "member": "Mut_M1_RemoveHandle.M",
+   "patch": {
+    "find": "Sink(r, true); keep.Dispose();",
+    "replace": "Sink(Stream.Null, true); r.Dispose(); keep.Dispose();"
+   },
+   "must_compile": true,
+   "expected": "green",
+   "base_design": {
+    "carrier": "functions",
+    "occurrences": [
+     {
+      "symbol": "r",
+      "verdict": "captured",
+      "site_kind": "invocation",
+      "ordinal": 0,
+      "expected": "var"
+     },
+     {
+      "symbol": "keep",
+      "verdict": "excluded",
+      "explanation": "receiver_not_summary_parameter"
+     }
+    ]
+   },
+   "mutant_design": {
+    "carrier": "functions",
+    "occurrences": [
+     {
+      "symbol": "r",
+      "verdict": "excluded",
+      "explanation": "receiver_not_summary_parameter"
+     },
+     {
+      "symbol": "keep",
+      "verdict": "excluded",
+      "explanation": "receiver_not_summary_parameter"
+     }
+    ]
+   },
+   "obligations": [
+    {
+     "kind": "design",
+     "side": "base"
+    },
+    {
+     "kind": "design",
+     "side": "mutant"
+    },
+    {
+     "kind": "carrier_unchanged"
+    },
+    {
+     "kind": "fact",
+     "side": "base",
+     "callee": "Mut_M1_RemoveHandle.Sink",
+     "args": {
+      "0": {
+       "kind": "var",
+       "name": "r"
+      },
+      "1": {
+       "kind": "bool_const",
+       "value": true
+      }
+     }
+    },
+    {
+     "kind": "no_fact",
+     "side": "mutant",
+     "callee": "Mut_M1_RemoveHandle.Sink"
+    },
+    {
+     "kind": "no_handle_fact_for",
+     "side": "mutant",
+     "symbol": "r"
+    }
+   ],
+   "forbidden_kill_reasons": [
+    "build_failure",
+    "compile_error",
+    "extractor_crash",
+    "oracle_crash",
+    "unrelated_check_failure"
+   ]
+  },
+  {
+   "id": "M2-add-parentheses",
+   "surface": "source",
+   "operator": "ADD_PARENTHESES",
+   "source": "sources/M2-add-parentheses.cs",
+   "member": "Mut_M2_AddParentheses.M",
+   "patch": {
+    "find": "Sink(r, true)",
+    "replace": "Sink((((r))), true)"
+   },
+   "must_compile": true,
+   "expected": "green",
+   "base_design": {
+    "carrier": "functions",
+    "occurrences": [
+     {
+      "symbol": "r",
+      "verdict": "captured",
+      "site_kind": "invocation",
+      "ordinal": 0,
+      "expected": "var"
+     },
+     {
+      "symbol": "keep",
+      "verdict": "excluded",
+      "explanation": "receiver_not_summary_parameter"
+     }
+    ]
+   },
+   "mutant_design": {
+    "carrier": "functions",
+    "occurrences": [
+     {
+      "symbol": "r",
+      "verdict": "captured",
+      "site_kind": "invocation",
+      "ordinal": 0,
+      "expected": "var"
+     },
+     {
+      "symbol": "keep",
+      "verdict": "excluded",
+      "explanation": "receiver_not_summary_parameter"
+     }
+    ]
+   },
+   "obligations": [
+    {
+     "kind": "design",
+     "side": "base"
+    },
+    {
+     "kind": "design",
+     "side": "mutant"
+    },
+    {
+     "kind": "carrier_unchanged"
+    },
+    {
+     "kind": "fact_equal_modulo_site",
+     "callee": "Mut_M2_AddParentheses.Sink"
+    },
+    {
+     "kind": "occurrence_equal",
+     "symbol": "r"
+    }
+   ],
+   "forbidden_kill_reasons": [
+    "build_failure",
+    "compile_error",
+    "extractor_crash",
+    "oracle_crash",
+    "unrelated_check_failure"
+   ]
+  },
+  {
+   "id": "M3-perturb-binding-named",
+   "surface": "source",
+   "operator": "PERTURB_BINDING",
+   "source": "sources/M3-perturb-binding-named.cs",
+   "member": "Mut_M3_PerturbBindingNamed.M",
+   "patch": {
+    "find": "Take(first: r, second: q)",
+    "replace": "Take(second: r, first: q)"
+   },
+   "must_compile": true,
+   "expected": "green",
+   "base_design": {
+    "carrier": "functions",
+    "occurrences": [
+     {
+      "symbol": "r",
+      "verdict": "captured",
+      "site_kind": "invocation",
+      "ordinal": 0,
+      "expected": "var"
+     },
+     {
+      "symbol": "q",
+      "verdict": "captured",
+      "site_kind": "invocation",
+      "ordinal": 1,
+      "expected": "var"
+     },
+     {
+      "symbol": "keep",
+      "verdict": "excluded",
+      "explanation": "receiver_not_summary_parameter"
+     }
+    ]
+   },
+   "mutant_design": {
+    "carrier": "functions",
+    "occurrences": [
+     {
+      "symbol": "r",
+      "verdict": "captured",
+      "site_kind": "invocation",
+      "ordinal": 1,
+      "expected": "var"
+     },
+     {
+      "symbol": "q",
+      "verdict": "captured",
+      "site_kind": "invocation",
+      "ordinal": 0,
+      "expected": "var"
+     },
+     {
+      "symbol": "keep",
+      "verdict": "excluded",
+      "explanation": "receiver_not_summary_parameter"
+     }
+    ]
+   },
+   "obligations": [
+    {
+     "kind": "design",
+     "side": "base"
+    },
+    {
+     "kind": "design",
+     "side": "mutant"
+    },
+    {
+     "kind": "carrier_unchanged"
+    },
+    {
+     "kind": "fact",
+     "side": "base",
+     "callee": "Mut_M3_PerturbBindingNamed.Take",
+     "args": {
+      "0": {
+       "kind": "var",
+       "name": "r"
+      },
+      "1": {
+       "kind": "var",
+       "name": "q"
+      }
+     }
+    },
+    {
+     "kind": "fact",
+     "side": "mutant",
+     "callee": "Mut_M3_PerturbBindingNamed.Take",
+     "args": {
+      "0": {
+       "kind": "var",
+       "name": "q"
+      },
+      "1": {
+       "kind": "var",
+       "name": "r"
+      }
+     }
+    }
+   ],
+   "forbidden_kill_reasons": [
+    "build_failure",
+    "compile_error",
+    "extractor_crash",
+    "oracle_crash",
+    "unrelated_check_failure"
+   ]
+  },
+  {
+   "id": "M3-perturb-binding-params",
+   "surface": "source",
+   "operator": "PERTURB_BINDING",
+   "source": "sources/M3-perturb-binding-params.cs",
+   "member": "Mut_M3_PerturbBindingParams.M",
+   "patch": {
+    "find": "TakeP(r, q)",
+    "replace": "TakeP(q, r)"
+   },
+   "must_compile": true,
+   "expected": "green",
+   "base_design": {
+    "carrier": "functions",
+    "occurrences": [
+     {
+      "symbol": "r",
+      "verdict": "captured",
+      "site_kind": "invocation",
+      "ordinal": 0,
+      "expected": "var"
+     },
+     {
+      "symbol": "q",
+      "verdict": "captured",
+      "site_kind": "invocation",
+      "ordinal": 1,
+      "expected": "opaque"
+     },
+     {
+      "symbol": "keep",
+      "verdict": "excluded",
+      "explanation": "receiver_not_summary_parameter"
+     }
+    ]
+   },
+   "mutant_design": {
+    "carrier": "functions",
+    "occurrences": [
+     {
+      "symbol": "q",
+      "verdict": "captured",
+      "site_kind": "invocation",
+      "ordinal": 0,
+      "expected": "var"
+     },
+     {
+      "symbol": "r",
+      "verdict": "captured",
+      "site_kind": "invocation",
+      "ordinal": 1,
+      "expected": "opaque"
+     },
+     {
+      "symbol": "keep",
+      "verdict": "excluded",
+      "explanation": "receiver_not_summary_parameter"
+     }
+    ]
+   },
+   "obligations": [
+    {
+     "kind": "design",
+     "side": "base"
+    },
+    {
+     "kind": "design",
+     "side": "mutant"
+    },
+    {
+     "kind": "carrier_unchanged"
+    },
+    {
+     "kind": "fact",
+     "side": "base",
+     "callee": "Mut_M3_PerturbBindingParams.TakeP",
+     "args": {
+      "0": {
+       "kind": "var",
+       "name": "r"
+      },
+      "1": {
+       "kind": "opaque"
+      }
+     }
+    },
+    {
+     "kind": "fact",
+     "side": "mutant",
+     "callee": "Mut_M3_PerturbBindingParams.TakeP",
+     "args": {
+      "0": {
+       "kind": "var",
+       "name": "q"
+      },
+      "1": {
+       "kind": "opaque"
+      }
+     }
+    }
+   ],
+   "forbidden_kill_reasons": [
+    "build_failure",
+    "compile_error",
+    "extractor_crash",
+    "oracle_crash",
+    "unrelated_check_failure"
+   ]
+  },
+  {
+   "id": "M4-distinguish-nested",
+   "surface": "source",
+   "operator": "DISTINGUISH_NESTED",
+   "source": "sources/M4-distinguish-nested.cs",
+   "member": "Mut_M4_DistinguishNested.M",
+   "patch": {
+    "find": "Use(r);",
+    "replace": "Use(Wrap(r));"
+   },
+   "must_compile": true,
+   "expected": "green",
+   "base_design": {
+    "carrier": "functions",
+    "occurrences": [
+     {
+      "symbol": "r",
+      "verdict": "captured",
+      "site_kind": "invocation",
+      "ordinal": 0,
+      "expected": "var"
+     },
+     {
+      "symbol": "keep",
+      "verdict": "excluded",
+      "explanation": "receiver_not_summary_parameter"
+     }
+    ]
+   },
+   "mutant_design": {
+    "carrier": "functions",
+    "occurrences": [
+     {
+      "symbol": "r",
+      "verdict": "captured",
+      "site_kind": "invocation",
+      "ordinal": 0,
+      "expected": "var",
+      "enclosing": [
+       "nested_call_result"
+      ]
+     },
+     {
+      "symbol": "keep",
+      "verdict": "excluded",
+      "explanation": "receiver_not_summary_parameter"
+     }
+    ]
+   },
+   "obligations": [
+    {
+     "kind": "design",
+     "side": "base"
+    },
+    {
+     "kind": "design",
+     "side": "mutant"
+    },
+    {
+     "kind": "carrier_unchanged"
+    },
+    {
+     "kind": "fact",
+     "side": "base",
+     "callee": "Mut_M4_DistinguishNested.Use",
+     "args": {
+      "0": {
+       "kind": "var",
+       "name": "r"
+      }
+     }
+    },
+    {
+     "kind": "fact",
+     "side": "mutant",
+     "callee": "Mut_M4_DistinguishNested.Wrap",
+     "args": {
+      "0": {
+       "kind": "var",
+       "name": "r"
+      }
+     }
+    },
+    {
+     "kind": "no_handle_fact_at",
+     "side": "mutant",
+     "callee": "Mut_M4_DistinguishNested.Use",
+     "symbol": "r"
+    }
+   ],
+   "forbidden_kill_reasons": [
+    "build_failure",
+    "compile_error",
+    "extractor_crash",
+    "oracle_crash",
+    "unrelated_check_failure"
+   ]
+  },
+  {
+   "id": "K-SHADOW",
+   "surface": "producer",
+   "reverts": "A2.2-4R1 (F-SHADOW)",
+   "what": "the sidecar's local-reference lookup matches candidates by spelling again",
+   "patch": {
+    "file": "frontend/roslyn/OwnSharp.Extractor/Program.cs",
+    "find": "return handles.Contains(lr.Local)",
+    "replace": "return handles.Any(h => h.Name == lr.Local.Name)",
+    "occurrences": 1
+   },
+   "must_compile": true,
+   "expected": "killed",
+   "inputs": [
+    "hostile",
+    "probe"
+   ],
+   "expected_red": {
+    "hostile": {
+     "shadow-sibling-scopes": {
+      "fact_binds_other_symbol": 1
+     },
+     "shadow-sibling-scopes-reversed": {
+      "fact_binds_other_symbol": 1
+     },
+     "shadow-lambda-local": {
+      "fact_binds_other_symbol": 1
+     }
+    },
+    "probe": {}
+   },
+   "witnesses": [
+    "shadow-sibling-scopes",
+    "shadow-sibling-scopes-reversed",
+    "shadow-lambda-local"
+   ],
+   "forbidden_kill_reasons": [
+    "build_failure",
+    "compile_error",
+    "extractor_crash",
+    "oracle_crash",
+    "unrelated_check_failure"
+   ]
+  },
+  {
+   "id": "K-PARAMS",
+   "surface": "producer",
+   "reverts": "A2.2-4R2 (F-PARAMS-ELEMENT)",
+   "what": "an expanded params element is classified from its bare syntax again (no ParamArray-element recovery)",
+   "patch": {
+    "file": "frontend/roslyn/OwnSharp.Extractor/Program.cs",
+    "find": "return element ?? model.GetOperation(expression);",
+    "replace": "return model.GetOperation(expression);",
+    "occurrences": 1
+   },
+   "must_compile": true,
+   "expected": "killed",
+   "inputs": [
+    "hostile",
+    "probe"
+   ],
+   "expected_red": {
+    "hostile": {
+     "pw-ctor-boxing-params-orphan-local": {
+      "fact_without_relevant_occurrence": 1
+     },
+     "pw-del-parens-params-record-local": {
+      "occurrence_not_captured": 1
+     },
+     "pw-ext-user-implicit-params-record-param": {
+      "fact_without_relevant_occurrence": 1
+     },
+     "pw-inv-bang-params-orphan-local": {
+      "occurrence_not_captured": 1
+     }
+    },
+    "probe": {}
+   },
+   "witnesses": [
+    "pw-ctor-boxing-params-orphan-local",
+    "pw-del-parens-params-record-local",
+    "pw-ext-user-implicit-params-record-param",
+    "pw-inv-bang-params-orphan-local"
+   ],
+   "forbidden_kill_reasons": [
+    "build_failure",
+    "compile_error",
+    "extractor_crash",
+    "oracle_crash",
+    "unrelated_check_failure"
+   ]
+  },
+  {
+   "id": "K-COND-RECV",
+   "surface": "producer",
+   "reverts": "A2.2-4R3 (F-CONDITIONAL-RECEIVER)",
+   "what": "the reduced receiver under `?.` (a MemberBinding) is dropped again",
+   "patch": {
+    "file": "frontend/roslyn/OwnSharp.Extractor/Program.cs",
+    "find": "MemberBindingExpressionSyntax =>\n                    inv.Ancestors().OfType<ConditionalAccessExpressionSyntax>().FirstOrDefault()?.Expression,",
+    "replace": "MemberBindingExpressionSyntax => null,",
+    "occurrences": 1
+   },
+   "must_compile": true,
+   "expected": "killed",
+   "inputs": [
+    "hostile",
+    "probe"
+   ],
+   "expected_red": {
+    "hostile": {
+     "ext-conditional-access": {
+      "occurrence_not_captured": 1
+     }
+    },
+    "probe": {}
+   },
+   "witnesses": [
+    "ext-conditional-access"
+   ],
+   "forbidden_kill_reasons": [
+    "build_failure",
+    "compile_error",
+    "extractor_crash",
+    "oracle_crash",
+    "unrelated_check_failure"
+   ]
+  },
+  {
+   "id": "K-CTORINIT",
+   "surface": "producer",
+   "reverts": "A2.2-4R5 (F-CTOR-INIT)",
+   "what": "no constructor_initializer fact is emitted (the initializer's nested calls are still walked)",
+   "patch": {
+    "file": "frontend/roslyn/OwnSharp.Extractor/Program.cs",
+    "find": "if (member is ConstructorDeclarationSyntax { Initializer: { } init })",
+    "replace": "if (member is ConstructorDeclarationSyntax { Initializer: { } init } && init.Kind() == SyntaxKind.None)",
+    "occurrences": 1
+   },
+   "must_compile": true,
+   "expected": "killed",
+   "inputs": [
+    "hostile",
+    "probe",
+    "shape:sidecar-ctorinit-base"
+   ],
+   "expected_red": {
+    "hostile": {
+     "vocab-constructor-initializer": {
+      "occurrence_not_captured": 1
+     },
+     "ctorinit-named-transparent": {
+      "occurrence_not_captured": 1
+     }
+    },
+    "probe": {
+     "occurrence_not_captured": 1
+    },
+    "shape:sidecar-ctorinit-base": {
+     "occurrence_not_captured": 1
+    }
+   },
+   "witnesses": [
+    "vocab-constructor-initializer",
+    "ctorinit-named-transparent"
+   ],
+   "forbidden_kill_reasons": [
+    "build_failure",
+    "compile_error",
+    "extractor_crash",
+    "oracle_crash",
+    "unrelated_check_failure"
+   ]
+  },
+  {
+   "id": "K-MEMBER",
+   "surface": "producer",
+   "reverts": "A2.2-4R6 (F-MEMBER)",
+   "what": "the guarded-only member enumeration is restricted to class members with a block body again, the legacy loop's own domain, so nothing reaches the orphan carrier through it",
+   "patch": {
+    "file": "frontend/roslyn/OwnSharp.Extractor/Program.cs",
+    "find": "foreach (var (member, body) in GuardedOnlyMembers(root))",
+    "replace": "foreach (var (member, body) in GuardedOnlyMembers(root).Where(mb => mb.member.Parent is ClassDeclarationSyntax && mb.member is BaseMethodDeclarationSyntax { Body: not null }))",
+    "occurrences": 1
+   },
+   "must_compile": true,
+   "expected": "killed",
+   "inputs": [
+    "hostile",
+    "probe",
+    "shape:orphan-expression-bodied",
+    "shape:orphan-struct-method"
+   ],
+   "expected_red": {
+    "hostile": {
+     "member-expression-bodied": {
+      "occurrence_not_captured": 1
+     },
+     "member-struct": {
+      "occurrence_not_captured": 1
+     },
+     "member-record": {
+      "occurrence_not_captured": 1
+     },
+     "member-accessor": {
+      "occurrence_not_captured": 1
+     },
+     "member-default-interface-method": {
+      "occurrence_not_captured": 1
+     },
+     "member-record-struct": {
+      "occurrence_not_captured": 1
+     }
+    },
+    "probe": {
+     "occurrence_not_captured": 1
+    },
+    "shape:orphan-expression-bodied": {
+     "occurrence_not_captured": 1
+    },
+    "shape:orphan-struct-method": {
+     "occurrence_not_captured": 1
+    }
+   },
+   "witnesses": [
+    "member-expression-bodied",
+    "member-struct",
+    "member-record",
+    "member-accessor",
+    "member-default-interface-method",
+    "member-record-struct"
+   ],
+   "forbidden_kill_reasons": [
+    "build_failure",
+    "compile_error",
+    "extractor_crash",
+    "oracle_crash",
+    "unrelated_check_failure"
+   ]
+  },
+  {
+   "id": "T-PREDICATE-RESULT",
+   "surface": "taxonomy",
+   "what": "predicate_result removed from the registry's exclusions; the shape `Use6(r != null)` keeps its occurrences and loses its name",
+   "remove_exclusion": "predicate_result",
+   "must_stay_well_formed": true,
+   "expected": "unclassified",
+   "baseline_probe_row": {
+    "PredicateResult": "excluded:predicate_result"
+   },
+   "oracle_inputs": [
+    "probe",
+    "hostile"
+   ],
+   "expected_failures": {
+    "freeze_test": {
+     "failing_checks": [
+      "classification-valid",
+      "registry-non-vacuous"
+     ],
+     "must_name": [
+      "classification-valid"
+     ]
+    },
+    "hostile_test": {
+     "failing_checks": [
+      "designs-use-frozen-vocabulary"
+     ],
+     "must_name": [
+      "designs-use-frozen-vocabulary"
+     ]
+    },
+    "oracle_driver": {
+     "failing_checks": [
+      "oracle-exclusions-frozen[hostile]",
+      "oracle-exclusions-frozen[probe]"
+     ],
+     "must_name": [
+      "oracle-exclusions-frozen[hostile]",
+      "oracle-exclusions-frozen[probe]"
+     ]
+    }
+   },
+   "forbidden_kill_reasons": [
+    "build_failure",
+    "compile_error",
+    "extractor_crash",
+    "oracle_crash",
+    "unrelated_check_failure"
+   ]
+  }
+ ]
+}
