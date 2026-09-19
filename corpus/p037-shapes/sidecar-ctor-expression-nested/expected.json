@@ -1,0 +1,74 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "sidecar-ctor-expression-nested",
+  "status": "anchored",
+  "why": "P-037 A2.2-2 (formal note §10.6.2, call-like object_creation): nested constructor call in an argument: the constructor gets the call fact, the outer Use gets none. A row that moves without a step meaning to move it is a regression.",
+  "a2_expect": [
+    {
+      "function": "ShapeCtorExpressionNested.Caller",
+      "call": {
+        "call_kind": "object_creation",
+        "form": "expression",
+        "callee": "ShapeCtorExpressionNested.Wrapper..ctor",
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "s"
+          },
+          {
+            "param": 1,
+            "kind": "bool_const",
+            "value": true
+          }
+        ]
+      },
+      "call_absent": {
+        "callee": "ShapeCtorExpressionNested.Use"
+      }
+    }
+  ],
+  "facts": {
+    "ShapeCtorExpressionNested.Caller": {
+      "params": null,
+      "body": [
+        "acquire:keep@13",
+        "release:keep@16"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 15,
+              "column": 13
+            },
+            "statement_line": 15,
+            "form": "expression",
+            "callee": "ShapeCtorExpressionNested.Wrapper..ctor",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "s"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              }
+            ],
+            "call_kind": "object_creation"
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

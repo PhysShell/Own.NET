@@ -1,0 +1,79 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "sidecar-ctor-owned-param",
+  "status": "anchored",
+  "why": "P-037 A2.2-2 (formal note §10.6.2, call-like object_creation): owned parameter into a constructor: param fact, relevant. A row that moves without a step meaning to move it is a regression.",
+  "a2_expect": [
+    {
+      "function": "ShapeCtorOwnedParam.Caller",
+      "call": {
+        "call_kind": "object_creation",
+        "form": "initializer",
+        "callee": "ShapeCtorOwnedParam.Wrapper..ctor",
+        "args": [
+          {
+            "param": 0,
+            "kind": "param",
+            "source_param": 0
+          },
+          {
+            "param": 1,
+            "kind": "bool_const",
+            "value": false
+          }
+        ]
+      }
+    }
+  ],
+  "facts": {
+    "ShapeCtorOwnedParam.Caller": {
+      "params": [
+        {
+          "name": "p",
+          "line": 8
+        }
+      ],
+      "body": [
+        "acquire:w@8"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 8,
+              "column": 44
+            },
+            "statement_line": 8,
+            "form": "initializer",
+            "callee": "ShapeCtorOwnedParam.Wrapper..ctor",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": false
+              }
+            ],
+            "call_kind": "object_creation"
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [
+      "OWN001:warning@8"
+    ],
+    "python": [
+      "OWN001:warning@8"
+    ]
+  }
+}

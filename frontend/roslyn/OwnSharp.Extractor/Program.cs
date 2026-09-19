@@ -3078,14 +3078,15 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
         n is not (AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax);
 
     var calls = new List<Dictionary<string, object?>>();
-    foreach (var inv in mbody.DescendantNodes(InThisMethod).OfType<InvocationExpressionSyntax>())
+
+    // One call site of any call-like kind: binds the arguments by DECLARED ordinal, decides
+    // relevance, and appends the call fact when a handle of this method flowed in. Shared by
+    // invocation expressions (A2.1) and constructor calls (A2.2-2), which differ only in the
+    // site, the callee symbol and the `call_kind` tag; the binding mechanism is one.
+    void EmitCall(SyntaxNode site, IMethodSymbol? sym, IMethodSymbol? decl, bool reduced,
+                  ExpressionSyntax? receiver, ArgumentListSyntax? argList,
+                  IEnumerable<IArgumentOperation>? boundArgs, string? callKind)
     {
-        if (inv.Expression is IdentifierNameSyntax { Identifier.Text: "nameof" }
-            && model.GetSymbolInfo(inv).Symbol is null)
-            continue;   // `nameof(s)` is not a call
-        var sym = model.GetSymbolInfo(inv).Symbol as IMethodSymbol;
-        var decl = sym is null ? null : (sym.ReducedFrom ?? sym);
-        var reduced = sym?.ReducedFrom is not null;
         var facts = new SortedDictionary<int, Dictionary<string, object?>>();
         var relevant = false;
 
@@ -3102,14 +3103,13 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
         // identifier by syntax and op_Implicit(r) by semantics, and only the IArgumentOperation's
         // Value shows the difference. An unbound call has no argument operations; its expressions
         // are classified alone, exactly as before (an unresolved callee binds by source position).
-        var invOp = model.GetOperation(inv) as IInvocationOperation;
         IOperation? ValueOf(SyntaxNode argument, ExpressionSyntax expression)
         {
             // Roslyn attaches the argument operation to the INNERMOST expression: for `(r)` and
             // `r!` its Syntax is the identifier `r`, not the ArgumentSyntax, so match by span
             // containment. A params-array or default-value argument carries the invocation's
             // syntax and matches nothing here, which is the fallback below on purpose.
-            var bound = invOp?.Arguments.FirstOrDefault(a => argument.Span.Contains(a.Syntax.Span));
+            var bound = boundArgs?.FirstOrDefault(a => argument.Span.Contains(a.Syntax.Span));
             if (bound is null)
                 return model.GetOperation(expression);
             if (bound.InConversion.IsUserDefined)
@@ -3117,12 +3117,12 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
             return bound.Value;
         }
 
-        if (reduced && inv.Expression is MemberAccessExpressionSyntax ma)
+        if (reduced && receiver is not null)
         {
-            var (rf, rh) = Classify(ValueOf(ma.Expression, ma.Expression));
+            var (rf, rh) = Classify(ValueOf(receiver, receiver));
             Bind(0, rf, rh);
         }
-        var args = inv.ArgumentList.Arguments;
+        var args = argList is null ? default : argList.Arguments;
         for (var i = 0; i < args.Count; i++)
         {
             int ordinal;
@@ -3156,17 +3156,17 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
                 Bind(ordinal, af, ah);
         }
         if (!relevant)
-            continue;
+            return;
 
-        var target = inv.Parent is AwaitExpressionSyntax aw ? (SyntaxNode)aw : inv;
+        var target = site.Parent is AwaitExpressionSyntax aw ? (SyntaxNode)aw : site;
         var form = target.Parent switch
         {
             ExpressionStatementSyntax => "statement",
             EqualsValueClauseSyntax => "initializer",
             _ => "expression",
         };
-        var pos0 = PosOf(inv);
-        var statement = inv.FirstAncestorOrSelf<StatementSyntax>();
+        var pos0 = PosOf(site);
+        var statement = site.FirstAncestorOrSelf<StatementSyntax>();
         var record = new Dictionary<string, object?>
         {
             ["site"] = new Dictionary<string, object?> { ["line"] = pos0.Line, ["column"] = pos0.Column },
@@ -3183,7 +3183,41 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
                 return f;
             }).ToList(),
         };
+        // `call_kind` rides only on a non-invocation site, so every A2.1 record keeps its bytes.
+        if (callKind is not null)
+            record["call_kind"] = callKind;
         calls.Add(record);
+    }
+
+    foreach (var inv in mbody.DescendantNodes(InThisMethod).OfType<InvocationExpressionSyntax>())
+    {
+        if (inv.Expression is IdentifierNameSyntax { Identifier.Text: "nameof" }
+            && model.GetSymbolInfo(inv).Symbol is null)
+            continue;   // `nameof(s)` is not a call
+        var sym = model.GetSymbolInfo(inv).Symbol as IMethodSymbol;
+        var decl = sym is null ? null : (sym.ReducedFrom ?? sym);
+        var reduced = sym?.ReducedFrom is not null;
+        var invOp = model.GetOperation(inv) as IInvocationOperation;
+        var receiver = reduced && inv.Expression is MemberAccessExpressionSyntax ma ? ma.Expression : null;
+        EmitCall(inv, sym, decl, reduced, receiver, inv.ArgumentList, invOp?.Arguments, null);
+    }
+
+    // P-037 A2.2-2 (formal note §10.6.2, call-like): a constructor call is a call site of its
+    // own. The constructor symbol is the callee (its `functions[]` key is `{Type}..ctor`, the
+    // same spelling a constructor's own record carries), its declared parameters bind the
+    // arguments by the mechanism above, and the creation expression is the site. Only the
+    // argument list binds: an object or collection initializer attached to the creation is
+    // storage, a named exclusion, not a call argument; `new` inside an ARGUMENT of another call
+    // stays that call's `object_creation` fact and propagates no relevance outward; array
+    // creation is not object creation. Delegate invocation is a separate family, not this one.
+    foreach (var creation in mbody.DescendantNodes(InThisMethod).OfType<BaseObjectCreationExpressionSyntax>())
+    {
+        var ctor = model.GetSymbolInfo(creation).Symbol as IMethodSymbol;
+        if (ctor is not null && ctor.MethodKind != MethodKind.Constructor)
+            continue;
+        var creationOp = model.GetOperation(creation) as IObjectCreationOperation;
+        EmitCall(creation, ctor, ctor, false, null, creation.ArgumentList, creationOp?.Arguments,
+                 "object_creation");
     }
 
     var guards = new List<Dictionary<string, object?>>();
@@ -3261,6 +3295,8 @@ static void ValidateGuardedFacts(List<Dictionary<string, object?>> calls,
             Fail("call site without a 1-based line/column");
         if (call.GetValueOrDefault("form") is not string form || !CallForms.Contains(form))
             Fail("call with an unknown form");
+        if (call.TryGetValue("call_kind", out var ck) && (ck is not string kindTag || !CallKinds.Contains(kindTag)))
+            Fail("call with an unknown call_kind");
         if (call.GetValueOrDefault("callee") is not (null or string))
             Fail("call with a non-string callee");
         if (call.GetValueOrDefault("args") is not List<Dictionary<string, object?>> args || args.Count == 0)
@@ -7303,6 +7339,10 @@ partial class Program
         { "truth", "not_null", "is_null" };
     internal static readonly HashSet<string> CallForms = new(StringComparer.Ordinal)
         { "statement", "initializer", "expression" };
+    // P-037 A2.2-2: the call-like kinds that are NOT invocation expressions; an invocation
+    // carries no `call_kind` at all, so the A2.1 records keep their shape byte for byte.
+    internal static readonly HashSet<string> CallKinds = new(StringComparer.Ordinal)
+        { "object_creation" };
 
     // #317: a 1-based source coordinate, carried as ONE value so a line and a column can
     // never drift onto different nodes. See RangeOf/PosOf/LineOf above — those are the only

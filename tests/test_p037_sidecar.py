@@ -90,6 +90,15 @@ def main() -> int:
     check("call-forms-schema-equals-producer",
           schema_forms == producer_forms and bool(producer_forms),
           f"schema {sorted(schema_forms)} != producer {sorted(producer_forms)}")
+    schema_kinds_call = set(call.get("properties", {}).get("call_kind", {}).get("enum", []))
+    producer_call_kinds = csharp_set(source, "CallKinds")
+    check("call-kinds-schema-equals-producer",
+          schema_kinds_call == producer_call_kinds and bool(producer_call_kinds),
+          f"schema {sorted(schema_kinds_call)} != producer {sorted(producer_call_kinds)}")
+    check("call-kind-is-optional",
+          "call_kind" not in call.get("required", []),
+          "call_kind must stay optional: an invocation carries none, "
+          "so A2.1 records keep their bytes")
     check("call-is-closed-and-keyed",
           call.get("additionalProperties") is False
           and set(call.get("required", [])) == {"site", "statement_line", "form", "callee",

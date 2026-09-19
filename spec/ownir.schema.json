@@ -591,6 +591,12 @@
             "type": "boolean",
             "description": "The resolved method has a declaration in this compilation (a summary can exist for it)."
           },
+          "call_kind": {
+            "enum": [
+              "object_creation"
+            ],
+            "description": "P-037 A2.2-2: the call-like kind of a site that is NOT an invocation expression. Absent on an invocation (the A2.1 records keep their bytes); `object_creation` for a constructor call, whose callee is the constructor's `functions[]` key (`{Type}..ctor`) and whose args bind to the constructor's declared ordinals. Delegate invocation is a later, separate value."
+          },
           "args": {
             "type": "array",
             "minItems": 1,

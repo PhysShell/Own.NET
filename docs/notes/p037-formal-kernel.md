@@ -1087,9 +1087,17 @@ causes of FACT-DIFF. Tracked in #364 with its own acceptance.
   `boxing` (the exclusion `boxing_conversion`), registry / §10.6 / spec §5.2
   synchronized, the freeze test expanded, two census shapes added, the
   existing census untouched, no production change and therefore no
-  measurement epoch of its own: A2.2-S measures the cumulative treatment;
+  measurement epoch of its own: A2.2-S measures the cumulative treatment
+  (landed: `cef567a`, CI green);
 - **A2.2-2** constructor and the other genuine call-like forms, one semantic
-  family per commit;
+  family per commit. Object creation landed in the commit carrying this line:
+  a constructor call is a call site of its own (`call_kind: object_creation`,
+  callee `{Type}..ctor`, arguments bound to the constructor's declared
+  ordinals by the invocation mechanism), an object or collection initializer
+  binds nothing, a `new` inside another call's argument stays that call's
+  `object_creation` fact and propagates no relevance outward; ten
+  `corpus/p037-shapes/sidecar-ctor-*` shapes pin it, the 28 earlier shapes are
+  byte-identical. Delegate invocation follows as its own family;
 - **A2.2-3** the `guarded_functions[]` orphan carrier: known and validated by
   both doors (deferred to the door step as in 10.6.6), ignored by both
   lowerers;

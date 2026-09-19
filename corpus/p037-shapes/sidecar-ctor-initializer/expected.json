@@ -1,0 +1,74 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "sidecar-ctor-initializer",
+  "status": "anchored",
+  "why": "P-037 A2.2-2 (formal note §10.6.2, call-like object_creation): constructor call in an initializer: `new Wrapper(s, true)` is a relevant object_creation call with var s. A row that moves without a step meaning to move it is a regression.",
+  "a2_expect": [
+    {
+      "function": "ShapeCtorInitializer.Caller",
+      "call": {
+        "call_kind": "object_creation",
+        "form": "initializer",
+        "callee": "ShapeCtorInitializer.Wrapper..ctor",
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "s"
+          },
+          {
+            "param": 1,
+            "kind": "bool_const",
+            "value": true
+          }
+        ]
+      }
+    }
+  ],
+  "facts": {
+    "ShapeCtorInitializer.Caller": {
+      "params": null,
+      "body": [
+        "acquire:w@11"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 11,
+              "column": 76
+            },
+            "statement_line": 11,
+            "form": "initializer",
+            "callee": "ShapeCtorInitializer.Wrapper..ctor",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "s"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              }
+            ],
+            "call_kind": "object_creation"
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [
+      "OWN001:warning@11"
+    ],
+    "python": [
+      "OWN001:warning@11"
+    ]
+  }
+}

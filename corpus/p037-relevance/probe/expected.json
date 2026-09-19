@@ -5,6 +5,7 @@
   "observed_at": "5a0de070af241a2612859153887ad6ae04afcce2",
   "observed_at_note": "A' = corrected A2.1 treatment (PR #363), landed via main@23e3203; the extractor is byte-identical between A' and that merge. The superseded A (dce26ed) is not a measurement point.",
   "a2_2_1_note": "Measured with the A2.2-1 extractor (the IOperation value-flow walker) from the tree this file is committed in, before the commit: the SHA that carries this file is the SHA it was measured at. A2.2-1 promises exactly the transparent and may-value rows move to sidecar_call; every other row must read as it did at A'. A2.2-1a added the CheckedRef and Boxing rows, measured at both points.",
+  "a2_2_2_note": "Measured with the A2.2-2 extractor (constructor calls as call-like sites) from the tree this file is committed in. A2.2-2 promises exactly the object_creation row(s) move to sidecar_call; every other row, delegate_invocation included, must read as it did after A2.2-1.",
   "observed_vocabulary": {
     "sidecar_call": "a function record with a guarded_facts call fact for the probe call",
     "record_without_call_fact": "a function record exists but carries no call fact for the probe call",
@@ -31,49 +32,56 @@
       "class": "direct",
       "conversion": "reference_upcast",
       "a2_1_observed": "sidecar_call",
-      "a2_2_1_observed": "sidecar_call"
+      "a2_2_1_observed": "sidecar_call",
+      "a2_2_2_observed": "sidecar_call"
     },
     "PlainSame": {
       "class": "direct",
       "conversion": "none",
       "note": "identity binding to a NON-consuming callee: the legacy pass reads the pass as an escape, no tracked local remains, no record at all; the orphan carrier's case (\u00a710.6.6), and a direct flow",
       "a2_1_observed": "no_record",
-      "a2_2_1_observed": "no_record"
+      "a2_2_1_observed": "no_record",
+      "a2_2_2_observed": "no_record"
     },
     "Parens": {
       "class": "transparent",
       "wrapper": "parenthesized",
       "conversion": "reference_upcast",
       "a2_1_observed": "sidecar_call",
-      "a2_2_1_observed": "sidecar_call"
+      "a2_2_1_observed": "sidecar_call",
+      "a2_2_2_observed": "sidecar_call"
     },
     "IdentityCast": {
       "class": "transparent",
       "wrapper": "cast",
       "conversion": "identity",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "sidecar_call"
+      "a2_2_1_observed": "sidecar_call",
+      "a2_2_2_observed": "sidecar_call"
     },
     "Cast": {
       "class": "transparent",
       "wrapper": "cast",
       "conversion": "reference_upcast",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "sidecar_call"
+      "a2_2_1_observed": "sidecar_call",
+      "a2_2_2_observed": "sidecar_call"
     },
     "AsCast": {
       "class": "transparent",
       "wrapper": "as",
       "conversion": "reference_upcast",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "sidecar_call"
+      "a2_2_1_observed": "sidecar_call",
+      "a2_2_2_observed": "sidecar_call"
     },
     "Bang": {
       "class": "transparent",
       "wrapper": "null_forgiving",
       "conversion": "reference_upcast",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "sidecar_call"
+      "a2_2_1_observed": "sidecar_call",
+      "a2_2_2_observed": "sidecar_call"
     },
     "CheckedRef": {
       "class": "transparent",
@@ -81,49 +89,56 @@
       "conversion": "reference_checked",
       "note": "explicit reference conversion on a Base-typed handle: the same reference or no call at all (the cast throws); never an alternate value, unlike `as`",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "sidecar_call"
+      "a2_2_1_observed": "sidecar_call",
+      "a2_2_2_observed": "sidecar_call"
     },
     "Ternary": {
       "class": "may_value",
       "form": "conditional",
       "conversion": "reference_upcast",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "sidecar_call"
+      "a2_2_1_observed": "sidecar_call",
+      "a2_2_2_observed": "sidecar_call"
     },
     "Coalesce": {
       "class": "may_value",
       "form": "null_coalescing",
       "conversion": "reference_upcast",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "sidecar_call"
+      "a2_2_1_observed": "sidecar_call",
+      "a2_2_2_observed": "sidecar_call"
     },
     "Switch": {
       "class": "may_value",
       "form": "switch_expression",
       "conversion": "reference_upcast",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "sidecar_call"
+      "a2_2_1_observed": "sidecar_call",
+      "a2_2_2_observed": "sidecar_call"
     },
     "AsMayFail": {
       "class": "may_value",
       "form": "as_may_fail",
       "conversion": "may_fail_null",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "sidecar_call"
+      "a2_2_1_observed": "sidecar_call",
+      "a2_2_2_observed": "sidecar_call"
     },
     "Ctor": {
       "class": "call_like",
       "form": "object_creation",
       "conversion": "reference_upcast",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "record_without_call_fact"
+      "a2_2_1_observed": "record_without_call_fact",
+      "a2_2_2_observed": "sidecar_call"
     },
     "DelegateCall": {
       "class": "call_like",
       "form": "delegate_invocation",
       "conversion": "reference_upcast",
       "a2_1_observed": "no_record",
-      "a2_2_1_observed": "no_record"
+      "a2_2_1_observed": "no_record",
+      "a2_2_2_observed": "no_record"
     },
     "Nested": {
       "class": "indirect",
@@ -131,28 +146,32 @@
       "conversion": "not_applicable",
       "note": "Wrap(r) itself is direct and is owed its own call fact; Use receives call_result",
       "a2_1_observed": "no_record",
-      "a2_2_1_observed": "no_record"
+      "a2_2_1_observed": "no_record",
+      "a2_2_2_observed": "no_record"
     },
     "ArrayInit": {
       "class": "indirect",
       "exclusion": "container_construction",
       "conversion": "not_applicable",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "record_without_call_fact"
+      "a2_2_1_observed": "record_without_call_fact",
+      "a2_2_2_observed": "record_without_call_fact"
     },
     "CollectionInit": {
       "class": "indirect",
       "exclusion": "container_construction",
       "conversion": "not_applicable",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "record_without_call_fact"
+      "a2_2_1_observed": "record_without_call_fact",
+      "a2_2_2_observed": "record_without_call_fact"
     },
     "Tuple": {
       "class": "indirect",
       "exclusion": "tuple_construction",
       "conversion": "not_applicable",
       "a2_1_observed": "no_record",
-      "a2_2_1_observed": "no_record"
+      "a2_2_1_observed": "no_record",
+      "a2_2_2_observed": "no_record"
     },
     "Closure": {
       "class": "indirect",
@@ -160,14 +179,16 @@
       "conversion": "not_applicable",
       "note": "the inner Use(r) belongs to the lambda body, which has no record of its own (known gap)",
       "a2_1_observed": "no_record",
-      "a2_2_1_observed": "no_record"
+      "a2_2_1_observed": "no_record",
+      "a2_2_2_observed": "no_record"
     },
     "MethodGroup": {
       "class": "indirect",
       "exclusion": "method_group_conversion",
       "conversion": "not_applicable",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "record_without_call_fact"
+      "a2_2_1_observed": "record_without_call_fact",
+      "a2_2_2_observed": "record_without_call_fact"
     },
     "UserConversion": {
       "class": "indirect",
@@ -175,7 +196,8 @@
       "conversion": "user_defined_implicit",
       "note": "syntactically a bare identifier; only the semantic model shows the hidden op_Implicit",
       "a2_1_observed": "no_record",
-      "a2_2_1_observed": "no_record"
+      "a2_2_1_observed": "no_record",
+      "a2_2_2_observed": "no_record"
     },
     "ExplicitUserConversion": {
       "class": "indirect",
@@ -183,21 +205,24 @@
       "conversion": "user_defined_explicit",
       "note": "syntactically a cast; the user-defined operator sits inside the cast expression, and (XBox)r already has type XBox at the call",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "record_without_call_fact"
+      "a2_2_1_observed": "record_without_call_fact",
+      "a2_2_2_observed": "record_without_call_fact"
     },
     "NameOf": {
       "class": "indirect",
       "exclusion": "nameof_operand",
       "conversion": "not_applicable",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "record_without_call_fact"
+      "a2_2_1_observed": "record_without_call_fact",
+      "a2_2_2_observed": "record_without_call_fact"
     },
     "MemberAccess": {
       "class": "indirect",
       "exclusion": "member_access_on_handle",
       "conversion": "not_applicable",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "record_without_call_fact"
+      "a2_2_1_observed": "record_without_call_fact",
+      "a2_2_2_observed": "record_without_call_fact"
     },
     "Boxing": {
       "class": "indirect",
@@ -205,21 +230,24 @@
       "conversion": "boxing",
       "note": "an owned disposable STRUCT parameter passed to object: the callee receives a boxed copy, not the handle; owned so the record exists regardless of legacy escape admission",
       "a2_1_observed": "sidecar_call",
-      "a2_2_1_observed": "record_without_call_fact"
+      "a2_2_1_observed": "record_without_call_fact",
+      "a2_2_2_observed": "record_without_call_fact"
     },
     "Receiver": {
       "class": "indirect",
       "exclusion": "receiver_not_summary_parameter",
       "conversion": "not_applicable",
       "a2_1_observed": "record_without_call_fact",
-      "a2_2_1_observed": "record_without_call_fact"
+      "a2_2_1_observed": "record_without_call_fact",
+      "a2_2_2_observed": "record_without_call_fact"
     },
     "Indexer": {
       "class": "indirect",
       "exclusion": "storage_assignment",
       "conversion": "not_applicable",
       "a2_1_observed": "no_record",
-      "a2_2_1_observed": "no_record"
+      "a2_2_1_observed": "no_record",
+      "a2_2_2_observed": "no_record"
     }
   }
 }

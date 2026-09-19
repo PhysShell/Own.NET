@@ -45,7 +45,9 @@ row into a checked `captured` / `excluded_by_rule:<name>` assertion.
 A2.2-1 landed: the transparent and may-value rows read `sidecar_call` in
 `a2_2_1_observed`, measured with the walker; the boxing row lost its false
 capture; every other row reads as at A'. A2.2-1a closed the conversion
-vocabulary (`reference_checked`, `boxing`) with no production change.
+vocabulary (`reference_checked`, `boxing`) with no production change. A2.2-2
+landed: the object_creation row reads `sidecar_call` in `a2_2_2_observed`;
+delegate_invocation and every other row read as after A2.2-1.
 
 Only an A2.2 step, deliberately, one row at a time: a transparent wrapper
 becomes `captured` in A2.2-1, a call-like form in A2.2-2, an orphan record

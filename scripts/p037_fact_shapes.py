@@ -167,6 +167,16 @@ def a2_problems(spec: dict[str, Any], facts: dict[str, Any]) -> list[str]:
                 problems.append(
                     f"{fn}: expected exactly one {key} matching {json.dumps(want)}, "
                     f"found {len(hits)} in {json.dumps(pool)}")
+        # A2.2-2: a call that must NOT exist while another one in the same function must —
+        # `Use(new Wrapper(s, true))` owes the constructor a call fact and `Use` none.
+        want_absent = exp.get("call_absent")
+        if want_absent is not None:
+            pool = (gf or {}).get("calls") or []
+            hits = [c for c in pool if _subset(want_absent, c)]
+            if hits:
+                problems.append(
+                    f"{fn}: expected NO call matching {json.dumps(want_absent)}, "
+                    f"found {len(hits)}: {json.dumps(hits)}")
     return problems
 
 

@@ -1,0 +1,31 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "sidecar-ctor-nonhandle-args",
+  "status": "anchored",
+  "why": "P-037 A2.2-2 (formal note §10.6.2, call-like object_creation): negative: no handle among the constructor arguments, no call fact. A row that moves without a step meaning to move it is a regression.",
+  "a2_expect": [
+    {
+      "function": "ShapeCtorNonHandleArgs.Caller",
+      "guarded_facts": "absent"
+    }
+  ],
+  "facts": {
+    "ShapeCtorNonHandleArgs.Caller": {
+      "params": null,
+      "body": [
+        "acquire:keep@10",
+        "acquire:w@11",
+        "release:keep@12"
+      ],
+      "guarded_facts": null
+    }
+  },
+  "verdict": {
+    "rust": [
+      "OWN001:warning@11"
+    ],
+    "python": [
+      "OWN001:warning@11"
+    ]
+  }
+}

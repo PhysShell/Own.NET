@@ -355,7 +355,9 @@ guarded_facts:
   calls[]         one per RELEVANT call: a disposable local of this method (any
                   candidate, escaped or not) or an owned parameter flows in, as an
                   argument or as a reduced extension method's receiver, directly or
-                  through a transparent wrapper or a may-value form (A2.2-1, below)
+                  through a transparent wrapper or a may-value form (A2.2-1, below);
+                  an invocation expression or, since A2.2-2, a constructor call
+    call_kind     absent for an invocation; `object_creation` for a constructor call
     site          {line, column} — start of the invocation expression (identity)
     statement_line the enclosing statement's line (what the legacy ops carry)
     form          statement | initializer | expression
@@ -414,6 +416,21 @@ Relevance and representability stay orthogonal: an unstable owned parameter,
 a `params` slot, a `ref`/`out` argument and a may-value form are all `opaque`
 *and* relevant. The census shapes `corpus/p037-shapes/sidecar-*` pin each of
 these by name.
+
+Constructor calls (P-037 A2.2-2). A constructor call is a call site of its
+own, tagged `call_kind: object_creation`: the site is the `new` expression
+(explicit or target-typed), the callee is the constructor's `functions[]` key
+(`{Namespace.Type}..ctor`, the spelling a constructor's own record carries),
+`sig` is the constructor's §5.1 signature, and the arguments bind to the
+constructor's declared ordinals by the same mechanism as an invocation (named
+arguments resolved, a `params` slot or a `ref`/`out` argument `opaque` but
+relevant). Only the argument list binds: an object initializer attached to the
+creation is a storage assignment and a collection initializer element is
+container construction, both named exclusions, never call arguments. A `new`
+inside an argument of another call is that call's `object_creation` argument
+fact, which is not a handle: the constructor gets its own call fact, the
+enclosing call gets none from it. Array creation is not a constructor call.
+Delegate invocation is a separate call-like family, not this one.
 
 The call-site identity — the invocation's own coordinate plus `statement_line` —
 is what lets the legacy view (`body`) and this one be joined until the C+

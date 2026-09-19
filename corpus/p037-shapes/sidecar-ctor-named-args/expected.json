@@ -1,0 +1,74 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "sidecar-ctor-named-args",
+  "status": "anchored",
+  "why": "P-037 A2.2-2 (formal note §10.6.2, call-like object_creation): named constructor arguments reordered in source bind to declared ordinals 0 and 1. A row that moves without a step meaning to move it is a regression.",
+  "a2_expect": [
+    {
+      "function": "ShapeCtorNamedArgs.Caller",
+      "call": {
+        "call_kind": "object_creation",
+        "form": "initializer",
+        "callee": "ShapeCtorNamedArgs.Wrapper..ctor",
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "s"
+          },
+          {
+            "param": 1,
+            "kind": "bool_const",
+            "value": false
+          }
+        ]
+      }
+    }
+  ],
+  "facts": {
+    "ShapeCtorNamedArgs.Caller": {
+      "params": null,
+      "body": [
+        "acquire:w@8"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 8,
+              "column": 76
+            },
+            "statement_line": 8,
+            "form": "initializer",
+            "callee": "ShapeCtorNamedArgs.Wrapper..ctor",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "s"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": false
+              }
+            ],
+            "call_kind": "object_creation"
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [
+      "OWN001:warning@8"
+    ],
+    "python": [
+      "OWN001:warning@8"
+    ]
+  }
+}

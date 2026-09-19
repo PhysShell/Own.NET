@@ -203,6 +203,22 @@ def run() -> int:
             step_problems.append(f"{name}: captured at A' but lost after A2.2-1")
     check("a2-2-1-moves-exactly-its-rows", not step_problems, "; ".join(step_problems))
 
+    # A2.2-2 moved exactly the call-like object_creation row(s); delegate_invocation and every
+    # other row read as they did after A2.2-1.
+    step2: list[str] = []
+    for name, entry in methods.items():
+        before, after = entry.get("a2_2_1_observed"), entry.get("a2_2_2_observed")
+        if after not in observed_vocab:
+            step2.append(f"{name}: a2_2_2_observed {after!r}")
+            continue
+        is_ctor = entry.get("class") == "call_like" and entry.get("form") == "object_creation"
+        if is_ctor and after != "sidecar_call":
+            step2.append(f"{name}: object_creation row not captured after A2.2-2 ({after})")
+        if not is_ctor and after != before:
+            step2.append(f"{name}: row moved in A2.2-2 without being object_creation "
+                         f"({before} -> {after})")
+    check("a2-2-2-moves-exactly-object-creation", not step2, "; ".join(step2))
+
     missing = [x for x in exclusions if x not in section]
     missing += [c for c in CLASSES if c not in section and c.replace("_", "-") not in section]
     missing += [e for e in CONVERSIONS if e not in section]
