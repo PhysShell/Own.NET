@@ -1097,7 +1097,20 @@ causes of FACT-DIFF. Tracked in #364 with its own acceptance.
   binds nothing, a `new` inside another call's argument stays that call's
   `object_creation` fact and propagates no relevance outward; ten
   `corpus/p037-shapes/sidecar-ctor-*` shapes pin it, the 28 earlier shapes are
-  byte-identical. Delegate invocation follows as its own family;
+  byte-identical (landed: `376f2e6`, CI green). Delegate invocation followed
+  as its own family, A2.2-2b, in the commit carrying this line: `a(s)`,
+  `a.Invoke(s)` and `a?.Invoke(s)` on a delegate-typed `a` are
+  `call_kind: delegate_invocation` with callee and sig null and first_party
+  false — the target is never guessed — while the delegate's declared
+  parameters bind the arguments by ordinal; six
+  `corpus/p037-shapes/sidecar-delegate-*` shapes pin it, the 38 earlier shapes
+  are byte-identical. Measured on the way (a §10.1 case-4 addition): the
+  probe's coarse observation vocabulary could not see this step at all,
+  because A' had already captured a delegate invocation on an owned parameter
+  as a plain invocation of the delegate's `Invoke`; the vocabulary now
+  distinguishes `sidecar_call`, `sidecar_call:object_creation` and
+  `sidecar_call:delegate_invocation`, every column re-measured with the
+  extractor of its step rebuilt at its commit;
 - **A2.2-3** the `guarded_functions[]` orphan carrier: known and validated by
   both doors (deferred to the door step as in 10.6.6), ignored by both
   lowerers;

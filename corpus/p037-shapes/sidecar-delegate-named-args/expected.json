@@ -1,0 +1,73 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "sidecar-delegate-named-args",
+  "status": "anchored",
+  "why": "P-037 A2.2-2b (formal note §10.6.2, call-like delegate_invocation): named arguments on a custom delegate bind to the declared ordinals 0 and 1. A row that moves without a step meaning to move it is a regression.",
+  "a2_expect": [
+    {
+      "function": "ShapeDelegateNamedArgs.Caller",
+      "call": {
+        "call_kind": "delegate_invocation",
+        "form": "statement",
+        "callee": null,
+        "sig": null,
+        "first_party": false,
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "s"
+          },
+          {
+            "param": 1,
+            "kind": "bool_const",
+            "value": true
+          }
+        ]
+      }
+    }
+  ],
+  "facts": {
+    "ShapeDelegateNamedArgs.Caller": {
+      "params": null,
+      "body": [
+        "acquire:keep@11",
+        "release:keep@14"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 13,
+              "column": 9
+            },
+            "statement_line": 13,
+            "form": "statement",
+            "callee": null,
+            "sig": null,
+            "first_party": false,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "s"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              }
+            ],
+            "call_kind": "delegate_invocation"
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

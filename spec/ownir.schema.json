@@ -593,9 +593,10 @@
           },
           "call_kind": {
             "enum": [
-              "object_creation"
+              "object_creation",
+              "delegate_invocation"
             ],
-            "description": "P-037 A2.2-2: the call-like kind of a site that is NOT an invocation expression. Absent on an invocation (the A2.1 records keep their bytes); `object_creation` for a constructor call, whose callee is the constructor's `functions[]` key (`{Type}..ctor`) and whose args bind to the constructor's declared ordinals. Delegate invocation is a later, separate value."
+            "description": "P-037 A2.2-2/2b: the call-like kind of a site that is NOT a plain invocation. Absent on an invocation of a method (the A2.1 records keep their bytes); `object_creation` for a constructor call, whose callee is the constructor's `functions[]` key (`{Type}..ctor`) and whose args bind to the constructor's declared ordinals; `delegate_invocation` for `a(...)` / `a.Invoke(...)` on a delegate-typed `a`, whose target is unknown by construction (callee and sig null, first_party false) while the delegate's Invoke declared parameters bind the args by ordinal."
           },
           "args": {
             "type": "array",

@@ -1,0 +1,67 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "sidecar-delegate-invoke-owned-param",
+  "status": "anchored",
+  "why": "P-037 A2.2-2b (formal note §10.6.2, call-like delegate_invocation): delegate invocation on an owned parameter: call_kind delegate_invocation, callee/sig null, first_party false, param 0 bound to Invoke's ordinal 0. A row that moves without a step meaning to move it is a regression.",
+  "a2_expect": [
+    {
+      "function": "ShapeDelegateInvokeOwnedParam.Caller",
+      "call": {
+        "call_kind": "delegate_invocation",
+        "form": "statement",
+        "callee": null,
+        "sig": null,
+        "first_party": false,
+        "args": [
+          {
+            "param": 0,
+            "kind": "param",
+            "source_param": 0
+          }
+        ]
+      }
+    }
+  ],
+  "facts": {
+    "ShapeDelegateInvokeOwnedParam.Caller": {
+      "params": [
+        {
+          "name": "p",
+          "line": 11
+        }
+      ],
+      "body": [
+        "use:p@11"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 11,
+              "column": 54
+            },
+            "statement_line": 11,
+            "form": "statement",
+            "callee": null,
+            "sig": null,
+            "first_party": false,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ],
+            "call_kind": "delegate_invocation"
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

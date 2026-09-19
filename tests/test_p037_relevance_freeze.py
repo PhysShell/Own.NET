@@ -212,12 +212,40 @@ def run() -> int:
             step2.append(f"{name}: a2_2_2_observed {after!r}")
             continue
         is_ctor = entry.get("class") == "call_like" and entry.get("form") == "object_creation"
-        if is_ctor and after != "sidecar_call":
-            step2.append(f"{name}: object_creation row not captured after A2.2-2 ({after})")
+        if is_ctor and after != "sidecar_call:object_creation":
+            step2.append(f"{name}: object_creation row not captured as a constructor call "
+                         f"after A2.2-2 ({after})")
         if not is_ctor and after != before:
             step2.append(f"{name}: row moved in A2.2-2 without being object_creation "
                          f"({before} -> {after})")
     check("a2-2-2-moves-exactly-object-creation", not step2, "; ".join(step2))
+
+    # A2.2-2b re-shaped exactly the delegate_invocation row that has a record: the A' producer
+    # had captured it as a plain invocation (callee = the delegate's Invoke), which the coarse
+    # vocabulary could not tell apart; now it reads as a delegate invocation with callee null.
+    # The local-handle delegate row has no record at any step (orphan carrier). Every other row
+    # reads as after A2.2-2.
+    step2b: list[str] = []
+    for name, entry in methods.items():
+        before, after = entry.get("a2_2_2_observed"), entry.get("a2_2_2b_observed")
+        if after not in observed_vocab:
+            step2b.append(f"{name}: a2_2_2b_observed {after!r}")
+            continue
+        is_del = entry.get("class") == "call_like" and entry.get("form") == "delegate_invocation"
+        if is_del:
+            if before == "no_record" and after != "no_record":
+                step2b.append(f"{name}: delegate row without a record gained one ({after})")
+            if before != "no_record" and after != "sidecar_call:delegate_invocation":
+                step2b.append(f"{name}: delegate row not captured as a delegate invocation "
+                              f"after A2.2-2b ({after})")
+        elif after != before:
+            step2b.append(f"{name}: row moved in A2.2-2b without being delegate_invocation "
+                          f"({before} -> {after})")
+    check("a2-2-2b-reshapes-exactly-delegate-invocation", not step2b, "; ".join(step2b))
+    check("delegate-invocation-has-a-recorded-witness",
+          any(e.get("form") == "delegate_invocation" and e.get("a2_2_2b_observed")
+              == "sidecar_call:delegate_invocation" for e in methods.values()),
+          "no delegate_invocation row reads sidecar_call:delegate_invocation")
 
     missing = [x for x in exclusions if x not in section]
     missing += [c for c in CLASSES if c not in section and c.replace("_", "-") not in section]

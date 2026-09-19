@@ -1,0 +1,61 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "sidecar-delegate-conditional-invoke",
+  "status": "anchored",
+  "why": "P-037 A2.2-2b (formal note §10.6.2, call-like delegate_invocation): conditional `a?.Invoke(s)` is the same family. A row that moves without a step meaning to move it is a regression.",
+  "a2_expect": [
+    {
+      "function": "ShapeDelegateConditionalInvoke.Caller",
+      "call": {
+        "call_kind": "delegate_invocation",
+        "callee": null,
+        "first_party": false,
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "s"
+          }
+        ]
+      }
+    }
+  ],
+  "facts": {
+    "ShapeDelegateConditionalInvoke.Caller": {
+      "params": null,
+      "body": [
+        "acquire:keep@10",
+        "release:keep@13"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 12,
+              "column": 11
+            },
+            "statement_line": 12,
+            "form": "expression",
+            "callee": null,
+            "sig": null,
+            "first_party": false,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "s"
+              }
+            ],
+            "call_kind": "delegate_invocation"
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

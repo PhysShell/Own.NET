@@ -357,7 +357,9 @@ guarded_facts:
                   argument or as a reduced extension method's receiver, directly or
                   through a transparent wrapper or a may-value form (A2.2-1, below);
                   an invocation expression or, since A2.2-2, a constructor call
-    call_kind     absent for an invocation; `object_creation` for a constructor call
+    call_kind     absent for a method invocation; `object_creation` for a
+                  constructor call; `delegate_invocation` for a call through a
+                  delegate value (callee/sig null, first_party false)
     site          {line, column} — start of the invocation expression (identity)
     statement_line the enclosing statement's line (what the legacy ops carry)
     form          statement | initializer | expression
@@ -430,7 +432,17 @@ container construction, both named exclusions, never call arguments. A `new`
 inside an argument of another call is that call's `object_creation` argument
 fact, which is not a handle: the constructor gets its own call fact, the
 enclosing call gets none from it. Array creation is not a constructor call.
-Delegate invocation is a separate call-like family, not this one.
+
+Delegate invocation (P-037 A2.2-2b). `a(s)`, `a.Invoke(s)` and `a?.Invoke(s)`
+on a delegate-typed `a` are one call-like family, tagged
+`call_kind: delegate_invocation`. The target is unknown by construction, so
+`callee` and `sig` are null and `first_party` is false: the record never
+guesses which method the delegate holds, and it does not spell the delegate's
+`Invoke` as if it were a callee with a summary. The delegate's declared
+parameters still bind the arguments by ordinal, named arguments resolved
+against the delegate's parameter names. Until A2.2-2b such a call was recorded
+as a plain invocation of the delegate's `Invoke`; the census shapes
+`corpus/p037-shapes/sidecar-delegate-*` pin the family.
 
 The call-site identity — the invocation's own coordinate plus `statement_line` —
 is what lets the legacy view (`body`) and this one be joined until the C+

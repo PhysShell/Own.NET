@@ -46,8 +46,11 @@ A2.2-1 landed: the transparent and may-value rows read `sidecar_call` in
 `a2_2_1_observed`, measured with the walker; the boxing row lost its false
 capture; every other row reads as at A'. A2.2-1a closed the conversion
 vocabulary (`reference_checked`, `boxing`) with no production change. A2.2-2
-landed: the object_creation row reads `sidecar_call` in `a2_2_2_observed`;
-delegate_invocation and every other row read as after A2.2-1.
+landed: the object_creation row reads `sidecar_call:object_creation` in
+`a2_2_2_observed`; A2.2-2b re-shaped the delegate_invocation row with a record
+to `sidecar_call:delegate_invocation` (A' had captured it as a plain invocation
+of the delegate's `Invoke`, which the coarse vocabulary could not see), and the
+local-handle delegate row stays `no_record` at every step.
 
 Only an A2.2 step, deliberately, one row at a time: a transparent wrapper
 becomes `captured` in A2.2-1, a call-like form in A2.2-2, an orphan record

@@ -51,6 +51,7 @@ static class Probe
     // call-like sites that are not invocation expressions
     static void Ctor() { var r = new MemoryStream(); var w = new Wrapper(r, true); }
     static void DelegateCall(Action<Stream> a) { var r = new MemoryStream(); a(r); }
+    static void DelegateCallOwned(Stream p, Action<Stream> a) { a(p); }   // owned parameter, so the record exists regardless of legacy escape admission
 
     // indirect: the value that reaches the callee is not the handle
     static void Nested() { var r = new MemoryStream(); Use(Wrap(r)); }

@@ -3085,7 +3085,7 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
     // site, the callee symbol and the `call_kind` tag; the binding mechanism is one.
     void EmitCall(SyntaxNode site, IMethodSymbol? sym, IMethodSymbol? decl, bool reduced,
                   ExpressionSyntax? receiver, ArgumentListSyntax? argList,
-                  IEnumerable<IArgumentOperation>? boundArgs, string? callKind)
+                  IEnumerable<IArgumentOperation>? boundArgs, string? callKind, bool firstParty)
     {
         var facts = new SortedDictionary<int, Dictionary<string, object?>>();
         var relevant = false;
@@ -3174,7 +3174,7 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
             ["form"] = form,
             ["callee"] = sym is null ? null : $"{sym.ContainingType.ToDisplayString()}.{sym.Name}",
             ["sig"] = sym is null ? null : CanonicalSig(sym),
-            ["first_party"] = decl is not null && decl.DeclaringSyntaxReferences.Length > 0,
+            ["first_party"] = firstParty,
             ["args"] = facts.Select(kv =>
             {
                 var f = new Dictionary<string, object?> { ["param"] = kv.Key };
@@ -3198,8 +3198,21 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
         var decl = sym is null ? null : (sym.ReducedFrom ?? sym);
         var reduced = sym?.ReducedFrom is not null;
         var invOp = model.GetOperation(inv) as IInvocationOperation;
+        if (sym is { MethodKind: MethodKind.DelegateInvoke })
+        {
+            // P-037 A2.2-2b (formal note §10.6.2, call-like): `a(r)` or `a.Invoke(r)` on a
+            // delegate-typed `a` is a call site of its own. The TARGET is unknown by
+            // construction, so callee and sig are null and first_party is false — nothing here
+            // guesses which method sits inside the delegate — while the delegate's Invoke
+            // declared parameters still bind the arguments by ordinal (named arguments
+            // resolved). Tagged `call_kind: delegate_invocation`.
+            EmitCall(inv, null, sym, false, null, inv.ArgumentList, invOp?.Arguments,
+                     "delegate_invocation", firstParty: false);
+            continue;
+        }
         var receiver = reduced && inv.Expression is MemberAccessExpressionSyntax ma ? ma.Expression : null;
-        EmitCall(inv, sym, decl, reduced, receiver, inv.ArgumentList, invOp?.Arguments, null);
+        EmitCall(inv, sym, decl, reduced, receiver, inv.ArgumentList, invOp?.Arguments, null,
+                 firstParty: decl is not null && decl.DeclaringSyntaxReferences.Length > 0);
     }
 
     // P-037 A2.2-2 (formal note §10.6.2, call-like): a constructor call is a call site of its
@@ -3217,7 +3230,7 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
             continue;
         var creationOp = model.GetOperation(creation) as IObjectCreationOperation;
         EmitCall(creation, ctor, ctor, false, null, creation.ArgumentList, creationOp?.Arguments,
-                 "object_creation");
+                 "object_creation", firstParty: ctor is not null && ctor.DeclaringSyntaxReferences.Length > 0);
     }
 
     var guards = new List<Dictionary<string, object?>>();
@@ -7342,7 +7355,7 @@ partial class Program
     // P-037 A2.2-2: the call-like kinds that are NOT invocation expressions; an invocation
     // carries no `call_kind` at all, so the A2.1 records keep their shape byte for byte.
     internal static readonly HashSet<string> CallKinds = new(StringComparer.Ordinal)
-        { "object_creation" };
+        { "object_creation", "delegate_invocation" };
 
     // #317: a 1-based source coordinate, carried as ONE value so a line and a column can
     // never drift onto different nodes. See RangeOf/PosOf/LineOf above — those are the only
