@@ -466,7 +466,7 @@
     "binding": "params",
     "carrier": "orphan_local"
    },
-   "carrier": "guarded_functions",
+   "carrier": "none",
    "occurrences": [
     {
      "symbol": "r",
@@ -481,10 +481,7 @@
      "explanation": "storage_assignment"
     }
    ],
-   "red": {
-    "fact_without_relevant_occurrence": 1
-   },
-   "finding": "F-PARAMS-ELEMENT"
+   "red": {}
   },
   "pw-ctor-cast-checked-pos-record-local": {
    "member": "H_pw_ctor_cast_checked_pos_record_local.M",
@@ -1353,10 +1350,7 @@
      "explanation": "receiver_not_summary_parameter"
     }
    ],
-   "red": {
-    "occurrence_not_captured": 1
-   },
-   "finding": "F-PARAMS-ELEMENT"
+   "red": {}
   },
   "pw-del-switch-default-unmodelled-local": {
    "member": "H_pw_del_switch_default_unmodelled_local.M",
@@ -1914,10 +1908,7 @@
      "ordinal": 1
     }
    ],
-   "red": {
-    "fact_without_relevant_occurrence": 1
-   },
-   "finding": "F-PARAMS-ELEMENT"
+   "red": {}
   },
   "pw-inv-array-pos-record-local": {
    "member": "H_pw_inv_array_pos_record_local.M",
@@ -2057,7 +2048,7 @@
     "binding": "params",
     "carrier": "orphan_local"
    },
-   "carrier": "none",
+   "carrier": "guarded_functions",
    "occurrences": [
     {
      "symbol": "r",
@@ -2072,10 +2063,7 @@
      "explanation": "storage_assignment"
     }
    ],
-   "red": {
-    "occurrence_not_captured": 1
-   },
-   "finding": "F-PARAMS-ELEMENT"
+   "red": {}
   },
   "pw-inv-bang-pos-unmodelled-param": {
    "member": "H_pw_inv_bang_pos_unmodelled_param.M",

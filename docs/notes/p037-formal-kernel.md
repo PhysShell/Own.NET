@@ -1166,7 +1166,12 @@ causes of FACT-DIFF. Tracked in #364 with its own acceptance.
   line: the sidecar's handle and owned-parameter sets are symbol sets recorded
   at the legacy admission points beside the names, the legacy name-based
   structures untouched; the three shadowing witnesses read green, every other
-  pinned RED stays, the 52 shapes and the probe are byte-identical;
+  pinned RED stays, the 52 shapes and the probe are byte-identical. R2
+  landed in the commit carrying this line: an expanded params element is
+  classified from the ParamArray argument's array-initializer element, its
+  element conversion included, so a handle under parentheses or `!` is no
+  longer lost and a boxed or user-converted element no longer yields a false
+  slot; the affected pairwise cases read green by the generic design;
 - **A2.2-5** mutation campaign: remove the handle, add parentheses, perturb the
   binding, distinguish nested calls;
 - **A2.2-S** cumulative A2 after-evidence on M1 against the existing R with
@@ -1223,7 +1228,7 @@ does a pinned RED that silently disappears):
 |---|---|---|---|
 | F-MEMBER | 3 | expression-bodied members, struct and record methods, property accessors are outside the legacy admission *and* the orphan carrier (the gates sit inside the class / block-body loop) | probe `Box.op_Implicit`; hostile `member-*` |
 | F-SHADOW | 1 | the guarded-fact handle set was keyed by spelling (`handles.Contains(lr.Local.Name)`) and the candidate collector descends into lambdas: a same-spelled non-candidate in a sibling scope, or beside a lambda-local creation, got a false `var` fact. **Repaired in A2.2-4R1** (10.6.11) | hostile `shadow-*`, now green |
-| F-PARAMS-ELEMENT | 1 | an expanded params element is classified from its bare syntax: under parentheses or `!` the handle is lost (no operation of its own); under a boxing or user-defined element conversion a false opaque-and-relevant slot is emitted | hostile `pw-*-params-*` with parens / bang / boxing / user_implicit |
+| F-PARAMS-ELEMENT | 1 | an expanded params element was classified from its bare syntax: under parentheses or `!` the handle was lost (no operation of its own); under a boxing or user-defined element conversion a false opaque-and-relevant slot was emitted. **Repaired in A2.2-4R2** (10.6.11) | hostile `pw-*-params-*` with parens / bang / boxing / user_implicit, now green |
 | F-CONDITIONAL-RECEIVER | 1 | `r?.Ext(...)` invokes through a member binding, the receiver is read from `MemberAccessExpressionSyntax` only, and ordinal 0 is dropped | hostile `ext-conditional-access` |
 | F-VOCAB | 3 | four argument shapes the frozen list has no name for: a tested operand, an interpolation hole, an indexer argument, a constructor-initializer argument; production correctly emits nothing, the sentence demands a name | hostile `vocab-*` |
 
@@ -1279,3 +1284,18 @@ nested-function gap.
   facts are byte-identical; the three shadowing witnesses read green
   (`shadow-lambda-local` now has no fact and no carrier, the truth); every
   other pinned RED stays; inertness and the local rehearsal unchanged.
+- **R2, F-PARAMS-ELEMENT.** In `EmitCall.ValueOf`, when no argument operation
+  is attached to the argument's span, the expanded params element is looked
+  up in the ParamArray argument's `IArrayCreationOperation` initializer (the
+  element whose syntax the argument contains) before falling back to
+  `GetOperation` on the bare expression. The element carries its own
+  conversion, so the existing walker decides it: `(r)` and `r!` yield the
+  local reference (a handle, `opaque` in the params slot, relevant), a struct
+  handle into `params object[]` yields a boxing conversion (not a handle) and
+  a handle into `params Box[]` a user-defined one (not a handle). The
+  collapsed form (an array passed whole) matched by span before and still
+  does. Measured: the 52 shapes and the probe byte-identical; the four
+  affected pairwise compositions (parens, bang, boxing, user_implicit under an
+  expanded params binding, across site forms and carriers) read green by the
+  generic design; every other pinned RED stays; inertness and the local
+  rehearsal unchanged.

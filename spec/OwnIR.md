@@ -378,8 +378,11 @@ guarded_facts:
 
 Binding rules: a named argument resolves to its parameter; a reduced extension's
 receiver is ordinal 0 (the unreduced declaration is the summary's home); an
-argument bound to a `params` array collapses to one `opaque` slot; an omitted
-optional argument has no entry; a `ref`/`out` argument is `opaque`. For an
+argument bound to a `params` array collapses to one `opaque` slot, each
+expanded element classified with its own element conversion (P-037 A2.2-4R2:
+a handle under parentheses or `!` still flows, a boxed struct handle or one
+passed through `op_Implicit` does not); an omitted optional argument has no
+entry; a `ref`/`out` argument is `opaque`. For an
 **unresolved** callee (`callee: null`) the ordinal is the *source position* —
 there is no declaration to bind against, and the record says so rather than
 guessing. Calls inside lambdas and local functions belong to those bodies, not

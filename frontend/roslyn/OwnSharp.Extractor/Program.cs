@@ -3113,11 +3113,26 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
         {
             // Roslyn attaches the argument operation to the INNERMOST expression: for `(r)` and
             // `r!` its Syntax is the identifier `r`, not the ArgumentSyntax, so match by span
-            // containment. A params-array or default-value argument carries the invocation's
-            // syntax and matches nothing here, which is the fallback below on purpose.
+            // containment. A default-value argument carries the invocation's syntax and matches
+            // nothing here, which is the fallback below on purpose.
             var bound = boundArgs?.FirstOrDefault(a => argument.Span.Contains(a.Syntax.Span));
             if (bound is null)
-                return model.GetOperation(expression);
+            {
+                // P-037 A2.2-4R2 (F-PARAMS-ELEMENT): an EXPANDED params argument has no argument
+                // operation of its own either — the ParamArray argument carries the call's
+                // syntax and its value is the array Roslyn builds, whose initializer elements
+                // are the arguments' operations, element conversion included (a box, an
+                // op_Implicit). Classify that element, never the bare syntax: `(r)` and `r!`
+                // have no operation of their own and the handle under them was lost, and a
+                // struct handle boxed into `params object[]` classified as the unboxed local.
+                var element = boundArgs?
+                    .Where(a => a.ArgumentKind == ArgumentKind.ParamArray)
+                    .Select(a => a.Value as IArrayCreationOperation)
+                    .Where(ac => ac?.Initializer is not null)
+                    .SelectMany(ac => ac!.Initializer!.ElementValues)
+                    .FirstOrDefault(e => argument.Span.Contains(e.Syntax.Span));
+                return element ?? model.GetOperation(expression);
+            }
             if (bound.InConversion.IsUserDefined)
                 return null;    // a hidden call at the parameter itself: not the handle
             return bound.Value;

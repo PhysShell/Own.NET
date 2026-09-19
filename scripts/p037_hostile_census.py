@@ -303,18 +303,8 @@ def pairwise_case(s: str, w: str, b: str, c: str) -> tuple[str, str, dict[str, A
         "occurrences": occurrences,
         "red": {},
     }
-    # F-PARAMS-ELEMENT (corpus/p037-relevance/oracle_findings.json): an expanded params element
-    # is classified from its bare syntax. A transparent wrapper has no operation of its own, so
-    # the handle is lost; a boxing or user-defined element conversion is not seen, so a false
-    # opaque-and-relevant slot is emitted. The design above stays the truth; the RED is pinned.
-    if b == "params" and w in {"parens", "bang"}:
-        design["red"] = {"occurrence_not_captured": 1}
-        design["finding"] = "F-PARAMS-ELEMENT"
-        design["carrier"] = "functions" if c.startswith("record") else "none"
-    if b == "params" and w in {"boxing", "user_implicit"}:
-        design["red"] = {"fact_without_relevant_occurrence": 1}
-        design["finding"] = "F-PARAMS-ELEMENT"
-        design["carrier"] = "functions" if c.startswith("record") else "guarded_functions"
+    # F-PARAMS-ELEMENT (an expanded params element classified from its bare syntax) was pinned
+    # RED here until A2.2-4R2 repaired it: the design above is the truth for every binding.
     return name, src, design
 
 

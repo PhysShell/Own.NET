@@ -9,13 +9,6 @@
       "status": "open: a census finding; carrying these members in the orphan carrier is a production change to be classified on its own",
       "red": "occurrence_not_captured"
     },
-    "F-PARAMS-ELEMENT": {
-      "class": "case 1",
-      "title": "an expanded params element is classified from its bare syntax",
-      "evidence": "For an expanded params argument the argument operation carries the call's own syntax, so the span-containment match finds nothing and the fallback classifies `model.GetOperation(expression)` of the element alone. A transparent wrapper (parentheses, the null-forgiving `!`) has no operation of its own, so the handle under it is lost and the call is not relevant; a boxing or user-defined element conversion sits on the array element, not on the expression, so a struct handle boxed into `params object[]` or a handle passed through op_Implicit into `params Box[]` yields an opaque-and-relevant slot although nothing of the handle reaches the callee. Witnessed by the hostile cases whose binding is `params` and whose value-flow shape is parens, bang, boxing or user_implicit; casts, `as` and the may-value forms have operations of their own and are classified correctly.",
-      "status": "open: an implementation defect in the A2 classifier, to be repaired as its own classified change",
-      "red": "occurrence_not_captured (lost) / fact_without_relevant_occurrence (false)"
-    },
     "F-CONDITIONAL-RECEIVER": {
       "class": "case 1",
       "title": "a reduced extension receiver under `?.` is not bound to ordinal 0",
@@ -47,6 +40,13 @@
       "evidence": "BuildGuardedFacts receives the legacy candidate NAMES and tests `handles.Contains(lr.Local.Name)`; the candidate collector descends into lambda bodies. Two locals spelled alike in sibling scopes, or a lambda-local creation beside an unrelated local of the same spelling, produce a var fact on a symbol that is no candidate: a false raw fact. Witnessed by three hostile cases.",
       "status": "closed: A2.2-4R1. BuildGuardedFacts takes symbol sets (SymbolEqualityComparer.Default) recorded at the legacy admission points beside the names; the legacy name-based structures are untouched. The three shadow witnesses are designed green; the oracle's fact_binds_other_symbol check stays armed.",
       "red": "fact_binds_other_symbol"
+    },
+    "F-PARAMS-ELEMENT": {
+      "class": "case 1",
+      "title": "an expanded params element is classified from its bare syntax",
+      "evidence": "For an expanded params argument the argument operation carries the call's own syntax, so the span-containment match finds nothing and the fallback classifies `model.GetOperation(expression)` of the element alone. A transparent wrapper (parentheses, the null-forgiving `!`) has no operation of its own, so the handle under it is lost and the call is not relevant; a boxing or user-defined element conversion sits on the array element, not on the expression, so a struct handle boxed into `params object[]` or a handle passed through op_Implicit into `params Box[]` yields an opaque-and-relevant slot although nothing of the handle reaches the callee. Witnessed by the hostile cases whose binding is `params` and whose value-flow shape is parens, bang, boxing or user_implicit; casts, `as` and the may-value forms have operations of their own and are classified correctly.",
+      "status": "closed: A2.2-4R2. ValueOf classifies an expanded params element from the ParamArray argument's array initializer element (its conversion included) instead of the bare syntax; the affected pairwise cases are designed green by the generic rule.",
+      "red": "occurrence_not_captured (lost) / fact_without_relevant_occurrence (false)"
     }
   }
 }
