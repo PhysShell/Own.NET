@@ -1194,7 +1194,13 @@ causes of FACT-DIFF. Tracked in #364 with its own acceptance.
   the spec, the registry's call-like forms, a probe row (`CtorInit`, its
   historical columns measured with each step's rebuilt extractor and the
   whole probe re-measured into `a2_2_4r5_observed`), the census shape
-  `sidecar-ctorinit-base` and three hostile witnesses; F-CTOR-INIT closes;
+  `sidecar-ctorinit-base` and three hostile witnesses; F-CTOR-INIT closes.
+  R6 landed in the two commits carrying this line: R6a adds the two
+  witnesses the ruling asked for (a default interface method with a body, a
+  record struct method), pinned RED; R6b adds the independent guarded-only
+  member enumeration feeding the orphan carrier, the legacy `functions[]`
+  untouched, and every finding is closed: the oracle reads every input
+  RED-free;
 - **A2.2-5** mutation campaign: remove the handle, add parentheses, perturb the
   binding, distinguish nested calls;
 - **A2.2-S** cumulative A2 after-evidence on M1 against the existing R with
@@ -1250,7 +1256,7 @@ does a pinned RED that silently disappears):
 
 | id | class | what | witness |
 |---|---|---|---|
-| F-MEMBER | 3 | expression-bodied members, struct and record methods, property accessors are outside the legacy admission *and* the orphan carrier (the gates sit inside the class / block-body loop) | probe `Box.op_Implicit`; hostile `member-*` |
+| F-MEMBER | 3 | expression-bodied members, struct, record, record struct and interface methods, property accessors were outside the legacy admission *and* the orphan carrier (the gates sit inside the class / block-body loop). **Repaired in A2.2-4R6** (10.6.11) | probe `Box.op_Implicit`; hostile `member-*`, now green |
 | F-SHADOW | 1 | the guarded-fact handle set was keyed by spelling (`handles.Contains(lr.Local.Name)`) and the candidate collector descends into lambdas: a same-spelled non-candidate in a sibling scope, or beside a lambda-local creation, got a false `var` fact. **Repaired in A2.2-4R1** (10.6.11) | hostile `shadow-*`, now green |
 | F-PARAMS-ELEMENT | 1 | an expanded params element was classified from its bare syntax: under parentheses or `!` the handle was lost (no operation of its own); under a boxing or user-defined element conversion a false opaque-and-relevant slot was emitted. **Repaired in A2.2-4R2** (10.6.11) | hostile `pw-*-params-*` with parens / bang / boxing / user_implicit, now green |
 | F-CONDITIONAL-RECEIVER | 1 | `r?.Ext(...)` invokes through a member binding, the receiver was read from `MemberAccessExpressionSyntax` only, and ordinal 0 was dropped. **Repaired in A2.2-4R3** (10.6.11) | hostile `ext-conditional-access`, now green |
@@ -1381,3 +1387,30 @@ nested-function gap.
   `ctorinit-*` / `vocab-constructor-initializer` witnesses read green; the
   oracle's `unclassified_argument_shape` kinds are empty over every input;
   inertness and the local rehearsal unchanged.
+- **R6, F-MEMBER.** R6a first pins two more witnesses RED, because the root
+  cause is the enumeration and not struct-ness: a default interface method
+  with a body and a record struct method. R6b then adds `GuardedOnlyMembers`,
+  an independent walk over every `TypeDeclarationSyntax` that yields exactly
+  the bodies the legacy loop does not read (an expression-bodied method-like
+  member of a class; every method-like member of a struct, record, record
+  struct or interface; every accessor with a body; an expression-bodied
+  property or indexer, its getter), run after each tree's legacy class loop
+  so every earlier orphan keeps its place. `GuardedOnlyAdmission` records,
+  as symbols, the same owned-parameter predicate and the same candidate
+  families in the same order as the legacy loop admits for its own methods;
+  `BuildGuardedFacts` takes any member declaration and any body, a block or
+  an arrow clause; the result rides in `guarded_functions[]`. The boundary
+  ruled for it holds by construction: no legacy structure, gate or lowering
+  input changes, and no member enumerated here ever had a `functions[]`
+  record, so the carrier's identity refusal cannot fire. Lambdas and local
+  functions stay the separate nested-function gap. Measured: the 53 census
+  shapes byte-identical and two new shapes (`orphan-expression-bodied`,
+  `orphan-struct-method`) pin the repair; the probe re-measured into
+  `a2_2_4r6_observed` moves no row while its helper `Box.op_Implicit` now
+  carries its `object_creation` fact as an orphan; the six `member-*`
+  witnesses read green with carrier `guarded_functions`; the oracle raises
+  no RED over any input, the ledger's `expected_red` is empty and F-MEMBER
+  moves to `closed`; inertness and the local rehearsal unchanged. With R6
+  every A2.2-4 finding is either repaired or a consciously frozen named
+  exclusion: the completeness phase's goal, not merely "we know where the
+  red is".

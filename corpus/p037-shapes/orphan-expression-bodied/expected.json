@@ -1,0 +1,151 @@
+{
+ "schema": "p037-fact-shape/1",
+ "shape": "orphan-expression-bodied",
+ "status": "anchored",
+ "why": "P-037 A2.2-4R6 (formal note \u00a710.6.11): an expression-bodied method is outside the legacy pass's block-body enumeration and never had a functions[] record; the guarded-only member enumeration carries its call fact as an orphan, while its block-bodied twin keeps its legacy record and sidecar. A row that moves without a step meaning to move it is a regression.",
+ "a2_expect": [
+  {
+   "function": "ShapeOrphanExpressionBodied.Forward",
+   "carrier": "guarded_functions",
+   "call": {
+    "callee": "ShapeOrphanExpressionBodied.Inner",
+    "args": [
+     {
+      "param": 0,
+      "kind": "param",
+      "source_param": 0
+     },
+     {
+      "param": 1,
+      "kind": "bool_const",
+      "value": true
+     }
+    ]
+   }
+  },
+  {
+   "function": "ShapeOrphanExpressionBodied.Block",
+   "call": {
+    "callee": "ShapeOrphanExpressionBodied.Inner",
+    "args": [
+     {
+      "param": 0,
+      "kind": "param",
+      "source_param": 0
+     },
+     {
+      "param": 1,
+      "kind": "bool_const",
+      "value": true
+     }
+    ]
+   }
+  }
+ ],
+ "facts": {
+  "ShapeOrphanExpressionBodied.Inner": {
+   "params": [
+    {
+     "name": "s",
+     "line": 9
+    }
+   ],
+   "body": [
+    "if:None@9",
+    "then:release:s@9"
+   ],
+   "guarded_facts": {
+    "version": 1,
+    "calls": [],
+    "guards": [
+     {
+      "site": {
+       "line": 9,
+       "column": 51
+      },
+      "param": 1,
+      "predicate": "truth",
+      "negated": true
+     }
+    ]
+   }
+  },
+  "ShapeOrphanExpressionBodied.Block": {
+   "params": [
+    {
+     "name": "r",
+     "line": 11
+    }
+   ],
+   "body": [
+    "release:r@11"
+   ],
+   "guarded_facts": {
+    "version": 1,
+    "calls": [
+     {
+      "site": {
+       "line": 11,
+       "column": 41
+      },
+      "statement_line": 11,
+      "form": "statement",
+      "callee": "ShapeOrphanExpressionBodied.Inner",
+      "sig": "System.IO.Stream,System.Boolean",
+      "first_party": true,
+      "args": [
+       {
+        "param": 0,
+        "kind": "param",
+        "source_param": 0
+       },
+       {
+        "param": 1,
+        "kind": "bool_const",
+        "value": true
+       }
+      ]
+     }
+    ],
+    "guards": []
+   }
+  },
+  "ShapeOrphanExpressionBodied.Forward": {
+   "carrier": "guarded_functions",
+   "sig": "System.IO.MemoryStream",
+   "guarded_facts": {
+    "version": 1,
+    "calls": [
+     {
+      "site": {
+       "line": 10,
+       "column": 44
+      },
+      "statement_line": 10,
+      "form": "expression",
+      "callee": "ShapeOrphanExpressionBodied.Inner",
+      "sig": "System.IO.Stream,System.Boolean",
+      "first_party": true,
+      "args": [
+       {
+        "param": 0,
+        "kind": "param",
+        "source_param": 0
+       },
+       {
+        "param": 1,
+        "kind": "bool_const",
+        "value": true
+       }
+      ]
+     }
+    ],
+    "guards": []
+   }
+  }
+ },
+ "verdict": {
+  "rust": [],
+  "python": []
+ }
+}

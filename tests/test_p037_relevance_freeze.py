@@ -326,6 +326,13 @@ def run() -> int:
             step5.append(f"{name}: row moved in A2.2-4R5 without being constructor_initializer "
                          f"({before} -> {after})")
     check("a2-2-4r5-moves-exactly-constructor-initializer", not step5, "; ".join(step5))
+    # A2.2-4R6 moves no probe row: the guarded-only member enumeration reaches helpers only
+    # (Box.op_Implicit); every row reads as after A2.2-4R5.
+    step6 = [f"{name}: {e.get('a2_2_4r5_observed')} -> {e.get('a2_2_4r6_observed')}"
+             for name, e in methods.items()
+             if e.get("a2_2_4r6_observed") != e.get("a2_2_4r5_observed")]
+    check("a2-2-4r6-moves-no-row", not step6, "; ".join(step6))
+
     check("constructor-initializer-has-a-recorded-witness",
           any(e.get("form") == "constructor_initializer"
               and str(e.get("a2_2_4r5_observed", "")).endswith(":constructor_initializer")

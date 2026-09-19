@@ -1,24 +1,8 @@
 {
   "schema": "p037-oracle-findings/1",
   "why": "Every RED the completeness oracle (frontend/roslyn/OwnSharp.Oracle) is EXPECTED to raise, tied to a finding classified by docs/notes/p037-formal-kernel.md \u00a710.1. An input absent from expected_red must be RED-free; an input present must raise exactly these kinds and counts. A finding closes only by a ruling or a separately classified change that removes its RED, and the entry with it.",
-  "findings": {
-    "F-MEMBER": {
-      "class": "case 3",
-      "title": "member bodies the legacy pass never visits: expression-bodied members, methods of struct and record types, property accessors",
-      "evidence": "Program.cs enumerates ClassDeclarationSyntax only and, inside it, BaseMethodDeclarationSyntax with a block Body; the three A2.2-3P admission gates sit inside that loop, so these members reach neither functions[] nor guarded_functions[]. Witnessed by the probe (Box.op_Implicit, an expression-bodied conversion operator) and by four hostile cases.",
-      "status": "open: a census finding; carrying these members in the orphan carrier is a production change to be classified on its own",
-      "red": "occurrence_not_captured"
-    }
-  },
-  "expected_red": {
-    "probe": {
-      "red": {
-        "occurrence_not_captured": 1
-      },
-      "finding": "F-MEMBER",
-      "member": "Probe.Box.op_Implicit"
-    }
-  },
+  "findings": {},
+  "expected_red": {},
   "closed": {
     "F-SHADOW": {
       "class": "case 1",
@@ -54,6 +38,13 @@
       "evidence": "`Holder(MemoryStream r) : base(r, true)` passes the owned parameter into a really invoked constructor's declared ordinal 0, the same ownership edge object_creation was added for; the frozen vocabulary has no call_kind for a ConstructorInitializerSyntax site, so no fact exists and the oracle reads the occurrence as unclassified. Ruled in A2.2-4R4 to be a fact shape (call_kind constructor_initializer; site the initializer; callee the target constructor's {Type}..ctor key; sig its canonical signature; arguments bound to the target constructor's declared ordinals; first_party by declaring syntax; the same value-flow and binding machinery), landing in A2.2-4R5. Witnessed by the hostile case vocab-constructor-initializer.",
       "status": "closed: A2.2-4R5. call_kind constructor_initializer; the initializer's argument syntax is visited for nested call sites too; three hostile witnesses and the census shape sidecar-ctorinit-base are green; the probe row CtorInit reads orphan_call:constructor_initializer.",
       "red": "unclassified_argument_shape:constructor_initializer"
+    },
+    "F-MEMBER": {
+      "class": "case 3",
+      "title": "member bodies the legacy pass never visits: expression-bodied members, methods of struct and record types, property accessors",
+      "evidence": "Program.cs enumerates ClassDeclarationSyntax only and, inside it, BaseMethodDeclarationSyntax with a block Body; the three A2.2-3P admission gates sit inside that loop, so these members reach neither functions[] nor guarded_functions[]. Witnessed by the probe (Box.op_Implicit, an expression-bodied conversion operator) and by four hostile cases.",
+      "status": "closed: A2.2-4R6. An independent guarded-only member enumeration (expression-bodied members of a class, every method-like member of a struct, record, record struct or interface, property and indexer accessors) feeds BuildGuardedFacts and the orphan carrier; the legacy enumeration and functions[] are untouched. Six hostile witnesses and the probe's Box.op_Implicit read green; lambdas and local functions stay the separate nested-function gap.",
+      "red": "occurrence_not_captured"
     }
   }
 }

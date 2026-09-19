@@ -487,7 +487,11 @@ handed to a delegate, a method with no handle but with a `disposing`-style
 guard on a field disposal, and any method with an unmodelled construct
 rejected by the legacy flow pass (for example, at this checkpoint: `lock`,
 `goto`, or a local-function declaration; `try`, `switch`, loops and `using`
-declarations are modelled). Their facts are honest raw facts and must be
+declarations are modelled), and, since P-037 A2.2-4R6, every member body the
+legacy pass never enumerates at all: an expression-bodied method-like member
+of a class, every method-like member of a struct, record, record struct or
+interface, a property or indexer accessor, an expression-bodied property or
+indexer (its getter). Their facts are honest raw facts and must be
 delivered; a dummy `functions[]` record is not the way, because a record, even
 with an empty body, enters the first-party universe at the doors
 (`_build_skeletons` creates a skeleton for every named function) and can move

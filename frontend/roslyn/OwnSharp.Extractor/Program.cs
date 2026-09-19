@@ -2955,11 +2955,15 @@ static bool ParameterIsStable(IParameterSymbol p, SyntaxNode body, SemanticModel
 // same spelling, are one name to it; a `var` fact must never be bound by spelling to a symbol
 // that is no candidate. The admission points record the declared symbol beside the name
 // (nothing the legacy path reads changes), and the sidecar tests symbol identity only.
-static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax mbody,
+// P-037 A2.2-4R6: `member` is any member declaration that owns a body — a method-like member,
+// an accessor, an expression-bodied property or indexer — and `mbody` its block or arrow
+// clause; the guarded-only enumeration (GuardedOnlyMembers) feeds them beside the legacy
+// loop's methods.
+static object? BuildGuardedFacts(SyntaxNode member, SyntaxNode mbody,
                                  HashSet<ISymbol> handles, HashSet<ISymbol> ownedParams,
                                  SemanticModel model, string where)
 {
-    var self = model.GetDeclaredSymbol(method) as IMethodSymbol;
+    var self = MethodSymbolOf(member, model);
     var stability = new Dictionary<IParameterSymbol, bool>(SymbolEqualityComparer.Default);
 
     IParameterSymbol? OwnParam(ExpressionSyntax? e) =>
@@ -3101,7 +3105,7 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
     // their own (`: base(Wrap(r), true)`), so the initializer's nodes come first, in source
     // order, then the body's (A2.2-4R5). Every other member reads exactly as before.
     IEnumerable<SyntaxNode> CallSyntax() =>
-        (method is ConstructorDeclarationSyntax { Initializer: { } ctorInit }
+        (member is ConstructorDeclarationSyntax { Initializer: { } ctorInit }
             ? ctorInit.DescendantNodes(InThisMethod)
             : Enumerable.Empty<SyntaxNode>())
         .Concat(mbody.DescendantNodes(InThisMethod));
@@ -3298,7 +3302,7 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
     // `functions[]` key `{Type}..ctor`, its canonical signature), its declared parameters bind
     // the arguments by the mechanism above, and the initializer itself is the site. Tagged
     // `call_kind: constructor_initializer`; `: this(...)` and `: base(...)` alike.
-    if (method is ConstructorDeclarationSyntax { Initializer: { } init })
+    if (member is ConstructorDeclarationSyntax { Initializer: { } init })
     {
         var targetCtor = model.GetSymbolInfo(init).Symbol as IMethodSymbol;
         var initOp = model.GetOperation(init) as IInvocationOperation;
@@ -3364,6 +3368,96 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
         return null;
     ValidateGuardedFacts(calls, guards, where);
     return new Dictionary<string, object?> { ["version"] = 1, ["calls"] = calls, ["guards"] = guards };
+}
+
+// P-037 A2.2-4R6 (F-MEMBER, formal note §10.6.11): the member bodies the legacy pass never
+// enumerates. The legacy loop reads `ClassDeclarationSyntax` members that are
+// `BaseMethodDeclarationSyntax` with a block body; everything else that owns a body — an
+// expression-bodied method-like member of a class, every method-like member of a struct,
+// record, record struct or interface, a property or indexer accessor, an expression-bodied
+// property or indexer — is enumerated here, independently, for the guarded-fact sidecar and
+// the orphan carrier only. The legacy enumeration and `functions[]` are untouched by ruling:
+// nothing here can move a MOS document.
+static IEnumerable<(SyntaxNode member, SyntaxNode body)> GuardedOnlyMembers(SyntaxNode root)
+{
+    foreach (var type in root.DescendantNodes().OfType<TypeDeclarationSyntax>())
+        foreach (var m in type.Members)
+            switch (m)
+            {
+                case BaseMethodDeclarationSyntax bm:
+                    if (type is ClassDeclarationSyntax && bm.Body is not null)
+                        continue;   // the legacy loop's own domain
+                    if ((bm.Body ?? (SyntaxNode?)bm.ExpressionBody) is { } mb)
+                        yield return (bm, mb);
+                    break;
+                case BasePropertyDeclarationSyntax bp:
+                    if (bp.AccessorList is not null)
+                        foreach (var acc in bp.AccessorList.Accessors)
+                            if ((acc.Body ?? (SyntaxNode?)acc.ExpressionBody) is { } ab)
+                                yield return (acc, ab);
+                    var eb = (bp as PropertyDeclarationSyntax)?.ExpressionBody
+                             ?? (bp as IndexerDeclarationSyntax)?.ExpressionBody;
+                    if (eb is not null)
+                        yield return (bp, eb);
+                    break;
+            }
+}
+
+// The method symbol a member declaration stands for: an accessor or a method-like member is
+// its own; an expression-bodied property or indexer is its getter.
+static IMethodSymbol? MethodSymbolOf(SyntaxNode member, SemanticModel model) => member switch
+{
+    PropertyDeclarationSyntax p => (model.GetDeclaredSymbol(p) as IPropertySymbol)?.GetMethod,
+    IndexerDeclarationSyntax i => (model.GetDeclaredSymbol(i) as IPropertySymbol)?.GetMethod,
+    _ => model.GetDeclaredSymbol(member) as IMethodSymbol,
+};
+
+// The guarded-only admission: the same owned-parameter predicate and the same candidate
+// families, in the same order, as the legacy loop admits them for its own methods (by-value
+// parameter of an owned disposable type; a local created by `new`, rented from a pool,
+// opened by a BCL factory, rented from a MemoryPool, or returned by a first-party disposable
+// factory; a `using` local only as a MemoryPool owner). Recorded as symbols, for the sidecar
+// only; the legacy block itself is not touched.
+static (HashSet<ISymbol> candidates, HashSet<ISymbol> ownedParams) GuardedOnlyAdmission(
+    IMethodSymbol self, SyntaxNode body, SemanticModel model)
+{
+    var owned = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+    foreach (var p in self.Parameters)
+        if (p.RefKind == RefKind.None && ImplementsIDisposable(p.Type) && !IsDisposeOptional(p.Type))
+            owned.Add(p);
+    var candidates = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+    void Admit(VariableDeclaratorSyntax v)
+    {
+        if (model.GetDeclaredSymbol(v) is ILocalSymbol ls)
+            candidates.Add(ls);
+    }
+    foreach (var ld in body.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
+    {
+        if (ld.UsingKeyword != default)
+        {
+            foreach (var v in ld.Declaration.Variables)
+                if (IsMemoryPoolRent(v.Initializer?.Value, model))
+                    Admit(v);
+            continue;
+        }
+        foreach (var v in ld.Declaration.Variables)
+            if (v.Initializer is { Value: ObjectCreationExpressionSyntax
+                                       or ImplicitObjectCreationExpressionSyntax } init
+                && model.GetTypeInfo(init.Value).Type is { } dt
+                && ImplementsIDisposable(dt) && !IsDisposeOptional(dt) && !HasEmptyDisposeBody(dt))
+                Admit(v);
+            else if (IsPoolRent(v.Initializer?.Value, model)
+                     || IsOwningFactory(v.Initializer?.Value, model)
+                     || IsMemoryPoolRent(v.Initializer?.Value, model)
+                     || IsFirstPartyDisposableFactory(v.Initializer?.Value, model, out _, out _))
+                Admit(v);
+    }
+    foreach (var us in body.DescendantNodes().OfType<UsingStatementSyntax>())
+        if (us.Declaration is { } usd)
+            foreach (var v in usd.Variables)
+                if (IsMemoryPoolRent(v.Initializer?.Value, model))
+                    Admit(v);
+    return (candidates, owned);
 }
 
 // P-037 A2.2-3P: the orphan carrier's own conformance check. Every entry is a complete
@@ -7425,6 +7519,28 @@ foreach (var (file, tree) in parsed)
                 components.Add(new { name = cls.Identifier.Text, file, subscriptions = subs });
         }
     }
+
+    // P-037 A2.2-4R6 (F-MEMBER): the guarded-only members of this tree, after the legacy class
+    // loop so every earlier orphan keeps its place. Never a `functions[]` record.
+    if (flowLocals)
+        foreach (var (member, body) in GuardedOnlyMembers(root))
+        {
+            var msym = MethodSymbolOf(member, model);
+            if (msym is null)
+                continue;
+            var (candidateSymbols, ownedParamSymbols) = GuardedOnlyAdmission(msym, body, model);
+            var oname = $"{msym.ContainingType.ToDisplayString()}.{msym.Name}";
+            var guarded = BuildGuardedFacts(member, body, candidateSymbols, ownedParamSymbols, model, oname);
+            if (guarded is null)
+                continue;
+            guardedOrphans.Add(new Dictionary<string, object?>
+            {
+                ["name"] = oname,
+                ["file"] = file,
+                ["sig"] = CanonicalSig(msym),
+                ["guarded_facts"] = guarded,
+            });
+        }
 }
 
 // ownir_version stamps the fact-schema vocabulary; the Python core rejects a

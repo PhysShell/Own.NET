@@ -319,7 +319,7 @@
   "member-accessor": {
    "member": "H_member_accessor.M",
    "member_override": ".set_Slot",
-   "carrier": "none",
+   "carrier": "guarded_functions",
    "occurrences": [
     {
      "symbol": "value",
@@ -329,16 +329,13 @@
      "expected": "param"
     }
    ],
-   "red": {
-    "occurrence_not_captured": 1
-   },
-   "finding": "F-MEMBER",
-   "why": "member kind: a property setter passing its `value` parameter; accessors are not BaseMethodDeclarationSyntax and are never visited (finding F-MEMBER)"
+   "red": {},
+   "why": "member kind: a property setter passing its `value` parameter; accessors are not BaseMethodDeclarationSyntax and are never visited (F-MEMBER, repaired in A2.2-4R6: the orphan carrier holds the fact)"
   },
   "member-default-interface-method": {
    "member": "H_member_default_interface_method.M",
    "member_override": ".IHolder.M",
-   "carrier": "none",
+   "carrier": "guarded_functions",
    "occurrences": [
     {
      "symbol": "r",
@@ -348,15 +345,12 @@
      "expected": "param"
     }
    ],
-   "red": {
-    "occurrence_not_captured": 1
-   },
-   "finding": "F-MEMBER",
-   "why": "member kind: a default interface method with a body; the legacy pass enumerates class declarations only, and the root cause is the enumeration, not struct-ness (finding F-MEMBER)"
+   "red": {},
+   "why": "member kind: a default interface method with a body; the legacy pass enumerates class declarations only, and the root cause is the enumeration, not struct-ness (F-MEMBER, repaired in A2.2-4R6: the orphan carrier holds the fact)"
   },
   "member-expression-bodied": {
    "member": "H_member_expression_bodied.M",
-   "carrier": "none",
+   "carrier": "guarded_functions",
    "occurrences": [
     {
      "symbol": "r",
@@ -366,11 +360,8 @@
      "expected": "param"
     }
    ],
-   "red": {
-    "occurrence_not_captured": 1
-   },
-   "finding": "F-MEMBER",
-   "why": "member kind: an expression-bodied method with an owned parameter; the legacy pass visits block bodies only, so neither carrier sees the call (finding F-MEMBER)"
+   "red": {},
+   "why": "member kind: an expression-bodied method with an owned parameter; the legacy pass visits block bodies only, so neither carrier sees the call (F-MEMBER, repaired in A2.2-4R6: the orphan carrier holds the fact)"
   },
   "member-local-function": {
    "member": "H_member_local_function.M",
@@ -389,7 +380,7 @@
   "member-record": {
    "member": "H_member_record.M",
    "member_override": ".Holder.M",
-   "carrier": "none",
+   "carrier": "guarded_functions",
    "occurrences": [
     {
      "symbol": "r",
@@ -399,16 +390,13 @@
      "expected": "param"
     }
    ],
-   "red": {
-    "occurrence_not_captured": 1
-   },
-   "finding": "F-MEMBER",
-   "why": "member kind: a method of a record; the legacy pass enumerates class declarations only (finding F-MEMBER)"
+   "red": {},
+   "why": "member kind: a method of a record; the legacy pass enumerates class declarations only (F-MEMBER, repaired in A2.2-4R6: the orphan carrier holds the fact)"
   },
   "member-record-struct": {
    "member": "H_member_record_struct.M",
    "member_override": ".Holder.M",
-   "carrier": "none",
+   "carrier": "guarded_functions",
    "occurrences": [
     {
      "symbol": "r",
@@ -418,16 +406,13 @@
      "expected": "param"
     }
    ],
-   "red": {
-    "occurrence_not_captured": 1
-   },
-   "finding": "F-MEMBER",
-   "why": "member kind: a method of a record struct; neither a class declaration nor a record class (finding F-MEMBER)"
+   "red": {},
+   "why": "member kind: a method of a record struct; neither a class declaration nor a record class (F-MEMBER, repaired in A2.2-4R6: the orphan carrier holds the fact)"
   },
   "member-struct": {
    "member": "H_member_struct.M",
    "member_override": ".Holder.M",
-   "carrier": "none",
+   "carrier": "guarded_functions",
    "occurrences": [
     {
      "symbol": "r",
@@ -437,11 +422,8 @@
      "expected": "param"
     }
    ],
-   "red": {
-    "occurrence_not_captured": 1
-   },
-   "finding": "F-MEMBER",
-   "why": "member kind: a method of a struct; the legacy pass enumerates class declarations only (finding F-MEMBER)"
+   "red": {},
+   "why": "member kind: a method of a struct; the legacy pass enumerates class declarations only (F-MEMBER, repaired in A2.2-4R6: the orphan carrier holds the fact)"
   },
   "pw-ctor-array-params-orphan-local": {
    "member": "H_pw_ctor_array_params_orphan_local.M",

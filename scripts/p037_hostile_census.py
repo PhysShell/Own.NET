@@ -496,51 +496,51 @@ def named_cases() -> list[tuple[str, str, dict[str, Any]]]:
     out.append(named_case(
         "member-expression-bodied",
         "member kind: an expression-bodied method with an owned parameter; the legacy pass visits "
-        "block bodies only, so neither carrier sees the call (finding F-MEMBER)",
+        "block bodies only, so neither carrier sees the call "
+        "(F-MEMBER, repaired in A2.2-4R6: the orphan carrier holds the fact)",
         [sink, "static void M(MemoryStream r) => Sink(r, true);"],
-        {"carrier": "none", "occurrences": [cap("r", expected="param")],
-         "red": {"occurrence_not_captured": 1}, "finding": "F-MEMBER"}))
+        {"carrier": "guarded_functions", "occurrences": [cap("r", expected="param")], "red": {}}))
     out.append(named_case(
         "member-struct",
         "member kind: a method of a struct; the legacy pass enumerates class declarations only "
-        "(finding F-MEMBER)",
+        ""
+        "(F-MEMBER, repaired in A2.2-4R6: the orphan carrier holds the fact)",
         [sink, "struct Holder { public void M(MemoryStream r) { Sink(r, true); } }"],
-        {"member_override": ".Holder.M", "carrier": "none",
-         "occurrences": [cap("r", expected="param")],
-         "red": {"occurrence_not_captured": 1}, "finding": "F-MEMBER"}))
+        {"member_override": ".Holder.M", "carrier": "guarded_functions",
+         "occurrences": [cap("r", expected="param")], "red": {}}))
     out.append(named_case(
         "member-record",
         "member kind: a method of a record; the legacy pass enumerates class declarations only "
-        "(finding F-MEMBER)",
+        ""
+        "(F-MEMBER, repaired in A2.2-4R6: the orphan carrier holds the fact)",
         [sink, "sealed record Holder(int X) { public void M(MemoryStream r) { Sink(r, true); } }"],
-        {"member_override": ".Holder.M", "carrier": "none",
-         "occurrences": [cap("r", expected="param")],
-         "red": {"occurrence_not_captured": 1}, "finding": "F-MEMBER"}))
+        {"member_override": ".Holder.M", "carrier": "guarded_functions",
+         "occurrences": [cap("r", expected="param")], "red": {}}))
     out.append(named_case(
         "member-accessor",
         "member kind: a property setter passing its `value` parameter; accessors are not "
-        "BaseMethodDeclarationSyntax and are never visited (finding F-MEMBER)",
+        "BaseMethodDeclarationSyntax and are never visited "
+        "(F-MEMBER, repaired in A2.2-4R6: the orphan carrier holds the fact)",
         [sink, "static MemoryStream Slot { set { Sink(value, true); } }"],
-        {"member_override": ".set_Slot", "carrier": "none",
-         "occurrences": [cap("value", expected="param")],
-         "red": {"occurrence_not_captured": 1}, "finding": "F-MEMBER"}))
+        {"member_override": ".set_Slot", "carrier": "guarded_functions",
+         "occurrences": [cap("value", expected="param")], "red": {}}))
     out.append(named_case(
         "member-default-interface-method",
         "member kind: a default interface method with a body; the legacy pass enumerates class "
         "declarations only, and the root cause is the enumeration, not struct-ness "
-        "(finding F-MEMBER)",
+        ""
+        "(F-MEMBER, repaired in A2.2-4R6: the orphan carrier holds the fact)",
         [sink, "interface IHolder { void M(MemoryStream r) { Sink(r, true); } }"],
-        {"member_override": ".IHolder.M", "carrier": "none",
-         "occurrences": [cap("r", expected="param")],
-         "red": {"occurrence_not_captured": 1}, "finding": "F-MEMBER"}))
+        {"member_override": ".IHolder.M", "carrier": "guarded_functions",
+         "occurrences": [cap("r", expected="param")], "red": {}}))
     out.append(named_case(
         "member-record-struct",
         "member kind: a method of a record struct; neither a class declaration nor a record class "
-        "(finding F-MEMBER)",
+        ""
+        "(F-MEMBER, repaired in A2.2-4R6: the orphan carrier holds the fact)",
         [sink, "record struct Holder(int X) { public void M(MemoryStream r) { Sink(r, true); } }"],
-        {"member_override": ".Holder.M", "carrier": "none",
-         "occurrences": [cap("r", expected="param")],
-         "red": {"occurrence_not_captured": 1}, "finding": "F-MEMBER"}))
+        {"member_override": ".Holder.M", "carrier": "guarded_functions",
+         "occurrences": [cap("r", expected="param")], "red": {}}))
     out.append(named_case(
         "member-local-function",
         "member kind: the call sits in a declared local function; the capture is a named non-call "

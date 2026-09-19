@@ -110,12 +110,19 @@ def run() -> int:
           len(shadow) >= 4 and all(not cases[n].get("red") for n in shadow),
           f"shadow cases and their expected RED: { {n: cases[n].get('red') for n in shadow} }")
 
+    # Open findings must be classified; an EMPTY open map is the completeness phase's goal
+    # (every RED repaired or consciously frozen), reached at A2.2-4R6, and the closed map keeps
+    # the record of what was found and how each closed.
     findings: dict[str, Any] = ledger.get("findings", {})
-    bad = [fid for fid, f in findings.items()
+    closed: dict[str, Any] = ledger.get("closed", {})
+    bad = [fid for fid, f in list(findings.items()) + list(closed.items())
            if f.get("class") not in CLASSES or not f.get("title") or not f.get("evidence")
            or not f.get("status") or not f.get("red")]
-    check("findings-classified", bool(findings) and not bad,
+    check("findings-classified", bool(closed) and not bad,
           f"findings lacking a §10.1 class / title / evidence / status / red: {bad}")
+    check("closed-findings-say-how",
+          all(str(f.get("status", "")).startswith("closed") for f in closed.values()),
+          "every closed finding's status must start with `closed`")
     used = {c.get("finding") for c in cases.values() if c.get("finding")}
     used |= {e.get("finding") for e in ledger.get("expected_red", {}).values()}
     check("every-finding-has-a-witness", set(findings) <= used,
