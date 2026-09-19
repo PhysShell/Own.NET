@@ -938,7 +938,13 @@ declared ordinal; a summary of `this` is a §10.1 case-5 amendment),
 call site), `user_conversion` (10.6.3: `TakeBox(r)` through an implicit
 operator, `TakeXBox((XBox)r)` through an explicit one), `boxing_conversion`
 (10.6.3: a disposable struct handle boxed into `object`), `nameof_operand`,
-`member_access_on_handle` (`Use5(r.Length)`).
+`member_access_on_handle` (`Use5(r.Length)`), and, named by the A2.2-4R4
+ruling (10.6.10) after the completeness oracle met them: `predicate_result`
+(`Use6(r != null)`: the predicate's bool flows, not the handle),
+`interpolation_hole` (`Use4($"{r}")`: the built string flows),
+`indexer_argument` (`d[r] = 1`: the handle is an argument of the indexer
+accessor's call, a call site the frozen vocabulary deliberately leaves out,
+stated in the definition rather than hidden by the name).
 
 Every exclusion carries a positive fixture (the rule fires, no call fact for
 that site) and a negative fixture (a syntactically adjacent case that is
@@ -1176,7 +1182,11 @@ causes of FACT-DIFF. Tracked in #364 with its own acceptance.
   invocation through a member binding (`r?.Ext(...)`) is read from the
   enclosing conditional access, so the handle binds declared ordinal 0 there
   too; `ext-conditional-access` reads green; the three case-1 findings are
-  closed;
+  closed. R4 landed in the commit carrying this line, no production change:
+  the registry, this section, the probe (three rows, their historical
+  columns measured with each step's extractor rebuilt at its commit) and the
+  oracle carry the three new exclusions; the constructor-initializer
+  argument stays pinned RED under F-CTOR-INIT until R5;
 - **A2.2-5** mutation campaign: remove the handle, add parentheses, perturb the
   binding, distinguish nested calls;
 - **A2.2-S** cumulative A2 after-evidence on M1 against the existing R with
@@ -1205,13 +1215,14 @@ declared on symbols: owned parameters, `new`-created locals, first-party factory
 locals, the `System.IO.File` factories and the two pool rentals; the legacy
 pass's wider factory vocabulary is reported `outside_universe` by initializer,
 never RED. Per universe occurrence it answers exactly one of *captured* (with
-the representation the vocabulary owes), *excluded* (one of the eleven names,
-attributed to the slot it sits under; every call whose argument contains the
+the representation the vocabulary owes), *excluded* (one of the frozen names,
+eleven at the freeze and fourteen after the R4 ruling, attributed to the slot
+it sits under; every call whose argument contains the
 explained site is listed as an enclosing `nested_call_result`, so
 `Use(Wrap(r))` reads inner-captured / outer-excluded), *not call-related* (a
-closed table of named contexts) or RED. A derived value under an argument (a
-test, an interpolation hole, an index) is RED by the letter of the sentence,
-never a bin. Every `var` / `param` fact must join an occurrence of the *same
+closed table of named contexts) or RED. A derived value under an argument was
+RED by the letter of the sentence, never a bin, until the R4 ruling named the
+three it met (10.6.11). Every `var` / `param` fact must join an occurrence of the *same
 symbol* at its site and ordinal, so a fact bound by spelling is RED.
 
 It is held to a *designed* classification, not to production: the 28 probe
@@ -1235,7 +1246,7 @@ does a pinned RED that silently disappears):
 | F-SHADOW | 1 | the guarded-fact handle set was keyed by spelling (`handles.Contains(lr.Local.Name)`) and the candidate collector descends into lambdas: a same-spelled non-candidate in a sibling scope, or beside a lambda-local creation, got a false `var` fact. **Repaired in A2.2-4R1** (10.6.11) | hostile `shadow-*`, now green |
 | F-PARAMS-ELEMENT | 1 | an expanded params element was classified from its bare syntax: under parentheses or `!` the handle was lost (no operation of its own); under a boxing or user-defined element conversion a false opaque-and-relevant slot was emitted. **Repaired in A2.2-4R2** (10.6.11) | hostile `pw-*-params-*` with parens / bang / boxing / user_implicit, now green |
 | F-CONDITIONAL-RECEIVER | 1 | `r?.Ext(...)` invokes through a member binding, the receiver was read from `MemberAccessExpressionSyntax` only, and ordinal 0 was dropped. **Repaired in A2.2-4R3** (10.6.11) | hostile `ext-conditional-access`, now green |
-| F-VOCAB | 3 | four argument shapes the frozen list has no name for: a tested operand, an interpolation hole, an indexer argument, a constructor-initializer argument; production correctly emits nothing, the sentence demands a name | hostile `vocab-*` |
+| F-VOCAB | 3 | four argument shapes the frozen list had no name for: a tested operand, an interpolation hole, an indexer argument, a constructor-initializer argument; production correctly emits nothing for the first three, the sentence demands a name. **Ruled in A2.2-4R4** (10.6.11): `predicate_result`, `interpolation_hole`, `indexer_argument` are frozen exclusions; the constructor-initializer argument is a call-like fact shape, F-CTOR-INIT | hostile `vocab-*`: three green, `vocab-constructor-initializer` pinned RED under F-CTOR-INIT |
 
 Two rulings the oracle reads into the freeze, recorded here as §10.1 case-4
 clarifications rather than silently applied: `nested_call_result` is applied to
@@ -1320,3 +1331,23 @@ nested-function gap.
   and the probe byte-identical; `ext-conditional-access` reads green
   (captured, ordinal 0, `var`); every other pinned RED stays; inertness and
   the local rehearsal unchanged.
+- **R4, the F-VOCAB ruling.** No production line moves. Three exclusions
+  join the registry with definitions and probe rows: `predicate_result`
+  (`PredicateResult`: `Use6(r != null)`), `interpolation_hole`
+  (`InterpolationHole`: `Use4($"{r}")`), `indexer_argument`
+  (`IndexerArgument`: `d[r] = 1`, whose definition states that the handle is
+  an argument of an indexer accessor's call and that such calls deliberately
+  stay outside the frozen call-site vocabulary). The three rows' historical
+  columns were measured with the extractor rebuilt at A' (`5a0de070`),
+  A2.2-1 (`268bbd4`), A2.2-2 (`376f2e6`), A2.2-2b (`7de7a6f`) and A2.2-3P
+  (`80cd9aa`): `record_without_call_fact` for the first two at every step
+  (the handle never escapes, the method is admitted, no call fact), `no_record`
+  for the third (the index position is an argument to the legacy escape rule,
+  every candidate escapes, no fact exists to carry). The oracle assigns the
+  three names (a tested operand or an interpolation hole *under an argument*;
+  any element-access index), and its RED kinds shrink to the constructor
+  initializer, which the same ruling re-classifies as a call-like fact shape:
+  `Holder(MemoryStream r) : base(r, true)` is the ownership edge
+  `object_creation` was added for, so it earns `call_kind:
+  constructor_initializer` in R5 and stays pinned RED under F-CTOR-INIT until
+  then. The three `vocab-*` witnesses read green by their designs.

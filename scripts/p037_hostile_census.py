@@ -556,48 +556,46 @@ def named_cases() -> list[tuple[str, str, dict[str, Any]]]:
     # argument shapes the frozen vocabulary has no name for
     out.append(named_case(
         "vocab-tested-operand",
-        "vocabulary edge: the handle is compared and the boolean is the argument; no frozen "
-        "exclusion names a tested operand under an argument (finding F-VOCAB)",
+        "vocabulary edge: the handle is compared and the boolean is the argument; the A2.2-4R4 "
+        "ruling names it predicate_result",
         ["static void Log(bool b) { }",
          "static void M() { var r = new MemoryStream(); var keep = new MemoryStream(); "
          "Log(r != null); keep.Dispose(); }"],
         {"carrier": "functions",
-         "occurrences": [{"symbol": "r", "verdict": "red",
-                          "explanation": "unclassified_argument_shape:tested_operand"},
-                         exc("keep", "receiver_not_summary_parameter")],
-         "red": {"unclassified_argument_shape:tested_operand": 1}, "finding": "F-VOCAB"}))
+         "occurrences": [exc("r", "predicate_result", site_kind="invocation", ordinal=0),
+                         exc("keep", "receiver_not_summary_parameter")], "red": {}}))
     out.append(named_case(
         "vocab-interpolation-hole",
-        "vocabulary edge: the handle is an interpolation hole and the string is the argument "
-        "(finding F-VOCAB)",
+        "vocabulary edge: the handle is an interpolation hole and the string is the argument; "
+        "the A2.2-4R4 ruling names it interpolation_hole",
         ["static void Log(string s) { }",
          "static void M() { var r = new MemoryStream(); var keep = new MemoryStream(); "
          "Log($\"{r}\"); keep.Dispose(); }"],
         {"carrier": "functions",
-         "occurrences": [{"symbol": "r", "verdict": "red",
-                          "explanation": "unclassified_argument_shape:interpolation_hole"},
-                         exc("keep", "receiver_not_summary_parameter")],
-         "red": {"unclassified_argument_shape:interpolation_hole": 1}, "finding": "F-VOCAB"}))
+         "occurrences": [exc("r", "interpolation_hole", site_kind="invocation", ordinal=0),
+                         exc("keep", "receiver_not_summary_parameter")], "red": {}}))
     out.append(named_case(
         "vocab-indexer-argument",
-        "vocabulary edge: the handle is the index of an element access (finding F-VOCAB)",
+        "vocabulary edge: the handle is the index of an element access, an argument of an "
+        "indexer accessor's call that the vocabulary deliberately leaves out; the A2.2-4R4 "
+        "ruling names it indexer_argument",
         ["static void M() { var r = new MemoryStream(); var keep = new MemoryStream(); "
          "var d = new Dictionary<Stream, int>(); d[r] = 1; keep.Dispose(); }"],
         {"carrier": "functions",
-         "occurrences": [{"symbol": "r", "verdict": "red",
-                          "explanation": "unclassified_argument_shape:indexer_argument"},
-                         exc("keep", "receiver_not_summary_parameter")],
-         "red": {"unclassified_argument_shape:indexer_argument": 1}, "finding": "F-VOCAB"}))
+         "occurrences": [exc("r", "indexer_argument"),
+                         exc("keep", "receiver_not_summary_parameter")], "red": {}}))
     out.append(named_case(
         "vocab-constructor-initializer",
-        "vocabulary edge: an owned constructor parameter forwarded through `: base(...)`, a call "
-        "site that is neither an invocation nor an object creation (finding F-VOCAB)",
+        "vocabulary edge: an owned constructor parameter forwarded through `: base(...)`, a really "
+        "invoked constructor's declared ordinal 0; ruled a call-like fact shape in A2.2-4R4, "
+        "landing in A2.2-4R5 (finding F-CTOR-INIT)",
         ["class Base { public Base(MemoryStream r, bool b) { } }",
          "sealed class Holder : Base { public Holder(MemoryStream r) : base(r, true) { } }"],
         {"member_override": ".Holder..ctor", "carrier": "none",
          "occurrences": [{"symbol": "r", "verdict": "red",
                           "explanation": "unclassified_argument_shape:constructor_initializer"}],
-         "red": {"unclassified_argument_shape:constructor_initializer": 1}, "finding": "F-VOCAB"}))
+         "red": {"unclassified_argument_shape:constructor_initializer": 1},
+         "finding": "F-CTOR-INIT"}))
     return out
 
 

@@ -3049,8 +3049,8 @@
    "red": {
     "unclassified_argument_shape:constructor_initializer": 1
    },
-   "finding": "F-VOCAB",
-   "why": "vocabulary edge: an owned constructor parameter forwarded through `: base(...)`, a call site that is neither an invocation nor an object creation (finding F-VOCAB)"
+   "finding": "F-CTOR-INIT",
+   "why": "vocabulary edge: an owned constructor parameter forwarded through `: base(...)`, a really invoked constructor's declared ordinal 0; ruled a call-like fact shape in A2.2-4R4, landing in A2.2-4R5 (finding F-CTOR-INIT)"
   },
   "vocab-indexer-argument": {
    "member": "H_vocab_indexer_argument.M",
@@ -3058,8 +3058,8 @@
    "occurrences": [
     {
      "symbol": "r",
-     "verdict": "red",
-     "explanation": "unclassified_argument_shape:indexer_argument"
+     "verdict": "excluded",
+     "explanation": "indexer_argument"
     },
     {
      "symbol": "keep",
@@ -3067,11 +3067,8 @@
      "explanation": "receiver_not_summary_parameter"
     }
    ],
-   "red": {
-    "unclassified_argument_shape:indexer_argument": 1
-   },
-   "finding": "F-VOCAB",
-   "why": "vocabulary edge: the handle is the index of an element access (finding F-VOCAB)"
+   "red": {},
+   "why": "vocabulary edge: the handle is the index of an element access, an argument of an indexer accessor's call that the vocabulary deliberately leaves out; the A2.2-4R4 ruling names it indexer_argument"
   },
   "vocab-interpolation-hole": {
    "member": "H_vocab_interpolation_hole.M",
@@ -3079,8 +3076,10 @@
    "occurrences": [
     {
      "symbol": "r",
-     "verdict": "red",
-     "explanation": "unclassified_argument_shape:interpolation_hole"
+     "verdict": "excluded",
+     "explanation": "interpolation_hole",
+     "site_kind": "invocation",
+     "ordinal": 0
     },
     {
      "symbol": "keep",
@@ -3088,11 +3087,8 @@
      "explanation": "receiver_not_summary_parameter"
     }
    ],
-   "red": {
-    "unclassified_argument_shape:interpolation_hole": 1
-   },
-   "finding": "F-VOCAB",
-   "why": "vocabulary edge: the handle is an interpolation hole and the string is the argument (finding F-VOCAB)"
+   "red": {},
+   "why": "vocabulary edge: the handle is an interpolation hole and the string is the argument; the A2.2-4R4 ruling names it interpolation_hole"
   },
   "vocab-tested-operand": {
    "member": "H_vocab_tested_operand.M",
@@ -3100,8 +3096,10 @@
    "occurrences": [
     {
      "symbol": "r",
-     "verdict": "red",
-     "explanation": "unclassified_argument_shape:tested_operand"
+     "verdict": "excluded",
+     "explanation": "predicate_result",
+     "site_kind": "invocation",
+     "ordinal": 0
     },
     {
      "symbol": "keep",
@@ -3109,11 +3107,8 @@
      "explanation": "receiver_not_summary_parameter"
     }
    ],
-   "red": {
-    "unclassified_argument_shape:tested_operand": 1
-   },
-   "finding": "F-VOCAB",
-   "why": "vocabulary edge: the handle is compared and the boolean is the argument; no frozen exclusion names a tested operand under an argument (finding F-VOCAB)"
+   "red": {},
+   "why": "vocabulary edge: the handle is compared and the boolean is the argument; the A2.2-4R4 ruling names it predicate_result"
   }
  }
 }

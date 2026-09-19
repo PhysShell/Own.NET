@@ -35,7 +35,8 @@
     "Use5",
     "Same",
     "TakeDerivedRef",
-    "SinkObject"
+    "SinkObject",
+    "Use6"
   ],
   "methods": {
     "Plain": {
@@ -352,7 +353,44 @@
       "a2_2_2b_observed": "no_record",
       "a2_2_3p_observed": "no_record",
       "a2_2_4_oracle": "excluded:storage_assignment"
+    },
+    "PredicateResult": {
+      "class": "indirect",
+      "exclusion": "predicate_result",
+      "conversion": "not_applicable",
+      "note": "the predicate's bool is the argument; nothing of the handle flows (A2.2-4R4 ruling)",
+      "a2_1_observed": "record_without_call_fact",
+      "a2_2_1_observed": "record_without_call_fact",
+      "a2_2_2_observed": "record_without_call_fact",
+      "a2_2_2b_observed": "record_without_call_fact",
+      "a2_2_3p_observed": "record_without_call_fact",
+      "a2_2_4_oracle": "excluded:predicate_result"
+    },
+    "InterpolationHole": {
+      "class": "indirect",
+      "exclusion": "interpolation_hole",
+      "conversion": "not_applicable",
+      "note": "the built string is the argument (A2.2-4R4 ruling)",
+      "a2_1_observed": "record_without_call_fact",
+      "a2_2_1_observed": "record_without_call_fact",
+      "a2_2_2_observed": "record_without_call_fact",
+      "a2_2_2b_observed": "record_without_call_fact",
+      "a2_2_3p_observed": "record_without_call_fact",
+      "a2_2_4_oracle": "excluded:interpolation_hole"
+    },
+    "IndexerArgument": {
+      "class": "indirect",
+      "exclusion": "indexer_argument",
+      "conversion": "not_applicable",
+      "note": "the handle is an argument of the indexer accessor's call, a call site the frozen vocabulary deliberately leaves out (A2.2-4R4 ruling); the legacy escape rule reads the index position as an argument, so every candidate escapes and no record exists",
+      "a2_1_observed": "no_record",
+      "a2_2_1_observed": "no_record",
+      "a2_2_2_observed": "no_record",
+      "a2_2_2b_observed": "no_record",
+      "a2_2_3p_observed": "no_record",
+      "a2_2_4_oracle": "excluded:indexer_argument"
     }
   },
-  "a2_2_4_oracle_note": "The completeness oracle's live reading of each row (A2.2-4): the verdict of the row's handle occurrence, `captured:<site kind>[+enclosing exclusions]` or `excluded:<named exclusion>`. Recorded by scripts/p037_completeness_oracle.py record and held equal by check; the oracle is checked against the class, never the other way round."
+  "a2_2_4_oracle_note": "The completeness oracle's live reading of each row (A2.2-4): the verdict of the row's handle occurrence, `captured:<site kind>[+enclosing exclusions]` or `excluded:<named exclusion>`. Recorded by scripts/p037_completeness_oracle.py record and held equal by check; the oracle is checked against the class, never the other way round.",
+  "a2_2_4r4_note": "Three rows added by the A2.2-4R4 ruling (PredicateResult, InterpolationHole, IndexerArgument). Their historical columns were measured with the extractor rebuilt at each step's commit (A' 5a0de070, A2.2-1 268bbd4, A2.2-2 376f2e6, A2.2-2b 7de7a6f, A2.2-3P 80cd9aa), never assumed: the first two read record_without_call_fact at every step (the handle never escapes, the method is admitted, no call fact), the third no_record (the index position is an argument to the legacy escape rule, every candidate escapes, nothing to carry)."
 }

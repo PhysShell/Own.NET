@@ -1,6 +1,6 @@
 {
   "schema": "p037-relevance-taxonomy/1",
-  "frozen_at": "P-037 A2.2-0 (F0', corrected freeze on main@23e3203); conversion vocabulary closed at A2.2-1a",
+  "frozen_at": "P-037 A2.2-0 (F0', corrected freeze on main@23e3203); conversion vocabulary closed at A2.2-1a; three exclusions named at A2.2-4R4 (predicate_result, interpolation_hole, indexer_argument)",
   "ruling": "docs/notes/p037-formal-kernel.md §10.6",
   "completeness": "Completeness means every candidate occurrence at a call-related syntax site is either represented by the raw guarded-call vocabulary or assigned exactly one named exclusion. Occurrence alone does not establish ownership flow to the enclosing callee.",
   "classes": {
@@ -99,6 +99,21 @@
       "class": "indirect",
       "definition": "A member of the handle flows, not the handle.",
       "example": "Use5(r.Length)"
+    },
+    "predicate_result": {
+      "class": "indirect",
+      "definition": "The handle is an operand of a predicate (a comparison, an `is` test, a null test) whose boolean result is the argument. The callee receives the predicate's bool; nothing of the handle flows. Named by the A2.2-4R4 ruling from the oracle's vocabulary edge `tested operand under an argument`; a predicate that is not under a call-related site is a non-call context, not this exclusion.",
+      "example": "Use6(r != null)"
+    },
+    "interpolation_hole": {
+      "class": "indirect",
+      "definition": "The handle is an interpolation hole; the callee receives the built string. Named by the A2.2-4R4 ruling.",
+      "example": "Use4($\"{r}\")"
+    },
+    "indexer_argument": {
+      "class": "indirect",
+      "definition": "The handle is the index of an element access. Semantically the handle IS an argument of the indexer accessor's call; that accessor call deliberately stays outside the frozen call-site vocabulary (an invocation expression, an object creation, a delegate invocation, and a constructor initializer once A2.2-4R5 lands), so no call fact exists for it and nothing of the handle reaches a callee of the vocabulary. This rule is the INDEX position; a handle stored through an indexer (`d[0] = r`) is storage_assignment. Named by the A2.2-4R4 ruling, with the boundary stated rather than hidden.",
+      "example": "d[r] = 1"
     }
   },
   "fixture_obligation": "Every exclusion has a positive fixture (the rule fires and no call fact is emitted for that site) and a negative fixture (a syntactically adjacent case that is captured instead). A2.2-4 checks both by name: the completeness oracle (frontend/roslyn/OwnSharp.Oracle) reads every probe row and every case of the generated hostile census (corpus/p037-hostile) against its designed classification, and every RED it raises must be a finding classified in oracle_findings.json.",

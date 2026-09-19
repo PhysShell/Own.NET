@@ -55,15 +55,17 @@ result to the findings ledger, the relevance probe and the hostile census.
      `delegate_invocation`), the declared ordinal and the representation the
      vocabulary owes (`var` / `param` / `opaque`: may-value, `ref`/`out`,
      params, and an unstable parameter are `opaque`);
-   - `excluded` — by exactly one of the eleven frozen names, attributed to the
+   - `excluded` — by exactly one of the fourteen frozen names (eleven at the
+     freeze, `predicate_result` / `interpolation_hole` / `indexer_argument`
+     named by the A2.2-4R4 ruling), attributed to the
      slot it sits under; every call whose argument *contains* the explained
      site is listed as an enclosing `nested_call_result`, so `Use(Wrap(r))`
      reads inner-captured / outer-excluded side by side;
    - `not_call_related` — a named non-call context from a closed table
      (`return`, `local_declarator`, `tested_operand`, `foreach_source`,
      `query_clause`, `local_function_declaration`, …). A context outside the
-     table, or a derived value (a test, an interpolation hole, an index) under
-     an argument, is RED, never a bin.
+     table, or a derived value under an argument that no frozen name covers, is
+     RED, never a bin.
 5. **Two-sided join.** Every `var`/`param` fact of both carriers must join an
    inventoried occurrence of the *same symbol* at its site and ordinal with the
    expected representation (`negated` included); every call fact must sit on a
@@ -83,7 +85,7 @@ result to the findings ledger, the relevance probe and the hostile census.
 | `fact_without_occurrence` / `param_fact_misbound` | a fact names a local or parameter no reference at the slot resolves to |
 | `fact_without_relevant_occurrence` | a call fact made relevant by nothing the oracle can see |
 | `fact_site_not_found` / `fact_in_nested_function` / `call_kind_mismatch` / `record_unbound` / `member_in_both_carriers` | site identity and carrier integrity |
-| `unclassified_argument_shape:<shape>` | a candidate occurrence under an argument that no frozen exclusion names (a tested operand, an interpolation hole, an indexer argument, a constructor-initializer argument) |
+| `unclassified_argument_shape:<shape>` | a candidate occurrence under an argument that no frozen exclusion names (after the R4 ruling: a constructor-initializer argument until R5, and anything new) |
 | `unclassified_conversion:<edge>` / `unclassified_context:<kind>` | a conversion edge or a syntax the oracle has no rule for |
 
 Exit 0 = no RED, 1 = RED, 2 = usage / unreadable input. The report

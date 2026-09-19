@@ -19,7 +19,7 @@ classification, derived from the frozen taxonomy
 - `occurrences` — the universe occurrences of the method in source order, each
   with the verdict the taxonomy assigns: `captured` (site kind, declared
   ordinal, representation `var` / `param` / `opaque`, enclosing
-  `nested_call_result` calls) or `excluded` (by exactly one of the eleven
+  `nested_call_result` calls) or `excluded` (by exactly one of the frozen
   names), or, for a vocabulary edge, the RED the sentence's letter demands;
 - `carrier` — where production must deliver the member's record:
   `functions`, `guarded_functions` (the orphan carrier) or `none` (nothing
@@ -57,9 +57,11 @@ plus the named cases:
   accessor, and a declared local function (the known, counted gap);
 - two receiver forms (`ext-*`): a reduced extension through `?.`, and a
   struct handle boxed into an `object` receiver;
-- the argument shapes the frozen vocabulary has no name for (`vocab-*`): a
-  tested operand, an interpolation hole, an indexer argument, a
-  constructor-initializer argument.
+- the argument shapes the frozen vocabulary had no name for (`vocab-*`): a
+  tested operand, an interpolation hole and an indexer argument, named by the
+  A2.2-4R4 ruling (`predicate_result`, `interpolation_hole`,
+  `indexer_argument`), and a constructor-initializer argument, a call-like
+  fact shape pending A2.2-4R5.
 
 The findings these witness are classified in
 `corpus/p037-relevance/oracle_findings.json`; each stays RED, by name, until a

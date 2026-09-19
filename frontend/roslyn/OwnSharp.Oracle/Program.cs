@@ -16,6 +16,8 @@
 // occurrence gets exactly one of: captured (a fact with the expected representation exists at
 // its site and ordinal), excluded (exactly one frozen named exclusion), not call-related (a
 // named non-call context), or RED (0 explanations, or a fact that contradicts the inventory).
+// The A2.2-4R4 ruling named three exclusions the oracle had met as RED (a predicate's bool and
+// an interpolated string under an argument, an element-access index).
 // Every var/param fact must join an inventoried occurrence of the SAME symbol at its site and
 // ordinal, so a fact bound by spelling to a different symbol is RED.
 //
@@ -49,13 +51,15 @@ static class Oracle
 {
     const string Schema = "p037-completeness-oracle/1";
 
-    // The eleven frozen named exclusions, exactly as corpus/p037-relevance/registry.json spells
-    // them. The oracle can assign only these names; anything else is RED by construction.
+    // The fourteen frozen named exclusions, exactly as corpus/p037-relevance/registry.json spells
+    // them (eleven at the A2.2-0 freeze, three named by the A2.2-4R4 ruling). The oracle can
+    // assign only these names; anything else is RED by construction.
     static readonly HashSet<string> Exclusions = new(StringComparer.Ordinal)
     {
         "nested_call_result", "container_construction", "tuple_construction", "closure_capture",
         "method_group_conversion", "receiver_not_summary_parameter", "storage_assignment",
         "user_conversion", "boxing_conversion", "nameof_operand", "member_access_on_handle",
+        "predicate_result", "interpolation_hole", "indexer_argument",
     };
 
     // The closed vocabulary of NON-call contexts: an occurrence whose value path never reaches
@@ -484,13 +488,21 @@ static class Oracle
         return false;
     }
 
-    // A derived value (a test, an await, an interpolation, an operator) is not the handle: no
-    // named exclusion covers it. Under an argument that is a hole in the frozen vocabulary and
-    // therefore RED; elsewhere it is a named non-call context.
-    static Outcome Derived(string name, SyntaxNode node, MemberInfo m) =>
-        UnderArgument(node, m.Scope)
-            ? Outcome.Red("unclassified_argument_shape:" + name, $"a {name} of the handle is under an argument; no frozen exclusion names it")
-            : Outcome.Context(name);
+    // A derived value (a test, an await, an interpolation, an operator) is not the handle. Under
+    // an argument, the A2.2-4R4 ruling names two of them (a predicate's bool, an interpolated
+    // string); any other derived value under an argument is a hole in the frozen vocabulary and
+    // therefore RED. Elsewhere it is a named non-call context.
+    static Outcome Derived(string name, SyntaxNode node, MemberInfo m)
+    {
+        if (!UnderArgument(node, m.Scope))
+            return Outcome.Context(name);
+        return name switch
+        {
+            "tested_operand" => Outcome.Excluded("predicate_result"),
+            "interpolation_hole" => Outcome.Excluded("interpolation_hole"),
+            _ => Outcome.Red("unclassified_argument_shape:" + name, $"a {name} of the handle is under an argument; no frozen exclusion names it"),
+        };
+    }
 
     static string ExpectedKind(Flow flow, ISymbol symbol, bool refOrOut, bool isParams, MemberInfo m)
     {
@@ -534,7 +546,7 @@ static class Oracle
         if (arg.Parent is TupleExpressionSyntax)
             return Outcome.Excluded("tuple_construction");
         if (arg.Parent is BracketedArgumentListSyntax)
-            return Outcome.Red("unclassified_argument_shape:indexer_argument", "the handle is an index of an element access");
+            return Outcome.Excluded("indexer_argument");   // an indexer accessor's call: outside the vocabulary, by ruling
         if (arg.Parent is not ArgumentListSyntax al)
             return Outcome.Red("unclassified_argument_shape:" + arg.Parent?.Kind(), "argument outside an argument list");
         var index = al.Arguments.IndexOf(arg);
