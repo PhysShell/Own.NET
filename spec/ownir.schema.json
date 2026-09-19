@@ -167,7 +167,11 @@
           "description": "An ordered list of flow ops modelling the method's intra-procedural CFG.",
           "type": "array",
           "items": { "$ref": "#/$defs/flowOp" }
-        }
+        },
+          "guarded_facts": {
+            "$ref": "#/$defs/guardedFacts",
+            "description": "P-037 A2.1 (#304): the guarded-fact SIDECAR — the frontend's raw record of what flows into each relevant call and what each `if` tests. Additive/optional, no OWNIR_VERSION bump. In A2 it is validated and semantically INERT: neither engine reads it, `body` stays authoritative, and MOS documents and verdicts must not move when it appears (docs/notes/p037-formal-kernel.md §10.3). Prose: spec/OwnIR.md §5.2."
+          }
       }
     },
     "param": {
@@ -492,6 +496,272 @@
         "file": { "type": "string" },
         "events": { "type": "array", "items": { "$ref": "#/$defs/protocolEvent" } }
       }
-    }
+    },
+      "sourceSite": {
+        "type": "object",
+        "required": [
+          "line",
+          "column"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "line": {
+            "type": "integer"
+          },
+          "column": {
+            "type": "integer"
+          }
+        },
+        "description": "A 1-based start coordinate of a syntax node: the stable identity of a call site or a guard within the record's `file` (P-037 A2.1). Deliberately NOT bound to sourceLine/sourceColumn: in A2.1 the sidecar is inert at both doors (spec/OwnIR.md \u00a74.2, \u00a75.2) \u2014 `load()` never reads this path \u2014 and \u00a74.2 forbids a schema narrower than the door on a coordinate the door does not check. The producer refuses to write a record whose line or column is below 1 (exit 2). The instrument step that registers the sidecar at the doors binds both to the shared coordinate domain."
+      },
+      "guardedFacts": {
+        "type": "object",
+        "required": [
+          "version",
+          "calls",
+          "guards"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "const": 1,
+            "description": "Sidecar vocabulary version. A consumer that has learned the sidecar refuses any other value (fail-loud); one that has not ignores the whole field."
+          },
+          "calls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/guardedCall"
+            }
+          },
+          "guards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/guardedGuard"
+            }
+          }
+        },
+        "description": "P-037 A2.1: raw call-argument and guard facts of one flow function, keyed by declared parameter ordinal. Present only when the method has a relevant call or an eligible guard. Roslyn reports source facts, never P-037 interpretations (no const-pos/id/neg, no fresh_owned); absence is the fail-closed signal (no `stable: false`)."
+      },
+      "guardedCall": {
+        "type": "object",
+        "required": [
+          "site",
+          "statement_line",
+          "form",
+          "callee",
+          "sig",
+          "first_party",
+          "args"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "site": {
+            "$ref": "#/$defs/sourceSite",
+            "description": "Start of the invocation expression."
+          },
+          "statement_line": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "description": "Line of the enclosing statement: the coordinate the legacy body ops carry, so the legacy view and this one can be joined until C+ canonicalizes them (§10.5)."
+          },
+          "form": {
+            "enum": [
+              "statement",
+              "initializer",
+              "expression"
+            ],
+            "description": "statement: `Foo(s);` (or `await Foo(s);`); initializer: `var x = Foo(s)`, the only form the legacy body may carry a `call` op for; expression: anywhere else."
+          },
+          "callee": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The `functions[]` key of the resolved method (`{Namespace.Type}.{Name}`); null when Roslyn could not resolve the call, in which case `args[].param` is the SOURCE position."
+          },
+          "sig": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The canonical per-overload signature key (§5.1) of the resolved method; null when unresolved."
+          },
+          "first_party": {
+            "type": "boolean",
+            "description": "The resolved method has a declaration in this compilation (a summary can exist for it)."
+          },
+          "args": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/$defs/guardedArg"
+            },
+            "description": "One raw fact per bound argument, ordered by strictly ascending declared parameter ordinal. A reduced extension's receiver is ordinal 0; an omitted optional argument has no entry; a `params` expansion is one `opaque` slot."
+          }
+        }
+      },
+      "guardedArg": {
+        "type": "object",
+        "required": [
+          "param",
+          "kind"
+        ],
+        "properties": {
+          "param": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Declared parameter ordinal (source position for an unresolved callee)."
+          },
+          "kind": {
+            "enum": [
+              "var",
+              "param",
+              "bool_const",
+              "null_literal",
+              "object_creation",
+              "call_result",
+              "opaque"
+            ]
+          }
+        },
+        "oneOf": [
+          {
+            "properties": {
+              "param": true,
+              "kind": {
+                "const": "var"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "A disposable local of this method flows in, by name (its handle)."
+          },
+          {
+            "properties": {
+              "param": true,
+              "kind": {
+                "const": "param"
+              },
+              "source_param": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "negated": {
+                "const": true
+              }
+            },
+            "required": [
+              "source_param"
+            ],
+            "additionalProperties": false,
+            "description": "A STABLE (G-V4) by-value parameter of this method, by declared ordinal; `negated` only for `!p` on a boolean parameter. The engine reads `id` or `neg` from this; the frontend never writes those words."
+          },
+          {
+            "properties": {
+              "param": true,
+              "kind": {
+                "const": "bool_const"
+              },
+              "value": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "value"
+            ],
+            "additionalProperties": false,
+            "description": "A boolean literal. `const-pos`/`const-neg` is the engine's reading relative to the callee's elected guard."
+          },
+          {
+            "properties": {
+              "param": true,
+              "kind": {
+                "const": "null_literal"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "properties": {
+              "param": true,
+              "kind": {
+                "const": "object_creation"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "properties": {
+              "param": true,
+              "kind": {
+                "const": "call_result"
+              },
+              "callee": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sig": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "callee",
+              "sig"
+            ],
+            "additionalProperties": false,
+            "description": "The result of a resolved call. Freshness is a summary conclusion, never a frontend fact: there is no `fresh_owned` in this vocabulary (§10.2)."
+          },
+          {
+            "properties": {
+              "param": true,
+              "kind": {
+                "const": "opaque"
+              }
+            },
+            "additionalProperties": false,
+            "description": "Everything else: an unstable parameter, a `ref`/`out` argument, a `params` expansion, a non-boolean literal, an untracked local, an unresolved name."
+          }
+        ]
+      },
+      "guardedGuard": {
+        "type": "object",
+        "required": [
+          "site",
+          "param",
+          "predicate",
+          "negated"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "site": {
+            "$ref": "#/$defs/sourceSite",
+            "description": "Start of the `if` statement (the legacy `if` op's line)."
+          },
+          "param": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Declared ordinal of the by-value parameter the condition tests. Eligible (G-V1) and stable (G-V4) by construction: an ineligible guard has NO entry, never `stable: false`."
+          },
+          "predicate": {
+            "enum": [
+              "truth",
+              "not_null",
+              "is_null"
+            ],
+            "description": "truth: the boolean parameter itself; not_null / is_null: `p != null`, `p == null`, `p is null`, `p is not null` on a reference or nullable parameter, the self-null split included."
+          },
+          "negated": {
+            "type": "boolean",
+            "description": "`!p` (truth only). A negated null test is not a predicate here: it degrades to absence."
+          }
+        }
+      }
   }
 }

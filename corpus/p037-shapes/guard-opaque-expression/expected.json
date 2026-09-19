@@ -1,9 +1,37 @@
 {
   "schema": "p037-fact-shape/1",
   "shape": "guard-opaque-expression",
-  "status": "pending_a2",
+  "status": "anchored",
   "why": "An arbitrary expression in the guard argument position. The case exists to pin what the frontend must NOT do.",
   "a2_contract": "{\"param\":1,\"kind\":\"opaque\"} and nothing else. Specifically NOT `\"expr\": \"n > 0 && !flag\"` for something downstream to parse later: humanity already has one C# front end and does not need a second one growing quietly inside a summary engine.",
+  "a2_landed": "A2.1 landed the guarded-fact SIDECAR (`guarded_facts`, spec/OwnIR.md §5.2), not a body op: the legacy `body` stays authoritative through A2 and C+ canonicalizes the two views (docs/notes/p037-formal-kernel.md §10.3/§10.5). The `a2_expect` entries are this shape's contract, checked by name; `facts` pins the whole record byte for byte.",
+  "a2_expect": [
+    {
+      "function": "ShapeOpaqueArg.Caller",
+      "call": {
+        "callee": "ShapeOpaqueArg.Inner",
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "r"
+          },
+          {
+            "param": 1,
+            "kind": "opaque"
+          }
+        ]
+      }
+    },
+    {
+      "function": "ShapeOpaqueArg.Inner",
+      "guard": {
+        "param": 1,
+        "predicate": "truth",
+        "negated": true
+      }
+    }
+  ],
   "measured_at": "464308b",
   "facts": {
     "ShapeOpaqueArg.Inner": {
@@ -16,18 +44,65 @@
       "body": [
         "if:None@11",
         "then:release:s@13"
-      ]
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 11,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
     },
     "ShapeOpaqueArg.Caller": {
       "params": null,
       "body": [
         "acquire:r@19",
         "release:r@20"
-      ]
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 20,
+              "column": 9
+            },
+            "statement_line": 20,
+            "form": "statement",
+            "callee": "ShapeOpaqueArg.Inner",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "opaque"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
     }
   },
   "verdict": {
     "rust": [],
     "python": []
-  }
+  },
+  "status_history": [
+    "pending_a2 (recorded at 464308b)",
+    "anchored (A2.1 sidecar)"
+  ]
 }

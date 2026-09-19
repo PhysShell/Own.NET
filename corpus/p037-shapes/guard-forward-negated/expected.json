@@ -1,9 +1,39 @@
 {
   "schema": "p037-fact-shape/1",
   "shape": "guard-forward-negated",
-  "status": "pending_a2",
+  "status": "anchored",
   "why": "The wrapper negates the flag: `Inner(s, !stop)`. The cells must swap, and the swap has to be derivable from the facts rather than guessed.",
   "a2_contract": "{\"param\":1,\"kind\":\"param\",\"source_param\":1,\"negated\":true}; Rust reads the `neg` edge.",
+  "a2_landed": "A2.1 landed the guarded-fact SIDECAR (`guarded_facts`, spec/OwnIR.md §5.2), not a body op: the legacy `body` stays authoritative through A2 and C+ canonicalizes the two views (docs/notes/p037-formal-kernel.md §10.3/§10.5). The `a2_expect` entries are this shape's contract, checked by name; `facts` pins the whole record byte for byte.",
+  "a2_expect": [
+    {
+      "function": "ShapeForwardNegated.Outer",
+      "call": {
+        "callee": "ShapeForwardNegated.Inner",
+        "args": [
+          {
+            "param": 0,
+            "kind": "param",
+            "source_param": 0
+          },
+          {
+            "param": 1,
+            "kind": "param",
+            "source_param": 1,
+            "negated": true
+          }
+        ]
+      }
+    },
+    {
+      "function": "ShapeForwardNegated.Inner",
+      "guard": {
+        "param": 1,
+        "predicate": "truth",
+        "negated": true
+      }
+    }
+  ],
   "measured_at": "464308b",
   "facts": {
     "ShapeForwardNegated.Inner": {
@@ -16,7 +46,22 @@
       "body": [
         "if:None@9",
         "then:release:s@11"
-      ]
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 9,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
     },
     "ShapeForwardNegated.Outer": {
       "params": [
@@ -27,11 +72,45 @@
       ],
       "body": [
         "release:s@17"
-      ]
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 17,
+              "column": 9
+            },
+            "statement_line": 17,
+            "form": "statement",
+            "callee": "ShapeForwardNegated.Inner",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "param",
+                "source_param": 1,
+                "negated": true
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
     }
   },
   "verdict": {
     "rust": [],
     "python": []
-  }
+  },
+  "status_history": [
+    "pending_a2 (recorded at 464308b)",
+    "anchored (A2.1 sidecar)"
+  ]
 }

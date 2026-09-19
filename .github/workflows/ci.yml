@@ -3039,6 +3039,12 @@ jobs:
           # re-hashed and removed again. No baseline is taken here.
           python scripts/p037_evidence.py artifacts
           python scripts/p037_evidence.py population --source repo --materialize --cleanup
+          # A2.1: the guarded-fact sidecar is validated and INERT. Every census
+          # shape and the samples compilation go through both engines three
+          # times (as emitted, stripped, deliberately contradictory) and the
+          # lowered/summaries/verdicts layers must not move. Needs the
+          # own-shadow-engine the artifacts step just built.
+          python scripts/p037_sidecar_inertness.py
       # The Windows launcher is a separate implementation, not a wrapper around
       # the shell one, so the Windows leg has to go through it to mean anything.
       - name: Own.NET's own tree, through own-check.ps1 on the Rust core

@@ -1,9 +1,38 @@
 {
   "schema": "p037-fact-shape/1",
   "shape": "guard-bool-const-false",
-  "status": "pending_a2",
+  "status": "anchored",
   "why": "The same call with `false`. Present so the two constants are distinguishable in the facts: a single `is a constant` bit would collapse the exact distinction cell selection turns on, and would do it invisibly.",
   "a2_contract": "{\"param\":1,\"kind\":\"bool_const\",\"value\":false}; Rust derives `const-neg`.",
+  "a2_landed": "A2.1 landed the guarded-fact SIDECAR (`guarded_facts`, spec/OwnIR.md §5.2), not a body op: the legacy `body` stays authoritative through A2 and C+ canonicalizes the two views (docs/notes/p037-formal-kernel.md §10.3/§10.5). The `a2_expect` entries are this shape's contract, checked by name; `facts` pins the whole record byte for byte.",
+  "a2_expect": [
+    {
+      "function": "ShapeConstFalse.Caller",
+      "call": {
+        "callee": "ShapeConstFalse.Inner",
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "r"
+          },
+          {
+            "param": 1,
+            "kind": "bool_const",
+            "value": false
+          }
+        ]
+      }
+    },
+    {
+      "function": "ShapeConstFalse.Inner",
+      "guard": {
+        "param": 1,
+        "predicate": "truth",
+        "negated": true
+      }
+    }
+  ],
   "measured_at": "464308b",
   "facts": {
     "ShapeConstFalse.Inner": {
@@ -16,18 +45,66 @@
       "body": [
         "if:None@10",
         "then:release:s@12"
-      ]
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 10,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
     },
     "ShapeConstFalse.Caller": {
       "params": null,
       "body": [
         "acquire:r@18",
         "release:r@19"
-      ]
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 19,
+              "column": 9
+            },
+            "statement_line": 19,
+            "form": "statement",
+            "callee": "ShapeConstFalse.Inner",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": false
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
     }
   },
   "verdict": {
     "rust": [],
     "python": []
-  }
+  },
+  "status_history": [
+    "pending_a2 (recorded at 464308b)",
+    "anchored (A2.1 sidecar)"
+  ]
 }

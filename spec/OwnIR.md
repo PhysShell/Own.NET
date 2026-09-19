@@ -226,6 +226,16 @@ contract question that recorded ("whether a coordinate no rule reads should
 nevertheless be well-formed") is answered **yes**, because the tolerant door
 does read it and anchors findings on it.
 
+One line-bearing path is, deliberately, validated by **neither door** for now:
+the `site` of a guarded-fact sidecar entry (`functions[].guarded_facts`, §5.2).
+The P-037 A2 staging contract makes that sidecar inert at both doors in A2.1 —
+`load()` never reads the key and the Rust door carries it as an unknown field —
+so a domain the door does not check is not stated by the schema either
+(`sourceSite` binds neither `sourceLine` nor `sourceColumn` and states only
+the type); the producer refuses to write a record whose line or column is
+below 1. The instrument step that registers the sidecar at the doors binds
+both coordinates to the domain above, at which point this paragraph goes.
+
 **Flow bodies and protocol event trees nest at most 32 levels.**
 
 `functions[].body` and `protocol_functions[].events` nest through `then`,
@@ -307,6 +317,78 @@ behaviour) — degraded, never a wrong overload — and the `first_party` /
 (INV4). A producer without type information (ownts) simply omits the field.
 Additive/optional per §2: no `OWNIR_VERSION` bump; a present-but-non-string
 `sig` on a function record is rejected at load, on a flow op it reads as absent.
+
+### 5.2 The guarded-fact sidecar (`guarded_facts`, P-037 A2.1)
+
+A flow function may carry an **optional** `guarded_facts` object: the frontend's
+raw record of what flows into each *relevant* call of the method and what each
+`if` tests. It is the input the guarded summary engine of P-037 (#304) reads
+once phase B wires it; through A2 it is **validated and semantically inert** —
+neither engine reads it, `body` stays authoritative, and a run's MOS documents
+and verdicts must not move when it appears
+(`docs/notes/p037-formal-kernel.md` §10.3; the A2 baselines under
+`docs/evidence/` are the witness, `corpus/p037-shapes` pins it per shape).
+Additive/optional per §2: no `OWNIR_VERSION` bump. The JSON Schema
+(`$defs/guardedFacts`, `guardedCall`, `guardedArg`, `guardedGuard`) is the
+normative shape; this section is its meaning.
+
+Two rules govern every field (P-037 §10.2, the raw-fact boundary):
+
+- **Roslyn reports source facts, never P-037 interpretations.** `bool_const true`
+  is a fact; `const-pos` is an interpretation relative to the callee's *elected*
+  guard and belongs to the engine. `param` names the caller's own parameter by
+  declared ordinal; whether that is an `id` or a `neg` edge is the engine's
+  reading. There is no `fresh_owned`: a call result is `call_result{callee,sig}`
+  and freshness is a summary conclusion.
+- **Absence is the fail-closed signal.** A guard that is not eligible — G-V1: a
+  by-value boolean parameter, or the null-ness of a by-value reference (or
+  nullable) parameter, the self-null split included; G-V4: the parameter is never
+  assigned, incremented, taken by `ref`, or passed by `ref`/`out` anywhere in the
+  body — gets **no** entry, never `stable: false`, so an old producer, an
+  unstable parameter, an unsupported predicate and unknown syntax all degrade the
+  same way. The same stability rule decides whether an *argument* naming a
+  parameter is a `param` fact or `opaque`.
+
+```text
+guarded_facts:
+  version         1
+  calls[]         one per RELEVANT call: a disposable local of this method (any
+                  candidate, escaped or not) or an owned parameter flows in, as an
+                  argument or as a reduced extension method's receiver
+    site          {line, column} — start of the invocation expression (identity)
+    statement_line the enclosing statement's line (what the legacy ops carry)
+    form          statement | initializer | expression
+    callee, sig   the resolved method's functions[] key and §5.1 signature, or null
+    first_party   the callee has a declaration in this compilation
+    args[]        by DECLARED PARAMETER ORDINAL, strictly ascending:
+                    var{name}                 a disposable local of this method
+                    param{source_param[,negated]} a stable by-value parameter (`!p` -> negated)
+                    bool_const{value}         a boolean literal
+                    null_literal · object_creation
+                    call_result{callee,sig}   the result of a resolved call
+                    opaque                    everything else
+  guards[]        one per ELIGIBLE `if`: {site, param, predicate, negated}
+                  predicate: truth | not_null | is_null
+```
+
+Binding rules: a named argument resolves to its parameter; a reduced extension's
+receiver is ordinal 0 (the unreduced declaration is the summary's home); an
+argument bound to a `params` array collapses to one `opaque` slot; an omitted
+optional argument has no entry; a `ref`/`out` argument is `opaque`. For an
+**unresolved** callee (`callee: null`) the ordinal is the *source position* —
+there is no declaration to bind against, and the record says so rather than
+guessing. Calls inside lambdas and local functions belong to those bodies, not
+to the method.
+
+The call-site identity — the invocation's own coordinate plus `statement_line` —
+is what lets the legacy view (`body`) and this one be joined until the C+
+checkpoint canonicalizes the two representations (§10.5 of the formal note).
+Both coordinates of a `site` are 1-based, and in A2.1 they are validated
+**only** by the producer: the doors do not read the sidecar yet (§4.2), so
+`sourceSite` states their type and nothing narrower until the instrument step
+that registers the sidecar binds them to the shared coordinate domain.
+The producer validates every record against this vocabulary and refuses to
+write a facts file at all if one is malformed (exit 2): fail-loud at the source.
 
 ## 6. DI registration graph (`services[]`)
 
