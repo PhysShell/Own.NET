@@ -473,28 +473,27 @@ def named_cases() -> list[tuple[str, str, dict[str, Any]]]:
     out.append(named_case(
         "shadow-sibling-scopes",
         "shadowing witness: two locals spelled `r` in sibling scopes; only the first is a "
-        "candidate. A handle set keyed by spelling captures the second call too (finding F-SHADOW)",
+        "candidate. A handle set keyed by spelling captured the second call too (F-SHADOW, "
+        "repaired in A2.2-4R1: the sidecar binds by symbol)",
         [sink, "static void M() { { var r = new MemoryStream(); Sink(r, true); } "
                "{ Stream r = Stream.Null; Sink(r, true); } }"],
-        {"carrier": "guarded_functions", "occurrences": [cap("r")],
-         "red": {"fact_binds_other_symbol": 1}, "finding": "F-SHADOW"}))
+        {"carrier": "guarded_functions", "occurrences": [cap("r")], "red": {}}))
     out.append(named_case(
         "shadow-sibling-scopes-reversed",
         "shadowing witness: the non-candidate `r` comes first, the candidate second; order must "
-        "not matter to a symbol-bound reading (finding F-SHADOW)",
+        "not matter to a symbol-bound reading (F-SHADOW, repaired in A2.2-4R1)",
         [sink, "static void M() { { Stream r = Stream.Null; Sink(r, true); } "
                "{ var r = new MemoryStream(); Sink(r, true); } }"],
-        {"carrier": "guarded_functions", "occurrences": [cap("r")],
-         "red": {"fact_binds_other_symbol": 1}, "finding": "F-SHADOW"}))
+        {"carrier": "guarded_functions", "occurrences": [cap("r")], "red": {}}))
     out.append(named_case(
         "shadow-lambda-local",
         "shadowing witness: a handle created inside a lambda shares its spelling with a string "
-        "local of the method; the string is not a candidate of anything (finding F-SHADOW)",
+        "local of the method; the string is not a candidate of anything, so no fact exists and "
+        "no carrier holds the method (F-SHADOW, repaired in A2.2-4R1)",
         ["static void Run(Action a) { a(); }", "static void Use4(string s) { }",
          "static void M() { Run(() => { var r = new MemoryStream(); r.Dispose(); }); "
          "{ string r = \"x\"; Use4(r); } }"],
-        {"carrier": "guarded_functions", "occurrences": [],
-         "red": {"fact_binds_other_symbol": 1}, "finding": "F-SHADOW"}))
+        {"carrier": "none", "occurrences": [], "red": {}}))
     out.append(named_case(
         "shadow-owner-form",
         "shadowing witness (the GO's literal form): `Stream r = ...; { Stream r2 = ...; "

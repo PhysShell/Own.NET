@@ -9,13 +9,6 @@
       "status": "open: a census finding; carrying these members in the orphan carrier is a production change to be classified on its own",
       "red": "occurrence_not_captured"
     },
-    "F-SHADOW": {
-      "class": "case 1",
-      "title": "the guarded-fact handle set is keyed by spelling, not by symbol",
-      "evidence": "BuildGuardedFacts receives the legacy candidate NAMES and tests `handles.Contains(lr.Local.Name)`; the candidate collector descends into lambda bodies. Two locals spelled alike in sibling scopes, or a lambda-local creation beside an unrelated local of the same spelling, produce a var fact on a symbol that is no candidate: a false raw fact. Witnessed by three hostile cases.",
-      "status": "open: an implementation defect in the A2 classifier, to be repaired as its own classified change",
-      "red": "fact_binds_other_symbol"
-    },
     "F-PARAMS-ELEMENT": {
       "class": "case 1",
       "title": "an expanded params element is classified from its bare syntax",
@@ -45,6 +38,15 @@
       },
       "finding": "F-MEMBER",
       "member": "Probe.Box.op_Implicit"
+    }
+  },
+  "closed": {
+    "F-SHADOW": {
+      "class": "case 1",
+      "title": "the guarded-fact handle set is keyed by spelling, not by symbol",
+      "evidence": "BuildGuardedFacts receives the legacy candidate NAMES and tests `handles.Contains(lr.Local.Name)`; the candidate collector descends into lambda bodies. Two locals spelled alike in sibling scopes, or a lambda-local creation beside an unrelated local of the same spelling, produce a var fact on a symbol that is no candidate: a false raw fact. Witnessed by three hostile cases.",
+      "status": "closed: A2.2-4R1. BuildGuardedFacts takes symbol sets (SymbolEqualityComparer.Default) recorded at the legacy admission points beside the names; the legacy name-based structures are untouched. The three shadow witnesses are designed green; the oracle's fact_binds_other_symbol check stays armed.",
+      "red": "fact_binds_other_symbol"
     }
   }
 }

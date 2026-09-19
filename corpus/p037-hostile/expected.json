@@ -3000,13 +3000,10 @@
   },
   "shadow-lambda-local": {
    "member": "H_shadow_lambda_local.M",
-   "carrier": "guarded_functions",
+   "carrier": "none",
    "occurrences": [],
-   "red": {
-    "fact_binds_other_symbol": 1
-   },
-   "finding": "F-SHADOW",
-   "why": "shadowing witness: a handle created inside a lambda shares its spelling with a string local of the method; the string is not a candidate of anything (finding F-SHADOW)"
+   "red": {},
+   "why": "shadowing witness: a handle created inside a lambda shares its spelling with a string local of the method; the string is not a candidate of anything, so no fact exists and no carrier holds the method (F-SHADOW, repaired in A2.2-4R1)"
   },
   "shadow-owner-form": {
    "member": "H_shadow_owner_form.M",
@@ -3035,11 +3032,8 @@
      "expected": "var"
     }
    ],
-   "red": {
-    "fact_binds_other_symbol": 1
-   },
-   "finding": "F-SHADOW",
-   "why": "shadowing witness: two locals spelled `r` in sibling scopes; only the first is a candidate. A handle set keyed by spelling captures the second call too (finding F-SHADOW)"
+   "red": {},
+   "why": "shadowing witness: two locals spelled `r` in sibling scopes; only the first is a candidate. A handle set keyed by spelling captured the second call too (F-SHADOW, repaired in A2.2-4R1: the sidecar binds by symbol)"
   },
   "shadow-sibling-scopes-reversed": {
    "member": "H_shadow_sibling_scopes_reversed.M",
@@ -3053,11 +3047,8 @@
      "expected": "var"
     }
    ],
-   "red": {
-    "fact_binds_other_symbol": 1
-   },
-   "finding": "F-SHADOW",
-   "why": "shadowing witness: the non-candidate `r` comes first, the candidate second; order must not matter to a symbol-bound reading (finding F-SHADOW)"
+   "red": {},
+   "why": "shadowing witness: the non-candidate `r` comes first, the candidate second; order must not matter to a symbol-bound reading (F-SHADOW, repaired in A2.2-4R1)"
   },
   "vocab-constructor-initializer": {
    "member": "H_vocab_constructor_initializer.M",

@@ -2949,8 +2949,14 @@ static bool ParameterIsStable(IParameterSymbol p, SyntaxNode body, SemanticModel
     return true;
 }
 
+// P-037 A2.2-4R1 (F-SHADOW): `handles` and `ownedParams` are SYMBOL sets. The legacy pass keys
+// its candidates by spelling and its collector descends into lambda bodies, so two locals
+// spelled alike in sibling scopes, or a lambda-local creation beside an unrelated local of the
+// same spelling, are one name to it; a `var` fact must never be bound by spelling to a symbol
+// that is no candidate. The admission points record the declared symbol beside the name
+// (nothing the legacy path reads changes), and the sidecar tests symbol identity only.
 static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax mbody,
-                                 HashSet<string> handles, HashSet<string> ownedParamNames,
+                                 HashSet<ISymbol> handles, HashSet<ISymbol> ownedParams,
                                  SemanticModel model, string where)
 {
     var self = model.GetDeclaredSymbol(method) as IMethodSymbol;
@@ -3003,7 +3009,7 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
                   && p.RefKind == RefKind.None;
         if (!own)
             return (Opaque(), false);
-        var isOwned = ownedParamNames.Contains(p.Name);
+        var isOwned = ownedParams.Contains(p);
         if (!Stable(p))
             return (Opaque(), isOwned);
         return (new() { ["kind"] = "param", ["source_param"] = p.Ordinal }, isOwned);
@@ -3060,7 +3066,7 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
             case IParameterReferenceOperation pr:
                 return ParamFact(pr.Parameter);
             case ILocalReferenceOperation lr:
-                return handles.Contains(lr.Local.Name)
+                return handles.Contains(lr.Local)
                     ? (new() { ["kind"] = "var", ["name"] = lr.Local.Name }, true)
                     : (Opaque(), false);
             case IInvocationOperation ci when ci.TargetMethod.MethodKind != MethodKind.DelegateInvoke:
@@ -7010,7 +7016,7 @@ foreach (var (file, tree) in parsed)
         // additive unknown metadata and read by neither lowerer. One method identity in both
         // `functions[]` and `guarded_functions[]` is a producer defect and refuses the run.
         void CarryOrphan(BaseMethodDeclarationSyntax method, BlockSyntax mbody,
-                         HashSet<string> candidates, HashSet<string> ownedParamNames)
+                         HashSet<ISymbol> candidateSymbols, HashSet<ISymbol> ownedParamSymbols)
         {
             var oname = model.GetDeclaredSymbol(method) is IMethodSymbol osym
                 ? $"{osym.ContainingType.ToDisplayString()}.{osym.Name}"
@@ -7018,7 +7024,7 @@ foreach (var (file, tree) in parsed)
             var osig = model.GetDeclaredSymbol(method) is IMethodSymbol osigsym
                 ? CanonicalSig(osigsym)
                 : null;
-            var facts = BuildGuardedFacts(method, mbody, candidates, ownedParamNames, model, oname);
+            var facts = BuildGuardedFacts(method, mbody, candidateSymbols, ownedParamSymbols, model, oname);
             if (facts is null)
                 return;
             var entry = new Dictionary<string, object?> { ["name"] = oname, ["file"] = file };
@@ -7058,6 +7064,8 @@ foreach (var (file, tree) in parsed)
                 // inconsistent about one type for no reason a reader could defend.
                 var ownedParams = new List<object>();
                 var ownedParamNames = new HashSet<string>(StringComparer.Ordinal);
+                // A2.2-4R1: the same admissions, as symbols, for the guarded-fact sidecar only.
+                var ownedParamSymbols = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
                 foreach (var psyn in method.ParameterList.Parameters)
                 {
                     // By-value only, like `ConsumesParam`: a `ref`/`out`/`in` parameter is not
@@ -7071,9 +7079,22 @@ foreach (var (file, tree) in parsed)
                     {
                         ownedParams.Add(new { name = psyn.Identifier.Text, line = LineOf(psyn) });
                         ownedParamNames.Add(psyn.Identifier.Text);
+                        if (model.GetDeclaredSymbol(psyn) is IParameterSymbol psym)
+                            ownedParamSymbols.Add(psym);
                     }
                 }
                 var candidates = new HashSet<string>();
+                // A2.2-4R1: every candidate admission below also records the declarator's
+                // symbol; the legacy name set is built exactly as before and is what the
+                // escape / tracking / lowering path keeps reading. Only BuildGuardedFacts
+                // reads the symbol set.
+                var candidateSymbols = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+                void Admit(VariableDeclaratorSyntax v)
+                {
+                    candidates.Add(v.Identifier.Text);
+                    if (model.GetDeclaredSymbol(v) is ILocalSymbol lsym)
+                        candidateSymbols.Add(lsym);
+                }
                 var poolBuffers = new HashSet<string>();   // candidates that are ArrayPool<T> buffers
                 var usingMemoryOwners = new HashSet<string>();   // `using`-declared MemoryPool owners
                 var newedDisposables = new HashSet<string>();    // candidates created via `new` (NOT a pool rental / factory)
@@ -7087,7 +7108,7 @@ foreach (var (file, tree) in parsed)
                         foreach (var v in ld.Declaration.Variables)
                             if (IsMemoryPoolRent(v.Initializer?.Value, model))
                             {
-                                candidates.Add(v.Identifier.Text);
+                                Admit(v);
                                 usingMemoryOwners.Add(v.Identifier.Text);
                             }
                         continue;
@@ -7101,25 +7122,25 @@ foreach (var (file, tree) in parsed)
                             // resource -> never disposing a local of it cannot leak.
                             && !HasEmptyDisposeBody(dt))
                         {
-                            candidates.Add(v.Identifier.Text);
+                            Admit(v);
                             newedDisposables.Add(v.Identifier.Text);
                         }
                         else if (IsPoolRent(v.Initializer?.Value, model))   // an ArrayPool<T> buffer
                         {
-                            candidates.Add(v.Identifier.Text);
+                            Admit(v);
                             poolBuffers.Add(v.Identifier.Text);
                         }
                         else if (IsOwningFactory(v.Initializer?.Value, model))   // File / crypto Create* factory
-                            candidates.Add(v.Identifier.Text);
+                            Admit(v);
                         else if (IsMemoryPoolRent(v.Initializer?.Value, model))   // MemoryPool<T> IMemoryOwner (Dispose-released, NOT a poolBuffer)
-                            candidates.Add(v.Identifier.Text);
+                            Admit(v);
                         else if (IsFirstPartyDisposableFactory(v.Initializer?.Value, model,
                                                                out _, out _))
                             // P-005 D5.2: `var r = FirstPartyFactory()` — a candidate acquire
                             // IFF the core proves the callee returns `fresh` (it emits a `call`
                             // op, not an `acquire`; the core decides). Checked last so `new` /
                             // pool / BCL-factory initializers keep their existing classification.
-                            candidates.Add(v.Identifier.Text);
+                            Admit(v);
                 }
                 // `using (IMemoryOwner owner = MemoryPool.Rent(...)) { … }` STATEMENT form: track the owner
                 // too, so its returned view dangles after the scope-exit dispose (the desugar mirrors the
@@ -7129,7 +7150,7 @@ foreach (var (file, tree) in parsed)
                         foreach (var v in usd.Variables)
                             if (IsMemoryPoolRent(v.Initializer?.Value, model))
                             {
-                                candidates.Add(v.Identifier.Text);
+                                Admit(v);
                                 usingMemoryOwners.Add(v.Identifier.Text);
                             }
                 // Eligibility, NOT a deleted guard. This is the gate that drops a method
@@ -7144,7 +7165,7 @@ foreach (var (file, tree) in parsed)
                 // with none has no summary anyone can read.)
                 if (candidates.Count == 0 && ownedParamNames.Count == 0)
                 {
-                    CarryOrphan(method, mbody, candidates, ownedParamNames);
+                    CarryOrphan(method, mbody, candidateSymbols, ownedParamSymbols);
                     continue;
                 }
                 // A local that escapes (returned / assigned out) is conservatively not
@@ -7259,7 +7280,7 @@ foreach (var (file, tree) in parsed)
                 tracked.ExceptWith(escapedLocals);
                 if (tracked.Count == 0 && ownedParamNames.Count == 0)
                 {
-                    CarryOrphan(method, mbody, candidates, ownedParamNames);
+                    CarryOrphan(method, mbody, candidateSymbols, ownedParamSymbols);
                     continue;
                 }
                 statMethodsWithLocal++;
@@ -7275,7 +7296,7 @@ foreach (var (file, tree) in parsed)
                 if (fbody is null || fbody.Count == 0)
                 {
                     statMethodsSkipped++;   // unmodelled construct -> honestly skipped
-                    CarryOrphan(method, mbody, candidates, ownedParamNames);
+                    CarryOrphan(method, mbody, candidateSymbols, ownedParamSymbols);
                     continue;
                 }
                 statMethodsAnalysed++;
@@ -7301,7 +7322,8 @@ foreach (var (file, tree) in parsed)
                 // Handles for the sidecar are the disposable CANDIDATES, not the post-escape
                 // `tracked` set: a local the legacy pass untracked because it was handed to a
                 // non-consuming callee is exactly the handle whose flow a summary refines.
-                var guardedFacts = BuildGuardedFacts(method, mbody, candidates, ownedParamNames,
+                // By symbol, never by spelling (A2.2-4R1).
+                var guardedFacts = BuildGuardedFacts(method, mbody, candidateSymbols, ownedParamSymbols,
                                                      model, fname);
                 var record = new Dictionary<string, object?> { ["name"] = fname, ["file"] = file };
                 if (fsig is not null)

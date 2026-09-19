@@ -1157,7 +1157,16 @@ causes of FACT-DIFF. Tracked in #364 with its own acceptance.
   five findings are classified and pinned RED by name in
   `corpus/p037-relevance/oracle_findings.json`, and NO production line moved;
 - **A2.2-4R** the findings' repairs, each a separately classified change with
-  its own census witness turning from pinned RED to green (10.6.10);
+  its own census witness turning from pinned RED to green (10.6.10). Order
+  ruled by the owner: R1 F-SHADOW, R2 F-PARAMS-ELEMENT, R3
+  F-CONDITIONAL-RECEIVER (the three case-1 defects, same instrument, no new
+  T/R between them), then R4 the F-VOCAB naming ruling, R5 the
+  `constructor_initializer` call-like shape, R6 F-MEMBER through a
+  guarded-only member enumeration. R1 landed in the commit carrying this
+  line: the sidecar's handle and owned-parameter sets are symbol sets recorded
+  at the legacy admission points beside the names, the legacy name-based
+  structures untouched; the three shadowing witnesses read green, every other
+  pinned RED stays, the 52 shapes and the probe are byte-identical;
 - **A2.2-5** mutation campaign: remove the handle, add parentheses, perturb the
   binding, distinguish nested calls;
 - **A2.2-S** cumulative A2 after-evidence on M1 against the existing R with
@@ -1213,7 +1222,7 @@ does a pinned RED that silently disappears):
 | id | class | what | witness |
 |---|---|---|---|
 | F-MEMBER | 3 | expression-bodied members, struct and record methods, property accessors are outside the legacy admission *and* the orphan carrier (the gates sit inside the class / block-body loop) | probe `Box.op_Implicit`; hostile `member-*` |
-| F-SHADOW | 1 | the guarded-fact handle set is keyed by spelling (`handles.Contains(lr.Local.Name)`) and the candidate collector descends into lambdas: a same-spelled non-candidate in a sibling scope, or beside a lambda-local creation, gets a false `var` fact | hostile `shadow-*` |
+| F-SHADOW | 1 | the guarded-fact handle set was keyed by spelling (`handles.Contains(lr.Local.Name)`) and the candidate collector descends into lambdas: a same-spelled non-candidate in a sibling scope, or beside a lambda-local creation, got a false `var` fact. **Repaired in A2.2-4R1** (10.6.11) | hostile `shadow-*`, now green |
 | F-PARAMS-ELEMENT | 1 | an expanded params element is classified from its bare syntax: under parentheses or `!` the handle is lost (no operation of its own); under a boxing or user-defined element conversion a false opaque-and-relevant slot is emitted | hostile `pw-*-params-*` with parens / bang / boxing / user_implicit |
 | F-CONDITIONAL-RECEIVER | 1 | `r?.Ext(...)` invokes through a member binding, the receiver is read from `MemberAccessExpressionSyntax` only, and ordinal 0 is dropped | hostile `ext-conditional-access` |
 | F-VOCAB | 3 | four argument shapes the frozen list has no name for: a tested operand, an interpolation hole, an indexer argument, a constructor-initializer argument; production correctly emits nothing, the sentence demands a name | hostile `vocab-*` |
@@ -1229,3 +1238,44 @@ reaches a call slot, an argument or a receiver alike. A2.2-4 changed no
 production line: the three case-1 findings are repairs to be made one at a
 time, each with its pinned witness turning green (A2.2-4R), and the two case-3
 findings await a ruling.
+
+**Owner rulings on the findings (recorded before R1).** F-VOCAB splits: a
+tested operand becomes the named exclusion `predicate_result` (the handle
+takes part in computing a predicate; the callee receives a bool), an
+interpolation hole becomes `interpolation_hole` (the callee receives the built
+string), an indexer argument becomes `indexer_argument`, whose definition must
+say outright that the handle *is* semantically an argument of an accessor and
+that indexer accessor calls deliberately stay outside the frozen call-site
+vocabulary; a constructor-initializer argument is **not** an exclusion but a
+call-like fact shape, `call_kind: constructor_initializer` (site the
+`ConstructorInitializerSyntax`, callee the target constructor's `{Type}..ctor`
+key, `sig` its canonical signature, arguments bound to the target
+constructor's declared ordinals, `first_party` by declaring syntax, the same
+value-flow and binding machinery), because `Holder(MemoryStream r) : base(r,
+true)` is the same ownership edge `object_creation` was added for and "the
+callee is outside the vocabulary" would be circular. The two case-4 readings
+stand as recorded, `nested_call_result` reaching a constructor initializer
+wherever such nesting is possible. F-MEMBER is a case-3 production
+completeness repair, not a perpetual gap, under one boundary: the legacy
+`functions[]` universe does not grow; an independent guarded-member
+enumeration over every supported type and member body feeds
+`BuildGuardedFacts` and the orphan carrier when no legacy record exists, with
+two more witnesses (a default interface method with a body, a record struct
+method) added before it closes; lambdas and local functions stay the separate
+nested-function gap.
+
+#### 10.6.11 A2.2-4R: the repairs (REPOSITORY FACT)
+
+- **R1, F-SHADOW.** `BuildGuardedFacts` now takes `HashSet<ISymbol>` handle
+  and owned-parameter sets (`SymbolEqualityComparer.Default`). They are filled
+  at the legacy admission points, beside the names the legacy path keeps
+  reading (`Admit(v)` records `GetDeclaredSymbol(v)` next to
+  `candidates.Add(v.Identifier.Text)`; the owned-parameter loop records the
+  parameter symbol next to its name), so which declarator was admitted is
+  known by identity rather than re-derived from a spelling. `ParamFact` tests
+  `ownedParams.Contains(p)` and the local-reference case tests
+  `handles.Contains(lr.Local)`. No legacy structure, escape rule, tracking set
+  or lowering input changes. Measured: the 52 census shapes and the probe's
+  facts are byte-identical; the three shadowing witnesses read green
+  (`shadow-lambda-local` now has no fact and no carrier, the truth); every
+  other pinned RED stays; inertness and the local rehearsal unchanged.

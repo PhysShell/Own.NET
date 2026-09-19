@@ -383,7 +383,10 @@ optional argument has no entry; a `ref`/`out` argument is `opaque`. For an
 **unresolved** callee (`callee: null`) the ordinal is the *source position* —
 there is no declaration to bind against, and the record says so rather than
 guessing. Calls inside lambdas and local functions belong to those bodies, not
-to the method.
+to the method. A `var` fact names the local by its spelling but is bound by
+its symbol (P-037 A2.2-4R1): two locals spelled alike in sibling scopes are two
+symbols, and only the candidate's references are facts; a lambda-local
+creation makes nothing of the same spelling outside the lambda a handle.
 
 Value flow (P-037 A2.2-1; the taxonomy is frozen in
 docs/notes/p037-formal-kernel.md §10.6 and `corpus/p037-relevance/registry.json`).

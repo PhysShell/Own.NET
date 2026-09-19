@@ -102,11 +102,13 @@ def run() -> int:
         have = sorted(n for n in named if n.startswith(prefix))
         check(f"named-cases-{prefix.rstrip('-')}", len(have) >= minimum,
               f"{len(have)} < {minimum}: {have}")
+    # A2.2-4R1 repaired F-SHADOW: every shadowing witness is designed green, and the oracle's
+    # fact_binds_other_symbol check (a var fact on a same-spelled non-candidate) is what would
+    # turn it RED again.
     shadow = [n for n in named if n.startswith("shadow-")]
-    check("shadow-witnesses-pin-symbol-identity",
-          sum(1 for n in shadow if cases[n].get("red") == {"fact_binds_other_symbol": 1}) >= 3
-          and any(not cases[n].get("red") for n in shadow),
-          "need >= 3 shadow cases pinned RED by fact_binds_other_symbol and one green")
+    check("shadow-witnesses-green-by-symbol",
+          len(shadow) >= 4 and all(not cases[n].get("red") for n in shadow),
+          f"shadow cases and their expected RED: { {n: cases[n].get('red') for n in shadow} }")
 
     findings: dict[str, Any] = ledger.get("findings", {})
     bad = [fid for fid, f in findings.items()
