@@ -8,13 +8,6 @@
       "evidence": "Program.cs enumerates ClassDeclarationSyntax only and, inside it, BaseMethodDeclarationSyntax with a block Body; the three A2.2-3P admission gates sit inside that loop, so these members reach neither functions[] nor guarded_functions[]. Witnessed by the probe (Box.op_Implicit, an expression-bodied conversion operator) and by four hostile cases.",
       "status": "open: a census finding; carrying these members in the orphan carrier is a production change to be classified on its own",
       "red": "occurrence_not_captured"
-    },
-    "F-CTOR-INIT": {
-      "class": "case 3",
-      "title": "a constructor initializer `: base(...)` / `: this(...)` is a call-like site without a fact shape",
-      "evidence": "`Holder(MemoryStream r) : base(r, true)` passes the owned parameter into a really invoked constructor's declared ordinal 0, the same ownership edge object_creation was added for; the frozen vocabulary has no call_kind for a ConstructorInitializerSyntax site, so no fact exists and the oracle reads the occurrence as unclassified. Ruled in A2.2-4R4 to be a fact shape (call_kind constructor_initializer; site the initializer; callee the target constructor's {Type}..ctor key; sig its canonical signature; arguments bound to the target constructor's declared ordinals; first_party by declaring syntax; the same value-flow and binding machinery), landing in A2.2-4R5. Witnessed by the hostile case vocab-constructor-initializer.",
-      "status": "open: A2.2-4R5 adds the fact shape",
-      "red": "unclassified_argument_shape:constructor_initializer"
     }
   },
   "expected_red": {
@@ -54,6 +47,13 @@
       "evidence": "Each is a candidate occurrence under a call-related syntax site that no frozen exclusion names; production emits no fact for any of them (correctly: no handle reaches a callee of the vocabulary), so each needs a name, never a bucket. Witnessed by four hostile cases.",
       "status": "closed: the A2.2-4R4 ruling. predicate_result, interpolation_hole and indexer_argument are frozen exclusions (registry, \u00a710.6.4, probe rows PredicateResult / InterpolationHole / IndexerArgument, oracle); the constructor-initializer argument is not an exclusion but a call-like fact shape, tracked as F-CTOR-INIT.",
       "red": "unclassified_argument_shape:*"
+    },
+    "F-CTOR-INIT": {
+      "class": "case 3",
+      "title": "a constructor initializer `: base(...)` / `: this(...)` is a call-like site without a fact shape",
+      "evidence": "`Holder(MemoryStream r) : base(r, true)` passes the owned parameter into a really invoked constructor's declared ordinal 0, the same ownership edge object_creation was added for; the frozen vocabulary has no call_kind for a ConstructorInitializerSyntax site, so no fact exists and the oracle reads the occurrence as unclassified. Ruled in A2.2-4R4 to be a fact shape (call_kind constructor_initializer; site the initializer; callee the target constructor's {Type}..ctor key; sig its canonical signature; arguments bound to the target constructor's declared ordinals; first_party by declaring syntax; the same value-flow and binding machinery), landing in A2.2-4R5. Witnessed by the hostile case vocab-constructor-initializer.",
+      "status": "closed: A2.2-4R5. call_kind constructor_initializer; the initializer's argument syntax is visited for nested call sites too; three hostile witnesses and the census shape sidecar-ctorinit-base are green; the probe row CtorInit reads orphan_call:constructor_initializer.",
+      "red": "unclassified_argument_shape:constructor_initializer"
     }
   }
 }

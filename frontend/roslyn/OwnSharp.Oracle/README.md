@@ -21,7 +21,8 @@ result to the findings ledger, the relevance probe and the hostile census.
 
 1. **Inventory.** For every member body in every type declaration (class,
    struct, record, interface; methods, constructors with their `: this` /
-   `: base` initializer, operators, accessors, expression bodies included),
+   `: base` initializer, a call-like site of its own since R5, operators,
+   accessors, expression bodies included),
    every reference to a local or parameter of that member is inventoried by
    **Roslyn symbol**, never by spelling. References inside lambdas and local
    functions are inventoried too, flagged `nested_function`.
@@ -52,7 +53,8 @@ result to the findings ledger, the relevance probe and the hostile census.
    `Classify`/`EmitCall` walked twice.
 4. **Verdict per universe occurrence**, exactly one of:
    - `captured` — with the site kind (`invocation`, `object_creation`,
-     `delegate_invocation`), the declared ordinal and the representation the
+     `delegate_invocation`, `constructor_initializer`), the declared ordinal
+     and the representation the
      vocabulary owes (`var` / `param` / `opaque`: may-value, `ref`/`out`,
      params, and an unstable parameter are `opaque`);
    - `excluded` — by exactly one of the fourteen frozen names (eleven at the
@@ -85,7 +87,7 @@ result to the findings ledger, the relevance probe and the hostile census.
 | `fact_without_occurrence` / `param_fact_misbound` | a fact names a local or parameter no reference at the slot resolves to |
 | `fact_without_relevant_occurrence` | a call fact made relevant by nothing the oracle can see |
 | `fact_site_not_found` / `fact_in_nested_function` / `call_kind_mismatch` / `record_unbound` / `member_in_both_carriers` | site identity and carrier integrity |
-| `unclassified_argument_shape:<shape>` | a candidate occurrence under an argument that no frozen exclusion names (after the R4 ruling: a constructor-initializer argument until R5, and anything new) |
+| `unclassified_argument_shape:<shape>` | a candidate occurrence under an argument that no frozen exclusion names (none over the current inputs after R4 and R5; anything new) |
 | `unclassified_conversion:<edge>` / `unclassified_context:<kind>` | a conversion edge or a syntax the oracle has no rule for |
 
 Exit 0 = no RED, 1 = RED, 2 = usage / unreadable input. The report

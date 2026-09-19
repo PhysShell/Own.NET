@@ -246,6 +246,41 @@
    "red": {},
    "why": "composition: parentheses around a handle whose parameter type needs op_Implicit; the conversion wins over the transparent-looking syntax (\u00a710.6.3)"
   },
+  "ctorinit-named-transparent": {
+   "member": "H_ctorinit_named_transparent.M",
+   "member_override": ".Holder..ctor",
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "constructor_initializer",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {},
+   "why": "call-like site: a constructor initializer with named, reordered arguments and a reference upcast on the handle; the target constructor's declared ordinals bind"
+  },
+  "ctorinit-nested-call": {
+   "member": "H_ctorinit_nested_call.M",
+   "member_override": ".Holder..ctor",
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param",
+     "enclosing": [
+      "nested_call_result"
+     ]
+    }
+   ],
+   "red": {},
+   "why": "call-like site: a nested call inside a constructor initializer's argument; the inner call captures the handle, the initializer receives its result (nested_call_result)"
+  },
   "ext-boxed-receiver": {
    "member": "H_ext_boxed_receiver.M",
    "carrier": "functions",
@@ -3038,19 +3073,18 @@
   "vocab-constructor-initializer": {
    "member": "H_vocab_constructor_initializer.M",
    "member_override": ".Holder..ctor",
-   "carrier": "none",
+   "carrier": "guarded_functions",
    "occurrences": [
     {
      "symbol": "r",
-     "verdict": "red",
-     "explanation": "unclassified_argument_shape:constructor_initializer"
+     "verdict": "captured",
+     "site_kind": "constructor_initializer",
+     "ordinal": 0,
+     "expected": "param"
     }
    ],
-   "red": {
-    "unclassified_argument_shape:constructor_initializer": 1
-   },
-   "finding": "F-CTOR-INIT",
-   "why": "vocabulary edge: an owned constructor parameter forwarded through `: base(...)`, a really invoked constructor's declared ordinal 0; ruled a call-like fact shape in A2.2-4R4, landing in A2.2-4R5 (finding F-CTOR-INIT)"
+   "red": {},
+   "why": "call-like site: an owned constructor parameter forwarded through `: base(...)`, a really invoked constructor's declared ordinal 0 (ruled a fact shape in A2.2-4R4, landed in A2.2-4R5: call_kind constructor_initializer)"
   },
   "vocab-indexer-argument": {
    "member": "H_vocab_indexer_argument.M",

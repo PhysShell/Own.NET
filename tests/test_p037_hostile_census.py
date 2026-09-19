@@ -26,7 +26,7 @@ import p037_hostile_census as census  # noqa: E402
 REGISTRY = ROOT / "corpus" / "p037-relevance" / "registry.json"
 FINDINGS = ROOT / "corpus" / "p037-relevance" / "oracle_findings.json"
 EXPECTED = ROOT / "corpus" / "p037-hostile" / "expected.json"
-SITE_KINDS = {"invocation", "object_creation", "delegate_invocation"}
+SITE_KINDS = {"invocation", "object_creation", "delegate_invocation", "constructor_initializer"}
 REPRESENTATIONS = {"var", "param", "opaque"}
 CLASSES = {"case 1", "case 3", "case 4", "case 5"}
 
@@ -98,7 +98,7 @@ def run() -> int:
 
     named = {n for n in cases if not n.startswith("pw-")}
     for prefix, minimum in (("comp-", 7), ("shadow-", 4), ("member-", 5), ("vocab-", 4),
-                            ("ext-", 2)):
+                            ("ext-", 2), ("ctorinit-", 2)):
         have = sorted(n for n in named if n.startswith(prefix))
         check(f"named-cases-{prefix.rstrip('-')}", len(have) >= minimum,
               f"{len(have)} < {minimum}: {have}")

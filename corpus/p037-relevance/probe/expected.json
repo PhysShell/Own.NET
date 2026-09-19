@@ -19,7 +19,9 @@
     "orphan_call:mixed": "orphan entry with calls of more than one kind (none expected)",
     "orphan_guards_only": "no functions[] record; the orphan entry carries guards and no call",
     "record_without_call_fact": "a function record exists but carries no call fact for the probe call",
-    "no_record": "the legacy pass emitted no function record at all (every candidate escaped)"
+    "no_record": "the legacy pass emitted no function record at all (every candidate escaped)",
+    "sidecar_call:constructor_initializer": "captured, and the captured call is a constructor initializer (call_kind constructor_initializer, A2.2-4R5)",
+    "orphan_call:constructor_initializer": "no functions[] record; the orphan entry's call is a constructor initializer (an empty forwarding body lowers to nothing)"
   },
   "helpers": [
     "Inner",
@@ -47,7 +49,8 @@
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
       "a2_2_3p_observed": "sidecar_call",
-      "a2_2_4_oracle": "captured:invocation"
+      "a2_2_4_oracle": "captured:invocation",
+      "a2_2_4r5_observed": "sidecar_call"
     },
     "PlainSame": {
       "class": "direct",
@@ -58,7 +61,8 @@
       "a2_2_2_observed": "no_record",
       "a2_2_2b_observed": "no_record",
       "a2_2_3p_observed": "orphan_call",
-      "a2_2_4_oracle": "captured:invocation"
+      "a2_2_4_oracle": "captured:invocation",
+      "a2_2_4r5_observed": "orphan_call"
     },
     "Parens": {
       "class": "transparent",
@@ -69,7 +73,8 @@
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
       "a2_2_3p_observed": "sidecar_call",
-      "a2_2_4_oracle": "captured:invocation"
+      "a2_2_4_oracle": "captured:invocation",
+      "a2_2_4r5_observed": "sidecar_call"
     },
     "IdentityCast": {
       "class": "transparent",
@@ -80,7 +85,8 @@
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
       "a2_2_3p_observed": "sidecar_call",
-      "a2_2_4_oracle": "captured:invocation"
+      "a2_2_4_oracle": "captured:invocation",
+      "a2_2_4r5_observed": "sidecar_call"
     },
     "Cast": {
       "class": "transparent",
@@ -91,7 +97,8 @@
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
       "a2_2_3p_observed": "sidecar_call",
-      "a2_2_4_oracle": "captured:invocation"
+      "a2_2_4_oracle": "captured:invocation",
+      "a2_2_4r5_observed": "sidecar_call"
     },
     "AsCast": {
       "class": "transparent",
@@ -102,7 +109,8 @@
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
       "a2_2_3p_observed": "sidecar_call",
-      "a2_2_4_oracle": "captured:invocation"
+      "a2_2_4_oracle": "captured:invocation",
+      "a2_2_4r5_observed": "sidecar_call"
     },
     "Bang": {
       "class": "transparent",
@@ -113,7 +121,8 @@
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
       "a2_2_3p_observed": "sidecar_call",
-      "a2_2_4_oracle": "captured:invocation"
+      "a2_2_4_oracle": "captured:invocation",
+      "a2_2_4r5_observed": "sidecar_call"
     },
     "CheckedRef": {
       "class": "transparent",
@@ -125,7 +134,8 @@
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
       "a2_2_3p_observed": "sidecar_call",
-      "a2_2_4_oracle": "captured:invocation"
+      "a2_2_4_oracle": "captured:invocation",
+      "a2_2_4r5_observed": "sidecar_call"
     },
     "Ternary": {
       "class": "may_value",
@@ -136,7 +146,8 @@
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
       "a2_2_3p_observed": "sidecar_call",
-      "a2_2_4_oracle": "captured:invocation"
+      "a2_2_4_oracle": "captured:invocation",
+      "a2_2_4r5_observed": "sidecar_call"
     },
     "Coalesce": {
       "class": "may_value",
@@ -147,7 +158,8 @@
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
       "a2_2_3p_observed": "sidecar_call",
-      "a2_2_4_oracle": "captured:invocation"
+      "a2_2_4_oracle": "captured:invocation",
+      "a2_2_4r5_observed": "sidecar_call"
     },
     "Switch": {
       "class": "may_value",
@@ -158,7 +170,8 @@
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
       "a2_2_3p_observed": "sidecar_call",
-      "a2_2_4_oracle": "captured:invocation"
+      "a2_2_4_oracle": "captured:invocation",
+      "a2_2_4r5_observed": "sidecar_call"
     },
     "AsMayFail": {
       "class": "may_value",
@@ -169,7 +182,8 @@
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
       "a2_2_3p_observed": "sidecar_call",
-      "a2_2_4_oracle": "captured:invocation"
+      "a2_2_4_oracle": "captured:invocation",
+      "a2_2_4r5_observed": "sidecar_call"
     },
     "Ctor": {
       "class": "call_like",
@@ -180,7 +194,8 @@
       "a2_2_2_observed": "sidecar_call:object_creation",
       "a2_2_2b_observed": "sidecar_call:object_creation",
       "a2_2_3p_observed": "sidecar_call:object_creation",
-      "a2_2_4_oracle": "captured:object_creation"
+      "a2_2_4_oracle": "captured:object_creation",
+      "a2_2_4r5_observed": "sidecar_call:object_creation"
     },
     "DelegateCall": {
       "class": "call_like",
@@ -192,7 +207,8 @@
       "a2_2_2_observed": "no_record",
       "a2_2_2b_observed": "no_record",
       "a2_2_3p_observed": "orphan_call:delegate_invocation",
-      "a2_2_4_oracle": "captured:delegate_invocation"
+      "a2_2_4_oracle": "captured:delegate_invocation",
+      "a2_2_4r5_observed": "orphan_call:delegate_invocation"
     },
     "DelegateCallOwned": {
       "class": "call_like",
@@ -204,7 +220,8 @@
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call:delegate_invocation",
       "a2_2_3p_observed": "sidecar_call:delegate_invocation",
-      "a2_2_4_oracle": "captured:delegate_invocation"
+      "a2_2_4_oracle": "captured:delegate_invocation",
+      "a2_2_4r5_observed": "sidecar_call:delegate_invocation"
     },
     "Nested": {
       "class": "indirect",
@@ -216,7 +233,8 @@
       "a2_2_2_observed": "no_record",
       "a2_2_2b_observed": "no_record",
       "a2_2_3p_observed": "orphan_call",
-      "a2_2_4_oracle": "captured:invocation+nested_call_result"
+      "a2_2_4_oracle": "captured:invocation+nested_call_result",
+      "a2_2_4r5_observed": "orphan_call"
     },
     "ArrayInit": {
       "class": "indirect",
@@ -227,7 +245,8 @@
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
       "a2_2_3p_observed": "record_without_call_fact",
-      "a2_2_4_oracle": "excluded:container_construction"
+      "a2_2_4_oracle": "excluded:container_construction",
+      "a2_2_4r5_observed": "record_without_call_fact"
     },
     "CollectionInit": {
       "class": "indirect",
@@ -238,7 +257,8 @@
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
       "a2_2_3p_observed": "record_without_call_fact",
-      "a2_2_4_oracle": "excluded:container_construction"
+      "a2_2_4_oracle": "excluded:container_construction",
+      "a2_2_4r5_observed": "record_without_call_fact"
     },
     "Tuple": {
       "class": "indirect",
@@ -249,7 +269,8 @@
       "a2_2_2_observed": "no_record",
       "a2_2_2b_observed": "no_record",
       "a2_2_3p_observed": "no_record",
-      "a2_2_4_oracle": "excluded:tuple_construction"
+      "a2_2_4_oracle": "excluded:tuple_construction",
+      "a2_2_4r5_observed": "no_record"
     },
     "Closure": {
       "class": "indirect",
@@ -261,7 +282,8 @@
       "a2_2_2_observed": "no_record",
       "a2_2_2b_observed": "no_record",
       "a2_2_3p_observed": "no_record",
-      "a2_2_4_oracle": "excluded:closure_capture"
+      "a2_2_4_oracle": "excluded:closure_capture",
+      "a2_2_4r5_observed": "no_record"
     },
     "MethodGroup": {
       "class": "indirect",
@@ -272,7 +294,8 @@
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
       "a2_2_3p_observed": "record_without_call_fact",
-      "a2_2_4_oracle": "excluded:method_group_conversion"
+      "a2_2_4_oracle": "excluded:method_group_conversion",
+      "a2_2_4r5_observed": "record_without_call_fact"
     },
     "UserConversion": {
       "class": "indirect",
@@ -284,7 +307,8 @@
       "a2_2_2_observed": "no_record",
       "a2_2_2b_observed": "no_record",
       "a2_2_3p_observed": "no_record",
-      "a2_2_4_oracle": "excluded:user_conversion"
+      "a2_2_4_oracle": "excluded:user_conversion",
+      "a2_2_4r5_observed": "no_record"
     },
     "ExplicitUserConversion": {
       "class": "indirect",
@@ -296,7 +320,8 @@
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
       "a2_2_3p_observed": "record_without_call_fact",
-      "a2_2_4_oracle": "excluded:user_conversion"
+      "a2_2_4_oracle": "excluded:user_conversion",
+      "a2_2_4r5_observed": "record_without_call_fact"
     },
     "NameOf": {
       "class": "indirect",
@@ -307,7 +332,8 @@
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
       "a2_2_3p_observed": "record_without_call_fact",
-      "a2_2_4_oracle": "excluded:nameof_operand"
+      "a2_2_4_oracle": "excluded:nameof_operand",
+      "a2_2_4r5_observed": "record_without_call_fact"
     },
     "MemberAccess": {
       "class": "indirect",
@@ -318,7 +344,8 @@
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
       "a2_2_3p_observed": "record_without_call_fact",
-      "a2_2_4_oracle": "excluded:member_access_on_handle"
+      "a2_2_4_oracle": "excluded:member_access_on_handle",
+      "a2_2_4r5_observed": "record_without_call_fact"
     },
     "Boxing": {
       "class": "indirect",
@@ -330,7 +357,8 @@
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
       "a2_2_3p_observed": "record_without_call_fact",
-      "a2_2_4_oracle": "excluded:boxing_conversion"
+      "a2_2_4_oracle": "excluded:boxing_conversion",
+      "a2_2_4r5_observed": "record_without_call_fact"
     },
     "Receiver": {
       "class": "indirect",
@@ -341,7 +369,8 @@
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
       "a2_2_3p_observed": "record_without_call_fact",
-      "a2_2_4_oracle": "excluded:receiver_not_summary_parameter"
+      "a2_2_4_oracle": "excluded:receiver_not_summary_parameter",
+      "a2_2_4r5_observed": "record_without_call_fact"
     },
     "Indexer": {
       "class": "indirect",
@@ -352,7 +381,8 @@
       "a2_2_2_observed": "no_record",
       "a2_2_2b_observed": "no_record",
       "a2_2_3p_observed": "no_record",
-      "a2_2_4_oracle": "excluded:storage_assignment"
+      "a2_2_4_oracle": "excluded:storage_assignment",
+      "a2_2_4r5_observed": "no_record"
     },
     "PredicateResult": {
       "class": "indirect",
@@ -364,7 +394,8 @@
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
       "a2_2_3p_observed": "record_without_call_fact",
-      "a2_2_4_oracle": "excluded:predicate_result"
+      "a2_2_4_oracle": "excluded:predicate_result",
+      "a2_2_4r5_observed": "record_without_call_fact"
     },
     "InterpolationHole": {
       "class": "indirect",
@@ -376,7 +407,8 @@
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
       "a2_2_3p_observed": "record_without_call_fact",
-      "a2_2_4_oracle": "excluded:interpolation_hole"
+      "a2_2_4_oracle": "excluded:interpolation_hole",
+      "a2_2_4r5_observed": "record_without_call_fact"
     },
     "IndexerArgument": {
       "class": "indirect",
@@ -388,9 +420,27 @@
       "a2_2_2_observed": "no_record",
       "a2_2_2b_observed": "no_record",
       "a2_2_3p_observed": "no_record",
-      "a2_2_4_oracle": "excluded:indexer_argument"
+      "a2_2_4_oracle": "excluded:indexer_argument",
+      "a2_2_4r5_observed": "no_record"
+    },
+    "CtorInit": {
+      "class": "call_like",
+      "form": "constructor_initializer",
+      "conversion": "reference_upcast",
+      "note": "an owned constructor parameter forwarded through `: base(r, true)`: the target constructor's declared ordinal 0 binds (A2.2-4R5); the row is the constructor `Probe.CtorInit..ctor` of the nested class",
+      "a2_1_observed": "no_record",
+      "a2_2_1_observed": "no_record",
+      "a2_2_2_observed": "no_record",
+      "a2_2_2b_observed": "no_record",
+      "a2_2_3p_observed": "no_record",
+      "a2_2_4_oracle": "captured:constructor_initializer",
+      "a2_2_4r5_observed": "orphan_call:constructor_initializer"
     }
   },
   "a2_2_4_oracle_note": "The completeness oracle's live reading of each row (A2.2-4): the verdict of the row's handle occurrence, `captured:<site kind>[+enclosing exclusions]` or `excluded:<named exclusion>`. Recorded by scripts/p037_completeness_oracle.py record and held equal by check; the oracle is checked against the class, never the other way round.",
-  "a2_2_4r4_note": "Three rows added by the A2.2-4R4 ruling (PredicateResult, InterpolationHole, IndexerArgument). Their historical columns were measured with the extractor rebuilt at each step's commit (A' 5a0de070, A2.2-1 268bbd4, A2.2-2 376f2e6, A2.2-2b 7de7a6f, A2.2-3P 80cd9aa), never assumed: the first two read record_without_call_fact at every step (the handle never escapes, the method is admitted, no call fact), the third no_record (the index position is an argument to the legacy escape rule, every candidate escapes, nothing to carry)."
+  "a2_2_4r4_note": "Three rows added by the A2.2-4R4 ruling (PredicateResult, InterpolationHole, IndexerArgument). Their historical columns were measured with the extractor rebuilt at each step's commit (A' 5a0de070, A2.2-1 268bbd4, A2.2-2 376f2e6, A2.2-2b 7de7a6f, A2.2-3P 80cd9aa), never assumed: the first two read record_without_call_fact at every step (the handle never escapes, the method is admitted, no call fact), the third no_record (the index position is an argument to the legacy escape rule, every candidate escapes, nothing to carry).",
+  "constructor_rows": [
+    "CtorInit"
+  ],
+  "a2_2_4r5_note": "Measured with the A2.2-4R5 extractor (constructor initializers as call-like sites) from the tree this file is committed in. R5 promises exactly the constructor_initializer row moves, to orphan_call:constructor_initializer (its forwarding body is empty, so the legacy pass admits no record and the orphan carrier holds the fact); every other row reads as after A2.2-3P. The CtorInit row's historical columns were measured with the extractor rebuilt at each step's commit (A' 5a0de070, A2.2-1 268bbd4, A2.2-2 376f2e6, A2.2-2b 7de7a6f, A2.2-3P 80cd9aa): no_record at every step, because the initializer was never visited and an empty body carries nothing."
 }

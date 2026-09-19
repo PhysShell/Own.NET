@@ -3096,6 +3096,16 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
 
     var calls = new List<Dictionary<string, object?>>();
 
+    // The call-related syntax of this member: a constructor's `: this(...)` / `: base(...)`
+    // initializer sits beside the body, not inside it, and its arguments hold call sites of
+    // their own (`: base(Wrap(r), true)`), so the initializer's nodes come first, in source
+    // order, then the body's (A2.2-4R5). Every other member reads exactly as before.
+    IEnumerable<SyntaxNode> CallSyntax() =>
+        (method is ConstructorDeclarationSyntax { Initializer: { } ctorInit }
+            ? ctorInit.DescendantNodes(InThisMethod)
+            : Enumerable.Empty<SyntaxNode>())
+        .Concat(mbody.DescendantNodes(InThisMethod));
+
     // One call site of any call-like kind: binds the arguments by DECLARED ordinal, decides
     // relevance, and appends the call fact when a handle of this method flowed in. Shared by
     // invocation expressions (A2.1) and constructor calls (A2.2-2), which differ only in the
@@ -3191,7 +3201,9 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
             return;
 
         var target = site.Parent is AwaitExpressionSyntax aw ? (SyntaxNode)aw : site;
-        var form = target.Parent switch
+        // A constructor initializer runs as the constructor's first statement and yields no
+        // value anybody reads: `statement` (A2.2-4R5).
+        var form = site is ConstructorInitializerSyntax ? "statement" : target.Parent switch
         {
             ExpressionStatementSyntax => "statement",
             EqualsValueClauseSyntax => "initializer",
@@ -3221,7 +3233,7 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
         calls.Add(record);
     }
 
-    foreach (var inv in mbody.DescendantNodes(InThisMethod).OfType<InvocationExpressionSyntax>())
+    foreach (var inv in CallSyntax().OfType<InvocationExpressionSyntax>())
     {
         if (inv.Expression is IdentifierNameSyntax { Identifier.Text: "nameof" }
             && model.GetSymbolInfo(inv).Symbol is null)
@@ -3268,7 +3280,7 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
     // storage, a named exclusion, not a call argument; `new` inside an ARGUMENT of another call
     // stays that call's `object_creation` fact and propagates no relevance outward; array
     // creation is not object creation. Delegate invocation is a separate family, not this one.
-    foreach (var creation in mbody.DescendantNodes(InThisMethod).OfType<BaseObjectCreationExpressionSyntax>())
+    foreach (var creation in CallSyntax().OfType<BaseObjectCreationExpressionSyntax>())
     {
         var ctor = model.GetSymbolInfo(creation).Symbol as IMethodSymbol;
         if (ctor is not null && ctor.MethodKind != MethodKind.Constructor)
@@ -3276,6 +3288,23 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
         var creationOp = model.GetOperation(creation) as IObjectCreationOperation;
         EmitCall(creation, ctor, ctor, false, null, creation.ArgumentList, creationOp?.Arguments,
                  "object_creation", firstParty: ctor is not null && ctor.DeclaringSyntaxReferences.Length > 0);
+    }
+
+    // P-037 A2.2-4R5 (F-CTOR-INIT, formal note §10.6.11, call-like): a constructor initializer
+    // is a call site of its own. `Holder(MemoryStream r) : base(r, true)` passes the handle into
+    // a really invoked constructor's declared ordinal 0 — the very edge `object_creation` was
+    // added for — and "the callee is outside the vocabulary" would be circular. The initializer
+    // sits beside the body, not inside it; the target constructor is the callee (its
+    // `functions[]` key `{Type}..ctor`, its canonical signature), its declared parameters bind
+    // the arguments by the mechanism above, and the initializer itself is the site. Tagged
+    // `call_kind: constructor_initializer`; `: this(...)` and `: base(...)` alike.
+    if (method is ConstructorDeclarationSyntax { Initializer: { } init })
+    {
+        var targetCtor = model.GetSymbolInfo(init).Symbol as IMethodSymbol;
+        var initOp = model.GetOperation(init) as IInvocationOperation;
+        EmitCall(init, targetCtor, targetCtor, false, null, init.ArgumentList, initOp?.Arguments,
+                 "constructor_initializer",
+                 firstParty: targetCtor is not null && targetCtor.DeclaringSyntaxReferences.Length > 0);
     }
 
     var guards = new List<Dictionary<string, object?>>();
@@ -7502,7 +7531,7 @@ partial class Program
     // P-037 A2.2-2: the call-like kinds that are NOT invocation expressions; an invocation
     // carries no `call_kind` at all, so the A2.1 records keep their shape byte for byte.
     internal static readonly HashSet<string> CallKinds = new(StringComparer.Ordinal)
-        { "object_creation", "delegate_invocation" };
+        { "object_creation", "delegate_invocation", "constructor_initializer" };
 
     // #317: a 1-based source coordinate, carried as ONE value so a line and a column can
     // never drift onto different nodes. See RangeOf/PosOf/LineOf above — those are the only

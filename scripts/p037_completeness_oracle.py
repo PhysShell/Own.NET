@@ -149,9 +149,15 @@ def probe_readings(report: dict[str, Any], helpers: set[str]) -> dict[str, str]:
     out: dict[str, str] = {}
     for m in report.get("members", []):
         member = str(m.get("member", ""))
-        if not member.startswith("Probe.") or member.count(".") != 1:
+        if not member.startswith("Probe."):
             continue
-        row = member.split(".", 1)[1]
+        rest = member[len("Probe."):]
+        if rest.endswith("..ctor"):
+            row = rest[:-len("..ctor")]      # a constructor row: `Probe.<Row>..ctor` (A2.2-4R5)
+        elif "." in rest:
+            continue
+        else:
+            row = rest
         if row in helpers:
             continue
         occs = [o for o in m.get("occurrences", []) if o.get("symbol") in ("r", "p")]
@@ -181,7 +187,8 @@ def check_probe(report: dict[str, Any], record: bool) -> None:
         cls = entry.get("class")
         if cls in RELEVANT_CLASSES:
             site_kind = {"object_creation": "object_creation",
-                         "delegate_invocation": "delegate_invocation"}
+                         "delegate_invocation": "delegate_invocation",
+                         "constructor_initializer": "constructor_initializer"}
             want = "captured:" + site_kind.get(str(entry.get("form", "")), "invocation")
         elif entry.get("exclusion") == "nested_call_result":
             # The one indirect exclusion that owns a fact of its own: the handle is captured by

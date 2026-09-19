@@ -359,7 +359,9 @@ guarded_facts:
                   an invocation expression or, since A2.2-2, a constructor call
     call_kind     absent for a method invocation; `object_creation` for a
                   constructor call; `delegate_invocation` for a call through a
-                  delegate value (callee/sig null, first_party false)
+                  delegate value (callee/sig null, first_party false);
+                  `constructor_initializer` for a constructor's `: base(...)` /
+                  `: this(...)` (the target constructor is the callee)
     site          {line, column} — start of the invocation expression (identity)
     statement_line the enclosing statement's line (what the legacy ops carry)
     form          statement | initializer | expression
@@ -451,6 +453,19 @@ parameters still bind the arguments by ordinal, named arguments resolved
 against the delegate's parameter names. Until A2.2-2b such a call was recorded
 as a plain invocation of the delegate's `Invoke`; the census shapes
 `corpus/p037-shapes/sidecar-delegate-*` pin the family.
+
+Constructor initializers (P-037 A2.2-4R5). A constructor's `: base(...)` or
+`: this(...)` is a call site of its own, tagged
+`call_kind: constructor_initializer`: `Holder(MemoryStream r) : base(r, true)`
+passes the handle into a really invoked constructor's declared ordinal 0, the
+same ownership edge a constructor call carries. The site is the initializer
+itself (its coordinate is the `:`; it sits beside the constructor's body, not
+inside it, and its `form` is `statement`: it runs first and yields nothing),
+the callee is the target constructor's `functions[]` key (`{Type}..ctor`),
+`sig` its §5.1 signature, `first_party` whether it has a declaration in the
+compilation, and the arguments bind to the target constructor's declared
+ordinals by the same mechanism as an invocation. A nested call inside an
+initializer argument is that call's own site, as everywhere.
 
 The call-site identity — the invocation's own coordinate plus `statement_line` —
 is what lets the legacy view (`body`) and this one be joined until the C+

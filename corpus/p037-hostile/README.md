@@ -57,11 +57,14 @@ plus the named cases:
   accessor, and a declared local function (the known, counted gap);
 - two receiver forms (`ext-*`): a reduced extension through `?.`, and a
   struct handle boxed into an `object` receiver;
+- three constructor-initializer sites (`ctorinit-*`, `vocab-constructor-initializer`):
+  a direct forwarding, named and reordered arguments under a reference
+  upcast, and a nested call whose result the initializer receives;
 - the argument shapes the frozen vocabulary had no name for (`vocab-*`): a
   tested operand, an interpolation hole and an indexer argument, named by the
   A2.2-4R4 ruling (`predicate_result`, `interpolation_hole`,
   `indexer_argument`), and a constructor-initializer argument, a call-like
-  fact shape pending A2.2-4R5.
+  fact shape since A2.2-4R5 (`call_kind: constructor_initializer`).
 
 The findings these witness are classified in
 `corpus/p037-relevance/oracle_findings.json`; each stays RED, by name, until a

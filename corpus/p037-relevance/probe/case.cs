@@ -30,6 +30,7 @@ static class Probe
     struct Token : IDisposable { public void Dispose() { } }
     static void SinkObject(object o) { }
     static void Use6(bool b) { }
+    class FwdBase { public FwdBase(Stream s, bool leaveOpen) { } }
 
     // direct
     static void Plain() { var r = new MemoryStream(); Inner(r, true); }        // implicit reference upcast at the parameter
@@ -77,4 +78,7 @@ static class Probe
     static void PredicateResult() { var r = new MemoryStream(); Use6(r != null); }   // the predicate's bool is the argument
     static void InterpolationHole() { var r = new MemoryStream(); Use4($"{r}"); }   // the built string is the argument
     static void IndexerArgument() { var r = new MemoryStream(); var d = new Dictionary<Stream, int>(); d[r] = 1; }   // the handle is the index of an accessor call outside the vocabulary
+
+    // call-like: a constructor initializer (A2.2-4R5); the row is this class's constructor, `Probe.CtorInit..ctor`
+    sealed class CtorInit : FwdBase { public CtorInit(MemoryStream r) : base(r, true) { } }
 }

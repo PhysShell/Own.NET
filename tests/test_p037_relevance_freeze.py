@@ -87,6 +87,13 @@ def run() -> int:
     helpers = set(expected.get("helpers", []))
     declared = set(re.findall(r"static \S+ (\w+)\(", source))
     probes = set(re.findall(r"static void (\w+)\(", source)) - helpers
+    # A2.2-4R5: a row whose shape can only live in a constructor (`: base(...)`) is a nested
+    # class named in `constructor_rows`; its member is `Probe.<Row>..ctor`.
+    ctor_rows = set(expected.get("constructor_rows", []))
+    class_names = set(re.findall(r"class (\w+)", source))
+    check("constructor-rows-declared", ctor_rows <= class_names,
+          f"constructor rows without a class in case.cs: {sorted(ctor_rows - class_names)}")
+    probes |= ctor_rows
     methods: dict[str, Any] = expected.get("methods", {})
     check("helpers-exist-in-probe", helpers <= declared,
           f"helpers not declared in case.cs: {sorted(helpers - declared)}")
@@ -258,6 +265,10 @@ def run() -> int:
             if after != before:
                 step3p.append(f"{name}: a recorded row moved in A2.2-3P ({before} -> {after})")
             continue
+        # A form that joined the vocabulary after A2.2-3P (constructor_initializer, A2.2-4R5)
+        # had no fact to carry at 3P: its measured no_record there is the truth, not a gap.
+        if entry.get("form") == "constructor_initializer":
+            continue
         if entry.get("class") in relevant_classes and not str(after).startswith("orphan_"):
             step3p.append(f"{name}: relevant no_record row not carried as an orphan ({after})")
         # nested_call_result is the one indirect exclusion that owns a fact of its own: the
@@ -284,7 +295,8 @@ def run() -> int:
         cls = entry.get("class")
         if cls in relevant_classes:
             want = "captured:" + {"object_creation": "object_creation",
-                                  "delegate_invocation": "delegate_invocation"}.get(
+                                  "delegate_invocation": "delegate_invocation",
+                                  "constructor_initializer": "constructor_initializer"}.get(
                                       str(entry.get("form", "")), "invocation")
         elif entry.get("exclusion") == "nested_call_result":
             want = "captured:invocation+nested_call_result"
@@ -293,6 +305,32 @@ def run() -> int:
         if reading != want:
             step4.append(f"{name}: a2_2_4_oracle {reading!r}, the class says {want!r}")
     check("a2-2-4-oracle-column-reads-as-the-class", not step4, "; ".join(step4))
+
+    # A2.2-4R5 moved exactly the constructor_initializer row: measured with the R5 extractor,
+    # it reads sidecar_call:constructor_initializer or orphan_call:constructor_initializer (an
+    # empty forwarding body lowers to nothing, so the carrier holds the fact); every other row
+    # reads as after A2.2-3P.
+    step5: list[str] = []
+    for name, entry in methods.items():
+        before, after = entry.get("a2_2_3p_observed"), entry.get("a2_2_4r5_observed")
+        if after not in observed_vocab:
+            step5.append(f"{name}: a2_2_4r5_observed {after!r}")
+            continue
+        is_init = entry.get("class") == "call_like" \
+            and entry.get("form") == "constructor_initializer"
+        if is_init and after not in {"sidecar_call:constructor_initializer",
+                                     "orphan_call:constructor_initializer"}:
+            step5.append(f"{name}: constructor_initializer row not captured after A2.2-4R5 "
+                         f"({after})")
+        if not is_init and after != before:
+            step5.append(f"{name}: row moved in A2.2-4R5 without being constructor_initializer "
+                         f"({before} -> {after})")
+    check("a2-2-4r5-moves-exactly-constructor-initializer", not step5, "; ".join(step5))
+    check("constructor-initializer-has-a-recorded-witness",
+          any(e.get("form") == "constructor_initializer"
+              and str(e.get("a2_2_4r5_observed", "")).endswith(":constructor_initializer")
+              for e in methods.values()),
+          "no constructor_initializer row reads *_call:constructor_initializer")
 
     check("delegate-invocation-has-a-recorded-witness",
           any(e.get("form") == "delegate_invocation" and e.get("a2_2_2b_observed")

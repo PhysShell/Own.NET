@@ -1,13 +1,13 @@
 {
   "schema": "p037-relevance-taxonomy/1",
-  "frozen_at": "P-037 A2.2-0 (F0', corrected freeze on main@23e3203); conversion vocabulary closed at A2.2-1a; three exclusions named at A2.2-4R4 (predicate_result, interpolation_hole, indexer_argument)",
+  "frozen_at": "P-037 A2.2-0 (F0', corrected freeze on main@23e3203); conversion vocabulary closed at A2.2-1a; three exclusions named at A2.2-4R4 (predicate_result, interpolation_hole, indexer_argument); constructor_initializer added to the call-like forms at A2.2-4R5",
   "ruling": "docs/notes/p037-formal-kernel.md §10.6",
   "completeness": "Completeness means every candidate occurrence at a call-related syntax site is either represented by the raw guarded-call vocabulary or assigned exactly one named exclusion. Occurrence alone does not establish ownership flow to the enclosing callee.",
   "classes": {
     "direct": "The argument expression IS a handle identifier (a disposable candidate local or an owned parameter of this method), or the handle is the receiver of a reduced extension method (declared ordinal 0). The value reaches the callee's declared parameter through no conversion or a value-preserving built-in one. Represented: var / param.",
     "transparent": "The handle under a transparent wrapper: parentheses, the null-forgiving `!`, or a cast / `as` whose semantic conversion is built-in and preserves object identity (identity, a guaranteed reference conversion, or a checked explicit reference conversion that throws rather than producing an alternate value) and invokes no user-defined operator. The same value reaches the callee, or the call is not entered at all. Relevance is kept; the representation is the unwrapped fact (var / param). SyntaxKind alone never makes a cast or an `as` transparent: the conversion does.",
     "may_value": "The argument's value is one of several alternatives and a handle is among them, reachable through allowed value-preserving edges only: the conditional operator, null-coalescing `??`, a switch expression, and an `as` whose conversion may fail to null (a downcast the static type does not guarantee). Relevance is kept; the representation stays opaque. An alternative whose value passes through a user-defined conversion is not a handle alternative.",
-    "call_like": "A genuine call site that is not an invocation expression: object creation (a constructor call), delegate invocation. Each gets its own call fact with the site's own callee; one semantic family per A2.2 commit.",
+    "call_like": "A genuine call site that is not an invocation expression: object creation (a constructor call), delegate invocation, and, since A2.2-4R5, a constructor initializer (`: base(...)` / `: this(...)`, the target constructor is the callee). Each gets its own call fact with the site's own callee; one semantic family per A2.2 commit.",
     "indirect": "The handle occurs below the argument, but the value that reaches the callee is something else (a call result, a container, a tuple, a closure, a converted value), or the site binds no summary parameter at all (an ordinary receiver, a storage assignment, a method group). Not relevant to the enclosing callee. Every such occurrence must match exactly one named exclusion below."
   },
   "transparent_wrappers": [
@@ -24,7 +24,8 @@
   ],
   "call_like_forms": [
     "object_creation",
-    "delegate_invocation"
+    "delegate_invocation",
+    "constructor_initializer"
   ],
   "conversion_edges": {
     "none": "identity conversion only; no conversion syntax on the path",

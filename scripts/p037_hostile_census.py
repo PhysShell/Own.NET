@@ -586,16 +586,34 @@ def named_cases() -> list[tuple[str, str, dict[str, Any]]]:
                          exc("keep", "receiver_not_summary_parameter")], "red": {}}))
     out.append(named_case(
         "vocab-constructor-initializer",
-        "vocabulary edge: an owned constructor parameter forwarded through `: base(...)`, a really "
-        "invoked constructor's declared ordinal 0; ruled a call-like fact shape in A2.2-4R4, "
-        "landing in A2.2-4R5 (finding F-CTOR-INIT)",
+        "call-like site: an owned constructor parameter forwarded through `: base(...)`, a really "
+        "invoked constructor's declared ordinal 0 (ruled a fact shape in A2.2-4R4, landed in "
+        "A2.2-4R5: call_kind constructor_initializer)",
         ["class Base { public Base(MemoryStream r, bool b) { } }",
          "sealed class Holder : Base { public Holder(MemoryStream r) : base(r, true) { } }"],
-        {"member_override": ".Holder..ctor", "carrier": "none",
-         "occurrences": [{"symbol": "r", "verdict": "red",
-                          "explanation": "unclassified_argument_shape:constructor_initializer"}],
-         "red": {"unclassified_argument_shape:constructor_initializer": 1},
-         "finding": "F-CTOR-INIT"}))
+        # An empty constructor body lowers to nothing, so the legacy pass admits no record and
+        # the orphan carrier holds the initializer's fact.
+        {"member_override": ".Holder..ctor", "carrier": "guarded_functions",
+         "occurrences": [cap("r", "constructor_initializer", 0, "param")], "red": {}}))
+    out.append(named_case(
+        "ctorinit-nested-call",
+        "call-like site: a nested call inside a constructor initializer's argument; the inner "
+        "call captures the handle, the initializer receives its result (nested_call_result)",
+        ["static Stream Wrap(Stream s) { return s; }",
+         "class Base { public Base(Stream s, bool b) { } }",
+         "sealed class Holder : Base { public Holder(MemoryStream r) : base(Wrap(r), true) { } }"],
+        {"member_override": ".Holder..ctor", "carrier": "guarded_functions",
+         "occurrences": [cap("r", "invocation", 0, "param", enclosing=["nested_call_result"])],
+         "red": {}}))
+    out.append(named_case(
+        "ctorinit-named-transparent",
+        "call-like site: a constructor initializer with named, reordered arguments and a "
+        "reference upcast on the handle; the target constructor's declared ordinals bind",
+        ["class Base { public Base(Stream s, bool b) { } }",
+         "sealed class Holder : Base { public Holder(MemoryStream r) "
+         ": base(b: true, s: (Stream)r) { } }"],
+        {"member_override": ".Holder..ctor", "carrier": "guarded_functions",
+         "occurrences": [cap("r", "constructor_initializer", 0, "param")], "red": {}}))
     return out
 
 

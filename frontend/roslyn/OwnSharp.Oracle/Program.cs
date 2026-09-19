@@ -570,8 +570,13 @@ static class Oracle
                 siteKind = "object_creation";
                 ops = (model.GetOperation(oc) as IObjectCreationOperation)?.Arguments;
                 break;
-            case ConstructorInitializerSyntax:
-                return Outcome.Red("unclassified_argument_shape:constructor_initializer", "the handle is an argument of `: this(...)` / `: base(...)`, a call site outside the vocabulary");
+            case ConstructorInitializerSyntax ci:
+                // A2.2-4R5: a call-like site of its own; the target constructor's declared
+                // ordinals bind, exactly as for an object creation.
+                site = ci;
+                siteKind = "constructor_initializer";
+                ops = (model.GetOperation(ci) as IInvocationOperation)?.Arguments;
+                break;
             default:
                 return Outcome.Red("unclassified_argument_shape:" + al.Parent?.Kind(), "argument list of an unmodelled parent");
         }
@@ -927,6 +932,8 @@ static class Oracle
                     }
                     case BaseObjectCreationExpressionSyntax oc:
                         return (oc, "object_creation", BindOrdinal(arg, index, (m.Model.GetOperation(oc) as IObjectCreationOperation)?.Arguments).ordinal);
+                    case ConstructorInitializerSyntax ci:
+                        return (ci, "constructor_initializer", BindOrdinal(arg, index, (m.Model.GetOperation(ci) as IInvocationOperation)?.Arguments).ordinal);
                     default:
                         return null;
                 }
@@ -998,13 +1005,14 @@ static class Oracle
             // value, so nothing encloses a nameof_operand.
             if (occ.Site is not null && occ.Explanation != "nameof_operand")
                 for (var a = occ.Site; a is not null && a != m.Scope && !IsNestedFunction(a); a = a.Parent)
-                    if (a.Parent is ArgumentSyntax { Parent: ArgumentListSyntax { Parent: { } call } } && call is InvocationExpressionSyntax or BaseObjectCreationExpressionSyntax)
+                    if (a.Parent is ArgumentSyntax { Parent: ArgumentListSyntax { Parent: { } call } }
+                        && call is InvocationExpressionSyntax or BaseObjectCreationExpressionSyntax or ConstructorInitializerSyntax)
                         occ.Enclosing.Add((call, "nested_call_result"));
             m.Occurrences.Add(occ);
         }
         m.Occurrences.Sort((x, y) => x.At.Line != y.At.Line ? x.At.Line.CompareTo(y.At.Line) : x.At.Column.CompareTo(y.At.Column));
-        foreach (var n in m.Roots.SelectMany(r => r.DescendantNodes()))
-            if (n is InvocationExpressionSyntax or BaseObjectCreationExpressionSyntax)
+        foreach (var n in m.Roots.SelectMany(r => r.DescendantNodesAndSelf()))
+            if (n is InvocationExpressionSyntax or BaseObjectCreationExpressionSyntax or ConstructorInitializerSyntax)
                 m.Sites[PosOf(n)] = n;
             else if (n is IfStatementSyntax)
                 m.GuardSites.Add(PosOf(n));
@@ -1128,6 +1136,7 @@ static class Oracle
             if (InsideNestedFunction(siteNode, m.Scope))
                 Red("fact_in_nested_function", "the site belongs to a lambda or local function body, not to this member", site: call.Site);
             var siteKind = siteNode is BaseObjectCreationExpressionSyntax ? "object_creation"
+                : siteNode is ConstructorInitializerSyntax ? "constructor_initializer"
                 : m.Model.GetSymbolInfo(siteNode).Symbol is IMethodSymbol { MethodKind: MethodKind.DelegateInvoke } ? "delegate_invocation"
                 : "invocation";
             if ((call.CallKind ?? "invocation") != siteKind)

@@ -842,8 +842,10 @@ the completeness checker more semantically brave than P-037 itself.
   the conditional operator, `??`, a switch expression, and an `as` whose
   conversion may fail to null. Relevance kept; representation stays `opaque`.
 - **call-like** — a genuine call site that is not an invocation expression:
-  object creation (the constructor is the callee), delegate invocation. Each
-  gets its own call fact; one semantic family per A2.2 commit.
+  object creation (the constructor is the callee), delegate invocation, and,
+  since A2.2-4R5, a constructor initializer (`: base(...)` / `: this(...)`,
+  the target constructor is the callee). Each gets its own call fact; one
+  semantic family per A2.2 commit.
 - **indirect** — the handle occurs below the argument but the value that
   reaches the callee is something else (a call result, a container, a tuple, a
   closure, a converted value), or the site binds no summary parameter at all
@@ -1186,7 +1188,13 @@ causes of FACT-DIFF. Tracked in #364 with its own acceptance.
   the registry, this section, the probe (three rows, their historical
   columns measured with each step's extractor rebuilt at its commit) and the
   oracle carry the three new exclusions; the constructor-initializer
-  argument stays pinned RED under F-CTOR-INIT until R5;
+  argument stays pinned RED under F-CTOR-INIT until R5. R5 landed in the
+  commit carrying this line: `call_kind: constructor_initializer`, the
+  initializer's argument syntax visited for nested call sites, the schema,
+  the spec, the registry's call-like forms, a probe row (`CtorInit`, its
+  historical columns measured with each step's rebuilt extractor and the
+  whole probe re-measured into `a2_2_4r5_observed`), the census shape
+  `sidecar-ctorinit-base` and three hostile witnesses; F-CTOR-INIT closes;
 - **A2.2-5** mutation campaign: remove the handle, add parentheses, perturb the
   binding, distinguish nested calls;
 - **A2.2-S** cumulative A2 after-evidence on M1 against the existing R with
@@ -1246,7 +1254,7 @@ does a pinned RED that silently disappears):
 | F-SHADOW | 1 | the guarded-fact handle set was keyed by spelling (`handles.Contains(lr.Local.Name)`) and the candidate collector descends into lambdas: a same-spelled non-candidate in a sibling scope, or beside a lambda-local creation, got a false `var` fact. **Repaired in A2.2-4R1** (10.6.11) | hostile `shadow-*`, now green |
 | F-PARAMS-ELEMENT | 1 | an expanded params element was classified from its bare syntax: under parentheses or `!` the handle was lost (no operation of its own); under a boxing or user-defined element conversion a false opaque-and-relevant slot was emitted. **Repaired in A2.2-4R2** (10.6.11) | hostile `pw-*-params-*` with parens / bang / boxing / user_implicit, now green |
 | F-CONDITIONAL-RECEIVER | 1 | `r?.Ext(...)` invokes through a member binding, the receiver was read from `MemberAccessExpressionSyntax` only, and ordinal 0 was dropped. **Repaired in A2.2-4R3** (10.6.11) | hostile `ext-conditional-access`, now green |
-| F-VOCAB | 3 | four argument shapes the frozen list had no name for: a tested operand, an interpolation hole, an indexer argument, a constructor-initializer argument; production correctly emits nothing for the first three, the sentence demands a name. **Ruled in A2.2-4R4** (10.6.11): `predicate_result`, `interpolation_hole`, `indexer_argument` are frozen exclusions; the constructor-initializer argument is a call-like fact shape, F-CTOR-INIT | hostile `vocab-*`: three green, `vocab-constructor-initializer` pinned RED under F-CTOR-INIT |
+| F-VOCAB | 3 | four argument shapes the frozen list had no name for: a tested operand, an interpolation hole, an indexer argument, a constructor-initializer argument; production correctly emits nothing for the first three, the sentence demands a name. **Ruled in A2.2-4R4** (10.6.11): `predicate_result`, `interpolation_hole`, `indexer_argument` are frozen exclusions; the constructor-initializer argument is a call-like fact shape, F-CTOR-INIT, **landed in A2.2-4R5** | hostile `vocab-*`: all four green after R5 |
 
 Two rulings the oracle reads into the freeze, recorded here as §10.1 case-4
 clarifications rather than silently applied: `nested_call_result` is applied to
@@ -1351,3 +1359,25 @@ nested-function gap.
   `object_creation` was added for, so it earns `call_kind:
   constructor_initializer` in R5 and stays pinned RED under F-CTOR-INIT until
   then. The three `vocab-*` witnesses read green by their designs.
+- **R5, `constructor_initializer`.** `BuildGuardedFacts` emits one call fact
+  for a constructor's `: this(...)` / `: base(...)` through the shared
+  `EmitCall`: the site is the `ConstructorInitializerSyntax` (its coordinate
+  the `:`), the callee the target constructor's `{Type}..ctor` key with its
+  canonical signature, `first_party` by declaring syntax, the arguments bound
+  to the target constructor's declared ordinals (named arguments resolved,
+  the params and ref/out rules as everywhere), `form` `statement` (it runs
+  first and yields nothing), `call_kind: constructor_initializer` (schema
+  enum, producer set and spec §5.2 in step). The initializer sits beside the
+  body, so the invocation and object-creation loops now walk the
+  initializer's argument syntax before the body's: `: base(Wrap(r), true)`
+  captures `r` at `Wrap` and the initializer receives a call result, the
+  nested_call_result reading the R4 ruling asked for. Measured: the 52 shapes
+  and every earlier probe row byte-identical (`a2_2_4r5_observed` equals
+  `a2_2_3p_observed` on all 31 of them); the new row `CtorInit` reads
+  `orphan_call:constructor_initializer` (an empty forwarding body lowers to
+  nothing, so the legacy pass admits no record and the carrier holds the
+  fact; `no_record` at every earlier step, measured with each step's rebuilt
+  extractor); the census shape `sidecar-ctorinit-base` and the three
+  `ctorinit-*` / `vocab-constructor-initializer` witnesses read green; the
+  oracle's `unclassified_argument_shape` kinds are empty over every input;
+  inertness and the local rehearsal unchanged.
