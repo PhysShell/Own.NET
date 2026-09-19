@@ -1,0 +1,57 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "sidecar-relevance-refout-handle",
+  "status": "anchored",
+  "why": "Regression for the same relevance/opacity coupling bug as sidecar-relevance-params-handle, via `ref` instead of `params`: a handle passed by `ref` is unrepresentable precisely (must be `opaque`), but the producer also zeroed the slot's HANDLE bit, so the whole call vanished from guarded_facts. NOTE (separate, pre-existing, not this fix's concern): `callee`/`sig`/`first_party` resolve to null/false here — Roslyn's `GetSymbolInfo` does not resolve the invoked method symbol when the sole argument is passed by `ref` in this extractor's single-file semantic-model context. That is an independent, narrower gap (callee identification for a `ref`-argument call) pinned here as observed fact, not something this shape's contract depends on.",
+  "a2_contract": "The call to a `ref`-taking sink stays in guarded_facts.calls[] with an opaque slot for the handle argument; it must not be silently dropped just because the slot cannot be represented precisely.",
+  "a2_expect": [
+    {
+      "function": "ShapeRefOutHandle.Caller",
+      "call": {
+        "args": [
+          {
+            "param": 0,
+            "kind": "opaque"
+          }
+        ]
+      }
+    }
+  ],
+  "measured_at": "P-037 A2.1 relevance/opacity fix in BuildGuardedFacts (this commit)",
+  "facts": {
+    "ShapeRefOutHandle.Caller": {
+      "params": null,
+      "body": [
+        "acquire:keep@17",
+        "release:keep@20"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 19,
+              "column": 9
+            },
+            "statement_line": 19,
+            "form": "statement",
+            "callee": null,
+            "sig": null,
+            "first_party": false,
+            "args": [
+              {
+                "param": 0,
+                "kind": "opaque"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

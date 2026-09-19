@@ -1,0 +1,58 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "sidecar-relevance-params-handle",
+  "status": "anchored",
+  "why": "Regression for a relevance/opacity coupling bug in BuildGuardedFacts: a handle bound to a `params` slot is unrepresentable precisely (must be `opaque`), but the producer also zeroed the slot's HANDLE bit, so the whole call vanished from guarded_facts instead of surviving as an opaque-argument call. Relevance (\"a tracked handle syntactically flows here\") and representability (how precisely the slot can be encoded) must be orthogonal.",
+  "a2_contract": "The call to a `params` sink stays in guarded_facts.calls[] with an opaque slot for the handle argument; it must not be silently dropped just because the slot cannot be represented precisely.",
+  "a2_expect": [
+    {
+      "function": "ShapeParamsHandle.Caller",
+      "call": {
+        "callee": "ShapeParamsHandle.Sink",
+        "args": [
+          {
+            "param": 0,
+            "kind": "opaque"
+          }
+        ]
+      }
+    }
+  ],
+  "measured_at": "P-037 A2.1 relevance/opacity fix in BuildGuardedFacts (this commit)",
+  "facts": {
+    "ShapeParamsHandle.Caller": {
+      "params": null,
+      "body": [
+        "acquire:keep@18",
+        "release:keep@21"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 20,
+              "column": 9
+            },
+            "statement_line": 20,
+            "form": "statement",
+            "callee": "ShapeParamsHandle.Sink",
+            "sig": "System.IO.Stream[]",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "opaque"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

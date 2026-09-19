@@ -2993,10 +2993,15 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
             case IdentifierNameSyntax id:
                 if (OwnParam(id) is { } sp)
                 {
+                    // Relevance ("a tracked/owned handle syntactically flows here") and
+                    // representability (how precisely we can encode the slot) are
+                    // orthogonal: an unstable owned parameter is still owned, it is just
+                    // opaque, so the handle bit must survive both branches.
+                    var isOwned = ownedParamNames.Contains(sp.Name);
                     if (!Stable(sp))
-                        return (new() { ["kind"] = "opaque" }, false);
+                        return (new() { ["kind"] = "opaque" }, isOwned);
                     return (new() { ["kind"] = "param", ["source_param"] = sp.Ordinal },
-                            ownedParamNames.Contains(sp.Name));
+                            isOwned);
                 }
                 if (model.GetSymbolInfo(id).Symbol is ILocalSymbol
                     && handles.Contains(id.Identifier.Text))
@@ -3069,13 +3074,14 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
                 ordinal = i;    // unresolved callee: source position, and the record says so
             var refOrOut = args[i].RefKindKeyword.IsKind(SyntaxKind.RefKeyword)
                            || args[i].RefKindKeyword.IsKind(SyntaxKind.OutKeyword);
+            // Evaluate the argument's handle-ness unconditionally: `ref`/`out`/`params`
+            // make the slot unrepresentable precisely (opaque), but a tracked handle
+            // passed that way still flowed into the call and must keep the call relevant.
+            var (af, ah) = ArgFact(args[i].Expression);
             if (refOrOut || bound is { IsParams: true })
-                Bind(ordinal, new() { ["kind"] = "opaque" }, false);
+                Bind(ordinal, new() { ["kind"] = "opaque" }, ah);
             else
-            {
-                var (af, ah) = ArgFact(args[i].Expression);
                 Bind(ordinal, af, ah);
-            }
         }
         if (!relevant)
             continue;
