@@ -354,7 +354,8 @@ guarded_facts:
   version         1
   calls[]         one per RELEVANT call: a disposable local of this method (any
                   candidate, escaped or not) or an owned parameter flows in, as an
-                  argument or as a reduced extension method's receiver
+                  argument or as a reduced extension method's receiver, directly or
+                  through a transparent wrapper or a may-value form (A2.2-1, below)
     site          {line, column} — start of the invocation expression (identity)
     statement_line the enclosing statement's line (what the legacy ops carry)
     form          statement | initializer | expression
@@ -379,6 +380,36 @@ optional argument has no entry; a `ref`/`out` argument is `opaque`. For an
 there is no declaration to bind against, and the record says so rather than
 guessing. Calls inside lambdas and local functions belong to those bodies, not
 to the method.
+
+Value flow (P-037 A2.2-1; the taxonomy is frozen in
+docs/notes/p037-formal-kernel.md §10.6 and `corpus/p037-relevance/registry.json`).
+Whether a handle flows into a slot is decided by a small value-flow walker over
+Roslyn's operation tree, because syntax lies about conversions, and it is
+decided independently of how precisely the slot can be represented:
+
+- **transparent** — parentheses, the null-forgiving `!`, and a built-in
+  identity or reference conversion that invokes no user-defined operator
+  (implicit at the parameter, or written as a cast or an `as` the static type
+  guarantees; an explicit reference downcast passes the same reference or
+  throws). The same value reaches the callee: the fact is the unwrapped one
+  (`var` / `param`) and the call is relevant.
+- **may-value** — the conditional operator, `??`, a switch expression, and an
+  `as` the static type does *not* guarantee (it may yield null). A handle among
+  the alternatives, reached through transparent edges only, keeps the call
+  relevant; the slot is `opaque`, because the vocabulary has no "one of" fact
+  and no `mentions` list — opaque is opaque.
+- **excluded** — a user-defined conversion, implicit or explicit, however it is
+  spelled (`TakeBox(r)`, `TakeBox((Box)r)`): a hidden call whose result, not the
+  handle, reaches the callee. Not relevant, whatever transparent-looking syntax
+  surrounds it. Likewise a call result, a container or tuple construction, a
+  closure, a method group, an ordinary instance receiver and a storage
+  assignment carry no relevance to the enclosing call; each is a named
+  exclusion of the frozen taxonomy, not a call fact.
+
+Relevance and representability stay orthogonal: an unstable owned parameter,
+a `params` slot, a `ref`/`out` argument and a may-value form are all `opaque`
+*and* relevant. The census shapes `corpus/p037-shapes/sidecar-*` pin each of
+these by name.
 
 The call-site identity — the invocation's own coordinate plus `statement_line` —
 is what lets the legacy view (`body`) and this one be joined until the C+

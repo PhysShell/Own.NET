@@ -173,6 +173,26 @@ def run() -> int:
     check("observed-at-a-prime", expected.get("observed_at") == A_PRIME,
           f"observed_at is {expected.get('observed_at')!r}; re-observe deliberately, by step")
 
+    # A2.2-1 moved exactly the transparent and may-value rows to `sidecar_call`; every other
+    # row reads as it did at A'. Recorded observations, pinned for consistency with the class
+    # (the census under corpus/p037-shapes is where the extractor is actually run).
+    step_problems: list[str] = []
+    for name, entry in methods.items():
+        before, after = entry.get("a2_1_observed"), entry.get("a2_2_1_observed")
+        if after not in observed_vocab:
+            step_problems.append(f"{name}: a2_2_1_observed {after!r}")
+            continue
+        cls = entry.get("class")
+        if cls in {"transparent", "may_value"} and after != "sidecar_call":
+            step_problems.append(f"{name}: {cls} row not captured after A2.2-1 ({after})")
+        if cls == "indirect" and after == "sidecar_call":
+            step_problems.append(f"{name}: indirect row captured after A2.2-1 (a false raw fact)")
+        if cls in {"direct", "call_like"} and after != before:
+            step_problems.append(f"{name}: {cls} row moved in A2.2-1 ({before} -> {after})")
+        if before == "sidecar_call" and after != "sidecar_call":
+            step_problems.append(f"{name}: captured at A' but lost after A2.2-1")
+    check("a2-2-1-moves-exactly-its-rows", not step_problems, "; ".join(step_problems))
+
     missing = [x for x in exclusions if x not in section]
     missing += [c for c in CLASSES if c not in section and c.replace("_", "-") not in section]
     missing += [e for e in CONVERSIONS if e not in section]

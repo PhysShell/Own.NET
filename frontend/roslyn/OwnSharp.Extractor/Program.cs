@@ -49,6 +49,7 @@ using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 
 var rawInputs = new List<string>();
 string? outPath = null;
@@ -2970,52 +2971,104 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
         return known;
     }
 
-    // One argument expression -> one raw fact, plus whether a HANDLE of this method flowed.
-    (Dictionary<string, object?> fact, bool handle) ArgFact(ExpressionSyntax? raw)
+    // P-037 A2.2-1 (formal note §10.6.3): ONE argument's value, classified by a small value-flow
+    // walker over Roslyn IOperation, because syntax lies about conversions. Returns the raw fact
+    // for the slot plus whether a HANDLE of this method flows through it.
+    //
+    //   transparent  parentheses, the null-forgiving `!`, and a built-in identity or reference
+    //                conversion (implicit at the parameter, or written as a cast / `as` that the
+    //                static type guarantees; an explicit reference downcast passes the same
+    //                reference or throws): the same value reaches the callee, so the fact is the
+    //                unwrapped one (var / param) and relevance is kept;
+    //   may-value    `?:`, `??`, a switch expression, and an `as` the static type does NOT
+    //                guarantee (it may yield null): a handle among the alternatives keeps the call
+    //                relevant and the slot is `opaque` — the vocabulary has no "one of" fact;
+    //   excluded     a user-defined conversion, implicit or explicit, however it is spelled — a
+    //                hidden call, the value reaching the callee is not the handle: `opaque` and
+    //                NOT relevant, whatever transparent-looking syntax surrounds it (`(Box)r`
+    //                already has type Box at the call, so only the conversion inside the cast
+    //                expression shows it, never the argument's own conversion alone);
+    //   anything else is `opaque` and not relevant; A2.2-4's oracle names what it finds.
+    //
+    // Relevance and representability stay orthogonal (A' 5a0de070): an unstable owned parameter
+    // is opaque AND relevant, a handle under a may-value form is opaque AND relevant, and the
+    // params/ref/out slots below keep their opaque-and-relevant shape. No `mentions`: opaque is
+    // opaque (§10.6.5).
+    static Dictionary<string, object?> Opaque() => new() { ["kind"] = "opaque" };
+
+    (Dictionary<string, object?> fact, bool handle) ParamFact(IParameterSymbol p)
     {
-        var e = StripParens(raw);
-        switch (e)
+        var own = self is not null
+                  && SymbolEqualityComparer.Default.Equals(p.ContainingSymbol, self)
+                  && p.RefKind == RefKind.None;
+        if (!own)
+            return (Opaque(), false);
+        var isOwned = ownedParamNames.Contains(p.Name);
+        if (!Stable(p))
+            return (Opaque(), isOwned);
+        return (new() { ["kind"] = "param", ["source_param"] = p.Ordinal }, isOwned);
+    }
+
+    (Dictionary<string, object?> fact, bool handle) Classify(IOperation? op)
+    {
+        switch (op)
         {
-            case LiteralExpressionSyntax lit when lit.IsKind(SyntaxKind.TrueLiteralExpression):
-                return (new() { ["kind"] = "bool_const", ["value"] = true }, false);
-            case LiteralExpressionSyntax lit when lit.IsKind(SyntaxKind.FalseLiteralExpression):
-                return (new() { ["kind"] = "bool_const", ["value"] = false }, false);
-            case LiteralExpressionSyntax lit when lit.IsKind(SyntaxKind.NullLiteralExpression):
-                return (new() { ["kind"] = "null_literal" }, false);
-            case ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax:
-                return (new() { ["kind"] = "object_creation" }, false);
-            case PrefixUnaryExpressionSyntax u when u.IsKind(SyntaxKind.LogicalNotExpression):
-                if (OwnParam(u.Operand) is { } np
-                    && np.Type.SpecialType == SpecialType.System_Boolean && Stable(np))
-                    return (new() { ["kind"] = "param", ["source_param"] = np.Ordinal,
-                                    ["negated"] = true }, false);
-                return (new() { ["kind"] = "opaque" }, false);
-            case IdentifierNameSyntax id:
-                if (OwnParam(id) is { } sp)
+            case null:
+                return (Opaque(), false);
+            case IParenthesizedOperation par:
+                return Classify(par.Operand);
+            case IConversionOperation conv:
+            {
+                var c = conv.GetConversion();
+                if (c.IsUserDefined)
+                    return (Opaque(), false);           // user_conversion: a hidden call, excluded
+                if (c.IsNullLiteral)
+                    return Classify(conv.Operand);       // the literal null, typed at the parameter
+                if (c.IsIdentity || c.IsReference)
                 {
-                    // Relevance ("a tracked/owned handle syntactically flows here") and
-                    // representability (how precisely we can encode the slot) are
-                    // orthogonal: an unstable owned parameter is still owned, it is just
-                    // opaque, so the handle bit must survive both branches.
-                    var isOwned = ownedParamNames.Contains(sp.Name);
-                    if (!Stable(sp))
-                        return (new() { ["kind"] = "opaque" }, isOwned);
-                    return (new() { ["kind"] = "param", ["source_param"] = sp.Ordinal },
-                            isOwned);
+                    var inner = Classify(conv.Operand);
+                    if (conv.IsTryCast && !c.IsImplicit)
+                        return (Opaque(), inner.handle); // `as` that may yield null: may-value
+                    return inner;                        // transparent: the same value
                 }
-                if (model.GetSymbolInfo(id).Symbol is ILocalSymbol
-                    && handles.Contains(id.Identifier.Text))
-                    return (new() { ["kind"] = "var", ["name"] = id.Identifier.Text }, true);
-                return (new() { ["kind"] = "opaque" }, false);
-            case InvocationExpressionSyntax cinv:
-                if (model.GetSymbolInfo(cinv).Symbol is IMethodSymbol cm
-                    && cm.MethodKind != MethodKind.DelegateInvoke)
-                    return (new() { ["kind"] = "call_result",
-                                    ["callee"] = $"{cm.ContainingType.ToDisplayString()}.{cm.Name}",
-                                    ["sig"] = CanonicalSig(cm) }, false);
-                return (new() { ["kind"] = "opaque" }, false);
+                return (Opaque(), false);               // boxing, numeric, tuple, ...: not a handle edge
+            }
+            case IConditionalOperation cond when cond.WhenFalse is not null:
+                return (Opaque(), Classify(cond.WhenTrue).handle || Classify(cond.WhenFalse).handle);
+            case ICoalesceOperation co:
+                return (Opaque(), Classify(co.Value).handle || Classify(co.WhenNull).handle);
+            case ISwitchExpressionOperation sw:
+                return (Opaque(), sw.Arms.Any(arm => Classify(arm.Value).handle));
+            case ILiteralOperation lit when lit.ConstantValue.HasValue && lit.ConstantValue.Value is bool b:
+                return (new() { ["kind"] = "bool_const", ["value"] = b }, false);
+            case ILiteralOperation lit when lit.ConstantValue.HasValue && lit.ConstantValue.Value is null:
+                return (new() { ["kind"] = "null_literal" }, false);
+            case IObjectCreationOperation:
+                return (new() { ["kind"] = "object_creation" }, false);
+            case IUnaryOperation { OperatorKind: UnaryOperatorKind.Not } u:
+                if (u.Operand is IParameterReferenceOperation { Parameter: { } np }
+                    && np.Type.SpecialType == SpecialType.System_Boolean)
+                {
+                    var (pf, _) = ParamFact(np);
+                    if (pf["kind"] is "param")
+                    {
+                        pf["negated"] = true;
+                        return (pf, false);
+                    }
+                }
+                return (Opaque(), false);
+            case IParameterReferenceOperation pr:
+                return ParamFact(pr.Parameter);
+            case ILocalReferenceOperation lr:
+                return handles.Contains(lr.Local.Name)
+                    ? (new() { ["kind"] = "var", ["name"] = lr.Local.Name }, true)
+                    : (Opaque(), false);
+            case IInvocationOperation ci when ci.TargetMethod.MethodKind != MethodKind.DelegateInvoke:
+                return (new() { ["kind"] = "call_result",
+                                ["callee"] = $"{ci.TargetMethod.ContainingType.ToDisplayString()}.{ci.TargetMethod.Name}",
+                                ["sig"] = CanonicalSig(ci.TargetMethod) }, false);
             default:
-                return (new() { ["kind"] = "opaque" }, false);
+                return (Opaque(), false);
         }
     }
 
@@ -3045,9 +3098,28 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
             relevant |= handle;
         }
 
+        // The argument's FULL value chain, implicit conversions included: `TakeBox(r)` is a bare
+        // identifier by syntax and op_Implicit(r) by semantics, and only the IArgumentOperation's
+        // Value shows the difference. An unbound call has no argument operations; its expressions
+        // are classified alone, exactly as before (an unresolved callee binds by source position).
+        var invOp = model.GetOperation(inv) as IInvocationOperation;
+        IOperation? ValueOf(SyntaxNode argument, ExpressionSyntax expression)
+        {
+            // Roslyn attaches the argument operation to the INNERMOST expression: for `(r)` and
+            // `r!` its Syntax is the identifier `r`, not the ArgumentSyntax, so match by span
+            // containment. A params-array or default-value argument carries the invocation's
+            // syntax and matches nothing here, which is the fallback below on purpose.
+            var bound = invOp?.Arguments.FirstOrDefault(a => argument.Span.Contains(a.Syntax.Span));
+            if (bound is null)
+                return model.GetOperation(expression);
+            if (bound.InConversion.IsUserDefined)
+                return null;    // a hidden call at the parameter itself: not the handle
+            return bound.Value;
+        }
+
         if (reduced && inv.Expression is MemberAccessExpressionSyntax ma)
         {
-            var (rf, rh) = ArgFact(ma.Expression);
+            var (rf, rh) = Classify(ValueOf(ma.Expression, ma.Expression));
             Bind(0, rf, rh);
         }
         var args = inv.ArgumentList.Arguments;
@@ -3077,7 +3149,7 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
             // Evaluate the argument's handle-ness unconditionally: `ref`/`out`/`params`
             // make the slot unrepresentable precisely (opaque), but a tracked handle
             // passed that way still flowed into the call and must keep the call relevant.
-            var (af, ah) = ArgFact(args[i].Expression);
+            var (af, ah) = Classify(ValueOf(args[i], args[i].Expression));
             if (refOrOut || bound is { IsParams: true })
                 Bind(ordinal, new() { ["kind"] = "opaque" }, ah);
             else

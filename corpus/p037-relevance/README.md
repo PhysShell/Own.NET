@@ -41,6 +41,9 @@ row into a checked `captured` / `excluded_by_rule:<name>` assertion.
 
 ## What moves this census
 
+A2.2-1 landed: the eight transparent and may-value rows read `sidecar_call` in
+`a2_2_1_observed`, measured with the walker; every other row reads as at A'.
+
 Only an A2.2 step, deliberately, one row at a time: a transparent wrapper
 becomes `captured` in A2.2-1, a call-like form in A2.2-2, an orphan record
 appears in A2.2-3. A row that moves without a step meaning to move it is a

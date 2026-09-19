@@ -1,0 +1,32 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "sidecar-mayvalue-userconv-arm",
+  "status": "anchored",
+  "why": "P-037 A2.2-1 (formal note §10.6.3): negative: a may-value form whose value passes through a user-defined conversion is not relevance. Recorded with the IOperation value-flow walker; a row that moves without a step meaning to move it is a regression.",
+  "a2_expect": [
+    {
+      "function": "ShapeMayValueUserConvArm.Caller",
+      "guarded_facts": "absent"
+    }
+  ],
+  "facts": {
+    "ShapeMayValueUserConvArm.Caller": {
+      "params": null,
+      "body": [
+        "acquire:keep@13",
+        "acquire:s@14",
+        "acquire:t@15",
+        "use:s@16",
+        "use:t@16",
+        "release:keep@17",
+        "release:s@18",
+        "release:t@19"
+      ],
+      "guarded_facts": null
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

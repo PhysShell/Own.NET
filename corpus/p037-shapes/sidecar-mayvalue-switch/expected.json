@@ -1,0 +1,101 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "sidecar-mayvalue-switch",
+  "status": "anchored",
+  "why": "P-037 A2.2-1 (formal note §10.6.3): may-value: `k switch { 0 => s, _ => t }` keeps the call relevant with an opaque slot. Recorded with the IOperation value-flow walker; a row that moves without a step meaning to move it is a regression.",
+  "a2_expect": [
+    {
+      "function": "ShapeMayValueSwitch.Caller",
+      "call": {
+        "callee": "ShapeMayValueSwitch.Inner",
+        "args": [
+          {
+            "param": 0,
+            "kind": "opaque"
+          },
+          {
+            "param": 1,
+            "kind": "bool_const",
+            "value": true
+          }
+        ]
+      }
+    }
+  ],
+  "facts": {
+    "ShapeMayValueSwitch.Inner": {
+      "params": [
+        {
+          "name": "s",
+          "line": 8
+        }
+      ],
+      "body": [
+        "if:None@8",
+        "then:release:s@8"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 8,
+              "column": 51
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    "ShapeMayValueSwitch.Caller": {
+      "params": null,
+      "body": [
+        "acquire:s@11",
+        "acquire:t@12",
+        "use:s@13",
+        "use:t@13"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 13,
+              "column": 9
+            },
+            "statement_line": 13,
+            "form": "statement",
+            "callee": "ShapeMayValueSwitch.Inner",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "opaque"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [
+      "OWN001:warning@11",
+      "OWN001:warning@12"
+    ],
+    "python": [
+      "OWN001:warning@11",
+      "OWN001:warning@12"
+    ]
+  }
+}
