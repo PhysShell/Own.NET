@@ -3063,6 +3063,17 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
                     }
                 }
                 return (Opaque(), false);
+            case IConditionalAccessInstanceOperation cai:
+            {
+                // `r?.Ext(...)` (A2.2-4R3): Roslyn binds the receiver argument to a placeholder that
+                // stands for the conditional access's own operand — the same reference when the
+                // call is entered at all (a null operand skips the call, never an alternate
+                // value). Classify that operand.
+                IOperation? owner = cai.Parent;
+                while (owner is not null and not IConditionalAccessOperation)
+                    owner = owner.Parent;
+                return Classify((owner as IConditionalAccessOperation)?.Operation);
+            }
             case IParameterReferenceOperation pr:
                 return ParamFact(pr.Parameter);
             case ILocalReferenceOperation lr:
@@ -3231,7 +3242,20 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
                      "delegate_invocation", firstParty: false);
             continue;
         }
-        var receiver = reduced && inv.Expression is MemberAccessExpressionSyntax ma ? ma.Expression : null;
+        // P-037 A2.2-4R3 (F-CONDITIONAL-RECEIVER): `r?.Ext(...)` invokes through a member
+        // binding, and a binding is by construction the first operation after its `?.`, so
+        // the receiver is the nearest enclosing conditional access's own expression. Read
+        // from a member access only, the reduced receiver under `?.` was dropped and the
+        // handle's declared ordinal 0 with it.
+        ExpressionSyntax? receiver = null;
+        if (reduced)
+            receiver = inv.Expression switch
+            {
+                MemberAccessExpressionSyntax ma => ma.Expression,
+                MemberBindingExpressionSyntax =>
+                    inv.Ancestors().OfType<ConditionalAccessExpressionSyntax>().FirstOrDefault()?.Expression,
+                _ => null,
+            };
         EmitCall(inv, sym, decl, reduced, receiver, inv.ArgumentList, invOp?.Arguments, null,
                  firstParty: decl is not null && decl.DeclaringSyntaxReferences.Length > 0);
     }

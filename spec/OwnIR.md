@@ -377,7 +377,9 @@ guarded_facts:
 ```
 
 Binding rules: a named argument resolves to its parameter; a reduced extension's
-receiver is ordinal 0 (the unreduced declaration is the summary's home); an
+receiver is ordinal 0 (the unreduced declaration is the summary's home),
+whether written `r.Ext(...)` or `r?.Ext(...)` (P-037 A2.2-4R3: the receiver
+of a member binding is the enclosing conditional access's expression); an
 argument bound to a `params` array collapses to one `opaque` slot, each
 expanded element classified with its own element conversion (P-037 A2.2-4R2:
 a handle under parentheses or `!` still flows, a boxed struct handle or one

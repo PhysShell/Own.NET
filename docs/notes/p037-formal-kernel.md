@@ -1171,7 +1171,12 @@ causes of FACT-DIFF. Tracked in #364 with its own acceptance.
   classified from the ParamArray argument's array-initializer element, its
   element conversion included, so a handle under parentheses or `!` is no
   longer lost and a boxed or user-converted element no longer yields a false
-  slot; the affected pairwise cases read green by the generic design;
+  slot; the affected pairwise cases read green by the generic design. R3
+  landed in the commit carrying this line: the reduced receiver of an
+  invocation through a member binding (`r?.Ext(...)`) is read from the
+  enclosing conditional access, so the handle binds declared ordinal 0 there
+  too; `ext-conditional-access` reads green; the three case-1 findings are
+  closed;
 - **A2.2-5** mutation campaign: remove the handle, add parentheses, perturb the
   binding, distinguish nested calls;
 - **A2.2-S** cumulative A2 after-evidence on M1 against the existing R with
@@ -1229,7 +1234,7 @@ does a pinned RED that silently disappears):
 | F-MEMBER | 3 | expression-bodied members, struct and record methods, property accessors are outside the legacy admission *and* the orphan carrier (the gates sit inside the class / block-body loop) | probe `Box.op_Implicit`; hostile `member-*` |
 | F-SHADOW | 1 | the guarded-fact handle set was keyed by spelling (`handles.Contains(lr.Local.Name)`) and the candidate collector descends into lambdas: a same-spelled non-candidate in a sibling scope, or beside a lambda-local creation, got a false `var` fact. **Repaired in A2.2-4R1** (10.6.11) | hostile `shadow-*`, now green |
 | F-PARAMS-ELEMENT | 1 | an expanded params element was classified from its bare syntax: under parentheses or `!` the handle was lost (no operation of its own); under a boxing or user-defined element conversion a false opaque-and-relevant slot was emitted. **Repaired in A2.2-4R2** (10.6.11) | hostile `pw-*-params-*` with parens / bang / boxing / user_implicit, now green |
-| F-CONDITIONAL-RECEIVER | 1 | `r?.Ext(...)` invokes through a member binding, the receiver is read from `MemberAccessExpressionSyntax` only, and ordinal 0 is dropped | hostile `ext-conditional-access` |
+| F-CONDITIONAL-RECEIVER | 1 | `r?.Ext(...)` invokes through a member binding, the receiver was read from `MemberAccessExpressionSyntax` only, and ordinal 0 was dropped. **Repaired in A2.2-4R3** (10.6.11) | hostile `ext-conditional-access`, now green |
 | F-VOCAB | 3 | four argument shapes the frozen list has no name for: a tested operand, an interpolation hole, an indexer argument, a constructor-initializer argument; production correctly emits nothing, the sentence demands a name | hostile `vocab-*` |
 
 Two rulings the oracle reads into the freeze, recorded here as §10.1 case-4
@@ -1299,3 +1304,19 @@ nested-function gap.
   expanded params binding, across site forms and carriers) read green by the
   generic design; every other pinned RED stays; inertness and the local
   rehearsal unchanged.
+- **R3, F-CONDITIONAL-RECEIVER.** In the invocation loop the reduced
+  receiver is read from a `MemberAccessExpressionSyntax` as before and, for
+  an invocation whose expression is a `MemberBindingExpressionSyntax`, from
+  the nearest enclosing `ConditionalAccessExpressionSyntax`'s expression: a
+  binding is by construction the first operation after its `?.`, so that
+  expression is the receiver (`a?.B?.Ext()` reads the inner binding `.B`, a
+  member, not a handle). The receiver then goes through `ValueOf` and the
+  walker as a member-access receiver does, with one more rule in the walker:
+  Roslyn binds such a receiver argument to an
+  `IConditionalAccessInstanceOperation` placeholder, which stands for the
+  conditional access's own operand (the same reference when the call is
+  entered at all; a null operand skips the call and yields no alternate
+  value), so the walker classifies that operand. Measured: the 52 shapes
+  and the probe byte-identical; `ext-conditional-access` reads green
+  (captured, ordinal 0, `var`); every other pinned RED stays; inertness and
+  the local rehearsal unchanged.

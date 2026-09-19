@@ -536,13 +536,13 @@ def named_cases() -> list[tuple[str, str, dict[str, Any]]]:
     out.append(named_case(
         "ext-conditional-access",
         "site form: a reduced extension method invoked through `?.` on the handle; the receiver "
-        "still binds declared ordinal 0",
+        "still binds declared ordinal 0 (F-CONDITIONAL-RECEIVER, repaired in A2.2-4R3)",
         ["static void Ext(this Stream s, bool leaveOpen) { }",
          "static void M() { MemoryStream? r = new MemoryStream(); var keep = new MemoryStream(); "
          "r?.Ext(true); keep.Dispose(); }"],
         {"carrier": "functions",
          "occurrences": [cap("r"), exc("keep", "receiver_not_summary_parameter")],
-         "red": {"occurrence_not_captured": 1}, "finding": "F-CONDITIONAL-RECEIVER"}))
+         "red": {}}))
     out.append(named_case(
         "ext-boxed-receiver",
         "site form: a struct handle as the receiver of an extension method on object; the receiver "

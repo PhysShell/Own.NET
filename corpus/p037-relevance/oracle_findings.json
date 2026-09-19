@@ -9,13 +9,6 @@
       "status": "open: a census finding; carrying these members in the orphan carrier is a production change to be classified on its own",
       "red": "occurrence_not_captured"
     },
-    "F-CONDITIONAL-RECEIVER": {
-      "class": "case 1",
-      "title": "a reduced extension receiver under `?.` is not bound to ordinal 0",
-      "evidence": "The invocation loop reads the receiver only from a MemberAccessExpressionSyntax; `r?.Ext(...)` invokes through a MemberBindingExpressionSyntax and the receiver handle is dropped, so the call is not relevant unless another argument is a handle. Witnessed by the hostile case ext-conditional-access.",
-      "status": "open: an implementation defect in the A2 classifier, to be repaired as its own classified change",
-      "red": "occurrence_not_captured"
-    },
     "F-VOCAB": {
       "class": "case 3",
       "title": "argument shapes the frozen vocabulary has no name for: a tested operand, an interpolation hole, an indexer argument, a constructor-initializer argument",
@@ -47,6 +40,13 @@
       "evidence": "For an expanded params argument the argument operation carries the call's own syntax, so the span-containment match finds nothing and the fallback classifies `model.GetOperation(expression)` of the element alone. A transparent wrapper (parentheses, the null-forgiving `!`) has no operation of its own, so the handle under it is lost and the call is not relevant; a boxing or user-defined element conversion sits on the array element, not on the expression, so a struct handle boxed into `params object[]` or a handle passed through op_Implicit into `params Box[]` yields an opaque-and-relevant slot although nothing of the handle reaches the callee. Witnessed by the hostile cases whose binding is `params` and whose value-flow shape is parens, bang, boxing or user_implicit; casts, `as` and the may-value forms have operations of their own and are classified correctly.",
       "status": "closed: A2.2-4R2. ValueOf classifies an expanded params element from the ParamArray argument's array initializer element (its conversion included) instead of the bare syntax; the affected pairwise cases are designed green by the generic rule.",
       "red": "occurrence_not_captured (lost) / fact_without_relevant_occurrence (false)"
+    },
+    "F-CONDITIONAL-RECEIVER": {
+      "class": "case 1",
+      "title": "a reduced extension receiver under `?.` is not bound to ordinal 0",
+      "evidence": "The invocation loop reads the receiver only from a MemberAccessExpressionSyntax; `r?.Ext(...)` invokes through a MemberBindingExpressionSyntax and the receiver handle is dropped, so the call is not relevant unless another argument is a handle. Witnessed by the hostile case ext-conditional-access.",
+      "status": "closed: A2.2-4R3. The invocation loop reads the reduced receiver of an invocation through a MemberBindingExpressionSyntax from the nearest enclosing ConditionalAccessExpressionSyntax's expression; ext-conditional-access is designed green.",
+      "red": "occurrence_not_captured"
     }
   }
 }

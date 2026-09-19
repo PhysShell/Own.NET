@@ -278,11 +278,8 @@
      "explanation": "receiver_not_summary_parameter"
     }
    ],
-   "red": {
-    "occurrence_not_captured": 1
-   },
-   "finding": "F-CONDITIONAL-RECEIVER",
-   "why": "site form: a reduced extension method invoked through `?.` on the handle; the receiver still binds declared ordinal 0"
+   "red": {},
+   "why": "site form: a reduced extension method invoked through `?.` on the handle; the receiver still binds declared ordinal 0 (F-CONDITIONAL-RECEIVER, repaired in A2.2-4R3)"
   },
   "member-accessor": {
    "member": "H_member_accessor.M",
