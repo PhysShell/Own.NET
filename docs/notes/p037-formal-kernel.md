@@ -989,8 +989,9 @@ entry `{name, file, sig, guarded_facts}`, under a strict contract:
 
 - `functions[]` = legacy-visible methods; semantics unchanged through A2;
 - `guarded_functions[]` = methods for which guarded raw facts exist but no
-  legacy function record does; **validated by both doors, consumed by neither
-  door through A2**;
+  legacy function record does; **producer-validated in A2.2-3P, carried as
+  additive unknown metadata by both doors and consumed by neither lowerer
+  through A2.2-S; A2.2-D makes it known and fail-loud at both doors**;
 - the same method identity in both carriers is a producer defect and a
   refusal (the carrier is an orphan carrier, not a second source for every
   method).
