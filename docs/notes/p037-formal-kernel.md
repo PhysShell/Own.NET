@@ -754,10 +754,11 @@ OWNER RULING, recorded 2026-09-19 after A2.1 closed and before the first
 A2.2 code change; corrected once, before any code, after an independent
 review of the first freeze commit (10.6.0). Nothing here is new semantics: it
 fixes what "every relevant call" means before anyone tries to be complete
-about it, because the 27-case probe below shows that the A2.1 sidecar captures
-two argument shapes out of twenty-seven correctly (the bare identifier and the
-parenthesized one) and one falsely (a boxed struct handle), and that the naive
-repair ("the handle occurs somewhere
+about it, because the 28-case probe below shows that the A2.1 sidecar captures
+two argument shapes out of twenty-eight correctly (the bare identifier and the
+parenthesized one) and two falsely (a boxed struct handle, and a delegate
+invocation recorded as a plain call of the delegate's `Invoke`), and that the
+naive repair ("the handle occurs somewhere
 below the argument, therefore the call is relevant") would prove nonsense with
 full confidence. The machine-readable form of this section is
 `corpus/p037-relevance/registry.json`; `tests/test_p037_relevance_freeze.py`
@@ -970,7 +971,7 @@ inside them are unobserved through A2.
 
 The extractor emits a `functions[]` record only for a method the legacy pass
 flow-analyses (Program.cs: a method whose every candidate escaped and that
-owns no parameter is skipped). Seven of the probe's twenty-seven methods have no
+owns no parameter is skipped). Seven of the probe's twenty-eight methods have no
 record at all, and with it no sidecar — exactly the methods whose handle left
 through a form the legacy cannot follow. The gap is not accepted. Two
 tempting repairs are rejected:
@@ -1044,6 +1045,7 @@ is the edge from the handle to the parameter as the registry names it.
 | AsMayFail `TakeDerived(r as MemoryStream)`, r : Stream | may-value | as_may_fail | may_fail_null | record_without_call_fact |
 | Ctor `new Wrapper(r, true)` | call-like | object_creation | reference_upcast | record_without_call_fact |
 | DelegateCall `a(r)` | call-like | delegate_invocation | reference_upcast | no_record |
+| DelegateCallOwned `a(p)`, p an owned parameter | call-like | delegate_invocation | none | sidecar_call (falsely, as a plain invocation of `Invoke`) |
 | Nested `Use(Wrap(r))` | indirect | nested_call_result | not_applicable | no_record |
 | ArrayInit `Use3(new Stream[] { r })` | indirect | container_construction | not_applicable | record_without_call_fact |
 | CollectionInit `new List<Stream> { r }` | indirect | container_construction | not_applicable | record_without_call_fact |

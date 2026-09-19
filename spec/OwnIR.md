@@ -458,15 +458,18 @@ write a facts file at all if one is malformed (exit 2): fail-loud at the source.
 
 A `functions[]` record exists only for a method the legacy pass admits: one
 with a tracked disposable local or an owned parameter, whose body it can
-lower. Three methods in the relevance census have guarded raw facts and no
-record at all: a handle passed to a non-consuming callee (every candidate
-escaped), a handle handed to a delegate, a method with no handle but with a
-`disposing`-style guard on a field disposal, and any method with an unmodelled
-construct (a loop, a `try`, a `switch`). Their facts are honest raw facts and
-must be delivered; a dummy `functions[]` record is not the way, because a
-record, even with an empty body, enters the first-party universe at the doors
+lower. Methods with guarded raw facts and no record at all are common: a
+handle passed to a non-consuming callee (every candidate escaped), a handle
+handed to a delegate, a method with no handle but with a `disposing`-style
+guard on a field disposal, and any method with an unmodelled construct
+rejected by the legacy flow pass (for example, at this checkpoint: `lock`,
+`goto`, or a local-function declaration; `try`, `switch`, loops and `using`
+declarations are modelled). Their facts are honest raw facts and must be
+delivered; a dummy `functions[]` record is not the way, because a record, even
+with an empty body, enters the first-party universe at the doors
 (`_build_skeletons` creates a skeleton for every named function) and can move
-MOS resolution.
+MOS resolution. The census shapes `corpus/p037-shapes/orphan-*` are the
+witnesses, one per admission gate, `lock` standing for the unmodelled one.
 
 So a method that has guarded facts (§5.2) **and** no `functions[]` record is
 carried in the optional, additive top-level list `guarded_functions[]`:

@@ -465,7 +465,12 @@ def run() -> int:
     # make this a generated constant (spec/OwnIR.md §2). Until then, assert the
     # frontends match the core here, so "bumped the core, forgot a frontend" (or the
     # reverse) fails loudly instead of silently mis-reading facts at runtime.
-    _ver = re.compile(r'ownir_version["\s]*[=:]\s*(\d+)')
+    # The producer literal has three spellings today: `ownir_version = 0` (an anonymous
+    # object member), `"ownir_version": 0` (a JSON/dict key) and, since P-037 A2.2-3P,
+    # the dictionary indexer `["ownir_version"] = 0`; the `]` before the `=` is what the
+    # first two forms never carried, and what turned this pin red on a document that
+    # still stamped the version correctly.
+    _ver = re.compile(r'ownir_version["\]\s]*[=:]\s*(\d+)')
     _repo = os.path.join(os.path.dirname(__file__), "..")
     _producers = {
         "Roslyn extractor (Program.cs)":
