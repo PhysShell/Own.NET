@@ -1,0 +1,50 @@
+{
+  "schema": "p037-oracle-findings/1",
+  "why": "Every RED the completeness oracle (frontend/roslyn/OwnSharp.Oracle) is EXPECTED to raise, tied to a finding classified by docs/notes/p037-formal-kernel.md \u00a710.1. An input absent from expected_red must be RED-free; an input present must raise exactly these kinds and counts. A finding closes only by a ruling or a separately classified change that removes its RED, and the entry with it.",
+  "findings": {
+    "F-MEMBER": {
+      "class": "case 3",
+      "title": "member bodies the legacy pass never visits: expression-bodied members, methods of struct and record types, property accessors",
+      "evidence": "Program.cs enumerates ClassDeclarationSyntax only and, inside it, BaseMethodDeclarationSyntax with a block Body; the three A2.2-3P admission gates sit inside that loop, so these members reach neither functions[] nor guarded_functions[]. Witnessed by the probe (Box.op_Implicit, an expression-bodied conversion operator) and by four hostile cases.",
+      "status": "open: a census finding; carrying these members in the orphan carrier is a production change to be classified on its own",
+      "red": "occurrence_not_captured"
+    },
+    "F-SHADOW": {
+      "class": "case 1",
+      "title": "the guarded-fact handle set is keyed by spelling, not by symbol",
+      "evidence": "BuildGuardedFacts receives the legacy candidate NAMES and tests `handles.Contains(lr.Local.Name)`; the candidate collector descends into lambda bodies. Two locals spelled alike in sibling scopes, or a lambda-local creation beside an unrelated local of the same spelling, produce a var fact on a symbol that is no candidate: a false raw fact. Witnessed by three hostile cases.",
+      "status": "open: an implementation defect in the A2 classifier, to be repaired as its own classified change",
+      "red": "fact_binds_other_symbol"
+    },
+    "F-PARAMS-ELEMENT": {
+      "class": "case 1",
+      "title": "an expanded params element is classified from its bare syntax",
+      "evidence": "For an expanded params argument the argument operation carries the call's own syntax, so the span-containment match finds nothing and the fallback classifies `model.GetOperation(expression)` of the element alone. A transparent wrapper (parentheses, the null-forgiving `!`) has no operation of its own, so the handle under it is lost and the call is not relevant; a boxing or user-defined element conversion sits on the array element, not on the expression, so a struct handle boxed into `params object[]` or a handle passed through op_Implicit into `params Box[]` yields an opaque-and-relevant slot although nothing of the handle reaches the callee. Witnessed by the hostile cases whose binding is `params` and whose value-flow shape is parens, bang, boxing or user_implicit; casts, `as` and the may-value forms have operations of their own and are classified correctly.",
+      "status": "open: an implementation defect in the A2 classifier, to be repaired as its own classified change",
+      "red": "occurrence_not_captured (lost) / fact_without_relevant_occurrence (false)"
+    },
+    "F-CONDITIONAL-RECEIVER": {
+      "class": "case 1",
+      "title": "a reduced extension receiver under `?.` is not bound to ordinal 0",
+      "evidence": "The invocation loop reads the receiver only from a MemberAccessExpressionSyntax; `r?.Ext(...)` invokes through a MemberBindingExpressionSyntax and the receiver handle is dropped, so the call is not relevant unless another argument is a handle. Witnessed by the hostile case ext-conditional-access.",
+      "status": "open: an implementation defect in the A2 classifier, to be repaired as its own classified change",
+      "red": "occurrence_not_captured"
+    },
+    "F-VOCAB": {
+      "class": "case 3",
+      "title": "argument shapes the frozen vocabulary has no name for: a tested operand, an interpolation hole, an indexer argument, a constructor-initializer argument",
+      "evidence": "Each is a candidate occurrence under a call-related syntax site that no frozen exclusion names; production emits no fact for any of them (correctly: no handle reaches a callee of the vocabulary), so each needs a name, never a bucket. Witnessed by four hostile cases.",
+      "status": "open: awaiting a naming ruling (\u00a710.6.4 additions)",
+      "red": "unclassified_argument_shape:*"
+    }
+  },
+  "expected_red": {
+    "probe": {
+      "red": {
+        "occurrence_not_captured": 1
+      },
+      "finding": "F-MEMBER",
+      "member": "Probe.Box.op_Implicit"
+    }
+  }
+}

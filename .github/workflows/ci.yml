@@ -3045,6 +3045,16 @@ jobs:
           # lowered/summaries/verdicts layers must not move. Needs the
           # own-shadow-engine the artifacts step just built.
           python scripts/p037_sidecar_inertness.py
+          # A2.2-4: the completeness oracle. An independent Roslyn tool
+          # (frontend/roslyn/OwnSharp.Oracle) inventories every candidate
+          # occurrence by symbol and demands, per occurrence, a guarded fact at
+          # its site and ordinal XOR exactly one frozen named exclusion, over
+          # the census, the relevance probe, the samples and the generated
+          # hostile census; every RED must be one the findings ledger
+          # classifies, by kind and count, and every hostile case must read as
+          # designed. The generator's drift check runs in the dotnet-free
+          # tests job (tests/test_p037_hostile_census.py).
+          python scripts/p037_completeness_oracle.py check
       # The Windows launcher is a separate implementation, not a wrapper around
       # the shell one, so the Windows leg has to go through it to mean anything.
       - name: Own.NET's own tree, through own-check.ps1 on the Rust core

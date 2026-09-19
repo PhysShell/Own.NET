@@ -49,6 +49,8 @@ files = [
   "scripts/p037_verdict_snapshot.py",
   "scripts/p037_fact_shapes.py",
   "scripts/p037_sidecar_inertness.py",
+  "scripts/p037_completeness_oracle.py",
+  "scripts/p037_hostile_census.py",
   "scripts/round7/classify.py",
   "scripts/round7/elfread.py",
   "scripts/round7/preflight.py",

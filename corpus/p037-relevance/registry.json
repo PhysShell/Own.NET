@@ -101,7 +101,7 @@
       "example": "Use5(r.Length)"
     }
   },
-  "fixture_obligation": "Every exclusion has a positive fixture (the rule fires and no call fact is emitted for that site) and a negative fixture (a syntactically adjacent case that is captured instead). A2.2-4 checks both by name; until then the probe below pins the classification.",
+  "fixture_obligation": "Every exclusion has a positive fixture (the rule fires and no call fact is emitted for that site) and a negative fixture (a syntactically adjacent case that is captured instead). A2.2-4 checks both by name: the completeness oracle (frontend/roslyn/OwnSharp.Oracle) reads every probe row and every case of the generated hostile census (corpus/p037-hostile) against its designed classification, and every RED it raises must be a finding classified in oracle_findings.json.",
   "already_landed_at_a_prime": "Relevance and representability are already decoupled for one family at A' (5a0de070): a handle bound to a params slot, passed by ref/out, or an unstable owned parameter is opaque AND keeps the call relevant (corpus/p037-shapes/sidecar-relevance-*). A2.2-1 extends the same separation to the transparent and may-value classes. A2.2-1 (268bbd4) extended it to the transparent and may-value classes and, as A2.2-1a measured, stopped capturing a boxed struct handle that A' had recorded as a param fact.",
   "known_gaps": [
     "Lambda and local-function bodies have no function record of their own, so the calls inside them are unobserved through A2. Recorded as a census finding (§10.1 case 3), not repaired by pretending the enclosing call received the handle."

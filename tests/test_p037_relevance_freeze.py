@@ -272,6 +272,28 @@ def run() -> int:
     check("orphan-carrier-has-recorded-witnesses", orphan_rows >= 3,
           f"only {orphan_rows} probe row(s) read orphan_*")
 
+    # A2.2-4: the completeness oracle's live reading of every row, recorded by
+    # scripts/p037_completeness_oracle.py record and held equal by its check. Here the column
+    # is pinned against the CLASS: a relevant row reads captured at its site kind, an indirect
+    # row reads excluded by exactly its named exclusion, and the nested-call row reads
+    # inner-captured plus the outer nested_call_result. The oracle is checked against the
+    # freeze, never the freeze against the oracle.
+    step4: list[str] = []
+    for name, entry in methods.items():
+        reading = entry.get("a2_2_4_oracle")
+        cls = entry.get("class")
+        if cls in relevant_classes:
+            want = "captured:" + {"object_creation": "object_creation",
+                                  "delegate_invocation": "delegate_invocation"}.get(
+                                      str(entry.get("form", "")), "invocation")
+        elif entry.get("exclusion") == "nested_call_result":
+            want = "captured:invocation+nested_call_result"
+        else:
+            want = f"excluded:{entry.get('exclusion')}"
+        if reading != want:
+            step4.append(f"{name}: a2_2_4_oracle {reading!r}, the class says {want!r}")
+    check("a2-2-4-oracle-column-reads-as-the-class", not step4, "; ".join(step4))
+
     check("delegate-invocation-has-a-recorded-witness",
           any(e.get("form") == "delegate_invocation" and e.get("a2_2_2b_observed")
               == "sidecar_call:delegate_invocation" for e in methods.values()),

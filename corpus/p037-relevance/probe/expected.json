@@ -45,7 +45,8 @@
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
-      "a2_2_3p_observed": "sidecar_call"
+      "a2_2_3p_observed": "sidecar_call",
+      "a2_2_4_oracle": "captured:invocation"
     },
     "PlainSame": {
       "class": "direct",
@@ -55,7 +56,8 @@
       "a2_2_1_observed": "no_record",
       "a2_2_2_observed": "no_record",
       "a2_2_2b_observed": "no_record",
-      "a2_2_3p_observed": "orphan_call"
+      "a2_2_3p_observed": "orphan_call",
+      "a2_2_4_oracle": "captured:invocation"
     },
     "Parens": {
       "class": "transparent",
@@ -65,7 +67,8 @@
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
-      "a2_2_3p_observed": "sidecar_call"
+      "a2_2_3p_observed": "sidecar_call",
+      "a2_2_4_oracle": "captured:invocation"
     },
     "IdentityCast": {
       "class": "transparent",
@@ -75,7 +78,8 @@
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
-      "a2_2_3p_observed": "sidecar_call"
+      "a2_2_3p_observed": "sidecar_call",
+      "a2_2_4_oracle": "captured:invocation"
     },
     "Cast": {
       "class": "transparent",
@@ -85,7 +89,8 @@
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
-      "a2_2_3p_observed": "sidecar_call"
+      "a2_2_3p_observed": "sidecar_call",
+      "a2_2_4_oracle": "captured:invocation"
     },
     "AsCast": {
       "class": "transparent",
@@ -95,7 +100,8 @@
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
-      "a2_2_3p_observed": "sidecar_call"
+      "a2_2_3p_observed": "sidecar_call",
+      "a2_2_4_oracle": "captured:invocation"
     },
     "Bang": {
       "class": "transparent",
@@ -105,7 +111,8 @@
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
-      "a2_2_3p_observed": "sidecar_call"
+      "a2_2_3p_observed": "sidecar_call",
+      "a2_2_4_oracle": "captured:invocation"
     },
     "CheckedRef": {
       "class": "transparent",
@@ -116,7 +123,8 @@
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
-      "a2_2_3p_observed": "sidecar_call"
+      "a2_2_3p_observed": "sidecar_call",
+      "a2_2_4_oracle": "captured:invocation"
     },
     "Ternary": {
       "class": "may_value",
@@ -126,7 +134,8 @@
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
-      "a2_2_3p_observed": "sidecar_call"
+      "a2_2_3p_observed": "sidecar_call",
+      "a2_2_4_oracle": "captured:invocation"
     },
     "Coalesce": {
       "class": "may_value",
@@ -136,7 +145,8 @@
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
-      "a2_2_3p_observed": "sidecar_call"
+      "a2_2_3p_observed": "sidecar_call",
+      "a2_2_4_oracle": "captured:invocation"
     },
     "Switch": {
       "class": "may_value",
@@ -146,7 +156,8 @@
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
-      "a2_2_3p_observed": "sidecar_call"
+      "a2_2_3p_observed": "sidecar_call",
+      "a2_2_4_oracle": "captured:invocation"
     },
     "AsMayFail": {
       "class": "may_value",
@@ -156,7 +167,8 @@
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call",
-      "a2_2_3p_observed": "sidecar_call"
+      "a2_2_3p_observed": "sidecar_call",
+      "a2_2_4_oracle": "captured:invocation"
     },
     "Ctor": {
       "class": "call_like",
@@ -166,7 +178,8 @@
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "sidecar_call:object_creation",
       "a2_2_2b_observed": "sidecar_call:object_creation",
-      "a2_2_3p_observed": "sidecar_call:object_creation"
+      "a2_2_3p_observed": "sidecar_call:object_creation",
+      "a2_2_4_oracle": "captured:object_creation"
     },
     "DelegateCall": {
       "class": "call_like",
@@ -177,7 +190,8 @@
       "a2_2_1_observed": "no_record",
       "a2_2_2_observed": "no_record",
       "a2_2_2b_observed": "no_record",
-      "a2_2_3p_observed": "orphan_call:delegate_invocation"
+      "a2_2_3p_observed": "orphan_call:delegate_invocation",
+      "a2_2_4_oracle": "captured:delegate_invocation"
     },
     "DelegateCallOwned": {
       "class": "call_like",
@@ -188,7 +202,8 @@
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
       "a2_2_2b_observed": "sidecar_call:delegate_invocation",
-      "a2_2_3p_observed": "sidecar_call:delegate_invocation"
+      "a2_2_3p_observed": "sidecar_call:delegate_invocation",
+      "a2_2_4_oracle": "captured:delegate_invocation"
     },
     "Nested": {
       "class": "indirect",
@@ -199,7 +214,8 @@
       "a2_2_1_observed": "no_record",
       "a2_2_2_observed": "no_record",
       "a2_2_2b_observed": "no_record",
-      "a2_2_3p_observed": "orphan_call"
+      "a2_2_3p_observed": "orphan_call",
+      "a2_2_4_oracle": "captured:invocation+nested_call_result"
     },
     "ArrayInit": {
       "class": "indirect",
@@ -209,7 +225,8 @@
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
-      "a2_2_3p_observed": "record_without_call_fact"
+      "a2_2_3p_observed": "record_without_call_fact",
+      "a2_2_4_oracle": "excluded:container_construction"
     },
     "CollectionInit": {
       "class": "indirect",
@@ -219,7 +236,8 @@
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
-      "a2_2_3p_observed": "record_without_call_fact"
+      "a2_2_3p_observed": "record_without_call_fact",
+      "a2_2_4_oracle": "excluded:container_construction"
     },
     "Tuple": {
       "class": "indirect",
@@ -229,7 +247,8 @@
       "a2_2_1_observed": "no_record",
       "a2_2_2_observed": "no_record",
       "a2_2_2b_observed": "no_record",
-      "a2_2_3p_observed": "no_record"
+      "a2_2_3p_observed": "no_record",
+      "a2_2_4_oracle": "excluded:tuple_construction"
     },
     "Closure": {
       "class": "indirect",
@@ -240,7 +259,8 @@
       "a2_2_1_observed": "no_record",
       "a2_2_2_observed": "no_record",
       "a2_2_2b_observed": "no_record",
-      "a2_2_3p_observed": "no_record"
+      "a2_2_3p_observed": "no_record",
+      "a2_2_4_oracle": "excluded:closure_capture"
     },
     "MethodGroup": {
       "class": "indirect",
@@ -250,7 +270,8 @@
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
-      "a2_2_3p_observed": "record_without_call_fact"
+      "a2_2_3p_observed": "record_without_call_fact",
+      "a2_2_4_oracle": "excluded:method_group_conversion"
     },
     "UserConversion": {
       "class": "indirect",
@@ -261,7 +282,8 @@
       "a2_2_1_observed": "no_record",
       "a2_2_2_observed": "no_record",
       "a2_2_2b_observed": "no_record",
-      "a2_2_3p_observed": "no_record"
+      "a2_2_3p_observed": "no_record",
+      "a2_2_4_oracle": "excluded:user_conversion"
     },
     "ExplicitUserConversion": {
       "class": "indirect",
@@ -272,7 +294,8 @@
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
-      "a2_2_3p_observed": "record_without_call_fact"
+      "a2_2_3p_observed": "record_without_call_fact",
+      "a2_2_4_oracle": "excluded:user_conversion"
     },
     "NameOf": {
       "class": "indirect",
@@ -282,7 +305,8 @@
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
-      "a2_2_3p_observed": "record_without_call_fact"
+      "a2_2_3p_observed": "record_without_call_fact",
+      "a2_2_4_oracle": "excluded:nameof_operand"
     },
     "MemberAccess": {
       "class": "indirect",
@@ -292,7 +316,8 @@
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
-      "a2_2_3p_observed": "record_without_call_fact"
+      "a2_2_3p_observed": "record_without_call_fact",
+      "a2_2_4_oracle": "excluded:member_access_on_handle"
     },
     "Boxing": {
       "class": "indirect",
@@ -303,7 +328,8 @@
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
-      "a2_2_3p_observed": "record_without_call_fact"
+      "a2_2_3p_observed": "record_without_call_fact",
+      "a2_2_4_oracle": "excluded:boxing_conversion"
     },
     "Receiver": {
       "class": "indirect",
@@ -313,7 +339,8 @@
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
       "a2_2_2b_observed": "record_without_call_fact",
-      "a2_2_3p_observed": "record_without_call_fact"
+      "a2_2_3p_observed": "record_without_call_fact",
+      "a2_2_4_oracle": "excluded:receiver_not_summary_parameter"
     },
     "Indexer": {
       "class": "indirect",
@@ -323,7 +350,9 @@
       "a2_2_1_observed": "no_record",
       "a2_2_2_observed": "no_record",
       "a2_2_2b_observed": "no_record",
-      "a2_2_3p_observed": "no_record"
+      "a2_2_3p_observed": "no_record",
+      "a2_2_4_oracle": "excluded:storage_assignment"
     }
-  }
+  },
+  "a2_2_4_oracle_note": "The completeness oracle's live reading of each row (A2.2-4): the verdict of the row's handle occurrence, `captured:<site kind>[+enclosing exclusions]` or `excluded:<named exclusion>`. Recorded by scripts/p037_completeness_oracle.py record and held equal by check; the oracle is checked against the class, never the other way round."
 }

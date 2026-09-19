@@ -942,10 +942,12 @@ operator, `TakeXBox((XBox)r)` through an explicit one), `boxing_conversion`
 
 Every exclusion carries a positive fixture (the rule fires, no call fact for
 that site) and a negative fixture (a syntactically adjacent case that is
-captured instead); A2.2-4 checks both by name. Known gap, recorded as a §10.1
-case-3 census finding and not repaired by pretending: lambda and
-local-function bodies have no function record of their own, so the calls
-inside them are unobserved through A2.
+captured instead); A2.2-4 checks both by name (10.6.10: the completeness
+oracle reads every probe row and every generated hostile case against its
+designed classification). Known gap, recorded as a §10.1 case-3 census finding
+and not repaired by pretending: lambda and local-function bodies have no
+function record of their own, so the calls inside them are unobserved through
+A2; the oracle counts those occurrences and their inner call slots.
 
 #### 10.6.5 Representation rulings (OWNER RULING)
 
@@ -1144,7 +1146,18 @@ causes of FACT-DIFF. Tracked in #364 with its own acceptance.
   stripped, orphans_stripped, contradictory in both carriers) over the census,
   the relevance probe and the samples;
 - **A2.2-4** completeness oracle plus generated hostile census: every
-  occurrence is captured or matches exactly one named exclusion;
+  occurrence is captured or matches exactly one named exclusion. Landed in the
+  commit carrying this line (10.6.10): an independent Roslyn tool,
+  `frontend/roslyn/OwnSharp.Oracle`, inventories every candidate occurrence by
+  symbol, classifies it upward over syntax with Roslyn's conversions and
+  ordinals, and joins both carriers by site identity; the generated census
+  `corpus/p037-hostile` covers site form × value flow × binding × carrier
+  admission pairwise plus the named compositions, the shadowing witnesses and
+  the member kinds; every probe row and every hostile case reads as designed;
+  five findings are classified and pinned RED by name in
+  `corpus/p037-relevance/oracle_findings.json`, and NO production line moved;
+- **A2.2-4R** the findings' repairs, each a separately classified change with
+  its own census witness turning from pinned RED to green (10.6.10);
 - **A2.2-5** mutation campaign: remove the handle, add parentheses, perturb the
   binding, distinguish nested calls;
 - **A2.2-S** cumulative A2 after-evidence on M1 against the existing R with
@@ -1157,3 +1170,62 @@ causes of FACT-DIFF. Tracked in #364 with its own acceptance.
 No new T/R is needed through A2.2-S, while the instrument stays the same and
 the semantic doors do not read these facts. #263 is PARKED in parallel,
 deliberately unmeasured, recorded on the issue.
+
+#### 10.6.10 A2.2-4: the completeness oracle, what it is and what it found (REPOSITORY FACT)
+
+The oracle is evidence infrastructure, deliberately not a second copy of the
+production classifier (`frontend/roslyn/OwnSharp.Oracle/README.md`). Production
+walks *downward* from an argument over Roslyn's operation tree; the oracle
+walks *upward* from every local / parameter reference over syntax, asks Roslyn
+for the semantic conversion at each edge (`GetConversion`) and for the declared
+ordinal of each slot (`IArgumentOperation.Parameter`, reduced receivers at 0,
+expanded params elements at the params ordinal), and joins the result with
+`functions[].guarded_facts` and `guarded_functions[].guarded_facts` by call-site
+identity (site line/column + ordinal), symbol for symbol. Its universe is
+declared on symbols: owned parameters, `new`-created locals, first-party factory
+locals, the `System.IO.File` factories and the two pool rentals; the legacy
+pass's wider factory vocabulary is reported `outside_universe` by initializer,
+never RED. Per universe occurrence it answers exactly one of *captured* (with
+the representation the vocabulary owes), *excluded* (one of the eleven names,
+attributed to the slot it sits under; every call whose argument contains the
+explained site is listed as an enclosing `nested_call_result`, so
+`Use(Wrap(r))` reads inner-captured / outer-excluded), *not call-related* (a
+closed table of named contexts) or RED. A derived value under an argument (a
+test, an interpolation hole, an index) is RED by the letter of the sentence,
+never a bin. Every `var` / `param` fact must join an occurrence of the *same
+symbol* at its site and ordinal, so a fact bound by spelling is RED.
+
+It is held to a *designed* classification, not to production: the 28 probe
+rows read as their frozen class (recorded in `a2_2_4_oracle`, pinned by the
+freeze test), and the generated census `corpus/p037-hostile` (138 cases: 114
+pairwise over site form × value flow × binding × carrier admission, plus the
+named compositions, the shadowing witnesses, the member kinds and the
+vocabulary edges) reads as `expected.json` designs it, occurrence by
+occurrence, carrier included. The 52 A1.1/A2 census shapes and the
+repository's samples are RED-free (samples: 163 universe occurrences, 25
+captured, 120 excluded, 18 not call-related, 32 var/param facts all matched
+by symbol).
+
+Findings, classified by §10.1 and pinned RED by kind and count in
+`corpus/p037-relevance/oracle_findings.json` (an unexpected RED fails CI; so
+does a pinned RED that silently disappears):
+
+| id | class | what | witness |
+|---|---|---|---|
+| F-MEMBER | 3 | expression-bodied members, struct and record methods, property accessors are outside the legacy admission *and* the orphan carrier (the gates sit inside the class / block-body loop) | probe `Box.op_Implicit`; hostile `member-*` |
+| F-SHADOW | 1 | the guarded-fact handle set is keyed by spelling (`handles.Contains(lr.Local.Name)`) and the candidate collector descends into lambdas: a same-spelled non-candidate in a sibling scope, or beside a lambda-local creation, gets a false `var` fact | hostile `shadow-*` |
+| F-PARAMS-ELEMENT | 1 | an expanded params element is classified from its bare syntax: under parentheses or `!` the handle is lost (no operation of its own); under a boxing or user-defined element conversion a false opaque-and-relevant slot is emitted | hostile `pw-*-params-*` with parens / bang / boxing / user_implicit |
+| F-CONDITIONAL-RECEIVER | 1 | `r?.Ext(...)` invokes through a member binding, the receiver is read from `MemberAccessExpressionSyntax` only, and ordinal 0 is dropped | hostile `ext-conditional-access` |
+| F-VOCAB | 3 | four argument shapes the frozen list has no name for: a tested operand, an interpolation hole, an indexer argument, a constructor-initializer argument; production correctly emits nothing, the sentence demands a name | hostile `vocab-*` |
+
+Two rulings the oracle reads into the freeze, recorded here as §10.1 case-4
+clarifications rather than silently applied: `nested_call_result` is applied to
+every inner call-like site of the vocabulary (an invocation, an object creation,
+a delegate invocation) whose result is the outer argument, the registry's
+"inner invocation" read through 10.6.2's non-propagation sentence and spec
+§5.2's constructor paragraph; and `member_access_on_handle` is applied
+wherever a member of the handle (a property, a field, an element, a chain)
+reaches a call slot, an argument or a receiver alike. A2.2-4 changed no
+production line: the three case-1 findings are repairs to be made one at a
+time, each with its pinned witness turning green (A2.2-4R), and the two case-3
+findings await a ruling.

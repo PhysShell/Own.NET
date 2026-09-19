@@ -33,13 +33,22 @@ captured or matches exactly one **named** exclusion.
     probe/expected.json    each method's class (and exclusion) and its conversion
                            edge, plus what the A2.1 extractor observably emitted
                            for it at A' (5a0de070, the treatment main carries)
+                           and, since A2.2-4, the completeness oracle's reading
+                           of the row (`a2_2_4_oracle`)
+    oracle_findings.json   every RED the completeness oracle is expected to raise,
+                           tied to a finding classified by §10.1
 
 `tests/test_p037_relevance_freeze.py` keeps the registry, the probe, and §10.6
 consistent: every probe method classified, every class and exclusion frozen,
 every wrapper / form / exclusion exercised by at least one probe, and every
 name mentioned in the prose. It runs nothing: the extractor observations in
-`expected.json` are recorded facts, and A2.2-4 is the step that turns each
-row into a checked `captured` / `excluded_by_rule:<name>` assertion.
+`expected.json` are recorded facts. A2.2-4 turned each row into a checked
+assertion: `scripts/p037_completeness_oracle.py check` runs the completeness
+oracle (`frontend/roslyn/OwnSharp.Oracle`) over the probe and demands that
+every row reads `captured:<site kind>` for a relevant class and
+`excluded:<named exclusion>` for an indirect one (the nested-call row reads
+inner-captured plus the outer `nested_call_result`), and the freeze test pins
+the recorded column against the class.
 
 ## What moves this census
 
@@ -57,6 +66,12 @@ pass never admitted; `a2_2_3p_observed` reads `orphan_call` for PlainSame and th
 inner call of Nested, `orphan_call:delegate_invocation` for the local-handle
 delegate row, and stays `no_record` only where the sole occurrence is a named
 exclusion (Tuple, Closure, UserConversion, Indexer): no fact exists to carry.
+
+A2.2-4 landed: the oracle reads all 28 rows as their frozen class
+(`a2_2_4_oracle`), and its one RED on this file, the expression-bodied
+`Box.op_Implicit` helper whose owned parameter flows into a constructor with no
+record in either carrier, is finding F-MEMBER in `oracle_findings.json`. The
+generated hostile census lives in `corpus/p037-hostile`.
 
 Only an A2.2 step, deliberately, one row at a time: a transparent wrapper
 becomes `captured` in A2.2-1, a call-like form in A2.2-2, an orphan record

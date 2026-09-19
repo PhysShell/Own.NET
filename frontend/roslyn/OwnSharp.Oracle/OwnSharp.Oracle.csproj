@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- P-037 A2.2-4: the completeness oracle. EVIDENCE INFRASTRUCTURE, not production: it
+       reads the extractor's facts.json and the same C# inputs, and answers, per candidate
+       occurrence at a call-related site, "captured by an actual guarded fact XOR excluded by
+       exactly one frozen named exclusion" (docs/notes/p037-formal-kernel.md §10.6.1). It is
+       a separate project on purpose: no source is shared with OwnSharp.Extractor, so the
+       oracle cannot be a second copy of the production classifier. It never writes OwnIR. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>ownsharp-oracle</AssemblyName>
+    <Deterministic>true</Deterministic>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
+  </ItemGroup>
+
+</Project>

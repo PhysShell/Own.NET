@@ -1,0 +1,3143 @@
+{
+ "schema": "p037-hostile-census/1",
+ "generator": "scripts/p037_hostile_census.py",
+ "why": "Designed classifications for the completeness oracle (frontend/roslyn/OwnSharp.Oracle): each case's method lists its universe occurrences with the verdict the frozen taxonomy assigns, the carrier production must deliver, and, for a case that witnesses a classified finding, the exact RED the oracle must raise. Written by the generator from the design, never recorded from a run.",
+ "factors": {
+  "site": [
+   "inv",
+   "ext",
+   "ctor",
+   "del"
+  ],
+  "value_flow": [
+   "none",
+   "parens",
+   "bang",
+   "cast_identity",
+   "cast_upcast",
+   "as_upcast",
+   "cast_checked",
+   "as_may_fail",
+   "cond",
+   "coalesce",
+   "switch",
+   "user_implicit",
+   "user_explicit",
+   "boxing",
+   "nested",
+   "tuple",
+   "array",
+   "collection",
+   "closure",
+   "method_group",
+   "nameof",
+   "member"
+  ],
+  "binding": [
+   "pos",
+   "named",
+   "params",
+   "refout",
+   "default"
+  ],
+  "carrier": [
+   "record_local",
+   "record_param",
+   "orphan_local",
+   "unmodelled_local",
+   "unmodelled_param"
+  ]
+ },
+ "pairwise": {
+  "feasible_tuples": 1730,
+  "cases": 114,
+  "factor_pairs": [
+   "site x value_flow",
+   "site x binding",
+   "site x carrier",
+   "value_flow x binding",
+   "value_flow x carrier",
+   "binding x carrier"
+  ]
+ },
+ "cases": {
+  "comp-ctor-params": {
+   "member": "H_comp_ctor_params.M",
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {},
+   "why": "composition: a constructor whose parameter is a params array, expanded form; one opaque slot at the params ordinal, the call relevant, call_kind object_creation"
+  },
+  "comp-delegate-named": {
+   "member": "H_comp_delegate_named.M",
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0,
+     "expected": "var"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {},
+   "why": "composition: a delegate invocation with named, reordered arguments; the delegate's declared parameter names resolve the binding, callee stays null"
+  },
+  "comp-mayvalue-arm-user-cast": {
+   "member": "H_comp_mayvalue_arm_user_cast.M",
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "user_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {},
+   "why": "composition: one arm of a conditional is an explicit user-defined cast of the handle, the other arm is not a handle; the cast arm is excluded inside the may-value form"
+  },
+  "comp-mayvalue-arm-user-conversion": {
+   "member": "H_comp_mayvalue_arm_user_conversion.M",
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "user_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "q",
+     "verdict": "excluded",
+     "explanation": "user_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {},
+   "why": "composition: a conditional whose whole value passes through op_Implicit at the parameter; an arm that reaches the callee only through a user-defined conversion is not a handle alternative (registry conversion_rules)"
+  },
+  "comp-named-transparent": {
+   "member": "H_comp_named_transparent.M",
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {},
+   "why": "composition: a named, reordered argument carrying a reference upcast; the declared ordinal is the parameter's, the fact is the unwrapped var"
+  },
+  "comp-nested-transparent-inner": {
+   "member": "H_comp_nested_transparent_inner.M",
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var",
+     "enclosing": [
+      "nested_call_result"
+     ]
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {},
+   "why": "composition: the inner call receives the handle through a reference upcast (captured there, unwrapped); the outer call receives the inner result (nested_call_result)"
+  },
+  "comp-orphan-direct": {
+   "member": "H_comp_orphan_direct.M",
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    }
+   ],
+   "red": {},
+   "why": "composition: a direct flow into a non-consuming callee and nothing else tracked; the legacy pass reads the pass as an escape, the fact rides in the orphan carrier"
+  },
+  "comp-parens-user-explicit": {
+   "member": "H_comp_parens_user_explicit.M",
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "user_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {},
+   "why": "composition: parentheses around an explicit user-defined cast; the hidden call inside the cast expression is the edge that decides"
+  },
+  "comp-parens-user-implicit": {
+   "member": "H_comp_parens_user_implicit.M",
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "user_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {},
+   "why": "composition: parentheses around a handle whose parameter type needs op_Implicit; the conversion wins over the transparent-looking syntax (\u00a710.6.3)"
+  },
+  "ext-boxed-receiver": {
+   "member": "H_ext_boxed_receiver.M",
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "boxing_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {},
+   "why": "site form: a struct handle as the receiver of an extension method on object; the receiver conversion is boxing, so nothing of the handle reaches ordinal 0"
+  },
+  "ext-conditional-access": {
+   "member": "H_ext_conditional_access.M",
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {
+    "occurrence_not_captured": 1
+   },
+   "finding": "F-CONDITIONAL-RECEIVER",
+   "why": "site form: a reduced extension method invoked through `?.` on the handle; the receiver still binds declared ordinal 0"
+  },
+  "member-accessor": {
+   "member": "H_member_accessor.M",
+   "member_override": ".set_Slot",
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "value",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {
+    "occurrence_not_captured": 1
+   },
+   "finding": "F-MEMBER",
+   "why": "member kind: a property setter passing its `value` parameter; accessors are not BaseMethodDeclarationSyntax and are never visited (finding F-MEMBER)"
+  },
+  "member-expression-bodied": {
+   "member": "H_member_expression_bodied.M",
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {
+    "occurrence_not_captured": 1
+   },
+   "finding": "F-MEMBER",
+   "why": "member kind: an expression-bodied method with an owned parameter; the legacy pass visits block bodies only, so neither carrier sees the call (finding F-MEMBER)"
+  },
+  "member-local-function": {
+   "member": "H_member_local_function.M",
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "not_call_related",
+     "explanation": "local_function_declaration",
+     "nested_function": true
+    }
+   ],
+   "red": {},
+   "why": "member kind: the call sits in a declared local function; the capture is a named non-call context of the method and the inner call is the known unobserved gap, counted, not RED"
+  },
+  "member-record": {
+   "member": "H_member_record.M",
+   "member_override": ".Holder.M",
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {
+    "occurrence_not_captured": 1
+   },
+   "finding": "F-MEMBER",
+   "why": "member kind: a method of a record; the legacy pass enumerates class declarations only (finding F-MEMBER)"
+  },
+  "member-struct": {
+   "member": "H_member_struct.M",
+   "member_override": ".Holder.M",
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {
+    "occurrence_not_captured": 1
+   },
+   "finding": "F-MEMBER",
+   "why": "member kind: a method of a struct; the legacy pass enumerates class declarations only (finding F-MEMBER)"
+  },
+  "pw-ctor-array-params-orphan-local": {
+   "member": "H_pw_ctor_array_params_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "array",
+    "binding": "params",
+    "carrier": "orphan_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "container_construction",
+     "site_kind": "object_creation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-as-may-fail-params-unmodelled-param": {
+   "member": "H_pw_ctor_as_may_fail_params_unmodelled_param.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "as_may_fail",
+    "binding": "params",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-as-upcast-params-record-param": {
+   "member": "H_pw_ctor_as_upcast_params_record_param.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "as_upcast",
+    "binding": "params",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-bang-pos-record-param": {
+   "member": "H_pw_ctor_bang_pos_record_param.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "bang",
+    "binding": "pos",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-boxing-params-orphan-local": {
+   "member": "H_pw_ctor_boxing_params_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "boxing",
+    "binding": "params",
+    "carrier": "orphan_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "boxing_conversion",
+     "site_kind": "object_creation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {
+    "fact_without_relevant_occurrence": 1
+   },
+   "finding": "F-PARAMS-ELEMENT"
+  },
+  "pw-ctor-cast-checked-pos-record-local": {
+   "member": "H_pw_ctor_cast_checked_pos_record_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "cast_checked",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "expected": "var"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-cast-identity-named-record-local": {
+   "member": "H_pw_ctor_cast_identity_named_record_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "cast_identity",
+    "binding": "named",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "expected": "var"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-cast-upcast-params-orphan-local": {
+   "member": "H_pw_ctor_cast_upcast_params_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "cast_upcast",
+    "binding": "params",
+    "carrier": "orphan_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-closure-named-orphan-local": {
+   "member": "H_pw_ctor_closure_named_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "closure",
+    "binding": "named",
+    "carrier": "orphan_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "closure_capture",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "nested_function": true
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-coalesce-params-orphan-local": {
+   "member": "H_pw_ctor_coalesce_params_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "coalesce",
+    "binding": "params",
+    "carrier": "orphan_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-collection-params-orphan-local": {
+   "member": "H_pw_ctor_collection_params_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "collection",
+    "binding": "params",
+    "carrier": "orphan_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "container_construction",
+     "site_kind": "object_creation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-cond-params-orphan-local": {
+   "member": "H_pw_ctor_cond_params_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "cond",
+    "binding": "params",
+    "carrier": "orphan_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "q",
+     "verdict": "captured",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    },
+    {
+     "symbol": "q",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-member-params-orphan-local": {
+   "member": "H_pw_ctor_member_params_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "member",
+    "binding": "params",
+    "carrier": "orphan_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "member_access_on_handle",
+     "site_kind": "object_creation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-method-group-named-orphan-local": {
+   "member": "H_pw_ctor_method_group_named_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "method_group",
+    "binding": "named",
+    "carrier": "orphan_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "method_group_conversion",
+     "site_kind": "object_creation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-nameof-params-orphan-local": {
+   "member": "H_pw_ctor_nameof_params_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "nameof",
+    "binding": "params",
+    "carrier": "orphan_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "nameof_operand",
+     "site_kind": "object_creation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-nested-params-orphan-local": {
+   "member": "H_pw_ctor_nested_params_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "nested",
+    "binding": "params",
+    "carrier": "orphan_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var",
+     "enclosing": [
+      "nested_call_result"
+     ]
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-none-params-unmodelled-local": {
+   "member": "H_pw_ctor_none_params_unmodelled_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "none",
+    "binding": "params",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-none-refout-record-local": {
+   "member": "H_pw_ctor_none_refout_record_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "none",
+    "binding": "refout",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-parens-default-orphan-local": {
+   "member": "H_pw_ctor_parens_default_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "parens",
+    "binding": "default",
+    "carrier": "orphan_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "expected": "var"
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-switch-params-orphan-local": {
+   "member": "H_pw_ctor_switch_params_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "switch",
+    "binding": "params",
+    "carrier": "orphan_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "q",
+     "verdict": "captured",
+     "site_kind": "object_creation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    },
+    {
+     "symbol": "q",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-tuple-params-orphan-local": {
+   "member": "H_pw_ctor_tuple_params_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "tuple",
+    "binding": "params",
+    "carrier": "orphan_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "tuple_construction",
+     "site_kind": "object_creation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-user-explicit-params-orphan-local": {
+   "member": "H_pw_ctor_user_explicit_params_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "user_explicit",
+    "binding": "params",
+    "carrier": "orphan_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "user_conversion",
+     "site_kind": "object_creation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ctor-user-implicit-named-orphan-local": {
+   "member": "H_pw_ctor_user_implicit_named_orphan_local.M",
+   "composition": {
+    "site": "ctor",
+    "value_flow": "user_implicit",
+    "binding": "named",
+    "carrier": "orphan_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "user_conversion",
+     "site_kind": "object_creation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-array-default-unmodelled-local": {
+   "member": "H_pw_del_array_default_unmodelled_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "array",
+    "binding": "default",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "container_construction",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-as-may-fail-default-orphan-local": {
+   "member": "H_pw_del_as_may_fail_default_orphan_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "as_may_fail",
+    "binding": "default",
+    "carrier": "orphan_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-as-upcast-default-orphan-local": {
+   "member": "H_pw_del_as_upcast_default_orphan_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "as_upcast",
+    "binding": "default",
+    "carrier": "orphan_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0,
+     "expected": "var"
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-bang-named-unmodelled-local": {
+   "member": "H_pw_del_bang_named_unmodelled_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "bang",
+    "binding": "named",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0,
+     "expected": "var"
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-boxing-default-unmodelled-local": {
+   "member": "H_pw_del_boxing_default_unmodelled_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "boxing",
+    "binding": "default",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "boxing_conversion",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-cast-checked-params-orphan-local": {
+   "member": "H_pw_del_cast_checked_params_orphan_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "cast_checked",
+    "binding": "params",
+    "carrier": "orphan_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-cast-identity-pos-orphan-local": {
+   "member": "H_pw_del_cast_identity_pos_orphan_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "cast_identity",
+    "binding": "pos",
+    "carrier": "orphan_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0,
+     "expected": "var"
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-cast-upcast-default-unmodelled-param": {
+   "member": "H_pw_del_cast_upcast_default_unmodelled_param.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "cast_upcast",
+    "binding": "default",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-closure-default-unmodelled-local": {
+   "member": "H_pw_del_closure_default_unmodelled_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "closure",
+    "binding": "default",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "closure_capture",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0,
+     "nested_function": true
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-coalesce-default-unmodelled-local": {
+   "member": "H_pw_del_coalesce_default_unmodelled_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "coalesce",
+    "binding": "default",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-collection-default-unmodelled-local": {
+   "member": "H_pw_del_collection_default_unmodelled_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "collection",
+    "binding": "default",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "container_construction",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-cond-default-unmodelled-local": {
+   "member": "H_pw_del_cond_default_unmodelled_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "cond",
+    "binding": "default",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "q",
+     "verdict": "captured",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-member-default-unmodelled-local": {
+   "member": "H_pw_del_member_default_unmodelled_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "member",
+    "binding": "default",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "member_access_on_handle",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-method-group-default-unmodelled-local": {
+   "member": "H_pw_del_method_group_default_unmodelled_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "method_group",
+    "binding": "default",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "method_group_conversion",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-nameof-default-unmodelled-local": {
+   "member": "H_pw_del_nameof_default_unmodelled_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "nameof",
+    "binding": "default",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "nameof_operand",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-nested-default-unmodelled-local": {
+   "member": "H_pw_del_nested_default_unmodelled_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "nested",
+    "binding": "default",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var",
+     "enclosing": [
+      "nested_call_result"
+     ]
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-none-refout-record-param": {
+   "member": "H_pw_del_none_refout_record_param.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "none",
+    "binding": "refout",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-parens-params-record-local": {
+   "member": "H_pw_del_parens_params_record_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "parens",
+    "binding": "params",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {
+    "occurrence_not_captured": 1
+   },
+   "finding": "F-PARAMS-ELEMENT"
+  },
+  "pw-del-switch-default-unmodelled-local": {
+   "member": "H_pw_del_switch_default_unmodelled_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "switch",
+    "binding": "default",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "q",
+     "verdict": "captured",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-tuple-default-unmodelled-local": {
+   "member": "H_pw_del_tuple_default_unmodelled_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "tuple",
+    "binding": "default",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "tuple_construction",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-user-explicit-default-unmodelled-local": {
+   "member": "H_pw_del_user_explicit_default_unmodelled_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "user_explicit",
+    "binding": "default",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "user_conversion",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-del-user-implicit-default-unmodelled-local": {
+   "member": "H_pw_del_user_implicit_default_unmodelled_local.M",
+   "composition": {
+    "site": "del",
+    "value_flow": "user_implicit",
+    "binding": "default",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "user_conversion",
+     "site_kind": "delegate_invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-array-named-record-param": {
+   "member": "H_pw_ext_array_named_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "array",
+    "binding": "named",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "container_construction",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-as-may-fail-named-record-param": {
+   "member": "H_pw_ext_as_may_fail_named_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "as_may_fail",
+    "binding": "named",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-as-upcast-named-record-local": {
+   "member": "H_pw_ext_as_upcast_named_record_local.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "as_upcast",
+    "binding": "named",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-bang-default-record-local": {
+   "member": "H_pw_ext_bang_default_record_local.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "bang",
+    "binding": "default",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-boxing-named-record-param": {
+   "member": "H_pw_ext_boxing_named_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "boxing",
+    "binding": "named",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "boxing_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-cast-checked-named-unmodelled-param": {
+   "member": "H_pw_ext_cast_checked_named_unmodelled_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "cast_checked",
+    "binding": "named",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-cast-identity-params-record-param": {
+   "member": "H_pw_ext_cast_identity_params_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "cast_identity",
+    "binding": "params",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 1,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-cast-upcast-named-record-param": {
+   "member": "H_pw_ext_cast_upcast_named_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "cast_upcast",
+    "binding": "named",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-closure-params-record-param": {
+   "member": "H_pw_ext_closure_params_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "closure",
+    "binding": "params",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "closure_capture",
+     "site_kind": "invocation",
+     "ordinal": 1,
+     "nested_function": true
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-coalesce-named-record-param": {
+   "member": "H_pw_ext_coalesce_named_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "coalesce",
+    "binding": "named",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-collection-named-record-param": {
+   "member": "H_pw_ext_collection_named_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "collection",
+    "binding": "named",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "container_construction",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-cond-named-record-param": {
+   "member": "H_pw_ext_cond_named_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "cond",
+    "binding": "named",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "q",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-member-named-record-param": {
+   "member": "H_pw_ext_member_named_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "member",
+    "binding": "named",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "member_access_on_handle",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-method-group-params-record-param": {
+   "member": "H_pw_ext_method_group_params_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "method_group",
+    "binding": "params",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "method_group_conversion",
+     "site_kind": "invocation",
+     "ordinal": 1
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-nameof-named-record-param": {
+   "member": "H_pw_ext_nameof_named_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "nameof",
+    "binding": "named",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "nameof_operand",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-nested-named-record-param": {
+   "member": "H_pw_ext_nested_named_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "nested",
+    "binding": "named",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param",
+     "enclosing": []
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-none-named-orphan-local": {
+   "member": "H_pw_ext_none_named_orphan_local.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "none",
+    "binding": "named",
+    "carrier": "orphan_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-parens-pos-unmodelled-local": {
+   "member": "H_pw_ext_parens_pos_unmodelled_local.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "parens",
+    "binding": "pos",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-switch-named-record-param": {
+   "member": "H_pw_ext_switch_named_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "switch",
+    "binding": "named",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "q",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-tuple-named-record-param": {
+   "member": "H_pw_ext_tuple_named_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "tuple",
+    "binding": "named",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "tuple_construction",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-user-explicit-named-record-param": {
+   "member": "H_pw_ext_user_explicit_named_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "user_explicit",
+    "binding": "named",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "user_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-ext-user-implicit-params-record-param": {
+   "member": "H_pw_ext_user_implicit_params_record_param.M",
+   "composition": {
+    "site": "ext",
+    "value_flow": "user_implicit",
+    "binding": "params",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "user_conversion",
+     "site_kind": "invocation",
+     "ordinal": 1
+    }
+   ],
+   "red": {
+    "fact_without_relevant_occurrence": 1
+   },
+   "finding": "F-PARAMS-ELEMENT"
+  },
+  "pw-inv-array-pos-record-local": {
+   "member": "H_pw_inv_array_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "array",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "container_construction",
+     "site_kind": "invocation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-array-pos-unmodelled-param": {
+   "member": "H_pw_inv_array_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "array",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "container_construction",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-as-may-fail-pos-record-local": {
+   "member": "H_pw_inv_as_may_fail_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "as_may_fail",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-as-may-fail-pos-unmodelled-local": {
+   "member": "H_pw_inv_as_may_fail_pos_unmodelled_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "as_may_fail",
+    "binding": "pos",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-as-upcast-pos-unmodelled-local": {
+   "member": "H_pw_inv_as_upcast_pos_unmodelled_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "as_upcast",
+    "binding": "pos",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-as-upcast-pos-unmodelled-param": {
+   "member": "H_pw_inv_as_upcast_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "as_upcast",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-bang-params-orphan-local": {
+   "member": "H_pw_inv_bang_params_orphan_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "bang",
+    "binding": "params",
+    "carrier": "orphan_local"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {
+    "occurrence_not_captured": 1
+   },
+   "finding": "F-PARAMS-ELEMENT"
+  },
+  "pw-inv-bang-pos-unmodelled-param": {
+   "member": "H_pw_inv_bang_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "bang",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-boxing-pos-record-local": {
+   "member": "H_pw_inv_boxing_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "boxing",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "boxing_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-boxing-pos-unmodelled-param": {
+   "member": "H_pw_inv_boxing_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "boxing",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "boxing_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-cast-checked-default-record-param": {
+   "member": "H_pw_inv_cast_checked_default_record_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "cast_checked",
+    "binding": "default",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-cast-checked-pos-unmodelled-local": {
+   "member": "H_pw_inv_cast_checked_pos_unmodelled_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "cast_checked",
+    "binding": "pos",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-cast-identity-default-unmodelled-local": {
+   "member": "H_pw_inv_cast_identity_default_unmodelled_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "cast_identity",
+    "binding": "default",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-cast-identity-pos-unmodelled-param": {
+   "member": "H_pw_inv_cast_identity_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "cast_identity",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-cast-upcast-pos-record-local": {
+   "member": "H_pw_inv_cast_upcast_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "cast_upcast",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-cast-upcast-pos-unmodelled-local": {
+   "member": "H_pw_inv_cast_upcast_pos_unmodelled_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "cast_upcast",
+    "binding": "pos",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-closure-pos-record-local": {
+   "member": "H_pw_inv_closure_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "closure",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "closure_capture",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "nested_function": true
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-closure-pos-unmodelled-param": {
+   "member": "H_pw_inv_closure_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "closure",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "closure_capture",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "nested_function": true
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-coalesce-pos-record-local": {
+   "member": "H_pw_inv_coalesce_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "coalesce",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-coalesce-pos-unmodelled-param": {
+   "member": "H_pw_inv_coalesce_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "coalesce",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-collection-pos-record-local": {
+   "member": "H_pw_inv_collection_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "collection",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "container_construction",
+     "site_kind": "invocation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-collection-pos-unmodelled-param": {
+   "member": "H_pw_inv_collection_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "collection",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "container_construction",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-cond-pos-record-local": {
+   "member": "H_pw_inv_cond_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "cond",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "q",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-cond-pos-unmodelled-param": {
+   "member": "H_pw_inv_cond_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "cond",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "q",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-member-pos-record-local": {
+   "member": "H_pw_inv_member_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "member",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "member_access_on_handle",
+     "site_kind": "invocation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-member-pos-unmodelled-param": {
+   "member": "H_pw_inv_member_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "member",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "member_access_on_handle",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-method-group-pos-record-local": {
+   "member": "H_pw_inv_method_group_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "method_group",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "method_group_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-method-group-pos-unmodelled-param": {
+   "member": "H_pw_inv_method_group_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "method_group",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "method_group_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-nameof-pos-record-local": {
+   "member": "H_pw_inv_nameof_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "nameof",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "nameof_operand",
+     "site_kind": "invocation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-nameof-pos-unmodelled-param": {
+   "member": "H_pw_inv_nameof_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "nameof",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "nameof_operand",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-nested-pos-record-local": {
+   "member": "H_pw_inv_nested_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "nested",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var",
+     "enclosing": [
+      "nested_call_result"
+     ]
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-nested-pos-unmodelled-param": {
+   "member": "H_pw_inv_nested_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "nested",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param",
+     "enclosing": [
+      "nested_call_result"
+     ]
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-none-default-record-local": {
+   "member": "H_pw_inv_none_default_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "none",
+    "binding": "default",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-none-pos-record-local": {
+   "member": "H_pw_inv_none_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "none",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-none-refout-orphan-local": {
+   "member": "H_pw_inv_none_refout_orphan_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "none",
+    "binding": "refout",
+    "carrier": "orphan_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "storage_assignment"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-none-refout-unmodelled-local": {
+   "member": "H_pw_inv_none_refout_unmodelled_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "none",
+    "binding": "refout",
+    "carrier": "unmodelled_local"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-none-refout-unmodelled-param": {
+   "member": "H_pw_inv_none_refout_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "none",
+    "binding": "refout",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-parens-named-record-param": {
+   "member": "H_pw_inv_parens_named_record_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "parens",
+    "binding": "named",
+    "carrier": "record_param"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-parens-pos-unmodelled-param": {
+   "member": "H_pw_inv_parens_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "parens",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-switch-pos-record-local": {
+   "member": "H_pw_inv_switch_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "switch",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "q",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-switch-pos-unmodelled-param": {
+   "member": "H_pw_inv_switch_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "switch",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    },
+    {
+     "symbol": "q",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "opaque"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-tuple-pos-record-local": {
+   "member": "H_pw_inv_tuple_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "tuple",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "tuple_construction",
+     "site_kind": "invocation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-tuple-pos-unmodelled-param": {
+   "member": "H_pw_inv_tuple_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "tuple",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "tuple_construction",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-user-explicit-pos-record-local": {
+   "member": "H_pw_inv_user_explicit_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "user_explicit",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "user_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-user-explicit-pos-unmodelled-param": {
+   "member": "H_pw_inv_user_explicit_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "user_explicit",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "user_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-user-implicit-pos-record-local": {
+   "member": "H_pw_inv_user_implicit_pos_record_local.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "user_implicit",
+    "binding": "pos",
+    "carrier": "record_local"
+   },
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "user_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {}
+  },
+  "pw-inv-user-implicit-pos-unmodelled-param": {
+   "member": "H_pw_inv_user_implicit_pos_unmodelled_param.M",
+   "composition": {
+    "site": "inv",
+    "value_flow": "user_implicit",
+    "binding": "pos",
+    "carrier": "unmodelled_param"
+   },
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "excluded",
+     "explanation": "user_conversion",
+     "site_kind": "invocation",
+     "ordinal": 0
+    }
+   ],
+   "red": {}
+  },
+  "shadow-lambda-local": {
+   "member": "H_shadow_lambda_local.M",
+   "carrier": "guarded_functions",
+   "occurrences": [],
+   "red": {
+    "fact_binds_other_symbol": 1
+   },
+   "finding": "F-SHADOW",
+   "why": "shadowing witness: a handle created inside a lambda shares its spelling with a string local of the method; the string is not a candidate of anything (finding F-SHADOW)"
+  },
+  "shadow-owner-form": {
+   "member": "H_shadow_owner_form.M",
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    }
+   ],
+   "red": {},
+   "why": "shadowing witness (the GO's literal form): `Stream r = ...; { Stream r2 = ...; Sink(r2); }`; the non-candidate r2 is captured by nobody and the candidate r is captured by symbol"
+  },
+  "shadow-sibling-scopes": {
+   "member": "H_shadow_sibling_scopes.M",
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    }
+   ],
+   "red": {
+    "fact_binds_other_symbol": 1
+   },
+   "finding": "F-SHADOW",
+   "why": "shadowing witness: two locals spelled `r` in sibling scopes; only the first is a candidate. A handle set keyed by spelling captures the second call too (finding F-SHADOW)"
+  },
+  "shadow-sibling-scopes-reversed": {
+   "member": "H_shadow_sibling_scopes_reversed.M",
+   "carrier": "guarded_functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "var"
+    }
+   ],
+   "red": {
+    "fact_binds_other_symbol": 1
+   },
+   "finding": "F-SHADOW",
+   "why": "shadowing witness: the non-candidate `r` comes first, the candidate second; order must not matter to a symbol-bound reading (finding F-SHADOW)"
+  },
+  "vocab-constructor-initializer": {
+   "member": "H_vocab_constructor_initializer.M",
+   "member_override": ".Holder..ctor",
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "red",
+     "explanation": "unclassified_argument_shape:constructor_initializer"
+    }
+   ],
+   "red": {
+    "unclassified_argument_shape:constructor_initializer": 1
+   },
+   "finding": "F-VOCAB",
+   "why": "vocabulary edge: an owned constructor parameter forwarded through `: base(...)`, a call site that is neither an invocation nor an object creation (finding F-VOCAB)"
+  },
+  "vocab-indexer-argument": {
+   "member": "H_vocab_indexer_argument.M",
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "red",
+     "explanation": "unclassified_argument_shape:indexer_argument"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {
+    "unclassified_argument_shape:indexer_argument": 1
+   },
+   "finding": "F-VOCAB",
+   "why": "vocabulary edge: the handle is the index of an element access (finding F-VOCAB)"
+  },
+  "vocab-interpolation-hole": {
+   "member": "H_vocab_interpolation_hole.M",
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "red",
+     "explanation": "unclassified_argument_shape:interpolation_hole"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {
+    "unclassified_argument_shape:interpolation_hole": 1
+   },
+   "finding": "F-VOCAB",
+   "why": "vocabulary edge: the handle is an interpolation hole and the string is the argument (finding F-VOCAB)"
+  },
+  "vocab-tested-operand": {
+   "member": "H_vocab_tested_operand.M",
+   "carrier": "functions",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "red",
+     "explanation": "unclassified_argument_shape:tested_operand"
+    },
+    {
+     "symbol": "keep",
+     "verdict": "excluded",
+     "explanation": "receiver_not_summary_parameter"
+    }
+   ],
+   "red": {
+    "unclassified_argument_shape:tested_operand": 1
+   },
+   "finding": "F-VOCAB",
+   "why": "vocabulary edge: the handle is compared and the boolean is the argument; no frozen exclusion names a tested operand under an argument (finding F-VOCAB)"
+  }
+ }
+}
