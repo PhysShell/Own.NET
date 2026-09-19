@@ -247,16 +247,23 @@ def run() -> int:
     #
     # So the map is asserted as a map, not spot-checked.
     #
-    # `UNBOUND` is EMPTY since #259's final acceptance: §4.2's exception is
-    # closed and every coordinate-bearing path is checked by `load()`. The
-    # machinery stays rather than being deleted with its last entry, because
-    # what it enforces is that a path is *classified* — the next unbound path
-    # somebody adds must be declared here, not discovered by nobody.
+    # `UNBOUND` was EMPTY from #259's final acceptance (§4.2's exception closed,
+    # every coordinate-bearing path checked by `load()`) until P-037 A2.1, which
+    # re-opened it on purpose with exactly one entry: the guarded-fact sidecar's
+    # `site` (§5.2). The A2 staging contract makes the sidecar inert at both
+    # doors in A2.1 — `load()` never reads `functions[].guarded_facts`, and the
+    # Rust door carries it as an unknown field — so binding its coordinate here
+    # would make a producer schema-invalid on a path the door accepts, which is
+    # the first of the two defects this map exists to catch. The producer's own
+    # self-check refuses a line or column below 1. The instrument step that
+    # registers the sidecar at the doors moves this entry to BOUND; until then
+    # the machinery is doing what it was kept for: the next unbound path is
+    # declared here, not discovered by nobody.
     BOUND = {"service": ["line", "ctor_line"], "site": ["line"],
              "effect": ["line"], "binding": ["line"], "param": ["line"],
              "protocolEvent": ["line"], "resourceRecord": ["line"],
              "flowOp": ["line"]}
-    UNBOUND: dict[str, list[str]] = {}
+    UNBOUND: dict[str, list[str]] = {"sourceSite": ["line"]}
 
     # …and the map is CLOSED over the schema, which the per-member checks below
     # cannot establish on their own.

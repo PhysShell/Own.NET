@@ -2850,6 +2850,381 @@ static string CanonicalTypeName(ITypeSymbol t) => t switch
     _ => t.ToDisplayString().Replace("global::", ""),   // dynamic / error types
 };
 
+// ---- P-037 A2.1 (#304): the guarded-fact sidecar ---------------------------------------------
+//
+// `functions[].guarded_facts` is the frontend's RAW record of what flows into each relevant call
+// and what each `if` tests — the input the guarded summary engine (P-037) reads once phase B
+// wires it. In A2 it is VALIDATED AND INERT: neither engine reads it, the legacy `body` stays
+// authoritative, and a run's MOS documents and verdicts must not move when it appears
+// (docs/notes/p037-formal-kernel.md §10.3; the A2 baselines under docs/evidence are the
+// witness, the shape census under corpus/p037-shapes pins the per-shape facts).
+//
+// Two rules govern every field, both from the §10.2 freeze:
+//
+//  * Roslyn reports SOURCE facts, never P-037 interpretations. `bool_const true` is a fact;
+//    `const-pos` is an interpretation relative to the callee's ELECTED guard and belongs to
+//    the engine. `param` names the caller's own parameter by declared ordinal; whether that
+//    is an `id` or a `neg` edge is the engine's reading. No `fresh_owned` is ever written: a
+//    call result is `call_result{callee,sig}` and freshness is a summary conclusion.
+//  * Absence is the fail-closed signal. A guard that is not eligible — G-V1: a by-value
+//    boolean parameter, or the null-ness of a by-value reference parameter (the self-null
+//    split included); G-V4: the parameter is never assigned, incremented, taken by `ref`,
+//    or passed by ref/out anywhere in the body — gets NO entry, never `stable: false`, so an
+//    old producer, an unstable parameter, an unsupported predicate and unknown syntax all
+//    degrade the same way. The same stability rule decides whether an ARGUMENT that names a
+//    parameter is a `param` fact or `opaque`.
+//
+// A call is RELEVANT when a disposable local (any candidate, escaped or not: the legacy
+// escape-by-argument is the approximation a summary will refine) or an owned parameter of
+// this method flows into it, as an argument or as the receiver of a reduced extension
+// method (declared parameter 0).
+// Arguments bind BY DECLARED PARAMETER ORDINAL: a named argument resolves to its parameter,
+// a reduced extension's receiver to ordinal 0, anything bound to a `params` array collapses
+// to one `opaque` fact for that slot, an omitted optional argument has no fact, a `ref`/`out`
+// argument is `opaque` (the callee may write it). For an unresolved callee (`callee: null`)
+// the ordinal is the SOURCE position — there is no declaration to bind against, and saying
+// so beats guessing. Calls inside lambdas and local functions are not this method's calls.
+//
+// The call-site identity is the invocation expression's own start coordinate plus the
+// enclosing statement's line (`statement_line`, the coordinate the legacy body ops carry),
+// so the legacy view and this one can be joined until C+ canonicalizes them (§10.5).
+//
+// Self-check: every record is validated against this vocabulary as it is built, and one
+// malformed record makes the producer refuse to write facts at all (exit 2) — fail-loud at
+// the source, before either door is asked to notice.
+static ExpressionSyntax? StripParens(ExpressionSyntax? e)
+{
+    while (e is ParenthesizedExpressionSyntax pe)
+        e = pe.Expression;
+    return e;
+}
+
+static bool IsNullLiteral(ExpressionSyntax? e) =>
+    StripParens(e) is LiteralExpressionSyntax l && l.IsKind(SyntaxKind.NullLiteralExpression);
+
+// G-V4, whole-body write exposure (deliberately coarser than flow-sensitive, per P-037 §2):
+// a parameter is STABLE when nothing in the method body can change the value it entered
+// with — no assignment (plain, compound, or deconstructing), no ++/--, no `ref`/`out`
+// argument, no `ref` alias, no address taken. A write inside a lambda counts: the closure
+// may run before the read.
+static bool ParameterIsStable(IParameterSymbol p, SyntaxNode body, SemanticModel model)
+{
+    bool Refers(ExpressionSyntax? e) =>
+        StripParens(e) is IdentifierNameSyntax id
+        && SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, p);
+    foreach (var n in body.DescendantNodes())
+    {
+        switch (n)
+        {
+            case AssignmentExpressionSyntax a:
+                if (Refers(a.Left))
+                    return false;
+                if (a.Left is TupleExpressionSyntax
+                    && a.Left.DescendantNodes().OfType<IdentifierNameSyntax>().Any(id => Refers(id)))
+                    return false;
+                break;
+            case PrefixUnaryExpressionSyntax u when u.IsKind(SyntaxKind.PreIncrementExpression)
+                                                  || u.IsKind(SyntaxKind.PreDecrementExpression)
+                                                  || u.IsKind(SyntaxKind.AddressOfExpression):
+                if (Refers(u.Operand))
+                    return false;
+                break;
+            case PostfixUnaryExpressionSyntax u when u.IsKind(SyntaxKind.PostIncrementExpression)
+                                                   || u.IsKind(SyntaxKind.PostDecrementExpression):
+                if (Refers(u.Operand))
+                    return false;
+                break;
+            case ArgumentSyntax arg when arg.RefKindKeyword.IsKind(SyntaxKind.RefKeyword)
+                                         || arg.RefKindKeyword.IsKind(SyntaxKind.OutKeyword):
+                if (Refers(arg.Expression))
+                    return false;
+                break;
+            case RefExpressionSyntax r:
+                if (Refers(r.Expression))
+                    return false;
+                break;
+        }
+    }
+    return true;
+}
+
+static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax mbody,
+                                 HashSet<string> handles, HashSet<string> ownedParamNames,
+                                 SemanticModel model, string where)
+{
+    var self = model.GetDeclaredSymbol(method) as IMethodSymbol;
+    var stability = new Dictionary<IParameterSymbol, bool>(SymbolEqualityComparer.Default);
+
+    IParameterSymbol? OwnParam(ExpressionSyntax? e) =>
+        StripParens(e) is IdentifierNameSyntax id
+        && model.GetSymbolInfo(id).Symbol is IParameterSymbol p
+        && self is not null
+        && SymbolEqualityComparer.Default.Equals(p.ContainingSymbol, self)
+        && p.RefKind == RefKind.None
+            ? p : null;
+
+    bool Stable(IParameterSymbol p)
+    {
+        if (!stability.TryGetValue(p, out var known))
+            stability[p] = known = ParameterIsStable(p, mbody, model);
+        return known;
+    }
+
+    // One argument expression -> one raw fact, plus whether a HANDLE of this method flowed.
+    (Dictionary<string, object?> fact, bool handle) ArgFact(ExpressionSyntax? raw)
+    {
+        var e = StripParens(raw);
+        switch (e)
+        {
+            case LiteralExpressionSyntax lit when lit.IsKind(SyntaxKind.TrueLiteralExpression):
+                return (new() { ["kind"] = "bool_const", ["value"] = true }, false);
+            case LiteralExpressionSyntax lit when lit.IsKind(SyntaxKind.FalseLiteralExpression):
+                return (new() { ["kind"] = "bool_const", ["value"] = false }, false);
+            case LiteralExpressionSyntax lit when lit.IsKind(SyntaxKind.NullLiteralExpression):
+                return (new() { ["kind"] = "null_literal" }, false);
+            case ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax:
+                return (new() { ["kind"] = "object_creation" }, false);
+            case PrefixUnaryExpressionSyntax u when u.IsKind(SyntaxKind.LogicalNotExpression):
+                if (OwnParam(u.Operand) is { } np
+                    && np.Type.SpecialType == SpecialType.System_Boolean && Stable(np))
+                    return (new() { ["kind"] = "param", ["source_param"] = np.Ordinal,
+                                    ["negated"] = true }, false);
+                return (new() { ["kind"] = "opaque" }, false);
+            case IdentifierNameSyntax id:
+                if (OwnParam(id) is { } sp)
+                {
+                    if (!Stable(sp))
+                        return (new() { ["kind"] = "opaque" }, false);
+                    return (new() { ["kind"] = "param", ["source_param"] = sp.Ordinal },
+                            ownedParamNames.Contains(sp.Name));
+                }
+                if (model.GetSymbolInfo(id).Symbol is ILocalSymbol
+                    && handles.Contains(id.Identifier.Text))
+                    return (new() { ["kind"] = "var", ["name"] = id.Identifier.Text }, true);
+                return (new() { ["kind"] = "opaque" }, false);
+            case InvocationExpressionSyntax cinv:
+                if (model.GetSymbolInfo(cinv).Symbol is IMethodSymbol cm
+                    && cm.MethodKind != MethodKind.DelegateInvoke)
+                    return (new() { ["kind"] = "call_result",
+                                    ["callee"] = $"{cm.ContainingType.ToDisplayString()}.{cm.Name}",
+                                    ["sig"] = CanonicalSig(cm) }, false);
+                return (new() { ["kind"] = "opaque" }, false);
+            default:
+                return (new() { ["kind"] = "opaque" }, false);
+        }
+    }
+
+    // Lambdas and local functions are not this method's calls (the legacy pass treats a
+    // capture as an escape for the same reason), so their subtrees are not descended.
+    static bool InThisMethod(SyntaxNode n) =>
+        n is not (AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax);
+
+    var calls = new List<Dictionary<string, object?>>();
+    foreach (var inv in mbody.DescendantNodes(InThisMethod).OfType<InvocationExpressionSyntax>())
+    {
+        if (inv.Expression is IdentifierNameSyntax { Identifier.Text: "nameof" }
+            && model.GetSymbolInfo(inv).Symbol is null)
+            continue;   // `nameof(s)` is not a call
+        var sym = model.GetSymbolInfo(inv).Symbol as IMethodSymbol;
+        var decl = sym is null ? null : (sym.ReducedFrom ?? sym);
+        var reduced = sym?.ReducedFrom is not null;
+        var facts = new SortedDictionary<int, Dictionary<string, object?>>();
+        var relevant = false;
+
+        void Bind(int ordinal, Dictionary<string, object?> fact, bool handle)
+        {
+            // Two arguments on one ordinal can only be a `params` expansion: one opaque slot.
+            if (facts.ContainsKey(ordinal))
+                fact = new() { ["kind"] = "opaque" };
+            facts[ordinal] = fact;
+            relevant |= handle;
+        }
+
+        if (reduced && inv.Expression is MemberAccessExpressionSyntax ma)
+        {
+            var (rf, rh) = ArgFact(ma.Expression);
+            Bind(0, rf, rh);
+        }
+        var args = inv.ArgumentList.Arguments;
+        for (var i = 0; i < args.Count; i++)
+        {
+            int ordinal;
+            IParameterSymbol? bound = null;
+            if (decl is not null)
+            {
+                if (args[i].NameColon is { } nc)
+                    bound = decl.Parameters.FirstOrDefault(q => q.Name == nc.Name.Identifier.Text);
+                else
+                {
+                    var pos = i + (reduced ? 1 : 0);
+                    bound = pos < decl.Parameters.Length
+                        ? decl.Parameters[pos]
+                        : decl.Parameters.LastOrDefault(q => q.IsParams);
+                }
+                if (bound is null)
+                    continue;   // nothing to bind against (a name Roslyn could not resolve)
+                ordinal = bound.Ordinal;
+            }
+            else
+                ordinal = i;    // unresolved callee: source position, and the record says so
+            var refOrOut = args[i].RefKindKeyword.IsKind(SyntaxKind.RefKeyword)
+                           || args[i].RefKindKeyword.IsKind(SyntaxKind.OutKeyword);
+            if (refOrOut || bound is { IsParams: true })
+                Bind(ordinal, new() { ["kind"] = "opaque" }, false);
+            else
+            {
+                var (af, ah) = ArgFact(args[i].Expression);
+                Bind(ordinal, af, ah);
+            }
+        }
+        if (!relevant)
+            continue;
+
+        var target = inv.Parent is AwaitExpressionSyntax aw ? (SyntaxNode)aw : inv;
+        var form = target.Parent switch
+        {
+            ExpressionStatementSyntax => "statement",
+            EqualsValueClauseSyntax => "initializer",
+            _ => "expression",
+        };
+        var pos0 = PosOf(inv);
+        var statement = inv.FirstAncestorOrSelf<StatementSyntax>();
+        var record = new Dictionary<string, object?>
+        {
+            ["site"] = new Dictionary<string, object?> { ["line"] = pos0.Line, ["column"] = pos0.Column },
+            ["statement_line"] = statement is null ? pos0.Line : LineOf(statement),
+            ["form"] = form,
+            ["callee"] = sym is null ? null : $"{sym.ContainingType.ToDisplayString()}.{sym.Name}",
+            ["sig"] = sym is null ? null : CanonicalSig(sym),
+            ["first_party"] = decl is not null && decl.DeclaringSyntaxReferences.Length > 0,
+            ["args"] = facts.Select(kv =>
+            {
+                var f = new Dictionary<string, object?> { ["param"] = kv.Key };
+                foreach (var (k, v) in kv.Value)
+                    f[k] = v;
+                return f;
+            }).ToList(),
+        };
+        calls.Add(record);
+    }
+
+    var guards = new List<Dictionary<string, object?>>();
+    foreach (var ifs in mbody.DescendantNodes(InThisMethod).OfType<IfStatementSyntax>())
+    {
+        var cond = StripParens(ifs.Condition);
+        IParameterSymbol? gp = null;
+        string? predicate = null;
+        var negated = false;
+        switch (cond)
+        {
+            case IdentifierNameSyntax:
+                gp = OwnParam(cond);
+                predicate = "truth";
+                break;
+            case PrefixUnaryExpressionSyntax u when u.IsKind(SyntaxKind.LogicalNotExpression):
+                gp = OwnParam(u.Operand);
+                predicate = "truth";
+                negated = true;
+                break;
+            case BinaryExpressionSyntax b when b.IsKind(SyntaxKind.EqualsExpression)
+                                              || b.IsKind(SyntaxKind.NotEqualsExpression):
+                var side = IsNullLiteral(b.Right) ? b.Left : IsNullLiteral(b.Left) ? b.Right : null;
+                gp = OwnParam(side);
+                predicate = b.IsKind(SyntaxKind.EqualsExpression) ? "is_null" : "not_null";
+                break;
+            case IsPatternExpressionSyntax ip:
+                gp = OwnParam(ip.Expression);
+                predicate = ip.Pattern switch
+                {
+                    ConstantPatternSyntax cp when IsNullLiteral(cp.Expression) => "is_null",
+                    UnaryPatternSyntax { Pattern: ConstantPatternSyntax ncp } up
+                        when up.IsKind(SyntaxKind.NotPattern) && IsNullLiteral(ncp.Expression) => "not_null",
+                    _ => null,
+                };
+                break;
+        }
+        if (gp is null || predicate is null)
+            continue;
+        var typeFits = predicate == "truth"
+            ? gp.Type.SpecialType == SpecialType.System_Boolean
+            : gp.Type.IsReferenceType
+              || gp.Type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T };
+        if (!typeFits || !Stable(gp))
+            continue;   // not eligible: no entry, by design
+        var gpos = PosOf(ifs);
+        guards.Add(new Dictionary<string, object?>
+        {
+            ["site"] = new Dictionary<string, object?> { ["line"] = gpos.Line, ["column"] = gpos.Column },
+            ["param"] = gp.Ordinal,
+            ["predicate"] = predicate,
+            ["negated"] = negated,
+        });
+    }
+
+    if (calls.Count == 0 && guards.Count == 0)
+        return null;
+    ValidateGuardedFacts(calls, guards, where);
+    return new Dictionary<string, object?> { ["version"] = 1, ["calls"] = calls, ["guards"] = guards };
+}
+
+// The producer's own conformance check of one sidecar against the vocabulary above. Records a
+// message per violation; the run refuses to write facts if any was recorded.
+static void ValidateGuardedFacts(List<Dictionary<string, object?>> calls,
+                                 List<Dictionary<string, object?>> guards, string where)
+{
+    void Fail(string what) => GuardedFactsViolations.Add($"{where}: {what}");
+    static bool Coord(object? site) =>
+        site is Dictionary<string, object?> d
+        && d.TryGetValue("line", out var l) && l is int li && li >= 1
+        && d.TryGetValue("column", out var c) && c is int ci && ci >= 1;
+    foreach (var call in calls)
+    {
+        if (!Coord(call.GetValueOrDefault("site")))
+            Fail("call site without a 1-based line/column");
+        if (call.GetValueOrDefault("form") is not string form || !CallForms.Contains(form))
+            Fail("call with an unknown form");
+        if (call.GetValueOrDefault("callee") is not (null or string))
+            Fail("call with a non-string callee");
+        if (call.GetValueOrDefault("args") is not List<Dictionary<string, object?>> args || args.Count == 0)
+        {
+            Fail("call without arguments (a relevant call binds at least one handle)");
+            continue;
+        }
+        var last = -1;
+        foreach (var arg in args)
+        {
+            if (arg.GetValueOrDefault("param") is not int ordinal || ordinal <= last)
+                Fail("call arguments are not bound to strictly ascending declared ordinals");
+            else
+                last = ordinal;
+            var kind = arg.GetValueOrDefault("kind") as string;
+            if (kind is null || !GuardedArgKinds.Contains(kind))
+                Fail($"argument of unknown kind {kind ?? "<none>"}");
+            else if (kind == "bool_const" && arg.GetValueOrDefault("value") is not bool)
+                Fail("bool_const without a boolean value");
+            else if (kind == "param" && arg.GetValueOrDefault("source_param") is not int)
+                Fail("param fact without a source_param ordinal");
+            else if (kind == "var" && arg.GetValueOrDefault("name") is not string { Length: > 0 })
+                Fail("var fact without a name");
+            else if (kind == "call_result"
+                     && (arg.GetValueOrDefault("callee") is not string { Length: > 0 }
+                         || arg.GetValueOrDefault("sig") is not string))
+                Fail("call_result without callee/sig");
+        }
+    }
+    foreach (var guard in guards)
+    {
+        if (!Coord(guard.GetValueOrDefault("site")))
+            Fail("guard site without a 1-based line/column");
+        if (guard.GetValueOrDefault("param") is not int gp || gp < 0)
+            Fail("guard without a parameter ordinal");
+        if (guard.GetValueOrDefault("predicate") is not string pred || !GuardPredicates.Contains(pred))
+            Fail("guard with an unknown predicate");
+        if (guard.GetValueOrDefault("negated") is not bool)
+            Fail("guard without a negated flag");
+    }
+}
+
 // P-005 D5.4 (T4 wrap/adopt): the set of OWNING fields a first-party type disposes
 // UNCONDITIONALLY in its `Dispose()` — i.e. a `_f.Dispose()` / `_f?.Dispose()` /
 // `this._f.Dispose()` that is a TOP-LEVEL statement of the Dispose body (not nested in an
@@ -6720,14 +7095,26 @@ foreach (var (file, tree) in parsed)
                 var fsig = model.GetDeclaredSymbol(method) is IMethodSymbol sigsym
                     ? CanonicalSig(sigsym)
                     : null;
-                flowFunctions.Add(
-                    (fsig, ownedParams.Count > 0) switch
-                    {
-                        (not null, true) => new { name = fname, file, sig = fsig, @params = ownedParams, body = fbody },
-                        (not null, false) => (object)new { name = fname, file, sig = fsig, body = fbody },
-                        (null, true) => new { name = fname, file, @params = ownedParams, body = fbody },
-                        (null, false) => new { name = fname, file, body = fbody },
-                    });
+                // P-037 A2.1 (#304): the guarded-fact sidecar — raw call-argument and guard
+                // facts, keyed by declared parameter ordinal, VALIDATED AND INERT in A2 (the
+                // legacy `body` stays authoritative; see BuildGuardedFacts). It rides only
+                // when this method has a relevant call or an eligible guard, so every other
+                // record keeps the shape it had. Key order is fixed (name, file, sig, params,
+                // body, guarded_facts): the two doors read by name, the fact digest by bytes.
+                // Handles for the sidecar are the disposable CANDIDATES, not the post-escape
+                // `tracked` set: a local the legacy pass untracked because it was handed to a
+                // non-consuming callee is exactly the handle whose flow a summary refines.
+                var guardedFacts = BuildGuardedFacts(method, mbody, candidates, ownedParamNames,
+                                                     model, fname);
+                var record = new Dictionary<string, object?> { ["name"] = fname, ["file"] = file };
+                if (fsig is not null)
+                    record["sig"] = fsig;
+                if (ownedParams.Count > 0)
+                    record["params"] = ownedParams;
+                record["body"] = fbody;
+                if (guardedFacts is not null)
+                    record["guarded_facts"] = guardedFacts;
+                flowFunctions.Add(record);
             }
 
         if (subs.Count > 0)
@@ -6789,6 +7176,16 @@ object facts = emitFixCandidates
         functions = flowFunctions,
         stats = factStats,
     };
+// P-037 A2.1: a sidecar record that does not satisfy its own vocabulary is a producer
+// defect, and a producer defect must not become a facts file. Refuse the whole run
+// (exit 2, the launcher's "extraction failed, no verdict was produced" tier) rather
+// than hand either door a document one half of which is wrong.
+if (GuardedFactsViolations.Count > 0)
+{
+    foreach (var violation in GuardedFactsViolations)
+        Console.Error.WriteLine($"extractor: guarded_facts self-check failed: {violation}");
+    return 2;
+}
 var json = JsonSerializer.Serialize(facts, new JsonSerializerOptions { WriteIndented = true });
 
 if (reportStats)
@@ -6813,6 +7210,21 @@ partial class Program
     // would otherwise dodge the ancestor-walk weaver check (the FodyWeavers.xml lives next
     // to the .csproj, not above the linked file).
     internal static readonly HashSet<string> WeaverOwnedFiles = new(StringComparer.Ordinal);
+
+    // P-037 A2.1: violations of the guarded-fact sidecar's own vocabulary, collected while
+    // records are built and turned into a refusal to write facts at all (see the check
+    // before serialization). A list rather than a throw so the message names every
+    // offending site of a run, not only the first.
+    internal static readonly List<string> GuardedFactsViolations = new();
+
+    // The sidecar's closed vocabularies (spec/ownir.schema.json $defs/guardedArg etc. mirror
+    // these; tests/test_p037_sidecar.py pins the two against each other).
+    internal static readonly HashSet<string> GuardedArgKinds = new(StringComparer.Ordinal)
+        { "var", "param", "bool_const", "null_literal", "object_creation", "call_result", "opaque" };
+    internal static readonly HashSet<string> GuardPredicates = new(StringComparer.Ordinal)
+        { "truth", "not_null", "is_null" };
+    internal static readonly HashSet<string> CallForms = new(StringComparer.Ordinal)
+        { "statement", "initializer", "expression" };
 
     // #317: a 1-based source coordinate, carried as ONE value so a line and a column can
     // never drift onto different nodes. See RangeOf/PosOf/LineOf above — those are the only

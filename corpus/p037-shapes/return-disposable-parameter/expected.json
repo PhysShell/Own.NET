@@ -3,6 +3,31 @@
   "shape": "return-disposable-parameter",
   "status": "anchored",
   "why": "A1.1-a1 REGRESSION ANCHOR. Putting owned parameters into the lowering set made `return s` lower as a fresh-factory return, and the core read a fresh return of something it never saw acquired as an escaping borrow: [OWN004] 'parg_N' is a borrow and cannot be returned. Six CI jobs, and the 137-file verdict corpus never saw it, because no corpus case returns its own disposable parameter. The recorded facts pin the fix: Echo's `return` carries var=None. What the return really is, is an ALIAS of the parameter; OwnIR reserves `aliasOf`/`aliased` and has never emitted them, so the frontend claims no owned return rather than asserting a false kind. If this record ever shows `return:s`, the alias gap has been filled by accident instead of on purpose.",
+  "a2_landed": "A2.1 landed the guarded-fact SIDECAR (`guarded_facts`, spec/OwnIR.md §5.2), not a body op: the legacy `body` stays authoritative through A2 and C+ canonicalizes the two views (docs/notes/p037-formal-kernel.md §10.3/§10.5). The `a2_expect` entries are this shape's contract, checked by name; `facts` pins the whole record byte for byte.",
+  "a2_expect": [
+    {
+      "function": "ShapeReturnParam.Echo",
+      "guarded_facts": "absent"
+    },
+    {
+      "function": "ShapeReturnParam.Use",
+      "call": {
+        "site": {
+          "line": 24
+        },
+        "form": "initializer",
+        "callee": "ShapeReturnParam.Echo",
+        "sig": "System.IO.Stream",
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "owned"
+          }
+        ]
+      }
+    }
+  ],
   "measured_at": "464308b",
   "facts": {
     "ShapeReturnParam.Echo": {
@@ -15,14 +40,39 @@
       "body": [
         "use:s@18",
         "return:None@18"
-      ]
+      ],
+      "guarded_facts": null
     },
     "ShapeReturnParam.Use": {
       "params": null,
       "body": [
         "call:ShapeReturnParam.Echo@24[args=[]]",
         "release:same@25"
-      ]
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 24,
+              "column": 20
+            },
+            "statement_line": 24,
+            "form": "initializer",
+            "callee": "ShapeReturnParam.Echo",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "owned"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
     }
   },
   "verdict": {

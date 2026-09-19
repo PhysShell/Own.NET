@@ -1,9 +1,34 @@
 {
   "schema": "p037-fact-shape/1",
   "shape": "guard-mutated",
-  "status": "pending_a2",
+  "status": "anchored",
   "why": "The guard parameter is WRITTEN before the branch reads it, so its entry value no longer decides anything. Recorded verdict today: a false OWN003 — the same defect the gv4-control-mutated-guard control carries, reproduced here in minimal form and independently of it.",
   "a2_contract": "G-V4 fails closed: NOT eligible, therefore NO guard metadata on the `if`. Absence is the signal. The frontend must not emit `\"stable\": false` — an old producer, an unstable parameter, an unsupported predicate and unknown syntax all have to degrade the same way, and one of them will always be `a producer that predates this field`.",
+  "a2_landed": "A2.1 landed the guarded-fact SIDECAR (`guarded_facts`, spec/OwnIR.md §5.2), not a body op: the legacy `body` stays authoritative through A2 and C+ canonicalizes the two views (docs/notes/p037-formal-kernel.md §10.3/§10.5). The `a2_expect` entries are this shape's contract, checked by name; `facts` pins the whole record byte for byte.",
+  "a2_expect": [
+    {
+      "function": "ShapeMutatedGuard.Inner",
+      "guarded_facts": "absent"
+    },
+    {
+      "function": "ShapeMutatedGuard.Caller",
+      "call": {
+        "callee": "ShapeMutatedGuard.Inner",
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "r"
+          },
+          {
+            "param": 1,
+            "kind": "bool_const",
+            "value": true
+          }
+        ]
+      }
+    }
+  ],
   "measured_at": "464308b",
   "facts": {
     "ShapeMutatedGuard.Inner": {
@@ -16,7 +41,8 @@
       "body": [
         "if:None@13",
         "then:release:p@15"
-      ]
+      ],
+      "guarded_facts": null
     },
     "ShapeMutatedGuard.Caller": {
       "params": null,
@@ -24,7 +50,36 @@
         "acquire:r@21",
         "release:r@22",
         "release:r@23"
-      ]
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 22,
+              "column": 9
+            },
+            "statement_line": 22,
+            "form": "statement",
+            "callee": "ShapeMutatedGuard.Inner",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
     }
   },
   "verdict": {
@@ -34,5 +89,9 @@
     "python": [
       "OWN003:warning@21"
     ]
-  }
+  },
+  "status_history": [
+    "pending_a2 (recorded at 464308b)",
+    "anchored (A2.1 sidecar)"
+  ]
 }

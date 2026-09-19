@@ -98,6 +98,9 @@ def observe_facts(case: Path) -> dict[str, Any]:
         fn["name"]: {
             "params": fn.get("params"),
             "body": flatten(fn.get("body", [])),
+            # P-037 A2.1: the guarded-fact sidecar, whole. It is the fact surface a2
+            # exists to add, so it is pinned per shape exactly like the body ops.
+            "guarded_facts": fn.get("guarded_facts"),
         }
         for fn in doc.get("functions", [])
     }
@@ -118,6 +121,53 @@ def observe_verdict(case: Path, engine: str) -> list[str]:
             line = loc.get("physicalLocation", {}).get("region", {}).get("startLine", 0)
             out.append(f"{r.get('ruleId')}:{r.get('level')}@{line}")
     return sorted(out)
+
+
+def _subset(expected: Any, observed: Any) -> bool:
+    """`expected` is contained in `observed`: dicts by key, lists element-wise, scalars ==."""
+    if isinstance(expected, dict):
+        return isinstance(observed, dict) and all(
+            k in observed and _subset(v, observed[k]) for k, v in expected.items())
+    if isinstance(expected, list):
+        return (isinstance(observed, list) and len(expected) == len(observed)
+                and all(_subset(e, o) for e, o in zip(expected, observed, strict=True)))
+    return bool(expected == observed)
+
+
+def a2_problems(spec: dict[str, Any], facts: dict[str, Any]) -> list[str]:
+    """The a2 CONTRACT of a shape, checked by name rather than by blob equality.
+
+    `facts` already pins the whole sidecar byte for byte; `a2_expect` states what
+    the contract prose promised, so a shape that drifts fails with the promise
+    it broke in the message, not with a JSON diff someone has to interpret.
+    """
+    problems: list[str] = []
+    for exp in spec.get("a2_expect", []):
+        fn = exp.get("function")
+        rec = facts.get(fn) if isinstance(fn, str) else None
+        if rec is None:
+            problems.append(f"{fn}: no function record")
+            continue
+        gf = rec.get("guarded_facts")
+        if exp.get("guarded_facts") == "absent":
+            if gf is not None:
+                problems.append(
+                    f"{fn}: expected NO guarded_facts (absence is the signal), got some")
+            continue
+        if exp.get("guards") == "absent" and gf is not None and gf.get("guards"):
+            problems.append(f"{fn}: expected no eligible guard, got {gf.get('guards')}")
+        if exp.get("calls") == "absent" and gf is not None and gf.get("calls"):
+            problems.append(f"{fn}: expected no relevant call, got {gf.get('calls')}")
+        for key, want in (("call", exp.get("call")), ("guard", exp.get("guard"))):
+            if want is None:
+                continue
+            pool = (gf or {}).get(key + "s") or []
+            hits = [c for c in pool if _subset(want, c)]
+            if len(hits) != 1:
+                problems.append(
+                    f"{fn}: expected exactly one {key} matching {json.dumps(want)}, "
+                    f"found {len(hits)} in {json.dumps(pool)}")
+    return problems
 
 
 def cases(only: set[str]) -> list[Path]:
@@ -172,8 +222,15 @@ def check(only: set[str], engines: list[str]) -> int:
                 ok = False
                 print(f"VERDICT MOVED  {c.name}  [{tag}] engine={e}: "
                       f"recorded {want}, observed {got}")
+        contract = a2_problems(spec, facts)
+        for problem in contract:
+            print(f"    a2 contract: {problem}")
+        if contract:
+            ok = False
+            failures += 1
         if ok:
-            print(f"ok  {c.name:28} [{tag}] {len(facts)} record(s)")
+            print(f"ok  {c.name:28} [{tag}] {len(facts)} record(s), "
+                  f"{len(spec.get('a2_expect', []))} contract check(s)")
     total = len(cases(only))
     if failures:
         print(f"\nRESULT: {failures} difference(s) over {total} shape(s). A shape that "

@@ -1,9 +1,38 @@
 {
   "schema": "p037-fact-shape/1",
   "shape": "guard-forward-bare",
-  "status": "pending_a2",
+  "status": "anchored",
   "why": "A wrapper forwarding its own flag unchanged. Today `Outer`'s body shows a fabricated `release` where the forward belongs, so the wrapper enters the summary layer as an unconditional consumer — the may-as-must flattening, now visible INSIDE the summaries rather than only at the call site.",
   "a2_contract": "{\"param\":1,\"kind\":\"param\",\"source_param\":1}; Rust reads the `id` edge.",
+  "a2_landed": "A2.1 landed the guarded-fact SIDECAR (`guarded_facts`, spec/OwnIR.md §5.2), not a body op: the legacy `body` stays authoritative through A2 and C+ canonicalizes the two views (docs/notes/p037-formal-kernel.md §10.3/§10.5). The `a2_expect` entries are this shape's contract, checked by name; `facts` pins the whole record byte for byte.",
+  "a2_expect": [
+    {
+      "function": "ShapeForwardBare.Outer",
+      "call": {
+        "callee": "ShapeForwardBare.Inner",
+        "args": [
+          {
+            "param": 0,
+            "kind": "param",
+            "source_param": 0
+          },
+          {
+            "param": 1,
+            "kind": "param",
+            "source_param": 1
+          }
+        ]
+      }
+    },
+    {
+      "function": "ShapeForwardBare.Inner",
+      "guard": {
+        "param": 1,
+        "predicate": "truth",
+        "negated": true
+      }
+    }
+  ],
   "measured_at": "464308b",
   "facts": {
     "ShapeForwardBare.Inner": {
@@ -16,7 +45,22 @@
       "body": [
         "if:None@9",
         "then:release:s@11"
-      ]
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 9,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
     },
     "ShapeForwardBare.Outer": {
       "params": [
@@ -27,11 +71,44 @@
       ],
       "body": [
         "release:s@17"
-      ]
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 17,
+              "column": 9
+            },
+            "statement_line": 17,
+            "form": "statement",
+            "callee": "ShapeForwardBare.Inner",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "param",
+                "source_param": 1
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
     }
   },
   "verdict": {
     "rust": [],
     "python": []
-  }
+  },
+  "status_history": [
+    "pending_a2 (recorded at 464308b)",
+    "anchored (A2.1 sidecar)"
+  ]
 }
