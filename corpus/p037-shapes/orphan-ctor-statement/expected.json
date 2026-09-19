@@ -1,0 +1,68 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "orphan-ctor-statement",
+  "status": "anchored",
+  "why": "P-037 A2.2-3P (formal note §10.6.6, the orphan carrier): a discarded constructor call has no legacy record and is carried as an orphan. A row that moves without a step meaning to move it is a regression.",
+  "a2_expect": [
+    {
+      "function": "ShapeOrphanCtorStatement.Caller",
+      "carrier": "guarded_functions",
+      "call": {
+        "call_kind": "object_creation",
+        "callee": "ShapeOrphanCtorStatement.Wrapper..ctor",
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "s"
+          },
+          {
+            "param": 1,
+            "kind": "bool_const",
+            "value": true
+          }
+        ]
+      }
+    }
+  ],
+  "facts": {
+    "ShapeOrphanCtorStatement.Caller": {
+      "carrier": "guarded_functions",
+      "sig": "System.String",
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 9,
+              "column": 68
+            },
+            "statement_line": 9,
+            "form": "statement",
+            "callee": "ShapeOrphanCtorStatement.Wrapper..ctor",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "s"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              }
+            ],
+            "call_kind": "object_creation"
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

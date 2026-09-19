@@ -1,0 +1,59 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "orphan-nested-inner-call",
+  "status": "anchored",
+  "why": "P-037 A2.2-3P (formal note §10.6.6, the orphan carrier): the inner call of a nested flow is the orphan's fact; the outer call gets none. A row that moves without a step meaning to move it is a regression.",
+  "a2_expect": [
+    {
+      "function": "ShapeOrphanNestedInnerCall.Caller",
+      "carrier": "guarded_functions",
+      "call": {
+        "callee": "ShapeOrphanNestedInnerCall.Wrap",
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "s"
+          }
+        ]
+      },
+      "call_absent": {
+        "callee": "ShapeOrphanNestedInnerCall.Use"
+      }
+    }
+  ],
+  "facts": {
+    "ShapeOrphanNestedInnerCall.Caller": {
+      "carrier": "guarded_functions",
+      "sig": "System.String",
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 11,
+              "column": 72
+            },
+            "statement_line": 11,
+            "form": "expression",
+            "callee": "ShapeOrphanNestedInnerCall.Wrap",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "s"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

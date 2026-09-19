@@ -50,7 +50,12 @@ landed: the object_creation row reads `sidecar_call:object_creation` in
 `a2_2_2_observed`; A2.2-2b re-shaped the delegate_invocation row with a record
 to `sidecar_call:delegate_invocation` (A' had captured it as a plain invocation
 of the delegate's `Invoke`, which the coarse vocabulary could not see), and the
-local-handle delegate row stays `no_record` at every step.
+local-handle delegate row stays `no_record` at every step. A2.2-3P landed: the
+orphan carrier `guarded_functions[]` delivers the facts of the methods the legacy
+pass never admitted; `a2_2_3p_observed` reads `orphan_call` for PlainSame and the
+inner call of Nested, `orphan_call:delegate_invocation` for the local-handle
+delegate row, and stays `no_record` only where the sole occurrence is a named
+exclusion (Tuple, Closure, UserConversion, Indexer): no fact exists to carry.
 
 Only an A2.2 step, deliberately, one row at a time: a transparent wrapper
 becomes `captured` in A2.2-1, a call-like form in A2.2-2, an orphan record

@@ -1,0 +1,137 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "orphan-disjoint-from-records",
+  "status": "anchored",
+  "why": "P-037 A2.2-3P (formal note §10.6.6, the orphan carrier): a recorded method and an orphan in one file live in exactly one carrier each. A row that moves without a step meaning to move it is a regression.",
+  "a2_expect": [
+    {
+      "function": "ShapeOrphanDisjointFromRecords.Recorded",
+      "call": {
+        "callee": "ShapeOrphanDisjointFromRecords.Inner",
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "s"
+          },
+          {
+            "param": 1,
+            "kind": "bool_const",
+            "value": true
+          }
+        ]
+      }
+    },
+    {
+      "function": "ShapeOrphanDisjointFromRecords.Orphan",
+      "carrier": "guarded_functions",
+      "call": {
+        "callee": "ShapeOrphanDisjointFromRecords.Same",
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "s"
+          }
+        ]
+      }
+    }
+  ],
+  "facts": {
+    "ShapeOrphanDisjointFromRecords.Inner": {
+      "params": [
+        {
+          "name": "s",
+          "line": 9
+        }
+      ],
+      "body": [
+        "if:None@9",
+        "then:release:s@9"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 9,
+              "column": 51
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    "ShapeOrphanDisjointFromRecords.Recorded": {
+      "params": null,
+      "body": [
+        "acquire:s@11",
+        "release:s@11"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 11,
+              "column": 70
+            },
+            "statement_line": 11,
+            "form": "statement",
+            "callee": "ShapeOrphanDisjointFromRecords.Inner",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "s"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    "ShapeOrphanDisjointFromRecords.Orphan": {
+      "carrier": "guarded_functions",
+      "sig": "System.String",
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 12,
+              "column": 68
+            },
+            "statement_line": 12,
+            "form": "statement",
+            "callee": "ShapeOrphanDisjointFromRecords.Same",
+            "sig": "System.IO.FileStream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "s"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

@@ -995,13 +995,30 @@ entry `{name, file, sig, guarded_facts}`, under a strict contract:
   method).
 
 Classification: §10.1 case 3, a previously unrepresented fact shape; no
-semantics move. Sequencing, the same as 10.6.0: the doors' validation of both
-carriers lands in the instrument step that registers the sidecar; until then
-the carrier is unknown-but-carried at both doors and the inertness control is
-extended to the top level. Phase B builds one guarded-method view from
-`functions[].guarded_facts` plus `guarded_functions[].guarded_facts`; C+
-canonicalizes this temporary double carrier together with the rest of the
-double representation.
+semantics move.
+
+**Sequencing (OWNER RULING, a §10.1 case-4 clarification recorded before the
+carrier was implemented).** The first freeze said "validated by both doors"
+and "door validation lands in the instrument step" in one breath, while A2.2-S
+promises a comparison against the existing R; the three cannot all hold. The
+ruling splits the carrier into two explicit stages:
+
+- **A2.2-3P, orphan carrier production.** `guarded_functions[]` is a declared
+  producer/schema fact shape; the producer validates it fail-loud; the Python
+  and Rust doors carry it as additive unknown metadata; both lowerers ignore
+  it; NO instrument change; the existing T and R stay valid.
+- **A2.2-D, door registration.** `guarded_facts` and `guarded_functions`
+  become KNOWN, fail-loud vocabulary on both doors, still semantically inert.
+  This is the instrument change, it opens a new T/R round, and it comes only
+  after A2.2-S. Phase B may start only after A2.2-D's evidence is green.
+
+Registering the carrier at the doors mid-treatment would change the
+measurement instrument in the middle of the cumulative A2 treatment and turn
+R from a direct baseline into something to be argued equivalent; the split
+keeps the experiment that was already assembled meaningful. Phase B builds one
+guarded-method view from `functions[].guarded_facts` plus
+`guarded_functions[].guarded_facts`; C+ canonicalizes this temporary double
+carrier together with the rest of the double representation.
 
 #### 10.6.7 The probe, classified and measured at A' (REPOSITORY FACT)
 
@@ -1110,17 +1127,30 @@ causes of FACT-DIFF. Tracked in #364 with its own acceptance.
   as a plain invocation of the delegate's `Invoke`; the vocabulary now
   distinguishes `sidecar_call`, `sidecar_call:object_creation` and
   `sidecar_call:delegate_invocation`, every column re-measured with the
-  extractor of its step rebuilt at its commit;
-- **A2.2-3** the `guarded_functions[]` orphan carrier: known and validated by
-  both doors (deferred to the door step as in 10.6.6), ignored by both
-  lowerers;
+  extractor of its step rebuilt at its commit (landed: `7de7a6f`, CI green);
+- **A2.2-3P** the `guarded_functions[]` orphan carrier, production side
+  (10.6.6): producer-validated, carried by both doors as additive unknown
+  metadata, read by neither lowerer, no instrument change. A method enters the
+  carrier only when it has guarded facts and no legacy `functions[]` record;
+  one identity in both is a producer refusal; no dummy `functions[]` records.
+  Landed in the commit carrying this line: the three legacy admission gates
+  (no handle at all, every candidate escaped, an unmodelled construct) each
+  hand the method to the carrier; the document's bytes are unchanged up to the
+  appended carrier; the refusal is witnessed through the producer's own
+  control knob; the inertness control now runs four variants (emitted,
+  stripped, orphans_stripped, contradictory in both carriers) over the census,
+  the relevance probe and the samples;
 - **A2.2-4** completeness oracle plus generated hostile census: every
   occurrence is captured or matches exactly one named exclusion;
 - **A2.2-5** mutation campaign: remove the handle, add parentheses, perturb the
   binding, distinguish nested calls;
-- **A2.2-S** after-evidence on M1 against the existing R with population T:
-  fact shape MOVED as preregistered, MOS UNCHANGED, verdict UNCHANGED.
+- **A2.2-S** cumulative A2 after-evidence on M1 against the existing R with
+  population T: fact shape MOVED as preregistered, MOS UNCHANGED, verdict
+  UNCHANGED;
+- **A2.2-D** door registration: `guarded_facts` and `guarded_functions` become
+  known, fail-loud vocabulary on both doors, still semantically inert; the
+  instrument change, a new T/R round; phase B only after its evidence is green.
 
-No new T/R is needed while the instrument stays the same and the semantic
-doors do not read these facts. #263 is PARKED in parallel, deliberately
-unmeasured, recorded on the issue.
+No new T/R is needed through A2.2-S, while the instrument stays the same and
+the semantic doors do not read these facts. #263 is PARKED in parallel,
+deliberately unmeasured, recorded on the issue.

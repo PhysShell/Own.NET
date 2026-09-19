@@ -94,7 +94,7 @@ def observe_facts(case: Path) -> dict[str, Any]:
         if rc != 0 or not facts.exists():
             return {"extractor_failed": {"rc": rc, "stderr_tail": err}}
         doc: dict[str, Any] = json.loads(facts.read_text(encoding="utf-8"))
-    return {
+    projected: dict[str, dict[str, Any]] = {
         fn["name"]: {
             "params": fn.get("params"),
             "body": flatten(fn.get("body", [])),
@@ -104,6 +104,16 @@ def observe_facts(case: Path) -> dict[str, Any]:
         }
         for fn in doc.get("functions", [])
     }
+    # P-037 A2.2-3P: the orphan carrier, pinned per entry beside the records. An orphan and a
+    # record never share a name in one document (the producer refuses that), so one map holds
+    # both; the `carrier` marker is what an a2_expect entry names to reach an orphan.
+    for orphan in doc.get("guarded_functions", []):
+        projected[orphan["name"]] = {
+            "carrier": "guarded_functions",
+            "sig": orphan.get("sig"),
+            "guarded_facts": orphan.get("guarded_facts"),
+        }
+    return projected
 
 
 def observe_verdict(case: Path, engine: str) -> list[str]:
@@ -145,8 +155,21 @@ def a2_problems(spec: dict[str, Any], facts: dict[str, Any]) -> list[str]:
     for exp in spec.get("a2_expect", []):
         fn = exp.get("function")
         rec = facts.get(fn) if isinstance(fn, str) else None
+        if exp.get("absent") is True:
+            # A2.2-3P: the method must be carried NOWHERE — no record and no orphan entry.
+            if rec is not None:
+                problems.append(f"{fn}: expected no record and no orphan entry, found one in "
+                                f"{rec.get('carrier', 'functions')}[]")
+            continue
         if rec is None:
             problems.append(f"{fn}: no function record")
+            continue
+        # A2.2-3P: an expectation says which carrier it means; a method that the legacy pass
+        # admitted must not appear as an orphan and vice versa, so the carrier is asserted.
+        want_carrier = exp.get("carrier", "functions")
+        got_carrier = rec.get("carrier", "functions")
+        if want_carrier != got_carrier:
+            problems.append(f"{fn}: expected in {want_carrier}[], found in {got_carrier}[]")
             continue
         gf = rec.get("guarded_facts")
         if exp.get("guarded_facts") == "absent":

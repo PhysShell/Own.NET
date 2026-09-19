@@ -7,11 +7,17 @@
   "a2_2_1_note": "Measured with the A2.2-1 extractor (the IOperation value-flow walker) from the tree this file is committed in, before the commit: the SHA that carries this file is the SHA it was measured at. A2.2-1 promises exactly the transparent and may-value rows move to sidecar_call; every other row must read as it did at A'. A2.2-1a added the CheckedRef and Boxing rows, measured at both points.",
   "a2_2_2_note": "Measured with the A2.2-2 extractor (constructor calls as call-like sites) from the tree this file is committed in. A2.2-2 promises exactly the object_creation row(s) move to sidecar_call; every other row, delegate_invocation included, must read as it did after A2.2-1.",
   "a2_2_2b_note": "Measured with the A2.2-2b extractor (delegate invocation as a call-like site) from the tree this file is committed in. A2.2-2b promises exactly the delegate_invocation row that HAS a record moves to sidecar_call; the local-handle delegate row stays no_record (orphan carrier), every other row reads as after A2.2-2. Every historical column of a row added later was measured with that step's extractor, rebuilt at its commit, never assumed.",
+  "a2_2_3p_note": "Measured with the A2.2-3P extractor (the guarded_functions[] orphan carrier) from the tree this file is committed in. A2.2-3P promises exactly the rows that read no_record after A2.2-2b AND have a relevant call or an eligible guard move to an orphan_* reading; a no_record row whose occurrence is a named exclusion stays no_record (no fact exists to carry); every row with a record reads as after A2.2-2b.",
   "observed_vocabulary": {
     "sidecar_call": "a function record with a guarded_facts call fact for the probe call, all captured calls being invocation expressions (no call_kind)",
     "sidecar_call:object_creation": "captured, and the captured call is a constructor call (call_kind object_creation)",
     "sidecar_call:delegate_invocation": "captured, and the captured call is a delegate invocation (call_kind delegate_invocation, callee/sig null)",
     "sidecar_call:mixed": "captured calls of more than one kind in one probe method (none expected; a row reading this is a probe defect)",
+    "orphan_call": "no functions[] record, but a guarded_functions[] entry whose calls are invocation expressions (A2.2-3P)",
+    "orphan_call:object_creation": "no functions[] record; the orphan entry's call is a constructor call",
+    "orphan_call:delegate_invocation": "no functions[] record; the orphan entry's call is a delegate invocation",
+    "orphan_call:mixed": "orphan entry with calls of more than one kind (none expected)",
+    "orphan_guards_only": "no functions[] record; the orphan entry carries guards and no call",
     "record_without_call_fact": "a function record exists but carries no call fact for the probe call",
     "no_record": "the legacy pass emitted no function record at all (every candidate escaped)"
   },
@@ -38,7 +44,8 @@
       "a2_1_observed": "sidecar_call",
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
-      "a2_2_2b_observed": "sidecar_call"
+      "a2_2_2b_observed": "sidecar_call",
+      "a2_2_3p_observed": "sidecar_call"
     },
     "PlainSame": {
       "class": "direct",
@@ -47,7 +54,8 @@
       "a2_1_observed": "no_record",
       "a2_2_1_observed": "no_record",
       "a2_2_2_observed": "no_record",
-      "a2_2_2b_observed": "no_record"
+      "a2_2_2b_observed": "no_record",
+      "a2_2_3p_observed": "orphan_call"
     },
     "Parens": {
       "class": "transparent",
@@ -56,7 +64,8 @@
       "a2_1_observed": "sidecar_call",
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
-      "a2_2_2b_observed": "sidecar_call"
+      "a2_2_2b_observed": "sidecar_call",
+      "a2_2_3p_observed": "sidecar_call"
     },
     "IdentityCast": {
       "class": "transparent",
@@ -65,7 +74,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
-      "a2_2_2b_observed": "sidecar_call"
+      "a2_2_2b_observed": "sidecar_call",
+      "a2_2_3p_observed": "sidecar_call"
     },
     "Cast": {
       "class": "transparent",
@@ -74,7 +84,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
-      "a2_2_2b_observed": "sidecar_call"
+      "a2_2_2b_observed": "sidecar_call",
+      "a2_2_3p_observed": "sidecar_call"
     },
     "AsCast": {
       "class": "transparent",
@@ -83,7 +94,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
-      "a2_2_2b_observed": "sidecar_call"
+      "a2_2_2b_observed": "sidecar_call",
+      "a2_2_3p_observed": "sidecar_call"
     },
     "Bang": {
       "class": "transparent",
@@ -92,7 +104,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
-      "a2_2_2b_observed": "sidecar_call"
+      "a2_2_2b_observed": "sidecar_call",
+      "a2_2_3p_observed": "sidecar_call"
     },
     "CheckedRef": {
       "class": "transparent",
@@ -102,7 +115,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
-      "a2_2_2b_observed": "sidecar_call"
+      "a2_2_2b_observed": "sidecar_call",
+      "a2_2_3p_observed": "sidecar_call"
     },
     "Ternary": {
       "class": "may_value",
@@ -111,7 +125,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
-      "a2_2_2b_observed": "sidecar_call"
+      "a2_2_2b_observed": "sidecar_call",
+      "a2_2_3p_observed": "sidecar_call"
     },
     "Coalesce": {
       "class": "may_value",
@@ -120,7 +135,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
-      "a2_2_2b_observed": "sidecar_call"
+      "a2_2_2b_observed": "sidecar_call",
+      "a2_2_3p_observed": "sidecar_call"
     },
     "Switch": {
       "class": "may_value",
@@ -129,7 +145,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
-      "a2_2_2b_observed": "sidecar_call"
+      "a2_2_2b_observed": "sidecar_call",
+      "a2_2_3p_observed": "sidecar_call"
     },
     "AsMayFail": {
       "class": "may_value",
@@ -138,7 +155,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
-      "a2_2_2b_observed": "sidecar_call"
+      "a2_2_2b_observed": "sidecar_call",
+      "a2_2_3p_observed": "sidecar_call"
     },
     "Ctor": {
       "class": "call_like",
@@ -147,7 +165,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "sidecar_call:object_creation",
-      "a2_2_2b_observed": "sidecar_call:object_creation"
+      "a2_2_2b_observed": "sidecar_call:object_creation",
+      "a2_2_3p_observed": "sidecar_call:object_creation"
     },
     "DelegateCall": {
       "class": "call_like",
@@ -157,7 +176,8 @@
       "a2_1_observed": "no_record",
       "a2_2_1_observed": "no_record",
       "a2_2_2_observed": "no_record",
-      "a2_2_2b_observed": "no_record"
+      "a2_2_2b_observed": "no_record",
+      "a2_2_3p_observed": "orphan_call:delegate_invocation"
     },
     "DelegateCallOwned": {
       "class": "call_like",
@@ -167,7 +187,8 @@
       "a2_1_observed": "sidecar_call",
       "a2_2_1_observed": "sidecar_call",
       "a2_2_2_observed": "sidecar_call",
-      "a2_2_2b_observed": "sidecar_call:delegate_invocation"
+      "a2_2_2b_observed": "sidecar_call:delegate_invocation",
+      "a2_2_3p_observed": "sidecar_call:delegate_invocation"
     },
     "Nested": {
       "class": "indirect",
@@ -177,7 +198,8 @@
       "a2_1_observed": "no_record",
       "a2_2_1_observed": "no_record",
       "a2_2_2_observed": "no_record",
-      "a2_2_2b_observed": "no_record"
+      "a2_2_2b_observed": "no_record",
+      "a2_2_3p_observed": "orphan_call"
     },
     "ArrayInit": {
       "class": "indirect",
@@ -186,7 +208,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
-      "a2_2_2b_observed": "record_without_call_fact"
+      "a2_2_2b_observed": "record_without_call_fact",
+      "a2_2_3p_observed": "record_without_call_fact"
     },
     "CollectionInit": {
       "class": "indirect",
@@ -195,7 +218,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
-      "a2_2_2b_observed": "record_without_call_fact"
+      "a2_2_2b_observed": "record_without_call_fact",
+      "a2_2_3p_observed": "record_without_call_fact"
     },
     "Tuple": {
       "class": "indirect",
@@ -204,7 +228,8 @@
       "a2_1_observed": "no_record",
       "a2_2_1_observed": "no_record",
       "a2_2_2_observed": "no_record",
-      "a2_2_2b_observed": "no_record"
+      "a2_2_2b_observed": "no_record",
+      "a2_2_3p_observed": "no_record"
     },
     "Closure": {
       "class": "indirect",
@@ -214,7 +239,8 @@
       "a2_1_observed": "no_record",
       "a2_2_1_observed": "no_record",
       "a2_2_2_observed": "no_record",
-      "a2_2_2b_observed": "no_record"
+      "a2_2_2b_observed": "no_record",
+      "a2_2_3p_observed": "no_record"
     },
     "MethodGroup": {
       "class": "indirect",
@@ -223,7 +249,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
-      "a2_2_2b_observed": "record_without_call_fact"
+      "a2_2_2b_observed": "record_without_call_fact",
+      "a2_2_3p_observed": "record_without_call_fact"
     },
     "UserConversion": {
       "class": "indirect",
@@ -233,7 +260,8 @@
       "a2_1_observed": "no_record",
       "a2_2_1_observed": "no_record",
       "a2_2_2_observed": "no_record",
-      "a2_2_2b_observed": "no_record"
+      "a2_2_2b_observed": "no_record",
+      "a2_2_3p_observed": "no_record"
     },
     "ExplicitUserConversion": {
       "class": "indirect",
@@ -243,7 +271,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
-      "a2_2_2b_observed": "record_without_call_fact"
+      "a2_2_2b_observed": "record_without_call_fact",
+      "a2_2_3p_observed": "record_without_call_fact"
     },
     "NameOf": {
       "class": "indirect",
@@ -252,7 +281,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
-      "a2_2_2b_observed": "record_without_call_fact"
+      "a2_2_2b_observed": "record_without_call_fact",
+      "a2_2_3p_observed": "record_without_call_fact"
     },
     "MemberAccess": {
       "class": "indirect",
@@ -261,7 +291,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
-      "a2_2_2b_observed": "record_without_call_fact"
+      "a2_2_2b_observed": "record_without_call_fact",
+      "a2_2_3p_observed": "record_without_call_fact"
     },
     "Boxing": {
       "class": "indirect",
@@ -271,7 +302,8 @@
       "a2_1_observed": "sidecar_call",
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
-      "a2_2_2b_observed": "record_without_call_fact"
+      "a2_2_2b_observed": "record_without_call_fact",
+      "a2_2_3p_observed": "record_without_call_fact"
     },
     "Receiver": {
       "class": "indirect",
@@ -280,7 +312,8 @@
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "record_without_call_fact",
       "a2_2_2_observed": "record_without_call_fact",
-      "a2_2_2b_observed": "record_without_call_fact"
+      "a2_2_2b_observed": "record_without_call_fact",
+      "a2_2_3p_observed": "record_without_call_fact"
     },
     "Indexer": {
       "class": "indirect",
@@ -289,7 +322,8 @@
       "a2_1_observed": "no_record",
       "a2_2_1_observed": "no_record",
       "a2_2_2_observed": "no_record",
-      "a2_2_2b_observed": "no_record"
+      "a2_2_2b_observed": "no_record",
+      "a2_2_3p_observed": "no_record"
     }
   }
 }

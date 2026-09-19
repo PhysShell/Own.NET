@@ -242,6 +242,36 @@ def run() -> int:
             step2b.append(f"{name}: row moved in A2.2-2b without being delegate_invocation "
                           f"({before} -> {after})")
     check("a2-2-2b-reshapes-exactly-delegate-invocation", not step2b, "; ".join(step2b))
+    # A2.2-3P: the orphan carrier delivers the facts of every method the legacy pass did not
+    # admit. Exactly the no_record rows that HAVE a relevant call (direct, transparent,
+    # may-value, call-like) move to an orphan_* reading; a no_record row whose occurrence is
+    # a named exclusion has no fact to carry and stays no_record; rows with a record are
+    # untouched (no dummy functions[] records, no re-admission).
+    step3p: list[str] = []
+    relevant_classes = {"direct", "transparent", "may_value", "call_like"}
+    for name, entry in methods.items():
+        before, after = entry.get("a2_2_2b_observed"), entry.get("a2_2_3p_observed")
+        if after not in observed_vocab:
+            step3p.append(f"{name}: a2_2_3p_observed {after!r}")
+            continue
+        if before != "no_record":
+            if after != before:
+                step3p.append(f"{name}: a recorded row moved in A2.2-3P ({before} -> {after})")
+            continue
+        if entry.get("class") in relevant_classes and not str(after).startswith("orphan_"):
+            step3p.append(f"{name}: relevant no_record row not carried as an orphan ({after})")
+        # nested_call_result is the one indirect exclusion that owns a fact of its own: the
+        # INNER call (`Wrap(r)`) is direct and is what the orphan carries; the census pins
+        # that the outer call (`Use`) gets none. Every other indirect row stays no_record.
+        if entry.get("class") == "indirect" and after != "no_record" \
+                and entry.get("exclusion") != "nested_call_result":
+            step3p.append(f"{name}: indirect row gained an orphan entry ({after}), a false fact")
+    check("a2-2-3p-carries-exactly-the-orphans", not step3p, "; ".join(step3p))
+    orphan_rows = sum(str(e.get("a2_2_3p_observed", "")).startswith("orphan_")
+                      for e in methods.values())
+    check("orphan-carrier-has-recorded-witnesses", orphan_rows >= 3,
+          f"only {orphan_rows} probe row(s) read orphan_*")
+
     check("delegate-invocation-has-a-recorded-witness",
           any(e.get("form") == "delegate_invocation" and e.get("a2_2_2b_observed")
               == "sidecar_call:delegate_invocation" for e in methods.values()),

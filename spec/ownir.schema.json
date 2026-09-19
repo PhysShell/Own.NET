@@ -43,6 +43,13 @@
       "description": "Per-method ordered obligation-event trees the protocols are checked against (spec/OwnIR.md §8) — the fact side of the pair.",
       "type": "array",
       "items": { "$ref": "#/$defs/protocolFunction" }
+    },
+    "guarded_functions": {
+      "type": "array",
+      "description": "P-037 A2.2-3P: the ORPHAN carrier. One entry per method that has guarded raw facts (spec/OwnIR.md §5.3) but no legacy `functions[]` record, because the legacy pass did not admit it (no handle at all, every candidate escaped, an unmodelled construct). Optional and additive; absent when empty, so a document without orphans keeps its bytes. Producer-validated; carried by both doors as additive unknown metadata and read by neither lowerer until the A2.2-D door step. A method identity (file, name, sig) present both here and in `functions[]` is a producer defect and refuses the run.",
+      "items": {
+        "$ref": "#/$defs/guardedOrphan"
+      }
     }
   },
   "$defs": {
@@ -513,6 +520,33 @@
           }
         },
         "description": "A 1-based start coordinate of a syntax node: the stable identity of a call site or a guard within the record's `file` (P-037 A2.1). Deliberately NOT bound to sourceLine/sourceColumn: in A2.1 the sidecar is inert at both doors (spec/OwnIR.md \u00a74.2, \u00a75.2) \u2014 `load()` never reads this path \u2014 and \u00a74.2 forbids a schema narrower than the door on a coordinate the door does not check. The producer refuses to write a record whose line or column is below 1 (exit 2). The instrument step that registers the sidecar at the doors binds both to the shared coordinate domain."
+      },
+      "guardedOrphan": {
+        "type": "object",
+        "required": [
+          "name",
+          "file",
+          "guarded_facts"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The method's `functions[]`-style key (`{Namespace.Type}.{Name}`), the key it WOULD have carried had the legacy pass admitted it."
+          },
+          "file": {
+            "type": "string",
+            "description": "The declaring source file, as `functions[].file`."
+          },
+          "sig": {
+            "type": "string",
+            "description": "The canonical per-overload signature key (§5.1); omitted when the symbol did not resolve, exactly as on a `functions[]` record."
+          },
+          "guarded_facts": {
+            "$ref": "#/$defs/guardedFacts"
+          }
+        },
+        "description": "P-037 A2.2-3P: an orphan carrier entry — the guarded-fact sidecar of a method without a legacy record. Never a stand-in for a `functions[]` record: it carries no body, no params, and enters no first-party universe."
       },
       "guardedFacts": {
         "type": "object",

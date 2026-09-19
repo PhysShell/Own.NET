@@ -3292,6 +3292,38 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
     return new Dictionary<string, object?> { ["version"] = 1, ["calls"] = calls, ["guards"] = guards };
 }
 
+// P-037 A2.2-3P: the orphan carrier's own conformance check. Every entry is a complete
+// {name, file, [sig], guarded_facts} envelope, and no method identity (file, name, sig) may
+// appear both as a `functions[]` record and as an orphan: the carrier is an orphan carrier,
+// not a second source for every method. Records a message per violation; the run refuses to
+// write facts if any was recorded.
+static void ValidateOrphanCarrier(List<object> records, List<Dictionary<string, object?>> orphans)
+{
+    static string Identity(Dictionary<string, object?> d) =>
+        $"{d.GetValueOrDefault("file")}|{d.GetValueOrDefault("name")}|{d.GetValueOrDefault("sig") ?? ""}";
+    var recorded = new HashSet<string>(
+        records.OfType<Dictionary<string, object?>>().Select(Identity), StringComparer.Ordinal);
+    var seen = new HashSet<string>(StringComparer.Ordinal);
+    foreach (var orphan in orphans)
+    {
+        var where = $"guarded_functions[{orphan.GetValueOrDefault("name") ?? "<unnamed>"}]";
+        if (orphan.GetValueOrDefault("name") is not string { Length: > 0 })
+            GuardedFactsViolations.Add($"{where}: orphan entry without a name");
+        if (orphan.GetValueOrDefault("file") is not string { Length: > 0 })
+            GuardedFactsViolations.Add($"{where}: orphan entry without a file");
+        if (orphan.TryGetValue("sig", out var sig) && sig is not string)
+            GuardedFactsViolations.Add($"{where}: orphan entry with a non-string sig");
+        if (orphan.GetValueOrDefault("guarded_facts") is not Dictionary<string, object?>)
+            GuardedFactsViolations.Add($"{where}: orphan entry without guarded_facts");
+        var id = Identity(orphan);
+        if (recorded.Contains(id))
+            GuardedFactsViolations.Add(
+                $"{where}: method identity present in both functions[] and guarded_functions[]");
+        if (!seen.Add(id))
+            GuardedFactsViolations.Add($"{where}: duplicate orphan identity");
+    }
+}
+
 // The producer's own conformance check of one sidecar against the vocabulary above. Records a
 // message per violation; the run refuses to write facts if any was recorded.
 static void ValidateGuardedFacts(List<Dictionary<string, object?>> calls,
@@ -5696,6 +5728,8 @@ static string? OwnIgnoreReason(SyntaxList<AttributeListSyntax> attrLists, Semant
 var components = new List<object>();
 // P-016 B0b/B2: per-method flow bodies (only when --flow-locals).
 var flowFunctions = new List<object>();
+// P-037 A2.2-3P: the orphan carrier (see CarryOrphan). Emitted only when non-empty.
+var guardedOrphans = new List<Dictionary<string, object?>>();
 
 // Parse every input into a syntax tree first (keeping the file path we report
 // it under), then build ONE compilation over all of them so the SemanticModel
@@ -6965,6 +6999,35 @@ foreach (var (file, tree) in parsed)
         // P-016 B0b/B2 (--flow-locals): per-method flow facts for non-escaping local
         // IDisposables. The core checks them path-sensitively (OWN001/002/003).
         // Methods with an unmodelled construct (loop/try/switch) are honestly skipped.
+        //
+        // P-037 A2.2-3P (formal note §10.6.6): a method the legacy pass does NOT admit — no
+        // handle at all, every candidate escaped, or an unmodelled construct — still has raw
+        // guarded facts worth carrying. They ride in the top-level ORPHAN carrier
+        // `guarded_functions[]` ({name, file, sig, guarded_facts}), never in a dummy
+        // `functions[]` record: a `functions[]` entry, even with an empty body, enters the
+        // first-party universe at the doors and can move MOS resolution. The carrier is
+        // producer-validated and, until the A2.2-D door step, carried by both doors as
+        // additive unknown metadata and read by neither lowerer. One method identity in both
+        // `functions[]` and `guarded_functions[]` is a producer defect and refuses the run.
+        void CarryOrphan(BaseMethodDeclarationSyntax method, BlockSyntax mbody,
+                         HashSet<string> candidates, HashSet<string> ownedParamNames)
+        {
+            var oname = model.GetDeclaredSymbol(method) is IMethodSymbol osym
+                ? $"{osym.ContainingType.ToDisplayString()}.{osym.Name}"
+                : FlowFunctionName(method, cls.Identifier.Text, model);
+            var osig = model.GetDeclaredSymbol(method) is IMethodSymbol osigsym
+                ? CanonicalSig(osigsym)
+                : null;
+            var facts = BuildGuardedFacts(method, mbody, candidates, ownedParamNames, model, oname);
+            if (facts is null)
+                return;
+            var entry = new Dictionary<string, object?> { ["name"] = oname, ["file"] = file };
+            if (osig is not null)
+                entry["sig"] = osig;
+            entry["guarded_facts"] = facts;
+            guardedOrphans.Add(entry);
+        }
+
         if (flowLocals)
             foreach (var method in cls.Members.OfType<BaseMethodDeclarationSyntax>())
             {
@@ -7080,7 +7143,10 @@ foreach (var (file, tree) in parsed)
                 // target", is subsumed: a summary is consulted for its PARAMETERS, so a method
                 // with none has no summary anyone can read.)
                 if (candidates.Count == 0 && ownedParamNames.Count == 0)
+                {
+                    CarryOrphan(method, mbody, candidates, ownedParamNames);
                     continue;
+                }
                 // A local that escapes (returned / assigned out) is conservatively not
                 // tracked — its release may be the caller's job. For an IDisposable,
                 // passing it as an argument is an ambiguous ownership transfer too; for
@@ -7192,7 +7258,10 @@ foreach (var (file, tree) in parsed)
                 var tracked = new HashSet<string>(candidates);
                 tracked.ExceptWith(escapedLocals);
                 if (tracked.Count == 0 && ownedParamNames.Count == 0)
+                {
+                    CarryOrphan(method, mbody, candidates, ownedParamNames);
                     continue;
+                }
                 statMethodsWithLocal++;
                 // Lower over locals AND owned parameters, so `param_signals` /
                 // `definite_release` / `forward_targets` have a body to read. A parameter has no
@@ -7206,6 +7275,7 @@ foreach (var (file, tree) in parsed)
                 if (fbody is null || fbody.Count == 0)
                 {
                     statMethodsSkipped++;   // unmodelled construct -> honestly skipped
+                    CarryOrphan(method, mbody, candidates, ownedParamNames);
                     continue;
                 }
                 statMethodsAnalysed++;
@@ -7283,26 +7353,42 @@ var factStats = new
 // --fix-candidates; `ownir_version` stays 0 (the fact-schema vocabulary is unchanged —
 // no new resource-kind or analysis-routing value). Without the flag the object is
 // byte-for-byte the pre-S0 shape.
-object facts = emitFixCandidates
-    ? new
+// The document is assembled as an ordered dictionary so that the P-037 A2.2-3P orphan
+// carrier can ride ONLY when non-empty: a document without orphans keeps the byte shape
+// it had, the key order above is unchanged, and `guarded_functions` is the last key.
+var factsDoc = new Dictionary<string, object?> { ["ownir_version"] = 0 };
+if (emitFixCandidates)
+    factsDoc["fix_candidates_version"] = 1;
+factsDoc["module"] = "Extracted";
+factsDoc["components"] = components;
+factsDoc["services"] = factServices;
+factsDoc["functions"] = flowFunctions;
+factsDoc["stats"] = factStats;
+// P-037 A2.2-3P: the control knob `OWN_P037_SELFCHECK_PROBE=duplicate_identity` makes the
+// producer add a synthetic orphan that repeats the identity of the first `functions[]`
+// record, so the refusal below can be witnessed by a control; it never changes facts, it
+// only refuses. Never set in a production or evidence run.
+if (Environment.GetEnvironmentVariable("OWN_P037_SELFCHECK_PROBE") == "duplicate_identity"
+    && flowFunctions.OfType<Dictionary<string, object?>>().FirstOrDefault() is { } probeRecord)
+{
+    var synthetic = new Dictionary<string, object?>
     {
-        ownir_version = 0,
-        fix_candidates_version = 1,
-        module = "Extracted",
-        components,
-        services = factServices,
-        functions = flowFunctions,
-        stats = factStats,
-    }
-    : new
-    {
-        ownir_version = 0,
-        module = "Extracted",
-        components,
-        services = factServices,
-        functions = flowFunctions,
-        stats = factStats,
+        ["name"] = probeRecord["name"], ["file"] = probeRecord["file"],
     };
+    if (probeRecord.TryGetValue("sig", out var probeSig))
+        synthetic["sig"] = probeSig;
+    synthetic["guarded_facts"] = new Dictionary<string, object?>
+    {
+        ["version"] = 1,
+        ["calls"] = new List<Dictionary<string, object?>>(),
+        ["guards"] = new List<Dictionary<string, object?>>(),
+    };
+    guardedOrphans.Add(synthetic);
+}
+ValidateOrphanCarrier(flowFunctions, guardedOrphans);
+if (guardedOrphans.Count > 0)
+    factsDoc["guarded_functions"] = guardedOrphans;
+object facts = factsDoc;
 // P-037 A2.1: a sidecar record that does not satisfy its own vocabulary is a producer
 // defect, and a producer defect must not become a facts file. Refuse the whole run
 // (exit 2, the launcher's "extraction failed, no verdict was produced" tier) rather

@@ -454,6 +454,53 @@ that registers the sidecar binds them to the shared coordinate domain.
 The producer validates every record against this vocabulary and refuses to
 write a facts file at all if one is malformed (exit 2): fail-loud at the source.
 
+### 5.3 The orphan carrier (`guarded_functions`, P-037 A2.2-3P)
+
+A `functions[]` record exists only for a method the legacy pass admits: one
+with a tracked disposable local or an owned parameter, whose body it can
+lower. Three methods in the relevance census have guarded raw facts and no
+record at all: a handle passed to a non-consuming callee (every candidate
+escaped), a handle handed to a delegate, a method with no handle but with a
+`disposing`-style guard on a field disposal, and any method with an unmodelled
+construct (a loop, a `try`, a `switch`). Their facts are honest raw facts and
+must be delivered; a dummy `functions[]` record is not the way, because a
+record, even with an empty body, enters the first-party universe at the doors
+(`_build_skeletons` creates a skeleton for every named function) and can move
+MOS resolution.
+
+So a method that has guarded facts (§5.2) **and** no `functions[]` record is
+carried in the optional, additive top-level list `guarded_functions[]`:
+
+```text
+guarded_functions[]   one entry per method the legacy pass did not admit
+    name              the `functions[]`-style key it would have carried
+    file              as `functions[].file`
+    sig               the §5.1 signature key; omitted when unresolved
+    guarded_facts     exactly the §5.2 sidecar, same vocabulary, same self-check
+```
+
+Contract:
+
+- `functions[]` stays the legacy-visible set; its semantics are unchanged
+  through A2. `guarded_functions[]` is an **orphan** carrier, not a second
+  source for every method: a method identity (`file`, `name`, `sig`) present
+  in both is a producer defect and refuses the run (exit 2, no facts written).
+  The producer's control knob `OWN_P037_SELFCHECK_PROBE=duplicate_identity`
+  adds such a duplicate on purpose so the refusal can be witnessed; it never
+  changes facts, and no production or evidence run sets it.
+- The list is absent when empty, so a document without orphans keeps the
+  bytes it had; when present it is the last top-level key.
+- Through A2 both doors carry the list as additive unknown metadata (§4.2
+  applies to its coordinates exactly as to `guarded_facts`), neither lowerer
+  reads it, and the inertness control proves that adding, removing or lying in
+  the carrier moves no MOS layer and no verdict on either engine. A2.2-D, the
+  door-registration step, makes `guarded_facts` and `guarded_functions` known,
+  fail-loud vocabulary on both doors; it is an instrument change and opens a
+  new baseline round.
+- Phase B reads `functions[].guarded_facts` and
+  `guarded_functions[].guarded_facts` as one guarded-method view; C+
+  canonicalizes the temporary double carrier.
+
 ## 6. DI registration graph (`services[]`)
 
 An optional array feeding the **DI001** captive-dependency check (P-006), a
