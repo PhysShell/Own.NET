@@ -754,9 +754,10 @@ OWNER RULING, recorded 2026-09-19 after A2.1 closed and before the first
 A2.2 code change; corrected once, before any code, after an independent
 review of the first freeze commit (10.6.0). Nothing here is new semantics: it
 fixes what "every relevant call" means before anyone tries to be complete
-about it, because the 25-case probe below shows that the A2.1 sidecar captures
-two argument shapes out of twenty-five (the bare identifier and the
-parenthesized one), and that the naive repair ("the handle occurs somewhere
+about it, because the 27-case probe below shows that the A2.1 sidecar captures
+two argument shapes out of twenty-seven correctly (the bare identifier and the
+parenthesized one) and one falsely (a boxed struct handle), and that the naive
+repair ("the handle occurs somewhere
 below the argument, therefore the call is relevant") would prove nonsense with
 full confidence. The machine-readable form of this section is
 `corpus/p037-relevance/registry.json`; `tests/test_p037_relevance_freeze.py`
@@ -881,11 +882,41 @@ expression. The recognizer is a small value-flow walker over Roslyn
 `IOperation`, `ClassifyValueFlow(operation, handle) -> Direct | MayValue |
 Indirect(named_exclusion) | None`, checking the semantic conversion at every
 `IConversionOperation` on the path and the argument's `InConversion`. The
-registry freezes the conversion-edge vocabulary (none, identity,
-reference_upcast, may_fail_null, user_defined_implicit,
-user_defined_explicit, not_applicable) and the rules binding it to the
-classes; the structural test proves no probe row is both transparent and
+registry freezes the conversion-edge vocabulary and the rules binding it to
+the classes; the structural test proves no probe row is both transparent and
 user_conversion, that both user-defined kinds and the `as` split are pinned.
+
+**Conversion closure (A2.2-1a, OWNER RULING).** Two edges the first freeze
+left implicit are named, without any production change; A2.2-1's walker
+already behaves this way, and the census now says so by name:
+
+- `reference_checked` — a built-in *explicit* reference conversion (a downcast,
+  or interface to class / interface). When it succeeds the callee receives the
+  same object reference; when it fails it throws before the call, so no
+  argument value is produced and the call is not entered. A failure is not an
+  alternative value, which is exactly what separates it from `as`:
+  `(Derived)r` is *same reference or no call* and therefore **transparent**,
+  while `r as Derived` is *same reference or a null value* with the call
+  continuing, and therefore may-value. Turning a precise `var r` into `opaque`
+  merely because the freeze had said "guaranteed" would have been an
+  artificial loss of information; the registry was behind the code and the
+  spec, and it is the registry that moved.
+- `boxing` — a disposable *struct* handle passed to `object` or an interface
+  is boxed: the callee receives a copy, never the ownership identity of the
+  value. Not direct, not transparent; the named exclusion is
+  `boxing_conversion`. This was not left for A2.2-4's oracle to "discover":
+  a known unclassified point contradicts the completeness sentence today. No
+  `other_conversion` bucket exists either — a bucket is a bin, and it would
+  kill the point of a hostile oracle; a genuinely distinct conversion the
+  oracle meets is a §10.1 case-3 addition with its own name.
+
+The closed vocabulary is therefore none, identity, reference_upcast,
+reference_checked, may_fail_null, user_defined_implicit,
+user_defined_explicit, boxing, not_applicable; the value-preserving edges a
+direct or transparent row may carry are the first four. Measured, not
+assumed: the A' producer captured `Sink(r)` on an owned struct parameter as a
+`param` fact (a false raw fact), and the A2.2-1 walker stops at the boxing
+edge; A2.2-1a pins both rows in the probe and in two census shapes.
 
 A' already landed this separation for one family: a `params` slot, a
 `ref`/`out` argument or an unstable owned parameter is `opaque` and keeps the
@@ -904,7 +935,8 @@ the closure flows; the call inside belongs to the lambda body, spec §5.2),
 declared ordinal; a summary of `this` is a §10.1 case-5 amendment),
 `storage_assignment` (`d[0] = r`, a property or a field: an assignment is not a
 call site), `user_conversion` (10.6.3: `TakeBox(r)` through an implicit
-operator, `TakeXBox((XBox)r)` through an explicit one), `nameof_operand`,
+operator, `TakeXBox((XBox)r)` through an explicit one), `boxing_conversion`
+(10.6.3: a disposable struct handle boxed into `object`), `nameof_operand`,
 `member_access_on_handle` (`Use5(r.Length)`).
 
 Every exclusion carries a positive fixture (the rule fires, no call fact for
@@ -938,7 +970,7 @@ inside them are unobserved through A2.
 
 The extractor emits a `functions[]` record only for a method the legacy pass
 flow-analyses (Program.cs: a method whose every candidate escaped and that
-owns no parameter is skipped). Seven of the probe's twenty-five methods have no
+owns no parameter is skipped). Seven of the probe's twenty-seven methods have no
 record at all, and with it no sidecar — exactly the methods whose handle left
 through a form the legacy cannot follow. The gap is not accepted. Two
 tempting repairs are rejected:
@@ -988,6 +1020,7 @@ is the edge from the handle to the parameter as the registry names it.
 | Cast `Inner((Stream)r, true)` | transparent | cast | reference_upcast | record_without_call_fact |
 | AsCast `Inner(r as Stream, true)` | transparent | as | reference_upcast | record_without_call_fact |
 | Bang `Inner(r!, true)` | transparent | null_forgiving | reference_upcast | record_without_call_fact |
+| CheckedRef `TakeDerivedRef((Derived)r)`, r : Base | transparent | cast | reference_checked | record_without_call_fact |
 | Ternary `Inner(b ? r : q, true)` | may-value | conditional | reference_upcast | record_without_call_fact |
 | Coalesce `Inner(p ?? r, true)` | may-value | null_coalescing | reference_upcast | record_without_call_fact |
 | Switch `Inner(k switch {...}, true)` | may-value | switch_expression | reference_upcast | record_without_call_fact |
@@ -1004,6 +1037,7 @@ is the edge from the handle to the parameter as the registry names it.
 | ExplicitUserConversion `TakeXBox((XBox)r)` | indirect | user_conversion | user_defined_explicit | record_without_call_fact |
 | NameOf `Use4(nameof(r))` | indirect | nameof_operand | not_applicable | record_without_call_fact |
 | MemberAccess `Use5(r.Length)` | indirect | member_access_on_handle | not_applicable | record_without_call_fact |
+| Boxing `SinkObject(r)`, r : struct Token, owned parameter | indirect | boxing_conversion | boxing | sidecar_call (false) |
 | Receiver `r.CopyTo(...)` | indirect | receiver_not_summary_parameter | not_applicable | record_without_call_fact |
 | Indexer `d[0] = r` | indirect | storage_assignment | not_applicable | no_record |
 
@@ -1015,7 +1049,11 @@ inference. One row earned its place by being measured rather than assumed:
 because its callee never disposes the argument and the legacy pass reads a
 pass into a non-consuming callee as an escape, leaving nothing tracked. A
 direct flow with nowhere to be recorded is the orphan carrier's case (10.6.6)
-in its purest form. Side observation the oracle will surface by construction: the
+in its purest form. The `Boxing` row is the one A' capture the walker was
+right to lose: A' bound the boxed struct parameter as a `param` fact although
+the callee receives a copy, and no A2.2-1 shape covered structs, so the change
+was invisible until A2.2-1a measured it. Side observation the oracle will
+surface by construction: the
 legacy body is itself wrapper-sensitive (`Inner(r, true)` lowers to a release,
 `Inner((Stream)r, true)` to a use), so today's verdicts already differ on
 semantically identical code. Legacy stays authoritative until C+; this is
@@ -1043,7 +1081,13 @@ causes of FACT-DIFF. Tracked in #364 with its own acceptance.
   the `as` split pinned; the freeze test green; CI on F0' green;
 - **A2.2-1** decouple relevance from representation properly, with the
   `IOperation` value-flow walker of 10.6.3: parentheses, casts, `as`, `!`,
-  conditional, `??`, switch expression; no production `mentions`;
+  conditional, `??`, switch expression; no production `mentions`
+  (landed: `268bbd4`, CI green, local rehearsal UNCHANGED on all four pairs);
+- **A2.2-1a** conversion closure: `reference_checked` (transparent) and
+  `boxing` (the exclusion `boxing_conversion`), registry / §10.6 / spec §5.2
+  synchronized, the freeze test expanded, two census shapes added, the
+  existing census untouched, no production change and therefore no
+  measurement epoch of its own: A2.2-S measures the cumulative treatment;
 - **A2.2-2** constructor and the other genuine call-like forms, one semantic
   family per commit;
 - **A2.2-3** the `guarded_functions[]` orphan carrier: known and validated by

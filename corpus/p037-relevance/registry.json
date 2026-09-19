@@ -1,31 +1,47 @@
 {
   "schema": "p037-relevance-taxonomy/1",
-  "frozen_at": "P-037 A2.2-0 (F0', corrected freeze on main@23e3203)",
+  "frozen_at": "P-037 A2.2-0 (F0', corrected freeze on main@23e3203); conversion vocabulary closed at A2.2-1a",
   "ruling": "docs/notes/p037-formal-kernel.md §10.6",
   "completeness": "Completeness means every candidate occurrence at a call-related syntax site is either represented by the raw guarded-call vocabulary or assigned exactly one named exclusion. Occurrence alone does not establish ownership flow to the enclosing callee.",
   "classes": {
     "direct": "The argument expression IS a handle identifier (a disposable candidate local or an owned parameter of this method), or the handle is the receiver of a reduced extension method (declared ordinal 0). The value reaches the callee's declared parameter through no conversion or a value-preserving built-in one. Represented: var / param.",
-    "transparent": "The handle under a transparent wrapper: parentheses, the null-forgiving `!`, or a cast / `as` whose semantic conversion is built-in and value-preserving (identity or a guaranteed reference conversion) and invokes no user-defined operator. The same value reaches the callee. Relevance is kept; the representation is the unwrapped fact (var / param). SyntaxKind alone never makes a cast or an `as` transparent: the conversion does.",
+    "transparent": "The handle under a transparent wrapper: parentheses, the null-forgiving `!`, or a cast / `as` whose semantic conversion is built-in and preserves object identity (identity, a guaranteed reference conversion, or a checked explicit reference conversion that throws rather than producing an alternate value) and invokes no user-defined operator. The same value reaches the callee, or the call is not entered at all. Relevance is kept; the representation is the unwrapped fact (var / param). SyntaxKind alone never makes a cast or an `as` transparent: the conversion does.",
     "may_value": "The argument's value is one of several alternatives and a handle is among them, reachable through allowed value-preserving edges only: the conditional operator, null-coalescing `??`, a switch expression, and an `as` whose conversion may fail to null (a downcast the static type does not guarantee). Relevance is kept; the representation stays opaque. An alternative whose value passes through a user-defined conversion is not a handle alternative.",
     "call_like": "A genuine call site that is not an invocation expression: object creation (a constructor call), delegate invocation. Each gets its own call fact with the site's own callee; one semantic family per A2.2 commit.",
     "indirect": "The handle occurs below the argument, but the value that reaches the callee is something else (a call result, a container, a tuple, a closure, a converted value), or the site binds no summary parameter at all (an ordinary receiver, a storage assignment, a method group). Not relevant to the enclosing callee. Every such occurrence must match exactly one named exclusion below."
   },
-  "transparent_wrappers": ["parenthesized", "null_forgiving", "cast", "as"],
-  "may_value_forms": ["conditional", "null_coalescing", "switch_expression", "as_may_fail"],
-  "call_like_forms": ["object_creation", "delegate_invocation"],
+  "transparent_wrappers": [
+    "parenthesized",
+    "null_forgiving",
+    "cast",
+    "as"
+  ],
+  "may_value_forms": [
+    "conditional",
+    "null_coalescing",
+    "switch_expression",
+    "as_may_fail"
+  ],
+  "call_like_forms": [
+    "object_creation",
+    "delegate_invocation"
+  ],
   "conversion_edges": {
     "none": "identity conversion only; no conversion syntax on the path",
     "identity": "an explicit cast or `as` to the handle's own static type",
     "reference_upcast": "a built-in reference conversion to a base type or an interface, implicit at the parameter or written as a cast / `as`; guaranteed to preserve the value",
-    "may_fail_null": "an `as` to a type the handle's static type does not guarantee; yields the handle or null at runtime",
+    "reference_checked": "a built-in explicit reference conversion (a downcast, or interface to class / interface) that preserves object identity when it succeeds and throws rather than producing an alternate value when it fails: the callee receives the same reference or is not called",
+    "may_fail_null": "an `as` to a type the handle's static type does not guarantee; succeeds INTO null and the call continues with it",
     "user_defined_implicit": "a user-defined implicit operator applied without cast syntax; a hidden call",
     "user_defined_explicit": "a user-defined implicit or explicit operator applied behind cast syntax; a hidden call inside the cast expression",
+    "boxing": "a boxing conversion of a struct handle to object or an interface: the callee receives a boxed copy, never the ownership identity of the value",
     "not_applicable": "the handle's value does not reach the parameter at all (indirect occurrence)"
   },
   "conversion_rules": [
-    "transparent and direct rows carry only none, identity or reference_upcast; never may_fail_null and never a user-defined edge",
+    "transparent and direct rows carry only none, identity, reference_upcast or reference_checked; never may_fail_null, never boxing and never a user-defined edge",
     "a user-defined edge, implicit or explicit, is always the named exclusion user_conversion and never transparent, whatever the syntax around it",
-    "may_fail_null is always may_value with form as_may_fail, and as_may_fail always carries may_fail_null",
+    "may_fail_null is always may_value with form as_may_fail, and as_may_fail always carries may_fail_null: `r as Derived` succeeds into a null VALUE and the call continues, which is why it is an alternative; `(Derived)r` either passes the same reference or throws before the call, which is why it is not (reference_checked, transparent)",
+    "boxing is always the named exclusion boxing_conversion, and boxing_conversion always carries boxing; no other_conversion bucket exists: a genuinely distinct conversion the oracle meets is a §10.1 case-3 addition with its own name, never a silent classification",
     "A2.2-1 decides these with a value-flow walker over Roslyn IOperation, ClassifyValueFlow(operation, handle) -> Direct | MayValue | Indirect(named_exclusion) | None, checking the semantic conversion at every IConversionOperation on the path and the argument's InConversion; SyntaxKind alone decides nothing, and GetConversion on the whole argument is not enough because (Box)r already has type Box at the call"
   ],
   "exclusions": {
@@ -69,6 +85,11 @@
       "definition": "The handle reaches the callee through a conversion edge whose Roslyn semantic conversion is user-defined, implicit or explicit, including one hidden inside a cast expression: a hidden call. Unsupported semantic surface in A2, classified but not represented; it may earn its own raw fact later, by amendment. This rule wins over any transparent-looking syntax around it.",
       "example": "TakeBox(r) with `implicit operator Box(MemoryStream)`; TakeXBox((XBox)r) with `explicit operator XBox(MemoryStream)`"
     },
+    "boxing_conversion": {
+      "class": "indirect",
+      "definition": "A disposable struct handle reaches the callee through a boxing conversion (to object or an interface). The callee receives a boxed copy, not the ownership identity of the value: not relevant, no call fact. The A' producer captured this as a `param` fact, a false raw fact that the A2.2-1 walker removed and A2.2-1a names.",
+      "example": "Sink(r) with `struct Token : IDisposable` and `Sink(object x)`"
+    },
     "nameof_operand": {
       "class": "indirect",
       "definition": "The identifier is the operand of nameof. No value flows.",
@@ -81,7 +102,7 @@
     }
   },
   "fixture_obligation": "Every exclusion has a positive fixture (the rule fires and no call fact is emitted for that site) and a negative fixture (a syntactically adjacent case that is captured instead). A2.2-4 checks both by name; until then the probe below pins the classification.",
-  "already_landed_at_a_prime": "Relevance and representability are already decoupled for one family at A' (5a0de070): a handle bound to a params slot, passed by ref/out, or an unstable owned parameter is opaque AND keeps the call relevant (corpus/p037-shapes/sidecar-relevance-*). A2.2-1 extends the same separation to the transparent and may-value classes.",
+  "already_landed_at_a_prime": "Relevance and representability are already decoupled for one family at A' (5a0de070): a handle bound to a params slot, passed by ref/out, or an unstable owned parameter is opaque AND keeps the call relevant (corpus/p037-shapes/sidecar-relevance-*). A2.2-1 extends the same separation to the transparent and may-value classes. A2.2-1 (268bbd4) extended it to the transparent and may-value classes and, as A2.2-1a measured, stopped capturing a boxed struct handle that A' had recorded as a param fact.",
   "known_gaps": [
     "Lambda and local-function bodies have no function record of their own, so the calls inside them are unobserved through A2. Recorded as a census finding (§10.1 case 3), not repaired by pretending the enclosing call received the handle."
   ],

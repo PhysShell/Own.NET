@@ -1,0 +1,78 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "sidecar-boxing-struct-handle",
+  "status": "anchored",
+  "why": "P-037 A2.2-1a (formal note §10.6.3): negative: boxing a struct handle into `object` is the exclusion boxing_conversion, no call fact; the identity control on the same parameter IS captured. Recorded with the A2.2-1 walker unchanged: this is a contract/census closure, not a production change.",
+  "a2_expect": [
+    {
+      "function": "ShapeBoxingStructHandle.Caller",
+      "guarded_facts": "absent"
+    },
+    {
+      "function": "ShapeBoxingStructHandle.Control",
+      "call": {
+        "callee": "ShapeBoxingStructHandle.SinkT",
+        "args": [
+          {
+            "param": 0,
+            "kind": "param",
+            "source_param": 0
+          }
+        ]
+      }
+    }
+  ],
+  "facts": {
+    "ShapeBoxingStructHandle.Caller": {
+      "params": [
+        {
+          "name": "r",
+          "line": 14
+        }
+      ],
+      "body": [
+        "use:r@14"
+      ],
+      "guarded_facts": null
+    },
+    "ShapeBoxingStructHandle.Control": {
+      "params": [
+        {
+          "name": "r",
+          "line": 15
+        }
+      ],
+      "body": [
+        "use:r@15"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 15,
+              "column": 36
+            },
+            "statement_line": 15,
+            "form": "statement",
+            "callee": "ShapeBoxingStructHandle.SinkT",
+            "sig": "ShapeBoxingStructHandle+Token",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

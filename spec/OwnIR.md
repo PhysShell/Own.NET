@@ -390,9 +390,10 @@ decided independently of how precisely the slot can be represented:
 - **transparent** — parentheses, the null-forgiving `!`, and a built-in
   identity or reference conversion that invokes no user-defined operator
   (implicit at the parameter, or written as a cast or an `as` the static type
-  guarantees; an explicit reference downcast passes the same reference or
-  throws). The same value reaches the callee: the fact is the unwrapped one
-  (`var` / `param`) and the call is relevant.
+  guarantees; a checked explicit reference conversion passes the same
+  reference or throws before the call, never an alternate value). The same
+  value reaches the callee, or the call is not entered: the fact is the
+  unwrapped one (`var` / `param`) and the call is relevant.
 - **may-value** — the conditional operator, `??`, a switch expression, and an
   `as` the static type does *not* guarantee (it may yield null). A handle among
   the alternatives, reached through transparent edges only, keeps the call
@@ -401,10 +402,13 @@ decided independently of how precisely the slot can be represented:
 - **excluded** — a user-defined conversion, implicit or explicit, however it is
   spelled (`TakeBox(r)`, `TakeBox((Box)r)`): a hidden call whose result, not the
   handle, reaches the callee. Not relevant, whatever transparent-looking syntax
-  surrounds it. Likewise a call result, a container or tuple construction, a
-  closure, a method group, an ordinary instance receiver and a storage
-  assignment carry no relevance to the enclosing call; each is a named
-  exclusion of the frozen taxonomy, not a call fact.
+  surrounds it. A boxing conversion of a struct handle (`Sink(object)` given a
+  disposable struct) is excluded the same way: the callee receives a boxed
+  copy, never the value's ownership identity. Likewise a call result, a
+  container or tuple construction, a closure, a method group, an ordinary
+  instance receiver and a storage assignment carry no relevance to the
+  enclosing call; each is a named exclusion of the frozen taxonomy, not a call
+  fact.
 
 Relevance and representability stay orthogonal: an unstable owned parameter,
 a `params` slot, a `ref`/`out` argument and a may-value form are all `opaque`

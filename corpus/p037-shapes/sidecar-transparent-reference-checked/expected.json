@@ -1,0 +1,99 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "sidecar-transparent-reference-checked",
+  "status": "anchored",
+  "why": "P-037 A2.2-1a (formal note §10.6.3): transparent edge reference_checked: `(Derived)r` on a Base-typed handle unwraps to `var r`; the call is relevant. Recorded with the A2.2-1 walker unchanged: this is a contract/census closure, not a production change.",
+  "a2_expect": [
+    {
+      "function": "ShapeTransparentReferenceChecked.Caller",
+      "call": {
+        "callee": "ShapeTransparentReferenceChecked.Take",
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "r"
+          },
+          {
+            "param": 1,
+            "kind": "bool_const",
+            "value": true
+          }
+        ]
+      }
+    }
+  ],
+  "facts": {
+    "ShapeTransparentReferenceChecked.Take": {
+      "params": [
+        {
+          "name": "x",
+          "line": 12
+        }
+      ],
+      "body": [
+        "if:None@12",
+        "then:release:x@12"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 12,
+              "column": 51
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    "ShapeTransparentReferenceChecked.Caller": {
+      "params": null,
+      "body": [
+        "acquire:r@15",
+        "use:r@16"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 16,
+              "column": 9
+            },
+            "statement_line": 16,
+            "form": "statement",
+            "callee": "ShapeTransparentReferenceChecked.Take",
+            "sig": "ShapeTransparentReferenceChecked+Derived,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [
+      "OWN001:warning@15"
+    ],
+    "python": [
+      "OWN001:warning@15"
+    ]
+  }
+}

@@ -11,8 +11,9 @@ the machine-readable half of that ruling.
 ## Why this exists
 
 The A2.1 guarded-fact sidecar (corrected treatment A', `5a0de070`) captures two
-argument shapes out of the twenty-five in `probe/case.cs` (the bare identifier and
-the parenthesized one). The tempting repair — "a handle occurs somewhere below the
+argument shapes out of the twenty-seven in `probe/case.cs` correctly (the bare
+identifier and the parenthesized one) and one falsely (a boxed struct handle,
+recorded as a `param` fact although the callee receives a copy). The tempting repair — "a handle occurs somewhere below the
 argument, therefore the call is relevant" — is exactly the wrong one: for
 `Use(Wrap(r))` the value reaching `Use` is `Wrap`'s result, for
 `Use3(new Stream[] { r })` it is an array, for `Run(() => Use(r))` it is a
@@ -41,8 +42,10 @@ row into a checked `captured` / `excluded_by_rule:<name>` assertion.
 
 ## What moves this census
 
-A2.2-1 landed: the eight transparent and may-value rows read `sidecar_call` in
-`a2_2_1_observed`, measured with the walker; every other row reads as at A'.
+A2.2-1 landed: the transparent and may-value rows read `sidecar_call` in
+`a2_2_1_observed`, measured with the walker; the boxing row lost its false
+capture; every other row reads as at A'. A2.2-1a closed the conversion
+vocabulary (`reference_checked`, `boxing`) with no production change.
 
 Only an A2.2 step, deliberately, one row at a time: a transparent wrapper
 becomes `captured` in A2.2-1, a call-like form in A2.2-2, an orphan record

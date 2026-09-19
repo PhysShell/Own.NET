@@ -24,6 +24,11 @@ static class Probe
     static void Use4(string s) { }
     static void Use5(long n) { }
     static void Same(MemoryStream m) { }
+    class Base : IDisposable { public virtual void Dispose() { } }
+    sealed class Derived : Base { }
+    static void TakeDerivedRef(Derived d) { }
+    struct Token : IDisposable { public void Dispose() { } }
+    static void SinkObject(object o) { }
 
     // direct
     static void Plain() { var r = new MemoryStream(); Inner(r, true); }        // implicit reference upcast at the parameter
@@ -35,6 +40,7 @@ static class Probe
     static void Cast() { var r = new MemoryStream(); Inner((Stream)r, true); }             // reference upcast
     static void AsCast() { var r = new MemoryStream(); Inner(r as Stream, true); }   // guaranteed reference upcast
     static void Bang() { var r = new MemoryStream(); Inner(r!, true); }
+    static void CheckedRef() { Base r = new Derived(); TakeDerivedRef((Derived)r); }   // explicit reference conversion: same reference or no call
 
     // may-value
     static void Ternary(bool b) { var r = new MemoryStream(); var q = new MemoryStream(); Inner(b ? r : q, true); }
@@ -57,6 +63,9 @@ static class Probe
     static void ExplicitUserConversion() { var r = new MemoryStream(); TakeXBox((XBox)r); }  // explicit operator behind cast syntax
     static void NameOf() { var r = new MemoryStream(); Use4(nameof(r)); }
     static void MemberAccess() { var r = new MemoryStream(); Use5(r.Length); }
+
+    // indirect: the value that reaches the callee is a boxed copy of a struct handle
+    static void Boxing(Token r) { SinkObject(r); }   // owned struct parameter, boxed at the call
 
     // indirect: the site binds no summary parameter
     static void Receiver() { var r = new MemoryStream(); r.CopyTo(Stream.Null); }

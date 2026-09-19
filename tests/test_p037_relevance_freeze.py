@@ -31,9 +31,9 @@ FROZEN_SENTENCE = (
     "exclusion. Occurrence alone does not establish ownership flow to the enclosing callee."
 )
 CLASSES = {"direct", "transparent", "may_value", "call_like", "indirect"}
-CONVERSIONS = {"none", "identity", "reference_upcast", "may_fail_null",
-               "user_defined_implicit", "user_defined_explicit", "not_applicable"}
-VALUE_PRESERVING = {"none", "identity", "reference_upcast"}
+CONVERSIONS = {"none", "identity", "reference_upcast", "reference_checked", "may_fail_null",
+               "user_defined_implicit", "user_defined_explicit", "boxing", "not_applicable"}
+VALUE_PRESERVING = {"none", "identity", "reference_upcast", "reference_checked"}
 USER_DEFINED = {"user_defined_implicit", "user_defined_explicit"}
 # A' = the corrected A2.1 treatment (PR #363), the extractor main carries. The
 # superseded A (dce26ed) is not a measurement point; re-observe by step, never by drift.
@@ -138,7 +138,10 @@ def run() -> int:
             problems.append(f"{name}: user-defined conversion <=> user_conversion violated")
         if (conv == "may_fail_null") != (entry.get("form") == "as_may_fail"):
             problems.append(f"{name}: may_fail_null <=> as_may_fail violated")
-        if cls == "indirect" and entry.get("exclusion") != "user_conversion" \
+        if (conv == "boxing") != (entry.get("exclusion") == "boxing_conversion"):
+            problems.append(f"{name}: boxing <=> boxing_conversion violated")
+        conversion_exclusions = {"user_conversion", "boxing_conversion"}
+        if cls == "indirect" and entry.get("exclusion") not in conversion_exclusions \
                 and conv != "not_applicable":
             problems.append(f"{name}: indirect non-conversion row carries conversion {conv}")
         if entry.get("a2_1_observed") not in observed_vocab:
@@ -162,6 +165,9 @@ def run() -> int:
           f"explicit {by_conv['user_defined_explicit']}")
     as_rows = {n: e for n, e in methods.items()
                if e.get("wrapper") == "as" or e.get("form") == "as_may_fail"}
+    check("checked-reference-and-boxing-pinned",
+          bool(by_conv["reference_checked"]) and bool(by_conv["boxing"]),
+          f"reference_checked {by_conv['reference_checked']}, boxing {by_conv['boxing']}")
     check("as-split-pinned",
           any(e.get("class") == "transparent" for e in as_rows.values())
           and any(e.get("class") == "may_value" for e in as_rows.values()),
@@ -189,7 +195,11 @@ def run() -> int:
             step_problems.append(f"{name}: indirect row captured after A2.2-1 (a false raw fact)")
         if cls in {"direct", "call_like"} and after != before:
             step_problems.append(f"{name}: {cls} row moved in A2.2-1 ({before} -> {after})")
-        if before == "sidecar_call" and after != "sidecar_call":
+        # The one deliberate loss: A' captured a boxed struct handle as a `param` fact, a false
+        # raw fact (the callee receives a copy); the walker stops at the boxing edge, and A2.2-1a
+        # names it boxing_conversion. Any other lost capture is a regression.
+        if before == "sidecar_call" and after != "sidecar_call" \
+                and entry.get("exclusion") != "boxing_conversion":
             step_problems.append(f"{name}: captured at A' but lost after A2.2-1")
     check("a2-2-1-moves-exactly-its-rows", not step_problems, "; ".join(step_problems))
 

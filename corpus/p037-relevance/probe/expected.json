@@ -4,7 +4,7 @@
   "why": "One method per argument shape through which a disposable local can reach a callee, with the conversion edge on the way. Each is classified against the frozen taxonomy; `a2_1_observed` records what the corrected A2.1 extractor (A') emitted for it, measured, not assumed, so the A2.2 steps move a named row, never a number.",
   "observed_at": "5a0de070af241a2612859153887ad6ae04afcce2",
   "observed_at_note": "A' = corrected A2.1 treatment (PR #363), landed via main@23e3203; the extractor is byte-identical between A' and that merge. The superseded A (dce26ed) is not a measurement point.",
-  "a2_2_1_note": "Measured with the A2.2-1 extractor (the IOperation value-flow walker) from the tree this file is committed in, before the commit: the SHA that carries this file is the SHA it was measured at. A2.2-1 promises exactly the transparent and may-value rows move to sidecar_call; every other row must read as it did at A'.",
+  "a2_2_1_note": "Measured with the A2.2-1 extractor (the IOperation value-flow walker) from the tree this file is committed in, before the commit: the SHA that carries this file is the SHA it was measured at. A2.2-1 promises exactly the transparent and may-value rows move to sidecar_call; every other row must read as it did at A'. A2.2-1a added the CheckedRef and Boxing rows, measured at both points.",
   "observed_vocabulary": {
     "sidecar_call": "a function record with a guarded_facts call fact for the probe call",
     "record_without_call_fact": "a function record exists but carries no call fact for the probe call",
@@ -22,7 +22,9 @@
     "Use3",
     "Use4",
     "Use5",
-    "Same"
+    "Same",
+    "TakeDerivedRef",
+    "SinkObject"
   ],
   "methods": {
     "Plain": {
@@ -70,6 +72,14 @@
       "class": "transparent",
       "wrapper": "null_forgiving",
       "conversion": "reference_upcast",
+      "a2_1_observed": "record_without_call_fact",
+      "a2_2_1_observed": "sidecar_call"
+    },
+    "CheckedRef": {
+      "class": "transparent",
+      "wrapper": "cast",
+      "conversion": "reference_checked",
+      "note": "explicit reference conversion on a Base-typed handle: the same reference or no call at all (the cast throws); never an alternate value, unlike `as`",
       "a2_1_observed": "record_without_call_fact",
       "a2_2_1_observed": "sidecar_call"
     },
@@ -187,6 +197,14 @@
       "exclusion": "member_access_on_handle",
       "conversion": "not_applicable",
       "a2_1_observed": "record_without_call_fact",
+      "a2_2_1_observed": "record_without_call_fact"
+    },
+    "Boxing": {
+      "class": "indirect",
+      "exclusion": "boxing_conversion",
+      "conversion": "boxing",
+      "note": "an owned disposable STRUCT parameter passed to object: the callee receives a boxed copy, not the handle; owned so the record exists regardless of legacy escape admission",
+      "a2_1_observed": "sidecar_call",
       "a2_2_1_observed": "record_without_call_fact"
     },
     "Receiver": {
