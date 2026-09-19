@@ -335,6 +335,25 @@
    "finding": "F-MEMBER",
    "why": "member kind: a property setter passing its `value` parameter; accessors are not BaseMethodDeclarationSyntax and are never visited (finding F-MEMBER)"
   },
+  "member-default-interface-method": {
+   "member": "H_member_default_interface_method.M",
+   "member_override": ".IHolder.M",
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {
+    "occurrence_not_captured": 1
+   },
+   "finding": "F-MEMBER",
+   "why": "member kind: a default interface method with a body; the legacy pass enumerates class declarations only, and the root cause is the enumeration, not struct-ness (finding F-MEMBER)"
+  },
   "member-expression-bodied": {
    "member": "H_member_expression_bodied.M",
    "carrier": "none",
@@ -385,6 +404,25 @@
    },
    "finding": "F-MEMBER",
    "why": "member kind: a method of a record; the legacy pass enumerates class declarations only (finding F-MEMBER)"
+  },
+  "member-record-struct": {
+   "member": "H_member_record_struct.M",
+   "member_override": ".Holder.M",
+   "carrier": "none",
+   "occurrences": [
+    {
+     "symbol": "r",
+     "verdict": "captured",
+     "site_kind": "invocation",
+     "ordinal": 0,
+     "expected": "param"
+    }
+   ],
+   "red": {
+    "occurrence_not_captured": 1
+   },
+   "finding": "F-MEMBER",
+   "why": "member kind: a method of a record struct; neither a class declaration nor a record class (finding F-MEMBER)"
   },
   "member-struct": {
    "member": "H_member_struct.M",

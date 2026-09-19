@@ -97,7 +97,7 @@ def run() -> int:
     check("designs-use-frozen-vocabulary", not problems, "; ".join(problems[:8]))
 
     named = {n for n in cases if not n.startswith("pw-")}
-    for prefix, minimum in (("comp-", 7), ("shadow-", 4), ("member-", 5), ("vocab-", 4),
+    for prefix, minimum in (("comp-", 7), ("shadow-", 4), ("member-", 7), ("vocab-", 4),
                             ("ext-", 2), ("ctorinit-", 2)):
         have = sorted(n for n in named if n.startswith(prefix))
         check(f"named-cases-{prefix.rstrip('-')}", len(have) >= minimum,

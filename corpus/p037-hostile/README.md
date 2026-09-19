@@ -53,8 +53,9 @@ plus the named cases:
   (both orders), a lambda-local creation beside an unrelated local of the same
   spelling, and the GO's literal `Stream r = …; { Stream r2 = …; Sink(r2); }`;
 - the member kinds the legacy pass never visits (`member-*`): an
-  expression-bodied method, a struct method, a record method, a property
-  accessor, and a declared local function (the known, counted gap);
+  expression-bodied method, a struct method, a record method, a record struct
+  method, a default interface method with a body, a property accessor, and a
+  declared local function (the known, counted gap);
 - two receiver forms (`ext-*`): a reduced extension through `?.`, and a
   struct handle boxed into an `object` receiver;
 - three constructor-initializer sites (`ctorinit-*`, `vocab-constructor-initializer`):

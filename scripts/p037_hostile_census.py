@@ -525,6 +525,23 @@ def named_cases() -> list[tuple[str, str, dict[str, Any]]]:
          "occurrences": [cap("value", expected="param")],
          "red": {"occurrence_not_captured": 1}, "finding": "F-MEMBER"}))
     out.append(named_case(
+        "member-default-interface-method",
+        "member kind: a default interface method with a body; the legacy pass enumerates class "
+        "declarations only, and the root cause is the enumeration, not struct-ness "
+        "(finding F-MEMBER)",
+        [sink, "interface IHolder { void M(MemoryStream r) { Sink(r, true); } }"],
+        {"member_override": ".IHolder.M", "carrier": "none",
+         "occurrences": [cap("r", expected="param")],
+         "red": {"occurrence_not_captured": 1}, "finding": "F-MEMBER"}))
+    out.append(named_case(
+        "member-record-struct",
+        "member kind: a method of a record struct; neither a class declaration nor a record class "
+        "(finding F-MEMBER)",
+        [sink, "record struct Holder(int X) { public void M(MemoryStream r) { Sink(r, true); } }"],
+        {"member_override": ".Holder.M", "carrier": "none",
+         "occurrences": [cap("r", expected="param")],
+         "red": {"occurrence_not_captured": 1}, "finding": "F-MEMBER"}))
+    out.append(named_case(
         "member-local-function",
         "member kind: the call sits in a declared local function; the capture is a named non-call "
         "context of the method and the inner call is the known unobserved gap, counted, not RED",
