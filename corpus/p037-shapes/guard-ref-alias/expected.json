@@ -1,0 +1,38 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "guard-ref-alias",
+  "status": "pending_a2",
+  "why": "The guard is handed to a `ref` parameter before the branch reads it, so a callee may have changed it. Same G-V4 answer as a direct write, reached by a different route; recorded verdict today is the same false OWN003.",
+  "a2_contract": "Not eligible, no guard metadata. Identical treatment to a direct write.",
+  "measured_at": "464308b",
+  "facts": {
+    "ShapeRefAliasGuard.Inner": {
+      "params": [
+        {
+          "name": "p",
+          "line": 13
+        }
+      ],
+      "body": [
+        "if:None@16",
+        "then:release:p@18"
+      ]
+    },
+    "ShapeRefAliasGuard.Caller": {
+      "params": null,
+      "body": [
+        "acquire:r@24",
+        "release:r@25",
+        "release:r@26"
+      ]
+    }
+  },
+  "verdict": {
+    "rust": [
+      "OWN003:warning@24"
+    ],
+    "python": [
+      "OWN003:warning@24"
+    ]
+  }
+}

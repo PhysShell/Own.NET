@@ -2,6 +2,10 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+.mypy_cache/
+# P-037 A2.0: frozen evidence populations, materialized from git blobs
+# (scripts/p037_evidence.py); never tracked, never dirty.
+.p037-population/
 *.ownreport.json
 
 # .NET build output (golden_arraypool demo)

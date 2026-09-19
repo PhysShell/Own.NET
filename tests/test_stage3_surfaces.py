@@ -142,6 +142,18 @@ SUPPLIES_CANDIDATE = re.compile(
 # That choice has to be stated at the call site, in these words.
 DECLARES_DEFAULT = re.compile(r"no --engine here on purpose")
 
+# P-037's evidence contract names the launcher as DATA (a path inside its
+# measurement closure) and never runs it. That literal is exempted from this
+# census on three conditions, all local: the file is the one evidence module,
+# the statement is a bare assignment of exactly that literal, and the exact
+# marker sits on that line or the one beside it. A subprocess call cannot take
+# the shape, so the marker cannot hide an invocation, and the census requires
+# the exemption to match exactly once so it cannot spread.
+PROVENANCE_LITERAL_FILE = "scripts/p037_evidence.py"
+PROVENANCE_LITERAL_MARKER = "p037-stage3: launcher-literal-is-provenance-data"
+PROVENANCE_LITERAL_SHAPE = re.compile(
+    r'^\s*[A-Z][A-Z0-9_]*\s*=\s*"scripts/own-check\.sh"\s*(#.*)?$')
+
 # A job that installs the tool rather than building it is served by whichever
 # job in the same workflow packed it.
 INSTALLS_PACKAGE = re.compile(r"dotnet tool install.*Owen\.Cli", re.I)
@@ -249,9 +261,49 @@ def _action_build_is_reproducible() -> int:
     return failures
 
 
+def _provenance_literal_exempt(name: str, raw_lines: list[str], i: int) -> bool:
+    """The one launcher literal this census reads as data, not as a call."""
+    if name != PROVENANCE_LITERAL_FILE or i >= len(raw_lines):
+        return False
+    if not PROVENANCE_LITERAL_SHAPE.match(raw_lines[i]):
+        return False
+    window = raw_lines[max(0, i - 1):i + 2]
+    return any(PROVENANCE_LITERAL_MARKER in ln for ln in window)
+
+
+def _provenance_marker_selftest() -> int:
+    """The exemption admits exactly the provenance shape and nothing else."""
+    marked = f'OWN_CHECK_PATH = "scripts/own-check.sh"  # {PROVENANCE_LITERAL_MARKER}'
+    cases: list[tuple[str, str, list[str], int, bool]] = [
+        ("assignment+marker in the evidence module", PROVENANCE_LITERAL_FILE, [marked], 0, True),
+        ("marker on the line before", PROVENANCE_LITERAL_FILE,
+         [f"# {PROVENANCE_LITERAL_MARKER}", 'OWN_CHECK_PATH = "scripts/own-check.sh"'], 1, True),
+        ("same shape in any other script", "scripts/benchmark.py", [marked], 0, False),
+        ("assignment without the marker", PROVENANCE_LITERAL_FILE,
+         ['OWN_CHECK_PATH = "scripts/own-check.sh"'], 0, False),
+        ("a real launch wearing the marker", PROVENANCE_LITERAL_FILE,
+         [f'subprocess.run(["bash", "scripts/own-check.sh"])  # {PROVENANCE_LITERAL_MARKER}'],
+         0, False),
+        ("a path built for launching, marker adjacent", PROVENANCE_LITERAL_FILE,
+         [f"# {PROVENANCE_LITERAL_MARKER}",
+          'cmd = [str(ROOT / "scripts/own-check.sh"), "--engine", "rust"]'], 1, False),
+        ("marker too far away", PROVENANCE_LITERAL_FILE,
+         [f"# {PROVENANCE_LITERAL_MARKER}", "", 'OWN_CHECK_PATH = "scripts/own-check.sh"'],
+         2, False),
+    ]
+    failures = 0
+    for label, name, lines, i, want in cases:
+        got = _provenance_literal_exempt(name, lines, i)
+        if got != want:
+            failures += _fail(
+                f"provenance-literal exemption: {label}: expected {want}, got {got}",
+                check="provenance-literal-exemption-is-narrow")
+    return failures
+
+
 def run() -> int:
-    failures = _action_build_is_reproducible()
-    bare = explicit = ignored_ok = 0
+    failures = _action_build_is_reproducible() + _provenance_marker_selftest()
+    bare = explicit = ignored_ok = provenance_exempt = 0
     checked_files = 0
 
     # The workflows, and then the SCRIPTS the workflows call. Two of the three
@@ -274,6 +326,7 @@ def run() -> int:
         if False:
             continue
         text = open(path, encoding="utf-8").read()
+        raw_lines = text.splitlines()
         checked_files += 1
         jobs = _jobs(text)
         workflow_packs = bool(re.search(r"OwenRustCoreDir", text))
@@ -292,6 +345,9 @@ def run() -> int:
                 continue
             matcher = SCRIPT_INVOCATION if is_script else INVOCATION
             if not matcher.search(line):
+                continue
+            if is_script and _provenance_literal_exempt(name, raw_lines, i):
+                provenance_exempt += 1
                 continue
             if is_script:
                 stmt = "\n".join(
@@ -394,6 +450,13 @@ def run() -> int:
                         check="python-injection-needs-an-explicit-engine")
                 else:
                     ignored_ok += 1
+
+    if provenance_exempt != 1:
+        failures += _fail(
+            f"the provenance-literal exemption matched {provenance_exempt} site(s); exactly one "
+            f"is allowed (the OWN_CHECK_PATH assignment in {PROVENANCE_LITERAL_FILE}). It is a "
+            f"local declaration for one datum, not an ignore list",
+            check="provenance-literal-exemption-is-singular")
 
     if not bare and not explicit:
         return _fail(

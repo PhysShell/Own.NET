@@ -1,0 +1,37 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "guard-forward-bare",
+  "status": "pending_a2",
+  "why": "A wrapper forwarding its own flag unchanged. Today `Outer`'s body shows a fabricated `release` where the forward belongs, so the wrapper enters the summary layer as an unconditional consumer — the may-as-must flattening, now visible INSIDE the summaries rather than only at the call site.",
+  "a2_contract": "{\"param\":1,\"kind\":\"param\",\"source_param\":1}; Rust reads the `id` edge.",
+  "measured_at": "464308b",
+  "facts": {
+    "ShapeForwardBare.Inner": {
+      "params": [
+        {
+          "name": "s",
+          "line": 7
+        }
+      ],
+      "body": [
+        "if:None@9",
+        "then:release:s@11"
+      ]
+    },
+    "ShapeForwardBare.Outer": {
+      "params": [
+        {
+          "name": "s",
+          "line": 15
+        }
+      ],
+      "body": [
+        "release:s@17"
+      ]
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "guard-bool-const-true",
+  "status": "pending_a2",
+  "why": "`Inner(r, true)`: the constant that decides the callee's branch. Today it reaches the facts as nothing at all — the statement-level call emits no `call` op, and the fabricated `release` from ConsumesParam stands in its place.",
+  "a2_contract": "{\"param\":1,\"kind\":\"bool_const\",\"value\":true}. The frontend never writes `const-pos`: that is an interpretation relative to the callee's ELECTED guard and belongs to Rust.",
+  "measured_at": "464308b",
+  "facts": {
+    "ShapeConstTrue.Inner": {
+      "params": [
+        {
+          "name": "s",
+          "line": 9
+        }
+      ],
+      "body": [
+        "if:None@11",
+        "then:release:s@13"
+      ]
+    },
+    "ShapeConstTrue.Caller": {
+      "params": null,
+      "body": [
+        "acquire:r@19",
+        "release:r@20"
+      ]
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

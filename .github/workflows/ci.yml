@@ -2998,6 +2998,47 @@ jobs:
           [ "$rc" -eq 1 ] || { echo "FAIL: expected exit 1 (findings), got $rc"; exit 1; }
           case "$out" in *OWN001*) ;; *) echo "FAIL: the Rust core found no OWN001"; exit 1 ;; esac
           echo "OK: Rust-default dogfood on ${{ matrix.os }} (own-check.sh)"
+      # P-037 A1.1 (#304). Both censuses run here because this is the one job that
+      # already has all three things they need — a .NET SDK for the extractor, a
+      # built Rust candidate, and a Python for the reference engine.
+      #
+      # Linux only, deliberately: both censuses are about the EXTRACTOR's output and
+      # the two engines' reading of it, neither of which is platform-shaped. The
+      # Windows leg of this job exists for own-check.ps1, which is a separate
+      # launcher implementation and is the thing Windows actually tests.
+      #
+      # NOT here: the full P-037 verdict/MOS snapshots. The verdict sweep is
+      # 137 files times two engines and the MOS gate additionally measures the
+      # independent repository C# tree. They are per-STEP evidence recorded under
+      # docs/evidence/, not per-push work. The cheap provenance and MOS-reader
+      # controls below ARE per-push so forgetting or hollowing the heavy gate is red.
+      - name: P-037 conformance controls + fact-shape census
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli"
+          # The four G-V4 / class-3 controls, on both engines against one record.
+          # Today's record must match; --post-a1 is expected to FAIL until the
+          # semantic cut lands and is therefore NOT run as a gate here.
+          python scripts/p037_controls.py --engine both
+          # The eleven fact shapes. This is the census that exists because the
+          # 137-file VERDICT corpus reported UNCHANGED for a version of a1 that
+          # turned six jobs in this very workflow red: verdict coverage is not
+          # syntax/fact-shape coverage, and one fixture per shape fails by NAME.
+          python scripts/p037_fact_shapes.py check --engine both
+          # A2.0: a recorded run remains evidence only while its measured
+          # implementation closure and exact input blob set stay unchanged.
+          python tests/test_p037_evidence.py
+          # Level 2 reads the whole MOS document through the existing common
+          # P-022 capture envelope. This cheap control pins that returns and
+          # unresolved fields cannot disappear behind a transfer-only projection.
+          python scripts/p037_mos_snapshot.py --selftest
+          # A2.0: the machinery a baseline run stands on, exercised where cargo,
+          # git and dotnet are real. Both Rust executables are built qualified
+          # (path from cargo's own compiler-artifact message, digest verified),
+          # the frozen repo population is derived, materialized from blobs,
+          # re-hashed and removed again. No baseline is taken here.
+          python scripts/p037_evidence.py artifacts
+          python scripts/p037_evidence.py population --source repo --materialize --cleanup
       # The Windows launcher is a separate implementation, not a wrapper around
       # the shell one, so the Windows leg has to go through it to mean anything.
       - name: Own.NET's own tree, through own-check.ps1 on the Rust core

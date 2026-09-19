@@ -630,3 +630,120 @@ preference:
    that check and is unaffected; it was run and is green.
 3. **Three citations of `p036-bakeoff.md` now name the branch and commit**
    they live at, per §9.1.
+
+
+## 10. A2 execution governance freeze
+
+This section is the implementation-governance checkpoint for A2.0 through
+A2.2. It records owner rulings that were made after A1.1-a1 and before the
+first guarded-fact vocabulary change. These are not new semantics: they are
+the staging rules required to implement the already-frozen P-037 contract
+without moving the semantic boundary accidentally.
+
+### 10.1 New-finding classification
+
+After this freeze, a new implementation finding belongs to exactly one of
+these classes:
+
+1. it contradicts the frozen P-037 contract -> **implementation defect**;
+2. it exposes an unrecorded theorem assumption -> **proof-boundary manifest
+   amendment**;
+3. it exposes an unrepresented syntax/fact shape -> **shape-census
+   addition**;
+4. it exposes a missing test/control -> **evidence-infrastructure
+   addition**;
+5. it requires new semantics or changes a frozen rule -> **STOP: explicit
+   contract amendment before implementation continues**.
+
+Cases 1--4 do not reopen the architecture. Case 5 is the only architecture
+door.
+
+### 10.2 A2 raw-fact boundary
+
+The Roslyn frontend reports source facts; it does not run P-037 summary
+semantics in order to describe them.
+
+For boolean arguments the raw vocabulary distinguishes literal true, literal
+false, a stable parameter, a single negation of a stable parameter, and
+opaque.
+
+For reference arguments the raw vocabulary distinguishes:
+
+- `NullLiteral`;
+- `ObjectCreation`;
+- `StableParam(parameter_id)`;
+- `CallResult(callee_id, signature)`;
+- `Opaque`.
+
+The frontend never emits `fresh_owned`. Freshness of a call result is a
+summary conclusion, not a Roslyn fact. A `CallResult(F)` may therefore select
+the positive nullness cell only at G-A1 application, after summaries are
+finalized and only when `F` is proven to return fresh; otherwise it is
+opaque/collapsed. Using `CallResult` to choose a solver-edge transform would
+make the pre-solver system depend on the value solver's own output and is a
+case-5 STOP.
+
+For a nullness guard, forwarding the same stable nullable reference is
+identity of the predicate, not truth of it: it is an `id` relation, never
+`const-pos`. `const-pos` is reserved for statically proven non-null
+arguments under G-A1: object creation, or a call result whose finalized return
+summary proves fresh. `null` is `const-neg`. No Roslyn nullable-flow
+judgment is part of this contract.
+
+### 10.3 A2 staging invariant
+
+A2.1 makes the guarded-fact sidecar a known, fail-loud OwnIR vocabulary on
+both Python and Rust doors. A2.2 emits honest facts for every relevant call,
+including calls the legacy `ConsumesParam` path currently classifies as
+consuming. The legacy body remains authoritative through A2: the sidecar is
+validated but semantically inert.
+
+Therefore A2's three evidence layers are:
+
+- fact shape: expected, deliberate change;
+- whole MOS document: no change;
+- public verdict: no change.
+
+A valid but deliberately contradictory sidecar is the named inertness
+control: in A2 it must alter neither MOS nor verdict. In phase B the same
+fixture flips to a required-read control for the guarded shadow path.
+
+### 10.4 Phase-B proof boundary
+
+Phase B may not begin semantic wiring until the P-037 proof-boundary audit is
+green. The audit must derive the Kani harness inventory from source/Kani,
+check that the fast and heavy CI sets are disjoint and their union equals the
+source set, record the human claim and production subject for every harness,
+and make every load-bearing assumption traceable to either a production
+guarantor or an explicit `OUTSIDE_KANI_BOUNDARY` entry.
+
+The bounded formal model is intentionally not the production storage model:
+the current harness system uses three coordinates and two edges per
+coordinate. Production reuses the same guarded algebra and one-step
+semantics through a dynamic driver; the bounded adapter remains the model
+checker instance. The production-size bound is therefore explicit outside
+the proof boundary, not implied to have been proved.
+
+Non-vacuity is required per load-bearing restriction, not mechanically one
+`kani::cover` per `kani::assume`. Negative controls must pin the production
+guarantors for well-formedness and application ordering.
+
+### 10.5 Governance before the semantic cut
+
+Before phase C makes guarded Rust summaries authoritative, two P-022 policies
+must be re-scoped explicitly:
+
+- shadow compare may accept only machine-classified, per-document P-037
+  differences in the three declared classes
+  (`APPLICATION_REFINEMENT`, `SUMMARY_REFINEMENT`,
+  `LEGACY_HONESTY`); every other difference remains
+  acceptance-unexplained and fails;
+- the Stage-3 rollback contract separates rollback mechanics, exact parity on
+  an unaffected sample, and classified intentional P-037 divergence. Python
+  remains the legacy/reference/explicit rollback engine; it does not gain a
+  second guarded implementation merely to preserve zero-diff.
+
+After the semantic cut, a separate C+ checkpoint canonicalizes the temporary
+double representation of call facts. A stable call-site identity is introduced
+in A2 so the legacy and sidecar views cannot silently drift before that
+canonicalization.

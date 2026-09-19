@@ -1,0 +1,1053 @@
+{
+ "corpus": [
+  "corpus/real-world",
+  "corpus/wpf",
+  "corpus/di",
+  "corpus/fixtures",
+  "corpus/p036-bakeoff"
+ ],
+ "dirty": false,
+ "engine": "rust",
+ "files": {
+  "corpus/di/singleton-captures-scoped-dbcontext/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/di/singleton-captures-scoped-dbcontext/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "DI001",
+     "level": "warning",
+     "line": 31
+    }
+   ]
+  },
+  "corpus/fixtures/systemevents-console/Program.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN050",
+     "level": "note",
+     "line": 20
+    },
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 43
+    },
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 54
+    },
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 77
+    }
+   ]
+  },
+  "corpus/p036-bakeoff/guarded-consume-early-return/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/p036-bakeoff/guarded-consume-early-return/before.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/p036-bakeoff/guarded-consume-flag-branch/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/p036-bakeoff/guarded-consume-flag-branch/before.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/p036-bakeoff/guarded-consume-negation-wrapper/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/p036-bakeoff/guarded-consume-negation-wrapper/before.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/p036-bakeoff/guarded-consume-wrapper-forward/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/p036-bakeoff/guarded-consume-wrapper-forward/before.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/p036-bakeoff/gv4-control-aliased-self-null/control.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN003",
+     "level": "warning",
+     "line": 28
+    }
+   ]
+  },
+  "corpus/p036-bakeoff/gv4-control-mutated-guard/control.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN003",
+     "level": "warning",
+     "line": 38
+    }
+   ]
+  },
+  "corpus/p036-bakeoff/gv4-control-ref-alias-guard/control.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN003",
+     "level": "warning",
+     "line": 35
+    }
+   ]
+  },
+  "corpus/p036-bakeoff/legacy-honesty-else-unresolved-forward/control.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/ado-executereader-leak/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/ado-executereader-leak/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 11
+    }
+   ]
+  },
+  "corpus/real-world/arraypool-aliased-receiver/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/arraypool-aliased-receiver/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN003",
+     "level": "warning",
+     "line": 21
+    }
+   ]
+  },
+  "corpus/real-world/arraypool-double-return/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/arraypool-double-return/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN003",
+     "level": "warning",
+     "line": 15
+    }
+   ]
+  },
+  "corpus/real-world/arraypool-field-fullspan-overread/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/arraypool-field-fullspan-overread/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN025",
+     "level": "warning",
+     "line": 40
+    },
+    {
+     "code": "OWN025",
+     "level": "warning",
+     "line": 46
+    }
+   ]
+  },
+  "corpus/real-world/arraypool-fullspan-overread/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/arraypool-fullspan-overread/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN025",
+     "level": "warning",
+     "line": 24
+    },
+    {
+     "code": "OWN025",
+     "level": "warning",
+     "line": 26
+    }
+   ]
+  },
+  "corpus/real-world/arraypool-length-overread/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/arraypool-length-overread/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN025",
+     "level": "warning",
+     "line": 23
+    }
+   ]
+  },
+  "corpus/real-world/arraypool-memory-view-escape/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/arraypool-memory-view-escape/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN002",
+     "level": "warning",
+     "line": 17
+    }
+   ]
+  },
+  "corpus/real-world/arraypool-span-view-after-return/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/arraypool-span-view-after-return/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN002",
+     "level": "warning",
+     "line": 17
+    }
+   ]
+  },
+  "corpus/real-world/arraypool-use-after-return/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/arraypool-use-after-return/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN002",
+     "level": "warning",
+     "line": 15
+    }
+   ]
+  },
+  "corpus/real-world/arraypool-view-into-field-overread/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/arraypool-view-into-field-overread/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN025",
+     "level": "warning",
+     "line": 40
+    },
+    {
+     "code": "OWN025",
+     "level": "warning",
+     "line": 41
+    }
+   ]
+  },
+  "corpus/real-world/field-dispose-via-exchange/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/field-dispose-via-exchange/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 20
+    }
+   ]
+  },
+  "corpus/real-world/field-dispose-via-helper/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/field-dispose-via-helper/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 21
+    }
+   ]
+  },
+  "corpus/real-world/field-noop-dispose-wrapper/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/field-noop-dispose-wrapper/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 9
+    }
+   ]
+  },
+  "corpus/real-world/local-dispose-via-using-statement/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/local-dispose-via-using-statement/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 19
+    }
+   ]
+  },
+  "corpus/real-world/memorypool-double-dispose/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/memorypool-double-dispose/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN003",
+     "level": "warning",
+     "line": 17
+    }
+   ]
+  },
+  "corpus/real-world/memorypool-using-owner-escape/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/memorypool-using-owner-escape/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN002",
+     "level": "warning",
+     "line": 17
+    }
+   ]
+  },
+  "corpus/real-world/memorypool-using-statement-view-escape/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/memorypool-using-statement-view-escape/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN002",
+     "level": "warning",
+     "line": 17
+    }
+   ]
+  },
+  "corpus/real-world/memorypool-using-view-escape/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/memorypool-using-view-escape/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN002",
+     "level": "warning",
+     "line": 19
+    }
+   ]
+  },
+  "corpus/real-world/memorypool-view-after-dispose/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/memorypool-view-after-dispose/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN002",
+     "level": "warning",
+     "line": 18
+    }
+   ]
+  },
+  "corpus/real-world/nethermind-patriciatree-arraypool-leak/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/nethermind-patriciatree-arraypool-leak/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 23
+    }
+   ]
+  },
+  "corpus/real-world/ownership-handoff-consume/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/ownership-handoff-consume/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 20
+    },
+    {
+     "code": "OWN002",
+     "level": "warning",
+     "line": 28
+    }
+   ]
+  },
+  "corpus/real-world/ownership-handoff-use-transitive/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/ownership-handoff-use-transitive/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN002",
+     "level": "warning",
+     "line": 31
+    }
+   ]
+  },
+  "corpus/real-world/ownership-handoff-use/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/ownership-handoff-use/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN002",
+     "level": "warning",
+     "line": 22
+    }
+   ]
+  },
+  "corpus/real-world/pool-transfer-via-wrapper-local/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/pool-transfer-via-wrapper-local/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 20
+    },
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 21
+    }
+   ]
+  },
+  "corpus/real-world/screentogif-loaded-subscription/after.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN050",
+     "level": "note",
+     "line": 21
+    }
+   ]
+  },
+  "corpus/real-world/screentogif-loaded-subscription/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 24
+    },
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 25
+    },
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 26
+    }
+   ]
+  },
+  "corpus/real-world/screentogif-systemevents-leak/after.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN050",
+     "level": "note",
+     "line": 12
+    },
+    {
+     "code": "OWN050",
+     "level": "note",
+     "line": 13
+    }
+   ]
+  },
+  "corpus/real-world/screentogif-systemevents-leak/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN050",
+     "level": "note",
+     "line": 20
+    }
+   ]
+  },
+  "corpus/real-world/sharex-rfc2898-derivebytes-leak/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/sharex-rfc2898-derivebytes-leak/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 24
+    },
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 27
+    }
+   ]
+  },
+  "corpus/real-world/sharex-shapemanager-menuform-leak/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/sharex-shapemanager-menuform-leak/before.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/socket-accept-leak/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/socket-accept-leak/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 10
+    }
+   ]
+  },
+  "corpus/real-world/subscription-self-owned-property/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/subscription-self-owned-property/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 17
+    }
+   ]
+  },
+  "corpus/real-world/tcplistener-accept-leak/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/tcplistener-accept-leak/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 11
+    }
+   ]
+  },
+  "corpus/real-world/tcplistener-acceptsocket-leak/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/tcplistener-acceptsocket-leak/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 10
+    }
+   ]
+  },
+  "corpus/real-world/using-statement-throw-releases/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/real-world/using-statement-throw-releases/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 15
+    }
+   ]
+  },
+  "corpus/wpf/custom-weak-wrapper/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/custom-weak-wrapper/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 13
+    }
+   ]
+  },
+  "corpus/wpf/field-use-after-dispose/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/field-use-after-dispose/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN002",
+     "level": "warning",
+     "line": 21
+    }
+   ]
+  },
+  "corpus/wpf/handler-use-after-dispose-wrapped-delegate/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/handler-use-after-dispose-wrapped-delegate/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN002",
+     "level": "warning",
+     "line": 15
+    }
+   ]
+  },
+  "corpus/wpf/handler-use-after-dispose/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/handler-use-after-dispose/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN002",
+     "level": "warning",
+     "line": 17
+    }
+   ]
+  },
+  "corpus/wpf/pooled-view-after-dispose/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/pooled-view-after-dispose/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN002",
+     "level": "warning",
+     "line": 17
+    }
+   ]
+  },
+  "corpus/wpf/subscription-ambiguous-overload-wiring/after.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN050",
+     "level": "note",
+     "line": 20
+    }
+   ]
+  },
+  "corpus/wpf/subscription-ambiguous-overload-wiring/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 26
+    },
+    {
+     "code": "OWN050",
+     "level": "note",
+     "line": 27
+    }
+   ]
+  },
+  "corpus/wpf/subscription-disposing-else-branch-release/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/subscription-disposing-else-branch-release/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 25
+    }
+   ]
+  },
+  "corpus/wpf/subscription-explicit-delegate-release/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/subscription-explicit-delegate-release/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 18
+    }
+   ]
+  },
+  "corpus/wpf/subscription-finalizer-release/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/subscription-finalizer-release/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 22
+    }
+   ]
+  },
+  "corpus/wpf/subscription-nonteardown-release/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/subscription-nonteardown-release/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 21
+    }
+   ]
+  },
+  "corpus/wpf/subscription-overload-conflated-cleanup/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/subscription-overload-conflated-cleanup/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 20
+    }
+   ]
+  },
+  "corpus/wpf/subscription-param-guarded-unregister/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/subscription-param-guarded-unregister/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 25
+    }
+   ]
+  },
+  "corpus/wpf/subscription-target-typed-delegate-release/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/subscription-target-typed-delegate-release/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 14
+    }
+   ]
+  },
+  "corpus/wpf/subscription-teardown-early-return-guard/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/subscription-teardown-early-return-guard/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 31
+    }
+   ]
+  },
+  "corpus/wpf/subscription-uncalled-local-function/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/subscription-uncalled-local-function/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 20
+    },
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 42
+    }
+   ]
+  },
+  "corpus/wpf/subscription-xaml-name-only-release/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/subscription-xaml-name-only-release/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 23
+    }
+   ]
+  },
+  "corpus/wpf/systemevents-region-escape/after.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN050",
+     "level": "note",
+     "line": 15
+    },
+    {
+     "code": "OWN050",
+     "level": "note",
+     "line": 16
+    }
+   ]
+  },
+  "corpus/wpf/systemevents-region-escape/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN050",
+     "level": "note",
+     "line": 26
+    }
+   ]
+  },
+  "corpus/wpf/timer-stop-disposing-else-branch/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/timer-stop-disposing-else-branch/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 20
+    }
+   ]
+  },
+  "corpus/wpf/timer-stop-early-return-guard/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/timer-stop-early-return-guard/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 19
+    }
+   ]
+  },
+  "corpus/wpf/timer-stop-finalizer-release/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/timer-stop-finalizer-release/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 17
+    }
+   ]
+  },
+  "corpus/wpf/timer-stop-nonteardown-release/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/timer-stop-nonteardown-release/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 18
+    }
+   ]
+  },
+  "corpus/wpf/timer-stop-param-guarded/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/timer-stop-param-guarded/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 17
+    }
+   ]
+  },
+  "corpus/wpf/timer-stop-uncalled-helper/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/timer-stop-uncalled-helper/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 17
+    }
+   ]
+  },
+  "corpus/wpf/timer-stop-uncalled-lambda/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/timer-stop-uncalled-lambda/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 17
+    }
+   ]
+  },
+  "corpus/wpf/timer-stop-unwired-lifecycle/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/timer-stop-unwired-lifecycle/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 17
+    }
+   ]
+  },
+  "corpus/wpf/timer-stop-wrong-receiver/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/timer-stop-wrong-receiver/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 16
+    }
+   ]
+  },
+  "corpus/wpf/viewmodel-escapes-to-app/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/viewmodel-escapes-to-app/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN050",
+     "level": "note",
+     "line": 14
+    }
+   ]
+  },
+  "corpus/wpf/zombie-viewmodel/after.cs": {
+   "exit": 0,
+   "findings": []
+  },
+  "corpus/wpf/zombie-viewmodel/before.cs": {
+   "exit": 0,
+   "findings": [
+    {
+     "code": "OWN001",
+     "level": "warning",
+     "line": 13
+    }
+   ]
+  }
+ },
+ "is_evidence": true,
+ "schema": "p037-verdict-snapshot/1",
+ "source_commit": "17e72853b4ee2993f2c23b1244ffaccb8d73a84d"
+}

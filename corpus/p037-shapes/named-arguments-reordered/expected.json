@@ -1,0 +1,33 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "named-arguments-reordered",
+  "status": "pending_a2",
+  "why": "Today `Inner(flag: true, resource: s)` produces no `call` op at all (statement-level calls emit none), and even where a call IS emitted its `args` drops every named argument (`a.NameColon is null`). The comment there is right that keeping a named argument in SOURCE order would mis-align a positional mapping. The cure is to resolve it, not to discard it.",
+  "a2_contract": "a2 emits a `call` op here whose `arg_bindings` resolve BY DECLARED PARAMETER INDEX, so this reordered call and a positional `Inner(s, true)` produce the same bindings: param 0 -> {kind: var, name: s}, param 1 -> {kind: bool_const, value: true}. Source order is Roslyn's problem and stops being anyone else's. The legacy `args: string[]` field keeps its current contents and meaning — additive only, so the Python rollback reads an unchanged document.",
+  "measured_at": "464308b",
+  "facts": {
+    "ShapeNamedArgs.Inner": {
+      "params": [
+        {
+          "name": "resource",
+          "line": 10
+        }
+      ],
+      "body": [
+        "if:None@12",
+        "then:release:resource@14"
+      ]
+    },
+    "ShapeNamedArgs.Caller": {
+      "params": null,
+      "body": [
+        "acquire:s@20",
+        "release:s@21"
+      ]
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}
