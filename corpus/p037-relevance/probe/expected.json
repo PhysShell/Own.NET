@@ -1,0 +1,130 @@
+{
+  "schema": "p037-relevance-probe/1",
+  "registry": "corpus/p037-relevance/registry.json",
+  "why": "One method per argument shape through which a disposable local can reach a callee. Each is classified against the frozen taxonomy; `a2_1_observed` records what the A2.1 extractor emitted for it, so the A2.2 steps move a named row, never a number.",
+  "observed_at": "dce26ed1f5d831e36f78f02e307b8b772c8a8800",
+  "observed_vocabulary": {
+    "sidecar_call": "a function record with a guarded_facts call fact for the probe call",
+    "record_without_call_fact": "a function record exists but carries no call fact for the probe call",
+    "no_record": "the legacy pass emitted no function record at all (every candidate escaped)"
+  },
+  "helpers": [
+    "Inner",
+    "Run",
+    "Use",
+    "Wrap",
+    "TakeBox",
+    "Use2",
+    "Use3",
+    "Use4",
+    "Use5"
+  ],
+  "methods": {
+    "Plain": {
+      "class": "direct",
+      "a2_1_observed": "sidecar_call"
+    },
+    "Parens": {
+      "class": "transparent",
+      "wrapper": "parenthesized",
+      "a2_1_observed": "sidecar_call"
+    },
+    "Cast": {
+      "class": "transparent",
+      "wrapper": "cast",
+      "a2_1_observed": "record_without_call_fact"
+    },
+    "AsCast": {
+      "class": "transparent",
+      "wrapper": "as",
+      "a2_1_observed": "record_without_call_fact"
+    },
+    "Bang": {
+      "class": "transparent",
+      "wrapper": "null_forgiving",
+      "a2_1_observed": "record_without_call_fact"
+    },
+    "Ternary": {
+      "class": "may_value",
+      "form": "conditional",
+      "a2_1_observed": "record_without_call_fact"
+    },
+    "Coalesce": {
+      "class": "may_value",
+      "form": "null_coalescing",
+      "a2_1_observed": "record_without_call_fact"
+    },
+    "Switch": {
+      "class": "may_value",
+      "form": "switch_expression",
+      "a2_1_observed": "record_without_call_fact"
+    },
+    "Ctor": {
+      "class": "call_like",
+      "form": "object_creation",
+      "a2_1_observed": "record_without_call_fact"
+    },
+    "DelegateCall": {
+      "class": "call_like",
+      "form": "delegate_invocation",
+      "a2_1_observed": "no_record"
+    },
+    "Nested": {
+      "class": "indirect",
+      "exclusion": "nested_call_result",
+      "note": "Wrap(r) itself is direct and is owed its own call fact; Use receives call_result",
+      "a2_1_observed": "no_record"
+    },
+    "ArrayInit": {
+      "class": "indirect",
+      "exclusion": "container_construction",
+      "a2_1_observed": "record_without_call_fact"
+    },
+    "CollectionInit": {
+      "class": "indirect",
+      "exclusion": "container_construction",
+      "a2_1_observed": "record_without_call_fact"
+    },
+    "Tuple": {
+      "class": "indirect",
+      "exclusion": "tuple_construction",
+      "a2_1_observed": "no_record"
+    },
+    "Closure": {
+      "class": "indirect",
+      "exclusion": "closure_capture",
+      "note": "the inner Use(r) belongs to the lambda body, which has no record of its own (known gap)",
+      "a2_1_observed": "no_record"
+    },
+    "MethodGroup": {
+      "class": "indirect",
+      "exclusion": "method_group_conversion",
+      "a2_1_observed": "record_without_call_fact"
+    },
+    "UserConversion": {
+      "class": "indirect",
+      "exclusion": "user_conversion",
+      "a2_1_observed": "no_record"
+    },
+    "NameOf": {
+      "class": "indirect",
+      "exclusion": "nameof_operand",
+      "a2_1_observed": "record_without_call_fact"
+    },
+    "MemberAccess": {
+      "class": "indirect",
+      "exclusion": "member_access_on_handle",
+      "a2_1_observed": "record_without_call_fact"
+    },
+    "Receiver": {
+      "class": "indirect",
+      "exclusion": "receiver_not_summary_parameter",
+      "a2_1_observed": "record_without_call_fact"
+    },
+    "Indexer": {
+      "class": "indirect",
+      "exclusion": "storage_assignment",
+      "a2_1_observed": "no_record"
+    }
+  }
+}

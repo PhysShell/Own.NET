@@ -747,3 +747,232 @@ After the semantic cut, a separate C+ checkpoint canonicalizes the temporary
 double representation of call facts. A stable call-site identity is introduced
 in A2 so the legacy and sidecar views cannot silently drift before that
 canonicalization.
+
+### 10.6 A2.2 freeze: relevance taxonomy, named exclusions, orphan carrier
+
+OWNER RULING, recorded 2026-09-19 after A2.1 closed and before the first
+A2.2 commit. Nothing here is new semantics: it fixes what "every relevant
+call" means before anyone tries to be complete about it, because the 21-case
+probe below showed that the A2.1 sidecar captures two argument shapes out of
+twenty-one (the bare identifier and the parenthesized one), and that a naive repair ("the handle occurs somewhere below the
+argument, therefore the call is relevant") would prove nonsense with full
+confidence. The machine-readable form of this section is
+`corpus/p037-relevance/registry.json`; `tests/test_p037_relevance_freeze.py`
+keeps the two from drifting.
+
+#### 10.6.0 A2.1 as landed (REPOSITORY FACT)
+
+A2.1 landed at `dce26ed1f5d831e36f78f02e307b8b772c8a8800` on
+`claude/p037-a1-production`, one commit above T, treatment-only: no byte under
+the A2.0 instrument freeze moved. It deviates from the letter of §10.3 in one
+deliberate way. The sidecar is validated **by the producer** (a malformed
+record refuses the whole run, exit 2) and is *inert*, but it is not yet
+*known* to either door: Rust carries `guarded_facts` as an unknown flattened
+field (depth-checked only) and the Python loader ignores the key. The
+"known, fail-loud on both doors" clause of §10.3 is deferred to the step that
+registers the sidecar at the doors, which is an instrument change under A2.0
+and therefore opens a new T/R round. Until then `sourceSite` in the schema is
+deliberately UNBOUND (type only), per spec/OwnIR.md §4.2: the schema may not
+be narrower than a door that does not read the path.
+
+The local dress rehearsal (before at T, after at `dce26ed`, population T,
+outputs outside the checkout, each take verified) returned UNCHANGED on all
+four pairs with FACT-DIFF on 1/1 repo document and 36/137 corpus documents,
+and the local before-take at T reproduced the M1 baselines R byte for byte on
+every engine layer and verdict record. The M1 after-run against R is the
+operator's and is the A2.1 evidence record; this note does not claim it. R
+stays valid for A2.2's after-comparison: same instrument, same population T.
+
+#### 10.6.1 Completeness (OWNER RULING, verbatim)
+
+> Completeness means every candidate occurrence at a call-related syntax site
+> is either represented by the raw guarded-call vocabulary or assigned exactly
+> one named exclusion. Occurrence alone does not establish ownership flow to
+> the enclosing callee.
+
+So `Relevant(call, arg)` is **not** "an identifier bound to a handle occurs
+anywhere below `arg`". Relevance is decided by a deliberately small,
+syntactic value-flow recognizer (10.6.2). The broad oracle stays — every
+symbol-bound candidate occurrence in a call-related context — but its output
+per occurrence is *captured by a relevant call fact* OR *classified by exactly
+one named non-flow / indirect-flow rule*, never "every occurrence must become a
+call fact". An unclassified occurrence is red, by rule name and coordinate. The
+oracle is an over-approximation whose job is to demand explanations; it is not
+the specification of flow, so it can never make the completeness checker more
+semantically brave than P-037 itself.
+
+#### 10.6.2 Relevance taxonomy (OWNER RULING)
+
+- **direct** — the argument expression *is* a handle identifier (a disposable
+  candidate local or an owned parameter of this method), or the handle is the
+  receiver of a reduced extension method (declared ordinal 0 in the unreduced
+  declaration). Represented as `var` / `param`.
+- **transparent** — the handle under a transparent wrapper: parentheses, an
+  explicit cast, `as`, the null-forgiving `!`. Same value; relevance kept;
+  represented as the unwrapped fact.
+- **may-value** — the argument's value is one of several alternatives and a
+  handle is among them: the conditional operator, `??`, a switch expression.
+  Relevance kept; representation stays `opaque`.
+- **call-like** — a genuine call site that is not an invocation expression:
+  object creation (the constructor is the callee), delegate invocation. Each
+  gets its own call fact; one semantic family per A2.2 commit.
+- **indirect** — the handle occurs below the argument but the value that
+  reaches the callee is something else (a call result, a container, a tuple, a
+  closure, a converted value), or the site binds no summary parameter at all
+  (an ordinary receiver, a storage assignment, a method group). Not relevant
+  to the enclosing callee; every such occurrence matches exactly one named
+  exclusion.
+
+Invocation results, object/array/collection construction, tuple construction
+and lambdas do **not** propagate relevance outward merely because a handle sits
+somewhere in their subtree.
+
+#### 10.6.3 Named exclusions
+
+`nested_call_result` (`Use(Wrap(r))`: `Wrap(r)` is direct and owed its own
+call fact; `Use` receives a call result), `container_construction`
+(`Use3(new Stream[] { r })`, `new List<Stream> { r }`: the container flows),
+`tuple_construction` (`Use2((r, 1))`), `closure_capture` (`Run(() => Use(r))`:
+the closure flows; the call inside belongs to the lambda body, spec §5.2),
+`method_group_conversion` (`Run(r.Dispose)`: the delegate flows),
+`receiver_not_summary_parameter` (`r.CopyTo(...)`: an ordinary receiver has no
+declared ordinal; a summary of `this` is a §10.1 case-5 amendment),
+`storage_assignment` (`d[0] = r`, a property or a field: an assignment is not a
+call site), `user_conversion` (`TakeBox(r)` through `implicit operator`: a
+hidden call, unsupported semantic surface, classified not represented),
+`nameof_operand`, `member_access_on_handle` (`Use5(r.Length)`).
+
+Every exclusion carries a positive fixture (the rule fires, no call fact for
+that site) and a negative fixture (a syntactically adjacent case that is
+captured instead); A2.2-4 checks both by name. Known gap, recorded as a §10.1
+case-3 census finding and not repaired by pretending: lambda and
+local-function bodies have no function record of their own, so the calls
+inside them are unobserved through A2.
+
+#### 10.6.4 Representation rulings (OWNER RULING)
+
+- **No `mentions` in the production sidecar.** `opaque` stays opaque, as frozen
+  in spec/OwnIR.md §5.2 and §10.2. A `mentions` list may exist in oracle and
+  debug records only. The reason is not aesthetic: phase B must not be tempted
+  to read "r occurred inside the expression" as an ownership edge. For
+  `Inner((Stream)r)` that would be a may-flow of the same value; for
+  `Use(Wrap(r))` r flows into `Wrap` and `Wrap`'s result into `Use`; for
+  `Use3(new Stream[] { r })` an array flows. One shared `mentions: ["r"]`
+  erases exactly the boundary the raw-fact layer exists to keep.
+- **Ordinary instance receiver is a named exclusion**, not a pseudo-ordinal:
+  no `-1`, no `this`, no `receiver: true`. The frozen OwnIR binds arguments
+  and reduced-extension receivers only. Extending the summary domain to
+  effect-of-`this` is a case-5 contract amendment, not A2 raw-fact completion.
+- **Closure capture is a named exclusion at the outer call**, never a call
+  fact with an opaque handle: `Run(() => Use(r))` passes a closure to `Run`,
+  not `r`. The inner `Use(r)` is a direct call that belongs to the lambda body.
+- Transparent wrappers unwrap to `var` / `param`; may-value keeps relevance
+  and stays `opaque`; call-like forms get their own call facts.
+
+#### 10.6.5 The orphan carrier `guarded_functions[]` (OWNER RULING)
+
+The extractor emits a `functions[]` record only for a method the legacy pass
+flow-analyses (Program.cs: a method whose every candidate escaped and that
+owns no parameter is skipped). Six of the probe's twenty-one methods have no
+record at all, and with it no sidecar — exactly the methods whose handle left
+through a form the legacy cannot follow. The gap is not accepted. Two
+tempting repairs are rejected:
+
+- an **unknown top-level key**: both doors would carry it (Rust flattens
+  unknown top-level fields, Python does not read them), which buys inertness by
+  violating the staging invariant "known, fail-loud vocabulary on both doors";
+  a convenient loophole, therefore a suspicious one;
+- an **empty `functions[]` record**: `_build_skeletons` puts every named
+  function into the first-party universe and creates a `MethodSkeleton` even
+  for `body: []`, which can change MOS resolution at callers.
+
+Ruling: a first-class optional top-level carrier, `guarded_functions[]`, each
+entry `{name, file, sig, guarded_facts}`, under a strict contract:
+
+- `functions[]` = legacy-visible methods; semantics unchanged through A2;
+- `guarded_functions[]` = methods for which guarded raw facts exist but no
+  legacy function record does; **validated by both doors, consumed by neither
+  door through A2**;
+- the same method identity in both carriers is a producer defect and a
+  refusal (the carrier is an orphan carrier, not a second source for every
+  method).
+
+Classification: §10.1 case 3, a previously unrepresented fact shape; no
+semantics move. Sequencing, the same as 10.6.0: the doors' validation of both
+carriers lands in the instrument step that registers the sidecar; until then
+the carrier is unknown-but-carried at both doors and the inertness control is
+extended to the top level. Phase B builds one guarded-method view from
+`functions[].guarded_facts` plus `guarded_functions[].guarded_facts`; C+
+canonicalizes this temporary double carrier together with the rest of the
+double representation.
+
+#### 10.6.6 The probe, classified (REPOSITORY FACT at `dce26ed`)
+
+`corpus/p037-relevance/probe/case.cs`, one method per shape, observed with the
+A2.1 extractor: `sidecar_call` = a call fact was emitted, `record_without_call_fact`
+= a function record exists but no call fact, `no_record` = the legacy pass emitted
+no record at all.
+
+| method | class | exclusion | A2.1 observed |
+|---|---|---|---|
+| Plain `Inner(r, true)` | direct | | sidecar_call |
+| Parens `Inner((r), true)` | transparent | | sidecar_call |
+| Cast `Inner((Stream)r, true)` | transparent | | record_without_call_fact |
+| AsCast `Inner(r as Stream, true)` | transparent | | record_without_call_fact |
+| Bang `Inner(r!, true)` | transparent | | record_without_call_fact |
+| Ternary `Inner(b ? r : q, true)` | may-value | | record_without_call_fact |
+| Coalesce `Inner(p ?? r, true)` | may-value | | record_without_call_fact |
+| Switch `Inner(k switch {...}, true)` | may-value | | record_without_call_fact |
+| Ctor `new Wrapper(r, true)` | call-like | | record_without_call_fact |
+| DelegateCall `a(r)` | call-like | | no_record |
+| Nested `Use(Wrap(r))` | indirect | nested_call_result | no_record |
+| ArrayInit `Use3(new Stream[] { r })` | indirect | container_construction | record_without_call_fact |
+| CollectionInit `new List<Stream> { r }` | indirect | container_construction | record_without_call_fact |
+| Tuple `Use2((r, 1))` | indirect | tuple_construction | no_record |
+| Closure `Run(() => Use(r))` | indirect | closure_capture | no_record |
+| MethodGroup `Run(r.Dispose)` | indirect | method_group_conversion | record_without_call_fact |
+| UserConversion `TakeBox(r)` | indirect | user_conversion | no_record |
+| NameOf `Use4(nameof(r))` | indirect | nameof_operand | record_without_call_fact |
+| MemberAccess `Use5(r.Length)` | indirect | member_access_on_handle | record_without_call_fact |
+| Receiver `r.CopyTo(...)` | indirect | receiver_not_summary_parameter | record_without_call_fact |
+| Indexer `d[0] = r` | indirect | storage_assignment | no_record |
+
+Side observation the oracle will surface by construction: the legacy body is
+itself wrapper-sensitive (`Inner(r, true)` lowers to a release, `Inner((Stream)r,
+true)` to a use), so today's verdicts already differ on semantically identical
+code. Legacy stays authoritative until C+; this is recorded, not repaired here.
+
+#### 10.6.7 Out of A2.2: `scope_cache_sites[].file` (#364)
+
+`services[].scope_cache_sites[].file` carries the absolute input path while
+every other `file` field is working-directory relative; found because the
+repo-population facts digest differed between M1 and another checkout by
+exactly three path lengths, with every engine layer identical. It is a found
+pre-existing portability defect, not a case-1 P-037 defect (the contract has no
+"repo-relative" rule), and it is **not** an A2.2 commit: `scope_cache_sites` is
+the DI005 anchor, normalizing it can move an artifact path, and A2.2 must stay
+one treatment with one cause of FACT-DIFF. FACT-DIFF is not permission to mix
+causes of FACT-DIFF. Tracked in #364 with its own acceptance.
+
+#### 10.6.8 A2.2 order and evidence expectation (OWNER RULING)
+
+- **A2.2-0** freeze the relevance taxonomy and the named exclusions (this
+  section, the registry, the probe, the structural test);
+- **A2.2-1** decouple relevance from representation properly: parentheses,
+  casts, `as`, `!`, conditional, `??`, switch expression; no production
+  `mentions`;
+- **A2.2-2** constructor and the other genuine call-like forms, one semantic
+  family per commit;
+- **A2.2-3** the `guarded_functions[]` orphan carrier: known and validated by
+  both doors (deferred to the door step as in 10.6.5), ignored by both
+  lowerers;
+- **A2.2-4** completeness oracle plus generated hostile census: every
+  occurrence is captured or matches exactly one named exclusion;
+- **A2.2-5** mutation campaign: remove the handle, add parentheses, perturb the
+  binding, distinguish nested calls;
+- **A2.2-S** after-evidence on M1 against the existing R with population T:
+  fact shape MOVED as preregistered, MOS UNCHANGED, verdict UNCHANGED.
+
+No new T/R is needed while the instrument stays the same and the semantic
+doors do not read these facts. #263 is PARKED in parallel, deliberately
+unmeasured, recorded on the issue.

@@ -1,0 +1,77 @@
+{
+  "schema": "p037-relevance-taxonomy/1",
+  "frozen_at": "P-037 A2.2-0",
+  "ruling": "docs/notes/p037-formal-kernel.md §10.6",
+  "completeness": "Completeness means every candidate occurrence at a call-related syntax site is either represented by the raw guarded-call vocabulary or assigned exactly one named exclusion. Occurrence alone does not establish ownership flow to the enclosing callee.",
+  "classes": {
+    "direct": "The argument expression IS a handle identifier (a disposable candidate local or an owned parameter of this method), or the handle is the receiver of a reduced extension method (declared ordinal 0). The value reaches the callee's declared parameter. Represented: var / param.",
+    "transparent": "The handle under a transparent wrapper: parentheses, an explicit cast, `as`, the null-forgiving `!`. The same value reaches the callee. Relevance is kept and the representation is the unwrapped fact (var / param).",
+    "may_value": "The argument's value is one of several alternatives and a handle is among them: the conditional operator, null-coalescing `??`, a switch expression. Relevance is kept; the representation stays opaque, because the vocabulary has no `one of` fact and inventing one would be a summary judgment.",
+    "call_like": "A genuine call site that is not an invocation expression: object creation (a constructor call), delegate invocation. Each gets its own call fact with the site's own callee; one semantic family per A2.2 commit.",
+    "indirect": "The handle occurs below the argument, but the value that reaches the callee is something else (a call result, a container, a tuple, a closure, a converted value), or the site binds no summary parameter at all (an ordinary receiver, a storage assignment, a method group). Not relevant to the enclosing callee. Every such occurrence must match exactly one named exclusion below."
+  },
+  "transparent_wrappers": ["parenthesized", "cast", "as", "null_forgiving"],
+  "may_value_forms": ["conditional", "null_coalescing", "switch_expression"],
+  "call_like_forms": ["object_creation", "delegate_invocation"],
+  "exclusions": {
+    "nested_call_result": {
+      "class": "indirect",
+      "definition": "The handle is an argument of an INNER invocation whose result is the outer argument. The inner call carries its own call fact (the handle is direct there); the outer call receives call_result, not the handle.",
+      "example": "Use(Wrap(r))"
+    },
+    "container_construction": {
+      "class": "indirect",
+      "definition": "The handle is an element of an array, collection or object initializer. The container flows to the callee, not the handle. The initializer's hidden Add call is not a call site of this vocabulary.",
+      "example": "Use3(new Stream[] { r }); new List<Stream> { r }"
+    },
+    "tuple_construction": {
+      "class": "indirect",
+      "definition": "The handle is a tuple element. The tuple flows to the callee.",
+      "example": "Use2((r, 1))"
+    },
+    "closure_capture": {
+      "class": "indirect",
+      "definition": "The handle is captured by a lambda, anonymous function or local function that is the argument. The closure flows to the callee; the call inside the lambda belongs to the lambda body (spec/OwnIR.md §5.2), not to this method. Recording the outer call as receiving the handle would be a false raw fact.",
+      "example": "Run(() => Use(r))"
+    },
+    "method_group_conversion": {
+      "class": "indirect",
+      "definition": "A method group whose receiver is the handle is converted to a delegate. The delegate flows to the callee.",
+      "example": "Run(r.Dispose)"
+    },
+    "receiver_not_summary_parameter": {
+      "class": "indirect",
+      "definition": "The handle is the receiver of an ordinary (non-extension) instance call. The frozen OwnIR binds arguments and reduced-extension receivers only; an ordinary receiver has no declared ordinal, and a summary of `this` is a §10.1 case-5 contract amendment, never a raw fact.",
+      "example": "r.CopyTo(Stream.Null)"
+    },
+    "storage_assignment": {
+      "class": "indirect",
+      "definition": "The handle is assigned into an indexer, a property or a field. An assignment is not a call site of this vocabulary, whatever accessor it compiles to.",
+      "example": "d[0] = r"
+    },
+    "user_conversion": {
+      "class": "indirect",
+      "definition": "The handle reaches the callee through a user-defined implicit or explicit conversion operator: a hidden call. Unsupported semantic surface in A2, classified but not represented; it may earn its own raw fact later, by amendment.",
+      "example": "TakeBox(r) with `implicit operator Box(MemoryStream)`"
+    },
+    "nameof_operand": {
+      "class": "indirect",
+      "definition": "The identifier is the operand of nameof. No value flows.",
+      "example": "Use4(nameof(r))"
+    },
+    "member_access_on_handle": {
+      "class": "indirect",
+      "definition": "A member of the handle flows, not the handle.",
+      "example": "Use5(r.Length)"
+    }
+  },
+  "fixture_obligation": "Every exclusion has a positive fixture (the rule fires and no call fact is emitted for that site) and a negative fixture (a syntactically adjacent case that is captured instead). A2.2-4 checks both by name; until then the probe below pins the classification.",
+  "known_gaps": [
+    "Lambda and local-function bodies have no function record of their own, so the calls inside them are unobserved through A2. Recorded as a census finding (§10.1 case 3), not repaired by pretending the enclosing call received the handle."
+  ],
+  "production_representation_rulings": [
+    "No `mentions` field in the production sidecar: opaque stays opaque as frozen in spec/OwnIR.md §5.2 and §10.2. A `mentions` list may exist in oracle/debug records only.",
+    "No pseudo-ordinal for an ordinary instance receiver (no -1, no `this`, no `receiver: true`).",
+    "Closure capture is a named exclusion at the outer call, never a call fact with an opaque handle."
+  ]
+}
