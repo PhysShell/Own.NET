@@ -1214,7 +1214,13 @@ causes of FACT-DIFF. Tracked in #364 with its own acceptance.
   1 taxonomy mutant unclassified, 0 survivors, 0 forbidden reasons;
 - **A2.2-S** cumulative A2 after-evidence on M1 against the existing R with
   population T: fact shape MOVED as preregistered, MOS UNCHANGED, verdict
-  UNCHANGED;
+  UNCHANGED. The governed measurement is one command,
+  `scripts/p037_cumulative_evidence.py` (10.6.13): the four takes verified and
+  compared against R by the snapshot tools, every changed fact document
+  classified by the allowed surfaces with unexpected changes 0, and an anchored
+  per-document layer differential (lowered, summaries, verdicts, both engines,
+  cross-engine agreement), fail-closed on the measurement head, the ancestry,
+  the instrument identity and the baseline records;
 - **A2.2-D** door registration: `guarded_facts` and `guarded_functions` become
   known, fail-loud vocabulary on both doors, still semantically inert; the
   instrument change, a new T/R round; phase B only after its evidence is green.
@@ -1509,3 +1515,119 @@ six defects it once found and reads four rewrites by meaning; it does not
 enumerate the extractor's other seams, the hostile census remains pairwise, and
 lambdas / local functions stay the separate nested-function gap. After A2.2-5
 no functionality is added: A2.2-S measures the whole of A2 once against T/R.
+
+#### 10.6.13 A2.2-S: the governed cumulative measurement (REPOSITORY FACT)
+
+A2 is one treatment with one preregistered cause of FACT-DIFF, the guarded-fact
+sidecar and its orphan carrier, and one obligation: richer facts, zero MOS and
+zero verdict movement, on both engines. Every A2.2 step rehearsed that locally;
+A2.2-S measures it once, cumulatively, against the baseline evidence R recorded
+at T on the measurement machine (10.6.0). The population is T
+(`4a8e6582e10222403cd40adc9e95db7e0228a1c2`), the baseline evidence R
+(`5fd6bfa6abd4c2af7e53712af300cf66c97f2f50`, the four `p037-a2-baseline-*`
+records under `docs/evidence`), the treatment the A2.2-5 head
+(`dab3db19c4611c116f37f2b0e49354a0fd9bf384`). The measurement is one command,
+`scripts/p037_cumulative_evidence.py run`, evidence orchestration over the
+existing instrument and deliberately not part of the frozen instrument closure
+(registering it there would move `instrument_paths` under every record R
+carries): it calls the snapshot tools of the measured checkout, imports that
+checkout's own `p037_evidence` / `shadow_compare` / `ownlang.repro`, and adds
+nothing the instrument does not already do.
+
+Three claims, proven together in one artifact (`p037-a2.2-s-cumulative.json`
+and its manifest), or refused:
+
+- **FACTS MOVED**, and only where allowed. For every MOS document (the 137
+  corpus programs one at a time, the repository tree as one compilation) the
+  baseline facts are re-derived by the extractor built from T's own sources in
+  a temporary worktree, run in the measured checkout root, and accepted only
+  when their digest equals the one R's record carries for that document; the
+  treatment facts are re-derived by the tree under test and accepted only when
+  their digest equals the fresh take's. Each anchored pair is diffed
+  structurally and every difference is classified by path: an added or changed
+  `functions[i].guarded_facts` and the top-level `guarded_functions[]` carrier
+  are the allowed surfaces; a changed legacy body, signature, `services`,
+  `components`, `stats`, `ownir_version`, a function added or removed, or any
+  other new top-level key is UNEXPECTED and refuses the claim (the selftest
+  pins each of these controls). A document that cannot be anchored refuses the
+  differential; nothing is inferred from a digest that did not match.
+- **MOS UNCHANGED.** The two MOS takes (`mos-repo`, `mos-corpus`) are taken at
+  the treatment with population T, verified fresh at the treatment and
+  compared against R by `p037_mos_snapshot.py compare` (whole summaries
+  document per engine, cross-engine parity on the after side); in addition the
+  anchored pairs go through both engines' capture (the P-022 envelope) and the
+  `summaries` layer of every document is digested on both sides, per engine.
+- **VERDICTS UNCHANGED.** The two verdict takes are compared against R at
+  level `verdict` and at level `all` (advisories included), the after-side
+  Python and Rust snapshots are compared file by file (finding sets and exit
+  codes), and the `verdicts` layer of every anchored pair is digested per
+  engine. The `lowered` layer rides along on the same terms, so the matrix the
+  artifact carries is engines × {lowered, summaries, verdicts} mismatches, plus
+  Python/Rust disagreements per layer on both sides.
+
+Provenance is fail-closed, before anything runs: the measured checkout's HEAD
+must be exactly the named treatment (a descendant is not the treatment, even a
+docs-only one), the tree clean before and after, T an ancestor of R and R of
+the treatment, the instrument closure's object ids identical at T, R and the
+treatment (recorded as the instrument identity, next to the qualified
+`own-cli` / `own-shadow-engine` digests the takes ran), the four baseline
+records the very files committed at R (their digests pinned by R's manifest
+and their blobs by R's tree), every take fresh at the treatment with
+`source_commit` equal to it, every comparison eligible by the snapshot tools'
+own rules (same population, same support closure, same execution profile,
+before an ancestor of after), every document anchored, the own-shadow-engine
+built for the differential byte-identical to the one the MOS takes executed.
+Any failure stops the run with `REFUSED` and nothing is written as evidence;
+`--mode rehearsal` produces the same artifact against a same-machine T
+baseline with `is_evidence=false`, which is how the procedure is exercised
+where the execution profile is not M1's. The evidence run itself is the
+operator's, on `P037_A2_MEASUREMENT_M1`, with the workspace checkout at the
+treatment and `--out` outside it; its outputs (the four after-takes, the
+cumulative artifact, the manifest) land in `docs/evidence` as an evidence-only
+commit, exactly as R and S' did.
+
+**Rehearsed here, before the operator run (REPOSITORY FACT, not evidence).**
+The whole procedure was exercised on this machine the way M1 will run it: a
+dedicated checkout at T took the four before-takes with population T (the
+same-machine stand-in for R; its 137 corpus facts digests equal R's byte for
+byte, its repo-tree digest differs from R's only by the #364 absolute paths of
+another checkout root), the checkout moved to the treatment, and the driver
+ran in `--mode rehearsal` against those takes. Measured: preflight green
+(head = treatment, instrument object ids identical at T, R and the treatment,
+baseline records pinned); four takes fresh at the treatment and all four
+compares UNCHANGED (mos-repo facts_moved=1, mos-corpus facts_moved=46,
+python_mos_moved = rust_mos_moved = after_parity_moved = 0; verdict-python and
+verdict-rust no verdict moved at level verdict and at level all, 137 files);
+138 documents anchored, 47 changed and 91 unchanged, every changed document
+classified `moved_allowed` (86 functions gained `guarded_facts`, 21 orphan
+records in `guarded_functions[]`), unexpected 0; the layer matrix all zeros
+(Python and Rust × lowered, summaries, verdicts), Python/Rust disagreements 0
+on both sides, verdict-snapshot cross-engine disagreements 0; the tree clean
+afterwards; about twenty-nine minutes. FACTS MOVED, MOS UNCHANGED, VERDICTS
+UNCHANGED, `accepted=true`, `is_evidence=false` by mode. The one predicate
+that failed on the first render was the driver's own, not the measurement's
+(it compared whole execution profiles across the four takes, and a
+Python-only verdict take records no Rust identity by design); it now compares
+the identities each take carries, the selftest pins the rule, and the artifact
+was re-rendered from the persisted measurement (`--stage report`) with every
+measurement block byte-identical. The 46 corpus documents against S''s 36 are
+the cumulative A2.2 treatment (transparent wrappers, the call-like forms, the
+orphan carrier, the guarded-only members) reaching more programs than A2.1
+did; every one of them moves inside the allowed surfaces only.
+
+The evidence run on M1 is the operator's: with the workspace checkout clean
+at `dab3db19c4611c116f37f2b0e49354a0fd9bf384`, the driver taken from the
+commit carrying this section (it is not in the treatment tree, and imports
+the measured checkout's own instrument), `--out` outside the checkout:
+
+    python3 <tooling checkout>/scripts/p037_cumulative_evidence.py run \
+        --repo <M1 workspace checkout> \
+        --treatment dab3db19c4611c116f37f2b0e49354a0fd9bf384 \
+        --population 4a8e6582e10222403cd40adc9e95db7e0228a1c2 \
+        --baseline-commit 5fd6bfa6abd4c2af7e53712af300cf66c97f2f50 \
+        --out <directory outside the checkout>
+
+S is accepted when the artifact says `accepted=true`, `is_evidence=true`, and
+its outputs land in `docs/evidence` as `p037-a2.2-s-*` in an evidence-only
+commit. Then the A2 treatment is finished; A2.2-D (door registration, a new
+T/R round) is the next and only step before Phase B.
