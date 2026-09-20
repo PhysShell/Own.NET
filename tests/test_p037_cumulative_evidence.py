@@ -46,6 +46,23 @@ def run() -> int:
           cumulative.LAYERS == ("lowered", "summaries", "verdicts")
           and cumulative.ENGINES == ("python", "rust"),
           f"{cumulative.LAYERS} {cumulative.ENGINES}")
+    check("every-measurement-module-named",
+          set(cumulative.MEASUREMENT_MODULES) == {"p037_evidence", "p037_mos_snapshot",
+                                                   "p037_verdict_snapshot", "shadow_compare",
+                                                   "ownlang", "ownlang.repro"},
+          f"{sorted(cumulative.MEASUREMENT_MODULES)}")
+    # The one-command invariant, the transaction and the driver pin are functions the
+    # selftest exercises with real temporary checkouts and directories; here their
+    # existence and the evidence-mode rule are pinned by name.
+    try:
+        cumulative.validate_stage("evidence", "takes")
+        check("evidence-refuses-a-staged-run", False, "no refusal")
+    except cumulative.Refused:
+        check("evidence-refuses-a-staged-run", True)
+    check("driver-pin-and-transaction-exist",
+          callable(cumulative.require_reviewed_driver)
+          and callable(cumulative.publish_transactionally)
+          and callable(cumulative.driver_identity))
     if _failures:
         print(f"RESULT: {len(_failures)} cumulative-evidence check(s) failed")
         return 1

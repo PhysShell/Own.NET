@@ -48,6 +48,19 @@ population under the ignored `.p037-population/`, T's extractor is built in a
 temporary worktree under --out, and every output lands under --out, which must
 lie outside the checkout.
 
+In evidence mode the measurement is ONE command and one transaction: `--stage`
+is refused (it exists for rehearsal and debugging only); `--out` must not
+exist, everything runs in a sibling staging directory, a REFUSED run deletes
+the staging directory so that no evidence-looking file (a take with
+`is_evidence=true`, a takes.json, a layers.json) is left behind, while a valid
+negative result (accepted=false, a real movement) is published in full and
+exits 1, and an accepted result is published and exits 0. The driver itself is
+pinned: it must run from a clean git checkout and be byte-identical to the blob
+at that checkout's HEAD (commit, blob and sha256 recorded as the evidence
+orchestrator's identity), and every measurement module it imports must resolve
+to the measured checkout's own file, proven by path, not assumed from import
+order.
+
 Usage (the operator run, on the measurement machine):
   p037_cumulative_evidence.py run --repo <checkout at the treatment> \
       --treatment <sha> --population <T> --baseline-commit <R> --out <dir outside the checkout>
@@ -64,10 +77,12 @@ import importlib
 import json
 import os
 import re
+import secrets
 import shutil
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -103,6 +118,7 @@ class Config:
     timeout: float
     manifest: Path | None
     tools: dict[str, Any] = field(default_factory=dict)
+    driver: dict[str, Any] = field(default_factory=dict)
 
 
 # --------------------------------------------------------------------------
@@ -143,25 +159,113 @@ def load_json(path: Path) -> dict[str, Any]:
     return doc
 
 
+MEASUREMENT_MODULES: dict[str, str] = {
+    "p037_evidence": "scripts/p037_evidence.py",
+    "p037_mos_snapshot": "scripts/p037_mos_snapshot.py",
+    "p037_verdict_snapshot": "scripts/p037_verdict_snapshot.py",
+    "shadow_compare": "scripts/shadow_compare.py",
+    "ownlang": "ownlang/__init__.py",
+    "ownlang.repro": "ownlang/repro.py",
+}
+
+
+def verify_module_paths(modules: dict[str, Any], repo: Path) -> None:
+    """Every measurement module must be the measured checkout's own file, by path."""
+    problems: list[str] = []
+    for name, rel in MEASUREMENT_MODULES.items():
+        mod = modules.get(name)
+        actual = getattr(mod, "__file__", None) if mod is not None else None
+        expected = (repo / rel).resolve()
+        if not isinstance(actual, str) or Path(actual).resolve() != expected:
+            problems.append(f"{name} resolved to {actual!r}, not {expected}")
+    if problems:
+        raise Refused("a measurement module is not the measured checkout's: " + "; ".join(problems))
+
+
 def bootstrap(repo: Path) -> dict[str, Any]:
-    """Import the measured checkout's own instrument modules (never this file's)."""
+    """Import the measured checkout's own instrument modules (never this file's), proven."""
     for p in (str(repo / "scripts"), str(repo)):
         if p in sys.path:
             sys.path.remove(p)
         sys.path.insert(0, p)
-    for name in ("p037_evidence", "p037_mos_snapshot", "p037_verdict_snapshot",
-                 "shadow_compare", "ownlang.repro"):
-        sys.modules.pop(name, None)
-    ev: Any = importlib.import_module("p037_evidence")
-    if Path(ev.__file__).resolve() != (repo / "scripts" / "p037_evidence.py").resolve():
-        raise Refused("the instrument imported is not the measured checkout's")
+    for name in list(sys.modules):
+        if name in MEASUREMENT_MODULES or name == "ownlang" or name.startswith("ownlang."):
+            sys.modules.pop(name, None)
+    modules: dict[str, Any] = {name: importlib.import_module(name) for name in MEASUREMENT_MODULES}
+    verify_module_paths(modules, repo)
     return {
-        "ev": ev,
-        "mos": importlib.import_module("p037_mos_snapshot"),
-        "verdict": importlib.import_module("p037_verdict_snapshot"),
-        "shadow": importlib.import_module("shadow_compare"),
-        "repro": importlib.import_module("ownlang.repro"),
+        "ev": modules["p037_evidence"],
+        "mos": modules["p037_mos_snapshot"],
+        "verdict": modules["p037_verdict_snapshot"],
+        "shadow": modules["shadow_compare"],
+        "repro": modules["ownlang.repro"],
     }
+
+
+def validate_stage(mode: str, stage: str) -> None:
+    """Evidence is one command: a staged run is a different protocol and is refused."""
+    if mode == "evidence" and stage != "all":
+        raise Refused(f"evidence is one command; --stage {stage} is for rehearsal and "
+                      "debugging only")
+
+
+def driver_identity(script: Path) -> dict[str, Any]:
+    """This program's own provenance: the checkout it runs from, HEAD, blob, cleanliness."""
+    script = script.resolve()
+    identity: dict[str, Any] = {"path": str(script), "sha256": sha256_file(script),
+                                "commit": None, "blob": None, "clean": False,
+                                "byte_identical_to_head": False}
+    proc = subprocess.run(["git", "-C", str(script.parent), "rev-parse", "--show-toplevel"],
+                          capture_output=True, text=True, check=False)
+    if proc.returncode != 0:
+        identity["problem"] = "the driver is not inside a git checkout"
+        return identity
+    top = Path(proc.stdout.strip()).resolve()
+    try:
+        identity["commit"] = git(top, "rev-parse", "HEAD")
+        identity["clean"] = git(top, "status", "--porcelain") == ""
+        rel = script.relative_to(top).as_posix()
+        identity["blob"] = git(top, "rev-parse", f"HEAD:{rel}")
+        now = git(top, "hash-object", str(script))
+        identity["byte_identical_to_head"] = identity["blob"] == now
+    except (Refused, ValueError) as exc:
+        identity["problem"] = str(exc)
+    return identity
+
+
+def require_reviewed_driver(identity: dict[str, Any]) -> None:
+    """Evidence may only be decided by a driver that IS a reviewed commit's blob."""
+    problems: list[str] = []
+    if not identity.get("commit"):
+        problems.append(identity.get("problem") or "no commit resolved")
+    if not identity.get("clean"):
+        problems.append("the driver's checkout is dirty")
+    if not identity.get("byte_identical_to_head"):
+        problems.append("the driver differs from the blob at its checkout's HEAD")
+    if problems:
+        raise Refused("the evidence orchestrator is not pinned to a reviewed commit: "
+                      + "; ".join(problems))
+
+
+def publish_transactionally(final: Path, body: Callable[[Path], int]) -> int:
+    """Run ``body`` in a fresh sibling staging directory and publish it whole, or nothing.
+
+    ``final`` must not exist. A Refused raised by ``body`` deletes the staging
+    directory and propagates: no evidence-looking file survives. Any other
+    outcome (accepted, or a valid negative result) is published by rename."""
+    final = final.resolve()
+    if final.exists():
+        raise Refused(f"--out {final} exists; evidence is written once, into a fresh directory")
+    final.parent.mkdir(parents=True, exist_ok=True)
+    staging = final.parent / f".{final.name}.staging-{secrets.token_hex(4)}"
+    staging.mkdir(parents=False, exist_ok=False)
+    try:
+        rc = body(staging)
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    staging.rename(final)
+    return rc
 
 
 # --------------------------------------------------------------------------
@@ -329,8 +433,7 @@ def preflight(cfg: Config) -> dict[str, Any]:
         "treatment_identity": {"paths": treatment_paths, "object_ids_at_T": treated["population"],
                                "object_ids_at_treatment": treated["treatment"]},
         "baseline": baseline,
-        "driver": {"path": str(Path(__file__).resolve()),
-                   "sha256": sha256_file(Path(__file__).resolve())},
+        "driver": dict(cfg.driver),
     }
 
 
@@ -695,6 +798,7 @@ def manifest_md(cfg: Config, art: dict[str, Any], art_sha: str) -> str:
     r = art["result"]
     fd = art["fact_documents"]
     py, rs, dg = m["python"], m["rust"], m["python_rust_disagreements"]
+    drv = art["cumulative_driver"]
     return f"""# P-037 A2.2-S cumulative evidence ({art['mode']})
 
 T = `{art['population_sha']}` (population)
@@ -726,6 +830,8 @@ changed={fd['changed']} unchanged={fd['unchanged']} unexpected={fd['unexpected']
 Verdict-snapshot cross-engine disagreements: {json.dumps(m['verdict_snapshot_disagreements'])}
 
 Cumulative artifact: p037-a2.2-s-cumulative.json sha256 `{art_sha}`
+Evidence orchestrator: commit `{drv.get('commit')}`, blob `{drv.get('blob')}`,
+sha256 `{drv.get('sha256')}`
 Instrument identity: {json.dumps(art['instrument_identity']['object_ids'], sort_keys=True)}
 """
 
@@ -735,38 +841,35 @@ Instrument identity: {json.dumps(art['instrument_identity']['object_ids'], sort_
 # --------------------------------------------------------------------------
 
 def run(cfg: Config) -> int:
+    """The measurement in cfg.out; raises Refused, returns 0 (accepted) or 1 (a valid no)."""
     ev = cfg.tools["ev"]
-    try:
-        prov = preflight(cfg)
-        print(f"preflight ok: head {prov['measurement_head'][:12]} == treatment; instrument "
-              "identical at T, R and the treatment; baseline records pinned", flush=True)
-        takes_path = cfg.out / "takes.json"
-        if cfg.stage in ("takes", "all"):
-            takes = run_takes(cfg)
-            takes_path.write_text(json.dumps(takes, indent=1, sort_keys=True) + "\n",
-                                  encoding="utf-8")
-        else:
-            if not takes_path.exists():
-                raise Refused("stage layers needs the takes of an earlier `--stage takes` run")
-            takes = load_json(takes_path)
-        if cfg.stage == "takes":
-            print("takes done; run --stage layers for the differential", flush=True)
-            return 0
-        cross = cross_engine_verdicts(cfg, after_file(cfg, "verdict-python"),
-                                      after_file(cfg, "verdict-rust"))
-        layers_path = cfg.out / "layers.json"
-        if cfg.stage == "report":
-            # Re-render the artifact from the persisted measurement; nothing is re-measured.
-            if not layers_path.exists():
-                raise Refused("stage report needs the layers.json of an earlier run")
-            layers = load_json(layers_path)
-        else:
-            layers = layer_differential(cfg, takes)
-        post_clean = not ev.tree_is_dirty(repo=cfg.repo)
-        art = assemble(cfg, prov, takes, cross, layers, post_clean)
-    except Refused as exc:
-        print(f"REFUSED: {exc}", file=sys.stderr)
-        return 2
+    prov = preflight(cfg)
+    print(f"preflight ok: head {prov['measurement_head'][:12]} == treatment; instrument "
+          "identical at T, R and the treatment; baseline records pinned", flush=True)
+    takes_path = cfg.out / "takes.json"
+    if cfg.stage in ("takes", "all"):
+        takes = run_takes(cfg)
+        takes_path.write_text(json.dumps(takes, indent=1, sort_keys=True) + "\n",
+                              encoding="utf-8")
+    else:
+        if not takes_path.exists():
+            raise Refused("stage layers needs the takes of an earlier `--stage takes` run")
+        takes = load_json(takes_path)
+    if cfg.stage == "takes":
+        print("takes done; run --stage layers for the differential", flush=True)
+        return 0
+    cross = cross_engine_verdicts(cfg, after_file(cfg, "verdict-python"),
+                                  after_file(cfg, "verdict-rust"))
+    layers_path = cfg.out / "layers.json"
+    if cfg.stage == "report":
+        # Re-render the artifact from the persisted measurement; nothing is re-measured.
+        if not layers_path.exists():
+            raise Refused("stage report needs the layers.json of an earlier run")
+        layers = load_json(layers_path)
+    else:
+        layers = layer_differential(cfg, takes)
+    post_clean = not ev.tree_is_dirty(repo=cfg.repo)
+    art = assemble(cfg, prov, takes, cross, layers, post_clean)
     target = cfg.out / "p037-a2.2-s-cumulative.json"
     target.write_text(json.dumps(art, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     art_sha = sha256_file(target)
@@ -780,7 +883,7 @@ def run(cfg: Config) -> int:
           f"changed={art['fact_documents']['changed']} "
           f"unexpected={art['fact_documents']['unexpected']}"
           + (f" · failed conditions: {failed}" if failed else ""))
-    print(f"wrote {target} ({art_sha[:12]})")
+    print(f"wrote {target.name} ({art_sha[:12]})")
     return 0 if r["accepted"] else 1
 
 
@@ -859,6 +962,106 @@ def selftest() -> int:
     other_rust["c"]["execution_profile"]["rust"] = {"rustc": "1.90"}
     check("profiles-differing-rust-refused", not profiles_consistent(other_rust))
     check("profiles-missing-refused", not profiles_consistent({"a": {"execution_profile": {}}}))
+    # H1: evidence is one command.
+    try:
+        validate_stage("evidence", "layers")
+        check("evidence-with-stage-refused", False)
+    except Refused:
+        check("evidence-with-stage-refused", True)
+    for stage in ("takes", "layers", "report", "all"):
+        validate_stage("rehearsal", stage)
+    validate_stage("evidence", "all")
+    check("rehearsal-stages-allowed", True)
+    # H2: transactional output.
+    with tempfile.TemporaryDirectory(prefix="p037-s-selftest-") as td:
+        final = Path(td) / "out"
+        final.mkdir()
+        try:
+            publish_transactionally(final, lambda out: 0)
+            check("pre-existing-out-refused", False)
+        except Refused:
+            check("pre-existing-out-refused", True)
+        final2 = Path(td) / "out2"
+
+        def late_refused(out: Path) -> int:
+            (out / "p037-a2.2-s-after-mos-repo.json").write_text('{"is_evidence": true}')
+            raise Refused("simulated late refusal after a take was written")
+        try:
+            publish_transactionally(final2, late_refused)
+            check("late-refused-propagates", False)
+        except Refused:
+            check("late-refused-propagates", True)
+        leftovers = sorted(x.name for x in Path(td).iterdir())
+        check("late-refused-leaves-no-final-out-and-no-staging",
+              not final2.exists() and leftovers == ["out"])
+        final3 = Path(td) / "out3"
+
+        def valid_negative(out: Path) -> int:
+            (out / "p037-a2.2-s-cumulative.json").write_text('{"result": {"accepted": false}}')
+            return 1
+        rc = publish_transactionally(final3, valid_negative)
+        check("valid-negative-result-published-with-exit-1",
+              rc == 1 and (final3 / "p037-a2.2-s-cumulative.json").exists()
+              and not any(x.name.startswith(".out3.staging") for x in Path(td).iterdir()))
+    # H3: the driver pinned to a clean reviewed commit and blob.
+    with tempfile.TemporaryDirectory(prefix="p037-s-driver-") as td:
+        repo = Path(td)
+        subprocess.run(["git", "init", "-q", str(repo)], check=True)
+        subprocess.run(["git", "-C", str(repo), "config", "user.email", "s@x"], check=True)
+        subprocess.run(["git", "-C", str(repo), "config", "user.name", "s"], check=True)
+        script = repo / "scripts" / "p037_cumulative_evidence.py"
+        script.parent.mkdir()
+        script.write_text("print('driver')\n")
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "driver"], check=True)
+        ident = driver_identity(script)
+        require_reviewed_driver(ident)
+        check("clean-driver-checkout-accepted", bool(ident["commit"]) and ident["clean"]
+              and ident["byte_identical_to_head"] and ident["blob"])
+        script.write_text("print('driver, modified')\n")
+        try:
+            require_reviewed_driver(driver_identity(script))
+            check("modified-driver-refused", False)
+        except Refused:
+            check("modified-driver-refused", True)
+        script.write_text("print('driver')\n")
+        (repo / "stray.txt").write_text("x")
+        try:
+            require_reviewed_driver(driver_identity(script))
+            check("dirty-driver-checkout-refused", False)
+        except Refused:
+            check("dirty-driver-checkout-refused", True)
+        loose = Path(tempfile.mkdtemp(prefix="p037-s-loose-")) / "p037_cumulative_evidence.py"
+        loose.write_text("print('loose copy')\n")
+        try:
+            require_reviewed_driver(driver_identity(loose))
+            check("loose-driver-copy-refused", False)
+        except Refused:
+            check("loose-driver-copy-refused", True)
+        shutil.rmtree(loose.parent, ignore_errors=True)
+    # H4: every measurement module proven to come from the measured checkout.
+    class Mod:
+        def __init__(self, file: str) -> None:
+            self.__file__ = file
+    with tempfile.TemporaryDirectory(prefix="p037-s-mods-") as td:
+        repo = Path(td)
+        good = {name: Mod(str(repo / rel)) for name, rel in MEASUREMENT_MODULES.items()}
+        verify_module_paths(good, repo)
+        check("measured-checkout-modules-accepted", True)
+        bad = dict(good)
+        bad["ownlang.repro"] = Mod("/somewhere/else/ownlang/repro.py")
+        try:
+            verify_module_paths(bad, repo)
+            check("foreign-module-path-refused", False)
+        except Refused:
+            check("foreign-module-path-refused", True)
+        missing = dict(good)
+        del missing["shadow_compare"]
+        try:
+            verify_module_paths(missing, repo)
+            check("missing-module-refused", False)
+        except Refused:
+            check("missing-module-refused", True)
     if failures:
         print(f"RESULT: {len(failures)} cumulative-evidence selftest(s) failed")
         return 1
@@ -881,11 +1084,13 @@ def main(argv: list[str]) -> int:
     r.add_argument("--baseline-prefix", default="p037-a2-baseline-")
     r.add_argument("--baseline-manifest", type=Path, default=None,
                    help="default in evidence mode: <baseline-dir>/p037-a2-baseline-manifest.md")
-    r.add_argument("--out", type=Path, required=True)
+    r.add_argument("--out", type=Path, required=True,
+                   help="evidence: a directory that does not exist yet, outside the checkout; "
+                        "rehearsal: a directory outside the checkout")
     r.add_argument("--mode", choices=("evidence", "rehearsal"), default="evidence")
     r.add_argument("--stage", choices=("takes", "layers", "report", "all"), default="all",
-                   help="takes: the four takes only; layers: the differential over saved "
-                        "takes; report: re-render the artifact from the saved measurement")
+                   help="rehearsal only. takes: the four takes; layers: the differential over "
+                        "saved takes; report: re-render the artifact from the saved measurement")
     r.add_argument("--timeout", type=float, default=120.0)
     args = ap.parse_args(argv)
     if args.selftest:
@@ -902,12 +1107,36 @@ def main(argv: list[str]) -> int:
                  baseline_prefix=args.baseline_prefix, out=Path(args.out).resolve(),
                  mode=args.mode, stage=args.stage, timeout=args.timeout, manifest=manifest)
     try:
+        validate_stage(cfg.mode, cfg.stage)
+        cfg.driver = driver_identity(Path(__file__))
+        if cfg.mode == "evidence":
+            require_reviewed_driver(cfg.driver)
         cfg.tools = bootstrap(repo)
     except Refused as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
-    with contextlib.chdir(repo):
-        return run(cfg)
+    print(f"orchestrator: commit {str(cfg.driver.get('commit'))[:12]} blob "
+          f"{str(cfg.driver.get('blob'))[:12]} clean={cfg.driver.get('clean')} "
+          f"byte_identical_to_head={cfg.driver.get('byte_identical_to_head')}", flush=True)
+
+    def body(out: Path) -> int:
+        cfg.out = out
+        with contextlib.chdir(repo):
+            return run(cfg)
+
+    try:
+        if cfg.mode == "evidence":
+            final = cfg.out
+            rc = publish_transactionally(final, body)
+            print(f"published {final}", flush=True)
+            return rc
+        cfg.out.mkdir(parents=True, exist_ok=True)
+        return body(cfg.out)
+    except Refused as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
+        if cfg.mode == "evidence":
+            print(f"nothing published: {args.out} does not exist", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

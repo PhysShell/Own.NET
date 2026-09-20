@@ -1631,3 +1631,44 @@ S is accepted when the artifact says `accepted=true`, `is_evidence=true`, and
 its outputs land in `docs/evidence` as `p037-a2.2-s-*` in an evidence-only
 commit. Then the A2 treatment is finished; A2.2-D (door registration, a new
 T/R round) is the next and only step before Phase B.
+
+**Orchestration hardening before the operator run (OWNER REVIEW, landed in
+the commit carrying this paragraph; driver, tests and docs only, the
+treatment, T, R and the instrument closure byte-identical).** Review of the
+driver found three provenance holes in the orchestration, cheap to close
+before a half-hour M1 run and expensive after: (H1) "one command" was prose,
+not a rule, since `--mode evidence` accepted `--stage takes|layers|report`
+and evidence could have been assembled by three processes under another
+protocol; now evidence refuses any `--stage` (staging is for rehearsal and
+debugging); (H2) "nothing is written as evidence" was technically false, since
+a late `REFUSED` left the four after-takes (each `is_evidence=true` on its
+own), `takes.json` and `layers.json` behind under a final-looking `--out`,
+half a failed S that somebody would eventually commit; now evidence output is
+a transaction: `--out` must not exist, everything runs in a sibling staging
+directory, a `REFUSED` deletes it and the final `--out` never comes to exist,
+a valid negative result (a real movement, `accepted=false`) is published in
+full with exit 1 because negative evidence is evidence, and an accepted
+result is published with exit 0; (H3) the driver recorded its own path and
+sha256, which says what ran but not that it was the reviewed tooling; now the
+driver must run from a clean git checkout and be byte-identical to the blob at
+that checkout's HEAD, refused otherwise, and the artifact records the
+orchestrator as commit, blob and sha256, so the evidence names three
+identities separately: the treatment (`dab3db1`), the frozen instrument
+closure (T/R's object ids), the evidence orchestrator (the reviewed tooling
+commit); (H4) `bootstrap` proved the path of `p037_evidence` only; now every
+measurement module (`p037_evidence`, `p037_mos_snapshot`,
+`p037_verdict_snapshot`, `shadow_compare`, `ownlang`, `ownlang.repro`) is
+purged from the module cache, imported with the measured checkout first on
+`sys.path`, and refused unless its file resolves to the measured checkout's
+own, by path. The selftest pins the controls: evidence with a stage refused;
+a pre-existing `--out` refused; a simulated late `REFUSED` after a written
+take leaves neither a final `--out` nor a staging directory; a valid negative
+result published with exit 1; a clean reviewed driver accepted, a modified
+driver, a dirty driver checkout and a loose copy outside any checkout
+refused; the measured checkout's modules accepted, a foreign module path and
+a missing module refused. Exercised end to end on this machine: an evidence
+run against `docs/evidence` reaches the first comparison, is refused there by
+the instrument's own rule (this machine's execution profile is not M1's) after
+a real take had been written, and leaves nothing behind. The operator
+command in the paragraph above is unchanged; the driver is now taken from a
+clean checkout of the tooling commit rather than copied.
