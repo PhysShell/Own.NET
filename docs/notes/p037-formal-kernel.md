@@ -1214,7 +1214,11 @@ causes of FACT-DIFF. Tracked in #364 with its own acceptance.
   1 taxonomy mutant unclassified, 0 survivors, 0 forbidden reasons;
 - **A2.2-S** cumulative A2 after-evidence on M1 against the existing R with
   population T: fact shape MOVED as preregistered, MOS UNCHANGED, verdict
-  UNCHANGED;
+  UNCHANGED. Landed in the commit carrying this line (10.6.13): one
+  governed run of the reviewed orchestrator (`e3995753b58c`, tooling branch
+  `claude/p037-a2.2`) against treatment `dab3db19c461`, population T, baseline
+  R; `accepted=true`, `is_evidence=true`, `state=accepted`, every claim and
+  every eligibility predicate true; evidence recorded at `f621400`;
 - **A2.2-D** door registration: `guarded_facts` and `guarded_functions` become
   known, fail-loud vocabulary on both doors, still semantically inert; the
   instrument change, a new T/R round; phase B only after its evidence is green.
@@ -1509,3 +1513,73 @@ six defects it once found and reads four rewrites by meaning; it does not
 enumerate the extractor's other seams, the hostile census remains pairwise, and
 lambdas / local functions stay the separate nested-function gap. After A2.2-5
 no functionality is added: A2.2-S measures the whole of A2 once against T/R.
+
+#### 10.6.13 A2.2-S: the cumulative governed measurement (REPOSITORY FACT)
+
+Four names, kept apart: **T** = `4a8e6582e10222403cd40adc9e95db7e0228a1c2`
+(the frozen population); **R** = `5fd6bfa6abd4c2af7e53712af300cf66c97f2f50`
+(the baseline evidence recorded at T); **treatment** = `dab3db19c4611c116f37f2b0e49354a0fd9bf384`
+(A2.2-5, the tree A2.2-S measures); the **evidence orchestrator** =
+`e3995753b58cfc2c6b48b712963df6c51c79af66` (`scripts/p037_cumulative_evidence.py`,
+tooling branch `claude/p037-a2.2`, byte-identical to its branch tip, pinned by
+`--orchestrator-commit`, never edited to obtain this result); the **S
+evidence commit** = `f6214004f38258ef1bb2244d38552f233bc3f214` (this commit's
+parent), which carries the six files this section quotes verbatim from.
+
+The run executed on the preserved M1 measurement machine (`P037_A2_MEASUREMENT_M1`,
+the same machine and toolchain pins that produced R and the A2.1 after-evidence),
+from a tooling checkout independent of the measured checkout, in `--mode evidence`
+(no `--stage`). Provenance, read from `p037-a2.2-s-cumulative.json`, all true:
+the orchestrator is clean and byte-identical to its pinned commit; the measured
+checkout's HEAD is exactly the treatment and was authenticated against the
+instrument's module blobs before any import; the instrument (`ownlang/`,
+`rust/`, `scripts/own-check.sh`, `scripts/p037_evidence.py`,
+`scripts/p037_mos_snapshot.py`, `scripts/p037_verdict_snapshot.py`,
+`scripts/shadow_compare.py`) is object-identical at T, at R and at the
+treatment; every one of the four governed takes is fresh evidence and every
+compare against R is eligible; every one of the 138 fact documents anchored
+(zero `anchors_failed`); the execution profile is single across the whole run;
+the tree is clean after. Two prior attempts on this same machine did not reach
+a result and are not this record: the first hung indefinitely inside the
+extractor (a dotnet child stuck in `futex_do_wait`, zero CPU consumed across
+40+ minutes, traced afterward to the pinned `.NET SDK` directory having gone
+missing from disk mid-run) and was killed rather than left to silently retry;
+the second, after the SDK was restored byte-for-byte from the untouched
+provisioning recipe and re-verified against R's execution profile, was
+REFUSED cleanly by the orchestrator's own eligibility check (`before/after
+execution profiles differ`) because the ambient `dotnet` on `PATH` had
+silently substituted an unpinned system installation once the pinned one was
+gone — a real provenance failure, correctly caught, nothing published. This
+record is the third attempt, run only after the pinned SDK was confirmed
+byte-identical to R's execution profile.
+
+Result: `state=accepted`, `accepted=true`, `is_evidence=true`. All six claims
+true — `facts_moved`, `mos_unchanged_both_engines`,
+`verdicts_unchanged_both_engines`, `unexpected_fact_changes_zero`,
+`layer_engines_agree`, `verdict_engines_agree` — and all nine eligibility
+predicates true. 138 fact documents measured (1 `repo-tree` document over the
+81-file repo population, 137 individual corpus documents): 47 changed (1 from
+`repo-tree`, 46 from the corpus), 91 unchanged, 0 unexpected — every one of
+the 47 changes classified as confined to `functions[*].guarded_facts` and the
+`guarded_functions[]` carrier, none touching a legacy body, a signature,
+`services`, `components`, `stats` or the schema version. The governed takes
+against R: MOS repo `UNCHANGED` (`facts_moved=1`, `python_mos_moved=0`,
+`rust_mos_moved=0`, `after_parity_moved=0`); MOS corpus `UNCHANGED`
+(`facts_moved=46`, `python_mos_moved=0`, `rust_mos_moved=0`,
+`after_parity_moved=0`); verdict/python `UNCHANGED` at both `level=verdict`
+and `level=all` over 137 files; verdict/rust `UNCHANGED` at both levels over
+137 files, its `own-cli` qualified/executed sha256 equal and
+`post_run_intact=true`. The layer differential (per-document digests, both
+engines, anchored against T's own re-derived facts and the treatment's):
+Python mismatches `{lowered: 0, summaries: 0, verdicts: 0}`; Rust mismatches
+`{lowered: 0, summaries: 0, verdicts: 0}`; Python/Rust cross-engine
+disagreements at the treatment `{lowered: 0, summaries: 0, verdicts: 0}` (and
+at the baseline, independently, the same all-zero); verdict-snapshot
+cross-engine disagreements over the 137 corpus files `{verdict: 0, all: 0,
+exit: 0}`.
+
+A2 treatment is closed by this measurement: the sidecar's fact surface moved
+exactly where A2.2 licensed it to, MOS and verdicts on both engines did not
+move at all, and the two engines agree with each other and with themselves
+before and after. Nothing here reads `guarded_facts` or `guarded_functions[]`
+into a verdict; that is A2.2-D's own instrument epoch, not this one's claim.
