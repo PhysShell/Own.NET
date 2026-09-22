@@ -1,0 +1,97 @@
+{
+  "schema": "p037-epoch/1",
+  "epoch": "a2d",
+  "title": "P-037 A2.2-D: the door-registration epoch, frozen before implementation",
+  "frozen_at": "the commit carrying formal note 10.6.14; a ruling, not a measurement",
+  "closes": {
+    "epoch": "a2",
+    "closed_by": "A2.2-S, evidence f621400 (state=accepted, is_evidence=true) landed in the note by fa92c05, integrated at 6f9c373",
+    "why_closed": "A2.2-D changes the measurement instrument itself (both OwnIR doors register the guarded vocabulary), so the a2 baseline R is by definition not a baseline of the new instrument"
+  },
+  "predecessors": {
+    "role": "historical predecessors of this epoch: not a baseline, not a before side and not a control of any a2d comparison; none is retaken",
+    "population_T": "4a8e6582e10222403cd40adc9e95db7e0228a1c2",
+    "baseline_R": "5fd6bfa6abd4c2af7e53712af300cf66c97f2f50",
+    "a2_1_treatment_A_prime": "5a0de070af241a2612859153887ad6ae04afcce2",
+    "a2_1_after_S_prime": "cd7e020",
+    "main_merge_of_a2_1": "23e32038231b5ac8398204afb35bafc115bc3bfe",
+    "a2_treatment_head": "dab3db19c4611c116f37f2b0e49354a0fd9bf384",
+    "a2_2_s_orchestrator": "e3995753b58cfc2c6b48b712963df6c51c79af66",
+    "a2_2_s_evidence": "f621400",
+    "a2_2_s_docs": "fa92c05",
+    "integration_head": "6f9c373ab0d2c416269000837ff95d22ff45852c",
+    "environment": "P037_A2_MEASUREMENT_M1, retired with the epoch; not a control of M2"
+  },
+  "treatment": {
+    "what": "door registration: `guarded_facts` (per functions[] record) and `guarded_functions[]` (top-level carrier) become KNOWN, fail-loud vocabulary at both OwnIR doors, validated at load against spec/OwnIR.md 5.2-5.3 with matching refusal categories on both engines, and still semantically inert: no lowerer, summary or verdict reads them",
+    "paths": [
+      "ownlang/ownir.py",
+      "rust/crates/own-ir/",
+      "spec/"
+    ],
+    "granularity": "the smallest git-addressable units that contain the two doors today (ownlang/ownir.py holds load(), the Python door, beside the Python lowering; rust/crates/own-ir/ is the Rust strict door and model); a D treatment diff inside them is held by review to load-time validation of the two keys and to nothing else",
+    "must_not_touch": [
+      "frontend/roslyn/OwnSharp.Extractor/",
+      "ownlang/ (any file but ownlang/ownir.py)",
+      "rust/ (any crate but rust/crates/own-ir/)"
+    ]
+  },
+  "instrument": {
+    "roots": [
+      "frontend/roslyn/OwnSharp.Extractor/",
+      "ownlang/",
+      "rust/",
+      "scripts/own-check.sh",
+      "scripts/p037_evidence.py",
+      "scripts/p037_mos_snapshot.py",
+      "scripts/p037_verdict_snapshot.py",
+      "scripts/shadow_compare.py"
+    ],
+    "carved_out": [
+      "ownlang/ownir.py",
+      "rust/crates/own-ir/"
+    ],
+    "note": "the extractor, the sidecar's producer, joins the instrument in this epoch and is frozen; the doors are carved out of their roots as the treatment; the instrument closure of a2d is the roots minus the carve-outs and must be identical at T_D, R_D and every after head",
+    "orchestrator": {
+      "path": "scripts/p037_cumulative_evidence.py",
+      "rule": "evidence orchestration, outside the instrument closure, pinned per run by --orchestrator-commit to a reviewed commit from a clean checkout"
+    }
+  },
+  "environment": {
+    "id": "P037_A2D_MEASUREMENT_M2",
+    "qualification": [
+      "an isolated pinned toolchain (CPython, .NET SDK, rustc/cargo) provisioned by a recipe whose sha256 is recorded in the R_D manifest and retained outside the repository, as M1's was",
+      "the execution profile (scripts/p037_evidence.py profile) captured before R_D and equal on every record of the epoch; a record whose profile differs is not eligible",
+      "one measured workspace checkout root for T_D, R_D and every after run of the epoch (path-sensitive fields, #364)",
+      "the environment id recorded on every record of the epoch and required equal by every comparison; a2 records carry none and are ineligible by construction"
+    ],
+    "m1_rule": "M1 takes nothing for this epoch and is not a control of M2; T, R and S are not retaken"
+  },
+  "order": [
+    "freeze (this record and formal note 10.6.14; docs, no implementation)",
+    "tooling: p037_evidence.py learns the a2d closure (roots minus carve-outs), records the epoch and the environment id on every take, and refuses cross-epoch or cross-environment comparisons; the cumulative driver takes the preregistered fact expectation from this record; CI green; no door, extractor or spec line moves",
+    "T_D: a terminal-green descendant of the integration head whose doors are byte-identical to 6f9c373's; named by the R_D manifest, never by this record",
+    "R_D: the four governed baseline takes at T_D on M2, verified fresh at T_D, committed evidence-only with a manifest naming T_D, the environment id, the profile and the recipe sha256",
+    "D treatment: the door registration on both doors with its validation-ledger controls and the extended inertness control (a vocabulary-violating sidecar refused at both doors with the same category; a valid contradictory sidecar still moves no layer); only the treatment paths and tests move",
+    "D after: the governed cumulative measurement at the D head against R_D on M2 by the pinned orchestrator; accepted only as below; then Phase B, in an epoch of its own"
+  ],
+  "claims_preregistered": {
+    "facts": "UNCHANGED on every document (the extractor is instrument now; a moved fact document is a failed claim, not a licensed movement)",
+    "mos": "UNCHANGED on both engines, per document",
+    "verdicts": "UNCHANGED on both engines at level verdict and level all, per file",
+    "engines_agree": "Python and Rust agree on lowered, summaries and verdicts before and after, and on the verdict snapshots",
+    "fail_loud": "both doors refuse a sidecar outside the frozen vocabulary at load, with the same refusal category, and the validation ledger replays it; both doors still accept and preserve a valid sidecar unchanged"
+  },
+  "comparison_rules": [
+    "no a2d record is compared with an a2 record: different instrument, different environment; the tooling refuses it, this record forbids it",
+    "before and after of every a2d comparison are taken on M2 with one profile in one workspace root",
+    "the population of a2d is re-frozen at T_D (the tracked .cs under the corpus and repo-tree roots at T_D; the repo tree now includes frontend/roslyn/OwnSharp.Oracle/Program.cs); it is not T's population and is not compared with it",
+    "the old epoch's evidence stays in docs/evidence as history and is neither edited nor revalidated by a2d tooling"
+  ],
+  "named_later": {
+    "T_D": null,
+    "R_D_manifest": null,
+    "D_treatment_head": null,
+    "D_after_evidence": null
+  }
+}

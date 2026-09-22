@@ -1797,3 +1797,82 @@ exactly where A2.2 licensed it to, MOS and verdicts on both engines did not
 move at all, and the two engines agree with each other and with themselves
 before and after. Nothing here reads `guarded_facts` or `guarded_functions[]`
 into a verdict; that is A2.2-D's own instrument epoch, not this one's claim.
+
+#### 10.6.14 A2.2-D: the door-registration epoch, frozen before implementation (OWNER RULING)
+
+A2.2-S closed the a2 instrument epoch: population T `4a8e658`, baseline R
+`5fd6bfa`, the corrected A2.1 treatment A' `5a0de07` with its after-evidence S'
+`cd7e020` and the merge `23e3203`, the A2 treatment head `dab3db1`, the S
+evidence `f621400` (`state=accepted`, `is_evidence=true`) and its landing
+`fa92c05`, the reviewed orchestrator `e399575`, the integration head `6f9c373`.
+Every one of them is a historical predecessor of what follows and none is a
+baseline, a before side or a control of it: A2.2-D changes the measurement
+instrument, so R is by definition not a baseline of the new instrument, and
+`P037_A2_MEASUREMENT_M1` retires with the epoch. Nothing of the old epoch is
+retaken, edited or revalidated. The machine-readable form of this section is
+`docs/evidence/p037-a2d-epoch.json`; `tests/test_p037_a2d_epoch.py` holds the
+record, this section and the tree to each other, and enforces the order below
+with git: until the R_D manifest names T_D, no door may move on this branch.
+
+**What A2.2-D is.** Both OwnIR doors register `guarded_facts` (on a
+`functions[]` record) and `guarded_functions[]` (the top-level orphan carrier)
+as KNOWN, fail-loud vocabulary, validated at load against spec §5.2 and §5.3
+with the same refusal categories on both engines (the Python door is
+`ownlang/ownir.py::load`, which today reads neither key; the Rust door is
+`rust/crates/own-ir/`, whose strict validator mirrors the Python reference and
+whose model carries every undeclared field in a flattened `extra` map), while
+every lowerer, summary and verdict stays silent about them. A sidecar outside
+the vocabulary is refused at both doors; a valid sidecar is accepted and
+preserved unchanged; a valid contradictory sidecar still moves no layer (the
+inertness control of A2.1 extended to both refusals and preservation).
+
+**The a2d closure.** Treatment, the paths that may move during the D
+treatment: `ownlang/ownir.py`, `rust/crates/own-ir/`, `spec/`: the smallest
+git-addressable units that contain the two doors today (the Python door lives
+in the same file as the Python lowering; a D treatment diff inside it is held
+by review to load-time validation of the two keys and to nothing else), and
+the vocabulary text. Instrument, frozen for the epoch and identical at T_D,
+R_D and every after head: `frontend/roslyn/OwnSharp.Extractor/` (the sidecar's
+producer joins the instrument in this epoch), `ownlang/` and `rust/` minus the
+two carve-outs, `scripts/own-check.sh`, `scripts/p037_evidence.py`,
+`scripts/p037_mos_snapshot.py`, `scripts/p037_verdict_snapshot.py`,
+`scripts/shadow_compare.py`. Nothing the a2 closure measured falls out of the
+a2d closure; it moves from one side to the other only. The orchestrator
+`scripts/p037_cumulative_evidence.py` stays outside the closure, pinned per run
+to a reviewed commit by `--orchestrator-commit` from a clean checkout.
+
+**The environment.** `P037_A2D_MEASUREMENT_M2`, qualified before R_D: an
+isolated pinned toolchain (CPython, .NET SDK, rustc/cargo) provisioned by a
+recipe whose sha256 the R_D manifest records and that is retained outside the
+repository, as M1's was; the execution profile captured before R_D and equal
+on every record of the epoch, a differing profile ineligible; one measured
+workspace checkout root for T_D, R_D and every after run (the path-sensitive
+`scope_cache_sites[].file`, #364, is still there); the environment id recorded
+on every record of the epoch and required equal by every comparison, so an a2
+record, which carries none, is ineligible by construction. M1 takes nothing
+for this epoch and is not a control of M2; changing the machine at an epoch
+boundary costs nothing methodologically, changing it inside one would.
+
+**Order and gates.** (1) freeze: this section and the record, docs only, no
+implementation. (2) tooling: `p037_evidence.py` learns the a2d closure (roots
+minus carve-outs), records the epoch and the environment id on every take and
+refuses a cross-epoch or cross-environment comparison; the cumulative driver
+takes the preregistered fact expectation from the record; CI green; no door,
+extractor or spec line moves. (3) T_D: a terminal-green descendant of
+`6f9c373` whose doors are byte-identical to `6f9c373`'s, named by the R_D
+manifest, never by the record. (4) R_D: the four governed baseline takes at
+T_D on M2, verified fresh at T_D, an evidence-only commit whose manifest names
+T_D, the environment id, the profile and the recipe sha256. (5) the D
+treatment: the door registration on both doors with its validation-ledger
+controls and the extended inertness control; only the treatment paths and
+tests move. (6) D after: the governed cumulative measurement at the D head
+against R_D on M2 by the pinned orchestrator. Preregistered claims: FACTS
+UNCHANGED on every document (the extractor is instrument now, a moved fact
+document is a failed claim, never a licensed movement), MOS UNCHANGED and
+VERDICTS UNCHANGED on both engines at both levels, the engines in agreement
+on lowered, summaries and verdicts before and after, and the fail-loud
+controls green. The population of a2d is re-frozen at T_D (the tracked `.cs`
+under the corpus and repo-tree roots at T_D; the repo tree now includes
+`frontend/roslyn/OwnSharp.Oracle/Program.cs`) and is not compared with T's.
+Phase B, where the lowerers begin to read the guarded facts, is an instrument
+change again and opens an epoch of its own after D's evidence is green.
