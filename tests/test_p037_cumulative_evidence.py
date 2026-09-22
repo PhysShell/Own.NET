@@ -63,6 +63,14 @@ def run() -> int:
           callable(cumulative.require_reviewed_driver)
           and callable(cumulative.publish_transactionally)
           and callable(cumulative.driver_identity))
+    check("orchestrator-pin-and-checkout-authentication-exist",
+          callable(cumulative.require_orchestrator_commit)
+          and callable(cumulative.authenticate_checkout))
+    try:
+        cumulative.require_orchestrator_commit({"commit": "a" * 40}, "b" * 40)
+        check("orchestrator-commit-is-an-argument", False, "mismatch not refused")
+    except cumulative.Refused:
+        check("orchestrator-commit-is-an-argument", True)
     if _failures:
         print(f"RESULT: {len(_failures)} cumulative-evidence check(s) failed")
         return 1

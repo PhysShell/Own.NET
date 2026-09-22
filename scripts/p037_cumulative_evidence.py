@@ -61,9 +61,25 @@ orchestrator's identity), and every measurement module it imports must resolve
 to the measured checkout's own file, proven by path, not assumed from import
 order.
 
+The trust chain is ordered: the driver proves itself first (a clean checkout,
+byte-identical to its HEAD blob, and in evidence mode that HEAD must be the
+--orchestrator-commit named on the command line, so "the reviewed tooling" is
+an argument, not a convention); then the measured checkout is authenticated
+with git alone, before any of its code is imported (its root, HEAD equal to
+the treatment, a clean tree, and each of the six modules about to be imported
+byte-identical to its blob at the treatment); only then are the instrument
+modules imported and the instrument-level preflight run through them. The
+outcome is one of exactly three states: a measurement whose provenance or
+eligibility cannot be established is REFUSED (exit 2, nothing published); a
+valid measurement whose claim fails is negative evidence (exit 1, published
+whole, is_evidence=true); a valid measurement whose claim holds is accepted
+(exit 0, published whole, is_evidence=true); a rehearsal is never evidence.
+
 Usage (the operator run, on the measurement machine):
   p037_cumulative_evidence.py run --repo <checkout at the treatment> \
-      --treatment <sha> --population <T> --baseline-commit <R> --out <dir outside the checkout>
+      --treatment <sha> --population <T> --baseline-commit <R> \
+      --orchestrator-commit <the reviewed tooling commit this driver is checked out from> \
+      --out <dir that does not exist yet, outside the checkout>
   p037_cumulative_evidence.py run ... --mode rehearsal --baseline-dir <dir> --baseline-prefix ""
   p037_cumulative_evidence.py --selftest
 """
@@ -119,6 +135,8 @@ class Config:
     manifest: Path | None
     tools: dict[str, Any] = field(default_factory=dict)
     driver: dict[str, Any] = field(default_factory=dict)
+    orchestrator_commit: str | None = None
+    checkout_auth: dict[str, Any] = field(default_factory=dict)
 
 
 # --------------------------------------------------------------------------
@@ -247,6 +265,52 @@ def require_reviewed_driver(identity: dict[str, Any]) -> None:
                       + "; ".join(problems))
 
 
+def require_orchestrator_commit(identity: dict[str, Any], expected: str | None) -> None:
+    """The reviewed tooling is an argument, never a convention: HEAD must be the named commit."""
+    if expected is None:
+        return
+    if not SHA40.match(expected):
+        raise Refused(f"--orchestrator-commit must be a full 40-hex commit, got {expected!r}")
+    if identity.get("commit") != expected:
+        raise Refused(f"the driver runs from commit {str(identity.get('commit'))[:12]}, not the "
+                      f"reviewed orchestrator commit {expected[:12]}")
+
+
+def authenticate_checkout(repo: Path, treatment: str) -> dict[str, Any]:
+    """The measured checkout, proven with git alone BEFORE any of its code is imported.
+
+    Its root is --repo, its HEAD is the treatment, its tree is clean, and each of
+    the six modules about to be imported is byte-identical to its blob at the
+    treatment. The instrument-level preflight repeats the closure proof through
+    the imported modules afterwards; this gate is what makes importing them
+    legitimate in the first place."""
+    repo = repo.resolve()
+    proc = subprocess.run(["git", "-C", str(repo), "rev-parse", "--show-toplevel"],
+                          capture_output=True, text=True, check=False)
+    if proc.returncode != 0:
+        raise Refused(f"{repo} is not a git checkout")
+    top = Path(proc.stdout.strip()).resolve()
+    if top != repo:
+        raise Refused(f"--repo {repo} is not a checkout root (the root is {top})")
+    head = git(repo, "rev-parse", "HEAD")
+    if head != treatment:
+        raise Refused(f"the measured checkout is at {head[:12]}, not the treatment "
+                      f"{treatment[:12]}; nothing is imported from it")
+    if git(repo, "status", "--porcelain") != "":
+        raise Refused("the measured checkout is dirty; nothing is imported from a dirty tree")
+    blobs: dict[str, str] = {}
+    for rel in MEASUREMENT_MODULES.values():
+        path = repo / rel
+        if not path.is_file():
+            raise Refused(f"{rel} is missing from the measured checkout")
+        committed = git(repo, "rev-parse", f"{treatment}:{rel}")
+        on_disk = git(repo, "hash-object", str(path))
+        if committed != on_disk:
+            raise Refused(f"{rel} on disk is not the blob committed at the treatment")
+        blobs[rel] = committed
+    return {"root": str(repo), "head": head, "clean": True, "module_blobs": blobs}
+
+
 def publish_transactionally(final: Path, body: Callable[[Path], int]) -> int:
     """Run ``body`` in a fresh sibling staging directory and publish it whole, or nothing.
 
@@ -261,10 +325,13 @@ def publish_transactionally(final: Path, body: Callable[[Path], int]) -> int:
     staging.mkdir(parents=False, exist_ok=False)
     try:
         rc = body(staging)
+        try:
+            staging.rename(final)
+        except OSError as exc:
+            raise Refused(f"publishing {final} failed: {exc}") from exc
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
         raise
-    staging.rename(final)
     return rc
 
 
@@ -434,6 +501,7 @@ def preflight(cfg: Config) -> dict[str, Any]:
                                "object_ids_at_treatment": treated["treatment"]},
         "baseline": baseline,
         "driver": dict(cfg.driver),
+        "measured_checkout": dict(cfg.checkout_auth),
     }
 
 
@@ -480,6 +548,8 @@ def run_takes(cfg: Config) -> dict[str, Any]:
         if rec.get("source_commit") != cfg.treatment:
             raise Refused(f"take {key} names source {str(rec.get('source_commit'))[:12]}, "
                           "not the treatment")
+        if rec.get("is_evidence") is not True:
+            raise Refused(f"take {key} does not mark itself is_evidence=true")
         compares: dict[str, Any] = {}
         levels = [("verdict", [])] if script == "p037_mos_snapshot.py" \
             else [("verdict", ["--level", "verdict"]), ("all", ["--level", "all"])]
@@ -655,6 +725,9 @@ def layer_differential(cfg: Config, takes: dict[str, Any]) -> dict[str, Any]:
         post = list(ev.executed_artifact_problems(artifact))
         if post:
             raise Refused("; ".join(post))
+        if anchors_failed:
+            raise Refused(f"{len(anchors_failed)} document(s) could not be anchored to the "
+                          f"recorded facts digests: {anchors_failed[:5]}")
     finally:
         remove_worktree(cfg, t_root)
         shutil.rmtree(take_dir, ignore_errors=True)
@@ -720,9 +793,16 @@ def summarize_layers(documents: dict[str, Any]) -> dict[str, Any]:
 
 def assemble(cfg: Config, prov: dict[str, Any], takes: dict[str, Any], cross: dict[str, Any],
              layers: dict[str, Any], post_clean: bool) -> dict[str, Any]:
+    """The artifact, in one of three states.
+
+    ELIGIBILITY is provenance and measurement validity: any failure raises
+    Refused (nothing is published). CLAIMS are what the measurement says about
+    the treatment: a failed claim is a valid negative result, published as
+    evidence with accepted=false. A rehearsal is never evidence, whatever it
+    says."""
     summary = summarize_layers(layers["documents"])
-    compares_unchanged = all(c["unchanged"] for t in takes.values()
-                             for c in t["compare"].values())
+    compares_eligible = all(c["rc"] in (0, 1) for t in takes.values()
+                            for c in t["compare"].values())
     mos_unchanged = all(takes[k]["compare"]["verdict"]["unchanged"]
                         for k in ("mos-repo", "mos-corpus"))
     verdicts_unchanged = all(takes[k]["compare"][lv]["unchanged"]
@@ -734,36 +814,49 @@ def assemble(cfg: Config, prov: dict[str, Any], takes: dict[str, Any], cross: di
     cross_ok = all(n == 0 for n in cross["disagreements"].values())
     facts_moved = summary["facts"]["moved_allowed"]["count"]
     unexpected = summary["facts"]["moved_unexpected"]["count"]
-    takes_evidence = all(t["is_evidence"] is True for t in takes.values())
-    conditions = {
+    driver = prov["driver"]
+    pinned = bool(driver.get("commit")) and bool(driver.get("clean")) \
+        and bool(driver.get("byte_identical_to_head")) \
+        and (cfg.orchestrator_commit is None or driver.get("commit") == cfg.orchestrator_commit)
+    eligibility = {
         "head_is_treatment": prov["measurement_head"] == cfg.treatment,
         "instrument_identical_at_T_R_treatment": True,
-        "four_takes_fresh_and_evidence": takes_evidence,
-        "four_compares_eligible_and_unchanged": compares_unchanged,
-        "mos_unchanged_both_engines": mos_unchanged,
-        "verdicts_unchanged_both_engines": verdicts_unchanged,
-        "verdict_engines_agree": cross_ok,
-        "every_document_anchored": not layers["anchors_failed"],
-        "facts_moved": facts_moved > 0,
-        "unexpected_fact_changes_zero": unexpected == 0,
-        "lowered_summaries_verdicts_unchanged_both_engines": layer_ok,
-        "layer_engines_agree": agree,
+        "orchestrator_pinned": cfg.mode != "evidence" or pinned,
+        "measured_checkout_authenticated": prov.get("measured_checkout", {}).get("head")
+        == cfg.treatment and prov.get("measured_checkout", {}).get("clean") is True,
+        "four_takes_fresh_and_evidence": all(t["is_evidence"] is True for t in takes.values()),
+        "four_compares_eligible": compares_eligible,
+        "every_document_anchored": not layers["anchors_failed"]
+        and all("layers" in d for d in layers["documents"].values()),
         "execution_profile_single": profiles_consistent(takes),
         "tree_clean_after": post_clean,
     }
-    accepted = all(conditions.values())
+    ineligible = [k for k, v in eligibility.items() if not v]
+    if ineligible:
+        raise Refused(f"the measurement is not eligible as evidence: {ineligible}")
+    claims = {
+        "facts_moved": facts_moved > 0,
+        "unexpected_fact_changes_zero": unexpected == 0,
+        "mos_unchanged_both_engines": mos_unchanged,
+        "verdicts_unchanged_both_engines": verdicts_unchanged,
+        "verdict_engines_agree": cross_ok,
+        "lowered_summaries_verdicts_unchanged_both_engines": layer_ok,
+        "layer_engines_agree": agree,
+    }
+    accepted = all(claims.values())
     n_docs = len(layers["documents"])
     return {
         "schema": SCHEMA,
         "mode": cfg.mode,
-        "is_evidence": cfg.mode == "evidence" and accepted,
+        "is_evidence": cfg.mode == "evidence",
         "population_sha": cfg.population,
         "baseline_evidence_sha": cfg.baseline_commit,
         "treatment_sha": cfg.treatment,
         "measurement_head": prov["measurement_head"],
         "instrument_identity": prov["instrument"],
         "treatment_identity": prov["treatment_identity"],
-        "cumulative_driver": prov["driver"],
+        "cumulative_driver": {**driver, "pinned_to": cfg.orchestrator_commit},
+        "measured_checkout": prov.get("measured_checkout", {}),
         "baseline_records": prov["baseline"],
         "takes": takes,
         "verdict_cross_engine": cross,
@@ -784,7 +877,9 @@ def assemble(cfg: Config, prov: dict[str, Any], takes: dict[str, Any], cross: di
         "result": {"facts": "MOVED" if facts_moved else "UNCHANGED",
                    "mos": "UNCHANGED" if mos_unchanged and layer_ok else "MOVED",
                    "verdicts": "UNCHANGED" if verdicts_unchanged and cross_ok else "MOVED",
-                   "conditions": conditions, "accepted": accepted},
+                   "eligibility": eligibility, "claims": claims, "accepted": accepted,
+                   "state": ("accepted" if accepted else "negative_evidence")
+                   if cfg.mode == "evidence" else "rehearsal"},
     }
 
 
@@ -806,7 +901,7 @@ R = `{art['baseline_evidence_sha']}` (baseline evidence)
 treatment = `{art['treatment_sha']}` (measurement head `{art['measurement_head']}`)
 
 Result: FACTS {r['facts']} · MOS {r['mos']} · VERDICTS {r['verdicts']} · accepted={r['accepted']}
-· is_evidence={art['is_evidence']}
+· is_evidence={art['is_evidence']} · state={r['state']} · eligibility all met
 
 ## Four governed takes at the treatment, population held at T
 
@@ -831,7 +926,8 @@ Verdict-snapshot cross-engine disagreements: {json.dumps(m['verdict_snapshot_dis
 
 Cumulative artifact: p037-a2.2-s-cumulative.json sha256 `{art_sha}`
 Evidence orchestrator: commit `{drv.get('commit')}`, blob `{drv.get('blob')}`,
-sha256 `{drv.get('sha256')}`
+sha256 `{drv.get('sha256')}`, pinned to `{drv.get('pinned_to')}`
+Measured checkout: head `{art['measured_checkout'].get('head')}`, authenticated before import
 Instrument identity: {json.dumps(art['instrument_identity']['object_ids'], sort_keys=True)}
 """
 
@@ -876,13 +972,13 @@ def run(cfg: Config) -> int:
     (cfg.out / "p037-a2.2-s-manifest.md").write_text(manifest_md(cfg, art, art_sha),
                                                      encoding="utf-8")
     r = art["result"]
-    failed = [k for k, v in r["conditions"].items() if not v]
+    failed = [k for k, v in r["claims"].items() if not v]
     print(f"RESULT: FACTS {r['facts']} · MOS {r['mos']} · VERDICTS {r['verdicts']} · "
-          f"accepted={r['accepted']} · is_evidence={art['is_evidence']} · "
+          f"state={r['state']} · accepted={r['accepted']} · is_evidence={art['is_evidence']} · "
           f"documents={art['layer_differential']['documents_measured']} · "
           f"changed={art['fact_documents']['changed']} "
           f"unexpected={art['fact_documents']['unexpected']}"
-          + (f" · failed conditions: {failed}" if failed else ""))
+          + (f" · failed claims: {failed}" if failed else ""))
     print(f"wrote {target.name} ({art_sha[:12]})")
     return 0 if r["accepted"] else 1
 
@@ -1062,6 +1158,150 @@ def selftest() -> int:
             check("missing-module-refused", False)
         except Refused:
             check("missing-module-refused", True)
+    # H3': the orchestrator commit is an argument, never a convention.
+    ident_ok = {"commit": "a" * 40, "clean": True, "byte_identical_to_head": True}
+    require_orchestrator_commit(ident_ok, "a" * 40)
+    require_orchestrator_commit(ident_ok, None)
+    check("orchestrator-commit-match-accepted", True)
+    try:
+        require_orchestrator_commit(ident_ok, "b" * 40)
+        check("orchestrator-commit-mismatch-refused", False)
+    except Refused:
+        check("orchestrator-commit-mismatch-refused", True)
+    try:
+        require_orchestrator_commit(ident_ok, "abc")
+        check("orchestrator-commit-short-refused", False)
+    except Refused:
+        check("orchestrator-commit-short-refused", True)
+    # Pre-bootstrap authentication of the measured checkout, with git alone.
+    with tempfile.TemporaryDirectory(prefix="p037-s-checkout-") as td:
+        repo = Path(td).resolve()
+        subprocess.run(["git", "init", "-q", str(repo)], check=True)
+        subprocess.run(["git", "-C", str(repo), "config", "user.email", "s@x"], check=True)
+        subprocess.run(["git", "-C", str(repo), "config", "user.name", "s"], check=True)
+        for rel in MEASUREMENT_MODULES.values():
+            (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+            (repo / rel).write_text(f"# {rel}\n")
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "treatment"], check=True)
+        head = git(repo, "rev-parse", "HEAD")
+        auth = authenticate_checkout(repo, head)
+        check("clean-checkout-at-treatment-authenticated",
+              auth["head"] == head and auth["clean"]
+              and set(auth["module_blobs"]) == set(MEASUREMENT_MODULES.values()))
+        try:
+            authenticate_checkout(repo, "0" * 40)
+            check("checkout-at-other-head-refused", False)
+        except Refused:
+            check("checkout-at-other-head-refused", True)
+        try:
+            authenticate_checkout(repo / "scripts", head)
+            check("checkout-non-root-refused", False)
+        except Refused:
+            check("checkout-non-root-refused", True)
+        (repo / "ownlang" / "repro.py").write_text("# tampered before import\n")
+        try:
+            authenticate_checkout(repo, head)
+            check("tampered-module-before-import-refused", False)
+        except Refused:
+            check("tampered-module-before-import-refused", True)
+        subprocess.run(["git", "-C", str(repo), "checkout", "--", "ownlang/repro.py"], check=True)
+        (repo / "stray.txt").write_text("x")
+        try:
+            authenticate_checkout(repo, head)
+            check("dirty-measured-checkout-refused", False)
+        except Refused:
+            check("dirty-measured-checkout-refused", True)
+    # P2: a failing publish rename is a cleanup, not a leftover.
+    with tempfile.TemporaryDirectory(prefix="p037-s-rename-") as td:
+        final = Path(td) / "out"
+
+        def races(out: Path) -> int:
+            (out / "p037-a2.2-s-cumulative.json").write_text("{}")
+            final.mkdir()
+            (final / "occupied").write_text("x")
+            return 0
+        try:
+            publish_transactionally(final, races)
+            check("failed-publish-rename-refused", False)
+        except Refused:
+            check("failed-publish-rename-refused", True)
+        check("failed-publish-rename-leaves-no-staging",
+              not any(x.name.startswith(".out.staging") for x in Path(td).iterdir()))
+    # The three-state protocol: eligibility refuses, a failed claim is negative evidence.
+    cfg = Config(repo=Path("."), treatment="t" * 40, population="p" * 40,
+                 baseline_commit="r" * 40, baseline_dir=Path("."), baseline_prefix="",
+                 out=Path("."), mode="evidence", stage="all", timeout=1.0, manifest=None,
+                 orchestrator_commit="o" * 40)
+    profile = {"python": {"v": "3"}, "dotnet": {"v": "8"}, "platform": {"s": "L"}}
+    take = {"path": "x", "sha256": "0" * 64, "source_commit": "t" * 40,
+            "population_commit": "p" * 40, "is_evidence": True, "artifacts": {},
+            "execution_profile": profile,
+            "compare": {"verdict": {"rc": 0, "result": "RESULT: UNCHANGED", "counts": {},
+                                    "unchanged": True}}}
+    vtake = json.loads(json.dumps(take))
+    vtake["compare"]["all"] = dict(vtake["compare"]["verdict"])
+    takes = {"mos-repo": take, "mos-corpus": json.loads(json.dumps(take)),
+             "verdict-python": vtake, "verdict-rust": json.loads(json.dumps(vtake))}
+    cross = {"files": 1, "disagreements": {"verdict": 0, "all": 0, "exit": 0},
+             "disagreeing_files": {"verdict": [], "all": [], "exit": []}}
+    same = dict.fromkeys(LAYERS, "d" * 64)
+    doc = {"source": "corpus", "inputs": 1,
+           "facts": {"baseline": {}, "treatment": {}, "anchored": {"baseline": True,
+                                                                     "treatment": True}},
+           "fact_diff": {"status": "moved_allowed", "allowed": ["x"], "unexpected": [],
+                         "functions_gaining_guarded_facts": 1, "guarded_functions": 0},
+           "layers": {"baseline": {"python": dict(same), "rust": dict(same)},
+                      "treatment": {"python": dict(same), "rust": dict(same)}}}
+    layers = {"adapter": {"sha256": "e" * 64, "bytes": 1}, "documents": {"d": doc},
+              "anchors_failed": []}
+    prov = {"measurement_head": "t" * 40, "instrument": {}, "treatment_identity": {},
+            "baseline": {}, "driver": {"commit": "o" * 40, "clean": True,
+                                       "byte_identical_to_head": True, "blob": "b", "sha256": "s"},
+            "measured_checkout": {"head": "t" * 40, "clean": True, "module_blobs": {}}}
+    art = assemble(cfg, prov, takes, cross, layers, True)
+    check("valid-measurement-claim-holds-accepted",
+          art["result"]["state"] == "accepted" and art["result"]["accepted"]
+          and art["is_evidence"] is True and all(art["result"]["eligibility"].values()))
+    negative = json.loads(json.dumps(cross))
+    negative["disagreements"]["verdict"] = 1
+    art = assemble(cfg, prov, takes, negative, layers, True)
+    check("valid-measurement-claim-fails-is-negative-evidence",
+          art["result"]["state"] == "negative_evidence" and not art["result"]["accepted"]
+          and art["is_evidence"] is True and not art["result"]["claims"]["verdict_engines_agree"])
+    try:
+        assemble(cfg, prov, takes, cross, layers, False)
+        check("dirty-tree-after-is-refused-not-negative", False)
+    except Refused:
+        check("dirty-tree-after-is-refused-not-negative", True)
+    unanchored = json.loads(json.dumps(layers))
+    unanchored["anchors_failed"] = ["d"]
+    del unanchored["documents"]["d"]["layers"]
+    try:
+        assemble(cfg, prov, takes, cross, unanchored, True)
+        check("unanchored-document-is-refused-not-negative", False)
+    except Refused:
+        check("unanchored-document-is-refused-not-negative", True)
+    other_profile = json.loads(json.dumps(takes))
+    other_profile["verdict-rust"]["execution_profile"] = {
+        "python": {"v": "4"}, "dotnet": {"v": "8"}, "platform": {"s": "L"}}
+    try:
+        assemble(cfg, prov, other_profile, cross, layers, True)
+        check("profile-mismatch-is-refused-not-negative", False)
+    except Refused:
+        check("profile-mismatch-is-refused-not-negative", True)
+    unpinned = json.loads(json.dumps(prov))
+    unpinned["driver"]["commit"] = "z" * 40
+    try:
+        assemble(cfg, unpinned, takes, cross, layers, True)
+        check("unpinned-orchestrator-is-refused", False)
+    except Refused:
+        check("unpinned-orchestrator-is-refused", True)
+    rehearsal = Config(**{**cfg.__dict__, "mode": "rehearsal", "orchestrator_commit": None})
+    art = assemble(rehearsal, prov, takes, cross, layers, True)
+    check("rehearsal-is-never-evidence",
+          art["result"]["state"] == "rehearsal" and art["is_evidence"] is False
+          and art["result"]["accepted"])
     if failures:
         print(f"RESULT: {len(failures)} cumulative-evidence selftest(s) failed")
         return 1
@@ -1079,6 +1319,9 @@ def main(argv: list[str]) -> int:
     r.add_argument("--treatment", required=True)
     r.add_argument("--population", required=True)
     r.add_argument("--baseline-commit", required=True)
+    r.add_argument("--orchestrator-commit", default=None,
+                   help="the reviewed tooling commit this driver must be checked out from "
+                        "(required in evidence mode; checked when given in rehearsal)")
     r.add_argument("--baseline-dir", type=Path, default=None,
                    help="default: <repo>/docs/evidence")
     r.add_argument("--baseline-prefix", default="p037-a2-baseline-")
@@ -1105,19 +1348,32 @@ def main(argv: list[str]) -> int:
     cfg = Config(repo=repo, treatment=args.treatment, population=args.population,
                  baseline_commit=args.baseline_commit, baseline_dir=baseline_dir,
                  baseline_prefix=args.baseline_prefix, out=Path(args.out).resolve(),
-                 mode=args.mode, stage=args.stage, timeout=args.timeout, manifest=manifest)
+                 mode=args.mode, stage=args.stage, timeout=args.timeout, manifest=manifest,
+                 orchestrator_commit=args.orchestrator_commit)
     try:
         validate_stage(cfg.mode, cfg.stage)
+        # 1. the driver proves itself: a reviewed commit's blob, from a clean checkout.
         cfg.driver = driver_identity(Path(__file__))
         if cfg.mode == "evidence":
+            if cfg.orchestrator_commit is None:
+                raise Refused("--orchestrator-commit is required in evidence mode: the reviewed "
+                              "tooling is an argument, not a convention")
             require_reviewed_driver(cfg.driver)
+        require_orchestrator_commit(cfg.driver, cfg.orchestrator_commit)
+        # 2. the measured checkout is authenticated with git alone, before any import.
+        cfg.checkout_auth = authenticate_checkout(repo, cfg.treatment)
+        # 3. only now are the instrument modules imported, and proven by path.
         cfg.tools = bootstrap(repo)
     except Refused as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
     print(f"orchestrator: commit {str(cfg.driver.get('commit'))[:12]} blob "
           f"{str(cfg.driver.get('blob'))[:12]} clean={cfg.driver.get('clean')} "
-          f"byte_identical_to_head={cfg.driver.get('byte_identical_to_head')}", flush=True)
+          f"byte_identical_to_head={cfg.driver.get('byte_identical_to_head')} "
+          f"pinned_to={str(cfg.orchestrator_commit)[:12]}", flush=True)
+    print(f"measured checkout: head {cfg.checkout_auth['head'][:12]} clean, "
+          f"{len(cfg.checkout_auth['module_blobs'])} module blob(s) equal to the treatment's, "
+          "authenticated before import", flush=True)
 
     def body(out: Path) -> int:
         cfg.out = out

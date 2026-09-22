@@ -1625,7 +1625,8 @@ the measured checkout's own instrument), `--out` outside the checkout:
         --treatment dab3db19c4611c116f37f2b0e49354a0fd9bf384 \
         --population 4a8e6582e10222403cd40adc9e95db7e0228a1c2 \
         --baseline-commit 5fd6bfa6abd4c2af7e53712af300cf66c97f2f50 \
-        --out <directory outside the checkout>
+        --orchestrator-commit <the tooling commit the driver is checked out from> \
+        --out <directory that does not exist yet, outside the checkout>
 
 S is accepted when the artifact says `accepted=true`, `is_evidence=true`, and
 its outputs land in `docs/evidence` as `p037-a2.2-s-*` in an evidence-only
@@ -1672,3 +1673,51 @@ the instrument's own rule (this machine's execution profile is not M1's) after
 a real take had been written, and leaves nothing behind. The operator
 command in the paragraph above is unchanged; the driver is now taken from a
 clean checkout of the tooling commit rather than copied.
+
+**Second review, before the operator run (OWNER REVIEW, landed in the commit
+carrying this paragraph; again driver, tests and docs only).** Reading the
+driver against its own contract found three more holes, two of them
+contradicting H2 and H3 as claimed. (H3') "reviewed tooling" was a
+convention: the pin proved a clean checkout and a blob equal to its HEAD, but
+any commit's HEAD, and the selftest even accepted a throwaway repository as a
+reviewed driver. Evidence mode now requires `--orchestrator-commit <full
+SHA>` and refuses unless the driver's checkout HEAD is exactly that commit
+(the SHA is an argument, never hardcoded into the commit that would change
+it); the artifact records `pinned_to`. (H4') the trust chain was reversed:
+`bootstrap` imported the measured checkout's `p037_evidence`,
+`p037_mos_snapshot`, `p037_verdict_snapshot`, `shadow_compare`, `ownlang` and
+`ownlang.repro` before anything had proven the checkout clean and at the
+treatment, and the preflight then ran through those very modules. The driver
+now authenticates the measured checkout with git alone, before the first
+import: `--repo` is a checkout root, HEAD equals the treatment, the tree is
+clean, and each of the six module files on disk hashes to its blob at the
+treatment; only then are the modules imported and proven by path, and only
+then does the instrument-level preflight run through them. (H2') the protocol
+had two states where it promised three: eligibility predicates (an unanchored
+document, a dirty tree after the run, inconsistent execution profiles) sat in
+the same `conditions` map as the scientific claims, so a measurement that
+could not honestly be made was published as `accepted=false`, and a valid
+negative result carried `is_evidence=false`, indistinguishable from a
+rehearsal by that field. The artifact now separates `eligibility` (head,
+instrument, the pinned orchestrator, the authenticated checkout, four takes
+fresh and evidence, four comparisons eligible, every document anchored, one
+execution profile, tree clean after) from `claims` (facts moved, unexpected
+zero, MOS and verdicts unchanged on both engines, engines agree, the layer
+matrix zero): any eligibility failure is `REFUSED` and nothing is published;
+`is_evidence` is true for every published evidence-mode artifact; `accepted`
+is the claim, and `state` reads `accepted`, `negative_evidence` or
+`rehearsal`. An unanchored document also refuses inside the differential
+itself, and a take that does not mark itself evidence refuses the run. (P2)
+the publishing rename sits inside the transaction's cleanup: a failed rename
+removes the staging directory and refuses. Controls added to the selftest: an
+orchestrator-commit mismatch or a short SHA refused, a match accepted; a
+clean checkout at the treatment authenticated, another head, a non-root
+`--repo`, a module tampered before import and a dirty tree refused; a failed
+publish rename refused with no staging left; a valid measurement whose claim
+holds accepted with `is_evidence=true`, whose claim fails published as
+negative evidence with `is_evidence=true`, while a dirty tree after the run,
+an unanchored document, mismatched profiles and an unpinned orchestrator are
+refused, and a rehearsal is never evidence. The operator command gains
+`--orchestrator-commit` naming the tooling commit the driver is checked out
+from; everything else, the treatment, T, R and the instrument closure, is
+byte-identical.
