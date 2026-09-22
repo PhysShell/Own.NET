@@ -16,6 +16,15 @@ Two fitness pins ride along: the extractor's explicit-file filesystem read
 sites must all be classified against the four semantic mechanisms the support
 closure covers, and the repository population's support closure must be
 exactly the three files it is today.
+
+The a2d epoch (docs/evidence/p037-a2d-epoch.json, formal note 10.6.14) adds its
+own controls: the closure is the instrument roots minus the two carved-out
+doors and the extractor is instrument now (a door change is treatment, an
+extractor change is an instrument change); every take records the epoch and the
+environment id taken from the record at its source commit; a record without an
+epoch (every a2 record) or from another environment is refused before anything
+else is read; the instrument identity is a digest of the closure re-derived at
+the source commit.
 """
 
 from __future__ import annotations
@@ -489,28 +498,49 @@ def record_level_controls() -> None:
 def history_controls() -> None:
     hist = History()
     try:
-        treatment = "frontend/roslyn/OwnSharp.Extractor/Program.cs"
+        treatment = "ownlang/ownir.py"  # the Python door: a carve-out, hence treatment
+        rust_door = "rust/crates/own-ir/src/strict.rs"
+        extractor = "frontend/roslyn/OwnSharp.Extractor/Program.cs"  # instrument in a2d
         instrument = "scripts/p037_evidence.py"
         first_shape = ev.analysis_manifest("HEAD", SHAPES, repo=hist.repo)[0]["path"]
 
-        a = hist.commit(hist.tree_with(treatment, hist.show(treatment) + b"\n// old treatment\n"),
+        a = hist.commit(hist.tree_with(treatment, hist.show(treatment) + b"\n# old treatment\n"),
                         [], "A: old treatment (root)")
         c = hist.commit(hist.head_tree, [a], "C: new treatment")
         x = hist.commit(hist.head_tree, [], "X: unrelated root")
         d = hist.commit(hist.tree_with(instrument, hist.show(instrument) + b"\n# drift\n"),
                         [c], "D: instrument moved")
-        e = hist.commit(hist.tree_with(treatment, hist.show(treatment) + b"\n// newer\n"),
+        e = hist.commit(hist.tree_with(treatment, hist.show(treatment) + b"\n# newer\n"),
                         [c], "E: treatment moved again")
+        f = hist.commit(hist.tree_with(extractor, hist.show(extractor) + b"\n// drift\n"),
+                        [c], "F: the extractor moved (instrument in a2d)")
+        g = hist.commit(hist.tree_with(rust_door, hist.show(rust_door) + b"\n// door\n"),
+                        [c], "G: the Rust door moved (treatment in a2d)")
         p = hist.commit(hist.tree_with(first_shape, hist.show(first_shape) + b"\n// drift\n"),
                         [], "P: population drift (root)")
         m = hist.commit(hist.head_tree, [a, p], "M: merges the drifted population")
 
+        closure = ev.instrument_pathspec()
         check("synthetic-history-non-vacuous",
               ev.paths_differ(a, c, ev.TREATMENT_PATHS, repo=hist.repo)
-              and not ev.paths_differ(a, c, ev.INSTRUMENT_PATHS, repo=hist.repo)
-              and ev.paths_differ(c, d, ev.INSTRUMENT_PATHS, repo=hist.repo)
+              and not ev.paths_differ(a, c, closure, repo=hist.repo)
+              and ev.paths_differ(c, d, closure, repo=hist.repo)
               and ev.paths_differ(c, e, ev.TREATMENT_PATHS, repo=hist.repo),
               "the synthetic commits do not move what they are meant to move")
+        check("a2d-door-change-is-treatment-not-instrument",
+              ev.paths_differ(c, g, ev.TREATMENT_PATHS, repo=hist.repo)
+              and not ev.paths_differ(c, g, closure, repo=hist.repo)
+              and ev.instrument_identity(c, repo=hist.repo)
+              == ev.instrument_identity(g, repo=hist.repo)
+              and ev.instrument_identity(a, repo=hist.repo)
+              == ev.instrument_identity(c, repo=hist.repo),
+              "a change inside a carve-out must leave the instrument closure identical")
+        check("a2d-extractor-change-is-instrument-not-treatment",
+              ev.paths_differ(c, f, closure, repo=hist.repo)
+              and not ev.paths_differ(c, f, ev.TREATMENT_PATHS, repo=hist.repo)
+              and ev.instrument_identity(c, repo=hist.repo)
+              != ev.instrument_identity(f, repo=hist.repo),
+              "the sidecar's producer is frozen in a2d")
 
         before = complete(ev.evidence_fields(SHAPES, population_commit=a, source_commit=a,
                                              repo=hist.repo))
@@ -553,6 +583,21 @@ def history_controls() -> None:
         expect_problem("control-08b-instrument-differs-across-pair",
                        ev.comparison_problems(before, after_d, against=d, repo=hist.repo),
                        "instrument differs between before and after")
+        after_f = complete(ev.evidence_fields(SHAPES, population_commit=a, source_commit=f,
+                                              repo=hist.repo))
+        expect_problem("control-08c-extractor-drift-is-instrument-drift",
+                       ev.comparison_problems(before, after_f, against=f, repo=hist.repo),
+                       "instrument differs between before and after")
+        after_g = complete(ev.evidence_fields(SHAPES, population_commit=a, source_commit=g,
+                                              repo=hist.repo))
+        door_pair = ev.comparison_problems(before, after_g, against=g, repo=hist.repo)
+        check("positive-control-door-change-admitted", not door_pair, "; ".join(door_pair))
+        check("takes-carry-epoch-and-environment-from-the-record",
+              before["epoch"] == ev.EPOCH == after["epoch"]
+              and before["environment_id"] == after["environment_id"]
+              == ev.environment_id(c, repo=hist.repo)
+              and before["epoch_record"]["path"] == ev.EPOCH_RECORD_PATH,
+              f"{before.get('epoch')} {before.get('environment_id')}")
 
         # materialization of a frozen population, verified byte for byte
         root = ev.materialize_population(before, repo=hist.repo)
@@ -598,6 +643,95 @@ def history_controls() -> None:
         hist.cleanup()
 
 
+def epoch_controls() -> None:
+    """The a2d epoch rules on records: epoch, environment, instrument identity, the record."""
+    base = complete(ev.evidence_fields(SHAPES))
+
+    def pair() -> tuple[dict[str, Any], dict[str, Any]]:
+        return copy.deepcopy(base), copy.deepcopy(base)
+
+    check("epoch-readers-agree-with-the-record",
+          ev.EPOCH == "a2d" and ev.environment_id("HEAD") == "P037_A2D_MEASUREMENT_M2"
+          and ev.fact_diff_policy("HEAD") in ev.FACT_DIFF_POLICIES
+          and ev.fact_diff_policy("HEAD") == "unchanged",
+          f"{ev.environment_id('HEAD')} {ev.fact_diff_policy('HEAD')}")
+    check("closed-policy-vocabulary",
+          ev.FACT_DIFF_POLICIES == frozenset({"unchanged", "allowed_surfaces"}),
+          f"{sorted(ev.FACT_DIFF_POLICIES)}")
+    before, after = pair()
+    del before["epoch"]
+    problems = ev.comparison_problems(before, after)
+    expect_problem("control-15-a2-record-without-epoch-refused", problems, "carries no epoch")
+    expect_problem("control-15-a2-record-is-not-a-before-side", problems,
+                   f"not both {ev.EPOCH} records")
+    before, after = pair()
+    before["epoch"] = "a2"
+    expect_problem("control-15b-other-epoch-refused", ev.comparison_problems(before, after),
+                   "not 'a2d'")
+    before, after = pair()
+    after["environment_id"] = "P037_A2_MEASUREMENT_M1"
+    problems = ev.comparison_problems(before, after)
+    expect_problem("control-16-environment-not-the-records", problems,
+                   "not the epoch record's")
+    expect_problem("control-16-environment-ids-differ", problems, "environment ids differ")
+    before, after = pair()
+    del after["environment_id"]
+    expect_problem("control-16b-environment-missing", ev.comparison_problems(before, after),
+                   "carries no environment_id")
+    before, after = pair()
+    before["instrument_identity"] = "0" * 64
+    problems = ev.comparison_problems(before, after)
+    expect_problem("control-17-instrument-identity-tampered", problems,
+                   "not the instrument closure's digest")
+    expect_problem("control-17-instrument-identities-differ", problems,
+                   "instrument identities differ")
+    before, after = pair()
+    after["instrument_carve_outs"] = []
+    expect_problem("control-17b-carve-outs-tampered", ev.comparison_problems(before, after),
+                   "instrument_carve_outs differ")
+    check("instrument-identity-is-the-closure-digest",
+          base["instrument_identity"] == ev.instrument_identity("HEAD")
+          and all(not ev._covered(e["path"], ev.INSTRUMENT_CARVE_OUTS)
+                  for e in ev.instrument_manifest("HEAD"))
+          and any(e["path"].startswith("frontend/roslyn/OwnSharp.Extractor/")
+                  for e in ev.instrument_manifest("HEAD"))
+          and not any(e["path"] == "ownlang/ownir.py" for e in ev.instrument_manifest("HEAD")),
+          "the manifest must cover the extractor and exclude the doors")
+    mirrored = ev._record_closure_problems({
+        "instrument": {"roots": list(ev.INSTRUMENT_PATHS), "carved_out": ["ownlang/ownir.py"]},
+        "treatment": {"paths": list(ev.TREATMENT_PATHS)},
+    })
+    expect_problem("control-18-record-and-tool-must-agree-on-the-closure", mirrored,
+                   "carve-outs differ")
+    hist = History()
+    try:
+        record = ev.EPOCH_RECORD_PATH
+        foreign = hist.commit(hist.tree_with(record, b'{"epoch": "a2", "environment": '
+                                             b'{"id": "P037_A2_MEASUREMENT_M1"}}\n'),
+                              [], "Q: a record of another epoch")
+        try:
+            ev.evidence_fields(SHAPES, population_commit=foreign, source_commit=foreign,
+                               repo=hist.repo)
+            fail("control-19-take-refused-under-another-epochs-record", "a take was admitted")
+        except ev.EvidenceRefused as exc:
+            expect_problem("control-19-take-refused-under-another-epochs-record", [str(exc)],
+                           "names epoch 'a2'")
+        gone = hist.git("rm", "-q", "--cached", record)
+        del gone
+        tree = hist.git("write-tree")
+        hist.git("reset", "-q")
+        orphan = hist.commit(tree, [], "O: no epoch record at all")
+        try:
+            ev.evidence_fields(SHAPES, population_commit=orphan, source_commit=orphan,
+                               repo=hist.repo)
+            fail("control-19b-take-refused-without-a-record", "a take was admitted")
+        except ev.EvidenceRefused as exc:
+            expect_problem("control-19b-take-refused-without-a-record", [str(exc)],
+                           "no epoch record")
+    finally:
+        hist.cleanup()
+
+
 def main() -> int:
     problems = ev.closure_problems()
     check("runtime-closure-covered", not problems, "; ".join(problems))
@@ -606,10 +740,12 @@ def main() -> int:
     fitness_pins()
     record_level_controls()
     history_controls()
+    epoch_controls()
     if failures:
         print(f"RESULT: {failures} P-037 evidence control(s) failed")
         return 1
-    print("RESULT: all P-037 evidence controls passed (14 negative, 1 positive, fitness pins)")
+    print("RESULT: all P-037 evidence controls passed (negative controls, positive controls, "
+          "fitness pins, a2d epoch controls)")
     return 0
 
 

@@ -77,8 +77,23 @@ class EvidenceRefused(RuntimeError):
 # exempts exactly this assignment shape, on this marker, in this file only.
 OWN_CHECK_PATH = "scripts/own-check.sh"  # p037-stage3: launcher-literal-is-provenance-data
 
-# What we measure WITH. Frozen across a before/after pair.
+# The epoch this tool measures in. docs/evidence/p037-a2d-epoch.json (formal
+# note 10.6.14) is the frozen ruling; this module mirrors its closure and
+# refuses to run against a HEAD whose record disagrees with it. The a2 epoch
+# (population T, baseline R, A2.2-S) is closed: its records carry no epoch and
+# are ineligible here by construction, never re-read as a before side.
+EPOCH = "a2d"
+EPOCH_RECORD_PATH = "docs/evidence/p037-a2d-epoch.json"
+
+# The closed vocabulary of the record's `measurement_policy.fact_diff`, the one
+# the cumulative driver reads. Anything else is refused; nobody parses prose.
+FACT_DIFF_POLICIES: frozenset[str] = frozenset({"unchanged", "allowed_surfaces"})
+
+# What we measure WITH: the a2d instrument roots. The extractor, the sidecar's
+# producer, is instrument in this epoch. Frozen across a before/after pair and
+# identical at T_D, R_D and every after head.
 INSTRUMENT_PATHS: tuple[str, ...] = (
+    "frontend/roslyn/OwnSharp.Extractor/",
     "ownlang/",
     "rust/",
     OWN_CHECK_PATH,
@@ -88,15 +103,26 @@ INSTRUMENT_PATHS: tuple[str, ...] = (
     "scripts/shadow_compare.py",
 )
 
-# What A2.1 is allowed to change between before and after.
+# The two OwnIR doors, carved out of their instrument roots: the instrument
+# closure is the roots MINUS these, and these are the treatment.
+INSTRUMENT_CARVE_OUTS: tuple[str, ...] = (
+    "ownlang/ownir.py",
+    "rust/crates/own-ir/",
+)
+
+# What A2.2-D is allowed to change between before and after: the doors and the
+# vocabulary text. Inside these units the D production diff is bounded further
+# by the record's production_diff_gate (scripts/p037_door_diff_gate.py).
 TREATMENT_PATHS: tuple[str, ...] = (
-    "frontend/roslyn/OwnSharp.Extractor/",
+    "ownlang/ownir.py",
+    "rust/crates/own-ir/",
     "spec/",
 )
 
 # The full closure a record is fresh against: neither half may move between a
-# record's source commit and the HEAD it is used at.
-SUBJECT_PATHS: tuple[str, ...] = INSTRUMENT_PATHS + TREATMENT_PATHS
+# record's source commit and the HEAD it is used at. The carve-outs already lie
+# under the roots, so the union is the roots plus spec/.
+SUBJECT_PATHS: tuple[str, ...] = (*INSTRUMENT_PATHS, "spec/")
 
 # Repo-local paths the snapshot programs execute or import directly. The
 # self-check proves every one is inside SUBJECT_PATHS and exists in HEAD.
@@ -214,6 +240,11 @@ def is_ancestor(older: str, newer: str, *, repo: Path = ROOT) -> bool:
     return _git("merge-base", "--is-ancestor", older, newer, repo=repo).returncode == 0
 
 
+def instrument_pathspec() -> list[str]:
+    """The git pathspec of the instrument closure: the roots minus the carve-outs."""
+    return [*INSTRUMENT_PATHS, *(f":(exclude){c}" for c in INSTRUMENT_CARVE_OUTS)]
+
+
 def paths_differ(a: str, b: str, paths: Iterable[str], *, repo: Path = ROOT) -> bool:
     proc = _git("diff", "--quiet", a, b, "--", *paths, repo=repo)
     if proc.returncode == 0:
@@ -247,8 +278,76 @@ def _covered(path: str, roots: Iterable[str]) -> bool:
     return False
 
 
+def epoch_record(commit: str = "HEAD", *, repo: Path = ROOT) -> dict[str, Any]:
+    """The frozen epoch record as committed at ``commit``, never the working copy.
+
+    Refused unless it is this tool's epoch, names a non-empty environment id and
+    carries a `measurement_policy.fact_diff` from the closed vocabulary.
+    """
+    proc = _git("show", f"{commit}:{EPOCH_RECORD_PATH}", repo=repo)
+    if proc.returncode != 0:
+        raise EvidenceRefused(
+            f"no epoch record {EPOCH_RECORD_PATH} at {commit[:12]}: an {EPOCH} take needs "
+            "the frozen record in the tree it measures"
+        )
+    try:
+        doc = json.loads(proc.stdout.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise EvidenceRefused(f"epoch record at {commit[:12]} is not JSON: {exc}") from exc
+    if not isinstance(doc, dict):
+        raise EvidenceRefused(f"epoch record at {commit[:12]} is not an object")
+    if doc.get("epoch") != EPOCH:
+        raise EvidenceRefused(
+            f"epoch record at {commit[:12]} names epoch {doc.get('epoch')!r}; this tool "
+            f"measures {EPOCH!r} and nothing else"
+        )
+    environment = doc.get("environment")
+    env_id = environment.get("id") if isinstance(environment, dict) else None
+    if not isinstance(env_id, str) or not env_id:
+        raise EvidenceRefused(f"epoch record at {commit[:12]} names no environment id")
+    policy = doc.get("measurement_policy")
+    fact_diff = policy.get("fact_diff") if isinstance(policy, dict) else None
+    if not isinstance(fact_diff, str) or fact_diff not in FACT_DIFF_POLICIES:
+        raise EvidenceRefused(
+            f"epoch record at {commit[:12]}: measurement_policy.fact_diff {fact_diff!r} is not "
+            f"one of {sorted(FACT_DIFF_POLICIES)}"
+        )
+    return doc
+
+
+def environment_id(commit: str = "HEAD", *, repo: Path = ROOT) -> str:
+    """The environment a take at ``commit`` records: the record's, never an operator string."""
+    env_id: str = epoch_record(commit, repo=repo)["environment"]["id"]
+    return env_id
+
+
+def fact_diff_policy(commit: str = "HEAD", *, repo: Path = ROOT) -> str:
+    policy: str = epoch_record(commit, repo=repo)["measurement_policy"]["fact_diff"]
+    return policy
+
+
+def _record_closure_problems(doc: dict[str, Any]) -> list[str]:
+    """The record is the ruling; this module mirrors it. Any disagreement is a problem."""
+    problems: list[str] = []
+    instrument: dict[str, Any] = {}
+    treatment: dict[str, Any] = {}
+    if isinstance(doc.get("instrument"), dict):
+        instrument = doc["instrument"]
+    if isinstance(doc.get("treatment"), dict):
+        treatment = doc["treatment"]
+    if instrument.get("roots") != list(INSTRUMENT_PATHS):
+        problems.append("the epoch record's instrument roots differ from this tool's")
+    if instrument.get("carved_out") != list(INSTRUMENT_CARVE_OUTS):
+        problems.append("the epoch record's carve-outs differ from this tool's")
+    if treatment.get("paths") != list(TREATMENT_PATHS):
+        problems.append("the epoch record's treatment paths differ from this tool's")
+    return problems
+
+
 def closure_problems(*, repo: Path = ROOT) -> list[str]:
-    """Static self-check: every repo-local runtime path is in the closure."""
+    """Static self-check: every repo-local runtime path is in the closure, the
+    carve-outs are treatment under instrument roots, and HEAD's epoch record
+    agrees with this tool on all of it."""
     problems: list[str] = []
     for path in RUNTIME_REPO_PATHS:
         if not _covered(path, SUBJECT_PATHS):
@@ -263,8 +362,22 @@ def closure_problems(*, repo: Path = ROOT) -> list[str]:
             )
     if len(set(SUBJECT_PATHS)) != len(SUBJECT_PATHS):
         problems.append("SUBJECT_PATHS contains duplicate entries")
-    if set(INSTRUMENT_PATHS) & set(TREATMENT_PATHS):
-        problems.append("a path is declared as both instrument and treatment")
+    for carve in INSTRUMENT_CARVE_OUTS:
+        if not _covered(carve, INSTRUMENT_PATHS):
+            problems.append(f"carve-out {carve!r} lies under no instrument root")
+        if carve not in TREATMENT_PATHS:
+            problems.append(f"carve-out {carve!r} is not declared as treatment")
+    for path in TREATMENT_PATHS:
+        if not _covered(path, SUBJECT_PATHS):
+            problems.append(f"treatment path {path!r} is outside SUBJECT_PATHS")
+        if _covered(path, INSTRUMENT_PATHS) and path not in INSTRUMENT_CARVE_OUTS:
+            problems.append(
+                f"treatment path {path!r} lies under an instrument root without being carved out"
+            )
+    try:
+        problems.extend(_record_closure_problems(epoch_record("HEAD", repo=repo)))
+    except EvidenceRefused as exc:
+        problems.append(str(exc))
     return problems
 
 
@@ -298,6 +411,22 @@ def _tree_blobs(commit: str, paths: tuple[str, ...], *, repo: Path = ROOT) -> di
 
 def _sorted_entries(entries: Iterable[dict[str, str]]) -> list[dict[str, str]]:
     return sorted(entries, key=lambda e: e["path"].encode("utf-8"))
+
+
+def instrument_manifest(commit: str, *, repo: Path = ROOT) -> list[dict[str, str]]:
+    """path -> blob of every file of the instrument closure at ``commit``:
+    the roots minus the carve-outs, so a door change moves nothing here."""
+    blobs = _tree_blobs(resolve_commit(commit, repo=repo), INSTRUMENT_PATHS, repo=repo)
+    return _sorted_entries(
+        {"path": path, "blob": blob}
+        for path, blob in blobs.items()
+        if not _covered(path, INSTRUMENT_CARVE_OUTS)
+    )
+
+
+def instrument_identity(commit: str, *, repo: Path = ROOT) -> str:
+    """One digest of the instrument closure at ``commit``; equal digests, equal instrument."""
+    return _manifest_digest(instrument_manifest(commit, repo=repo))
 
 
 def analysis_manifest(
@@ -876,11 +1005,20 @@ def evidence_fields(
             f"population commit {population['population_commit'][:12]} is not an ancestor "
             f"of (or equal to) source commit {source[:12]}"
         )
+    record = epoch_record(source, repo=repo)
     return {
         "source_commit": source,
         "dirty": dirty,
         "is_evidence": not dirty,
+        "epoch": EPOCH,
+        "environment_id": str(record["environment"]["id"]),
+        "epoch_record": {
+            "path": EPOCH_RECORD_PATH,
+            "blob": _git_text("rev-parse", f"{source}:{EPOCH_RECORD_PATH}", repo=repo),
+        },
         "instrument_paths": list(INSTRUMENT_PATHS),
+        "instrument_carve_outs": list(INSTRUMENT_CARVE_OUTS),
+        "instrument_identity": instrument_identity(source, repo=repo),
         "treatment_paths": list(TREATMENT_PATHS),
         "subject_paths": list(SUBJECT_PATHS),
         **population,
@@ -907,8 +1045,21 @@ def record_problems(record: dict[str, Any], *, repo: Path = ROOT) -> list[str]:
         problems.append("the tree was dirty after the measurement")
     if record.get("post_run_population_intact") is not True:
         problems.append("record does not attest that the population stayed intact through the run")
+    epoch = record.get("epoch")
+    if epoch is None:
+        problems.append(
+            f"record carries no epoch: it predates {EPOCH} and is not eligible in it, "
+            "as a before side or otherwise"
+        )
+    elif epoch != EPOCH:
+        problems.append(f"record names epoch {epoch!r}, not {EPOCH!r}")
+    env_id = record.get("environment_id")
+    if not isinstance(env_id, str) or not env_id:
+        problems.append("record carries no environment_id")
     if record.get("instrument_paths") != list(INSTRUMENT_PATHS):
         problems.append("recorded instrument_paths differ from this tool's instrument closure")
+    if record.get("instrument_carve_outs") != list(INSTRUMENT_CARVE_OUTS):
+        problems.append("recorded instrument_carve_outs differ from this tool's")
     if record.get("treatment_paths") != list(TREATMENT_PATHS):
         problems.append("recorded treatment_paths differ from this tool's treatment closure")
     if record.get("subject_paths") != list(SUBJECT_PATHS):
@@ -927,6 +1078,27 @@ def record_problems(record: dict[str, Any], *, repo: Path = ROOT) -> list[str]:
 
     if not commit_exists(source, repo=repo):
         return [*problems, f"source commit {source[:12]} is not present in this checkout"]
+
+    try:
+        expected_env = environment_id(source, repo=repo)
+    except EvidenceRefused as exc:
+        problems.append(str(exc))
+    else:
+        if isinstance(env_id, str) and env_id and env_id != expected_env:
+            problems.append(
+                f"record names environment {env_id!r}, not the epoch record's "
+                f"{expected_env!r} at its source commit"
+            )
+    try:
+        identity = instrument_identity(source, repo=repo)
+    except EvidenceRefused as exc:
+        problems.append(str(exc))
+    else:
+        if record.get("instrument_identity") != identity:
+            problems.append(
+                "recorded instrument_identity is not the instrument closure's digest at the "
+                "source commit"
+            )
 
     population = record.get("population_commit")
     if not isinstance(population, str) or not commit_exists(population, repo=repo):
@@ -1018,7 +1190,7 @@ def provenance_problems(
         )
         return problems
     try:
-        if paths_differ(source, against, INSTRUMENT_PATHS, repo=repo):
+        if paths_differ(source, against, instrument_pathspec(), repo=repo):
             problems.append(
                 f"the measurement instrument changed between {source[:12]} and {against}; "
                 "re-take the evidence"
@@ -1046,11 +1218,27 @@ def comparison_problems(
     before: self-valid at its own commit (it predates the treatment change on
             purpose, so it is NOT required to be fresh at HEAD).
     after:  self-valid AND fresh at ``against``.
-    pair:   ancestry, identical instrument, identical frozen population and
-            support closure, identical execution profile.
+    pair:   one epoch and one environment (an a2 record, which carries neither,
+            is refused before anything else is read), ancestry, identical
+            instrument, identical frozen population and support closure,
+            identical execution profile.
     """
     problems = [f"before: {p}" for p in record_problems(before, repo=repo)]
     problems += [f"after: {p}" for p in provenance_problems(after, against=against, repo=repo)]
+    if before.get("epoch") != EPOCH or after.get("epoch") != EPOCH:
+        problems.append(
+            f"before/after are not both {EPOCH} records; no record of another epoch is "
+            "compared with one of this epoch"
+        )
+    if (
+        not isinstance(before.get("environment_id"), str)
+        or before.get("environment_id") != after.get("environment_id")
+    ):
+        problems.append(
+            "before/after environment ids differ; a comparison is taken on one environment"
+        )
+    if before.get("instrument_identity") != after.get("instrument_identity"):
+        problems.append("before/after instrument identities differ")
 
     before_source = before.get("source_commit")
     after_source = after.get("source_commit")
@@ -1067,7 +1255,7 @@ def comparison_problems(
             )
         else:
             try:
-                if paths_differ(before_source, after_source, INSTRUMENT_PATHS, repo=repo):
+                if paths_differ(before_source, after_source, instrument_pathspec(), repo=repo):
                     problems.append(
                         "the measurement instrument differs between before and after; "
                         "only the treatment may move across a comparison"
@@ -1163,11 +1351,35 @@ def _cli_population(source: str, commit: str, materialize: bool, cleanup: bool) 
     return 1 if problems else 0
 
 
+def _cli_identity(commit: str) -> int:
+    """The epoch, the environment id and the instrument identity a take at ``commit`` records."""
+    problems = closure_problems()
+    for problem in problems:
+        print(f"FAIL[closure]: {problem}")
+    resolved = resolve_commit(commit)
+    record = epoch_record(resolved)
+    print(json.dumps({
+        "commit": resolved,
+        "epoch": EPOCH,
+        "environment_id": record["environment"]["id"],
+        "measurement_policy": {"fact_diff": record["measurement_policy"]["fact_diff"]},
+        "instrument_paths": list(INSTRUMENT_PATHS),
+        "instrument_carve_outs": list(INSTRUMENT_CARVE_OUTS),
+        "instrument_identity": instrument_identity(resolved),
+        "instrument_files": len(instrument_manifest(resolved)),
+        "treatment_paths": list(TREATMENT_PATHS),
+    }, indent=1, sort_keys=True))
+    return 1 if problems else 0
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("profile", help="print the execution profile of this machine")
+    ident = sub.add_parser("identity", help="print the epoch, environment id and instrument "
+                                            "identity a take at a commit records")
+    ident.add_argument("--commit", default="HEAD")
     sub.add_parser("artifacts", help="build both qualified Rust executables and verify them")
     p = sub.add_parser("population", help="derive (and optionally materialize) a frozen population")
     p.add_argument("--source", required=True, choices=("corpus", "repo"))
@@ -1181,6 +1393,8 @@ def main(argv: list[str]) -> int:
             return _cli_profile()
         if args.cmd == "artifacts":
             return _cli_artifacts()
+        if args.cmd == "identity":
+            return _cli_identity(args.commit)
         return _cli_population(args.source, args.commit, args.materialize, args.cleanup)
     except EvidenceRefused as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)

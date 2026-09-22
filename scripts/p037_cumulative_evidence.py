@@ -111,6 +111,15 @@ TAKES: tuple[tuple[str, str, list[str]], ...] = (
     ("verdict-rust", "p037_verdict_snapshot.py", ["--engine", "rust"]),
 )
 ALLOWED_TOP_LEVEL_ADDED = frozenset({"guarded_functions"})
+# The closed vocabulary of the epoch record's measurement_policy.fact_diff, mirrored from
+# scripts/p037_evidence.py (the instrument) and scripts/p037_door_diff_gate.py (the gate);
+# tests/test_p037_cumulative_evidence.py holds the three copies equal. The driver reads the
+# record's value against this set and refuses anything else; it never parses the claims'
+# prose.
+FACT_DIFF_POLICIES = frozenset({"unchanged", "allowed_surfaces"})
+EPOCH_RECORD_PATH = "docs/evidence/p037-a2d-epoch.json"
+GATE_PATH = "scripts/p037_door_diff_gate.py"
+GATE_PASSING = ("IDENTICAL", "WITHIN_ALLOWLIST")
 LAYERS = ("lowered", "summaries", "verdicts")
 ENGINES = ("python", "rust")
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
@@ -137,6 +146,9 @@ class Config:
     driver: dict[str, Any] = field(default_factory=dict)
     orchestrator_commit: str | None = None
     checkout_auth: dict[str, Any] = field(default_factory=dict)
+    epoch: str = ""
+    environment_id: str = ""
+    fact_policy: str = ""
 
 
 # --------------------------------------------------------------------------
@@ -177,11 +189,28 @@ def load_json(path: Path) -> dict[str, Any]:
     return doc
 
 
+def epoch_from_git(repo: Path, treatment: str) -> str:
+    """The epoch named by the record committed at the treatment, read with git alone.
+
+    Used before any import for the artifact names; the instrument re-reads and validates
+    the whole record in the preflight."""
+    text = git(repo, "show", f"{treatment}:{EPOCH_RECORD_PATH}")
+    try:
+        doc = json.loads(text)
+    except ValueError as exc:
+        raise Refused(f"the epoch record at the treatment is not JSON: {exc}") from exc
+    epoch = doc.get("epoch") if isinstance(doc, dict) else None
+    if not isinstance(epoch, str) or not re.fullmatch(r"[a-z0-9]+", epoch):
+        raise Refused(f"the epoch record at the treatment names no usable epoch: {epoch!r}")
+    return epoch
+
+
 MEASUREMENT_MODULES: dict[str, str] = {
     "p037_evidence": "scripts/p037_evidence.py",
     "p037_mos_snapshot": "scripts/p037_mos_snapshot.py",
     "p037_verdict_snapshot": "scripts/p037_verdict_snapshot.py",
     "shadow_compare": "scripts/shadow_compare.py",
+    "p037_door_diff_gate": GATE_PATH,
     "ownlang": "ownlang/__init__.py",
     "ownlang.repro": "ownlang/repro.py",
 }
@@ -216,6 +245,7 @@ def bootstrap(repo: Path) -> dict[str, Any]:
         "mos": modules["p037_mos_snapshot"],
         "verdict": modules["p037_verdict_snapshot"],
         "shadow": modules["shadow_compare"],
+        "gate": modules["p037_door_diff_gate"],
         "repro": modules["ownlang.repro"],
     }
 
@@ -429,17 +459,48 @@ def preflight(cfg: Config) -> dict[str, Any]:
                                 "R is not an ancestor of the treatment")):
         if not git_ok(repo, "merge-base", "--is-ancestor", older, newer):
             raise Refused(f"{what}: the evidence describes a history this tree does not contain")
+    # The epoch record at the treatment is the ruling the instrument validated (epoch,
+    # environment id, closed measurement policy); the driver takes its values from it and
+    # from nowhere else.
+    try:
+        record = ev.epoch_record(cfg.treatment, repo=repo)
+    except ev.EvidenceRefused as exc:
+        raise Refused(str(exc)) from exc
+    if cfg.epoch and record.get("epoch") != cfg.epoch:
+        raise Refused(f"the epoch record names {record.get('epoch')!r}, not {cfg.epoch!r}")
+    cfg.epoch = str(record["epoch"])
+    cfg.environment_id = str(record["environment"]["id"])
+    cfg.fact_policy = str(record["measurement_policy"]["fact_diff"])
+    if cfg.fact_policy not in FACT_DIFF_POLICIES:
+        raise Refused(f"measurement_policy.fact_diff {cfg.fact_policy!r} is not one of "
+                      f"{sorted(FACT_DIFF_POLICIES)}")
     instrument = list(ev.INSTRUMENT_PATHS)
+    carve_outs = list(ev.INSTRUMENT_CARVE_OUTS)
     treatment_paths = list(ev.TREATMENT_PATHS)
-    ids = {c: object_ids(repo, sha, instrument)
-           for c, sha in (("population", cfg.population), ("baseline", cfg.baseline_commit),
-                          ("treatment", cfg.treatment))}
-    if not (ids["population"] == ids["baseline"] == ids["treatment"]):
-        moved = [p for p in instrument
-                 if not (ids["population"][p] == ids["baseline"][p] == ids["treatment"][p])]
-        raise Refused(f"the measurement instrument moved between T, R and the treatment: {moved}")
+    identities = {c: ev.instrument_identity(sha, repo=repo)
+                  for c, sha in (("population", cfg.population), ("baseline", cfg.baseline_commit),
+                                 ("treatment", cfg.treatment))}
+    if not (identities["population"] == identities["baseline"] == identities["treatment"]):
+        raise Refused("the instrument closure (roots minus carve-outs) differs between T_D, R_D "
+                      f"and the treatment: {identities}")
     treated = {c: object_ids(repo, sha, treatment_paths)
                for c, sha in (("population", cfg.population), ("treatment", cfg.treatment))}
+    # The production-diff gate: judged by T_D's copy of the gate, on the record the treatment
+    # carries (the epoch test pins every non-registration field of that record's policy).
+    gate_blobs = {c: git(repo, "rev-parse", f"{sha}:{GATE_PATH}")
+                  for c, sha in (("population", cfg.population), ("treatment", cfg.treatment))}
+    if gate_blobs["population"] != gate_blobs["treatment"]:
+        raise Refused(f"{GATE_PATH} moved between T_D and the treatment; the gate that judges "
+                      "the treatment is T_D's")
+    gate = cfg.tools["gate"]
+    try:
+        gate_report = gate.check(cfg.population, cfg.treatment, gate.DEFAULT_RECORD, None, repo)
+    except gate.Refused as exc:
+        raise Refused(f"the production-diff gate refused: {exc}") from exc
+    if gate_report["verdict"] not in GATE_PASSING:
+        details = [v for u in gate_report["units"] for v in u["violations"]]
+        raise Refused(f"the treatment's production diff against T_D is {gate_report['verdict']}: "
+                      f"{details[:6]}")
     out_problems: list[str] = []
     try:
         cfg.out.mkdir(parents=True, exist_ok=True)
@@ -475,6 +536,15 @@ def preflight(cfg: Config) -> dict[str, Any]:
             problems.append(f"{path.name}: population_commit is not T")
         if rec.get("is_evidence") is not True:
             problems.append(f"{path.name}: not marked is_evidence")
+        if rec.get("epoch") != cfg.epoch:
+            problems.append(f"{path.name}: epoch {rec.get('epoch')!r} is not {cfg.epoch!r}; a "
+                            "record of another epoch is never a baseline of this one")
+        if rec.get("environment_id") != cfg.environment_id:
+            problems.append(f"{path.name}: environment {rec.get('environment_id')!r} is not "
+                            f"{cfg.environment_id!r}")
+        if rec.get("instrument_identity") != identities["population"]:
+            problems.append(f"{path.name}: instrument identity is not T_D's")
+        entry.update({"epoch": rec.get("epoch"), "environment_id": rec.get("environment_id")})
         if manifest_digests:
             pinned = manifest_digests.get(path.name)
             entry["manifest_pin"] = pinned
@@ -495,10 +565,20 @@ def preflight(cfg: Config) -> dict[str, Any]:
         raise Refused("; ".join(problems))
     return {
         "measurement_head": head,
-        "instrument": {"paths": instrument, "object_ids": ids["treatment"],
+        "epoch": cfg.epoch,
+        "environment_id": cfg.environment_id,
+        "measurement_policy": {"fact_diff": cfg.fact_policy},
+        "epoch_record": {"path": EPOCH_RECORD_PATH,
+                         "blob_at_treatment": git(repo, "rev-parse",
+                                                  f"{cfg.treatment}:{EPOCH_RECORD_PATH}")},
+        "instrument": {"paths": instrument, "carve_outs": carve_outs,
+                       "identity": identities["treatment"],
+                       "files": len(ev.instrument_manifest(cfg.treatment, repo=repo)),
                        "identical_at": ["population", "baseline", "treatment"]},
         "treatment_identity": {"paths": treatment_paths, "object_ids_at_T": treated["population"],
                                "object_ids_at_treatment": treated["treatment"]},
+        "production_diff_gate": {**gate_report, "gate_blob": gate_blobs["treatment"],
+                                 "gate_identical_at": ["population", "treatment"]},
         "baseline": baseline,
         "driver": dict(cfg.driver),
         "measured_checkout": dict(cfg.checkout_auth),
@@ -527,7 +607,7 @@ def counts_of(line: str) -> dict[str, int]:
 
 
 def after_file(cfg: Config, key: str) -> Path:
-    return cfg.out / f"p037-a2.2-s-after-{key}.json"
+    return cfg.out / f"p037-{cfg.epoch}-after-{key}.json"
 
 
 def run_takes(cfg: Config) -> dict[str, Any]:
@@ -550,6 +630,10 @@ def run_takes(cfg: Config) -> dict[str, Any]:
                           "not the treatment")
         if rec.get("is_evidence") is not True:
             raise Refused(f"take {key} does not mark itself is_evidence=true")
+        if rec.get("epoch") != cfg.epoch or rec.get("environment_id") != cfg.environment_id:
+            raise Refused(f"take {key} records epoch {rec.get('epoch')!r} on environment "
+                          f"{rec.get('environment_id')!r}, not {cfg.epoch!r} on "
+                          f"{cfg.environment_id!r}")
         compares: dict[str, Any] = {}
         levels = [("verdict", [])] if script == "p037_mos_snapshot.py" \
             else [("verdict", ["--level", "verdict"]), ("all", ["--level", "all"])]
@@ -568,6 +652,8 @@ def run_takes(cfg: Config) -> dict[str, Any]:
                     "source_commit": rec.get("source_commit"),
                     "population_commit": rec.get("population_commit"),
                     "is_evidence": rec.get("is_evidence"), "artifacts": artifacts,
+                    "epoch": rec.get("epoch"), "environment_id": rec.get("environment_id"),
+                    "instrument_identity": rec.get("instrument_identity"),
                     "execution_profile": rec.get("execution_profile"),
                     "compare": compares}
     return out
@@ -818,9 +904,15 @@ def assemble(cfg: Config, prov: dict[str, Any], takes: dict[str, Any], cross: di
     pinned = bool(driver.get("commit")) and bool(driver.get("clean")) \
         and bool(driver.get("byte_identical_to_head")) \
         and (cfg.orchestrator_commit is None or driver.get("commit") == cfg.orchestrator_commit)
+    gate_verdict = str(prov.get("production_diff_gate", {}).get("verdict"))
     eligibility = {
         "head_is_treatment": prov["measurement_head"] == cfg.treatment,
         "instrument_identical_at_T_R_treatment": True,
+        "measurement_policy_known": cfg.fact_policy in FACT_DIFF_POLICIES,
+        "epoch_and_environment_single": bool(cfg.epoch) and bool(cfg.environment_id)
+        and all(t.get("epoch") == cfg.epoch and t.get("environment_id") == cfg.environment_id
+                for t in takes.values()),
+        "production_diff_gate_within_allowlist": gate_verdict in GATE_PASSING,
         "orchestrator_pinned": cfg.mode != "evidence" or pinned,
         "measured_checkout_authenticated": prov.get("measured_checkout", {}).get("head")
         == cfg.treatment and prov.get("measured_checkout", {}).get("clean") is True,
@@ -834,9 +926,20 @@ def assemble(cfg: Config, prov: dict[str, Any], takes: dict[str, Any], cross: di
     ineligible = [k for k, v in eligibility.items() if not v]
     if ineligible:
         raise Refused(f"the measurement is not eligible as evidence: {ineligible}")
+    if cfg.fact_policy == "unchanged":
+        fact_claims = {
+            "facts_unchanged_every_document": facts_moved == 0 and unexpected == 0,
+            "mos_takes_report_no_fact_movement": all(
+                takes[k]["compare"]["verdict"]["counts"].get("facts_moved") == 0
+                for k in ("mos-repo", "mos-corpus")),
+        }
+    else:  # allowed_surfaces: the a2 policy, movement confined to the allowed surfaces
+        fact_claims = {
+            "facts_moved": facts_moved > 0,
+            "unexpected_fact_changes_zero": unexpected == 0,
+        }
     claims = {
-        "facts_moved": facts_moved > 0,
-        "unexpected_fact_changes_zero": unexpected == 0,
+        **fact_claims,
         "mos_unchanged_both_engines": mos_unchanged,
         "verdicts_unchanged_both_engines": verdicts_unchanged,
         "verdict_engines_agree": cross_ok,
@@ -853,6 +956,11 @@ def assemble(cfg: Config, prov: dict[str, Any], takes: dict[str, Any], cross: di
         "baseline_evidence_sha": cfg.baseline_commit,
         "treatment_sha": cfg.treatment,
         "measurement_head": prov["measurement_head"],
+        "epoch": cfg.epoch,
+        "environment_id": cfg.environment_id,
+        "measurement_policy": {"fact_diff": cfg.fact_policy},
+        "epoch_record": prov.get("epoch_record"),
+        "production_diff_gate": prov.get("production_diff_gate"),
         "instrument_identity": prov["instrument"],
         "treatment_identity": prov["treatment_identity"],
         "cumulative_driver": {**driver, "pinned_to": cfg.orchestrator_commit},
@@ -894,14 +1002,23 @@ def manifest_md(cfg: Config, art: dict[str, Any], art_sha: str) -> str:
     fd = art["fact_documents"]
     py, rs, dg = m["python"], m["rust"], m["python_rust_disagreements"]
     drv = art["cumulative_driver"]
-    return f"""# P-037 A2.2-S cumulative evidence ({art['mode']})
+    gate = art.get("production_diff_gate") or {}
+    policy = art["measurement_policy"]["fact_diff"]
+    fact_note = ("every fact document identical between before and after" if policy == "unchanged"
+                 else "every changed document classified: guarded_facts / guarded_functions only")
+    inst = art["instrument_identity"]
+    return f"""# P-037 {art['epoch']} cumulative evidence ({art['mode']})
 
+epoch = `{art['epoch']}` · environment = `{art['environment_id']}` · measurement policy
+fact_diff = `{policy}`
 T = `{art['population_sha']}` (population)
 R = `{art['baseline_evidence_sha']}` (baseline evidence)
 treatment = `{art['treatment_sha']}` (measurement head `{art['measurement_head']}`)
 
 Result: FACTS {r['facts']} · MOS {r['mos']} · VERDICTS {r['verdicts']} · accepted={r['accepted']}
 · is_evidence={art['is_evidence']} · state={r['state']} · eligibility all met
+Production-diff gate (T_D -> treatment): {gate.get('verdict')} (allowed {gate.get('allowed')},
+violations {gate.get('violations')}, gate blob `{gate.get('gate_blob')}`)
 
 ## Four governed takes at the treatment, population held at T
 
@@ -912,7 +1029,7 @@ Result: FACTS {r['facts']} · MOS {r['mos']} · VERDICTS {r['verdicts']} · acce
 ## Fact documents
 
 changed={fd['changed']} unchanged={fd['unchanged']} unexpected={fd['unexpected']}
-(every changed document classified: guarded_facts / guarded_functions only)
+({fact_note})
 
 ## Layer differential (per-document digests, both engines)
 
@@ -924,11 +1041,13 @@ changed={fd['changed']} unchanged={fd['unchanged']} unexpected={fd['unexpected']
 
 Verdict-snapshot cross-engine disagreements: {json.dumps(m['verdict_snapshot_disagreements'])}
 
-Cumulative artifact: p037-a2.2-s-cumulative.json sha256 `{art_sha}`
+Cumulative artifact: p037-{art['epoch']}-cumulative.json sha256 `{art_sha}`
 Evidence orchestrator: commit `{drv.get('commit')}`, blob `{drv.get('blob')}`,
 sha256 `{drv.get('sha256')}`, pinned to `{drv.get('pinned_to')}`
 Measured checkout: head `{art['measured_checkout'].get('head')}`, authenticated before import
-Instrument identity: {json.dumps(art['instrument_identity']['object_ids'], sort_keys=True)}
+Instrument identity: `{inst.get('identity')}` over {inst.get('files')} file(s)
+(roots minus carve-outs {json.dumps(inst.get('carve_outs'))}), identical at T_D, R_D and the
+treatment
 """
 
 
@@ -940,8 +1059,10 @@ def run(cfg: Config) -> int:
     """The measurement in cfg.out; raises Refused, returns 0 (accepted) or 1 (a valid no)."""
     ev = cfg.tools["ev"]
     prov = preflight(cfg)
-    print(f"preflight ok: head {prov['measurement_head'][:12]} == treatment; instrument "
-          "identical at T, R and the treatment; baseline records pinned", flush=True)
+    print(f"preflight ok: head {prov['measurement_head'][:12]} == treatment; epoch {cfg.epoch} "
+          f"on {cfg.environment_id}; fact_diff policy {cfg.fact_policy}; instrument identical at "
+          f"T_D, R_D and the treatment; production-diff gate "
+          f"{prov['production_diff_gate']['verdict']}; baseline records pinned", flush=True)
     takes_path = cfg.out / "takes.json"
     if cfg.stage in ("takes", "all"):
         takes = run_takes(cfg)
@@ -966,11 +1087,11 @@ def run(cfg: Config) -> int:
         layers = layer_differential(cfg, takes)
     post_clean = not ev.tree_is_dirty(repo=cfg.repo)
     art = assemble(cfg, prov, takes, cross, layers, post_clean)
-    target = cfg.out / "p037-a2.2-s-cumulative.json"
+    target = cfg.out / f"p037-{cfg.epoch}-cumulative.json"
     target.write_text(json.dumps(art, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     art_sha = sha256_file(target)
-    (cfg.out / "p037-a2.2-s-manifest.md").write_text(manifest_md(cfg, art, art_sha),
-                                                     encoding="utf-8")
+    (cfg.out / f"p037-{cfg.epoch}-manifest.md").write_text(manifest_md(cfg, art, art_sha),
+                                                          encoding="utf-8")
     r = art["result"]
     failed = [k for k, v in r["claims"].items() if not v]
     print(f"RESULT: FACTS {r['facts']} · MOS {r['mos']} · VERDICTS {r['verdicts']} · "
@@ -1232,13 +1353,15 @@ def selftest() -> int:
     cfg = Config(repo=Path("."), treatment="t" * 40, population="p" * 40,
                  baseline_commit="r" * 40, baseline_dir=Path("."), baseline_prefix="",
                  out=Path("."), mode="evidence", stage="all", timeout=1.0, manifest=None,
-                 orchestrator_commit="o" * 40)
+                 orchestrator_commit="o" * 40, epoch="a2d",
+                 environment_id="P037_A2D_MEASUREMENT_M2", fact_policy="unchanged")
     profile = {"python": {"v": "3"}, "dotnet": {"v": "8"}, "platform": {"s": "L"}}
     take = {"path": "x", "sha256": "0" * 64, "source_commit": "t" * 40,
             "population_commit": "p" * 40, "is_evidence": True, "artifacts": {},
-            "execution_profile": profile,
-            "compare": {"verdict": {"rc": 0, "result": "RESULT: UNCHANGED", "counts": {},
-                                    "unchanged": True}}}
+            "epoch": "a2d", "environment_id": "P037_A2D_MEASUREMENT_M2",
+            "instrument_identity": "i" * 64, "execution_profile": profile,
+            "compare": {"verdict": {"rc": 0, "result": "RESULT: UNCHANGED — facts_moved=0",
+                                    "counts": {"facts_moved": 0}, "unchanged": True}}}
     vtake = json.loads(json.dumps(take))
     vtake["compare"]["all"] = dict(vtake["compare"]["verdict"])
     takes = {"mos-repo": take, "mos-corpus": json.loads(json.dumps(take)),
@@ -1249,26 +1372,84 @@ def selftest() -> int:
     doc = {"source": "corpus", "inputs": 1,
            "facts": {"baseline": {}, "treatment": {}, "anchored": {"baseline": True,
                                                                      "treatment": True}},
-           "fact_diff": {"status": "moved_allowed", "allowed": ["x"], "unexpected": [],
-                         "functions_gaining_guarded_facts": 1, "guarded_functions": 0},
+           "fact_diff": {"status": "unchanged", "allowed": [], "unexpected": [],
+                         "functions_gaining_guarded_facts": 0, "guarded_functions": 0},
            "layers": {"baseline": {"python": dict(same), "rust": dict(same)},
                       "treatment": {"python": dict(same), "rust": dict(same)}}}
     layers = {"adapter": {"sha256": "e" * 64, "bytes": 1}, "documents": {"d": doc},
               "anchors_failed": []}
+    moved_doc = json.loads(json.dumps(doc))
+    moved_doc["fact_diff"] = {"status": "moved_allowed", "allowed": ["x"], "unexpected": [],
+                              "functions_gaining_guarded_facts": 1, "guarded_functions": 0}
+    moved_layers = {**layers, "documents": {"d": moved_doc}}
     prov = {"measurement_head": "t" * 40, "instrument": {}, "treatment_identity": {},
             "baseline": {}, "driver": {"commit": "o" * 40, "clean": True,
                                        "byte_identical_to_head": True, "blob": "b", "sha256": "s"},
-            "measured_checkout": {"head": "t" * 40, "clean": True, "module_blobs": {}}}
+            "measured_checkout": {"head": "t" * 40, "clean": True, "module_blobs": {}},
+            "epoch": "a2d", "environment_id": "P037_A2D_MEASUREMENT_M2",
+            "measurement_policy": {"fact_diff": "unchanged"},
+            "production_diff_gate": {"verdict": "WITHIN_ALLOWLIST", "allowed": 1,
+                                     "violations": 0}}
     art = assemble(cfg, prov, takes, cross, layers, True)
     check("valid-measurement-claim-holds-accepted",
           art["result"]["state"] == "accepted" and art["result"]["accepted"]
-          and art["is_evidence"] is True and all(art["result"]["eligibility"].values()))
+          and art["is_evidence"] is True and all(art["result"]["eligibility"].values())
+          and art["result"]["claims"]["facts_unchanged_every_document"]
+          and art["result"]["facts"] == "UNCHANGED" and art["epoch"] == "a2d")
     negative = json.loads(json.dumps(cross))
     negative["disagreements"]["verdict"] = 1
     art = assemble(cfg, prov, takes, negative, layers, True)
     check("valid-measurement-claim-fails-is-negative-evidence",
           art["result"]["state"] == "negative_evidence" and not art["result"]["accepted"]
           and art["is_evidence"] is True and not art["result"]["claims"]["verdict_engines_agree"])
+    # The fact expectation comes from the closed policy field, never from prose.
+    art = assemble(cfg, prov, takes, cross, moved_layers, True)
+    check("unchanged-policy-a-moved-document-is-negative-evidence",
+          art["result"]["state"] == "negative_evidence"
+          and not art["result"]["claims"]["facts_unchanged_every_document"]
+          and art["result"]["facts"] == "MOVED")
+    counted = json.loads(json.dumps(takes))
+    counted["mos-corpus"]["compare"]["verdict"]["counts"]["facts_moved"] = 3
+    art = assemble(cfg, prov, counted, cross, layers, True)
+    check("unchanged-policy-a-take-counting-fact-movement-is-negative-evidence",
+          art["result"]["state"] == "negative_evidence"
+          and not art["result"]["claims"]["mos_takes_report_no_fact_movement"])
+    a2_cfg = Config(**{**cfg.__dict__, "fact_policy": "allowed_surfaces"})
+    art = assemble(a2_cfg, prov, takes, cross, moved_layers, True)
+    check("allowed-surfaces-policy-keeps-the-a2-claims",
+          art["result"]["state"] == "accepted" and art["result"]["claims"]["facts_moved"]
+          and art["result"]["claims"]["unexpected_fact_changes_zero"])
+    art = assemble(a2_cfg, prov, takes, cross, layers, True)
+    check("allowed-surfaces-policy-with-no-movement-is-negative",
+          art["result"]["state"] == "negative_evidence"
+          and not art["result"]["claims"]["facts_moved"])
+    prose_cfg = Config(**{**cfg.__dict__, "fact_policy": "UNCHANGED on every document"})
+    try:
+        assemble(prose_cfg, prov, takes, cross, layers, True)
+        check("unknown-policy-is-refused", False)
+    except Refused:
+        check("unknown-policy-is-refused", True)
+    violating = json.loads(json.dumps(prov))
+    violating["production_diff_gate"] = {"verdict": "VIOLATION", "allowed": 0, "violations": 2}
+    try:
+        assemble(cfg, violating, takes, cross, layers, True)
+        check("gate-violation-is-refused-not-negative", False)
+    except Refused:
+        check("gate-violation-is-refused-not-negative", True)
+    other_env = json.loads(json.dumps(takes))
+    other_env["verdict-rust"]["environment_id"] = "P037_A2_MEASUREMENT_M1"
+    try:
+        assemble(cfg, prov, other_env, cross, layers, True)
+        check("take-from-another-environment-is-refused", False)
+    except Refused:
+        check("take-from-another-environment-is-refused", True)
+    no_epoch = json.loads(json.dumps(takes))
+    del no_epoch["mos-repo"]["epoch"]
+    try:
+        assemble(cfg, prov, no_epoch, cross, layers, True)
+        check("take-without-epoch-is-refused", False)
+    except Refused:
+        check("take-without-epoch-is-refused", True)
     try:
         assemble(cfg, prov, takes, cross, layers, False)
         check("dirty-tree-after-is-refused-not-negative", False)
@@ -1324,9 +1505,12 @@ def main(argv: list[str]) -> int:
                         "(required in evidence mode; checked when given in rehearsal)")
     r.add_argument("--baseline-dir", type=Path, default=None,
                    help="default: <repo>/docs/evidence")
-    r.add_argument("--baseline-prefix", default="p037-a2-baseline-")
+    r.add_argument("--baseline-prefix", default=None,
+                   help="default: p037-<epoch>-baseline-, the epoch read from the record at "
+                        "the treatment")
     r.add_argument("--baseline-manifest", type=Path, default=None,
-                   help="default in evidence mode: <baseline-dir>/p037-a2-baseline-manifest.md")
+                   help="default in evidence mode: "
+                        "<baseline-dir>/p037-<epoch>-baseline-manifest.md")
     r.add_argument("--out", type=Path, required=True,
                    help="evidence: a directory that does not exist yet, outside the checkout; "
                         "rehearsal: a directory outside the checkout")
@@ -1343,13 +1527,21 @@ def main(argv: list[str]) -> int:
     repo = Path(args.repo).resolve()
     baseline_dir = Path(args.baseline_dir).resolve() if args.baseline_dir \
         else repo / "docs" / "evidence"
+    try:
+        epoch = epoch_from_git(repo, args.treatment)
+    except Refused as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
+        return 2
+    prefix = args.baseline_prefix if args.baseline_prefix is not None \
+        else f"p037-{epoch}-baseline-"
     manifest: Path | None = Path(args.baseline_manifest).resolve() if args.baseline_manifest \
-        else (baseline_dir / "p037-a2-baseline-manifest.md" if args.mode == "evidence" else None)
+        else (baseline_dir / f"p037-{epoch}-baseline-manifest.md"
+              if args.mode == "evidence" else None)
     cfg = Config(repo=repo, treatment=args.treatment, population=args.population,
                  baseline_commit=args.baseline_commit, baseline_dir=baseline_dir,
-                 baseline_prefix=args.baseline_prefix, out=Path(args.out).resolve(),
+                 baseline_prefix=prefix, out=Path(args.out).resolve(),
                  mode=args.mode, stage=args.stage, timeout=args.timeout, manifest=manifest,
-                 orchestrator_commit=args.orchestrator_commit)
+                 orchestrator_commit=args.orchestrator_commit, epoch=epoch)
     try:
         validate_stage(cfg.mode, cfg.stage)
         # 1. the driver proves itself: a reviewed commit's blob, from a clean checkout.

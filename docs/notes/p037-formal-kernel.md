@@ -1926,3 +1926,36 @@ the gate script and is mirrored by the tooling), and a missing or unknown
 value is REFUSED; the prose of `claims_preregistered` is for people and is
 never parsed. After this the freeze is not touched again; the next substantive
 boundary is tooling, then T_D.
+
+**Tooling (step 2).** `scripts/p037_evidence.py` now measures in the a2d
+epoch and in no other: its instrument roots are the record's (the extractor
+first among them), the closure is the roots minus the two carve-outs
+(`instrument_pathspec()` for git, `instrument_identity()` as one digest of
+the closure's blobs at a commit, so a door change moves nothing in it and an
+extractor change moves it), the treatment paths are the doors and `spec/`.
+Every take records `epoch` and `environment_id`, both taken from the epoch
+record as committed at the take's source commit and never from an operator
+string, plus the blob of that record and the instrument identity; a record
+without an epoch (every a2 record), of another epoch, of another environment
+or with an instrument identity that does not re-derive at its source commit is
+refused, so an a2 record cannot become a before side by construction, and a
+HEAD whose record disagrees with the tool's closure fails `closure_problems`.
+`python scripts/p037_evidence.py identity` prints what a take at a commit
+records. The cumulative driver imports the production-diff gate from the
+measured checkout as a seventh measurement module (proven by path, hashed
+against the treatment's blob before import) and refuses a run whose gate
+blob differs between T_D and the treatment or whose treatment is not
+IDENTICAL or WITHIN_ALLOWLIST against T_D; it reads the record at the
+treatment for the epoch, the environment id and `measurement_policy.fact_diff`
+(closed vocabulary held in three equal copies: instrument, gate, driver;
+`tests/test_p037_cumulative_evidence.py` holds them equal), requires the
+baseline records and the four takes to carry that epoch and environment and
+T_D's instrument identity, and derives its artifact names from the epoch
+(`p037-a2d-after-*.json`, `p037-a2d-cumulative.json`, `p037-a2d-manifest.md`,
+baseline prefix `p037-a2d-baseline-`). Under `unchanged` the fact claims are
+that every fact document is identical between before and after and that both
+MOS takes count zero moved facts; under `allowed_surfaces` the a2 claims
+stand as they were. No door, extractor, spec or instrument line other than
+this tooling moves; the gate reports IDENTICAL against `6f9c373`. The
+terminal-green head of this step is the T_D candidate; the R_D manifest names
+it.

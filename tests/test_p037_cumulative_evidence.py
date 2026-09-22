@@ -10,6 +10,13 @@ components, stats, the schema version, a new top-level key, an added function
 are UNEXPECTED by path); the baseline manifest's digests parse; the snapshot
 tools' RESULT lines parse; a capture's three layers digest and move only with
 their document; and the driver's frozen shape (four takes, one allowed carrier).
+
+The a2d epoch adds: the production-diff gate is a measurement module the driver
+imports from the measured checkout and proves by path; the fact expectation is the
+record's closed field measurement_policy.fact_diff, whose vocabulary the instrument
+(scripts/p037_evidence.py), the gate (scripts/p037_door_diff_gate.py) and the
+driver hold as three equal copies; the passing gate verdicts are IDENTICAL and
+WITHIN_ALLOWLIST and nothing else.
 """
 
 from __future__ import annotations
@@ -21,6 +28,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import p037_cumulative_evidence as cumulative  # noqa: E402
+import p037_door_diff_gate as gate  # noqa: E402
+import p037_evidence as ev  # noqa: E402
 
 _failures: list[str] = []
 
@@ -49,8 +58,29 @@ def run() -> int:
     check("every-measurement-module-named",
           set(cumulative.MEASUREMENT_MODULES) == {"p037_evidence", "p037_mos_snapshot",
                                                    "p037_verdict_snapshot", "shadow_compare",
+                                                   "p037_door_diff_gate",
                                                    "ownlang", "ownlang.repro"},
           f"{sorted(cumulative.MEASUREMENT_MODULES)}")
+    check("gate-module-is-the-gate-script",
+          cumulative.MEASUREMENT_MODULES["p037_door_diff_gate"] == cumulative.GATE_PATH
+          == "scripts/p037_door_diff_gate.py")
+    check("fact-diff-policy-vocabulary-held-in-three-equal-copies",
+          cumulative.FACT_DIFF_POLICIES == ev.FACT_DIFF_POLICIES == gate.FACT_DIFF_POLICIES
+          == frozenset({"unchanged", "allowed_surfaces"}),
+          f"{sorted(cumulative.FACT_DIFF_POLICIES)} {sorted(ev.FACT_DIFF_POLICIES)} "
+          f"{sorted(gate.FACT_DIFF_POLICIES)}")
+    check("gate-passing-verdicts-are-identical-and-within",
+          cumulative.GATE_PASSING == ("IDENTICAL", "WITHIN_ALLOWLIST")
+          and gate.IDENTICAL == "IDENTICAL" and gate.WITHIN == "WITHIN_ALLOWLIST"
+          and gate.VIOLATION not in cumulative.GATE_PASSING)
+    check("epoch-record-path-agreed",
+          cumulative.EPOCH_RECORD_PATH == ev.EPOCH_RECORD_PATH == gate.DEFAULT_RECORD
+          == "docs/evidence/p037-a2d-epoch.json")
+    try:
+        cumulative.epoch_from_git(ROOT, "HEAD")
+        check("epoch-read-from-git-at-head", True)
+    except cumulative.Refused as exc:
+        check("epoch-read-from-git-at-head", False, str(exc))
     # The one-command invariant, the transaction and the driver pin are functions the
     # selftest exercises with real temporary checkouts and directories; here their
     # existence and the evidence-mode rule are pinned by name.
