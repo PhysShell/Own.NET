@@ -53,6 +53,7 @@ files = [
   "scripts/p037_hostile_census.py",
   "scripts/p037_mutation_campaign.py",
   "scripts/p037_cumulative_evidence.py",
+  "scripts/p037_door_diff_gate.py",
   "scripts/round7/classify.py",
   "scripts/round7/elfread.py",
   "scripts/round7/preflight.py",

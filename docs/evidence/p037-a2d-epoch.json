@@ -2,7 +2,7 @@
   "schema": "p037-epoch/1",
   "epoch": "a2d",
   "title": "P-037 A2.2-D: the door-registration epoch, frozen before implementation",
-  "frozen_at": "the commit carrying formal note 10.6.14; a ruling, not a measurement",
+  "frozen_at": "frozen by the commit carrying formal note 10.6.14 (docs and a test, no implementation) and tightened by the commit that added production_diff_gate and measurement_policy; a ruling, not a measurement",
   "closes": {
     "epoch": "a2",
     "closed_by": "A2.2-S, evidence f621400 (state=accepted, is_evidence=true) landed in the note by fa92c05, integrated at 6f9c373",
@@ -13,12 +13,12 @@
     "population_T": "4a8e6582e10222403cd40adc9e95db7e0228a1c2",
     "baseline_R": "5fd6bfa6abd4c2af7e53712af300cf66c97f2f50",
     "a2_1_treatment_A_prime": "5a0de070af241a2612859153887ad6ae04afcce2",
-    "a2_1_after_S_prime": "cd7e020",
+    "a2_1_after_S_prime": "cd7e020757de32f8a74291a0b04201275e81568d",
     "main_merge_of_a2_1": "23e32038231b5ac8398204afb35bafc115bc3bfe",
     "a2_treatment_head": "dab3db19c4611c116f37f2b0e49354a0fd9bf384",
     "a2_2_s_orchestrator": "e3995753b58cfc2c6b48b712963df6c51c79af66",
-    "a2_2_s_evidence": "f621400",
-    "a2_2_s_docs": "fa92c05",
+    "a2_2_s_evidence": "f6214004f38258ef1bb2244d38552f233bc3f214",
+    "a2_2_s_docs": "fa92c053d390e646a199d5e61b6491034cdcdc59",
     "integration_head": "6f9c373ab0d2c416269000837ff95d22ff45852c",
     "environment": "P037_A2_MEASUREMENT_M1, retired with the epoch; not a control of M2"
   },
@@ -29,12 +29,59 @@
       "rust/crates/own-ir/",
       "spec/"
     ],
-    "granularity": "the smallest git-addressable units that contain the two doors today (ownlang/ownir.py holds load(), the Python door, beside the Python lowering; rust/crates/own-ir/ is the Rust strict door and model); a D treatment diff inside them is held by review to load-time validation of the two keys and to nothing else",
+    "granularity": "the smallest git-addressable units that contain the two doors today (ownlang/ownir.py holds load(), the Python door, beside the Python lowering; rust/crates/own-ir/ is the Rust strict door and model; spec/ holds the vocabulary text); they stay the technical units of the closure, and the D production diff inside them is bounded mechanically by production_diff_gate below, not by review and not by line numbers",
     "must_not_touch": [
       "frontend/roslyn/OwnSharp.Extractor/",
       "ownlang/ (any file but ownlang/ownir.py)",
       "rust/ (any crate but rust/crates/own-ir/)"
     ]
+  },
+  "production_diff_gate": {
+    "tool": "scripts/p037_door_diff_gate.py",
+    "what": "the mechanical boundary of the D production diff inside the treatment units: applied between a reference (T_D once the R_D manifest names it; the integration head until then) and a head; verdict IDENTICAL, WITHIN_ALLOWLIST or VIOLATION; anything the gate cannot decide is REFUSED, never a pass",
+    "reference_rule": "against the integration head every head before T_D must be IDENTICAL and T_D itself must be IDENTICAL; against T_D the D treatment head must be IDENTICAL or WITHIN_ALLOWLIST; the cumulative driver refuses a D after run whose treatment head is not",
+    "python": {
+      "unit": "ownlang/ownir.py",
+      "mutable_top_level": [
+        "load"
+      ],
+      "registered_helpers": [],
+      "rule": "top-level definitions compared as AST with positions ignored and docstrings included; every existing top-level definition other than the mutable ones must be structurally identical to the reference; a new top-level definition is allowed only if its name is registered in registered_helpers as a door-only helper (a function or a module-level constant, never a class) and does not exist in the reference; nothing may be removed; hunks and line numbers play no part"
+    },
+    "rust": {
+      "unit": "rust/crates/own-ir/",
+      "mutable_files": [
+        "src/strict.rs"
+      ],
+      "mutable_items": {
+        "src/lib.rs": [
+          "struct Function",
+          "struct OwnIr"
+        ]
+      },
+      "registered_new_items": {
+        "src/lib.rs": []
+      },
+      "frozen_files": [
+        "Cargo.toml",
+        "src/protocol.rs",
+        "src/pyrepr.rs",
+        "src/span.rs"
+      ],
+      "controls": [
+        "tests/"
+      ],
+      "rule": "src/strict.rs may change freely; in src/lib.rs only the named model items may change and only items registered in registered_new_items may appear, every other item compared token-wise with plain comments dropped and outer doc comments kept; the frozen files are byte-identical by git object id; a production file the policy does not cover is a violation when added and a refusal when found in the reference; tests/ are controls and move freely"
+    },
+    "spec": {
+      "unit": "spec/",
+      "mutable_files": [
+        "OwnIR.md",
+        "ownir.schema.json"
+      ],
+      "rule": "the live sidecar contracts may change; every other tracked file under spec/ is byte-identical by git object id"
+    },
+    "registration_rule": "registered_helpers and registered_new_items are the only fields of this gate a D treatment commit may extend, by name, in the same commit as the definition; every other field is pinned by tests/test_p037_a2d_epoch.py"
   },
   "instrument": {
     "roots": [
@@ -69,10 +116,10 @@
   },
   "order": [
     "freeze (this record and formal note 10.6.14; docs, no implementation)",
-    "tooling: p037_evidence.py learns the a2d closure (roots minus carve-outs), records the epoch and the environment id on every take, and refuses cross-epoch or cross-environment comparisons; the cumulative driver takes the preregistered fact expectation from this record; CI green; no door, extractor or spec line moves",
-    "T_D: a terminal-green descendant of the integration head whose doors are byte-identical to 6f9c373's; named by the R_D manifest, never by this record",
+    "tooling: p037_evidence.py learns the a2d closure (roots minus carve-outs), records the epoch and the environment id (taken from this record, never from an operator string) on every take, and refuses cross-epoch or cross-environment comparisons; the cumulative driver reads measurement_policy.fact_diff from this record as a closed enum and applies production_diff_gate to the treatment head as eligibility; CI green; no door, extractor or spec line moves",
+    "T_D: a terminal-green descendant of the integration head, the freeze and the tooling whose doors are byte-identical to 6f9c373's (production_diff_gate IDENTICAL); named by the R_D manifest, never by this record",
     "R_D: the four governed baseline takes at T_D on M2, verified fresh at T_D, committed evidence-only with a manifest naming T_D, the environment id, the profile and the recipe sha256",
-    "D treatment: the door registration on both doors with its validation-ledger controls and the extended inertness control (a vocabulary-violating sidecar refused at both doors with the same category; a valid contradictory sidecar still moves no layer); only the treatment paths and tests move",
+    "D treatment: the door registration on both doors with its validation-ledger controls and the extended inertness control (a vocabulary-violating sidecar refused at both doors with the same category; a valid contradictory sidecar still moves no layer); only the treatment paths and tests move, and only within production_diff_gate against T_D (a door-only helper or a new model item only by registering its name in this record in the same commit)",
     "D after: the governed cumulative measurement at the D head against R_D on M2 by the pinned orchestrator; accepted only as below; then Phase B, in an epoch of its own"
   ],
   "claims_preregistered": {
@@ -81,6 +128,10 @@
     "verdicts": "UNCHANGED on both engines at level verdict and level all, per file",
     "engines_agree": "Python and Rust agree on lowered, summaries and verdicts before and after, and on the verdict snapshots",
     "fail_loud": "both doors refuse a sidecar outside the frozen vocabulary at load, with the same refusal category, and the validation ledger replays it; both doors still accept and preserve a valid sidecar unchanged"
+  },
+  "measurement_policy": {
+    "fact_diff": "unchanged",
+    "rule": "read by the cumulative driver as a closed enum (FACT_DIFF_POLICIES in scripts/p037_door_diff_gate.py, mirrored by the measurement tooling): unchanged means every fact document identical between before and after and an empty classified fact diff; allowed_surfaces is the a2 policy (movement confined to the allowed surfaces) and is not this epoch's; a missing or unknown value is REFUSED; the prose of claims_preregistered is for people and is never parsed"
   },
   "comparison_rules": [
     "no a2d record is compared with an a2 record: different instrument, different environment; the tooling refuses it, this record forbids it",

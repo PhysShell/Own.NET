@@ -1829,9 +1829,9 @@ inertness control of A2.1 extended to both refusals and preservation).
 **The a2d closure.** Treatment, the paths that may move during the D
 treatment: `ownlang/ownir.py`, `rust/crates/own-ir/`, `spec/`: the smallest
 git-addressable units that contain the two doors today (the Python door lives
-in the same file as the Python lowering; a D treatment diff inside it is held
-by review to load-time validation of the two keys and to nothing else), and
-the vocabulary text. Instrument, frozen for the epoch and identical at T_D,
+in the same file as the Python lowering; a D treatment diff inside these units
+is bounded mechanically by the production-diff gate of the tightening below,
+not by review), and the vocabulary text. Instrument, frozen for the epoch and identical at T_D,
 R_D and every after head: `frontend/roslyn/OwnSharp.Extractor/` (the sidecar's
 producer joins the instrument in this epoch), `ownlang/` and `rust/` minus the
 two carve-outs, `scripts/own-check.sh`, `scripts/p037_evidence.py`,
@@ -1855,17 +1855,20 @@ boundary costs nothing methodologically, changing it inside one would.
 
 **Order and gates.** (1) freeze: this section and the record, docs only, no
 implementation. (2) tooling: `p037_evidence.py` learns the a2d closure (roots
-minus carve-outs), records the epoch and the environment id on every take and
-refuses a cross-epoch or cross-environment comparison; the cumulative driver
-takes the preregistered fact expectation from the record; CI green; no door,
-extractor or spec line moves. (3) T_D: a terminal-green descendant of
-`6f9c373` whose doors are byte-identical to `6f9c373`'s, named by the R_D
+minus carve-outs), records the epoch and the environment id (taken from the
+record, never from an operator string) on every take and refuses a cross-epoch
+or cross-environment comparison; the cumulative driver reads the preregistered
+fact expectation from the record's closed field `measurement_policy.fact_diff`
+and applies the production-diff gate to the treatment head as eligibility; CI
+green; no door, extractor or spec line moves. (3) T_D: a terminal-green
+descendant of `6f9c373`, the freeze and the tooling, whose doors are
+byte-identical to `6f9c373`'s (gate verdict IDENTICAL), named by the R_D
 manifest, never by the record. (4) R_D: the four governed baseline takes at
 T_D on M2, verified fresh at T_D, an evidence-only commit whose manifest names
 T_D, the environment id, the profile and the recipe sha256. (5) the D
 treatment: the door registration on both doors with its validation-ledger
 controls and the extended inertness control; only the treatment paths and
-tests move. (6) D after: the governed cumulative measurement at the D head
+tests move, and only within the production-diff gate against T_D. (6) D after: the governed cumulative measurement at the D head
 against R_D on M2 by the pinned orchestrator. Preregistered claims: FACTS
 UNCHANGED on every document (the extractor is instrument now, a moved fact
 document is a failed claim, never a licensed movement), MOS UNCHANGED and
@@ -1876,3 +1879,50 @@ under the corpus and repo-tree roots at T_D; the repo tree now includes
 `frontend/roslyn/OwnSharp.Oracle/Program.cs`) and is not compared with T's.
 Phase B, where the lowerers begin to read the guarded facts, is an instrument
 change again and opens an epoch of its own after D's evidence is green.
+
+**Freeze tightening (OWNER RULING).** The freeze as first written left two
+places where "we agreed" stood in for a machine boundary, and the ruling
+closed both before the tooling step, without reopening anything else. First,
+the door is not refactored out of `ownlang/ownir.py` before T_D (a separate
+behavioural movement bought only for a prettier provenance line, declined),
+and a hunk range by line numbers is not accepted as the boundary either (line
+numbers are brittle and a hunk carries context). The boundary is structural:
+`scripts/p037_door_diff_gate.py`, reading the record's `production_diff_gate`,
+applied between a reference and a head. Python: `ownlang/ownir.py` stays the
+treatment unit, production changes are allowed only inside the top-level
+`load()` and, if one is really needed, inside a door-only helper registered by
+name in the record; every other existing top-level definition must be
+structurally identical to the reference, compared as AST with positions
+ignored and docstrings included, and nothing may be removed. Rust: the crate
+stays the carve-out so its validation tests can move as controls; production
+changes are allowed only in `src/strict.rs` and in the models `struct
+Function` and `struct OwnIr` of `src/lib.rs`, a new `lib.rs` item only when
+registered by name; every other existing item of `lib.rs` is compared
+token-wise with plain comments dropped and outer doc comments kept, and the
+remaining production files of the crate (`Cargo.toml`, `src/protocol.rs`,
+`src/pyrepr.rs`, `src/span.rs`) are byte-identical by git object id. Spec:
+only the live sidecar contracts `spec/OwnIR.md` and `spec/ownir.schema.json`
+may change, every other tracked file under `spec/` is byte-identical. The wide
+units remain the technical units of the closure; the gate is the narrower
+mechanical allowlist inside them, a diff-scope gate, not a new epoch and not a
+refactor. Its verdicts are IDENTICAL, WITHIN_ALLOWLIST or VIOLATION; anything
+it cannot decide (an unparseable file, a policy naming a definition the
+reference lacks, a registration naming one the reference already has, a
+production file the policy does not cover, an unknown measurement policy) is
+REFUSED, never a pass. Against `6f9c373` every head before T_D and T_D itself
+must be IDENTICAL; against T_D the D treatment head must be IDENTICAL or
+WITHIN_ALLOWLIST, and the cumulative driver refuses a D after run whose
+treatment head is not. The registrations are the only fields of the gate a D
+commit may extend; `tests/test_p037_a2d_epoch.py` pins every other field, runs
+the gate's synthetic controls and runs the gate on this branch. Second, the
+record stores full 40-character SHAs for every predecessor (S' is
+`cd7e020757de32f8a74291a0b04201275e81568d`, the S evidence
+`f6214004f38258ef1bb2244d38552f233bc3f214`, its landing
+`fa92c053d390e646a199d5e61b6491034cdcdc59`); a short SHA is for people until
+git decides it is ambiguous. Third, the fact expectation the cumulative driver
+applies is the closed machine field `measurement_policy.fact_diff`
+(`unchanged` for this epoch; the closed vocabulary is `FACT_DIFF_POLICIES` in
+the gate script and is mirrored by the tooling), and a missing or unknown
+value is REFUSED; the prose of `claims_preregistered` is for people and is
+never parsed. After this the freeze is not touched again; the next substantive
+boundary is tooling, then T_D.
