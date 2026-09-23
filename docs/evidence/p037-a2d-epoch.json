@@ -140,8 +140,8 @@
     "the old epoch's evidence stays in docs/evidence as history and is neither edited nor revalidated by a2d tooling"
   ],
   "named_later": {
-    "T_D": null,
-    "R_D_manifest": null,
+    "T_D": "44b405c2003b1d68965fe6346c2506d51ed52def",
+    "R_D_manifest": "docs/evidence/p037-a2d-baseline-manifest.md",
     "D_treatment_head": null,
     "D_after_evidence": null
   }
