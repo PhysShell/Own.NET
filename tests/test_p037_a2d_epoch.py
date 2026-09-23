@@ -80,6 +80,19 @@ DOCS_GENERATED_ADJUDICATED = (
 # difference classifier. Same reasoning as `p037_proof_boundary.py`'s own
 # entry -- audit/measurement tooling, not `ownlang`/`rust/crates/own-ir`/
 # `spec` treatment, landing in the same commit that defines it.
+#
+# b234599 hit the same gap a second time: modifying two PRE-EXISTING files
+# (p037_mos_snapshot.py, p037_verdict_snapshot.py -- adding --epoch dispatch
+# so they can actually take Phase-B evidence) trips this allowlist exactly
+# like adding a new one does, since it keys on which paths moved between
+# T_D and HEAD, not on whether the path is new. CI caught it (run #2231,
+# job "tests", `FAIL[only-treatment-paths-tests-record-and-adjudicated-
+# docs-move]: ['scripts/p037_mos_snapshot.py', 'scripts/
+# p037_verdict_snapshot.py']`) because the local pre-push check had run on
+# the dirty working tree before committing, where `git diff t_d HEAD`
+# could not see the still-uncommitted change at all -- a false green, not
+# a real one. Both are the same audit/measurement-tooling family as every
+# other PHASE_B_GOVERNANCE_FILES entry.
 PHASE_B_GOVERNANCE_FILES = (
     "docs/evidence/p037-b-epoch.json",
     "docs/evidence/p037-b-ledger-assumptions.json",
@@ -88,6 +101,8 @@ PHASE_B_GOVERNANCE_FILES = (
     "scripts/p037_b_production_diff_gate.py",
     "scripts/p037_evidence_b.py",
     "scripts/p037_b_classifier.py",
+    "scripts/p037_mos_snapshot.py",
+    "scripts/p037_verdict_snapshot.py",
 )
 PHASE_B_PREFIXES = ("formal/p037-kernel/",)
 
