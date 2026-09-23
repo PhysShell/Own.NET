@@ -2300,3 +2300,225 @@ list, mirroring `DOCS_GENERATED_ADJUDICATED`'s shape) and
 Phase B is the first work to touch its source rather than only read it).
 Logged here as discovered after the fact, the same as §10.6.14a's own
 finding — not evidence either exception was preregistered.
+
+### 10.8 Phase B / B1: the measurement instrument, frozen before the semantic treatment
+
+§10.7a closed the Phase B entry gate GREEN at `5571ba4`. The task the owner
+issued next, named **B1**, is a second, narrower gate before the first
+semantic treatment: build and freeze the Phase-B measurement and
+classification instrument — a production-diff gate, an environment
+identity, a difference classifier, and a provenance/population contract —
+all reviewed and terminal-green *before* any guarded-transfer semantics are
+written. The owner's own framing, from the prompt opening this phase (a
+chat directive, not a checked-in proposal document — recorded here the same
+way this file's other OWNER RULING blocks record chat rulings, never
+implied to be a repository file): this task "builds and freezes the
+measurement/classification instrument for the first verdict-changing
+semantic epoch, establishes a terminal-green 'T_B', takes a new governed
+Phase-B baseline 'R_B', ... and names both only after their respective
+evidence has become terminal-green," and "does NOT implement
+guarded-transfer semantics. Do not touch production semantics in mos.rs or
+lower_fn_params."
+
+**Why a second instrument, not a repointed A2.2-D one.** `scripts/p037_evidence.py`,
+`p037_mos_snapshot.py`, `p037_verdict_snapshot.py`, `p037_cumulative_evidence.py`
+and `shadow_compare.py` are the A2.2-D measurement stack; all five are
+hardwired to `EPOCH = "a2d"`, a closed `fact_diff` vocabulary
+(`unchanged`/`allowed_surfaces`) built for a *zero-diff* instrument
+qualification, and — for the two snapshot tools — a direct import of
+`p037_evidence.evidence_fields`. Phase B is deliberately verdict-changing;
+pointing that stack at Phase B by renaming files or branches would silently
+misclassify a real semantic difference as instrument noise. Every function
+in `p037_evidence.py` was read and sorted directly rather than assumed:
+exactly 11 of its ~50 functions (`epoch_record`, `closure_problems`,
+`evidence_fields`, `record_problems`, `provenance_problems`,
+`comparison_problems`, `instrument_pathspec`, `instrument_manifest`,
+`_record_closure_problems`, `_cli_identity`, plus its `a2d`-scoped module
+constants) read epoch-specific vocabulary; the remaining ~40 (population
+materialization, execution-profile capture, artifact sealing, environment
+sanitization, git plumbing, manifest digesting) take their epoch as a
+parameter or read nothing epoch-specific at all, and are safe to import
+unmodified. That split is what makes Strategy A — a Phase-B sibling module
+importing the pure half — narrower and safer than Strategy B (rewriting
+the a2d instrument into an epoch-neutral core, which would require
+re-proving the full A2.2-D chain's equivalence against a moving target).
+B1 takes Strategy A.
+
+**`scripts/p037_evidence_b.py`: the Phase-B provenance contract.** A new,
+independent module, not an edit to `p037_evidence.py`. It sets
+`EPOCH = "b"`, `EPOCH_RECORD_PATH = "docs/evidence/p037-b-epoch.json"`, its
+own `INSTRUMENT_PATHS`/`INSTRUMENT_CARVE_OUTS` (the carve-out is exactly
+`rust/crates/own-bridge/src/{mos,lower}.rs`, mirroring the treatment
+boundary below), and `CORPUS_DIRS = (*ev.CORPUS_DIRS, "corpus/p037-shapes")`
+— Phase B's own population additionally includes the fact-shape census
+fixtures the A2.2-D population never needed. Its `epoch_record`,
+`closure_problems`, `evidence_fields`, `record_problems` and
+`provenance_problems` mirror `p037_evidence.py`'s functions of the same
+name in shape only; every one delegates its actual mechanics to the
+imported `ev.*` pure helpers, so zero bytes of the a2d instrument move or
+change. Exercised directly at this section's own writing: `profile`
+reproduces the host toolchain exactly (CPython 3.11.15, .NET SDK 8.0.425,
+rustc/cargo 1.94.1, `x86_64-unknown-linux-gnu` — see the environment
+paragraph below); `identity --commit HEAD` correctly fails closed on the
+current, pre-B1-commit tree with three problems (two runtime paths —
+`scripts/p037_evidence_b.py`, `scripts/p037_b_production_diff_gate.py` —
+declared but not yet present at `HEAD`, and the epoch record at `HEAD`
+naming no environment id yet), all expected: no B1 evidence can be taken
+before B1's own tooling is committed; `population --source repo` names 82
+files, `population --source corpus` names 192 (the increase over a2d's own
+corpus population is exactly `corpus/p037-shapes`).
+
+**REPOSITORY FACT, corrected by direct AST-boundary investigation, not
+carried over from the original kernel-catalog research.** This record's
+`treatment.candidate_scope` originally named `lower_fn_params` as the one
+`lower.rs` seam. Reading `rust/crates/own-bridge/src/lower.rs` directly
+shows that is incomplete: `lower_fn_params` (lines 1390-1463) computes only
+a parameter's own OWN type-shape from its own function's `MethodSummary`
+via `mos_lookup` — it never resolves a call site. The actual call-site
+consumption decision — matching an argument against the *callee's*
+summary, and choosing the may/unknown optimistic-default path — is made in
+`fn unverified_transfer_calls` (931-972) and `fn kill_sites_for_unverified`
+(977-1037); the OWN051 advisory itself is minted inline inside `fn
+lower_full`, the function enclosing that block (confirmed at lines
+~1964-1998 by direct source read). A guard-aware call-site selection
+cannot land touching `lower_fn_params` alone: all four functions are the
+honest seam. This is now `docs/evidence/p037-b-epoch.json`'s
+`treatment.candidate_scope` verbatim, with its own `corrected_by` field
+naming how the correction was found.
+
+**Counted directly against the live source via `rust_items()` — the same
+parser `scripts/p037_door_diff_gate.py` uses for A2.2-D — not against a
+hand-maintained list.** `mos.rs` has 17 top-level items today; two —
+`fn call_graph` and `fn sccs`, Tarjan's SCC condensation over a plain
+adjacency map — read no `Transfer`/join value at all and stay frozen. The
+other 15 (`enum Transfer`, `fn join`, `impl Transfer`, `enum PathAction`,
+`enum ReturnSkeleton`, `struct ParamSkeleton`, `struct MethodSkeleton`,
+`struct ParamSummary`, `struct MethodSummary`, `type Mos`, `type ParamKey`,
+`fn solve_with_log`, `fn solve`, the file's one `use`, and its
+`#![allow(...)]` inner attribute) are the guarded-kernel seam in `mos.rs`.
+`lower.rs` has 73 top-level items; exactly the four named above are
+mutable, and the other 69 stay frozen at item granularity, same as every
+other production file in the unit.
+
+**`scripts/p037_b_production_diff_gate.py`: the AST-based production-diff
+gate.** Not `p037_door_diff_gate.py` repointed at a new record — that
+module's `Policy`/`load_policy` require a python door, a rust door and a
+spec unit together (own-ir's exact A2.2-D shape), and its own
+non-registration fields are pinned by `tests/test_p037_a2d_epoch.py`
+against `T_D`. The new module imports that gate's generic, `Policy`-driven
+primitives (`rust_items`, `compare_rust`, `compare_items`, `snapshot`,
+`memory_tree`, `resolve`, `Refused`, `UnitReport`,
+`IDENTICAL`/`WITHIN_ALLOWLIST`/`VIOLATION`) unmodified — none of them read
+a2d's module constants — and supplies its own `Policy`, built from
+`p037-b-epoch.json`'s new `production_diff_gate.rust` object: unit
+`rust/crates/own-bridge/`, zero mutable *files*, the 15+4 mutable *items*
+above, an empty `registered_new_items` (by design: B1 defines no
+treatment, so it has nothing to register yet — a treatment registers its
+own new items in the same commit that defines them, exactly A2.2-D's own
+discipline, not a relaxation of it), six frozen files (`Cargo.toml`,
+`src/ast.rs`, `src/dump.rs`, `src/lib.rs`, `src/render.rs`,
+`src/verdict.rs`), and `tests/` as the one control directory allowed to
+change without violation. `check --reference 5571ba4 --head WORKTREE`
+reports `IDENTICAL`, as `production_diff_gate.b1_must_measure` requires: B1
+is tooling, ledgers and documentation, and moves no byte of
+`rust/crates/own-bridge/`. Ten self-tests exercise both directions: an
+identical head; an in-allowlist mutable-item change; an unnamed item
+inside a mutable *file* (VIOLATION); a frozen-file change (VIOLATION); a
+control-file change (no violation); a brand-new unregistered production
+file (VIOLATION); a new, unregistered item inside an already-mutable file
+(VIOLATION); the same new item registered (WITHIN_ALLOWLIST); and two
+source-of-truth checks that the frozen mutable-item lists still match what
+`rust_items()` reports against the live files today. All ten pass.
+
+**`environment.id = P037_B_MEASUREMENT_M3`: requalified, not inherited.**
+M2's own qualification is a2d-scoped evidence; reusing its identity for
+Phase B by fiat would blur two epochs' environments into one. Instead,
+M2's exact recipe (`provision.sh`, retained outside this repository at
+`/root/p037-a2d-m2-recipe/provision.sh`) was re-hashed at B1 time and
+confirmed byte-identical to `docs/evidence/p037-a2d-baseline-manifest.md`'s
+recorded sha256
+(`5fe4ece4c24b720f659a49bbc68b8438080c9e4b8ba554ee40f6eea94c66eb26`), and
+`python scripts/p037_evidence.py profile`, run fresh in this session,
+matches M2's own recorded `execution_profile`
+(`docs/evidence/p037-a2d-baseline-mos-repo.json`) byte-for-byte: CPython
+3.11.15, .NET SDK 8.0.425, rustc/cargo 1.94.1 with matching commit hashes,
+`x86_64-unknown-linux-gnu`, the same workspace root (`/home/user/Own.NET`)
+M2 used. That is a genuine requalification — independently re-measured,
+not copied from the old manifest — recorded as `P037_B_MEASUREMENT_M3`
+because it is a new epoch's own environment record, never a silent
+inheritance of M2's. `docs/evidence/p037-b-epoch.json`'s
+`environment.m2_rule` states the consequence plainly: M2 takes nothing for
+this epoch and is not a control of M3; `T_D`, `R_D` and the D-after takes
+are not retaken.
+
+**`scripts/p037_b_classifier.py`: the difference classifier, frozen against
+synthetic witnesses.** Section 12 of the B1 prompt requires the classifier
+to exist and be frozen in `T_B`; section 17 of the same prompt requires
+stopping before `T_B` if proving a class distinction would require the
+semantic treatment first. Both hold at once here because they answer
+different questions. `mos.rs` today has exactly one flat `Transfer` per
+parameter and zero guard/`Split`/cells representation (confirmed directly
+above, not assumed) — so no real, captured difference can exist yet for
+the classifier to classify. What *can* be frozen now, and is, is the
+classifier's own contract: three closed classes (`APPLICATION_REFINEMENT`,
+`SUMMARY_REFINEMENT`, `LEGACY_HONESTY`) plus `UNCLASSIFIED`, decided from a
+frozen structured `WITNESS` schema — `{coordinate, site, legacy_transfer,
+guarded: {shape, finalized_cells, selection, selection_license,
+collapsed}}` — never from a file path, fixture name or diagnostic code.
+`check_witness()` refuses a malformed witness outright rather than
+guessing at its shape. `classify()`'s rules, tested against twelve
+synthetic witnesses built to match the proposal's own worked rows: an
+`unknown`-collapsed, `may`-legacy witness is `LEGACY_HONESTY` regardless of
+shape; for a `split` guard, a static call-site `selection` is
+`APPLICATION_REFINEMENT`; absent a selection, a collapsed value strictly
+above the legacy transfer in the INF-L1/L2 lattice (`no`, `must` <= `may`
+<= `unknown`, `no`/`must` incomparable) is `SUMMARY_REFINEMENT`; a
+collapsed value that regresses *past* the legacy transfer, or that carries
+no order relation to it, is `UNCLASSIFIED`; and — the one case the
+proposal's rows 1-19 do not settle — a witness carrying *both* a call-site
+selection *and* an independent collapsed-value difference is
+`UNCLASSIFIED` by the classifier's own design, not resolved by an invented
+priority rule. Every closed class and the ambiguity rule has a positive and
+a hostile-negative self-test; all twelve pass. The module names its own
+gap permanently, as a module constant rather than a silent absence:
+`GAP_REAL_WITNESS_SOURCE` records that no pre-treatment mechanism in this
+repository can populate a real `WITNESS`, because the guarded
+representation the witness describes does not exist in production yet.
+That gap is structural and expected to close only once the first semantic
+treatment lands — it is not a missing test or a deferred wiring task
+inside B1's own scope.
+
+**Errors caught by self-verification before anything shipped.** Three
+implementation mistakes were caught by the same tests written to catch
+them, not by later inspection. The diff-gate's first `_b_policy()` glue
+double-unwrapped the record's `rust` section, refusing every call, until
+its own selftest surfaced it — fixed by having the function accept the
+`rust` section directly. One selftest's own design assumed a brand-new
+*file* could be allowlisted the same way a new *item* inside an
+already-mutable file can; that was wrong about `compare_rust`'s actual
+semantics (a new file needs `rust_mutable_files`, not
+`rust_registered_items`) and was rewritten into two correct cases —
+`unregistered-new-item-in-mutable-file-is-violation` and
+`registered-new-item-in-mutable-file-is-allowed` — once the mismatch was
+traced. And the classifier's INF-L1/L2 lattice was initially encoded
+backwards (`may <= no`/`may <= must` instead of the reverse), caught when
+`summary-refinement-positive` failed with an explicit `"collapsed (must)
+is not <= legacy (may)"` reason rather than a silent wrong answer. All
+three are fixed in the versions described above; none reached a commit in
+the broken state.
+
+**Consequence for `named_later`.** None of `T_B`, `R_B`,
+`B_treatment_head` or `B_after_evidence` is filled by this section or by
+B1's own tooling commit. `T_B` is named only once this tooling is reviewed
+and a head carrying it is terminal-green, including fast Kani actually
+executing in CI — the same standard §10.7a's own head was held to, not a
+lighter one for measurement tooling. `R_B` is then a new, governed baseline
+taken *at* `T_B`, on the `P037_B_MEASUREMENT_M3` environment identity
+above, over Phase B's own frozen population (repo tree plus
+`corpus/p037-shapes`) — never `a2d`'s `R_D` reused or reinterpreted for a
+different epoch. This record's own `order` array is otherwise unchanged by
+B1, beyond the one correction already folded into `treatment.candidate_scope`
+above: B1 tooling and this note land first; `T_B` and `R_B` remain "not
+this task" until their own evidence is terminal-green; the first semantic
+treatment remains named, scoped to `production_diff_gate.rust`'s mutable
+items, and unattempted.

@@ -43,8 +43,9 @@
   "treatment": {
     "entered_by_this_record": false,
     "candidate_scope": {
-      "rust/crates/own-bridge/src/mos.rs": "whole file (446 lines) — by inspection of its own type/function signatures it is entirely the guarded-kernel seam: enum Transfer, struct ParamSummary, struct MethodSummary, fn solve_with_log, fn solve",
-      "rust/crates/own-bridge/src/lower.rs :: fn lower_fn_params": "named item only, not the file — lower.rs is 2124 lines and roughly fifty top-level items; lower_fn_params (line 1390) is the one item matching §8.1's 'apply, finalized input only' seam, the rest is unrelated subscription/DI/lifetime/branch-hoisting/general-flow-lowering machinery this record has no reason to touch or freeze"
+      "corrected_by": "B1's own mechanical AST-boundary investigation (scripts/p037_b_production_diff_gate.py), not the original A1 kernel-catalog research this record's first draft cited -- the correction was found by reading lower.rs directly, not assumed",
+      "rust/crates/own-bridge/src/mos.rs": "every top-level item except two: `fn call_graph` and `fn sccs` are pure graph-topology helpers (SCC condensation over an adjacency map) that read no Transfer/join value at all and stay frozen; the other 15 items (enum Transfer, fn join, impl Transfer, enum PathAction, enum ReturnSkeleton, struct ParamSkeleton, struct MethodSkeleton, struct ParamSummary, struct MethodSummary, type Mos, type ParamKey, fn solve_with_log, fn solve, plus the file's one `use` and its `#![allow(...)]` inner attribute) are the guarded-kernel seam and may move",
+      "rust/crates/own-bridge/src/lower.rs": "four named items, not one and not the file (73 top-level items total; the other 69 stay frozen at item granularity) -- corrected from the original 'fn lower_fn_params only' claim: lower_fn_params computes only a parameter's OWN type-shape from its OWN function's MethodSummary and never resolves a call site; the call-site decision (matching an argument against the CALLEE's summary, and choosing the may/unknown optimistic-default OWN051 path) is made in `fn unverified_transfer_calls` and `fn kill_sites_for_unverified`, with the advisory itself minted inside `fn lower_full`. A guard-aware call-site selection cannot land touching lower_fn_params alone; all four are the honest seam."
     },
     "must_not_touch_yet": [
       "ownlang/ownir.py (stays reference/oracle/rollback; not a Phase B treatment path)",
@@ -54,6 +55,59 @@
       "launcher behaviour",
       "any docs/evidence/p037-a2d-* file"
     ]
+  },
+  "production_diff_gate": {
+    "tool": "scripts/p037_b_production_diff_gate.py",
+    "note": "Not scripts/p037_door_diff_gate.py repointed at this record: that gate's Policy/load_policy require a python door, a rust door and a spec unit together (own-ir's exact A2.2-D shape), and its own non-registration fields are pinned by tests/test_p037_a2d_epoch.py against T_D. p037_b_production_diff_gate.py imports that module's generic, Policy-driven primitives (rust_items/compare_rust/compare_items/snapshot, IDENTICAL/WITHIN_ALLOWLIST/VIOLATION) unmodified and supplies its own Policy and record reader; zero bytes of the a2d gate move.",
+    "rust": {
+      "unit": "rust/crates/own-bridge/",
+      "mutable_files": [],
+      "mutable_items": {
+        "src/mos.rs": [
+          "inner_attribute #![allow( clippy::expect_used, clippy::indexing_slicing, clippy::too_many_lines, clippy::redundant_pub_crate )]",
+          "use std::collections::{BTreeMap, BTreeSet, HashMap}",
+          "enum Transfer",
+          "fn join",
+          "impl Transfer",
+          "enum PathAction",
+          "enum ReturnSkeleton",
+          "struct ParamSkeleton",
+          "struct MethodSkeleton",
+          "struct ParamSummary",
+          "struct MethodSummary",
+          "type Mos",
+          "type ParamKey",
+          "fn solve_with_log",
+          "fn solve"
+        ],
+        "src/lower.rs": [
+          "fn lower_fn_params",
+          "fn unverified_transfer_calls",
+          "fn kill_sites_for_unverified",
+          "fn lower_full"
+        ]
+      },
+      "registered_new_items": {},
+      "frozen_files": ["Cargo.toml", "src/ast.rs", "src/dump.rs", "src/lib.rs", "src/render.rs", "src/verdict.rs"],
+      "controls": ["tests/"]
+    },
+    "registered_new_items_policy": "empty by design in B1: no treatment exists yet to know what new production items it needs, and a treatment registers its own new items in the SAME commit that defines them -- exactly A2.2-D's own door-gate discipline, not a relaxation of it",
+    "b1_must_measure": "IDENTICAL against 5571ba4 (the closed Phase-B entry-gate head): B1 adds tooling, ledgers and documentation and moves no byte of rust/crates/own-bridge/"
+  },
+  "environment": {
+    "id": "P037_B_MEASUREMENT_M3",
+    "not_inherited": "a new epoch identity, not P037_A2D_MEASUREMENT_M2 by another name -- M2's own records (R_D, D_after) stay historical a2d evidence, neither retaken nor a control of M3",
+    "requalified_from_m2": "the exact M2 provisioning recipe, independently reverified for this record rather than trusted from the old manifest: `provision.sh`, retained outside this repository at /root/p037-a2d-m2-recipe/provision.sh, re-hashed at B1 time and confirmed byte-identical to docs/evidence/p037-a2d-baseline-manifest.md's recorded sha256",
+    "recipe_sha256": "5fe4ece4c24b720f659a49bbc68b8438080c9e4b8ba554ee40f6eea94c66eb26",
+    "qualification": [
+      "CPython, pinned to the host interpreter (3.11.15) -- reverified via `python scripts/p037_evidence.py profile` at B1 time, byte-for-byte equal to M2's own recorded execution_profile (docs/evidence/p037-a2d-baseline-mos-repo.json)",
+      ".NET SDK 8.0.425, installed isolated outside any OS package manager -- same reverification",
+      "Rust: rustc/cargo 1.94.1, exact commit hashes equal to M2's recorded profile -- same reverification",
+      "host/platform: Linux x86_64 -- same reverification",
+      "one measured workspace checkout root for T_B, R_B and every after run of this epoch: /home/user/Own.NET -- the same physical root M2 used; reusing it is not a claim of an independent machine, only of an unchanged, reverified toolchain on it",
+      "the environment id recorded on every record of this epoch and required equal by every comparison; a record naming P037_A2D_MEASUREMENT_M2, another id, or none at all is ineligible here by construction"
+    ],
+    "m2_rule": "M2 takes nothing for this epoch and is not a control of M3; T_D, R_D and the D_after takes are not retaken"
   },
   "proof_boundary_gate": {
     "requirement": "docs/notes/p037-formal-kernel.md §10.4, verbatim: 'Phase B may not begin semantic wiring until the P-037 proof-boundary audit is green.'",
@@ -76,13 +130,15 @@
   },
   "difference_policy": {
     "zero_diff_expectation": false,
-    "note": "Phase B is verdict-changing by design; 'unchanged' is not the semantic expectation the way it was for every a2/a2d take. Declared here as intent for the eventual B-after classifier — wiring it into measurement tooling (scripts/p037_cumulative_evidence.py's closed fact_diff enum currently accepts only 'unchanged'/'allowed_surfaces', or different tooling) is a later treatment/tooling step, not performed by this record.",
+    "note": "Phase B is verdict-changing by design; 'unchanged' is not the semantic expectation the way it was for every a2/a2d take. scripts/p037_cumulative_evidence.py's closed fact_diff enum ('unchanged'/'allowed_surfaces') and its classify_fact_diff are NOT reused for this -- that function classifies movement of the raw OwnIR FACTS layer (the A2.2-D sidecar's own allowed-surface question), not of MOS/verdict semantics, and B1's own facts expectation is the stricter 'unchanged, full stop' (see first_semantic_hypothesis.facts_expectation below), not an allowed-surface question at all.",
+    "tool": "scripts/p037_b_classifier.py: the three classes below plus UNCLASSIFIED, decided from a frozen structured WITNESS schema (never from a file path, fixture name or diagnostic code), built and tested in B1 against synthetic witnesses matched to the proposal's own worked rows -- not yet wired to any real captured difference, because no pre-treatment mechanism can produce a real WITNESS (see the module's own GAP_REAL_WITNESS_SOURCE constant and formal-kernel.md's B1 section)",
     "classes": ["APPLICATION_REFINEMENT", "SUMMARY_REFINEMENT", "LEGACY_HONESTY"],
     "rules": [
       "every post-treatment semantic difference must be attributable, per document / per call site / per summary as appropriate",
       "an unclassified difference is a failure",
       "a difference in facts outside the intended frontend/trusted-input slice is a failure",
-      "a regression in an unaffected control is a failure"
+      "a regression in an unaffected control is a failure",
+      "a witness carrying both a call-site selection and an independent collapsed-value difference is UNCLASSIFIED by the frozen classifier, not resolved by an invented priority rule -- the proposal's rows 1-19 do not settle that overlap"
     ]
   },
   "first_semantic_hypothesis": {
@@ -110,7 +166,7 @@
     "proof-boundary audit GREEN (this task's stop condition, or RED with named gaps if not met)",
     "terminal-green T_B: named only after the audit is green on a reviewed head (not this task)",
     "new Phase-B baseline R_B: a governed take on its own qualified environment, never a2d's R_D reused (not this task)",
-    "first semantic treatment: the frozen hypothesis above, implemented in mos.rs + lower_fn_params (not this task)",
+    "first semantic treatment: the frozen hypothesis above, implemented within production_diff_gate.rust's mutable scope (mos.rs's guarded-kernel items; lower.rs's lower_fn_params/unverified_transfer_calls/kill_sites_for_unverified/lower_full) (not this task)",
     "classified after measurement: the difference policy above applied for real (not this task)"
   ],
   "measurement_policy": {

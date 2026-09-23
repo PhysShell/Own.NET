@@ -73,11 +73,21 @@ DOCS_GENERATED_ADJUDICATED = (
 # (its own README: "not wired to anything"), and Phase B is the first work
 # ever touching its source rather than only reading it -- the same reasoning
 # `tests/` already had, now extended to the other verification-only tree.
+#
+# B1 adds three more non-`tests/`-prefixed scripts (the Phase-B measurement
+# instrument this tuple's own docstring above already anticipated the shape
+# of): a production-diff gate, a provenance/population contract, and a
+# difference classifier. Same reasoning as `p037_proof_boundary.py`'s own
+# entry -- audit/measurement tooling, not `ownlang`/`rust/crates/own-ir`/
+# `spec` treatment, landing in the same commit that defines it.
 PHASE_B_GOVERNANCE_FILES = (
     "docs/evidence/p037-b-epoch.json",
     "docs/evidence/p037-b-ledger-assumptions.json",
     "docs/evidence/p037-b-ledger-harnesses.json",
     "scripts/p037_proof_boundary.py",
+    "scripts/p037_b_production_diff_gate.py",
+    "scripts/p037_evidence_b.py",
+    "scripts/p037_b_classifier.py",
 )
 PHASE_B_PREFIXES = ("formal/p037-kernel/",)
 
