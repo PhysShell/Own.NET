@@ -1959,3 +1959,76 @@ stand as they were. No door, extractor, spec or instrument line other than
 this tooling moves; the gate reports IDENTICAL against `6f9c373`. The
 terminal-green head of this step is the T_D candidate; the R_D manifest names
 it.
+
+#### 10.6.14a A2.2-D: a post-freeze adjudication of the treatment/tests boundary (OWNER RULING)
+
+10.6.14 states the D treatment "only the treatment paths and tests move,
+and only within the production-diff gate against T_D." That sentence was
+frozen before any D commit existed, and it undersold its own "tests move"
+half: extending the `tests/` validation ledger — squarely inside that
+allowance — mechanically forces two committed projections under
+`docs/generated/` to move with it, because their freshness is enforced by
+`tests/test_checkpoint_status.py` (itself under `tests/`, run inside
+`tests/run_tests.py`), not by anything the D closure named.
+`docs/generated/p022-cp1-census.md` is counted from
+`tests/fixtures/ownir_validation.json` by `tests/validation_census.py`;
+`docs/generated/p022-coord-census.md` is counted from the fixture tree —
+the same ledger among it — by `tests/coordinate_census.py`. Neither file
+is hand-typed, both are `scripts/render_checkpoint_status.py`'s own
+output, and reverting them to their pre-treatment bytes while the ledger
+they count has already moved would not restore the frozen boundary — it
+would only turn the existing freshness gate red, which is what that gate
+is for. `production_diff_gate` is no help here either: by its own
+docstring it is scoped to the wide treatment units (`ownlang/ownir.py`,
+`rust/crates/own-ir/`, `spec/`) and says nothing about the rest of the
+tree, so its WITHIN_ALLOWLIST verdict on the D treatment commit
+(`f4ca7368b0eee3ca3d8fdf03931430a97d8d8fd9`, CI run 35823596510 / `#2226`,
+green) never asserted the wider sentence at all.
+
+The gap surfaced only once that commit's full diff was checked against the
+literal boundary text — after it was already pushed and CI-green, before
+`named_later.D_treatment_head` was set. It is logged here as found after
+the freeze, not as evidence the exception was preregistered: 10.6.14's own
+text above is not amended, because it did not, in fact, say this. The
+admission is narrow and mechanical, not a broadened discretion: exactly
+`docs/generated/p022-cp1-census.md` and `docs/generated/p022-coord-census.md`
+may differ from `T_D` alongside a D commit, and only when all three hold —
+`scripts/render_checkpoint_status.py --check` exits clean on the commit
+that moves them (neither is stale, and no other `docs/generated/` fragment
+moves with them), and `tests/fixtures/ownir_validation.json` itself
+differs from `T_D` on that same commit (the two projections track a
+`tests/`-only source, never an independent edit). `tests/test_p037_a2d_epoch.py`
+pins this against `T_D` by name —
+`only-treatment-paths-tests-record-and-adjudicated-docs-move`,
+`adjudicated-docs-projections-are-not-stale`,
+`adjudicated-docs-projections-track-a-tests-only-source` — in the same
+`T_D`-anchored branch that already holds the narrower `production_diff_gate`
+allowlist to account.
+
+Two older exceptions to the same literal sentence are not newly adjudicated
+here, only accounted for. The epoch record's own edits
+(`docs/evidence/p037-a2d-epoch.json`: `named_later`, the two registration
+lists) are how this record is meant to be written, already governed by
+this file's `R-D-manifest-named-with-T-D` and
+`gate-registrations-are-empty-until-D-registers` checks; this formal note
+is the second, being where an adjudication like this one is written down
+in the first place — both are the "record" and "the note" this test
+module's own docstring already names as a pair distinct from the measured
+tree. The third is R_D itself (order step 4): it sits between `T_D` and
+the D treatment on this branch, and the sentence being adjudicated
+describes step 5, not step 4. Auditing the full `T_D..HEAD` diff for this
+adjudication surfaced that R_D's evidence-only nature — verified by hand
+when R_D was taken and accepted — had no standing, re-runnable check of
+its own; `R-D-diff-is-evidence-only` closes that adjacent gap here rather
+than leaving it for a fourth adjudication, identifying R_D by the commit
+that added its own manifest rather than by a second hardcoded SHA.
+
+Four checks in `tests/test_p037_a2d_epoch.py` carry this note:
+`R-D-diff-is-evidence-only`,
+`only-treatment-paths-tests-record-and-adjudicated-docs-move`,
+`adjudicated-docs-projections-are-not-stale` and
+`adjudicated-docs-projections-track-a-tests-only-source`. Only a
+terminal-green head against which all four pass is eligible to be named
+`named_later.D_treatment_head`; `f4ca7368b0eee3ca3d8fdf03931430a97d8d8fd9`
+itself is not renamed or rewritten, and this adjudication lands as a
+commit on top of it, never a rebase onto it.

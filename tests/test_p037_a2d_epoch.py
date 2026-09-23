@@ -36,6 +36,28 @@ SHA40 = re.compile(r"^[0-9a-f]{40}$")
 GATE = ROOT / "scripts" / "p037_door_diff_gate.py"
 FACT_DIFF_POLICIES = {"unchanged", "allowed_surfaces"}
 
+# 10.6.14a (post-freeze adjudication): the gate above is scoped to the wide
+# treatment units only (its own docstring says so), so a WITHIN_ALLOWLIST
+# verdict backs nothing about the rest of the tree. It cannot by itself stand
+# behind the wider claims_preregistered sentence "only the treatment paths
+# and tests move". Three things outside t_paths/tests are legitimate against
+# T_D: the record and the note this module's own docstring already treats as
+# a pair of governance artifacts distinct from the measured tree (the epoch
+# record's named_later and registration fields are how it is meant to be
+# edited, already governed by the checks above; the formal note is where an
+# adjudication like this one itself is written down) and exactly two
+# deterministic docs/generated/ projections, whose own freshness
+# tests/test_checkpoint_status.py mechanically enforces — so extending the
+# tests/ ledger forces them to move too, a consequence the freeze's boundary
+# text did not name. Logged as discovered after the freeze, not as evidence
+# the exception was preregistered.
+EPOCH_RECORD_PATH = "docs/evidence/p037-a2d-epoch.json"
+FORMAL_NOTE_PATH = "docs/notes/p037-formal-kernel.md"
+DOCS_GENERATED_ADJUDICATED = (
+    "docs/generated/p022-cp1-census.md",
+    "docs/generated/p022-coord-census.md",
+)
+
 _failures: list[str] = []
 
 
@@ -257,6 +279,45 @@ def run() -> int:
                   rc == 0 and " IDENTICAL " in line, line)
             rc, line = gate_verdict(t_d, "HEAD")
             check("gate-holds-this-head-within-the-allowlist-of-T-D", rc == 0, line)
+
+            changed = [f for f in git("diff", "--name-only", t_d, "HEAD")[1].splitlines() if f]
+            allowed_prefixes = (*tuple(t_paths), "tests/")
+            governance = (EPOCH_RECORD_PATH, FORMAL_NOTE_PATH)
+            # R_D (order step 4) sits between T_D and the D treatment on this
+            # branch and is a separately governed, already-accepted
+            # evidence-only commit; "only the treatment paths and tests move"
+            # describes step 5, not step 4. Identified by the commit that
+            # added its own manifest rather than hardcoded, so this stays
+            # correct without independently tracking R_D's SHA.
+            r_d_files: set[str] = set()
+            r_d_manifest = later.get("R_D_manifest")
+            if isinstance(r_d_manifest, str):
+                added = git("log", "--diff-filter=A", "--format=%H", "--", r_d_manifest)[1]
+                added_shas = added.splitlines()
+                if added_shas:
+                    r_d_files = {f for f in git("diff", "--name-only", t_d, added_shas[0])[1]
+                                .splitlines() if f}
+            check("R-D-diff-is-evidence-only",
+                  all(f.startswith("docs/evidence/") for f in r_d_files) if r_d_files else True,
+                  f"{sorted(f for f in r_d_files if not f.startswith('docs/evidence/'))}")
+            outside = [f for f in changed if f not in governance
+                      and not f.startswith(allowed_prefixes)
+                      and f not in DOCS_GENERATED_ADJUDICATED
+                      and f not in r_d_files]
+            check("only-treatment-paths-tests-record-and-adjudicated-docs-move",
+                  not outside, f"{outside}")
+            moved_docs = [f for f in DOCS_GENERATED_ADJUDICATED if f in changed]
+            if moved_docs:
+                render_check = subprocess.run(
+                    [sys.executable, "scripts/render_checkpoint_status.py", "--check"],
+                    cwd=ROOT, capture_output=True, text=True, check=False)
+                check("adjudicated-docs-projections-are-not-stale",
+                      render_check.returncode == 0,
+                      "\n".join(render_check.stdout.splitlines()[-10:]))
+                check("adjudicated-docs-projections-track-a-tests-only-source",
+                      paths_differ(t_d, "HEAD", ["tests/fixtures/ownir_validation.json"]),
+                      "the two admitted docs/generated files moved without their "
+                      "tests/ ledger source moving")
         manifest = later.get("R_D_manifest")
         check("R-D-manifest-named-with-T-D",
               isinstance(manifest, str) and (ROOT / manifest).exists()
