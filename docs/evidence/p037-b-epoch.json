@@ -182,8 +182,8 @@
     "no change to ownlang/ownir.py, the extractor, OwnIR guarded-fact vocabulary, verdict mapping or launcher behaviour"
   ],
   "named_later": {
-    "T_B": null,
-    "R_B": null,
+    "T_B": "349c7bcf456bdd33ce3efe7a19da43790c186145",
+    "R_B": "docs/evidence/p037-b-baseline-manifest.md",
     "B_treatment_head": null,
     "B_after_evidence": null
   }
