@@ -280,6 +280,46 @@ mod tests {
             "same verdict class"
         );
     }
+
+    #[test]
+    fn release_cells_have_no_edges_holds_non_vacuously_on_a_live_release() {
+        // Shared non-vacuity witness for the release_cells_have_no_edges
+        // restriction assumed by BOTH k11b_legacy_observational_compatibility_
+        // on_small_sccs and k11_lfp_lax_simulation_against_today_post_
+        // finalization_on_small_sccs below (one conceptual restriction, not
+        // two -- see docs/evidence/p037-b-ledger-assumptions.json's rows for
+        // this file). An all-DEAD or edge-free system satisfies the
+        // restriction VACUOUSLY, because no coordinate is ever release-bearing
+        // to begin with. This proves the MEANINGFUL case is reached within the
+        // exact domain any_small_system() draws from (well-formed, n=2, <=1
+        // edge/coordinate -- systems_exhaustive(2) is a faithful, exhaustive
+        // enumeration of that same domain, already used by the harnesses' own
+        // #[cfg(test)] twins above): some well-formed 2-coordinate system has
+        // a coordinate that is genuinely Must/May-seeded on one side AND
+        // correctly carries no edge, while the system as a whole is not
+        // edge-free (a different coordinate has a real edge) -- and, for the
+        // stronger of the two harnesses, also satisfies no_unknown_seed
+        // throughout.
+        let rel = |t: Transfer| matches!(t, Transfer::Must | Transfer::May);
+        let is_witness = |sys: &System| {
+            if !(sys.well_formed() && release_cells_have_no_edges(sys) && no_unknown_seed(sys)) {
+                return false;
+            }
+            let live_coords = || sys.coords.iter().take(sys.n);
+            let release_bearing_and_edge_free = live_coords().any(|c| {
+                (rel(c.seed.pos) || rel(c.seed.neg)) && c.edges.iter().flatten().next().is_none()
+            });
+            let some_real_edge_exists =
+                live_coords().any(|c| c.edges.iter().flatten().next().is_some());
+            release_bearing_and_edge_free && some_real_edge_exists
+        };
+        assert!(
+            systems_exhaustive(2).any(|sys| is_witness(&sys)),
+            "no well-formed 2-coordinate, <=1-edge system has a release-bearing, \
+             edge-free coordinate coexisting with a real edge elsewhere -- the \
+             restriction would be witnessed only vacuously"
+        );
+    }
 }
 
 #[cfg(kani)]

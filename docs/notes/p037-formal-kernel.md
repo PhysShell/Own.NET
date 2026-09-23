@@ -2184,3 +2184,119 @@ naming the gap plainly.
 No production file moves in this section or the record it describes.
 Semantic wiring starts only after `scripts/p037_proof_boundary.py`
 reports GREEN on a reviewed head, and only as a later, separate task.
+
+#### 10.7a Phase B entry gate: family-1 finding corrected, proof boundary closed GREEN
+
+§10.7's "real gap" paragraph above is not amended, because owner review
+found it wrong, not merely incomplete: it stated family 1 "has no corpus
+fixture," confirmed (its words) "against the complete `corpus/p036-bakeoff/`
+listing... and a repository-wide filename search." The first half of that
+search was real; the second was not as advertised — `corpus/p037-shapes/`
+was never actually checked, and it holds the fixture.
+
+**REPOSITORY FACT.** `corpus/p037-shapes/guard-mutated/case.cs` —
+`Inner(Stream p, bool keep) { keep = !keep; if (!keep) p.Dispose(); }` — is
+exactly family 1's own-body direct-write shape: no wrapper, the guard
+parameter written before the branch reads it. Its `expected.json` (schema
+`p037-fact-shape/1`, `"status": "anchored"`) pins `guarded_facts: null` on
+`Inner` (G-V4 fails closed, absence is the signal, no eligible guard) and
+the resulting false `OWN003` on **both** engines. It is checked by
+`scripts/p037_fact_shapes.py check --engine both`, invoked from
+`.github/workflows/ci.yml`'s "P-037 conformance controls + fact-shape
+census" job on every push, in the same job and the same breath as
+`scripts/p037_controls.py --engine both` (families 2 and 3). Two
+fact-shape and control-expectation censuses, not one, jointly discharge
+the G-V4 discharge matrix — a distinction this note's own §10.7 draft
+did not track, because it looked only at the one it had already used for
+families 2 and 3.
+
+**MEASURED/AUDITED FACT.** The proposal's family 1 is named
+"direct/compound/increment/capture write." Checked directly against
+`ParameterIsStable` (`frontend/roslyn/OwnSharp.Extractor/Program.cs`,
+G-V4's own implementation): a plain assignment and a compound assignment
+are the same Roslyn node type (`AssignmentExpressionSyntax`, distinguished
+only by `.Kind()`, which this function never switches on) hitting the
+same `case` arm; a write reached only through a captured lambda is found
+by the same arm too, because the scan (`body.DescendantNodes()`) walks
+into nested lambda bodies without a boundary — matching the function's own
+doc comment ("a write inside a lambda counts: the closure may run before
+the read"). `guard-mutated`'s direct write exercises that exact arm, so a
+separately-fixtured compound-assignment or captured-write case would
+re-exercise the same code path already witnessed, not an independent one.
+Increment/decrement (`Pre`/`PostIncrement`/`Decrement`) is a genuinely
+separate `case` arm — but G-V1 restricts an eligible guard to a by-value
+boolean parameter or the null-ness of a by-value reference parameter, and
+neither `bool` nor an ordinary reference type has a `++`/`--` operator in
+C#: there is no well-typed program in which an eligible guard is
+incremented. Family 1 is therefore fully discharged by `guard-mutated`
+alone, with nothing left independently unpinned.
+
+**Consequence.** `docs/evidence/p037-b-epoch.json`'s
+`first_semantic_hypothesis.g_v4_discharge_matrix` and
+`docs/evidence/p037-b-ledger-assumptions.json`'s `mod.rs:337`/`347`
+`negative_control` fields are corrected in place (not worth a second
+freeze-then-adjudicate cycle for a sentence that was simply wrong) to
+name `corpus/p037-shapes/guard-mutated` and this reasoning, rather than
+"no fixture."
+
+**Two further, unrelated findings from the same owner review, resolved in
+the same follow-up.** First, the `release_cells_have_no_edges`
+non-vacuity gap on the two `properties/refinement.rs` ledger rows for
+`k11b_legacy_observational_compatibility_on_small_sccs` and
+`k11_lfp_lax_simulation_against_today_post_finalization_on_small_sccs`: a new
+`#[test] release_cells_have_no_edges_holds_non_vacuously_on_a_live_release`
+(`formal/p037-kernel/src/properties/refinement.rs`) searches
+`systems_exhaustive(2)` — the same well-formed, `n=2`, ≤1-edge-per-coordinate
+domain `any_small_system()` draws from — and confirms a system exists with
+a coordinate that is genuinely `Must`/`May`-seeded on one side and
+correctly carries no edge, while a different coordinate in the same system
+has a real edge, with `no_unknown_seed` also holding throughout. One test
+serves both ledger rows, because they are one restriction
+(`k11_lfp_lax_simulation_against_today_post_finalization_on_small_sccs`'s
+assumption only additionally conjoins `no_unknown_seed`, itself already
+witnessed) — not two gaps needing two witnesses. Second,
+`ElectionSystem::well_formed()`
+(`mod.rs:429`/`442`) had no negative control anywhere in this repository:
+every existing use only ever constructs or accepts an already-well-formed
+system. A new `#[test]
+election_system_well_formed_rejects_an_edge_to_a_dead_coordinate`
+(`formal/p037-kernel/src/properties/election.rs`) constructs an
+`ElectionSystem` with an edge targeting a non-live coordinate, asserts
+`well_formed()` rejects it, and asserts removing only that edge restores
+well-formedness — isolating the edge as exactly what tripped the check.
+Neither change touches `mos.rs`, `lower.rs`, the extractor, or any verdict;
+both are non-production additions to the formal kernel's own test module,
+which is what that module is for.
+
+**MEASURED/AUDITED FACT, current run.** With the assumption ledger's two
+`non_vacuity_status: "gap"` rows now `"witnessed"` and no change to the
+harness inventory or the CI set split, `scripts/p037_proof_boundary.py`
+reports zero problems:
+
+```text
+P-037 Phase B entry gate
+PROOF BOUNDARY GREEN
+
+semantic wiring for the frozen hypothesis in docs/evidence/p037-b-epoch.json
+may now begin as a separate, later task
+```
+
+`19af74c` (this section's own originating commit, carrying the wrong
+family-1 wording) is kept exactly as it was measured, not rewritten: it is
+an honest record of a RED audit at the time it was taken, and this section
+is where the correction is written down, the same discipline §10.6.14a
+applied to its own gap.
+
+**A third, unrelated finding from full re-verification, fixed the same
+way.** `19af74c` itself, independent of anything above, had already left
+`tests/test_p037_a2d_epoch.py`'s `only-treatment-paths-tests-record-and-
+adjudicated-docs-move` check red: that test's allowlist predates Phase B
+and had no entry for a second epoch's own top-level governance record or
+a non-`tests/`-prefixed script. `tests/test_p037_a2d_epoch.py` now carries
+`PHASE_B_GOVERNANCE_FILES` (the four Phase-B ledger/tool paths, exact
+list, mirroring `DOCS_GENERATED_ADJUDICATED`'s shape) and
+`PHASE_B_PREFIXES` (`formal/p037-kernel/`, a full prefix exception like
+`tests/`, for the same reason: non-production, verification-only, and
+Phase B is the first work to touch its source rather than only read it).
+Logged here as discovered after the fact, the same as §10.6.14a's own
+finding — not evidence either exception was preregistered.

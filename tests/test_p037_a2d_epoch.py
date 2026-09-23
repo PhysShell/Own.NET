@@ -59,6 +59,28 @@ DOCS_GENERATED_ADJUDICATED = (
     "docs/generated/p022-coord-census.md",
 )
 
+# 10.7a (Phase B entry gate, discovered the same way 10.6.14a was: after the
+# fact, not preregistered). `19af74c` opened a second epoch past A2.2-D's own
+# closing head, on the same branch this test also runs on, and added its own
+# top-level governance record (docs/evidence/p037-b-epoch.json is not
+# EPOCH_RECORD_PATH -- that constant names A2.2-D's record specifically) plus
+# a non-`tests/`-prefixed audit script. Both are outside every allowlist this
+# test knew about, so `only-treatment-paths-tests-record-and-adjudicated-
+# docs-move` has been silently red since `19af74c` itself, independent of any
+# later Phase B commit -- confirmed by running this file's own check against
+# T_D..19af74c alone. `formal/p037-kernel/` gets a full prefix exception, not
+# a per-file list: like `tests/`, it is a non-production verification tree
+# (its own README: "not wired to anything"), and Phase B is the first work
+# ever touching its source rather than only reading it -- the same reasoning
+# `tests/` already had, now extended to the other verification-only tree.
+PHASE_B_GOVERNANCE_FILES = (
+    "docs/evidence/p037-b-epoch.json",
+    "docs/evidence/p037-b-ledger-assumptions.json",
+    "docs/evidence/p037-b-ledger-harnesses.json",
+    "scripts/p037_proof_boundary.py",
+)
+PHASE_B_PREFIXES = ("formal/p037-kernel/",)
+
 # 10.6.14b: order step 6 (D after) lands its evidence as exactly these six
 # files under docs/evidence/, and nothing about them is inferred or
 # regenerated -- each is pinned to the exact sha256 the accepted external
@@ -317,8 +339,8 @@ def run() -> int:
             check("gate-holds-this-head-within-the-allowlist-of-T-D", rc == 0, line)
 
             changed = [f for f in git("diff", "--name-only", t_d, "HEAD")[1].splitlines() if f]
-            allowed_prefixes = (*tuple(t_paths), "tests/")
-            governance = (EPOCH_RECORD_PATH, FORMAL_NOTE_PATH)
+            allowed_prefixes = (*tuple(t_paths), "tests/", *PHASE_B_PREFIXES)
+            governance = (EPOCH_RECORD_PATH, FORMAL_NOTE_PATH, *PHASE_B_GOVERNANCE_FILES)
             # R_D (order step 4) sits between T_D and the D treatment on this
             # branch and is a separately governed, already-accepted
             # evidence-only commit; "only the treatment paths and tests move"

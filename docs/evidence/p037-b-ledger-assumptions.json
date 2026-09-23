@@ -5,7 +5,7 @@
   "assumptions": [
     {
       "file": "properties/election.rs",
-      "line": 176,
+      "line": 222,
       "expression": "x0.leq(y0) && x1.leq(y1) && x2.leq(y2)",
       "affects": [
         "k10e_election_step_is_monotone_in_the_state"
@@ -18,7 +18,7 @@
     },
     {
       "file": "properties/election.rs",
-      "line": 193,
+      "line": 239,
       "expression": "sys.step(0,&y)==y0 && sys.step(1,&y)==y1 && sys.step(2,&y)==y2",
       "affects": [
         "k10e_elect_is_a_fixpoint_below_every_fixpoint"
@@ -31,7 +31,7 @@
     },
     {
       "file": "properties/refinement.rs",
-      "line": 295,
+      "line": 335,
       "expression": "matches!(t, Transfer::Must | Transfer::May)",
       "affects": [
         "k9_residual_bottom_lemma_all_three_groundings"
@@ -44,7 +44,7 @@
     },
     {
       "file": "properties/refinement.rs",
-      "line": 338,
+      "line": 378,
       "expression": "release_cells_have_no_edges(&sys)",
       "affects": [
         "k11b_legacy_observational_compatibility_on_small_sccs"
@@ -53,12 +53,12 @@
       "reason": "release_cells_have_no_edges is explicitly doc-tagged 'TRUSTED INPUT assumption' in source (refinement.rs): a cell recording a local release carries no forward edge -- part of the G-S2/G-S3 frontend-derivation boundary this kernel does not model",
       "residual_production_obligation": "the production extractor/CFG-to-cell derivation must never emit a forward edge on a cell it also marks as a local release",
       "negative_control": "no dedicated fixture identified in this repository as of this audit for 'a cell-local release fact co-occurring with a forward edge' specifically -- distinct from the G-V4 guard-eligibility controls, which cover a different boundary (guard mutation, not release-fact/edge co-occurrence); reported as a gap, not filled here",
-      "non_vacuity_witness": "GAP: an all-DEAD or edge-free system satisfies this restriction VACUOUSLY (no coordinate has a release-bearing seed at all); no witness was found that the MEANINGFUL case (an actual Must/May-seeded coordinate with correctly no edges) is reached by the symbolic search",
-      "non_vacuity_status": "gap"
+      "non_vacuity_witness": "shared with the k11_lfp_lax_simulation_against_today_post_finalization_on_small_sccs row below (one conceptual restriction, not two): formal/p037-kernel/src/properties/refinement.rs's #[test] release_cells_have_no_edges_holds_non_vacuously_on_a_live_release exhaustively searches systems_exhaustive(2) -- the same well-formed, n=2, <=1-edge-per-coordinate domain any_small_system() draws from -- and confirms a system exists with a coordinate that is genuinely Must/May-seeded on one side AND correctly carries no edge, while a different coordinate in the same system has a real edge (so the restriction is not witnessed only by the degenerate all-DEAD/edge-free case)",
+      "non_vacuity_status": "witnessed"
     },
     {
       "file": "properties/refinement.rs",
-      "line": 356,
+      "line": 396,
       "expression": "release_cells_have_no_edges(&sys) && no_unknown_seed(&sys)",
       "affects": [
         "k11_lfp_lax_simulation_against_today_post_finalization_on_small_sccs"
@@ -67,8 +67,8 @@
       "reason": "release_cells_have_no_edges: same G-S2/G-S3 trusted-input boundary as the row above. no_unknown_seed excludes exactly the case the file's own documented counterexample (the #[cfg(test)] k11_finding_release_priority_drops_an_unresolved_forward) shows breaks this un-amended theorem: this harness is the retained historical pre-amendment statement, not the general claim",
       "residual_production_obligation": "production correctness does not depend on this harness's guarantee when an unresolved callee is present in the SCC; k11b_legacy_observational_compatibility_on_small_sccs (no such restriction) is the claim production actually relies on for that case",
       "negative_control": "the documented counterexample k11_finding_release_priority_drops_an_unresolved_forward is itself the negative control: it is the pinned proof that the unrestricted claim is false, which is why K11b exists as a separate, weaker, general theorem",
-      "non_vacuity_witness": "PARTIAL. no_unknown_seed's meaningful case (a coordinate seeded something other than Unknown) is witnessed by direct construction (e.g. Cells::BOT). release_cells_have_no_edges carries the same GAP as the row above -- not stated twice as a separate finding, but not resolved here either",
-      "non_vacuity_status": "gap"
+      "non_vacuity_witness": "no_unknown_seed's meaningful case (a coordinate seeded something other than Unknown) is witnessed by direct construction (e.g. Cells::BOT). release_cells_have_no_edges shares the row-above witness, by design, not stated twice: release_cells_have_no_edges_holds_non_vacuously_on_a_live_release's own is_witness closure additionally requires no_unknown_seed(sys), so the one system it finds via systems_exhaustive(2) satisfies this row's full conjunction (release_cells_have_no_edges(&sys) && no_unknown_seed(&sys)) at once, non-vacuously on both conjuncts together",
+      "non_vacuity_status": "witnessed"
     },
     {
       "file": "properties/application.rs",
@@ -164,7 +164,7 @@
       "disposition": "OUTSIDE_KANI_BOUNDARY",
       "reason": "System::well_formed()'s own doc names this explicitly: 'The frontend's guarantees (G-L1, G-S5, G-V4 boundary): every edge targets a live coordinate; an Uncond coordinate has a diagonal seed, Both masks and no id/neg edge; an id/neg edge joins two Split coordinates.' This is the G-V4 guard-eligibility boundary itself, load-bearing and explicitly named as trusted, not modelled here",
       "residual_production_obligation": "production extraction (Roslyn/CFG) must only ever emit a System whose structure satisfies well_formed() -- in particular never construct an id/neg edge except where G-V4 (entry-value stability) genuinely holds",
-      "negative_control": "the G-V4 discharge matrix: family 2 (corpus/p036-bakeoff/gv4-control-mutated-guard row 18a, gv4-control-ref-alias-guard row 18b) and family 3 (gv4-control-aliased-self-null row 19) are covered; family 1 (direct/compound/increment/capture write, own-body election forbidden, no wrapper) has NO fixture -- confirmed gap, see docs/evidence/p037-b-epoch.json's first_semantic_hypothesis.g_v4_discharge_matrix",
+      "negative_control": "the G-V4 discharge matrix: family 2 (corpus/p036-bakeoff/gv4-control-mutated-guard row 18a, gv4-control-ref-alias-guard row 18b) and family 3 (gv4-control-aliased-self-null row 19) are covered; family 1 (direct/compound/increment/capture write, own-body election forbidden, no wrapper) is covered by corpus/p037-shapes/guard-mutated (schema p037-fact-shape/1, status anchored, checked on both engines by scripts/p037_fact_shapes.py check, wired into .github/workflows/ci.yml's 'P-037 conformance controls + fact-shape census' job on every push) -- corrected after an earlier draft of this ledger wrongly reported no fixture existing anywhere for family 1; see docs/evidence/p037-b-epoch.json's first_semantic_hypothesis.g_v4_discharge_matrix and formal-kernel.md's #10.7a for the correction and the source-level reasoning (frontend/roslyn/OwnSharp.Extractor/Program.cs's ParameterIsStable) that the compound/capture members share guard-mutated's own code path and increment/decrement cannot apply to a G-V1-eligible guard",
       "non_vacuity_witness": "exhaustive test twin: systems_exhaustive()/all_coords_one_edge() (used by the #[cfg(test)] siblings) directly enumerate well-formed systems with real id/neg/const/opaque edges between Split coordinates, not just the degenerate all-DEAD case",
       "non_vacuity_status": "witnessed"
     },
@@ -183,7 +183,7 @@
       "disposition": "OUTSIDE_KANI_BOUNDARY",
       "reason": "identical System::well_formed() boundary as the row above, applied to the 2-coordinate tractability-bounded system the whole-solver harnesses use",
       "residual_production_obligation": "same as the row above",
-      "negative_control": "same G-V4 discharge matrix as the row above, same confirmed gap in family 1",
+      "negative_control": "same G-V4 discharge matrix as the row above -- family 1 covered by corpus/p037-shapes/guard-mutated, corrected the same way",
       "non_vacuity_witness": "exhaustive test twin: systems_exhaustive(2) enumerates exactly this 2-coordinate/1-edge domain with real edges, used directly by the #[cfg(test)] siblings",
       "non_vacuity_status": "witnessed"
     },
@@ -228,7 +228,7 @@
       "disposition": "OUTSIDE_KANI_BOUNDARY",
       "reason": "ElectionSystem::well_formed()'s own doc: 'Every edge targets a live coordinate.' -- part of the same Roslyn/CFG-derivation trust boundary as the main System, for the election pre-solver's own graph",
       "residual_production_obligation": "the production election-graph builder must only emit ElectionEdges targeting live coordinate indices",
-      "negative_control": "no dedicated negative control identified in this repository specifically for this structural property; the G-V4 discharge matrix above is the closest existing coverage of the same general trust boundary, not a direct fixture for this exact claim -- reported, not filled",
+      "negative_control": "formal/p037-kernel/src/properties/election.rs's #[test] election_system_well_formed_rejects_an_edge_to_a_dead_coordinate: constructs an ElectionSystem with n=1 and one edge whose callee=1 (not live), asserts well_formed() rejects it, then asserts removing only that edge restores well_formed() -- isolating the edge as exactly what tripped the check. Added as a narrow non-production control after an earlier draft of this ledger found none",
       "non_vacuity_witness": "exhaustive/random test twin: random_election_system() (used by k10_election_lfp_is_schedule_independent_random) constructs well-formed election systems with real edges and bindings, not just the degenerate case",
       "non_vacuity_status": "witnessed"
     },
@@ -243,7 +243,7 @@
       "disposition": "OUTSIDE_KANI_BOUNDARY",
       "reason": "identical ElectionSystem::well_formed() boundary as the row above",
       "residual_production_obligation": "same as the row above",
-      "negative_control": "same as the row above -- no dedicated fixture identified",
+      "negative_control": "same as the row above: election_system_well_formed_rejects_an_edge_to_a_dead_coordinate covers ElectionSystem::well_formed() generally (the n=1 construction is not specific to the 2- vs 3-coordinate bound), so the same test discharges this row too",
       "non_vacuity_witness": "same random_election_system()-based witness as the row above, at the 2-coordinate bound",
       "non_vacuity_status": "witnessed"
     }

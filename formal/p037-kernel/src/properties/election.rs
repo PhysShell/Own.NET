@@ -147,6 +147,52 @@ mod tests {
         assert_eq!(first(lfp_election(&sys2)), Election::Conflict);
         assert_eq!(shape_of(first(lfp_election(&sys2))), Shape::Uncond);
     }
+
+    #[test]
+    fn election_system_well_formed_rejects_an_edge_to_a_dead_coordinate() {
+        // ElectionSystem::well_formed()'s own doc: "Every edge targets a live
+        // coordinate." This trust boundary (docs/evidence/p037-b-ledger-
+        // assumptions.json's mod.rs:429/442 OUTSIDE_KANI_BOUNDARY rows) had no
+        // negative control anywhere in this repository -- every existing use
+        // only ever constructs or accepts a well-formed system. This is that
+        // control: an edge whose callee is >= n must be rejected, and removing
+        // only that edge must restore well-formedness, isolating the edge as
+        // exactly what tripped the check.
+        let dead = ElectionCoord {
+            seed: Election::None,
+            edges: [None; MAX_EDGES],
+        };
+        let edge_out_of_range = ElectionCoord {
+            seed: Election::None,
+            edges: [
+                Some(ElectionEdge {
+                    callee: 1, // n below is 1: no coordinate 1 is live
+                    binding: GuardBinding::Opaque,
+                }),
+                None,
+            ],
+        };
+        let bad = ElectionSystem {
+            n: 1,
+            coords: [edge_out_of_range, dead, dead],
+        };
+        assert!(
+            !bad.well_formed(),
+            "an edge whose callee is >= n must be rejected"
+        );
+        let no_edge = ElectionCoord {
+            seed: Election::None,
+            edges: [None; MAX_EDGES],
+        };
+        let fixed = ElectionSystem {
+            n: 1,
+            coords: [no_edge, dead, dead],
+        };
+        assert!(
+            fixed.well_formed(),
+            "removing the out-of-range edge alone must restore well-formedness"
+        );
+    }
 }
 
 #[cfg(kani)]

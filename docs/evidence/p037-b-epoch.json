@@ -97,7 +97,7 @@
     "acceptance_controls": "docs/notes/p037-formal-kernel.md §8.1's 'A1 ACCEPTANCE' block, verbatim, items 1-8 (F3-S1..S4 verdicts; zero unintended regression on corpus/real-world, corpus/wpf, corpus/di, #305; unknown guard never consumes; application only on finalized state; G-V4 failures degrade to opaque on both layers; kernel twins run over the moved production functions; fast Kani mandatory / heavy opt-in; the F1 pin)",
     "f1_pin": "if (g) p.Dispose(); else Extern(p); with Extern unresolved -> collapsed value UNKNOWN (class 3) -> plain + OWN051, never legacy's optimistic may and never consume",
     "g_v4_discharge_matrix": {
-      "family_1_own_body_direct_compound_increment_capture_write": "GAP — no fixture found anywhere under corpus/ for a non-wrapper own-body election-eligibility negative control; confirmed by exhaustive search of corpus/p036-bakeoff/ (8 fixtures total, none matching) and a repo-wide filename grep. Reported here, not filled: filling it is fixture/audit work, but doing it honestly requires measuring 'current' behaviour the way the other three controls' expected.json records do, which is more than this entry-gate task should absorb without being asked.",
+      "family_1_own_body_direct_compound_increment_capture_write": "corpus/p037-shapes/guard-mutated (schema p037-fact-shape/1, status anchored, `Inner(Stream p, bool keep) { keep = !keep; if (!keep) p.Dispose(); }`) is this family's own-body direct-write witness: it pins guarded_facts absent on Inner (G-V4 fails closed, no eligible guard) and the resulting false OWN003 on both engines, checked by scripts/p037_fact_shapes.py check --engine both, wired into .github/workflows/ci.yml's 'P-037 conformance controls + fact-shape census' job on every push. An earlier draft of this record wrongly reported no fixture existing anywhere for family 1 -- corrected in docs/notes/p037-formal-kernel.md #10.7a, which also traces frontend/roslyn/OwnSharp.Extractor/Program.cs's ParameterIsStable to show the compound- and capture-write members share guard-mutated's own AssignmentExpressionSyntax code path (so they are not independent code-path witnesses) and that increment/decrement cannot apply to a G-V1-eligible guard (bool has no ++/-- in C#) -- so family 1 is fully discharged without a new corpus/p036-bakeoff fixture.",
       "family_2_wrapper_guard_write_or_writable_alias": "corpus/p036-bakeoff/gv4-control-mutated-guard (P-037 §8 row 18a, direct write) + corpus/p036-bakeoff/gv4-control-ref-alias-guard (row 18b, ref-alias twin)",
       "family_3_self_null_reassignment_or_writable_alias": "corpus/p036-bakeoff/gv4-control-aliased-self-null (row 19)",
       "class_3_legacy_honesty_companion": "corpus/p036-bakeoff/legacy-honesty-else-unresolved-forward (G-T2b class 3, not a G-V4 family)"
@@ -120,7 +120,7 @@
   "non_goals": [
     "no production semantic movement of any kind",
     "no move of formal/p037-kernel/ into rust/crates/own-bridge",
-    "no fixture for the family-1 G-V4 gap",
+    "no new corpus/p036-bakeoff fixture for family 1 (corpus/p037-shapes/guard-mutated, already anchored, already CI-checked, already discharges it -- see first_semantic_hypothesis.g_v4_discharge_matrix)",
     "no T_B, R_B, B_treatment_head or B_after_evidence naming",
     "no edit, regeneration, reinterpretation or retaking of any a2/a2d evidence",
     "no change to ownlang/ownir.py, the extractor, OwnIR guarded-fact vocabulary, verdict mapping or launcher behaviour"
