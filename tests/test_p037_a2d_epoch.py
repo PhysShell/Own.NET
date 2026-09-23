@@ -22,6 +22,7 @@ this test runs: its synthetic controls, and the gate itself on this branch.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import subprocess
@@ -58,6 +59,31 @@ DOCS_GENERATED_ADJUDICATED = (
     "docs/generated/p022-coord-census.md",
 )
 
+# 10.6.14b: order step 6 (D after) lands its evidence as exactly these six
+# files under docs/evidence/, and nothing about them is inferred or
+# regenerated -- each is pinned to the exact sha256 the accepted external
+# evidence run at treatment 4ba49c14d8777dc94554e5ec4208a9607fb89908
+# already produced and the owner already reviewed. A path landing here with
+# any other content is not this evidence; it stays a boundary violation, not
+# a silent exception. This is the foreseen admission the order always named
+# (unlike 10.6.14a, discovered only after the fact) -- it exists before any
+# of the six paths does, not after.
+D_AFTER_EVIDENCE_MANIFEST_PATH = "docs/evidence/p037-a2d-manifest.md"
+D_AFTER_EVIDENCE_PINS = {
+    "docs/evidence/p037-a2d-after-mos-repo.json":
+        "4f084383f40a69891b3327499e88d145750681f558833fbb2d7ee2f9fe3f5bce",
+    "docs/evidence/p037-a2d-after-mos-corpus.json":
+        "e5a3d185dc85f52b5769eb3c5a44777806f27cec33836ac7ef00d924ba43b6e9",
+    "docs/evidence/p037-a2d-after-verdict-python.json":
+        "a4601b11cbf9398042b59be53f91751fa9ca1f6187c9628db1ae9d24f5a77ad7",
+    "docs/evidence/p037-a2d-after-verdict-rust.json":
+        "e6150987bcde281527452229bbd1615fc41a007d84143b93684a9556bbb8f0aa",
+    "docs/evidence/p037-a2d-cumulative.json":
+        "5aeaf5e149f26a5467f52896256cff2e16e3e5e5c4c9f11e2d85bd8aaa29cd0b",
+    D_AFTER_EVIDENCE_MANIFEST_PATH:
+        "18912d32707f66b704c78eabdd02e26cdbef9e046a3240ab48c4af9b42e13e7b",
+}
+
 _failures: list[str] = []
 
 
@@ -84,6 +110,16 @@ def is_ancestor(older: str, newer: str) -> bool:
 
 def paths_differ(a: str, b: str, paths: list[str]) -> bool:
     return git("diff", "--quiet", a, b, "--", *paths)[0] != 0
+
+
+def git_blob_bytes(rev: str, path: str) -> bytes | None:
+    """The exact committed bytes of `path` at `rev`, or None if absent there.
+
+    Binary, not `git()`'s `text=True`: a content hash must see the bytes git
+    actually stored, never a universal-newlines transcription of them."""
+    proc = subprocess.run(["git", "show", f"{rev}:{path}"], cwd=ROOT,
+                          capture_output=True, check=False)
+    return proc.stdout if proc.returncode == 0 else None
 
 
 def gate_verdict(reference: str, head: str) -> tuple[int, str]:
@@ -300,12 +336,34 @@ def run() -> int:
             check("R-D-diff-is-evidence-only",
                   all(f.startswith("docs/evidence/") for f in r_d_files) if r_d_files else True,
                   f"{sorted(f for f in r_d_files if not f.startswith('docs/evidence/'))}")
+
+            # 10.6.14b: a changed path pinned in D_AFTER_EVIDENCE_PINS is
+            # excepted only when its committed bytes hash to the pinned
+            # value -- landing anything else at that path is still a
+            # violation, not a silent pass.
+            d_after_changed = {f for f in changed if f in D_AFTER_EVIDENCE_PINS}
+            d_after_mismatched = sorted(
+                f for f in d_after_changed
+                if hashlib.sha256(git_blob_bytes("HEAD", f) or b"").hexdigest()
+                != D_AFTER_EVIDENCE_PINS[f])
+            check("D-after-evidence-pins-match-exactly",
+                  not d_after_mismatched, f"{d_after_mismatched}")
+            d_after_ok = d_after_changed - set(d_after_mismatched)
+
             outside = [f for f in changed if f not in governance
                       and not f.startswith(allowed_prefixes)
                       and f not in DOCS_GENERATED_ADJUDICATED
-                      and f not in r_d_files]
+                      and f not in r_d_files
+                      and f not in d_after_ok]
             check("only-treatment-paths-tests-record-and-adjudicated-docs-move",
                   not outside, f"{outside}")
+
+            d_after_evidence = later.get("D_after_evidence")
+            if d_after_evidence is not None:
+                check("D-after-evidence-named-correctly",
+                      d_after_evidence == D_AFTER_EVIDENCE_MANIFEST_PATH
+                      and (ROOT / D_AFTER_EVIDENCE_MANIFEST_PATH).exists(),
+                      f"{d_after_evidence}")
             moved_docs = [f for f in DOCS_GENERATED_ADJUDICATED if f in changed]
             if moved_docs:
                 render_check = subprocess.run(

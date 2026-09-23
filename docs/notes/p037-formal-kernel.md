@@ -2032,3 +2032,59 @@ terminal-green head against which all four pass is eligible to be named
 `named_later.D_treatment_head`; `f4ca7368b0eee3ca3d8fdf03931430a97d8d8fd9`
 itself is not renamed or rewritten, and this adjudication lands as a
 commit on top of it, never a rebase onto it.
+
+#### 10.6.14b A2.2-D: admitting the D-after evidence landing (order step 6)
+
+Unlike 10.6.14a, this is not a correction. The order in 10.6.14 always
+named a sixth step — "D after: the governed cumulative measurement at the
+D head against R_D on M2 by the pinned orchestrator" — and that step
+necessarily lands evidence under `docs/evidence/`, a directory the
+treatment/tests boundary (10.6.14a) never had reason to mention because
+nothing there existed yet. This section, and the mechanism it describes,
+exist in the tree BEFORE any of the six paths below do — the reverse
+order from 10.6.14a, which was written after the gap it closes.
+
+The D-after measurement ran at treatment `4ba49c14d8777dc94554e5ec4208a9607fb89908`
+(population `T_D` = `44b405c2003b1d68965fe6346c2506d51ed52def`, baseline
+`R_D` = `91a267991ba82648ecf4abd472e7ff24c39edab1`, environment
+`P037_A2D_MEASUREMENT_M2`, orchestrator pinned to `44b405c2003b1d68965fe6346c2506d51ed52def`)
+and returned `FACTS UNCHANGED · MOS UNCHANGED · VERDICTS UNCHANGED`,
+`accepted=true`, `state=accepted`, `is_evidence=true`, all seven
+`result.claims` true, zero on every layer and cross-engine matrix over 138
+documents. That result is reviewed and owned; landing it changes nothing
+about what was measured, only where the record of it lives.
+
+`tests/test_p037_a2d_epoch.py`'s `D_AFTER_EVIDENCE_PINS` names the only six
+paths order step 6 may add, each pinned to the exact sha256 that accepted
+run produced — not "reproducible from the current tree" (there is nothing
+to regenerate a historical measurement from) but "byte-identical to the
+external evidence the owner already reviewed":
+
+| path | sha256 |
+|---|---|
+| `docs/evidence/p037-a2d-after-mos-repo.json` | `4f084383f40a69891b3327499e88d145750681f558833fbb2d7ee2f9fe3f5bce` |
+| `docs/evidence/p037-a2d-after-mos-corpus.json` | `e5a3d185dc85f52b5769eb3c5a44777806f27cec33836ac7ef00d924ba43b6e9` |
+| `docs/evidence/p037-a2d-after-verdict-python.json` | `a4601b11cbf9398042b59be53f91751fa9ca1f6187c9628db1ae9d24f5a77ad7` |
+| `docs/evidence/p037-a2d-after-verdict-rust.json` | `e6150987bcde281527452229bbd1615fc41a007d84143b93684a9556bbb8f0aa` |
+| `docs/evidence/p037-a2d-cumulative.json` | `5aeaf5e149f26a5467f52896256cff2e16e3e5e5c4c9f11e2d85bd8aaa29cd0b` |
+| `docs/evidence/p037-a2d-manifest.md` | `18912d32707f66b704c78eabdd02e26cdbef9e046a3240ab48c4af9b42e13e7b` |
+
+`D-after-evidence-pins-match-exactly` reads each pinned path's committed
+bytes with `git show` (never `git`'s own text-mode helper, which would
+launder a byte-level hash through universal-newlines translation) and
+refuses any content other than the pinned one; a path landing with
+different bytes stays a boundary violation exactly as it would with no
+exception at all, it is not silently waved through. Once
+`named_later.D_after_evidence` is set, `D-after-evidence-named-correctly`
+requires it to be the literal string `docs/evidence/p037-a2d-manifest.md`
+— a path, mirroring `R_D_manifest`'s own shape, not a commit SHA the way
+`D_treatment_head` is: D-after's manifest is its own self-describing
+proof, the same relationship R_D has to its manifest, and unlike the
+treatment there is no single code diff for a bare SHA to identify.
+
+The landing keeps the same two-commit discipline as every step before it:
+one evidence-only commit adding exactly these six files (nothing else
+moves; the pins above make "exactly" mechanical, not a promise), then a
+separate commit naming `named_later.D_after_evidence`. After that commit
+lands and passes, A2.2-D is closed by this record's own order — Phase B
+is a new epoch and is not started by landing this evidence.
