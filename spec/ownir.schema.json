@@ -513,13 +513,15 @@
         "additionalProperties": false,
         "properties": {
           "line": {
-            "type": "integer"
+            "$ref": "#/$defs/sourceLine"
           },
           "column": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
           }
         },
-        "description": "A 1-based start coordinate of a syntax node: the stable identity of a call site or a guard within the record's `file` (P-037 A2.1). Deliberately NOT bound to sourceLine/sourceColumn: in A2.1 the sidecar is inert at both doors (spec/OwnIR.md \u00a74.2, \u00a75.2) \u2014 `load()` never reads this path \u2014 and \u00a74.2 forbids a schema narrower than the door on a coordinate the door does not check. The producer refuses to write a record whose line or column is below 1 (exit 2). The instrument step that registers the sidecar at the doors binds both to the shared coordinate domain."
+        "description": "The start coordinate of a syntax node: the stable identity of a call site or a guard within the record's `file` (P-037 A2.1). A2.2-D is the instrument step that binds both coordinates to the doors' shared domain (spec/OwnIR.md \u00a74.2): `line` follows the general sourceLine domain [0, 2147483647] like every other line in the document; `column` is the 1-based [1, 2147483647] domain every other column carries, but REQUIRED and non-nullable here (unlike the optional, nullable sourceColumn), so it is not a $ref to that definition. The producer stays stricter on its own and never emits a line/column below 1 (exit 2); that is a producer habit, not the door's contract."
       },
       "guardedOrphan": {
         "type": "object",
@@ -532,11 +534,13 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "The method's `functions[]`-style key (`{Namespace.Type}.{Name}`), the key it WOULD have carried had the legacy pass admitted it."
+            "minLength": 1,
+            "description": "The method's `functions[]`-style key (`{Namespace.Type}.{Name}`), the key it WOULD have carried had the legacy pass admitted it. Non-empty (P-037 A2.2-D): this field is half of the door-registered identity tuple (spec/OwnIR.md §5.3), and the producer already refuses to write an orphan without one."
           },
           "file": {
             "type": "string",
-            "description": "The declaring source file, as `functions[].file`."
+            "minLength": 1,
+            "description": "The declaring source file, as `functions[].file`. Non-empty (P-037 A2.2-D), same reasoning as `name`."
           },
           "sig": {
             "type": "string",
@@ -559,7 +563,7 @@
         "properties": {
           "version": {
             "const": 1,
-            "description": "Sidecar vocabulary version. A consumer that has learned the sidecar refuses any other value (fail-loud); one that has not ignores the whole field."
+            "description": "Sidecar vocabulary version. A consumer that has learned the sidecar refuses any other value (fail-loud); one that has not ignores the whole field. A door that has learned it (P-037 A2.2-D) checks the same representable-integer-form gate every other integer field in this document gets before comparing against the single legal value (spec/OwnIR.md §5.2) — `true`, a string, or a non-integral number are a shape violation, not a version mismatch."
           },
           "calls": {
             "type": "array",
@@ -653,7 +657,8 @@
           "param": {
             "type": "integer",
             "minimum": 0,
-            "description": "Declared parameter ordinal (source position for an unresolved callee)."
+            "maximum": 2147483647,
+            "description": "Declared parameter ordinal (source position for an unresolved callee). Bounded to the int32 domain Roslyn's own ordinal type has (P-037 A2.2-D) — the same representable-form-then-domain rule every source coordinate in this document carries, applied to an ordinal rather than a line/column."
           },
           "kind": {
             "enum": [
@@ -693,7 +698,8 @@
               },
               "source_param": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 0,
+                "maximum": 2147483647
               },
               "negated": {
                 "const": true
@@ -789,7 +795,8 @@
           "param": {
             "type": "integer",
             "minimum": 0,
-            "description": "Declared ordinal of the by-value parameter the condition tests. Eligible (G-V1) and stable (G-V4) by construction: an ineligible guard has NO entry, never `stable: false`."
+            "maximum": 2147483647,
+            "description": "Declared ordinal of the by-value parameter the condition tests. Eligible (G-V1) and stable (G-V4) by construction: an ineligible guard has NO entry, never `stable: false`. Bounded to the int32 domain, same rule as guardedArg.param (P-037 A2.2-D)."
           },
           "predicate": {
             "enum": [

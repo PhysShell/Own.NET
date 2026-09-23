@@ -526,6 +526,15 @@ pub struct Function {
         skip_serializing_if = "Option::is_none"
     )]
     pub params: Option<Vec<Param>>,
+    /// The guarded-fact sidecar (spec/OwnIR.md §5.2, P-037 A2.1,
+    /// door-registered A2.2-D). Optional, non-nullable: absent is legal,
+    /// an explicit `null` is rejected the same way `params` rejects one.
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub guarded_facts: Option<GuardedFacts>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
@@ -590,8 +599,209 @@ pub struct OwnIr {
         skip_serializing_if = "Option::is_none"
     )]
     pub protocol_functions: Option<Vec<Value>>,
+    /// The orphan carrier (spec/OwnIR.md §5.3, P-037 A2.2-3P, door-registered
+    /// A2.2-D): one entry per method with guarded facts but no `functions[]`
+    /// record. Optional, non-nullable, same treatment as every other
+    /// optional top-level block here.
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub guarded_functions: Option<Vec<GuardedOrphan>>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
+}
+
+// ---------------------------------------------------------------------------
+// P-037 A2.2-D: the guarded-fact sidecar and orphan-carrier models
+// (spec/OwnIR.md §5.2, §5.3). Every one of these ten items backs a schema
+// shape with `additionalProperties: false`, so — unlike every model above —
+// none of them carries an `extra: Map<String, Value>` / `#[serde(flatten)]`
+// catch-all, and none gets `#[serde(deny_unknown_fields)]` either: an
+// unknown key is `strict.rs`'s rejection to make (`only_keys()`), not
+// serde's. By the time `serde` builds one of these types, `strict.rs` has
+// already proven the document carries only the keys named below; serde is
+// the constructor, never the arbiter, exactly as everywhere else in this
+// crate.
+//
+// None of the shapes below nest into themselves or each other — `calls[]`,
+// `args[]` and `guards[]` are flat lists of leaf records — so unlike
+// `protocols`/`protocol_functions`/`Subscription::column`, nothing here
+// needs a raw `Value` or a `check_raw_depth` entry: depth is bounded by the
+// type graph itself.
+
+/// The closed vocabulary of a `guardedArg.kind` discriminator (spec/OwnIR.md
+/// §5.2, `$defs/guardedArg`). Wire names pinned to the schema's enum.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GuardedArgKind {
+    Var,
+    Param,
+    BoolConst,
+    NullLiteral,
+    ObjectCreation,
+    CallResult,
+    Opaque,
+}
+
+/// One raw call-argument fact (spec/OwnIR.md §5.2, `$defs/guardedArg`).
+///
+/// A tagged union on `kind`, kept as one typed struct with optional branch
+/// fields rather than a Rust enum-of-variants. The `oneOf`'s exact
+/// legal-field-set per `kind` — which of the fields below may be present,
+/// and which are required, for each value of `kind` — is `strict.rs`'s
+/// job; this type only has to describe the union of every variant's fields
+/// so an already-accepted document can be constructed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GuardedArg {
+    pub param: i64,
+    pub kind: GuardedArgKind,
+    /// `var` only: the disposable local's name (non-empty).
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub name: Option<String>,
+    /// `param` only: the source parameter's declared ordinal.
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub source_param: Option<i64>,
+    /// `param` only, and optional even there: present means exactly `true`.
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub negated: Option<bool>,
+    /// `bool_const` only.
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub value: Option<bool>,
+    /// `call_result` only: the resolved callee's `functions[]` key
+    /// (non-empty).
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub callee: Option<String>,
+    /// `call_result` only: the callee's §5.1 signature (empty legal, same
+    /// zero-parameter-overload convention as `Function::sig`).
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub sig: Option<String>,
+}
+
+/// The closed vocabulary of a `guardedGuard.predicate` (spec/OwnIR.md §5.2).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GuardedPredicate {
+    Truth,
+    NotNull,
+    IsNull,
+}
+
+/// The start coordinate of a call site or a guard (spec/OwnIR.md §4.2,
+/// §5.2, `$defs/sourceSite`), door-bound by P-037 A2.2-D.
+///
+/// Both fields required and non-nullable — unlike every other `column` in
+/// this crate, `column` here is a plain `i64`, not an `Option<Value>`: the
+/// schema requires a real integer, never absent or null, so there is no
+/// optional/nullable case to hold as a raw `Value` for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SourceSite {
+    pub line: i64,
+    pub column: i64,
+}
+
+/// The closed vocabulary of a `guardedCall.form` (spec/OwnIR.md §5.2).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GuardedForm {
+    Statement,
+    Initializer,
+    Expression,
+}
+
+/// The closed vocabulary of a `guardedCall.call_kind` (spec/OwnIR.md §5.2:
+/// P-037 A2.2-2/2b/4R5) — absent on a plain method invocation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GuardedCallKind {
+    ObjectCreation,
+    DelegateInvocation,
+    ConstructorInitializer,
+}
+
+/// One raw call fact (spec/OwnIR.md §5.2, `$defs/guardedCall`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GuardedCall {
+    pub site: SourceSite,
+    pub statement_line: i64,
+    pub form: GuardedForm,
+    /// Required KEY, nullable VALUE: `null` means Roslyn could not resolve
+    /// the call. Plain `Option<String>` with no `skip_serializing_if` — a
+    /// required field must round-trip its `null`, never disappear.
+    /// `strict.rs` enforces the key's presence before `serde` ever runs;
+    /// this type only describes the accepted `null`-or-string value (P-037
+    /// A2.2-D correction: this is deliberately not the crate's `nullable()`
+    /// helper, which is for *optional*-nullable fields).
+    pub callee: Option<String>,
+    /// Required key, nullable value: `null` exactly when `callee` is
+    /// `null`. Same required-nullable treatment as `callee`.
+    pub sig: Option<String>,
+    pub first_party: bool,
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub call_kind: Option<GuardedCallKind>,
+    pub args: Vec<GuardedArg>,
+}
+
+/// One raw guard fact (spec/OwnIR.md §5.2, `$defs/guardedGuard`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GuardedGuard {
+    pub site: SourceSite,
+    pub param: i64,
+    pub predicate: GuardedPredicate,
+    pub negated: bool,
+}
+
+/// The guarded-fact sidecar itself (spec/OwnIR.md §5.2, `$defs/guardedFacts`,
+/// P-037 A2.1, door-registered A2.2-D).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GuardedFacts {
+    pub version: i64,
+    pub calls: Vec<GuardedCall>,
+    pub guards: Vec<GuardedGuard>,
+}
+
+/// One `guarded_functions[]` orphan-carrier entry (spec/OwnIR.md §5.3,
+/// `$defs/guardedOrphan`, P-037 A2.2-3P, door-registered A2.2-D).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GuardedOrphan {
+    pub name: String,
+    pub file: String,
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub sig: Option<String>,
+    pub guarded_facts: GuardedFacts,
 }
 
 impl OwnIr {

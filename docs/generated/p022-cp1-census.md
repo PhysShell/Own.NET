@@ -8,9 +8,9 @@
 
 | measure                        | value |
 |--------------------------------|------:|
-| controls                       | 294 |
-| … accepted                     | 60 |
-| … rejected                     | 234 |
+| controls                       | 376 |
+| … accepted                     | 87 |
+| … rejected                     | 289 |
 
 ## By category
 
@@ -18,14 +18,14 @@ Seven categories on two axes (`shape` is "no representable primitive or containe
 
 | category | controls | what it means |
 |---|---:|---|
-| `accepted` | 60 | the document is accepted |
-| `identity` | 22 | a name slot — empty, mistyped, or duplicated |
+| `accepted` | 87 | the document is accepted |
+| `identity` | 31 | a name slot — empty, mistyped, or duplicated |
 | `json` | 2 | the document is not JSON at all |
-| `location` | 50 | a REPRESENTABLE source coordinate violating its coordinate-domain rule — the 1-based column, and the int32 line/column domain of spec/OwnIR.md §4.2 |
-| `shape` | 132 | right place, but the value has no representable primitive or container form the contract requires |
+| `location` | 53 | a REPRESENTABLE source coordinate violating its coordinate-domain rule — the 1-based column, and the int32 line/column domain of spec/OwnIR.md §4.2 |
+| `shape` | 163 | right place, but the value has no representable primitive or container form the contract requires |
 | `version` | 7 | the `ownir_version` gate — type or value |
-| `vocabulary` | 19 | right JSON type, value outside a closed set |
-| `well_formedness` | 2 | right types, legal vocabulary, and the record still cannot mean anything |
+| `vocabulary` | 23 | right JSON type, value outside a closed set |
+| `well_formedness` | 10 | right types, legal vocabulary, and the record still cannot mean anything |
 
 ## By section
 
@@ -35,7 +35,9 @@ The ledger's own grouping, which is BR-D1's check order. A section with acceptan
 |---|---:|---:|---|
 | `components` | 8 | 30 | `location` 7, `shape` 20, `vocabulary` 3 |
 | `effects` | 4 | 16 | `location` 4, `shape` 12 |
-| `functions` | 21 | 50 | `identity` 2, `location` 22, `shape` 25, `vocabulary` 1 |
+| `functions` | 21 | 51 | `identity` 2, `location` 22, `shape` 26, `vocabulary` 1 |
+| `guarded_facts` | 20 | 44 | `identity` 3, `location` 3, `shape` 27, `vocabulary` 4, `well_formedness` 7 |
+| `guarded_functions` | 7 | 10 | `identity` 6, `shape` 3, `well_formedness` 1 |
 | `json` | 0 | 1 | `json` 1 |
 | `order` | 0 | 25 | `identity` 5, `json` 1, `location` 4, `shape` 9, `version` 2, `vocabulary` 4 |
 | `protocol_functions` | 5 | 25 | `identity` 5, `location` 2, `shape` 13, `vocabulary` 5 |
@@ -50,9 +52,10 @@ Every control whose document carries a `line`, `ctor_line` or `column` at any de
 
 | measure                            | value |
 |------------------------------------|------:|
-| coordinate-bearing controls        | 151 |
-| … accepted                         | 39 |
-| … rejected `identity`              | 1 |
-| … rejected `location`              | 50 |
-| … rejected `shape`                 | 57 |
-| … rejected `vocabulary`            | 4 |
+| coordinate-bearing controls        | 206 |
+| … accepted                         | 57 |
+| … rejected `identity`              | 4 |
+| … rejected `location`              | 53 |
+| … rejected `shape`                 | 77 |
+| … rejected `vocabulary`            | 7 |
+| … rejected `well_formedness`       | 8 |

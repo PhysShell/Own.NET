@@ -45,7 +45,26 @@
       "mutable_top_level": [
         "load"
       ],
-      "registered_helpers": [],
+      "registered_helpers": [
+        "_GUARDED_ARG_KINDS",
+        "_GUARDED_CALL_KINDS",
+        "_GUARDED_FORMS",
+        "_GUARDED_PREDICATES",
+        "_ORDINAL_MIN",
+        "_ORDINAL_MAX",
+        "_check_ordinal",
+        "_check_required_line",
+        "_check_site",
+        "_check_required_nullable_string",
+        "_check_guarded_version",
+        "_only_keys",
+        "_check_guarded_arg",
+        "_check_guarded_args",
+        "_check_guarded_call",
+        "_check_guarded_guard",
+        "_check_guarded_facts",
+        "_check_guarded_functions"
+      ],
       "rule": "top-level definitions compared as AST with positions ignored and docstrings included; every existing top-level definition other than the mutable ones must be structurally identical to the reference; a new top-level definition is allowed only if its name is registered in registered_helpers as a door-only helper (a function or a module-level constant, never a class) and does not exist in the reference; nothing may be removed; hunks and line numbers play no part"
     },
     "rust": {
@@ -60,7 +79,18 @@
         ]
       },
       "registered_new_items": {
-        "src/lib.rs": []
+        "src/lib.rs": [
+          "enum GuardedArgKind",
+          "struct GuardedArg",
+          "struct GuardedGuard",
+          "enum GuardedPredicate",
+          "struct GuardedCall",
+          "enum GuardedForm",
+          "enum GuardedCallKind",
+          "struct GuardedFacts",
+          "struct SourceSite",
+          "struct GuardedOrphan"
+        ]
       },
       "frozen_files": [
         "Cargo.toml",

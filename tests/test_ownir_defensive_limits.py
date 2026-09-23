@@ -102,6 +102,28 @@ def _events(depth: int, key: str = "then") -> dict[str, Any]:
             "protocol_functions": [{"name": "M", "events": [node]}]}
 
 
+def _gcall(site_line: int = 1, site_column: int = 1,
+           statement_line: int = 1) -> dict[str, Any]:
+    """A minimally VALID `guardedCall` (P-037 A2.2-D): every other required
+    field held fixed and legal, so only the named coordinate can fail."""
+    return {"site": {"line": site_line, "column": site_column},
+            "statement_line": statement_line, "form": "statement",
+            "callee": None, "sig": None, "first_party": False,
+            "args": [{"param": 0, "kind": "opaque"}]}
+
+
+def _gguard(site_line: int = 1, site_column: int = 1) -> dict[str, Any]:
+    """A minimally VALID `guardedGuard` (P-037 A2.2-D)."""
+    return {"site": {"line": site_line, "column": site_column}, "param": 0,
+            "predicate": "truth", "negated": False}
+
+
+def _gf(calls: list[dict[str, Any]] | None = None,
+        guards: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """A minimally VALID `guardedFacts` sidecar (P-037 A2.2-D)."""
+    return {"version": 1, "calls": calls or [], "guards": guards or []}
+
+
 # Every path a source coordinate travels. Named as (label, builder) so a new
 # coordinate field that skips the check shows up as a missing row rather than
 # as nothing at all.
@@ -139,6 +161,15 @@ LINE_PATHS: list[tuple[str, Any]] = [
     ("functions[].body[].body[].line",
      lambda v: {"functions": [{"body": [
          {"op": "while", "body": [{"op": "acquire", "line": v}]}]}]}),
+    # P-037 A2.2-D: the guarded-fact sidecar's coordinates, newly bound.
+    # `_guarded_call`/`_guarded_guard` builders hold every other required
+    # field fixed and valid, so only the coordinate under test can fail.
+    ("functions[].guarded_facts.calls[].site.line",
+     lambda v: {"functions": [{"guarded_facts": _gf(calls=[_gcall(site_line=v)])}]}),
+    ("functions[].guarded_facts.calls[].statement_line",
+     lambda v: {"functions": [{"guarded_facts": _gf(calls=[_gcall(statement_line=v)])}]}),
+    ("functions[].guarded_facts.guards[].site.line",
+     lambda v: {"functions": [{"guarded_facts": _gf(guards=[_gguard(site_line=v)])}]}),
 ]
 
 # The same paths, for the TYPE rule. Every line field rejects a non-integer;
@@ -153,6 +184,12 @@ COLUMN_PATHS: list[tuple[str, Any]] = [
      lambda v: {"functions": [{"params": [{"name": "p", "column": v}]}]}),
     ("functions[].body[].column",
      lambda v: {"functions": [{"body": [{"op": "a", "column": v}]}]}),
+    # P-037 A2.2-D: `sourceSite.column` is required and non-nullable (unlike
+    # every other column above), but the domain rule is the same one.
+    ("functions[].guarded_facts.calls[].site.column",
+     lambda v: {"functions": [{"guarded_facts": _gf(calls=[_gcall(site_column=v)])}]}),
+    ("functions[].guarded_facts.guards[].site.column",
+     lambda v: {"functions": [{"guarded_facts": _gf(guards=[_gguard(site_column=v)])}]}),
 ]
 
 
@@ -250,20 +287,20 @@ def run() -> int:
     # `UNBOUND` was EMPTY from #259's final acceptance (§4.2's exception closed,
     # every coordinate-bearing path checked by `load()`) until P-037 A2.1, which
     # re-opened it on purpose with exactly one entry: the guarded-fact sidecar's
-    # `site` (§5.2). The A2 staging contract makes the sidecar inert at both
-    # doors in A2.1 — `load()` never reads `functions[].guarded_facts`, and the
-    # Rust door carries it as an unknown field — so binding its coordinate here
-    # would make a producer schema-invalid on a path the door accepts, which is
-    # the first of the two defects this map exists to catch. The producer's own
-    # self-check refuses a line or column below 1. The instrument step that
-    # registers the sidecar at the doors moves this entry to BOUND; until then
-    # the machinery is doing what it was kept for: the next unbound path is
-    # declared here, not discovered by nobody.
+    # `sourceSite` (§5.2). The A2.1 staging contract made the sidecar inert at
+    # both doors — `load()` never read `functions[].guarded_facts`, and the
+    # Rust door carried it as an unknown field — so binding its coordinate then
+    # would have made a producer schema-invalid on a path the door accepted.
+    # P-037 A2.2-D is the instrument step the comment above named: the doors
+    # now read the sidecar, so `sourceSite` moves back to BOUND (empty UNBOUND
+    # again, matching #259's final acceptance) and the producer's own stricter
+    # habit (never emitting a line/column below 1) is no longer load-bearing —
+    # the door enforces the domain itself now.
     BOUND = {"service": ["line", "ctor_line"], "site": ["line"],
              "effect": ["line"], "binding": ["line"], "param": ["line"],
              "protocolEvent": ["line"], "resourceRecord": ["line"],
-             "flowOp": ["line"]}
-    UNBOUND: dict[str, list[str]] = {"sourceSite": ["line"]}
+             "flowOp": ["line"], "sourceSite": ["line"]}
+    UNBOUND: dict[str, list[str]] = {}
 
     # …and the map is CLOSED over the schema, which the per-member checks below
     # cannot establish on their own.

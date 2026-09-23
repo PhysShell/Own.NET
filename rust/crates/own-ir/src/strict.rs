@@ -75,6 +75,33 @@ type Checked = Result<(), OwnIrError>;
 const LIFETIMES: [&str; 3] = ["scoped", "singleton", "transient"];
 const PARAM_EFFECTS: [&str; 4] = ["borrow", "borrow_mut", "consume", "plain"];
 
+// P-037 A2.2-D: the closed vocabularies of the guarded-fact sidecar
+// (spec/OwnIR.md §5.2), pinned to the wire spellings `GuardedArgKind`/
+// `GuardedCallKind`/`GuardedForm`/`GuardedPredicate` carry in `lib.rs`.
+const GUARDED_ARG_KINDS: [&str; 7] = [
+    "bool_const",
+    "call_result",
+    "null_literal",
+    "object_creation",
+    "opaque",
+    "param",
+    "var",
+];
+const GUARDED_CALL_KINDS: [&str; 3] = [
+    "constructor_initializer",
+    "delegate_invocation",
+    "object_creation",
+];
+const GUARDED_FORMS: [&str; 3] = ["expression", "initializer", "statement"];
+const GUARDED_PREDICATES: [&str; 3] = ["is_null", "not_null", "truth"];
+
+// The int32 domain a Roslyn parameter ordinal has on the consumer side
+// (spec/OwnIR.md §5.2, P-037 A2.2-D) — distinct from `LINE_MIN`/`LINE_MAX`
+// above: an ordinal is not a source coordinate, so a domain violation here
+// is `WellFormedness`, never `Location` (see `ordinal` below).
+const ORDINAL_MIN: i64 = 0;
+const ORDINAL_MAX: i64 = 2_147_483_647;
+
 fn shape(message: impl Into<String>) -> OwnIrError {
     OwnIrError::new(OwnIrErrorKind::Shape, message)
 }
@@ -89,6 +116,16 @@ fn vocabulary(message: impl Into<String>) -> OwnIrError {
 
 fn location(message: impl Into<String>) -> OwnIrError {
     OwnIrError::new(OwnIrErrorKind::Location, message)
+}
+
+/// P-037 A2.2-D: the first constructor for `OwnIrErrorKind::WellFormedness`
+/// in this module (the variant existed already; nothing here previously
+/// produced it). Right type, legal vocabulary, and the value still cannot
+/// mean what the field claims — an out-of-range parameter ordinal
+/// (`ordinal` below) and a non-ascending `args[]` sequence, never a
+/// `Location` (that category is coordinates specifically, not ordinals).
+fn well_formedness(message: impl Into<String>) -> OwnIrError {
+    OwnIrError::new(OwnIrErrorKind::WellFormedness, message)
 }
 
 /// The source-coordinate DOMAIN (`spec/OwnIR.md` §4.2) — the inner of the two
@@ -420,7 +457,10 @@ pub(crate) fn validate_document(obj: &Map<String, Value>, source: Option<&str>) 
     components(obj)?;
     services(obj)?;
     effects(obj)?;
-    functions(obj)?;
+    let functions_identities = functions(obj)?;
+    // P-037 A2.2-D: guarded_functions[] right after functions[], before
+    // protocols — the authored BR-D1 position (spec/OwnIR.md §5.3).
+    guarded_functions(obj, &functions_identities)?;
     protocols(obj)?;
     protocol_functions(obj)
 }
@@ -628,12 +668,26 @@ fn effects(obj: &Map<String, Value>) -> Checked {
     Ok(())
 }
 
-fn functions(obj: &Map<String, Value>) -> Checked {
+/// `functions[]`, plus (P-037 A2.2-D) each record's optional `guarded_facts`
+/// sidecar, checked right after the existing per-function fields — the
+/// BR-D1 position this treatment authors rather than inherits (spec/OwnIR.md
+/// §5.2's own note: JSON has no ordering semantics, so this project writes
+/// the order down and ports it, here and in `ownlang/ownir.py::load`).
+///
+/// Returns every `(file, name, sig)` identity `functions[]` carries, `sig`
+/// normalized `absent`/`null` → `None` (§5.3, correction 11: `null` is
+/// existing, frozen, accepted behaviour on `functions[].sig`, predating
+/// this commit, and must land in the same bucket as absence) — the set
+/// `guarded_functions()` below checks its own entries against.
+fn functions(
+    obj: &Map<String, Value>,
+) -> Result<std::collections::BTreeSet<(String, String, Option<String>)>, OwnIrError> {
     let fns = objects(
         obj,
         "functions",
         "OwnIR 'functions' must be a JSON array of objects",
     )?;
+    let mut identities = std::collections::BTreeSet::new();
     for function in fns {
         optional_string(function, "sig", "function")?;
         // The BODY's columns precede `params` — the least obvious edge in the
@@ -657,6 +711,484 @@ fn functions(obj: &Map<String, Value>) -> Checked {
                     )))
                 }
             }
+        }
+        // P-037 A2.2-D: guarded_facts, after the existing per-function
+        // checks. Absent is legal (skip); an explicit `null` is a shape
+        // violation, matching every other optional-non-nullable field this
+        // door reads.
+        match function.get("guarded_facts") {
+            None => {}
+            Some(Value::Object(gf)) => guarded_facts(gf, "function 'guarded_facts'")?,
+            Some(other) => {
+                return Err(shape(format!(
+                    "function 'guarded_facts' must be an object, got {other}"
+                )))
+            }
+        }
+        // §5.3 identity, read as-is: `load()` has never validated a
+        // functions[] record's own `name`/`file` (and this commit does not
+        // start), so a non-string or absent value degrades to "" rather
+        // than raising — there is no existing rule to inherit, and this is
+        // a comparison key, not a new acceptance check.
+        let file = function
+            .get("file")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string();
+        let name = function
+            .get("name")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string();
+        let sig = match function.get("sig") {
+            Some(Value::String(s)) => Some(s.clone()),
+            _ => None, // absent OR explicit null: both existing, both -> None
+        };
+        identities.insert((file, name, sig));
+    }
+    Ok(identities)
+}
+
+// ---------------------------------------------------------------------------
+// P-037 A2.2-D: the guarded-fact sidecar and orphan-carrier validators
+// (spec/OwnIR.md §5.2, §5.3). `additionalProperties: false` is new to this
+// crate's strict door — every older section tolerates an unknown key via
+// `extra`; this family does not — so each object below checks its known
+// fields in the authored BR-D1 order first and `only_keys` (the
+// `additionalProperties: false` enforcement) last: a document breaking both
+// a known field and carrying an alien key reports the known-field
+// violation, never "unknown key".
+
+/// `additionalProperties: false`, run **last**: every key `obj` carries
+/// must be one of `allowed`. Never used on the older additive sections,
+/// which must keep tolerating an unknown key exactly as they do today.
+fn only_keys(obj: &Map<String, Value>, allowed: &[&str], what: &str) -> Checked {
+    for key in obj.keys() {
+        if !allowed.contains(&key.as_str()) {
+            return Err(shape(format!("{what} carries an unknown key {key:?}")));
+        }
+    }
+    Ok(())
+}
+
+/// A required parameter ordinal (`guardedArg.param`/`source_param`,
+/// `guardedGuard.param`): representable i64 form (else `Shape`), then the
+/// int32 domain a Roslyn ordinal actually has (else `WellFormedness` — an
+/// ordinal is not a source coordinate, so this is deliberately not
+/// `Location`; see the taxonomy note on `well_formedness` above).
+fn ordinal(obj: &Map<String, Value>, key: &str, what: &str) -> Result<i64, OwnIrError> {
+    match obj.get(key) {
+        None => Err(shape(format!("{what} '{key}' is required"))),
+        Some(v) if is_representable_int(v) => {
+            let n = v.as_i64().unwrap_or(0);
+            if (ORDINAL_MIN..=ORDINAL_MAX).contains(&n) {
+                Ok(n)
+            } else {
+                Err(well_formedness(format!(
+                    "{what} '{key}' must denote a real parameter ordinal in \
+                     [{ORDINAL_MIN}, {ORDINAL_MAX}], got {n}"
+                )))
+            }
+        }
+        Some(other) => Err(shape(format!(
+            "{what} '{key}' must be an integer, got {other}"
+        ))),
+    }
+}
+
+/// A required source line, **not** defaulted on absence (unlike every other
+/// `line` this crate reads via `defaulted_line`): representable form, then
+/// the standard line domain (`Location` on a domain violation — this genuinely
+/// is a source coordinate, unlike `ordinal` above). `statement_line` is the
+/// one required, non-defaulted top-level line P-037 A2.2-D introduces.
+fn required_line(obj: &Map<String, Value>, key: &str, what: &str) -> Checked {
+    match obj.get(key) {
+        None => Err(shape(format!("{what} '{key}' is required"))),
+        Some(v) if is_representable_int(v) => line_domain(v.as_i64().unwrap_or(0), what, key),
+        Some(other) => Err(shape(format!(
+            "{what} '{key}' must be an integer, got {other}"
+        ))),
+    }
+}
+
+/// A required `{line, column}` source-site object (spec/OwnIR.md §4.2,
+/// §5.2, `$defs/sourceSite`). `column` here is required and non-nullable —
+/// unlike every optional/nullable `column` elsewhere in this crate, so this
+/// deliberately does NOT call the existing `column()` helper, which treats
+/// an absent or explicit-null column as legal.
+fn source_site(obj: &Map<String, Value>, key: &str, what: &str) -> Checked {
+    let label = format!("{what} '{key}'");
+    let site = match obj.get(key) {
+        None => return Err(shape(format!("{what} '{key}' is required"))),
+        Some(Value::Object(m)) => m,
+        Some(other) => {
+            return Err(shape(format!(
+                "{what} '{key}' must be an object, got {other}"
+            )))
+        }
+    };
+    required_line(site, "line", &label)?;
+    match site.get("column") {
+        None => Err(shape(format!("{label} 'column' is required"))),
+        Some(Value::Null) => Err(shape(format!(
+            "{label} 'column' must be a real integer, not null"
+        ))),
+        // A distinct local name from `column()`'s own `n` above (not just
+        // style): the P-022 mutation campaign anchors `column()`'s domain
+        // checks by exact text (docs/evidence/p022-coord-1.json M24/M25),
+        // and a byte-identical second `if n < COLUMN_MIN {`/`if n >
+        // COLUMN_MAX {` here would make that anchor match twice, which
+        // `tests/test_checkpoint_status.py` refuses as no longer uniquely
+        // applicable — caught by a real run of that check, not reasoned
+        // out in advance.
+        Some(v) if is_representable_int(v) => {
+            let col = v.as_i64().unwrap_or(0);
+            if col < COLUMN_MIN {
+                Err(location(format!(
+                    "{label} 'column' must be a 1-based integer, got {col}"
+                )))
+            } else if col > COLUMN_MAX {
+                Err(location(format!(
+                    "{label} 'column' must be a source column in [{COLUMN_MIN}, {COLUMN_MAX}], got {col}"
+                )))
+            } else {
+                only_keys(site, &["line", "column"], &label)
+            }
+        }
+        Some(other) => Err(shape(format!(
+            "{label} 'column' must be an integer, got {other}"
+        ))),
+    }
+}
+
+/// Required key, nullable value (`guardedCall.callee`/`.sig`): missing is a
+/// shape violation, `null` is legal (unresolved). Distinct from
+/// `optional_string` (absence AND null both legal there).
+fn required_nullable_string(obj: &Map<String, Value>, key: &str, what: &str) -> Checked {
+    match obj.get(key) {
+        None => Err(shape(format!("{what} '{key}' is required"))),
+        Some(Value::Null | Value::String(_)) => Ok(()),
+        Some(other) => Err(shape(format!(
+            "{what} '{key}' must be a string or null, got {other}"
+        ))),
+    }
+}
+
+/// A required closed-vocabulary string (`guardedArg.kind`, `guardedCall.form`,
+/// `guardedGuard.predicate`): missing is `Shape`, present-but-not-a-string
+/// (including `null`) is `Shape`, a string outside `set` is `Vocabulary`.
+///
+/// This is deliberately two steps, not one combined match arm — the bug a
+/// differential replay caught here: collapsing "not a string" and "wrong
+/// string" into one `Some(other) => vocabulary(...)` arm reports `null` as
+/// `Vocabulary` when it has no representable string form to be a *wrong*
+/// vocabulary value of. Mirrors the crate's own pre-existing `resource`
+/// check in `components()`, which already gets this right in two passes.
+fn required_closed_string<'a>(
+    obj: &'a Map<String, Value>,
+    key: &str,
+    set: &[&str],
+    what: &str,
+) -> Result<&'a str, OwnIrError> {
+    match obj.get(key) {
+        None => Err(shape(format!("{what} '{key}' is required"))),
+        Some(Value::String(s)) if set.contains(&s.as_str()) => Ok(s.as_str()),
+        Some(Value::String(s)) => Err(vocabulary(format!(
+            "{what} '{key}' must be one of {set:?}, got {s:?}"
+        ))),
+        Some(other) => Err(shape(format!(
+            "{what} '{key}' must be a string, got {other}"
+        ))),
+    }
+}
+
+/// The optional twin of [`required_closed_string`] (`guardedCall.call_kind`):
+/// absent is legal (`Ok(None)`), otherwise the same two-step shape-then-
+/// vocabulary rule.
+fn optional_closed_string<'a>(
+    obj: &'a Map<String, Value>,
+    key: &str,
+    set: &[&str],
+    what: &str,
+) -> Result<Option<&'a str>, OwnIrError> {
+    match obj.get(key) {
+        None => Ok(None),
+        Some(Value::String(s)) if set.contains(&s.as_str()) => Ok(Some(s.as_str())),
+        Some(Value::String(s)) => Err(vocabulary(format!(
+            "{what} '{key}' must be one of {set:?}, got {s:?}"
+        ))),
+        Some(other) => Err(shape(format!(
+            "{what} '{key}' must be a string, got {other}"
+        ))),
+    }
+}
+
+/// `guardedFacts.version`: the same representable-integer-form gate every
+/// numeric field in this document gets, before comparison against the
+/// single legal value `1` (spec/OwnIR.md §5.2) — `true`, a string, or a
+/// non-integral number are `Shape`, never a version mismatch.
+fn guarded_version(obj: &Map<String, Value>, what: &str) -> Checked {
+    match obj.get("version") {
+        None => Err(shape(format!("{what} 'version' is required"))),
+        Some(v) if is_representable_int(v) => {
+            let n = v.as_i64().unwrap_or(0);
+            if n == 1 {
+                Ok(())
+            } else {
+                Err(vocabulary(format!("{what} 'version' must be 1, got {n}")))
+            }
+        }
+        Some(other) => Err(shape(format!(
+            "{what} 'version' must be an integer, got {other}"
+        ))),
+    }
+}
+
+/// One `guardedArg`: the tagged union on `kind`, checked literally against
+/// each `oneOf` branch's exact legal field set — no "almost equivalent"
+/// shortcuts. Returns the validated `param` ordinal so the caller
+/// (`guarded_args`) can enforce the strictly-ascending rule across the
+/// whole list.
+fn guarded_arg(obj: &Map<String, Value>, what: &str) -> Result<i64, OwnIrError> {
+    let param = ordinal(obj, "param", what)?;
+    let kind = required_closed_string(obj, "kind", &GUARDED_ARG_KINDS, what)?;
+    let allowed: &[&str] = match kind {
+        "var" => {
+            name_slot(obj, "name", what)?;
+            &["param", "kind", "name"]
+        }
+        "param" => {
+            ordinal(obj, "source_param", what)?;
+            match obj.get("negated") {
+                None | Some(Value::Bool(true)) => {}
+                Some(other) => {
+                    return Err(shape(format!(
+                        "{what} 'negated' must be absent or true, got {other}"
+                    )))
+                }
+            }
+            &["param", "kind", "source_param", "negated"]
+        }
+        "bool_const" => {
+            match obj.get("value") {
+                Some(Value::Bool(_)) => {}
+                Some(other) => {
+                    return Err(shape(format!(
+                        "{what} 'value' must be a boolean, got {other}"
+                    )))
+                }
+                None => return Err(shape(format!("{what} 'value' is required"))),
+            }
+            &["param", "kind", "value"]
+        }
+        "null_literal" | "object_creation" | "opaque" => &["param", "kind"],
+        "call_result" => {
+            // `callee` is a name slot exactly like `var`'s (spec/OwnIR.md
+            // §5.2: "the resolved method's functions[] key") -- absence,
+            // emptiness and the wrong type are one defect, same as
+            // `name_slot`'s every other use in this crate, not a
+            // required-field shape check.
+            name_slot(obj, "callee", what)?;
+            match obj.get("sig") {
+                Some(Value::String(_)) => {}
+                Some(other) => {
+                    return Err(shape(format!("{what} 'sig' must be a string, got {other}")))
+                }
+                None => return Err(shape(format!("{what} 'sig' is required"))),
+            }
+            &["param", "kind", "callee", "sig"]
+        }
+        _ => unreachable!("kind already checked against GUARDED_ARG_KINDS"),
+    };
+    only_keys(obj, allowed, what)?;
+    Ok(param)
+}
+
+/// `guardedCall.args`: shape (`minItems: 1`), each element via `guarded_arg`,
+/// then the strictly-ascending-ordinal rule across the whole list
+/// (spec/OwnIR.md §5.2) — individually valid args, sequence doesn't cohere,
+/// so `WellFormedness`, same family as an out-of-domain ordinal.
+fn guarded_args(obj: &Map<String, Value>, what: &str) -> Checked {
+    let args = match obj.get("args") {
+        None => return Err(shape(format!("{what} 'args' is required"))),
+        Some(Value::Array(items)) if items.is_empty() => {
+            return Err(shape(format!(
+                "{what} 'args' must have at least one element"
+            )))
+        }
+        Some(Value::Array(items)) => items,
+        Some(other) => {
+            return Err(shape(format!(
+                "{what} 'args' must be an array, got {other}"
+            )))
+        }
+    };
+    let mut last = ORDINAL_MIN - 1;
+    for (i, item) in args.iter().enumerate() {
+        let label = format!("{what} 'args[{i}]'");
+        let Some(arg) = item.as_object() else {
+            return Err(shape(format!("{label} must be an object")));
+        };
+        let this = guarded_arg(arg, &label)?;
+        if this <= last {
+            return Err(well_formedness(format!(
+                "{what} 'args' must be strictly ascending by declared ordinal; \
+                 args[{i}] has ordinal {this}, not greater than the previous {last}"
+            )));
+        }
+        last = this;
+    }
+    Ok(())
+}
+
+/// One `guardedCall`, in the authored order: `site` -> `statement_line` ->
+/// `form` -> `callee` -> `sig` -> `first_party` -> `call_kind` -> `args`.
+fn guarded_call(obj: &Map<String, Value>, what: &str) -> Checked {
+    source_site(obj, "site", what)?;
+    required_line(obj, "statement_line", what)?;
+    required_closed_string(obj, "form", &GUARDED_FORMS, what)?;
+    required_nullable_string(obj, "callee", what)?;
+    required_nullable_string(obj, "sig", what)?;
+    match obj.get("first_party") {
+        Some(Value::Bool(_)) => {}
+        Some(other) => {
+            return Err(shape(format!(
+                "{what} 'first_party' must be a boolean, got {other}"
+            )))
+        }
+        None => return Err(shape(format!("{what} 'first_party' is required"))),
+    }
+    let has_call_kind =
+        optional_closed_string(obj, "call_kind", &GUARDED_CALL_KINDS, what)?.is_some();
+    guarded_args(obj, what)?;
+    let mut allowed: Vec<&str> = vec![
+        "site",
+        "statement_line",
+        "form",
+        "callee",
+        "sig",
+        "first_party",
+        "args",
+    ];
+    if has_call_kind {
+        allowed.push("call_kind");
+    }
+    only_keys(obj, &allowed, what)
+}
+
+/// One `guardedGuard`: `site` -> `param` -> `predicate` -> `negated`.
+fn guarded_guard(obj: &Map<String, Value>, what: &str) -> Checked {
+    source_site(obj, "site", what)?;
+    ordinal(obj, "param", what)?;
+    required_closed_string(obj, "predicate", &GUARDED_PREDICATES, what)?;
+    match obj.get("negated") {
+        Some(Value::Bool(_)) => {}
+        Some(other) => {
+            return Err(shape(format!(
+                "{what} 'negated' must be a boolean, got {other}"
+            )))
+        }
+        None => return Err(shape(format!("{what} 'negated' is required"))),
+    }
+    only_keys(obj, &["site", "param", "predicate", "negated"], what)
+}
+
+/// The `guardedFacts` sidecar itself: `version` -> `calls[]` -> `guards[]`.
+/// Shared by `functions[].guarded_facts` (optional presence, checked by the
+/// caller) and `guarded_functions[].guarded_facts` (required, checked by
+/// the caller) alike — this function validates only the object's own
+/// internals, exactly the §5.2 vocabulary either carrier states.
+fn guarded_facts(obj: &Map<String, Value>, what: &str) -> Checked {
+    guarded_version(obj, what)?;
+    if !obj.contains_key("calls") {
+        return Err(shape(format!("{what} 'calls' is required")));
+    }
+    let calls = objects(
+        obj,
+        "calls",
+        &format!("{what} 'calls' must be a JSON array of objects"),
+    )?;
+    for (i, call) in calls.iter().enumerate() {
+        guarded_call(call, &format!("{what} 'calls[{i}]'"))?;
+    }
+    if !obj.contains_key("guards") {
+        return Err(shape(format!("{what} 'guards' is required")));
+    }
+    let guards = objects(
+        obj,
+        "guards",
+        &format!("{what} 'guards' must be a JSON array of objects"),
+    )?;
+    for (i, guard) in guards.iter().enumerate() {
+        guarded_guard(guard, &format!("{what} 'guards[{i}]'"))?;
+    }
+    only_keys(obj, &["version", "calls", "guards"], what)
+}
+
+/// The top-level `guarded_functions[]` orphan carrier (spec/OwnIR.md §5.3):
+/// per-entry shape via `guarded_facts`/`name_slot`, then the §5.3 identity
+/// invariant — no `(file, name, sig)` triple shared with `functions[]`
+/// (`functions_identities`, from `functions()` above) or duplicated within
+/// `guarded_functions[]` itself. `sig` absent -> `None`; explicit `null` is
+/// refused before identity is even computed (correction 2/11: unlike
+/// `functions[].sig`, this is new vocabulary with no `null`-acceptance
+/// precedent to inherit).
+fn guarded_functions(
+    obj: &Map<String, Value>,
+    functions_identities: &std::collections::BTreeSet<(String, String, Option<String>)>,
+) -> Checked {
+    let orphans = match obj.get("guarded_functions") {
+        None => return Ok(()),
+        Some(Value::Null) => {
+            return Err(shape(
+                "OwnIR 'guarded_functions' must be an array, not null".to_string(),
+            ))
+        }
+        Some(Value::Array(items)) => items,
+        Some(other) => {
+            return Err(shape(format!(
+                "OwnIR 'guarded_functions' must be a JSON array of objects, got {other}"
+            )))
+        }
+    };
+    let mut seen: std::collections::BTreeSet<(String, String, Option<String>)> =
+        std::collections::BTreeSet::new();
+    for (i, item) in orphans.iter().enumerate() {
+        let what = format!("guarded_functions[{i}]");
+        let Some(entry) = item.as_object() else {
+            return Err(shape(format!("{what} must be an object")));
+        };
+        let name = name_slot(entry, "name", &what)?.to_string();
+        let file = name_slot(entry, "file", &what)?.to_string();
+        defaulted_string(entry, "sig", &what)?;
+        let sig = match entry.get("sig") {
+            Some(Value::String(s)) => Some(s.clone()),
+            _ => None,
+        };
+        let gf = match entry.get("guarded_facts") {
+            None => return Err(shape(format!("{what} 'guarded_facts' is required"))),
+            Some(Value::Object(m)) => m,
+            Some(other) => {
+                return Err(shape(format!(
+                    "{what} 'guarded_facts' must be an object, got {other}"
+                )))
+            }
+        };
+        guarded_facts(gf, &format!("{what} 'guarded_facts'"))?;
+        only_keys(entry, &["name", "file", "sig", "guarded_facts"], &what)?;
+
+        let key = (file.clone(), name.clone(), sig.clone());
+        if !seen.insert(key.clone()) {
+            return Err(identity(format!(
+                "{what}: duplicate orphan identity (file={file:?}, name={name:?}, sig={sig:?})"
+            )));
+        }
+        if functions_identities.contains(&key) {
+            return Err(identity(format!(
+                "{what}: identity (file={file:?}, name={name:?}, sig={sig:?}) already exists in \
+                 'functions[]' — an orphan is a distinct-identity carrier, never a second source \
+                 for an existing record"
+            )));
         }
     }
     Ok(())

@@ -186,3 +186,92 @@ fn optional_column_survives_the_round_trip() {
         );
     }
 }
+
+/// P-037 A2.2-D: `guardedCall.callee`/`.sig` are required-NULLABLE — a
+/// different shape from `explicit_null_is_accepted_and_preserved_where_
+/// python_accepts_it` above, whose fields are all *optional*-nullable
+/// (`Option<Option<T>>`, absent = key gone). `callee`/`.sig` are plain
+/// `Option<String>` with no `skip_serializing_if`, specifically so a
+/// required field's `null` re-emits the key rather than dropping it —
+/// this is the direct proof for that design (correction 2/10 of the
+/// A2.2-D plan): missing the `skip_serializing_if` omission would still
+/// *parse* correctly but would silently turn the required key absent on
+/// the way back out, which only a round-trip equality check catches.
+#[test]
+fn guarded_call_required_nullable_fields_survive_the_round_trip() {
+    let text = r#"{"functions": [{"guarded_facts": {"version": 1, "calls": [
+        {"site": {"line": 1, "column": 1}, "statement_line": 1, "form": "statement",
+         "callee": null, "sig": null, "first_party": false,
+         "args": [{"param": 0, "kind": "opaque"}]}
+    ], "guards": []}}]}"#;
+    let original: Value = serde_json::from_str(text).expect("valid JSON");
+    let doc = OwnIr::from_json(text)
+        .unwrap_or_else(|e| panic!("callee/sig null must be accepted (unresolved call): {e}"));
+    let back = doc.to_value().expect("round-trip serialization");
+    assert_eq!(
+        back, original,
+        "callee and sig must round-trip as explicit null, not disappear"
+    );
+    assert_eq!(
+        back.pointer("/functions/0/guarded_facts/calls/0/callee"),
+        Some(&Value::Null),
+        "callee must still be a present null key, not an absent one"
+    );
+    assert_eq!(
+        back.pointer("/functions/0/guarded_facts/calls/0/sig"),
+        Some(&Value::Null),
+        "sig must still be a present null key, not an absent one"
+    );
+}
+
+/// P-037 A2.2-D: `GuardedArg` is one typed struct with optional branch
+/// fields standing in for the schema's `oneOf` on `kind` — a shape that can
+/// technically *represent* more states than the seven branches allow.
+/// `strict.rs` is the arbiter that keeps the illegal combinations out; this
+/// proves the seven it DOES accept are value-preserving, one per kind, not
+/// just individually acceptable.
+#[test]
+fn every_guarded_arg_kind_round_trips() {
+    let args = [
+        r#"{"param": 0, "kind": "var", "name": "d"}"#,
+        r#"{"param": 0, "kind": "param", "source_param": 1, "negated": true}"#,
+        r#"{"param": 0, "kind": "bool_const", "value": true}"#,
+        r#"{"param": 0, "kind": "null_literal"}"#,
+        r#"{"param": 0, "kind": "object_creation"}"#,
+        r#"{"param": 0, "kind": "call_result", "callee": "C.F", "sig": ""}"#,
+        r#"{"param": 0, "kind": "opaque"}"#,
+    ];
+    let mut kinds_seen: Vec<String> = Vec::new();
+    for arg in args {
+        let text = format!(
+            r#"{{"functions": [{{"guarded_facts": {{"version": 1, "calls": [
+                {{"site": {{"line": 1, "column": 1}}, "statement_line": 1,
+                 "form": "statement", "callee": null, "sig": null,
+                 "first_party": false, "args": [{arg}]}}
+            ], "guards": []}}}}]}}"#
+        );
+        let original: Value = serde_json::from_str(&text).expect("valid JSON");
+        let doc = OwnIr::from_json(&text).unwrap_or_else(|e| panic!("{arg} must be accepted: {e}"));
+        let back = doc.to_value().expect("round-trip serialization");
+        assert_eq!(back, original, "{arg} must round-trip value-for-value");
+        let kind = original
+            .pointer("/functions/0/guarded_facts/calls/0/args/0/kind")
+            .and_then(Value::as_str)
+            .expect("kind")
+            .to_owned();
+        kinds_seen.push(kind);
+    }
+    let expected = [
+        "var",
+        "param",
+        "bool_const",
+        "null_literal",
+        "object_creation",
+        "call_result",
+        "opaque",
+    ];
+    assert_eq!(
+        kinds_seen, expected,
+        "every GuardedArgKind variant must be exercised, in the schema's own order"
+    );
+}

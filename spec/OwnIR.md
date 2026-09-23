@@ -226,16 +226,6 @@ contract question that recorded ("whether a coordinate no rule reads should
 nevertheless be well-formed") is answered **yes**, because the tolerant door
 does read it and anchors findings on it.
 
-One line-bearing path is, deliberately, validated by **neither door** for now:
-the `site` of a guarded-fact sidecar entry (`functions[].guarded_facts`, §5.2).
-The P-037 A2 staging contract makes that sidecar inert at both doors in A2.1 —
-`load()` never reads the key and the Rust door carries it as an unknown field —
-so a domain the door does not check is not stated by the schema either
-(`sourceSite` binds neither `sourceLine` nor `sourceColumn` and states only
-the type); the producer refuses to write a record whose line or column is
-below 1. The instrument step that registers the sidecar at the doors binds
-both coordinates to the domain above, at which point this paragraph goes.
-
 **Flow bodies and protocol event trees nest at most 32 levels.**
 
 `functions[].body` and `protocol_functions[].events` nest through `then`,
@@ -318,19 +308,30 @@ behaviour) — degraded, never a wrong overload — and the `first_party` /
 Additive/optional per §2: no `OWNIR_VERSION` bump; a present-but-non-string
 `sig` on a function record is rejected at load, on a flow op it reads as absent.
 
-### 5.2 The guarded-fact sidecar (`guarded_facts`, P-037 A2.1)
+### 5.2 The guarded-fact sidecar (`guarded_facts`, P-037 A2.1, door-registered A2.2-D)
 
 A flow function may carry an **optional** `guarded_facts` object: the frontend's
 raw record of what flows into each *relevant* call of the method and what each
 `if` tests. It is the input the guarded summary engine of P-037 (#304) reads
-once phase B wires it; through A2 it is **validated and semantically inert** —
-neither engine reads it, `body` stays authoritative, and a run's MOS documents
-and verdicts must not move when it appears
-(`docs/notes/p037-formal-kernel.md` §10.3; the A2 baselines under
-`docs/evidence/` are the witness, `corpus/p037-shapes` pins it per shape).
-Additive/optional per §2: no `OWNIR_VERSION` bump. The JSON Schema
-(`$defs/guardedFacts`, `guardedCall`, `guardedArg`, `guardedGuard`) is the
-normative shape; this section is its meaning.
+once phase B wires it. Through A2.1 it was validated only by the producer and
+carried as an unknown field at both doors; A2.2-D makes it **known, fail-loud
+vocabulary at both doors** — `load()` and the Rust strict door now validate
+its shape, closed vocabularies and coordinate domains, with matching refusal
+categories — while staying **semantically inert**: neither engine's lowerer,
+summaries or verdicts reads it, `body` stays authoritative, and a run's MOS
+documents and verdicts must not move whether it is present, absent, or valid
+but wrong about everything it can be wrong about
+(`docs/notes/p037-formal-kernel.md` §10.3 and §10.6.14; the A2 baselines
+under `docs/evidence/` witness the pre-registration inertness,
+`scripts/p037_sidecar_inertness.py` the door-registered inertness,
+`corpus/p037-shapes` pins the shapes per case). Additive/optional per §2: no
+`OWNIR_VERSION` bump. The JSON Schema (`$defs/guardedFacts`, `guardedCall`,
+`guardedArg`, `guardedGuard`) is the normative shape; this section is its
+meaning. `version` (the sidecar's own vocabulary version, currently the sole
+legal value `1`) passes the same representable-integer-form gate every other
+integer field in this document gets — a boolean, a string, or a non-integral
+number is a shape violation, never a version mismatch — before being checked
+against that closed value.
 
 Two rules govern every field (P-037 §10.2, the raw-fact boundary):
 
@@ -470,12 +471,18 @@ initializer argument is that call's own site, as everywhere.
 The call-site identity — the invocation's own coordinate plus `statement_line` —
 is what lets the legacy view (`body`) and this one be joined until the C+
 checkpoint canonicalizes the two representations (§10.5 of the formal note).
-Both coordinates of a `site` are 1-based, and in A2.1 they are validated
-**only** by the producer: the doors do not read the sidecar yet (§4.2), so
-`sourceSite` states their type and nothing narrower until the instrument step
-that registers the sidecar binds them to the shared coordinate domain.
-The producer validates every record against this vocabulary and refuses to
-write a facts file at all if one is malformed (exit 2): fail-loud at the source.
+A `site`'s `line` follows the general `sourceLine` domain `[0, 2147483647]`
+like every other line in this document; its `column` follows the 1-based
+`[1, 2147483647]` domain every other column carries, but is required and
+non-nullable (§4.2) — only `column` is "1-based," not both coordinates as an
+earlier revision of this section said. Through A2.1 both were validated only
+by the producer; A2.2-D is the instrument step that binds them to those
+domains at both doors (§4.2), the same door registration §5.2 describes for
+the rest of the sidecar's shape. `statement_line` (a plain, required
+`sourceLine`, not a `site`) carries the same domain it always did. The
+producer stays as strict as before and refuses to write a facts file at all
+if one is malformed (exit 2): fail-loud at the source, now matched by a
+fail-loud door.
 
 ### 5.3 The orphan carrier (`guarded_functions`, P-037 A2.2-3P)
 
@@ -514,19 +521,33 @@ Contract:
 - `functions[]` stays the legacy-visible set; its semantics are unchanged
   through A2. `guarded_functions[]` is an **orphan** carrier, not a second
   source for every method: a method identity (`file`, `name`, `sig`) present
-  in both is a producer defect and refuses the run (exit 2, no facts written).
-  The producer's control knob `OWN_P037_SELFCHECK_PROBE=duplicate_identity`
-  adds such a duplicate on purpose so the refusal can be witnessed; it never
-  changes facts, and no production or evidence run sets it.
+  in both is a producer defect and refuses the run (exit 2, no facts written);
+  the same identity present twice *within* `guarded_functions[]` is a distinct
+  producer defect, refused the same way. The producer's control knob
+  `OWN_P037_SELFCHECK_PROBE=duplicate_identity` adds such a duplicate on
+  purpose so the refusal can be witnessed; it never changes facts, and no
+  production or evidence run sets it. A2.2-D (door-registered) makes both
+  doors enforce this identity invariant too, at load rather than only at
+  write time — a document violating either collision is refused
+  (`Identity`). The identity's `sig` component distinguishes an **absent**
+  signature from an **explicitly empty** one: `""` is the canonical
+  zero-parameter-overload signature (§5.1) and a real identity component,
+  while an absent `sig` means no type information was available, so the two
+  are never the same identity even though the producer's own duplicate-probe
+  helper happens to collapse them for its own purposes.
 - The list is absent when empty, so a document without orphans keeps the
   bytes it had; when present it is the last top-level key.
-- Through A2 both doors carry the list as additive unknown metadata (§4.2
-  applies to its coordinates exactly as to `guarded_facts`), neither lowerer
-  reads it, and the inertness control proves that adding, removing or lying in
-  the carrier moves no MOS layer and no verdict on either engine. A2.2-D, the
-  door-registration step, makes `guarded_facts` and `guarded_functions` known,
-  fail-loud vocabulary on both doors; it is an instrument change and opens a
-  new baseline round.
+- Through A2.1 both doors carried the list as additive unknown metadata
+  (§4.2 applied to its coordinates exactly as to `guarded_facts`), neither
+  lowerer read it, and the inertness control proved that adding, removing or
+  lying in the carrier moved no MOS layer and no verdict on either engine.
+  A2.2-D, the door-registration step, makes `guarded_facts` and
+  `guarded_functions` known, fail-loud vocabulary on both doors — validated
+  shape, closed vocabularies, coordinate domains, and the identity invariant
+  above — while leaving every lowerer, summary and verdict exactly as silent
+  about them as before; `scripts/p037_sidecar_inertness.py` is the witness
+  that the door learning the vocabulary changed no engine's answer. It is an
+  instrument change and opens a new baseline round.
 - Phase B reads `functions[].guarded_facts` and
   `guarded_functions[].guarded_facts` as one guarded-method view; C+
   canonicalizes the temporary double carrier.

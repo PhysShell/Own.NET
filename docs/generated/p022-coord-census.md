@@ -11,22 +11,22 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | measure                            | value |
 |------------------------------------|------:|
 | JSON files scanned                 | 438 |
-| coordinate slots found             | 2197 |
+| coordinate slots found             | 2319 |
 
 ## By value class
 
 | value class | all slots | door slots |
 |---|---:|---:|
 | `above-int32` | 21 | 21 |
-| `below-1` | 19 | 19 |
+| `below-1` | 20 | 19 |
 | `bool` | 14 | 14 |
 | `float` | 2 | 2 |
-| `in-domain` | 1752 | 957 |
-| `negative` | 23 | 23 |
-| `null` | 227 | 7 |
+| `in-domain` | 1870 | 957 |
+| `negative` | 24 | 23 |
+| `null` | 228 | 7 |
 | `outside-int64` | 14 | 14 |
 | `string` | 17 | 17 |
-| `zero` | 108 | 25 |
+| `zero` | 109 | 25 |
 
 ## By family and slot
 
@@ -78,6 +78,14 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `(root)` | `cases[].document.functions[].<nested>[].line` | `null` | yes | 4 | 1 | — |
 | `(root)` | `cases[].document.functions[].<nested>[].line` | `string` | yes | 4 | 1 | `'x'` |
 | `(root)` | `cases[].document.functions[].<nested>[].line` | `zero` | yes | 4 | 1 | — |
+| `(root)` | `cases[].document.functions[].guarded_facts.calls[].site.column` | `below-1` | — | 1 | 1 | `0` |
+| `(root)` | `cases[].document.functions[].guarded_facts.calls[].site.column` | `in-domain` | — | 50 | 1 | — |
+| `(root)` | `cases[].document.functions[].guarded_facts.calls[].site.column` | `null` | — | 1 | 1 | — |
+| `(root)` | `cases[].document.functions[].guarded_facts.calls[].site.line` | `in-domain` | — | 50 | 1 | — |
+| `(root)` | `cases[].document.functions[].guarded_facts.calls[].site.line` | `negative` | — | 1 | 1 | `-1` |
+| `(root)` | `cases[].document.functions[].guarded_facts.calls[].site.line` | `zero` | — | 1 | 1 | — |
+| `(root)` | `cases[].document.functions[].guarded_facts.guards[].site.column` | `in-domain` | — | 8 | 1 | — |
+| `(root)` | `cases[].document.functions[].guarded_facts.guards[].site.line` | `in-domain` | — | 8 | 1 | — |
 | `(root)` | `cases[].document.functions[].params[].column` | `above-int32` | yes | 1 | 1 | `2147483648` |
 | `(root)` | `cases[].document.functions[].params[].column` | `below-1` | yes | 4 | 1 | `-1`, `0` |
 | `(root)` | `cases[].document.functions[].params[].column` | `bool` | yes | 1 | 1 | `True` |
@@ -89,6 +97,8 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `(root)` | `cases[].document.functions[].params[].line` | `outside-int64` | yes | 1 | 1 | `9223372036854775808` |
 | `(root)` | `cases[].document.functions[].params[].line` | `string` | yes | 3 | 1 | `'3'` |
 | `(root)` | `cases[].document.functions[].params[].line` | `zero` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.guarded_functions[].guarded_facts.calls[].site.column` | `in-domain` | — | 1 | 1 | — |
+| `(root)` | `cases[].document.guarded_functions[].guarded_facts.calls[].site.line` | `in-domain` | — | 1 | 1 | — |
 | `(root)` | `cases[].document.protocol_functions[].events[].<nested>[].line` | `in-domain` | yes | 134 | 1 | — |
 | `(root)` | `cases[].document.protocol_functions[].events[].line` | `above-int32` | yes | 1 | 1 | `2147483648` |
 | `(root)` | `cases[].document.protocol_functions[].events[].line` | `bool` | yes | 1 | 1 | `True` |

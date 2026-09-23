@@ -717,6 +717,329 @@ def _check_flow_coordinates(nodes: Any, where: str, depth: int = 0) -> None:
             _check_flow_coordinates(n.get(key), where, depth + 1)
 
 
+# P-037 A2.2-D: the closed vocabularies of the guarded-fact sidecar
+# (spec/OwnIR.md §5.2), pinned to the wire spellings the Rust door's
+# GuardedArgKind/GuardedCallKind/GuardedForm/GuardedPredicate carry
+# (rust/crates/own-ir/src/lib.rs).
+_GUARDED_ARG_KINDS = frozenset({
+    "var", "param", "bool_const", "null_literal", "object_creation", "call_result", "opaque",
+})
+_GUARDED_CALL_KINDS = frozenset(
+    {"object_creation", "delegate_invocation", "constructor_initializer"})
+_GUARDED_FORMS = frozenset({"statement", "initializer", "expression"})
+_GUARDED_PREDICATES = frozenset({"truth", "not_null", "is_null"})
+
+# The int32 domain a Roslyn parameter ordinal has on the consumer side
+# (spec/OwnIR.md §5.2, P-037 A2.2-D) — numerically identical to LINE_MIN/
+# LINE_MAX but semantically distinct: an ordinal is not a source
+# coordinate, so a domain violation here is a well-formedness defect, never
+# routed through `_check_line_domain`.
+_ORDINAL_MIN = 0
+_ORDINAL_MAX = 2147483647
+
+
+def _check_ordinal(d: dict[str, Any], key: str, where: str) -> int:
+    """A required parameter ordinal (`guardedArg.param`/`source_param`,
+    `guardedGuard.param`): representable form, then the int32 domain a
+    Roslyn ordinal actually has (P-037 A2.2-D). An out-of-domain ordinal is
+    a distinct defect from an out-of-domain line/column — an ordinal is not
+    a source coordinate — so this never raises through
+    `_check_line_domain`."""
+    if key not in d:
+        raise OwnIRError(f"{where} {key!r} is required")
+    v = d[key]
+    if isinstance(v, bool) or not isinstance(v, int):
+        raise OwnIRError(f"{where} {key!r} must be an integer, got {v!r}")
+    _check_representable(v, where, key)
+    if not _ORDINAL_MIN <= v <= _ORDINAL_MAX:
+        raise OwnIRError(
+            f"{where} {key!r} must denote a real parameter ordinal in "
+            f"[{_ORDINAL_MIN}, {_ORDINAL_MAX}], got {v}")
+    return int(v)
+
+
+def _check_required_line(d: dict[str, Any], key: str, where: str) -> None:
+    """A required source line, NOT defaulted on absence — every other
+    `line` this module reads defaults to 0 via `d.get(key, 0)`.
+    `statement_line` is the one required, non-defaulted top-level line
+    P-037 A2.2-D adds."""
+    if key not in d:
+        raise OwnIRError(f"{where} {key!r} is required")
+    v = d[key]
+    if isinstance(v, bool) or not isinstance(v, int):
+        raise OwnIRError(f"{where} {key!r} must be an integer, got {v!r}")
+    _check_line_domain(v, where, key)
+
+
+def _check_site(d: dict[str, Any], key: str, where: str) -> None:
+    """A required `{line, column}` source-site object (spec/OwnIR.md §4.2,
+    §5.2). `column` here is required and non-nullable — unlike every
+    optional/nullable `column` elsewhere in this module, so this
+    deliberately does not call `_check_column`, which treats an absent or
+    explicit-null column as legal."""
+    if key not in d:
+        raise OwnIRError(f"{where} {key!r} is required")
+    site = d[key]
+    if not isinstance(site, dict):
+        raise OwnIRError(f"{where} {key!r} must be an object, got {site!r}")
+    label = f"{where} {key!r}"
+    _check_required_line(site, "line", label)
+    if "column" not in site:
+        raise OwnIRError(f"{label} 'column' is required")
+    c = site["column"]
+    if c is None:
+        raise OwnIRError(f"{label} 'column' must be a real integer, not null")
+    # Same combined bool/type/low-domain check as `_check_column`, in the
+    # same order (native big-int comparison first, so an astronomically
+    # negative value reports the 1-based rule exactly like a small one —
+    # Python needs no representability gate to compare integers, unlike
+    # Rust's `is_representable_int` -> domain two-step).
+    if isinstance(c, bool) or not isinstance(c, int) or c < COLUMN_MIN:
+        raise OwnIRError(f"{label} 'column' must be a 1-based integer, got {c!r}")
+    _check_representable(c, label, "column")
+    if c > COLUMN_MAX:
+        raise OwnIRError(
+            f"{label} 'column' must be a source column in "
+            f"[{COLUMN_MIN}, {COLUMN_MAX}], got {c} (spec/OwnIR.md §4.2)")
+    _only_keys(site, ("line", "column"), label)
+
+
+def _check_required_nullable_string(d: dict[str, Any], key: str, where: str) -> None:
+    """Required key, nullable value (`guardedCall.callee`/`.sig`): missing
+    is a shape violation, `null` is legal (unresolved). Distinct from the
+    reference's ordinary `is not None and not isinstance(v, str)` optional
+    pattern, where absence is also legal."""
+    if key not in d:
+        raise OwnIRError(f"{where} {key!r} is required")
+    v = d[key]
+    if v is not None and not isinstance(v, str):
+        raise OwnIRError(f"{where} {key!r} must be a string or null, got {v!r}")
+
+
+def _check_guarded_version(d: dict[str, Any], where: str) -> None:
+    """`guardedFacts.version`: the same representable-integer-form gate
+    every numeric field in this document gets, before comparison against
+    the single legal value 1 (spec/OwnIR.md §5.2) — `True`, a string, or a
+    non-integral number are shape violations, never a version mismatch."""
+    if "version" not in d:
+        raise OwnIRError(f"{where} 'version' is required")
+    v = d["version"]
+    if isinstance(v, bool) or not isinstance(v, int):
+        raise OwnIRError(f"{where} 'version' must be an integer, got {v!r}")
+    _check_representable(v, where, "version")
+    if v != 1:
+        raise OwnIRError(f"{where} 'version' must be 1, got {v}")
+
+
+def _only_keys(d: dict[str, Any], allowed: tuple[str, ...], where: str) -> None:
+    """`additionalProperties: false`, run LAST — after every known field the
+    document carries has already passed its own check (P-037 A2.2-D, BR-D1
+    order) — so a document with both a bad known field and an alien key
+    reports the known-field violation, never "unknown key". Never used on
+    the older additive sections, which must keep tolerating an unknown key
+    exactly as they do today."""
+    extra = [k for k in d if k not in allowed]
+    if extra:
+        raise OwnIRError(f"{where} carries an unknown key {extra[0]!r}")
+
+
+def _check_guarded_arg(d: dict[str, Any], where: str) -> int:
+    """One `guardedArg`: the tagged union on `kind`, checked literally
+    against each `oneOf` branch's exact legal field set — no "almost
+    equivalent" shortcuts. Returns the validated `param` ordinal so the
+    caller (`_check_guarded_args`) can enforce the strictly-ascending rule
+    across the whole list."""
+    param = _check_ordinal(d, "param", where)
+    kind = d.get("kind")
+    if kind not in _GUARDED_ARG_KINDS:
+        raise OwnIRError(
+            f"{where} 'kind' must be one of {sorted(_GUARDED_ARG_KINDS)}, got {kind!r}")
+    if kind == "var":
+        name = d.get("name")
+        if not isinstance(name, str) or not name:
+            raise OwnIRError(f"{where} 'name' must be a non-empty string, got {name!r}")
+        allowed: tuple[str, ...] = ("param", "kind", "name")
+    elif kind == "param":
+        _check_ordinal(d, "source_param", where)
+        negated = d.get("negated")
+        if negated is not None and negated is not True:
+            raise OwnIRError(f"{where} 'negated' must be absent or true, got {negated!r}")
+        allowed = ("param", "kind", "source_param", "negated")
+    elif kind == "bool_const":
+        if "value" not in d:
+            raise OwnIRError(f"{where} 'value' is required")
+        if not isinstance(d["value"], bool):
+            raise OwnIRError(f"{where} 'value' must be a boolean, got {d['value']!r}")
+        allowed = ("param", "kind", "value")
+    elif kind in ("null_literal", "object_creation", "opaque"):
+        allowed = ("param", "kind")
+    else:
+        assert kind == "call_result"
+        # `callee` is a name slot exactly like `var`'s (spec/OwnIR.md §5.2:
+        # "the resolved method's functions[] key") -- absence, emptiness and
+        # the wrong type are one defect, same as every other name slot in
+        # this module, not a required-field check of its own.
+        callee = d.get("callee")
+        if not isinstance(callee, str) or not callee:
+            raise OwnIRError(f"{where} 'callee' must be a non-empty string, got {callee!r}")
+        if "sig" not in d:
+            raise OwnIRError(f"{where} 'sig' is required")
+        if not isinstance(d["sig"], str):
+            raise OwnIRError(f"{where} 'sig' must be a string, got {d['sig']!r}")
+        allowed = ("param", "kind", "callee", "sig")
+    _only_keys(d, allowed, where)
+    return param
+
+
+def _check_guarded_args(d: dict[str, Any], where: str) -> None:
+    """`guardedCall.args`: shape (`minItems: 1`), each element via
+    `_check_guarded_arg`, then the strictly-ascending-ordinal rule across
+    the whole list (spec/OwnIR.md §5.2) — individually valid args, sequence
+    doesn't cohere, a well-formedness defect rather than a shape one."""
+    if "args" not in d:
+        raise OwnIRError(f"{where} 'args' is required")
+    args = d["args"]
+    if not isinstance(args, list) or not all(isinstance(a, dict) for a in args):
+        raise OwnIRError(f"{where} 'args' must be an array of objects")
+    if not args:
+        raise OwnIRError(f"{where} 'args' must have at least one element")
+    last = _ORDINAL_MIN - 1
+    for i, arg in enumerate(args):
+        this = _check_guarded_arg(arg, f"{where} 'args[{i}]'")
+        if this <= last:
+            raise OwnIRError(
+                f"{where} 'args' must be strictly ascending by declared ordinal; "
+                f"args[{i}] has ordinal {this}, not greater than the previous {last}")
+        last = this
+
+
+def _check_guarded_call(d: dict[str, Any], where: str) -> None:
+    """One `guardedCall`, in the authored order: site -> statement_line ->
+    form -> callee -> sig -> first_party -> call_kind -> args."""
+    _check_site(d, "site", where)
+    _check_required_line(d, "statement_line", where)
+    form = d.get("form")
+    if form not in _GUARDED_FORMS:
+        if "form" not in d:
+            raise OwnIRError(f"{where} 'form' is required")
+        raise OwnIRError(f"{where} 'form' must be one of {sorted(_GUARDED_FORMS)}, got {form!r}")
+    _check_required_nullable_string(d, "callee", where)
+    _check_required_nullable_string(d, "sig", where)
+    if "first_party" not in d:
+        raise OwnIRError(f"{where} 'first_party' is required")
+    if not isinstance(d["first_party"], bool):
+        raise OwnIRError(
+            f"{where} 'first_party' must be a boolean, got {d['first_party']!r}")
+    has_call_kind = "call_kind" in d
+    if has_call_kind and d["call_kind"] not in _GUARDED_CALL_KINDS:
+        raise OwnIRError(
+            f"{where} 'call_kind' must be one of {sorted(_GUARDED_CALL_KINDS)}, "
+            f"got {d['call_kind']!r}")
+    _check_guarded_args(d, where)
+    allowed: tuple[str, ...] = (
+        "site", "statement_line", "form", "callee", "sig", "first_party", "args")
+    if has_call_kind:
+        allowed = (*allowed, "call_kind")
+    _only_keys(d, allowed, where)
+
+
+def _check_guarded_guard(d: dict[str, Any], where: str) -> None:
+    """One `guardedGuard`: site -> param -> predicate -> negated."""
+    _check_site(d, "site", where)
+    _check_ordinal(d, "param", where)
+    predicate = d.get("predicate")
+    if predicate not in _GUARDED_PREDICATES:
+        if "predicate" not in d:
+            raise OwnIRError(f"{where} 'predicate' is required")
+        raise OwnIRError(
+            f"{where} 'predicate' must be one of {sorted(_GUARDED_PREDICATES)}, "
+            f"got {predicate!r}")
+    if "negated" not in d:
+        raise OwnIRError(f"{where} 'negated' is required")
+    if not isinstance(d["negated"], bool):
+        raise OwnIRError(f"{where} 'negated' must be a boolean, got {d['negated']!r}")
+    _only_keys(d, ("site", "param", "predicate", "negated"), where)
+
+
+def _check_guarded_facts(d: dict[str, Any], where: str) -> None:
+    """The `guardedFacts` sidecar itself: version -> calls[] -> guards[].
+    Shared by `functions[].guarded_facts` (optional presence, checked by
+    the caller) and `guarded_functions[].guarded_facts` (required, checked
+    by the caller) alike — this function validates only the object's own
+    internals, exactly the §5.2 vocabulary either carrier states."""
+    _check_guarded_version(d, where)
+    if "calls" not in d:
+        raise OwnIRError(f"{where} 'calls' is required")
+    calls = d["calls"]
+    if not isinstance(calls, list) or not all(isinstance(c, dict) for c in calls):
+        raise OwnIRError(f"{where} 'calls' must be a JSON array of objects")
+    for i, call in enumerate(calls):
+        _check_guarded_call(call, f"{where} 'calls[{i}]'")
+    if "guards" not in d:
+        raise OwnIRError(f"{where} 'guards' is required")
+    guards = d["guards"]
+    if not isinstance(guards, list) or not all(isinstance(g, dict) for g in guards):
+        raise OwnIRError(f"{where} 'guards' must be a JSON array of objects")
+    for i, guard in enumerate(guards):
+        _check_guarded_guard(guard, f"{where} 'guards[{i}]'")
+    _only_keys(d, ("version", "calls", "guards"), where)
+
+
+def _check_guarded_functions(
+    result: dict[str, Any], functions_identities: set[tuple[str, str, str | None]],
+) -> None:
+    """The top-level `guarded_functions[]` orphan carrier (spec/OwnIR.md
+    §5.3): per-entry shape, then the §5.3 identity invariant — no
+    `(file, name, sig)` triple shared with `functions[]` (`functions_identities`)
+    or duplicated within `guarded_functions[]` itself. `sig` absent -> `None`;
+    an explicit `null` is refused before identity is even computed
+    (correction: unlike `functions[].sig`, this is new vocabulary with no
+    `null`-acceptance precedent to inherit)."""
+    if "guarded_functions" not in result:
+        return
+    orphans = result["guarded_functions"]
+    if orphans is None:
+        raise OwnIRError("OwnIR 'guarded_functions' must be an array, not null")
+    if not isinstance(orphans, list) or not all(isinstance(o, dict) for o in orphans):
+        raise OwnIRError("OwnIR 'guarded_functions' must be a JSON array of objects")
+    seen: set[tuple[str, str, str | None]] = set()
+    for i, entry in enumerate(orphans):
+        where = f"guarded_functions[{i}]"
+        name = entry.get("name")
+        if not isinstance(name, str) or not name:
+            raise OwnIRError(f"{where} 'name' must be a non-empty string, got {name!r}")
+        file = entry.get("file")
+        if not isinstance(file, str) or not file:
+            raise OwnIRError(f"{where} 'file' must be a non-empty string, got {file!r}")
+        if "sig" not in entry:
+            sig: str | None = None
+        elif entry["sig"] is None:
+            raise OwnIRError(f"{where} 'sig' must be a string, not null")
+        elif not isinstance(entry["sig"], str):
+            raise OwnIRError(f"{where} 'sig' must be a string, got {entry['sig']!r}")
+        else:
+            sig = entry["sig"]
+        if "guarded_facts" not in entry:
+            raise OwnIRError(f"{where} 'guarded_facts' is required")
+        gf = entry["guarded_facts"]
+        if not isinstance(gf, dict):
+            raise OwnIRError(f"{where} 'guarded_facts' must be an object, got {gf!r}")
+        _check_guarded_facts(gf, f"{where} 'guarded_facts'")
+        _only_keys(entry, ("name", "file", "sig", "guarded_facts"), where)
+
+        key = (file, name, sig)
+        if key in seen:
+            raise OwnIRError(
+                f"{where}: duplicate orphan identity "
+                f"(file={key[0]!r}, name={key[1]!r}, sig={key[2]!r})")
+        seen.add(key)
+        if key in functions_identities:
+            raise OwnIRError(
+                f"{where}: identity (file={key[0]!r}, name={key[1]!r}, sig={key[2]!r}) already "
+                f"exists in 'functions[]' — an orphan is a distinct-identity carrier, never a "
+                f"second source for an existing record")
+
+
 def load(path: str) -> dict[str, Any]:
     """Load and shape-check an OwnIR facts file (it is external input — a
     malformed file should fail with a clear error, not a deep traceback)."""
@@ -956,6 +1279,11 @@ def load(path: str) -> dict[str, Any]:
     fns = result.get("functions", [])
     if not isinstance(fns, list) or not all(isinstance(f, dict) for f in fns):
         raise OwnIRError("OwnIR 'functions' must be a JSON array of objects")
+    # P-037 A2.2-D: every functions[] identity, sig normalized absent/null ->
+    # None (existing, frozen `sig: null` acceptance predates this commit and
+    # must land in the same bucket as absence) -- the set
+    # `_check_guarded_functions` below checks its own entries against.
+    functions_identities: set[tuple[str, str, str | None]] = set()
     for f in fns:
         # Optional per-overload signature key (interprocedural stage 2): the
         # canonical parameter-type list a `call` op's `sig` resolves against.
@@ -993,6 +1321,27 @@ def load(path: str) -> dict[str, Any]:
                 raise OwnIRError(
                     f"parameter 'effect' must be one of {sorted(_PARAM_EFFECTS)}, "
                     f"got {peff!r}")
+        # P-037 A2.2-D: guarded_facts, after the existing per-function checks.
+        # Absent is legal (skip); an explicit null is a shape violation,
+        # matching every other optional-non-nullable field this door reads.
+        if "guarded_facts" in f:
+            gf = f["guarded_facts"]
+            if not isinstance(gf, dict):
+                raise OwnIRError(
+                    f"function 'guarded_facts' must be an object, got {gf!r}")
+            _check_guarded_facts(gf, "function 'guarded_facts'")
+        # §5.3 identity, read as-is: this door has never validated a
+        # functions[] record's own name/file (and this commit does not
+        # start), so a non-string or absent value degrades to "" rather
+        # than raising -- there is no existing rule to inherit, and this is
+        # a comparison key, not a new acceptance check.
+        f_file = f.get("file") if isinstance(f.get("file"), str) else ""
+        f_name = f.get("name") if isinstance(f.get("name"), str) else ""
+        f_sig = fsig if isinstance(fsig, str) else None  # absent OR null -> None
+        functions_identities.add((f_file, f_name, f_sig))
+    # P-037 A2.2-D: the orphan carrier, right after functions[], before
+    # protocols -- the authored BR-D1 position (spec/OwnIR.md §5.3).
+    _check_guarded_functions(result, functions_identities)
     # Optional obligation protocols (OBL001-005 — P-025). Additive/optional like
     # `services`/`effects`: an older core ignores both blocks. Their internal
     # vocabularies (matcher kinds, the `ev` discriminator) are fail-loud like a

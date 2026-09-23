@@ -1265,6 +1265,9 @@ def _controls() -> list[dict[str, Any]]:
            "shape"),
         # …and the coordinate-domain family, appended (insertion-stable).
         *_domain_controls(),
+        # …and the guarded-fact sidecar / orphan-carrier family (P-037
+        # A2.2-D), appended the same way.
+        *_guarded_controls(),
     ]
 
 
@@ -1437,6 +1440,439 @@ def _domain_controls() -> list[dict[str, Any]]:
            {"ownir_version": 0, "functions": [{
                "body": [{"op": "acquire", "line": -1}],
                "params": [{"name": ""}]}]}, "location"),
+    ]
+    return out
+
+
+# --- P-037 A2.2-D: the guarded-fact sidecar and orphan carrier ---------------
+#
+# `guarded_facts` (spec/OwnIR.md §5.2) and `guarded_functions[]` (§5.3) become
+# KNOWN, fail-loud vocabulary at both doors in this treatment. Every control
+# below is derived by reading the schema's `$defs/guardedFacts` etc. and the
+# ported `strict.rs`/`load()` code side by side, in the authored BR-D1 order
+# (a comment above `guarded_facts()` in `strict.rs`), the same discipline the
+# file's own docstring asks of every other family: a rejection control alone
+# proves nothing without its valid twin, and an "order" control is only
+# evidence when the two competing violations land in DIFFERENT categories --
+# same-category pairs cannot distinguish which one actually fired.
+
+
+def _garg(**kw: Any) -> dict[str, Any]:
+    """A minimally VALID `guardedArg` (`opaque`, needing only param+kind)."""
+    base: dict[str, Any] = {"param": 0, "kind": "opaque"}
+    base.update(kw)
+    return base
+
+
+def _gcall(**kw: Any) -> dict[str, Any]:
+    """A minimally VALID `guardedCall`."""
+    base: dict[str, Any] = {
+        "site": {"line": 1, "column": 1}, "statement_line": 1, "form": "statement",
+        "callee": None, "sig": None, "first_party": False, "args": [_garg()],
+    }
+    base.update(kw)
+    return base
+
+
+def _gguard(**kw: Any) -> dict[str, Any]:
+    """A minimally VALID `guardedGuard`."""
+    base: dict[str, Any] = {
+        "site": {"line": 1, "column": 1}, "param": 0, "predicate": "truth", "negated": False,
+    }
+    base.update(kw)
+    return base
+
+
+def _gfacts(**kw: Any) -> dict[str, Any]:
+    """A minimally VALID `guardedFacts` sidecar (empty calls/guards)."""
+    base: dict[str, Any] = {"version": 1, "calls": [], "guards": []}
+    base.update(kw)
+    return base
+
+
+def _fn_gf(gf: Any, **fn_kw: Any) -> dict[str, Any]:
+    """One document with one `functions[]` record carrying `gf` as its
+    `guarded_facts` (whatever shape `gf` is -- the control is testing the
+    field itself), plus any other function-record overrides."""
+    fn: dict[str, Any] = {"guarded_facts": gf}
+    fn.update(fn_kw)
+    return {"ownir_version": 0, "functions": [fn]}
+
+
+def _orphan(**kw: Any) -> dict[str, Any]:
+    """A minimally VALID `guarded_functions[]` orphan entry."""
+    base: dict[str, Any] = {"name": "C.M", "file": "a.cs", "guarded_facts": _gfacts()}
+    base.update(kw)
+    return base
+
+
+def _guarded_controls() -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = [
+        # ---- A: the absent/null matrix, one control per cell -------------
+        _c("reject-guarded-facts-null", "guarded_facts",
+           "functions[].guarded_facts: absent is legal, explicit null is not",
+           _fn_gf(None), "shape"),
+        _c("accept-guarded-facts-minimal", "guarded_facts",
+           "the smallest legal sidecar: empty calls and guards",
+           _fn_gf(_gfacts()), None),
+        _c("accept-guarded-facts-absent", "guarded_facts",
+           "a function with no guarded_facts key at all stays legal (additive)",
+           {"ownir_version": 0, "functions": [{"name": "C.M"}]}, None),
+        _c("reject-guarded-functions-null", "guarded_functions",
+           "the top-level list: absent is legal, explicit null is not",
+           {"ownir_version": 0, "guarded_functions": None}, "shape"),
+        _c("accept-guarded-functions-empty", "guarded_functions",
+           "an empty guarded_functions[] is legal",
+           {"ownir_version": 0, "guarded_functions": []}, None),
+        _c("accept-guarded-functions-absent", "guarded_functions",
+           "no guarded_functions key at all stays legal",
+           {"ownir_version": 0}, None),
+        _c("reject-orphan-sig-null", "guarded_functions",
+           "guardedOrphan.sig is optional but non-nullable",
+           {"ownir_version": 0, "guarded_functions": [_orphan(sig=None)]}, "shape"),
+        _c("accept-orphan-sig-absent", "guarded_functions",
+           "an orphan without sig is legal (unresolved)",
+           {"ownir_version": 0, "guarded_functions": [_orphan()]}, None),
+        _c("accept-orphan-sig-empty-string", "guarded_functions",
+           "sig \"\" is the canonical zero-parameter-overload signature (§5.1), "
+           "a real value, not a stand-in for absence",
+           {"ownir_version": 0, "guarded_functions": [_orphan(sig="")]}, None),
+        _c("reject-call-callee-absent", "guarded_facts",
+           "guardedCall.callee is a required KEY (unlike guardedArg's "
+           "call_result.callee, which is a name slot); its VALUE is nullable",
+           _fn_gf(_gfacts(calls=[{k: v for k, v in _gcall().items() if k != "callee"}])),
+           "shape"),
+        _c("accept-call-callee-null", "guarded_facts",
+           "null means Roslyn could not resolve the call",
+           _fn_gf(_gfacts(calls=[_gcall(callee=None)])), None),
+        _c("reject-call-sig-absent", "guarded_facts",
+           "guardedCall.sig is required-nullable, same shape as callee",
+           _fn_gf(_gfacts(calls=[{k: v for k, v in _gcall().items() if k != "sig"}])),
+           "shape"),
+        _c("accept-call-sig-null", "guarded_facts",
+           "null exactly when callee is null",
+           _fn_gf(_gfacts(calls=[_gcall(sig=None)])), None),
+        _c("accept-call-kind-absent", "guarded_facts",
+           "call_kind absent means a plain method invocation",
+           _fn_gf(_gfacts(calls=[_gcall()])), None),
+        _c("reject-call-kind-null", "guarded_facts",
+           "call_kind is optional but non-nullable, like sig on an orphan",
+           _fn_gf(_gfacts(calls=[_gcall(call_kind=None)])), "shape"),
+
+        # ---- B: parameter ordinals -- representable form, then the int32 --
+        # domain a Roslyn ordinal actually has. An ordinal is NOT a source
+        # coordinate (P-037 A2.2-D correction, second review round): reusing
+        # `location` here would be exactly the "nearest available category"
+        # mistake `OwnIrErrorKind`'s own doc comment forbids, so an
+        # out-of-domain ordinal is `well_formedness`, and only a
+        # non-representable one is `shape`.
+        _c("reject-arg-param-bool", "guarded_facts",
+           "True is an int in Python and would otherwise read as ordinal 1",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(param=True)])])), "shape"),
+        _c("reject-arg-param-oversized", "guarded_facts",
+           "no representable signed-64 form at all",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(param=ABOVE_I64)])])), "shape"),
+        _c("reject-arg-param-negative", "guarded_facts",
+           "representable, but no parameter list has a negative ordinal",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(param=-1)])])), "well_formedness"),
+        _c("reject-arg-param-over-int32", "guarded_facts",
+           "representable, but wider than the int32 ordinal Roslyn actually has",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(param=2147483648)])])),
+           "well_formedness"),
+        _c("accept-arg-param-zero", "guarded_facts", "the bottom of the domain",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(param=0)])])), None),
+        _c("accept-arg-param-int32-max", "guarded_facts", "the top of the domain",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(param=2147483647)])])), None),
+        _c("reject-arg-source-param-negative", "guarded_facts",
+           "the `param` kind's own ordinal is bound the same way",
+           _fn_gf(_gfacts(calls=[_gcall(args=[
+               _garg(kind="param", source_param=-1)])])), "well_formedness"),
+        _c("reject-guard-param-negative", "guarded_facts",
+           "guardedGuard.param is the same ordinal domain",
+           _fn_gf(_gfacts(guards=[_gguard(param=-1)])), "well_formedness"),
+
+        # ---- C: guardedFacts.version -- representable form, then the ------
+        # single closed value (spec/OwnIR.md §5.2's added door-contract
+        # sentence, P-037 A2.2-D correction, third review round).
+        _c("accept-version-1", "guarded_facts", "the one legal value",
+           _fn_gf(_gfacts(version=1)), None),
+        _c("reject-version-2", "guarded_facts",
+           "right form, wrong value in a closed set of one",
+           _fn_gf(_gfacts(version=2)), "vocabulary"),
+        _c("reject-version-true", "guarded_facts", "the bool-is-int trap",
+           _fn_gf(_gfacts(version=True)), "shape"),
+        _c("reject-version-string", "guarded_facts", "not an integer at all",
+           _fn_gf(_gfacts(version="1")), "shape"),
+        _c("reject-version-float", "guarded_facts", "not an integer at all",
+           _fn_gf(_gfacts(version=1.0)), "shape"),
+        _c("reject-version-null", "guarded_facts",
+           "present but null is not a representable integer",
+           _fn_gf(_gfacts(version=None)), "shape"),
+        _c("reject-version-missing", "guarded_facts",
+           "required-key-absent is `shape` uniformly across this surface",
+           _fn_gf({k: v for k, v in _gfacts().items() if k != "version"}), "shape"),
+
+        # ---- D/E: BR-D1 order, authored not inherited (P-037 A2.2-D, ------
+        # third review round). Each pair lands in DIFFERENT categories so
+        # the reported one proves which check actually fired first.
+        _c("order-function-sig-before-guarded-facts", "functions",
+           "an existing functions[] field is checked before its guarded_facts "
+           "sidecar -- unchanged position, guarded_facts is appended after",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(kind="var")])]), sig=True),
+           "shape"),
+        _c("order-guarded-facts-before-guarded-functions", "guarded_functions",
+           "the whole functions[] loop, sidecars included, finishes before "
+           "guarded_functions[] starts",
+           {"ownir_version": 0,
+            "functions": [{"guarded_facts": _gfacts(
+                calls=[_gcall(args=[_garg(param=-1)])])}],
+            "guarded_functions": [_orphan(name="")]},
+           "well_formedness"),
+        _c("order-guarded-functions-before-protocols", "guarded_functions",
+           "guarded_functions[] is checked before protocols[]",
+           {"ownir_version": 0,
+            "guarded_functions": [_orphan(name="")],
+            "protocols": [{"name": "P", "opens": {"kind": "call", "callee": "X"},
+                           "closes": {"kind": "call", "callee": "X"},
+                           "barriers": [{"kind": "bogus"}]}]},
+           "identity"),
+        _c("order-callee-before-args", "guarded_facts",
+           "within one call: callee is checked before args",
+           _fn_gf(_gfacts(calls=[
+               {k: v for k, v in _gcall(args=[_garg(kind="bogus")]).items()
+                if k != "callee"}])),
+           "shape"),
+        _c("order-param-before-kind", "guarded_facts",
+           "within one arg: the ordinal is checked before the kind vocabulary",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(param=-1, kind="bogus")])])),
+           "well_formedness"),
+        _c("order-form-before-unknown-key", "guarded_facts",
+           "a known field's own violation beats an unrelated alien key on "
+           "the same object",
+           _fn_gf(_gfacts(calls=[_gcall(form="bogus", zzz=True)])), "vocabulary"),
+        _c("order-arg-param-before-unknown-key", "guarded_facts",
+           "same rule, one level down: the arg's own ordinal beats an alien "
+           "key on the arg",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(param=-1, zzz=True)])])),
+           "well_formedness"),
+        _c("reject-call-unknown-key-alone", "guarded_facts",
+           "an otherwise fully valid call carrying one alien key",
+           _fn_gf(_gfacts(calls=[_gcall(zzz=True)])), "shape"),
+
+        # ---- F: the orphan's own identity slots (P-037 A2.2-D correction, --
+        # third review round: the schema was looser than the producer).
+        _c("reject-orphan-name-empty", "guarded_functions",
+           "name is half the door-registered identity tuple (§5.3)",
+           {"ownir_version": 0, "guarded_functions": [_orphan(name="")]}, "identity"),
+        _c("reject-orphan-file-empty", "guarded_functions", "same reasoning as name",
+           {"ownir_version": 0, "guarded_functions": [_orphan(file="")]}, "identity"),
+        _c("accept-orphan-valid", "guarded_functions", "a normal orphan entry",
+           {"ownir_version": 0, "guarded_functions": [_orphan()]}, None),
+
+        # ---- G: statement_line -- a real source coordinate (unlike an -----
+        # ordinal), so a domain violation is `location`, not `well_formedness`.
+        _c("reject-statement-line-missing", "guarded_facts",
+           "required, not defaulted like every other line this door reads",
+           _fn_gf(_gfacts(calls=[
+               {k: v for k, v in _gcall().items() if k != "statement_line"}])),
+           "shape"),
+        _c("reject-statement-line-negative", "guarded_facts",
+           "representable, outside the general line domain",
+           _fn_gf(_gfacts(calls=[_gcall(statement_line=-1)])), "location"),
+        _c("accept-statement-line-zero", "guarded_facts",
+           "0 is legal -- unknown/file-level, like every other line",
+           _fn_gf(_gfacts(calls=[_gcall(statement_line=0)])), None),
+
+        # ---- H: `site` -- required object, line general-domain, column ----
+        # required AND non-nullable (P-037 A2.2-D correction, first review
+        # round: this is why `site.column` cannot reuse the optional/
+        # nullable `column()` helper).
+        _c("reject-site-missing", "guarded_facts", "site is a required object",
+           _fn_gf(_gfacts(calls=[{k: v for k, v in _gcall().items() if k != "site"}])),
+           "shape"),
+        _c("reject-site-column-null", "guarded_facts",
+           "unlike every other column in this door, site.column rejects "
+           "an explicit null -- it is required, not optional",
+           _fn_gf(_gfacts(calls=[_gcall(site={"line": 1, "column": None})])),
+           "shape"),
+        _c("reject-site-column-zero", "guarded_facts",
+           "the 1-based rule, same as every other column",
+           _fn_gf(_gfacts(calls=[_gcall(site={"line": 1, "column": 0})])), "location"),
+        _c("reject-site-line-negative", "guarded_facts",
+           "the general line domain, same as every other line",
+           _fn_gf(_gfacts(calls=[_gcall(site={"line": -1, "column": 1})])), "location"),
+        _c("accept-site-valid", "guarded_facts", "line 0 (legal), column 1 (the floor)",
+           _fn_gf(_gfacts(calls=[_gcall(site={"line": 0, "column": 1})])), None),
+
+        # ---- I: the §5.3 identity invariant -- the door-registered half of --
+        # a rule the producer already enforced at write time (P-037 A2.2-D
+        # correction, second review round: door identity is
+        # (file, name, Option<sig>), and absent sig is NOT the same
+        # component as sig "" -- deliberately not copied from the producer's
+        # own `?? ""` self-check collapse).
+        _c("reject-orphan-collides-with-functions", "guarded_functions",
+           "an orphan repeating an existing functions[] identity is refused "
+           "at the door now, not only at the producer",
+           {"ownir_version": 0,
+            "functions": [{"name": "C.M", "file": "a.cs"}],
+            "guarded_functions": [_orphan(name="C.M", file="a.cs")]},
+           "identity"),
+        _c("reject-orphan-collides-with-orphan", "guarded_functions",
+           "two orphans sharing one identity is a distinct producer defect, "
+           "refused the same way",
+           {"ownir_version": 0,
+            "guarded_functions": [_orphan(name="C.M", file="a.cs"),
+                                  _orphan(name="C.M", file="a.cs")]},
+           "identity"),
+        _c("reject-orphan-collides-via-null-sig-normalization", "guarded_functions",
+           "functions[].sig: null is existing, frozen, accepted behaviour "
+           "(accept-function-sig-null) and normalizes to None for identity -- "
+           "an absent-sig orphan collides with it the same way it would "
+           "collide with a genuinely absent sig",
+           {"ownir_version": 0,
+            "functions": [{"name": "C.M", "file": "a.cs", "sig": None}],
+            "guarded_functions": [_orphan(name="C.M", file="a.cs")]},
+           "identity"),
+        _c("accept-orphan-empty-sig-does-not-collide-with-null-sig", "guarded_functions",
+           "sig \"\" and an absent/null sig are different identity "
+           "components (§5.1): this is the correction that keeps door "
+           "identity from silently adopting the producer's own `?? \"\"` "
+           "collapse",
+           {"ownir_version": 0,
+            "functions": [{"name": "C.M", "file": "a.cs", "sig": None}],
+            "guarded_functions": [_orphan(name="C.M", file="a.cs", sig="")]},
+           None),
+
+        # ---- J: the tagged union, literally, per `oneOf` branch (P-037 -----
+        # A2.2-D correction, first review round: no "almost equivalent"
+        # shortcuts).
+        _c("reject-arg-var-name-missing", "guarded_facts",
+           "`name` is a name slot like every other in this door: absence, "
+           "not just emptiness, is `identity`",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(kind="var")])])), "identity"),
+        _c("reject-arg-var-name-empty", "guarded_facts", "same slot, empty value",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(kind="var", name="")])])),
+           "identity"),
+        _c("accept-arg-var", "guarded_facts", "a disposable local flows in",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(kind="var", name="d")])])), None),
+        _c("reject-arg-param-negated-false", "guarded_facts",
+           "present means exactly true (schema: const true) -- a written "
+           "false is a shape violation, not a legal-but-unusual value",
+           _fn_gf(_gfacts(calls=[_gcall(args=[
+               _garg(kind="param", source_param=0, negated=False)])])), "shape"),
+        _c("accept-arg-param-negated-true", "guarded_facts", "`!p` on a boolean parameter",
+           _fn_gf(_gfacts(calls=[_gcall(args=[
+               _garg(kind="param", source_param=0, negated=True)])])), None),
+        _c("accept-arg-param-negated-absent", "guarded_facts",
+           "negated is optional even on the param kind",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(kind="param", source_param=0)])])),
+           None),
+        _c("reject-arg-bool-const-value-missing", "guarded_facts",
+           "value is required on the bool_const kind",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(kind="bool_const")])])), "shape"),
+        _c("reject-arg-bool-const-value-not-bool", "guarded_facts",
+           "value must be a genuine boolean",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(kind="bool_const", value=1)])])),
+           "shape"),
+        _c("accept-arg-bool-const", "guarded_facts", "a boolean literal argument",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(kind="bool_const", value=True)])])),
+           None),
+        _c("reject-arg-null-literal-extra-key", "guarded_facts",
+           "null_literal/object_creation/opaque carry ONLY param+kind -- any "
+           "additional key at all is a violation",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(kind="null_literal", zzz=True)])])),
+           "shape"),
+        _c("accept-arg-null-literal", "guarded_facts", "a null literal argument",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(kind="null_literal")])])), None),
+        _c("accept-arg-object-creation", "guarded_facts", "a `new` expression argument",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(kind="object_creation")])])), None),
+        _c("accept-arg-opaque", "guarded_facts", "everything else, still relevant",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(kind="opaque")])])), None),
+        _c("reject-arg-call-result-callee-missing", "guarded_facts",
+           "callee is a name slot on call_result too (P-037 A2.2-D correction, "
+           "consistency fix): absence is identity, not a required-field shape",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(kind="call_result", sig="")])])),
+           "identity"),
+        _c("reject-arg-call-result-sig-missing", "guarded_facts",
+           "sig is required but not a name slot -- absence is shape",
+           _fn_gf(_gfacts(calls=[_gcall(args=[
+               _garg(kind="call_result", callee="C.F")])])),
+           "shape"),
+        _c("accept-arg-call-result-sig-empty", "guarded_facts",
+           "sig \"\" is the callee's own zero-parameter-overload signature, legal",
+           _fn_gf(_gfacts(calls=[_gcall(args=[
+               _garg(kind="call_result", callee="C.F", sig="")])])), None),
+        _c("reject-arg-kind-unknown", "guarded_facts",
+           "kind is a closed 7-value vocabulary",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(kind="bogus")])])), "vocabulary"),
+
+        # ---- K: args[] shape and the strictly-ascending well-formedness ---
+        # rule (spec/OwnIR.md §5.2).
+        _c("reject-args-missing", "guarded_facts", "args is required on every call",
+           _fn_gf(_gfacts(calls=[{k: v for k, v in _gcall().items() if k != "args"}])),
+           "shape"),
+        _c("reject-args-empty", "guarded_facts",
+           "minItems: 1 -- a relevant call binds at least one handle",
+           _fn_gf(_gfacts(calls=[_gcall(args=[])])), "shape"),
+        _c("reject-args-non-ascending", "guarded_facts",
+           "individually valid args, the sequence does not cohere",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(param=1), _garg(param=0)])])),
+           "well_formedness"),
+        _c("accept-args-ascending", "guarded_facts", "two args, strictly ascending",
+           _fn_gf(_gfacts(calls=[_gcall(args=[_garg(param=0), _garg(param=1)])])),
+           None),
+
+        # ---- L: guards[] required fields and closed predicate vocabulary --
+        _c("reject-guard-predicate-missing", "guarded_facts", "predicate is required",
+           _fn_gf(_gfacts(guards=[
+               {k: v for k, v in _gguard().items() if k != "predicate"}])), "shape"),
+        _c("reject-guard-predicate-unknown", "guarded_facts",
+           "predicate is a closed 3-value vocabulary",
+           _fn_gf(_gfacts(guards=[_gguard(predicate="bogus")])), "vocabulary"),
+        _c("reject-guard-negated-missing", "guarded_facts", "negated is required",
+           _fn_gf(_gfacts(guards=[
+               {k: v for k, v in _gguard().items() if k != "negated"}])), "shape"),
+        _c("accept-guard-valid", "guarded_facts", "an eligible guard",
+           _fn_gf(_gfacts(guards=[_gguard()])), None),
+
+        # ---- M: additionalProperties: false, one representative per shape -
+        # not previously exercised above.
+        _c("reject-guarded-facts-unknown-key", "guarded_facts",
+           "guardedFacts itself is closed",
+           _fn_gf(dict(_gfacts(), zzz=True)), "shape"),
+        _c("reject-guard-unknown-key", "guarded_facts", "guardedGuard is closed",
+           _fn_gf(_gfacts(guards=[dict(_gguard(), zzz=True)])), "shape"),
+        _c("reject-orphan-unknown-key", "guarded_functions", "guardedOrphan is closed",
+           {"ownir_version": 0, "guarded_functions": [dict(_orphan(), zzz=True)]},
+           "shape"),
+
+        # ---- N: one rich, realistic accept, both carriers together --------
+        _c("accept-rich-guarded-facts-and-orphan", "guarded_functions",
+           "a function with a populated sidecar (every call_kind, a guard) "
+           "alongside an orphan with its own populated sidecar -- the whole "
+           "A2.2-D vocabulary accepted in one document",
+           {"ownir_version": 0,
+            "functions": [{
+                "name": "C.M", "file": "a.cs",
+                "guarded_facts": _gfacts(
+                    calls=[
+                        _gcall(args=[_garg(kind="var", name="d")]),
+                        _gcall(call_kind="object_creation",
+                               args=[_garg(kind="bool_const", value=True)]),
+                        _gcall(call_kind="delegate_invocation", callee=None, sig=None,
+                               first_party=False,
+                               args=[_garg(kind="null_literal")]),
+                        _gcall(call_kind="constructor_initializer",
+                               args=[_garg(kind="call_result", callee="C..ctor", sig="")]),
+                    ],
+                    guards=[_gguard(predicate="not_null"), _gguard(param=1, predicate="is_null")],
+                ),
+            }],
+            "guarded_functions": [_orphan(name="C.Orphan", file="a.cs",
+                                          guarded_facts=_gfacts(
+                                              calls=[_gcall(args=[_garg(kind="opaque")])]))],
+           },
+           None),
     ]
     return out
 

@@ -11,18 +11,18 @@
     "well_formedness": "right types, legal vocabulary, and the record still cannot mean anything"
   },
   "totals": {
-    "cases": 294,
-    "accepted": 60,
-    "rejected": 234,
+    "cases": 376,
+    "accepted": 87,
+    "rejected": 289,
     "by_category": {
-      "accepted": 60,
-      "identity": 22,
+      "accepted": 87,
+      "identity": 31,
       "json": 2,
-      "location": 50,
-      "shape": 132,
+      "location": 53,
+      "shape": 163,
       "version": 7,
-      "vocabulary": 19,
-      "well_formedness": 2
+      "vocabulary": 23,
+      "well_formedness": 10
     }
   },
   "cases": [
@@ -7887,6 +7887,2857 @@
       "verdict": "reject",
       "category": "location",
       "message": "function body op 'acquire' 'line' must be a source line in [0, 2147483647], got -1 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "reject-guarded-facts-null",
+      "why": "functions[].guarded_facts: absent is legal, explicit null is not",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": null
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' must be an object, got None"
+    },
+    {
+      "name": "accept-guarded-facts-minimal",
+      "why": "the smallest legal sidecar: empty calls and guards",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-guarded-facts-absent",
+      "why": "a function with no guarded_facts key at all stays legal (additive)",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "name": "C.M"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-guarded-functions-null",
+      "why": "the top-level list: absent is legal, explicit null is not",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "guarded_functions": null
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "OwnIR 'guarded_functions' must be an array, not null"
+    },
+    {
+      "name": "accept-guarded-functions-empty",
+      "why": "an empty guarded_functions[] is legal",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "guarded_functions": []
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-guarded-functions-absent",
+      "why": "no guarded_functions key at all stays legal",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-orphan-sig-null",
+      "why": "guardedOrphan.sig is optional but non-nullable",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "guarded_functions": [
+          {
+            "name": "C.M",
+            "file": "a.cs",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            },
+            "sig": null
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "guarded_functions[0] 'sig' must be a string, not null"
+    },
+    {
+      "name": "accept-orphan-sig-absent",
+      "why": "an orphan without sig is legal (unresolved)",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "guarded_functions": [
+          {
+            "name": "C.M",
+            "file": "a.cs",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-orphan-sig-empty-string",
+      "why": "sig \"\" is the canonical zero-parameter-overload signature (§5.1), a real value, not a stand-in for absence",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "guarded_functions": [
+          {
+            "name": "C.M",
+            "file": "a.cs",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            },
+            "sig": ""
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-call-callee-absent",
+      "why": "guardedCall.callee is a required KEY (unlike guardedArg's call_result.callee, which is a name slot); its VALUE is nullable",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'callee' is required"
+    },
+    {
+      "name": "accept-call-callee-null",
+      "why": "null means Roslyn could not resolve the call",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-call-sig-absent",
+      "why": "guardedCall.sig is required-nullable, same shape as callee",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'sig' is required"
+    },
+    {
+      "name": "accept-call-sig-null",
+      "why": "null exactly when callee is null",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-call-kind-absent",
+      "why": "call_kind absent means a plain method invocation",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-call-kind-null",
+      "why": "call_kind is optional but non-nullable, like sig on an orphan",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ],
+                  "call_kind": null
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'call_kind' must be one of ['constructor_initializer', 'delegate_invocation', 'object_creation'], got None"
+    },
+    {
+      "name": "reject-arg-param-bool",
+      "why": "True is an int in Python and would otherwise read as ordinal 1",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": true,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'param' must be an integer, got True"
+    },
+    {
+      "name": "reject-arg-param-oversized",
+      "why": "no representable signed-64 form at all",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 9223372036854775808,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'param' must fit a signed 64-bit integer, got 9223372036854775808 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "reject-arg-param-negative",
+      "why": "representable, but no parameter list has a negative ordinal",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": -1,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "well_formedness",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'param' must denote a real parameter ordinal in [0, 2147483647], got -1"
+    },
+    {
+      "name": "reject-arg-param-over-int32",
+      "why": "representable, but wider than the int32 ordinal Roslyn actually has",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 2147483648,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "well_formedness",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'param' must denote a real parameter ordinal in [0, 2147483647], got 2147483648"
+    },
+    {
+      "name": "accept-arg-param-zero",
+      "why": "the bottom of the domain",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-arg-param-int32-max",
+      "why": "the top of the domain",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 2147483647,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-arg-source-param-negative",
+      "why": "the `param` kind's own ordinal is bound the same way",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "param",
+                      "source_param": -1
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "well_formedness",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'source_param' must denote a real parameter ordinal in [0, 2147483647], got -1"
+    },
+    {
+      "name": "reject-guard-param-negative",
+      "why": "guardedGuard.param is the same ordinal domain",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "param": -1,
+                  "predicate": "truth",
+                  "negated": false
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "well_formedness",
+      "message": "function 'guarded_facts' 'guards[0]' 'param' must denote a real parameter ordinal in [0, 2147483647], got -1"
+    },
+    {
+      "name": "accept-version-1",
+      "why": "the one legal value",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-version-2",
+      "why": "right form, wrong value in a closed set of one",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 2,
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "function 'guarded_facts' 'version' must be 1, got 2"
+    },
+    {
+      "name": "reject-version-true",
+      "why": "the bool-is-int trap",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": true,
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'version' must be an integer, got True"
+    },
+    {
+      "name": "reject-version-string",
+      "why": "not an integer at all",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": "1",
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'version' must be an integer, got '1'"
+    },
+    {
+      "name": "reject-version-float",
+      "why": "not an integer at all",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1.0,
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'version' must be an integer, got 1.0"
+    },
+    {
+      "name": "reject-version-null",
+      "why": "present but null is not a representable integer",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": null,
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'version' must be an integer, got None"
+    },
+    {
+      "name": "reject-version-missing",
+      "why": "required-key-absent is `shape` uniformly across this surface",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'version' is required"
+    },
+    {
+      "name": "order-function-sig-before-guarded-facts",
+      "why": "an existing functions[] field is checked before its guarded_facts sidecar -- unchanged position, guarded_facts is appended after",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "var"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            },
+            "sig": true
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'sig' must be a string, got True"
+    },
+    {
+      "name": "order-guarded-facts-before-guarded-functions",
+      "why": "the whole functions[] loop, sidecars included, finishes before guarded_functions[] starts",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": -1,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ],
+        "guarded_functions": [
+          {
+            "name": "",
+            "file": "a.cs",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "well_formedness",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'param' must denote a real parameter ordinal in [0, 2147483647], got -1"
+    },
+    {
+      "name": "order-guarded-functions-before-protocols",
+      "why": "guarded_functions[] is checked before protocols[]",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "guarded_functions": [
+          {
+            "name": "",
+            "file": "a.cs",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            }
+          }
+        ],
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "call",
+              "callee": "X"
+            },
+            "closes": {
+              "kind": "call",
+              "callee": "X"
+            },
+            "barriers": [
+              {
+                "kind": "bogus"
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "guarded_functions[0] 'name' must be a non-empty string, got ''"
+    },
+    {
+      "name": "order-callee-before-args",
+      "why": "within one call: callee is checked before args",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "bogus"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'callee' is required"
+    },
+    {
+      "name": "order-param-before-kind",
+      "why": "within one arg: the ordinal is checked before the kind vocabulary",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": -1,
+                      "kind": "bogus"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "well_formedness",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'param' must denote a real parameter ordinal in [0, 2147483647], got -1"
+    },
+    {
+      "name": "order-form-before-unknown-key",
+      "why": "a known field's own violation beats an unrelated alien key on the same object",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "bogus",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ],
+                  "zzz": true
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "function 'guarded_facts' 'calls[0]' 'form' must be one of ['expression', 'initializer', 'statement'], got 'bogus'"
+    },
+    {
+      "name": "order-arg-param-before-unknown-key",
+      "why": "same rule, one level down: the arg's own ordinal beats an alien key on the arg",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": -1,
+                      "kind": "opaque",
+                      "zzz": true
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "well_formedness",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'param' must denote a real parameter ordinal in [0, 2147483647], got -1"
+    },
+    {
+      "name": "reject-call-unknown-key-alone",
+      "why": "an otherwise fully valid call carrying one alien key",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ],
+                  "zzz": true
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' carries an unknown key 'zzz'"
+    },
+    {
+      "name": "reject-orphan-name-empty",
+      "why": "name is half the door-registered identity tuple (§5.3)",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "guarded_functions": [
+          {
+            "name": "",
+            "file": "a.cs",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "guarded_functions[0] 'name' must be a non-empty string, got ''"
+    },
+    {
+      "name": "reject-orphan-file-empty",
+      "why": "same reasoning as name",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "guarded_functions": [
+          {
+            "name": "C.M",
+            "file": "",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "guarded_functions[0] 'file' must be a non-empty string, got ''"
+    },
+    {
+      "name": "accept-orphan-valid",
+      "why": "a normal orphan entry",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "guarded_functions": [
+          {
+            "name": "C.M",
+            "file": "a.cs",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-statement-line-missing",
+      "why": "required, not defaulted like every other line this door reads",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'statement_line' is required"
+    },
+    {
+      "name": "reject-statement-line-negative",
+      "why": "representable, outside the general line domain",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": -1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "function 'guarded_facts' 'calls[0]' 'statement_line' must be a source line in [0, 2147483647], got -1 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "accept-statement-line-zero",
+      "why": "0 is legal -- unknown/file-level, like every other line",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 0,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-site-missing",
+      "why": "site is a required object",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'site' is required"
+    },
+    {
+      "name": "reject-site-column-null",
+      "why": "unlike every other column in this door, site.column rejects an explicit null -- it is required, not optional",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": null
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'site' 'column' must be a real integer, not null"
+    },
+    {
+      "name": "reject-site-column-zero",
+      "why": "the 1-based rule, same as every other column",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 0
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "function 'guarded_facts' 'calls[0]' 'site' 'column' must be a 1-based integer, got 0"
+    },
+    {
+      "name": "reject-site-line-negative",
+      "why": "the general line domain, same as every other line",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": -1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "function 'guarded_facts' 'calls[0]' 'site' 'line' must be a source line in [0, 2147483647], got -1 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "accept-site-valid",
+      "why": "line 0 (legal), column 1 (the floor)",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 0,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-orphan-collides-with-functions",
+      "why": "an orphan repeating an existing functions[] identity is refused at the door now, not only at the producer",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "name": "C.M",
+            "file": "a.cs"
+          }
+        ],
+        "guarded_functions": [
+          {
+            "name": "C.M",
+            "file": "a.cs",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "guarded_functions[0]: identity (file='a.cs', name='C.M', sig=None) already exists in 'functions[]' — an orphan is a distinct-identity carrier, never a second source for an existing record"
+    },
+    {
+      "name": "reject-orphan-collides-with-orphan",
+      "why": "two orphans sharing one identity is a distinct producer defect, refused the same way",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "guarded_functions": [
+          {
+            "name": "C.M",
+            "file": "a.cs",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            }
+          },
+          {
+            "name": "C.M",
+            "file": "a.cs",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "guarded_functions[1]: duplicate orphan identity (file='a.cs', name='C.M', sig=None)"
+    },
+    {
+      "name": "reject-orphan-collides-via-null-sig-normalization",
+      "why": "functions[].sig: null is existing, frozen, accepted behaviour (accept-function-sig-null) and normalizes to None for identity -- an absent-sig orphan collides with it the same way it would collide with a genuinely absent sig",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "name": "C.M",
+            "file": "a.cs",
+            "sig": null
+          }
+        ],
+        "guarded_functions": [
+          {
+            "name": "C.M",
+            "file": "a.cs",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "guarded_functions[0]: identity (file='a.cs', name='C.M', sig=None) already exists in 'functions[]' — an orphan is a distinct-identity carrier, never a second source for an existing record"
+    },
+    {
+      "name": "accept-orphan-empty-sig-does-not-collide-with-null-sig",
+      "why": "sig \"\" and an absent/null sig are different identity components (§5.1): this is the correction that keeps door identity from silently adopting the producer's own `?? \"\"` collapse",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "name": "C.M",
+            "file": "a.cs",
+            "sig": null
+          }
+        ],
+        "guarded_functions": [
+          {
+            "name": "C.M",
+            "file": "a.cs",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            },
+            "sig": ""
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-arg-var-name-missing",
+      "why": "`name` is a name slot like every other in this door: absence, not just emptiness, is `identity`",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "var"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'name' must be a non-empty string, got None"
+    },
+    {
+      "name": "reject-arg-var-name-empty",
+      "why": "same slot, empty value",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "var",
+                      "name": ""
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'name' must be a non-empty string, got ''"
+    },
+    {
+      "name": "accept-arg-var",
+      "why": "a disposable local flows in",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "var",
+                      "name": "d"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-arg-param-negated-false",
+      "why": "present means exactly true (schema: const true) -- a written false is a shape violation, not a legal-but-unusual value",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "param",
+                      "source_param": 0,
+                      "negated": false
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'negated' must be absent or true, got False"
+    },
+    {
+      "name": "accept-arg-param-negated-true",
+      "why": "`!p` on a boolean parameter",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "param",
+                      "source_param": 0,
+                      "negated": true
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-arg-param-negated-absent",
+      "why": "negated is optional even on the param kind",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "param",
+                      "source_param": 0
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-arg-bool-const-value-missing",
+      "why": "value is required on the bool_const kind",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "bool_const"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'value' is required"
+    },
+    {
+      "name": "reject-arg-bool-const-value-not-bool",
+      "why": "value must be a genuine boolean",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "bool_const",
+                      "value": 1
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'value' must be a boolean, got 1"
+    },
+    {
+      "name": "accept-arg-bool-const",
+      "why": "a boolean literal argument",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "bool_const",
+                      "value": true
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-arg-null-literal-extra-key",
+      "why": "null_literal/object_creation/opaque carry ONLY param+kind -- any additional key at all is a violation",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "null_literal",
+                      "zzz": true
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' carries an unknown key 'zzz'"
+    },
+    {
+      "name": "accept-arg-null-literal",
+      "why": "a null literal argument",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "null_literal"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-arg-object-creation",
+      "why": "a `new` expression argument",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "object_creation"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-arg-opaque",
+      "why": "everything else, still relevant",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-arg-call-result-callee-missing",
+      "why": "callee is a name slot on call_result too (P-037 A2.2-D correction, consistency fix): absence is identity, not a required-field shape",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "call_result",
+                      "sig": ""
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'callee' must be a non-empty string, got None"
+    },
+    {
+      "name": "reject-arg-call-result-sig-missing",
+      "why": "sig is required but not a name slot -- absence is shape",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "call_result",
+                      "callee": "C.F"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'sig' is required"
+    },
+    {
+      "name": "accept-arg-call-result-sig-empty",
+      "why": "sig \"\" is the callee's own zero-parameter-overload signature, legal",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "call_result",
+                      "callee": "C.F",
+                      "sig": ""
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-arg-kind-unknown",
+      "why": "kind is a closed 7-value vocabulary",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "bogus"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "function 'guarded_facts' 'calls[0]' 'args[0]' 'kind' must be one of ['bool_const', 'call_result', 'null_literal', 'object_creation', 'opaque', 'param', 'var'], got 'bogus'"
+    },
+    {
+      "name": "reject-args-missing",
+      "why": "args is required on every call",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'args' is required"
+    },
+    {
+      "name": "reject-args-empty",
+      "why": "minItems: 1 -- a relevant call binds at least one handle",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": []
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'calls[0]' 'args' must have at least one element"
+    },
+    {
+      "name": "reject-args-non-ascending",
+      "why": "individually valid args, the sequence does not cohere",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 1,
+                      "kind": "opaque"
+                    },
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "well_formedness",
+      "message": "function 'guarded_facts' 'calls[0]' 'args' must be strictly ascending by declared ordinal; args[1] has ordinal 0, not greater than the previous 1"
+    },
+    {
+      "name": "accept-args-ascending",
+      "why": "two args, strictly ascending",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    },
+                    {
+                      "param": 1,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-guard-predicate-missing",
+      "why": "predicate is required",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "param": 0,
+                  "negated": false
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'guards[0]' 'predicate' is required"
+    },
+    {
+      "name": "reject-guard-predicate-unknown",
+      "why": "predicate is a closed 3-value vocabulary",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "param": 0,
+                  "predicate": "bogus",
+                  "negated": false
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "function 'guarded_facts' 'guards[0]' 'predicate' must be one of ['is_null', 'not_null', 'truth'], got 'bogus'"
+    },
+    {
+      "name": "reject-guard-negated-missing",
+      "why": "negated is required",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "param": 0,
+                  "predicate": "truth"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'guards[0]' 'negated' is required"
+    },
+    {
+      "name": "accept-guard-valid",
+      "why": "an eligible guard",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "param": 0,
+                  "predicate": "truth",
+                  "negated": false
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "reject-guarded-facts-unknown-key",
+      "why": "guardedFacts itself is closed",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": [],
+              "zzz": true
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' carries an unknown key 'zzz'"
+    },
+    {
+      "name": "reject-guard-unknown-key",
+      "why": "guardedGuard is closed",
+      "section": "guarded_facts",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "param": 0,
+                  "predicate": "truth",
+                  "negated": false,
+                  "zzz": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'guarded_facts' 'guards[0]' carries an unknown key 'zzz'"
+    },
+    {
+      "name": "reject-orphan-unknown-key",
+      "why": "guardedOrphan is closed",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "guarded_functions": [
+          {
+            "name": "C.M",
+            "file": "a.cs",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": []
+            },
+            "zzz": true
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "guarded_functions[0] carries an unknown key 'zzz'"
+    },
+    {
+      "name": "accept-rich-guarded-facts-and-orphan",
+      "why": "a function with a populated sidecar (every call_kind, a guard) alongside an orphan with its own populated sidecar -- the whole A2.2-D vocabulary accepted in one document",
+      "section": "guarded_functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "name": "C.M",
+            "file": "a.cs",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "var",
+                      "name": "d"
+                    }
+                  ]
+                },
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "bool_const",
+                      "value": true
+                    }
+                  ],
+                  "call_kind": "object_creation"
+                },
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "null_literal"
+                    }
+                  ],
+                  "call_kind": "delegate_invocation"
+                },
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "call_result",
+                      "callee": "C..ctor",
+                      "sig": ""
+                    }
+                  ],
+                  "call_kind": "constructor_initializer"
+                }
+              ],
+              "guards": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "param": 0,
+                  "predicate": "not_null",
+                  "negated": false
+                },
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "param": 1,
+                  "predicate": "is_null",
+                  "negated": false
+                }
+              ]
+            }
+          }
+        ],
+        "guarded_functions": [
+          {
+            "name": "C.Orphan",
+            "file": "a.cs",
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 1,
+                    "column": 1
+                  },
+                  "statement_line": 1,
+                  "form": "statement",
+                  "callee": null,
+                  "sig": null,
+                  "first_party": false,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
     }
   ]
 }
