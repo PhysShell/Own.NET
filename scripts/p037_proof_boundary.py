@@ -33,6 +33,19 @@ audit does not demand one kani::cover per kani::assume; it demands a named
 non-vacuity witness per load-bearing restriction, and says GAP plainly
 where none was found rather than inventing one.
 
+Both source derivations run over LEXICALLY MASKED text (_mask_non_code):
+// and /* nested */ comments, "strings" (with backslash escapes), br#"raw
+strings"# at any hash depth, and 'c' char literals are blanked to spaces
+(length- and newline-preserving) before either #[kani::proof] or
+kani::assume( is searched for -- so `kani::assume(...)` inside a comment
+or a string is prose, not a call site, and cannot manufacture a phantom
+assumption the way one did during this audit's own development (a design
+comment that named the call literally, in prose, was briefly read back as
+a 24th assume site). An unterminated comment, string, raw string, or
+char-literal escape is refused (exit 2), same as an unbalanced
+kani::assume( -- never guessed past. Lifetimes ('a, 'static) are left
+unmasked: they are real code, not opaque lexical content.
+
 Run:  python scripts/p037_proof_boundary.py
       python tests/test_p037_proof_boundary.py   (adversarial self-tests)
 """
@@ -73,6 +86,120 @@ def _read(path: Path) -> str:
     if not path.is_file():
         raise Refused(f"{path} does not exist")
     return path.read_text(encoding="utf-8")
+
+
+# --- lexical masking: comments/strings/chars are prose, not source ---------
+
+_RAW_STRING_OPENER = re.compile(r'b?r(#*)"')
+_ASSUME_TOKEN = re.compile(r"kani\s*::\s*assume\s*\(")
+
+
+def _line_at(text: str, pos: int) -> int:
+    return text.count("\n", 0, pos) + 1
+
+
+def _char_literal_end(text: str, i: int, label: str) -> int | None:
+    """`text[i] == "'"`. Returns the index just past a char literal's
+    closing quote, or None if `'` starts a lifetime (`'a`, `'static`) or is
+    otherwise not a char literal -- left as ordinary code, never masked.
+    An escape-form literal (`'\\n'`, `'\\''`, `'\\u{...}'`, ...) whose
+    closing quote is not found within a short, generous bound is refused:
+    no valid escape needs more than a few characters, so this is malformed
+    input, not a long-distance lifetime coincidence."""
+    n = len(text)
+    if i + 1 >= n:
+        return None
+    if text[i + 1] == "\\":
+        close = text.find("'", i + 2, min(n, i + 2 + 16))
+        if close == -1:
+            raise Refused(f"{label}:{_line_at(text, i)}: unterminated char literal "
+                          f"(escape opens at column {i + 1}); refusing to guess its extent")
+        return close + 1
+    if i + 2 < n and text[i + 2] == "'":
+        return i + 3
+    return None  # a lifetime, or a lone quote that is not a char literal
+
+
+def _mask_non_code(text: str, label: str) -> str:
+    """`text` with every // and /* nested */ comment, "string" (\\-escaped),
+    br#"raw string"# (any hash depth) and 'c' char literal replaced by
+    spaces -- same length, newlines preserved, so a match found in the
+    result indexes directly into `text` for both offset and line number.
+    Lifetimes are left untouched (real code, not opaque content). Refuses
+    (does not guess through) an unterminated comment, string or raw string.
+    """
+    out = list(text)
+    n = len(text)
+
+    def blank(a: int, b: int) -> None:
+        for k in range(a, b):
+            if out[k] != "\n":
+                out[k] = " "
+
+    i = 0
+    while i < n:
+        c = text[i]
+        if text[i:i + 2] == "//":
+            end = text.find("\n", i)
+            end = n if end == -1 else end
+            blank(i, end)
+            i = end
+            continue
+        if text[i:i + 2] == "/*":
+            depth = 1
+            j = i + 2
+            while j < n and depth:
+                two = text[j:j + 2]
+                if two == "/*":
+                    depth += 1
+                    j += 2
+                elif two == "*/":
+                    depth -= 1
+                    j += 2
+                else:
+                    j += 1
+            if depth:
+                raise Refused(f"{label}:{_line_at(text, i)}: unterminated block comment "
+                              f"(opens here); refusing to guess its extent")
+            blank(i, j)
+            i = j
+            continue
+        m = _RAW_STRING_OPENER.match(text, i)
+        if m:
+            closer = '"' + m.group(1)
+            j = text.find(closer, m.end())
+            if j == -1:
+                raise Refused(f"{label}:{_line_at(text, i)}: unterminated raw string "
+                              f"(opens here); refusing to guess its extent")
+            end = j + len(closer)
+            blank(i, end)
+            i = end
+            continue
+        if c == '"':
+            j, closed = i + 1, False
+            while j < n:
+                if text[j] == "\\":
+                    j += 2
+                    continue
+                if text[j] == '"':
+                    j += 1
+                    closed = True
+                    break
+                j += 1
+            if not closed:
+                raise Refused(f"{label}:{_line_at(text, i)}: unterminated string "
+                              f"(opens here); refusing to guess its extent")
+            blank(i, j)
+            i = j
+            continue
+        if c == "'":
+            end = _char_literal_end(text, i, label)
+            if end is not None:
+                blank(i, end)
+                i = end
+                continue
+        i += 1
+    return "".join(out)
 
 
 # --- source-derived Kani harness inventory ---------------------------------
@@ -151,7 +278,8 @@ def derive_source_assumes() -> list[dict[str, Any]]:
     for fname in ASSUME_FILES:
         path = PROPERTIES_DIR / fname
         text = _read(path)
-        for m in re.finditer(r"kani::assume\(", text):
+        masked = _mask_non_code(text, f"properties/{fname}")
+        for m in _ASSUME_TOKEN.finditer(masked):
             open_paren = m.end() - 1
             extracted = _extract_call_args(text, open_paren)
             line_no = text.count("\n", 0, m.start()) + 1

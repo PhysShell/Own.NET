@@ -12,6 +12,13 @@ Every test patches the module's own path/file-list constants to point at a
 temporary tree; none of it reads or writes the real formal/p037-kernel/ or
 docs/evidence/p037-b-ledger-*.json.
 
+A final section tests pb._mask_non_code directly, as scanner unit tests
+rather than fixture-tree corruptions: real kani::assume(...) call sites
+(plain, whitespace-split, comment-interrupted) must survive masking; the
+same text in a line comment, a block comment (nested or not), a normal
+string or a raw string must not; an unterminated comment or raw string
+must refuse rather than guess.
+
 Run:  python tests/test_p037_proof_boundary.py
       python tests/run_tests.py             (in the suite)
 """
@@ -284,6 +291,62 @@ def run() -> int:
             check("refused-on-missing-for-h-loop", False, "did not raise Refused")
         except pb.Refused:
             check("refused-on-missing-for-h-loop", True)
+
+    # Lexical masking (owner ruling, 2026-09-23): a comment naming
+    # kani::assume(...) in prose must never read as a call site -- the
+    # incident that prompted this section was exactly that, caught by this
+    # audit's own run, not by one of its self-tests. These check
+    # pb._mask_non_code directly, as scanner unit tests, not through a full
+    # fixture tree.
+    def masked_has_assume(src: str) -> bool:
+        return bool(pb._ASSUME_TOKEN.search(pb._mask_non_code(src, "lexer-check")))
+
+    real_cases = {
+        "plain": "kani::assume(x);",
+        "spaced": "kani :: assume (x);",
+        "split-across-lines": "kani::\n    assume(x);",
+        "comment-mid-tokens": "kani::assume/* why */(x);",  # bonus: a real call,
+        # a comment merely interrupting it -- masking turns the comment into
+        # whitespace, which \s* already tolerates, so this is found for free.
+    }
+    for name, src in real_cases.items():
+        check(f"lexer-real-{name}", masked_has_assume(src), src)
+
+    ignore_cases = {
+        "line-comment": "// kani::assume(x);",
+        "block-comment": "/* kani::assume(x); */",
+        "nested-block-comment": "/* nested /* kani::assume(x) */ */",
+        "normal-string": '"kani::assume(x);"',
+        "raw-string": 'r#"kani::assume(x);"#',
+    }
+    for name, src in ignore_cases.items():
+        check(f"lexer-ignore-{name}", not masked_has_assume(src), src)
+
+    lexer_refuse_cases = {
+        "unterminated-block-comment": "/* kani::assume(x);",
+        "unterminated-raw-string": 'r#"kani::assume(x);"',
+    }
+    for name, src in lexer_refuse_cases.items():
+        try:
+            pb._mask_non_code(src, "lexer-check")
+            check(f"lexer-refuse-{name}", False, "did not raise Refused")
+        except pb.Refused:
+            check(f"lexer-refuse-{name}", True)
+
+    # Char literals and lifetimes were on the owner's exclusion list but not
+    # in the named selftest set; the two real risks are a char literal in an
+    # assume's own argument swallowing surrounding code, and a lifetime
+    # (which starts with the same `'` a char literal does) being mistaken
+    # for an unterminated char literal and wrongly refused.
+    check("lexer-real-char-literal-in-argument",
+          masked_has_assume("kani::assume('a' == c);"),
+          "a char literal inside the argument must not hide the call")
+    try:
+        found = masked_has_assume("fn f<'a>(x: &'a bool) { kani::assume(*x); }")
+        check("lexer-real-lifetime-not-a-char-literal", found,
+              "a lifetime must not be refused as an unterminated char literal")
+    except pb.Refused as exc:
+        check("lexer-real-lifetime-not-a-char-literal", False, f"wrongly refused: {exc}")
 
     if _failures:
         print(f"RESULT: {_failures} check(s) failed")
