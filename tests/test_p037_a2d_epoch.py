@@ -104,7 +104,21 @@ PHASE_B_GOVERNANCE_FILES = (
     "scripts/p037_mos_snapshot.py",
     "scripts/p037_verdict_snapshot.py",
 )
-PHASE_B_PREFIXES = ("formal/p037-kernel/",)
+#
+# R_B (the Phase-B baseline, taken at T_B) adds new docs/evidence/p037-b-
+# baseline-*.json artifacts plus their own manifest -- an exact-file list
+# would need one more entry per take, forever, the same problem a2d itself
+# hit and answered with r_d_files/D_AFTER_EVIDENCE_PINS (dynamic discovery
+# from the a2d epoch record's own named_later fields). Phase B's own
+# evidence surface is simpler -- every one of its artifacts already lives
+# under one exact, already-owned prefix -- so a prefix is the proportionate
+# fix here rather than porting a2d's discovery machinery for a single
+# baseline take. The three PHASE_B_GOVERNANCE_FILES entries this prefix
+# also covers (p037-b-epoch.json and the two ledgers) are left listed
+# individually rather than pruned -- redundant, not wrong, and this test's
+# own history already prefers additive fixes over shrinking a tuple a prior
+# commit reasoned about.
+PHASE_B_PREFIXES = ("formal/p037-kernel/", "docs/evidence/p037-b-")
 
 # 10.6.14b: order step 6 (D after) lands its evidence as exactly these six
 # files under docs/evidence/, and nothing about them is inferred or
