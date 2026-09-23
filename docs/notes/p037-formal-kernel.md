@@ -2522,3 +2522,91 @@ above: B1 tooling and this note land first; `T_B` and `R_B` remain "not
 this task" until their own evidence is terminal-green; the first semantic
 treatment remains named, scoped to `production_diff_gate.rust`'s mutable
 items, and unattempted.
+
+#### 10.8a Phase B / B1: completing the instrument's last gap before R_B
+
+§10.8's own text on `scripts/p037_evidence_b.py` already named an open
+mechanical question rather than papering over it: `p037_mos_snapshot.py`
+and `p037_verdict_snapshot.py`'s `take()`/`compare()`/`verify()` bodies
+call a module-global `ev` bound, at the top of each file, by a single
+hardcoded `import p037_evidence as ev` — meaning both tools would stamp
+epoch `"a2d"` no matter what a caller wanted, and taking R_B with them
+as written was not actually possible. `4e75abe` froze the classifier,
+the gate and the environment identity with that gap still open; this
+addendum closes it, on top of `4e75abe`, before R_B is taken.
+
+**REPOSITORY FACT.** Not every `ev.*` name these two tools use is
+epoch-specific. `p037_evidence_b.py`'s own docstring already listed the
+population/profile/artifact/environment/git/manifest mechanics it
+imports unchanged from `p037_evidence.py`, stating the intent plainly:
+"so `p037_mos_snapshot.py`/`p037_verdict_snapshot.py`'s existing `take()`
+bodies can build a record from either module by calling the same-named
+function." That sentence was aspirational until now — `p037_evidence_b`
+did not yet expose those pure names at its own top level (only reachable
+as `p037_evidence_b.ev.scratch_problems`, not `p037_evidence_b.
+scratch_problems`), so binding a caller's `ev` to it would have raised
+`AttributeError` on the first pure call. Fixed by sixteen one-line
+re-exports (`scratch_problems = ev.scratch_problems`, and so on for
+`execution_profile`, `build_rust_artifact`, `artifact_problems`,
+`acquire_population`, `release_population`, `materialization_root`,
+`new_take_dir`, `seal_artifact`, `materialize_population`,
+`external_ancestor_problems`, `analysis_paths`, `sanitized_env`,
+`clean_reference_profile`, `finalize_run`, `reference_contamination`) —
+each one the literal same function object as `p037_evidence`'s, checked
+directly (`p037_evidence_b.scratch_problems is p037_evidence.
+scratch_problems` → `True`), not merely asserted.
+
+**Design: explicit `--epoch`, no silent selection.** Both snapshot tools
+gain a required `--epoch {a2d,b}` argument on every subcommand that
+touches `ev` (`take`, `compare`, `verify`) — matching
+`p037_verdict_snapshot.py`'s own pre-existing "ENGINE is explicit and
+required" precedent for exactly the same reason, and satisfying the B1
+brief's explicit list of forbidden mechanisms: no implicit "current
+epoch", no branch-name inference, no silently-read environment variable.
+`main()` resolves `args.epoch` against a two-entry `EPOCH_MODULES` dict
+(`{"a2d": p037_evidence, "b": p037_evidence_b}`) and rebinds the
+module-global `ev` to the selected module *before* calling `take()`/
+`compare()`/`verify()` — whose bodies are otherwise byte-for-byte
+unchanged, because every `ev.NAME` reference inside them is an attribute
+lookup Python resolves at call time, not at function-definition time.
+The one place that was NOT already call-time-lazy was
+`p037_mos_snapshot.py`'s module-level `SOURCES` dict, which captured
+`ev.CORPUS_DIRS`/`ev.REPO_TREE_DIRS` as plain tuples at import time —
+before any `--epoch` argument exists to read. Replaced with a `_sources
+(epoch_mod)` function called inside `take()` itself, after `ev` is
+rebound, so `--epoch b` actually reaches the augmented `CORPUS_DIRS`
+(`p037_evidence_b`'s tuple, plus `corpus/p037-shapes`) instead of
+silently reusing a2d's.
+
+**MEASURED/AUDITED FACT.** The a2d path was proven unbroken by real
+execution against already-accepted evidence, not by code review alone:
+`p037_mos_snapshot.py verify --epoch a2d docs/evidence/p037-a2d-baseline-
+mos-repo.json --against 44b405c2003b1d68965fe6346c2506d51ed52def` still
+reports `OK: ... fresh evidence at 44b405c2003b ...; inputs=82,
+support=3`, identical to its pre-change behaviour. The same command
+against current `HEAD` correctly reports `FAIL[provenance]: the
+treatment changed between 44b405c2003b and HEAD` — the A2.2-D door
+treatment landing after `T_D`, exactly as A2.2-D's own design intends,
+and unrelated to this change. `p037_evidence_b.EPOCH_MODULES` (read via
+each snapshot tool's own dict of the same name) resolves `"a2d"` to
+`p037_evidence` and `"b"` to `p037_evidence_b`, with `CORPUS_DIRS`
+differing exactly as designed (`"corpus/p037-shapes" in ...` is `False`
+for a2d, `True` for b) and `REPO_TREE_DIRS` identical on both (b never
+had a different repo-tree population). `ruff check .`, the project-wide
+`mypy`, `tests/test_p037_a2d_epoch.py` (14/14) and `tests/
+test_p037_evidence.py` all stay green on a clean tree; the one transient
+`FAIL[fresh-record-valid]` seen while this addendum's own files were
+still uncommitted was `evidence was taken on a dirty tree` — the test's
+own real-`git`-backed fixture correctly reporting this checkout's actual
+dirty state at that moment, not a defect in the fix, and gone once
+committed.
+
+**Consequence for T_B.** `4e75abe`'s production-diff gate verdict
+(`IDENTICAL` against `5571ba4`) is untouched by this addendum — none of
+its three files lie under `rust/crates/own-bridge/`. But `4e75abe` could
+not actually take Phase-B evidence, so it is not offered as `T_B`: the
+commit landing this addendum is, once it is itself pushed and confirmed
+terminal-green (including fast Kani) the same way `4e75abe` was. `4e75abe`
+stays exactly as committed, an honest record of the instrument as it
+stood one step before the gap was found — the same discipline §10.7a and
+§10.6.14a both already apply to their own preceding heads.

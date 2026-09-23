@@ -56,10 +56,19 @@ from pathlib import Path
 from typing import Any
 
 import p037_evidence as ev
+import p037_evidence_b
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA = "p037-verdict-snapshot/3"
 VERDICT_LEVELS = ("error", "warning")
+# Epoch is explicit and required -- same precedent this module's own
+# docstring already states for ENGINE, extended to epoch selection (P-037
+# Phase B: never an implicit "current epoch", branch-name inference or a
+# silently-read env var). main() rebinds the module-global `ev` to the
+# selected module before calling take()/_measure()/compare()/verify()/
+# run_one() below; their bodies read `ev.*` at call time and are otherwise
+# UNCHANGED for either epoch.
+EPOCH_MODULES: dict[str, Any] = {"a2d": ev, "b": p037_evidence_b}
 
 
 def run_one(path: Path, engine: str, env: dict[str, str]) -> dict[str, Any]:
@@ -313,6 +322,7 @@ def main(argv: list[str]) -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     t = sub.add_parser("take", help="record a snapshot")
+    t.add_argument("--epoch", required=True, choices=tuple(EPOCH_MODULES))
     t.add_argument("--engine", required=True, choices=("rust", "python"))
     t.add_argument("--out", required=True, type=Path)
     t.add_argument("--corpus", action="append", default=None, metavar="DIR")
@@ -320,6 +330,7 @@ def main(argv: list[str]) -> int:
                    help="the commit whose blobs are analysed (default HEAD; the after "
                         "side of a pair names the baseline's commit)")
     c = sub.add_parser("compare", help="diff two snapshots")
+    c.add_argument("--epoch", required=True, choices=tuple(EPOCH_MODULES))
     c.add_argument("--before", required=True, type=Path)
     c.add_argument("--after", required=True, type=Path)
     c.add_argument("--level", default="verdict", choices=("verdict", "all"),
@@ -327,9 +338,12 @@ def main(argv: list[str]) -> int:
     c.add_argument("--against", default="HEAD",
                    help="the commit the after side must be fresh at (default HEAD)")
     v = sub.add_parser("verify", help="prove a snapshot is still fresh evidence at a commit")
+    v.add_argument("--epoch", required=True, choices=tuple(EPOCH_MODULES))
     v.add_argument("snapshot", type=Path)
     v.add_argument("--against", default="HEAD")
     args = ap.parse_args(argv)
+    global ev
+    ev = EPOCH_MODULES[args.epoch]
     if args.cmd == "take":
         dirs = tuple(args.corpus) if args.corpus else ev.CORPUS_DIRS
         return take(args.engine, args.out, dirs, args.population_commit)

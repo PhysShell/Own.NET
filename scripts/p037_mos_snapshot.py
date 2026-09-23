@@ -46,6 +46,7 @@ sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(ROOT))
 
 import p037_evidence as ev  # noqa: E402
+import p037_evidence_b  # noqa: E402
 from shadow_compare import (  # noqa: E402
     DEFAULT_TIMEOUT_SECONDS,
     ExecutionFailure,
@@ -57,10 +58,19 @@ from shadow_compare import (  # noqa: E402
 from ownlang.repro import ENGINE_PYTHON, ENGINE_RUST, hash_bytes  # noqa: E402
 
 SCHEMA = "p037-mos-snapshot/2"
-SOURCES: dict[str, tuple[str, ...]] = {
-    "corpus": ev.CORPUS_DIRS,
-    "repo": ev.REPO_TREE_DIRS,
-}
+SOURCE_NAMES: tuple[str, ...] = ("corpus", "repo")
+# Epoch is explicit and required, matching p037_verdict_snapshot.py's own
+# "ENGINE is explicit and required" precedent -- never an implicit "current
+# epoch", branch-name inference or a silently-read env var (P-037 Phase B
+# prompt, section on epoch-aware tooling). main() rebinds the module-global
+# `ev` to the selected module before calling take()/_measure()/compare()/
+# verify()/extract_facts() below; their bodies read `ev.*` at call time and
+# are otherwise UNCHANGED for either epoch.
+EPOCH_MODULES: dict[str, Any] = {"a2d": ev, "b": p037_evidence_b}
+
+
+def _sources(epoch_mod: Any) -> dict[str, tuple[str, ...]]:
+    return {"corpus": epoch_mod.CORPUS_DIRS, "repo": epoch_mod.REPO_TREE_DIRS}
 
 
 class ReferenceContamination(RuntimeError):
@@ -189,7 +199,7 @@ def _refuse(problems: list[str]) -> None:
 
 
 def take(source: str, out: Path, timeout: float, population_commit: str) -> int:
-    roots = SOURCES[source]
+    roots = _sources(ev)[source]
     try:
         _refuse(ev.scratch_problems(out))
         provenance = ev.evidence_fields(roots, population_commit=population_commit)
@@ -461,23 +471,29 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--selftest", action="store_true")
     sub = ap.add_subparsers(dest="cmd")
     t = sub.add_parser("take")
-    t.add_argument("--source", required=True, choices=tuple(SOURCES))
+    t.add_argument("--epoch", required=True, choices=tuple(EPOCH_MODULES))
+    t.add_argument("--source", required=True, choices=SOURCE_NAMES)
     t.add_argument("--out", required=True, type=Path)
     t.add_argument("--population-commit", default="HEAD",
                    help="the commit whose blobs are analysed (default HEAD; the after "
                         "side of a pair names the baseline's commit)")
     t.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT_SECONDS)
     c = sub.add_parser("compare")
+    c.add_argument("--epoch", required=True, choices=tuple(EPOCH_MODULES))
     c.add_argument("--before", required=True, type=Path)
     c.add_argument("--after", required=True, type=Path)
     c.add_argument("--against", default="HEAD",
                    help="the commit the after side must be fresh at (default HEAD)")
     v = sub.add_parser("verify")
+    v.add_argument("--epoch", required=True, choices=tuple(EPOCH_MODULES))
     v.add_argument("snapshot", type=Path)
     v.add_argument("--against", default="HEAD")
     args = ap.parse_args(argv)
     if args.selftest:
         return selftest()
+    if args.cmd in ("take", "compare", "verify"):
+        global ev
+        ev = EPOCH_MODULES[args.epoch]
     if args.cmd == "take":
         return take(args.source, args.out, args.timeout, args.population_commit)
     if args.cmd == "compare":

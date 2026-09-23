@@ -68,6 +68,31 @@ import p037_evidence as ev  # noqa: E402
 
 EvidenceRefused = ev.EvidenceRefused
 
+# Re-exported verbatim so this module is a full drop-in for `ev` wherever a
+# caller's code (unchanged) reaches for one of these names -- see
+# scripts/p037_mos_snapshot.py and scripts/p037_verdict_snapshot.py's
+# --epoch dispatch, which rebinds their module-global `ev` to this module or
+# to p037_evidence and calls the same, already-written take()/_measure()
+# bodies either way. None of these read EPOCH/EPOCH_RECORD_PATH/
+# INSTRUMENT_PATHS internally (see module docstring), so aliasing them here
+# moves zero bytes of logic and adds none.
+scratch_problems = ev.scratch_problems
+execution_profile = ev.execution_profile
+build_rust_artifact = ev.build_rust_artifact
+artifact_problems = ev.artifact_problems
+acquire_population = ev.acquire_population
+release_population = ev.release_population
+materialization_root = ev.materialization_root
+new_take_dir = ev.new_take_dir
+seal_artifact = ev.seal_artifact
+materialize_population = ev.materialize_population
+external_ancestor_problems = ev.external_ancestor_problems
+analysis_paths = ev.analysis_paths
+sanitized_env = ev.sanitized_env
+clean_reference_profile = ev.clean_reference_profile
+finalize_run = ev.finalize_run
+reference_contamination = ev.reference_contamination
+
 EPOCH = "b"
 EPOCH_RECORD_PATH = "docs/evidence/p037-b-epoch.json"
 
