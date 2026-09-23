@@ -1,0 +1,172 @@
+{
+  "schema": "p037-b-harness-ledger/1",
+  "source_root": "formal/p037-kernel/src/properties/",
+  "note": "One row per #[kani::proof] harness derived from source by scripts/p037_proof_boundary.py. `claim` restates only what the Kani body itself asserts (a proof/test twin sometimes asserts more or less; where that happens it is noted). `production_subject` quotes the kernel API the harness constrains, from its own doc comments where the source states one.",
+  "harnesses": [
+    {
+      "harness": "k1_transfer_join_laws",
+      "file": "lattice.rs",
+      "claim": "Transfer::join is commutative, associative, idempotent, has Bot as identity, and Unknown as an absorbing element.",
+      "production_subject": "Transfer::join (INF-L1/L2 base lattice)",
+      "boundary_kind": "lattice_algebra"
+    },
+    {
+      "harness": "k1_transfer_order_is_a_partial_order",
+      "file": "lattice.rs",
+      "claim": "Transfer::leq is reflexive, antisymmetric and transitive. (Its #[cfg(test)] twin additionally pins the height-3 facts -- No/Must incomparable, Bot<=No<=May<=Unknown -- which this Kani proof does not itself assert.)",
+      "production_subject": "Transfer::leq",
+      "boundary_kind": "lattice_algebra"
+    },
+    {
+      "harness": "k1_cells_join_laws",
+      "file": "lattice.rs",
+      "claim": "Cells::join is commutative, associative, idempotent, with Cells::BOT as identity.",
+      "production_subject": "Cells::join (G-L2 product cells)",
+      "boundary_kind": "lattice_algebra"
+    },
+    {
+      "harness": "k2_election_join_laws",
+      "file": "lattice.rs",
+      "claim": "Election::join is commutative, associative, idempotent, has None as identity, and Conflict as an absorbing element.",
+      "production_subject": "Election::join (G-S1 flat election lattice)",
+      "boundary_kind": "election_algebra"
+    },
+    {
+      "harness": "k5_collapse_monotone_and_join_morphism",
+      "file": "lattice.rs",
+      "claim": "Cells::collapse is monotone w.r.t. leq, is a join-morphism, and Cells::diag(t).collapse() == t.",
+      "production_subject": "Cells::collapse (G-T2 collapse)",
+      "boundary_kind": "lattice_algebra"
+    },
+    {
+      "harness": "k4_import_is_monotone_and_conflict_propagates",
+      "file": "election.rs",
+      "claim": "import(e1,binding) <= import(e2,binding) whenever e1 <= e2; import(Conflict,*) = Conflict; import(None,*) = None.",
+      "production_subject": "import() (G-S1 stage 2)",
+      "boundary_kind": "election_algebra"
+    },
+    {
+      "harness": "k10e_election_step_is_monotone_in_the_state",
+      "file": "election.rs",
+      "claim": "ElectionSystem::step(i,x) <= ElectionSystem::step(i,y) at every coordinate i, given x <= y pointwise.",
+      "production_subject": "ElectionSystem::step",
+      "boundary_kind": "election_algebra"
+    },
+    {
+      "harness": "k10e_elect_is_a_fixpoint_below_every_fixpoint",
+      "file": "election.rs",
+      "claim": "elect(sys) terminates within the height bound, is a fixpoint of sys.step, and is <= every other fixpoint (the least fixpoint).",
+      "production_subject": "elect() (election lfp, Jacobi)",
+      "boundary_kind": "solver_fixpoint"
+    },
+    {
+      "harness": "k10e_chaotic_equals_jacobi_on_small_sccs",
+      "file": "election.rs",
+      "claim": "On a 2-coordinate election system with <=1 edge each, elect_with(sys, schedule) under any fair schedule equals elect(sys), when both terminate.",
+      "production_subject": "elect_with() vs elect() (election lfp, chaotic schedule)",
+      "boundary_kind": "solver_fixpoint"
+    },
+    {
+      "harness": "k3_reads_and_contributions_are_monotone",
+      "file": "transforms.rs",
+      "claim": "read(t,.) and contribute(m, read(t,.)) are monotone in the cell argument; every component of read(t,c) is <= c.collapse(), and contribute only lowers further. (Merges the two differently-named #[cfg(test)] twins k3_reads_and_contributions_are_monotone and k3_every_read_component_is_below_the_collapse into one body.)",
+      "production_subject": "read() (G-F2) and contribute() (G-S4 applied to a G-F2 read)",
+      "boundary_kind": "transform_algebra"
+    },
+    {
+      "harness": "k8_involutions",
+      "file": "transforms.rs",
+      "claim": "read(Id,.) and read(Neg,.) are involutions; read(Neg,c) == c.swap(); read(Opaque,.), read(ConstPos,.), read(ConstNeg,.) always produce a diagonal Cells.",
+      "production_subject": "read() with Transform::{Id,Neg,Opaque,ConstPos,ConstNeg} (the five G-S5 edge transforms)",
+      "boundary_kind": "transform_algebra"
+    },
+    {
+      "harness": "k12a_step_keeps_uncond_coordinates_diagonal",
+      "file": "transforms.rs",
+      "claim": "From a symbolic state whose Uncond-shaped coordinates already hold diagonal Cells, one application of System::step to an Uncond coordinate again yields a diagonal Cells (the inductive step).",
+      "production_subject": "System::step (F_G)",
+      "boundary_kind": "solver_fixpoint"
+    },
+    {
+      "harness": "k12b_lfp_keeps_uncond_coordinates_diagonal_on_small_sccs",
+      "file": "transforms.rs",
+      "claim": "On a 2-coordinate system, solve(sys) keeps every Uncond-shaped coordinate's Cells diagonal.",
+      "production_subject": "solve() over System::step",
+      "boundary_kind": "solver_fixpoint"
+    },
+    {
+      "harness": "k10a_step_is_monotone_in_the_state",
+      "file": "solver.rs",
+      "claim": "System::step(i,x) <= System::step(i,y) at every coordinate i, given x <= y pointwise. (Fact (a) of the module's 3-lemma schedule-independence decomposition.)",
+      "production_subject": "System::step (F_G)",
+      "boundary_kind": "solver_fixpoint"
+    },
+    {
+      "harness": "k10b_solve_is_a_fixpoint_below_every_fixpoint",
+      "file": "solver.rs",
+      "claim": "solve(sys) terminates within the height bound, is a fixpoint of sys.step, and is <= every other fixpoint. (Fact (b).)",
+      "production_subject": "solve() (the guarded lfp, Jacobi)",
+      "boundary_kind": "solver_fixpoint"
+    },
+    {
+      "harness": "k10c_chaotic_equals_jacobi_on_small_sccs",
+      "file": "solver.rs",
+      "claim": "On a 2-coordinate system, solve_with(sys, schedule) under any fair schedule equals solve(sys), when both terminate. (Fact (c); K10 is the name lib.rs itself gives this order-independence property.)",
+      "production_subject": "solve_with() vs solve()",
+      "boundary_kind": "solver_fixpoint"
+    },
+    {
+      "harness": "k9_residual_bottom_lemma_all_three_groundings",
+      "file": "refinement.rs",
+      "claim": "For an arbitrary Grounding g (restricted, for PartialLocalRelease(t), to t in {Must, May}): lemma_guarded(g).fin().collapse() <= lemma_today(g).fin().",
+      "production_subject": "lemma_guarded()/lemma_today() (G-T2 §7.3 residual-bottom lemma)",
+      "boundary_kind": "refinement_g_t2a"
+    },
+    {
+      "harness": "k11_one_step_lax_simulation",
+      "file": "refinement.rs",
+      "claim": "For a symbolic well-formed 3-coordinate System and symbolic state x: collapsing one step of the guarded solver is <= one step of the fully-collapsed system on the collapsed state, at every coordinate (the G-T2 §7.2 induction step).",
+      "production_subject": "System::step vs System::collapsed (F_0)",
+      "boundary_kind": "refinement_g_t2a"
+    },
+    {
+      "harness": "k11_lfp_lax_simulation_against_the_collapsed_system_on_small_sccs",
+      "file": "refinement.rs",
+      "claim": "On a 2-coordinate system, collapse(solve(sys)) <= collapse(solve(sys.collapsed())) coordinatewise, pre-finalization (G-T2a at the lfp level).",
+      "production_subject": "solve(sys) vs solve(sys.collapsed())",
+      "boundary_kind": "refinement_g_t2a"
+    },
+    {
+      "harness": "k11b_legacy_observational_compatibility_on_small_sccs",
+      "file": "refinement.rs",
+      "claim": "On a 2-coordinate system whose cell-local release facts are consistent, the finalized-and-collapsed guarded lfp is, at every live coordinate, either <= the finalized-and-collapsed lfp of System::today(), or exactly (Unknown, May) (G-T2b as amended).",
+      "production_subject": "solve(sys) vs solve(sys.today()) -- System::today models ownlang/ownir.py's _build_skeletons derivation ladder",
+      "boundary_kind": "refinement_g_t2b"
+    },
+    {
+      "harness": "k11_lfp_lax_simulation_against_today_post_finalization_on_small_sccs",
+      "file": "refinement.rs",
+      "claim": "On a 2-coordinate system with consistent cell-local release facts AND no coordinate seeding Unknown, the finalized-and-collapsed guarded lfp is <= the finalized-and-collapsed lfp of System::today() (G-T2 as originally stated, pre-K11b-amendment; retained as the historical un-amended claim, superseded by K11b for the general case).",
+      "production_subject": "solve(sys) vs solve(sys.today())",
+      "boundary_kind": "refinement_g_t2b"
+    },
+    {
+      "harness": "k6_consume_only_through_a_selected_or_unanimous_must",
+      "file": "application.rs",
+      "claim": "apply(shape,c,sel) lowers to Consume exactly when either the statically-selected finalized cell is Must, or both finalized cells are unanimously Must; for Uncond, apply ignores the selection (the G-A2 floor).",
+      "production_subject": "apply()",
+      "boundary_kind": "application_g_a1_a2"
+    },
+    {
+      "harness": "k7_no_fabricated_consume",
+      "file": "application.rs",
+      "claim": "apply/lower never produce Consume when the finalized cells disagree or the selected finalized cell is Unknown; a raw Bot finalizes to Borrow; and applying the UNfinalized pair (Must,Bot) yields Plain because apply finalizes before it selects or collapses (the unfinalized-read witness -- a raw solver cell is never consumable).",
+      "production_subject": "apply()/lower()",
+      "boundary_kind": "application_g_a1_a2"
+    }
+  ],
+  "not_kani_proved_test_only": {
+    "note": "K13 ('the worked rows of P-037 §8') and three refinement.rs row/finding functions exist only as #[cfg(test)] functions with no Kani twin: row1_teardown_skip, row3_dispose_bool_misplaced_release, rows7_8_wrapper_inherits_the_split_through_id_and_neg, row9_alternating_recursion_is_unanimous_must, rows12_13_mixed_release_forward_consumes_without_selection, row14_one_cell_residual_bottom, row16_forward_grounded_residual_bottom, row17_none_coordinate_refined_through_const_pos, row18_mutated_guard_degrades_to_opaque (application.rs), row11_late_conflict_cannot_leave_a_stale_import, k11_finding_release_priority_drops_an_unresolved_forward (election.rs/refinement.rs). This is a real, named asymmetry between 'tested' and 'Kani-proved' -- not a defect in the audit, since §10.4 only requires deriving the Kani inventory, but worth carrying forward rather than letting the word 'harness' quietly cover both.",
+    "not_scored_by_this_audit": true
+  }
+}

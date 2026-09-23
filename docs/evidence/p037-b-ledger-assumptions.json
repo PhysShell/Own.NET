@@ -1,0 +1,251 @@
+{
+  "schema": "p037-b-assumption-ledger/1",
+  "source_root": "formal/p037-kernel/src/",
+  "note": "One row per kani::assume(...) call SITE (file:line), not per harness -- eight sites sit directly inside one proof each, eight sit in properties/mod.rs's shared `symbolic` helpers and are reached by several harnesses transitively (`affects`, informational and human-verified, not itself mechanically re-derived by the audit). `disposition` is exactly one of PRODUCTION_GUARANTOR or OUTSIDE_KANI_BOUNDARY per §10.4; no unclassified row is allowed. `non_vacuity_witness` answers §10.4/§14's separate question -- not one kani::cover per assume, but how we know the restricted, meaningful branch is actually reachable -- and is honestly marked GAP where no witness was found rather than stretched to fit.",
+  "assumptions": [
+    {
+      "file": "properties/election.rs",
+      "line": 176,
+      "expression": "x0.leq(y0) && x1.leq(y1) && x2.leq(y2)",
+      "affects": [
+        "k10e_election_step_is_monotone_in_the_state"
+      ],
+      "disposition": "PRODUCTION_GUARANTOR",
+      "guarantor": "the theorem's own hypothesis: x <= y is what monotonicity is stated about, not a claim about production inputs",
+      "note": "proof-internal quantifier setup",
+      "non_vacuity_witness": "source-level constructor: x=y satisfies x<=y by leq's reflexivity, exhaustively confirmed elsewhere in this crate (k1/k2-style laws)",
+      "non_vacuity_status": "witnessed"
+    },
+    {
+      "file": "properties/election.rs",
+      "line": 193,
+      "expression": "sys.step(0,&y)==y0 && sys.step(1,&y)==y1 && sys.step(2,&y)==y2",
+      "affects": [
+        "k10e_elect_is_a_fixpoint_below_every_fixpoint"
+      ],
+      "disposition": "PRODUCTION_GUARANTOR",
+      "guarantor": "the theorem's own hypothesis: restricts the universally-quantified y to fixpoints of sys.step, which is what 'least fixpoint' means",
+      "note": "proof-internal quantifier setup",
+      "non_vacuity_witness": "source-level constructor, in-harness: the harness's own x (elect(&sys)) is asserted a fixpoint of sys.step two lines earlier in the same body, so y=x is a directly-available witness",
+      "non_vacuity_status": "witnessed"
+    },
+    {
+      "file": "properties/refinement.rs",
+      "line": 295,
+      "expression": "matches!(t, Transfer::Must | Transfer::May)",
+      "affects": [
+        "k9_residual_bottom_lemma_all_three_groundings"
+      ],
+      "disposition": "PRODUCTION_GUARANTOR",
+      "guarantor": "Grounding::PartialLocalRelease's own doc (lib.rs): today's release-priority derivation ladder only ever produces Must or May for this grounding shape",
+      "note": "restricts the kernel's own Grounding payload to what the production release-priority ladder can actually derive",
+      "non_vacuity_witness": "source-level constructor: Grounding::PartialLocalRelease(Transfer::Must) and (Transfer::May) are both directly constructible enum values",
+      "non_vacuity_status": "witnessed"
+    },
+    {
+      "file": "properties/refinement.rs",
+      "line": 338,
+      "expression": "release_cells_have_no_edges(&sys)",
+      "affects": [
+        "k11b_legacy_observational_compatibility_on_small_sccs"
+      ],
+      "disposition": "OUTSIDE_KANI_BOUNDARY",
+      "reason": "release_cells_have_no_edges is explicitly doc-tagged 'TRUSTED INPUT assumption' in source (refinement.rs): a cell recording a local release carries no forward edge -- part of the G-S2/G-S3 frontend-derivation boundary this kernel does not model",
+      "residual_production_obligation": "the production extractor/CFG-to-cell derivation must never emit a forward edge on a cell it also marks as a local release",
+      "negative_control": "no dedicated fixture identified in this repository as of this audit for 'a cell-local release fact co-occurring with a forward edge' specifically -- distinct from the G-V4 guard-eligibility controls, which cover a different boundary (guard mutation, not release-fact/edge co-occurrence); reported as a gap, not filled here",
+      "non_vacuity_witness": "GAP: an all-DEAD or edge-free system satisfies this restriction VACUOUSLY (no coordinate has a release-bearing seed at all); no witness was found that the MEANINGFUL case (an actual Must/May-seeded coordinate with correctly no edges) is reached by the symbolic search",
+      "non_vacuity_status": "gap"
+    },
+    {
+      "file": "properties/refinement.rs",
+      "line": 356,
+      "expression": "release_cells_have_no_edges(&sys) && no_unknown_seed(&sys)",
+      "affects": [
+        "k11_lfp_lax_simulation_against_today_post_finalization_on_small_sccs"
+      ],
+      "disposition": "OUTSIDE_KANI_BOUNDARY",
+      "reason": "release_cells_have_no_edges: same G-S2/G-S3 trusted-input boundary as the row above. no_unknown_seed excludes exactly the case the file's own documented counterexample (the #[cfg(test)] k11_finding_release_priority_drops_an_unresolved_forward) shows breaks this un-amended theorem: this harness is the retained historical pre-amendment statement, not the general claim",
+      "residual_production_obligation": "production correctness does not depend on this harness's guarantee when an unresolved callee is present in the SCC; k11b_legacy_observational_compatibility_on_small_sccs (no such restriction) is the claim production actually relies on for that case",
+      "negative_control": "the documented counterexample k11_finding_release_priority_drops_an_unresolved_forward is itself the negative control: it is the pinned proof that the unrestricted claim is false, which is why K11b exists as a separate, weaker, general theorem",
+      "non_vacuity_witness": "PARTIAL. no_unknown_seed's meaningful case (a coordinate seeded something other than Unknown) is witnessed by direct construction (e.g. Cells::BOT). release_cells_have_no_edges carries the same GAP as the row above -- not stated twice as a separate finding, but not resolved here either",
+      "non_vacuity_status": "gap"
+    },
+    {
+      "file": "properties/application.rs",
+      "line": 421,
+      "expression": "matches!(shape, Shape::Split(_)) || c.is_diag()",
+      "affects": [
+        "k6_consume_only_through_a_selected_or_unanimous_must"
+      ],
+      "disposition": "PRODUCTION_GUARANTOR",
+      "guarantor": "K12 (k12a_step_keeps_uncond_coordinates_diagonal / k12b_lfp_keeps_uncond_coordinates_diagonal_on_small_sccs), proved elsewhere in this same kernel: an Uncond coordinate is always diagonal, so this assumption states an already-proved kernel fact, not an unverified trust boundary",
+      "note": "internal-proof guarantor, not a production-code guarantor",
+      "non_vacuity_witness": "source-level constructor: Shape::Split(0) is directly constructible and satisfies the first disjunct regardless of c",
+      "non_vacuity_status": "witnessed"
+    },
+    {
+      "file": "properties/solver.rs",
+      "line": 80,
+      "expression": "leq_all(&x, &y)",
+      "affects": [
+        "k10a_step_is_monotone_in_the_state"
+      ],
+      "disposition": "PRODUCTION_GUARANTOR",
+      "guarantor": "the theorem's own hypothesis (fact (a) of the module's 3-lemma decomposition): x <= y is what monotonicity is stated about",
+      "note": "proof-internal quantifier setup",
+      "non_vacuity_witness": "source-level constructor: x=y satisfies leq_all by reflexivity",
+      "non_vacuity_status": "witnessed"
+    },
+    {
+      "file": "properties/solver.rs",
+      "line": 95,
+      "expression": "is_fixpoint(&sys, &y)",
+      "affects": [
+        "k10b_solve_is_a_fixpoint_below_every_fixpoint"
+      ],
+      "disposition": "PRODUCTION_GUARANTOR",
+      "guarantor": "the theorem's own hypothesis (fact (b)): restricts y to fixpoints, which is what 'least fixpoint' means",
+      "note": "proof-internal quantifier setup",
+      "non_vacuity_witness": "source-level constructor, in-harness: the harness's own x (solve(&sys)) is asserted a fixpoint two lines earlier, so y=x is directly available",
+      "non_vacuity_status": "witnessed"
+    },
+    {
+      "file": "properties/mod.rs",
+      "line": 299,
+      "expression": "usize::from(v) < n",
+      "in": "fn any_index(n)",
+      "affects": [
+        "k10a_step_is_monotone_in_the_state",
+        "k10b_solve_is_a_fixpoint_below_every_fixpoint",
+        "k10c_chaotic_equals_jacobi_on_small_sccs",
+        "k12a_step_keeps_uncond_coordinates_diagonal",
+        "k12b_lfp_keeps_uncond_coordinates_diagonal_on_small_sccs",
+        "k11_one_step_lax_simulation",
+        "k11_lfp_lax_simulation_against_the_collapsed_system_on_small_sccs",
+        "k11b_legacy_observational_compatibility_on_small_sccs",
+        "k11_lfp_lax_simulation_against_today_post_finalization_on_small_sccs",
+        "k10e_election_step_is_monotone_in_the_state",
+        "k10e_elect_is_a_fixpoint_below_every_fixpoint",
+        "k10e_chaotic_equals_jacobi_on_small_sccs"
+      ],
+      "disposition": "PRODUCTION_GUARANTOR",
+      "guarantor": "the symbolic module's own doc comment (mod.rs): a representational technique (draw a narrow u8, restrict its range) to keep CBMC's bit-blasting tractable -- not a claim about production inputs",
+      "note": "representational/tractability assumption, reached transitively by 12 of 23 harnesses",
+      "non_vacuity_witness": "source-level constructor: v=0 satisfies v<n for every n>=1, and every call site in this crate passes a live-coordinate count (2 or MAX_COORDS=3)",
+      "non_vacuity_status": "witnessed"
+    },
+    {
+      "file": "properties/mod.rs",
+      "line": 306,
+      "expression": "g < 3",
+      "in": "fn any_guard()",
+      "affects": [
+        "k10e_election_step_is_monotone_in_the_state",
+        "k10e_elect_is_a_fixpoint_below_every_fixpoint",
+        "k10e_chaotic_equals_jacobi_on_small_sccs"
+      ],
+      "disposition": "PRODUCTION_GUARANTOR",
+      "guarantor": "same representational technique as any_index -- bounds the model's own GUARDS domain (3 indices), not a production claim",
+      "note": "representational/tractability assumption",
+      "non_vacuity_witness": "source-level constructor: g=0 satisfies g<3",
+      "non_vacuity_status": "witnessed"
+    },
+    {
+      "file": "properties/mod.rs",
+      "line": 337,
+      "expression": "sys.well_formed()",
+      "in": "fn any_system()",
+      "affects": [
+        "k10a_step_is_monotone_in_the_state",
+        "k10b_solve_is_a_fixpoint_below_every_fixpoint",
+        "k12a_step_keeps_uncond_coordinates_diagonal",
+        "k11_one_step_lax_simulation"
+      ],
+      "disposition": "OUTSIDE_KANI_BOUNDARY",
+      "reason": "System::well_formed()'s own doc names this explicitly: 'The frontend's guarantees (G-L1, G-S5, G-V4 boundary): every edge targets a live coordinate; an Uncond coordinate has a diagonal seed, Both masks and no id/neg edge; an id/neg edge joins two Split coordinates.' This is the G-V4 guard-eligibility boundary itself, load-bearing and explicitly named as trusted, not modelled here",
+      "residual_production_obligation": "production extraction (Roslyn/CFG) must only ever emit a System whose structure satisfies well_formed() -- in particular never construct an id/neg edge except where G-V4 (entry-value stability) genuinely holds",
+      "negative_control": "the G-V4 discharge matrix: family 2 (corpus/p036-bakeoff/gv4-control-mutated-guard row 18a, gv4-control-ref-alias-guard row 18b) and family 3 (gv4-control-aliased-self-null row 19) are covered; family 1 (direct/compound/increment/capture write, own-body election forbidden, no wrapper) has NO fixture -- confirmed gap, see docs/evidence/p037-b-epoch.json's first_semantic_hypothesis.g_v4_discharge_matrix",
+      "non_vacuity_witness": "exhaustive test twin: systems_exhaustive()/all_coords_one_edge() (used by the #[cfg(test)] siblings) directly enumerate well-formed systems with real id/neg/const/opaque edges between Split coordinates, not just the degenerate all-DEAD case",
+      "non_vacuity_status": "witnessed"
+    },
+    {
+      "file": "properties/mod.rs",
+      "line": 347,
+      "expression": "sys.well_formed()",
+      "in": "fn any_small_system()",
+      "affects": [
+        "k10c_chaotic_equals_jacobi_on_small_sccs",
+        "k12b_lfp_keeps_uncond_coordinates_diagonal_on_small_sccs",
+        "k11_lfp_lax_simulation_against_the_collapsed_system_on_small_sccs",
+        "k11b_legacy_observational_compatibility_on_small_sccs",
+        "k11_lfp_lax_simulation_against_today_post_finalization_on_small_sccs"
+      ],
+      "disposition": "OUTSIDE_KANI_BOUNDARY",
+      "reason": "identical System::well_formed() boundary as the row above, applied to the 2-coordinate tractability-bounded system the whole-solver harnesses use",
+      "residual_production_obligation": "same as the row above",
+      "negative_control": "same G-V4 discharge matrix as the row above, same confirmed gap in family 1",
+      "non_vacuity_witness": "exhaustive test twin: systems_exhaustive(2) enumerates exactly this 2-coordinate/1-edge domain with real edges, used directly by the #[cfg(test)] siblings",
+      "non_vacuity_status": "witnessed"
+    },
+    {
+      "file": "properties/mod.rs",
+      "line": 359,
+      "expression": "v.is_diag()",
+      "in": "fn any_state_diagonal_where_uncond(sys)",
+      "affects": [
+        "k12a_step_keeps_uncond_coordinates_diagonal"
+      ],
+      "disposition": "PRODUCTION_GUARANTOR",
+      "guarantor": "the function's own doc: this states K12's inductive hypothesis (assume diagonal at step n, prove diagonal at step n+1) -- standard induction-step structure, not an external claim",
+      "note": "proof-internal induction hypothesis",
+      "non_vacuity_witness": "source-level constructor: Cells::diag(t) is directly constructible for any Transfer t and always satisfies is_diag()",
+      "non_vacuity_status": "witnessed"
+    },
+    {
+      "file": "properties/mod.rs",
+      "line": 370,
+      "expression": "a == i || b == i || c == i",
+      "in": "fn any_schedule(n)",
+      "affects": [
+        "k10c_chaotic_equals_jacobi_on_small_sccs",
+        "k10e_chaotic_equals_jacobi_on_small_sccs"
+      ],
+      "disposition": "PRODUCTION_GUARANTOR",
+      "guarantor": "definitional: this is what 'a fair per-pass schedule' means for the model's fixed 3-slot encoding, not a claim about anything production does",
+      "note": "definitional/representational",
+      "non_vacuity_witness": "source-level constructor: (a,b,c)=(0,1,2) satisfies the fairness condition for every n<=3 directly",
+      "non_vacuity_status": "witnessed"
+    },
+    {
+      "file": "properties/mod.rs",
+      "line": 429,
+      "expression": "sys.well_formed()",
+      "in": "fn any_election_system()",
+      "affects": [
+        "k10e_election_step_is_monotone_in_the_state",
+        "k10e_elect_is_a_fixpoint_below_every_fixpoint"
+      ],
+      "disposition": "OUTSIDE_KANI_BOUNDARY",
+      "reason": "ElectionSystem::well_formed()'s own doc: 'Every edge targets a live coordinate.' -- part of the same Roslyn/CFG-derivation trust boundary as the main System, for the election pre-solver's own graph",
+      "residual_production_obligation": "the production election-graph builder must only emit ElectionEdges targeting live coordinate indices",
+      "negative_control": "no dedicated negative control identified in this repository specifically for this structural property; the G-V4 discharge matrix above is the closest existing coverage of the same general trust boundary, not a direct fixture for this exact claim -- reported, not filled",
+      "non_vacuity_witness": "exhaustive/random test twin: random_election_system() (used by k10_election_lfp_is_schedule_independent_random) constructs well-formed election systems with real edges and bindings, not just the degenerate case",
+      "non_vacuity_status": "witnessed"
+    },
+    {
+      "file": "properties/mod.rs",
+      "line": 442,
+      "expression": "sys.well_formed()",
+      "in": "fn any_small_election_system()",
+      "affects": [
+        "k10e_chaotic_equals_jacobi_on_small_sccs"
+      ],
+      "disposition": "OUTSIDE_KANI_BOUNDARY",
+      "reason": "identical ElectionSystem::well_formed() boundary as the row above",
+      "residual_production_obligation": "same as the row above",
+      "negative_control": "same as the row above -- no dedicated fixture identified",
+      "non_vacuity_witness": "same random_election_system()-based witness as the row above, at the 2-coordinate bound",
+      "non_vacuity_status": "witnessed"
+    }
+  ]
+}

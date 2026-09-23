@@ -1,0 +1,134 @@
+{
+  "schema": "p037-b-epoch/1",
+  "epoch": "b",
+  "title": "P-037 Phase B: the production guarded-transfer implementation (the formal note's \"A1\"), entry-gated by the §10.4 proof-boundary audit",
+  "frozen_at": "this record's own creation, on a branch based at the closed A2.2-D order head; a ruling that machine-encodes an already-accepted design, not a new measurement",
+  "same_target_as": "docs/notes/p037-formal-kernel.md §8.1's \"A1\": this record names and machine-checks the epoch that section already ruled on — it is not a second, parallel target, and §8.1/§8.2 are not reopened by it",
+  "predecessor": {
+    "epoch": "a2d",
+    "role": "historical predecessor only: not a baseline of Phase B, not retaken, not rewritten, unless Phase B explicitly takes its own governed baseline",
+    "closing_head": "27aed2c455e56f71c5df6e6de4ea1601b5c9cc03",
+    "closing_head_title": "P-037 A2.2-D: name D_after_evidence in the epoch record",
+    "closed_epoch_record": "docs/evidence/p037-a2d-epoch.json",
+    "closed_d_after_evidence": "docs/evidence/p037-a2d-manifest.md",
+    "note": "a2/a2d evidence stays in docs/evidence as history and is neither edited, regenerated, reinterpreted nor retaken by Phase B tooling"
+  },
+  "prerequisite_discharged": {
+    "what": "P-022 Stage 3 (#262, merged as #359): the Rust core is now the public default engine; Python remains the reference implementation, the oracle, and the tested rollback for the observation window (Stage 4 has not happened)",
+    "verified_against": [
+      "docs/proposals/P-022-rust-core-migration.md's own status line ('Since #262 Stage 3 the Rust core is the public default engine')",
+      "corpus/p036-bakeoff/gv4-control-mutated-guard/expected.json's own 2026-09-18 remeasurement entry at 63148d0, which independently cites the same PR #359 cutover"
+    ],
+    "effect": "discharges the sequencing half of §8.1's OWNER RULING (2026-09-18): 'A1 production implementation MUST wait for completion of P-022 Stage 3.' That wait is over. The §10.4 proof-boundary requirement is a separate, still-standing gate this record exists to make executable — discharging one gate does not discharge the other.",
+    "engine_scope_consequence": "the ruling's own words were explicit if this branch were ever taken: 'after Stage 3, Python need not learn P-037 at all if its role becomes legacy / reference / rollback' — which is now Python's role. Phase B's treatment scope is therefore Rust-only; ownlang/ownir.py is not a treatment path."
+  },
+  "semantic_contract": {
+    "frozen_by": ["docs/proposals/P-037-guarded-effect-summaries.md", "docs/notes/p037-formal-kernel.md §§2-9"],
+    "status": "accepted design, not reopened or up for review by this record",
+    "guard_vocabulary": [
+      "boolean parameter", "reference-parameter nullness", "one literal only",
+      "method parameters only", "entry-value stable only (G-V4)"
+    ],
+    "guard_vocabulary_excludes": [
+      "conjunctions", "disjunctions", "field guards", "local-variable guards",
+      "property guards", "arbitrary comparisons", "path predicates",
+      "SSA reconstruction", "alias tracking beyond the accepted G-V4 fail-closed rule"
+    ],
+    "transform_vocabulary": ["const-pos", "const-neg", "id", "neg", "opaque"],
+    "application_rule": "selected must -> consume; selected no -> borrow; selected may/unknown -> plain + OWN051; no static selection -> collapse cells, then today's INF-A1 lowering; unanimous must -> consume",
+    "compatibility_classes": ["APPLICATION_REFINEMENT", "SUMMARY_REFINEMENT", "LEGACY_HONESTY"],
+    "compatibility_classes_are_closed": "a fourth class is a case-5 event under §10.1 (contract amendment before implementation continues), not a documentation addition",
+    "implementation_seed": "formal/p037-kernel/ (README, verbatim): 'these functions move into the post-cutover summary engine unchanged; nobody writes \"the production version\" of them' — still binding; this record does not perform that move"
+  },
+  "treatment": {
+    "entered_by_this_record": false,
+    "candidate_scope": {
+      "rust/crates/own-bridge/src/mos.rs": "whole file (446 lines) — by inspection of its own type/function signatures it is entirely the guarded-kernel seam: enum Transfer, struct ParamSummary, struct MethodSummary, fn solve_with_log, fn solve",
+      "rust/crates/own-bridge/src/lower.rs :: fn lower_fn_params": "named item only, not the file — lower.rs is 2124 lines and roughly fifty top-level items; lower_fn_params (line 1390) is the one item matching §8.1's 'apply, finalized input only' seam, the rest is unrelated subscription/DI/lifetime/branch-hoisting/general-flow-lowering machinery this record has no reason to touch or freeze"
+    },
+    "must_not_touch_yet": [
+      "ownlang/ownir.py (stays reference/oracle/rollback; not a Phase B treatment path)",
+      "frontend/roslyn/OwnSharp.Extractor/",
+      "OwnIR / extractor guarded-fact vocabulary",
+      "verdict mapping outside the named seam",
+      "launcher behaviour",
+      "any docs/evidence/p037-a2d-* file"
+    ]
+  },
+  "proof_boundary_gate": {
+    "requirement": "docs/notes/p037-formal-kernel.md §10.4, verbatim: 'Phase B may not begin semantic wiring until the P-037 proof-boundary audit is green.'",
+    "tool": "scripts/p037_proof_boundary.py",
+    "derives_from_source": [
+      "every #[kani::proof] harness under formal/p037-kernel/src/properties/",
+      "the fast harness set from .github/workflows/ci.yml's formal-p037 job",
+      "the heavy harness set from .github/workflows/formal-p037-gate.yml"
+    ],
+    "must_hold": [
+      "FAST ∩ HEAVY = ∅",
+      "FAST ∪ HEAVY = SOURCE_HARNESSES, with missing/duplicate/unknown-name diffs reported separately",
+      "every harness has exactly one ledger row naming a human claim and a production subject",
+      "every load-bearing kani::assume is dispositioned PRODUCTION_GUARANTOR (with a concrete guarantor) or OUTSIDE_KANI_BOUNDARY (with a reason and residual obligation)",
+      "every load-bearing restriction has a named non-vacuity witness",
+      "the trusted-input boundary and the production-size-bound exclusion are stated explicitly, never implied to be proved"
+    ],
+    "not_required": "one kani::cover per kani::assume — §10.4 explicitly rejects that as the non-vacuity rule",
+    "verdict_is_live": "this record does not embed a pass/fail snapshot; GREEN/RED is whatever scripts/p037_proof_boundary.py reports when run, so the record cannot go stale relative to the tool"
+  },
+  "difference_policy": {
+    "zero_diff_expectation": false,
+    "note": "Phase B is verdict-changing by design; 'unchanged' is not the semantic expectation the way it was for every a2/a2d take. Declared here as intent for the eventual B-after classifier — wiring it into measurement tooling (scripts/p037_cumulative_evidence.py's closed fact_diff enum currently accepts only 'unchanged'/'allowed_surfaces', or different tooling) is a later treatment/tooling step, not performed by this record.",
+    "classes": ["APPLICATION_REFINEMENT", "SUMMARY_REFINEMENT", "LEGACY_HONESTY"],
+    "rules": [
+      "every post-treatment semantic difference must be attributable, per document / per call site / per summary as appropriate",
+      "an unclassified difference is a failure",
+      "a difference in facts outside the intended frontend/trusted-input slice is a failure",
+      "a regression in an unaffected control is a failure"
+    ]
+  },
+  "first_semantic_hypothesis": {
+    "target": "the may-as-must ConsumesParam hole (§8.1's first bug; P-036 bakeoff §3.1)",
+    "canonical_family": "Teardown(Resource p, bool g)",
+    "fixtures": {
+      "corpus/p036-bakeoff/guarded-consume-early-return": "F3-S1..S4 canonical family member",
+      "corpus/p036-bakeoff/guarded-consume-flag-branch": "F3-S1..S4 canonical family member",
+      "corpus/p036-bakeoff/guarded-consume-negation-wrapper": "F3-S1..S4 canonical family member (negation wrapper swaps cells)",
+      "corpus/p036-bakeoff/guarded-consume-wrapper-forward": "F3-S1..S4 canonical family member (wrapper import splits)"
+    },
+    "acceptance_controls": "docs/notes/p037-formal-kernel.md §8.1's 'A1 ACCEPTANCE' block, verbatim, items 1-8 (F3-S1..S4 verdicts; zero unintended regression on corpus/real-world, corpus/wpf, corpus/di, #305; unknown guard never consumes; application only on finalized state; G-V4 failures degrade to opaque on both layers; kernel twins run over the moved production functions; fast Kani mandatory / heavy opt-in; the F1 pin)",
+    "f1_pin": "if (g) p.Dispose(); else Extern(p); with Extern unresolved -> collapsed value UNKNOWN (class 3) -> plain + OWN051, never legacy's optimistic may and never consume",
+    "g_v4_discharge_matrix": {
+      "family_1_own_body_direct_compound_increment_capture_write": "GAP — no fixture found anywhere under corpus/ for a non-wrapper own-body election-eligibility negative control; confirmed by exhaustive search of corpus/p036-bakeoff/ (8 fixtures total, none matching) and a repo-wide filename grep. Reported here, not filled: filling it is fixture/audit work, but doing it honestly requires measuring 'current' behaviour the way the other three controls' expected.json records do, which is more than this entry-gate task should absorb without being asked.",
+      "family_2_wrapper_guard_write_or_writable_alias": "corpus/p036-bakeoff/gv4-control-mutated-guard (P-037 §8 row 18a, direct write) + corpus/p036-bakeoff/gv4-control-ref-alias-guard (row 18b, ref-alias twin)",
+      "family_3_self_null_reassignment_or_writable_alias": "corpus/p036-bakeoff/gv4-control-aliased-self-null (row 19)",
+      "class_3_legacy_honesty_companion": "corpus/p036-bakeoff/legacy-honesty-else-unresolved-forward (G-T2b class 3, not a G-V4 family)"
+    },
+    "not_implemented_by_this_record": true
+  },
+  "order": [
+    "B0 freeze: this record + §10.4 note entry (this task)",
+    "proof-boundary audit tooling: scripts/p037_proof_boundary.py + ledgers + self-tests (this task)",
+    "proof-boundary audit GREEN (this task's stop condition, or RED with named gaps if not met)",
+    "terminal-green T_B: named only after the audit is green on a reviewed head (not this task)",
+    "new Phase-B baseline R_B: a governed take on its own qualified environment, never a2d's R_D reused (not this task)",
+    "first semantic treatment: the frozen hypothesis above, implemented in mos.rs + lower_fn_params (not this task)",
+    "classified after measurement: the difference policy above applied for real (not this task)"
+  ],
+  "measurement_policy": {
+    "fact_diff": "not_applicable_pre_treatment",
+    "note": "no take happens in this record; the field exists for shape-parity with the a2d record and is filled meaningfully only once R_B is planned in detail"
+  },
+  "non_goals": [
+    "no production semantic movement of any kind",
+    "no move of formal/p037-kernel/ into rust/crates/own-bridge",
+    "no fixture for the family-1 G-V4 gap",
+    "no T_B, R_B, B_treatment_head or B_after_evidence naming",
+    "no edit, regeneration, reinterpretation or retaking of any a2/a2d evidence",
+    "no change to ownlang/ownir.py, the extractor, OwnIR guarded-fact vocabulary, verdict mapping or launcher behaviour"
+  ],
+  "named_later": {
+    "T_B": null,
+    "R_B": null,
+    "B_treatment_head": null,
+    "B_after_evidence": null
+  }
+}

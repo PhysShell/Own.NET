@@ -2088,3 +2088,99 @@ moves; the pins above make "exactly" mechanical, not a promise), then a
 separate commit naming `named_later.D_after_evidence`. After that commit
 lands and passes, A2.2-D is closed by this record's own order — Phase B
 is a new epoch and is not started by landing this evidence.
+
+### 10.7 Phase B entry gate: A2.2-D closed, Stage 3 discharged, §10.4 made executable
+
+Everything below is created by this task, now — nothing in this section is
+described as preregistered, and nothing in §§8-9 above is amended or
+reopened by it. Three different kinds of claim appear together here on
+purpose, and are labeled rather than left to blend:
+
+**REPOSITORY FACT.** A2.2-D is closed: its order (freeze, tooling, T_D,
+R_D, D treatment, D after) is fully landed at
+`27aed2c455e56f71c5df6e6de4ea1601b5c9cc03`, CI is green on that head, and
+`docs/evidence/p037-a2d-epoch.json`'s `named_later` carries all four
+names (`T_D`, `R_D_manifest`, `D_treatment_head`, `D_after_evidence`).
+Phase B is a new semantic epoch, not a continuation of a2/a2d's
+analysis-and-measurement epochs, because it is the first one that changes
+what a verdict *means* rather than what evidence is collected about
+unchanged behaviour. It is not a new architecture, though: it is this
+document's own "A1" (§8.1), the same target §8.1 already ruled on, now
+given a machine-readable record
+(`docs/evidence/p037-b-epoch.json`) and its own numbered branch point in
+this note. Nothing about the guard vocabulary, the transform vocabulary,
+the application rule, the three compatibility classes, or the kernel's
+role as implementation seed is redecided here — §§2-9 remain the contract,
+and a fourth compatibility class or a widened guard vocabulary during
+Phase B is a case-5 event under §10.1, not a documentation update.
+
+**MEASURED/AUDITED FACT.** P-022 Stage 3 is complete: checked directly
+against `docs/proposals/P-022-rust-core-migration.md`'s own status line
+("Since #262 Stage 3 the Rust core is the public default engine") and
+independently corroborated by `corpus/p036-bakeoff/gv4-control-mutated-
+guard/expected.json`'s own 2026-09-18 remeasurement entry at `63148d0`,
+which separately cites the same cutover (PR #359). This discharges the
+sequencing half of §8.1's OWNER RULING (2026-09-18) — the wait is over —
+but §10.4's proof-boundary requirement is a *different* gate, standing on
+its own, and is not discharged by Stage 3 completing. Because Python's
+role is now exactly what the ruling anticipated ("legacy / reference /
+rollback"), Phase B's treatment is Rust-only: `ownlang/ownir.py` is not a
+treatment path, matching §8.1's own words for this branch of the
+decision, not a new choice made here.
+
+**REPOSITORY FACT, quoted rather than paraphrased.** §10.4's text is the
+hard gate this section exists to make executable: "Phase B may not begin
+semantic wiring until the P-037 proof-boundary audit is green. The audit
+must derive the Kani harness inventory from source/Kani, check that the
+fast and heavy CI sets are disjoint and their union equals the source
+set, record the human claim and production subject for every harness,
+and make every load-bearing assumption traceable to either a production
+guarantor or an explicit `OUTSIDE_KANI_BOUNDARY` entry." `scripts/
+p037_proof_boundary.py` is that audit; `docs/evidence/p037-b-ledger-
+harnesses.json` and `docs/evidence/p037-b-ledger-assumptions.json` are
+the machine-readable ledgers it checks against; `tests/
+test_p037_proof_boundary.py` proves the audit actually refuses each of
+the corruption modes §10.4's requirement implies, not only that it passes
+on the current tree.
+
+**Trusted-input boundary, restated rather than re-derived (already
+frozen, §5 as cited in this file's own opening comment above): guard
+eligibility (G-V4) and cell-local definite-release facts (G-S2/G-S3),
+including which forward sits under which literal (G-S4), are assumed
+correct; the kernel verifies from election, cells, solver, transforms,
+collapse, finalize and application onward. The audit does not weaken this
+into "proved by Kani," and does not promote any frontend assumption past
+it either — §10.4's `OUTSIDE_KANI_BOUNDARY` disposition is precisely the
+place that boundary is recorded as a production obligation, not silently
+dropped.
+
+**MEASURED/AUDITED FACT, current run.** Twenty-three `#[kani::proof]`
+harnesses exist under `formal/p037-kernel/src/properties/` today; the
+fifteen named in `ci.yml`'s `formal-p037` job and the eight named in
+`formal-p037-gate.yml` are disjoint and their union is exactly those
+twenty-three, checked by name, not by count alone. This is the audit's
+own output at the time of writing, not a number frozen into prose the way
+§8.1's history table freezes `9523fac`'s "22 of 22" — that entry describes
+what A0 measured *then*; A0.5 added the G-T2b harness afterward, and nothing
+here amends that history or need reconcile a stale count against a
+live one, because the live count is never hand-typed at all.
+
+**MEASURED/AUDITED FACT, a real gap.** Of the G-V4 discharge matrix's
+three required negative-control families (P-037 proposal, discharge-
+matrix note), family 1 (direct/compound/increment/capture write, own-body
+election forbidden, no wrapper involved) has no corpus fixture: confirmed
+against the complete `corpus/p036-bakeoff/` listing (eight fixtures, none
+matching) and a repository-wide filename search. Families 2 and 3 are
+covered (`gv4-control-mutated-guard` + `gv4-control-ref-alias-guard` for
+family 2's row 18 a/b; `gv4-control-aliased-self-null` for family 3's row
+19). This gap is recorded in `docs/evidence/p037-b-epoch.json`'s
+`first_semantic_hypothesis.g_v4_discharge_matrix` and is not filled here:
+building a correctly-measured negative control (with its own `current`/
+`post_a1` record, the same discipline every existing G-V4 control
+carries) is fixture work this entry-gate task did not receive as its
+brief, and manufacturing one without that discipline would be worse than
+naming the gap plainly.
+
+No production file moves in this section or the record it describes.
+Semantic wiring starts only after `scripts/p037_proof_boundary.py`
+reports GREEN on a reviewed head, and only as a later, separate task.
