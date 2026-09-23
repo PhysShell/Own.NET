@@ -172,7 +172,7 @@
   "named_later": {
     "T_D": "44b405c2003b1d68965fe6346c2506d51ed52def",
     "R_D_manifest": "docs/evidence/p037-a2d-baseline-manifest.md",
-    "D_treatment_head": null,
+    "D_treatment_head": "4ba49c14d8777dc94554e5ec4208a9607fb89908",
     "D_after_evidence": null
   }
 }
