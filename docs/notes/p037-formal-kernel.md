@@ -2807,3 +2807,68 @@ assumed" instruction from §10.8b's own consequence paragraph: the
 instrument genuinely moved, for a real and now-understood reason, and
 `T_B`/`R_B` are retaken against the corrected instrument, not the
 mislabeled one.
+
+#### 10.8d A fourth defect, self-found: §10.8c's own "all three fixes" value was measured one commit early
+
+Executing the very next step this record's own order prescribes --
+"formally decide, by measurement, whether `instrument_identity` changed,
+and if so name the new `T_B`" -- means computing
+`p037_evidence_b.instrument_identity` fresh at the actual candidate head,
+not reusing a value already written down. Doing exactly that surfaced a
+fourth defect, in the same family as the first three: a claim that turned
+out false the moment it was re-measured instead of trusted.
+
+**REPOSITORY FACT.** §10.8c's own "Consequence" paragraph above, and the
+`eb6c211` commit message that introduced it, both state the instrument
+identity "with all three fixes" is
+`ed6ee5f8a86f4900e107b98ed6f7abfd7fe0fc2be5b456d78735f4cc60cac25e`. That
+value is real, but it is the identity at `bf3520e` -- the commit carrying
+only the classifier and gate fixes (two of three). Freshly computed at
+`eb6c211` itself -- the commit that actually carries all three, including
+the `instrument_identity` fix -- the value is different:
+`75764c81ac49185adad6a02657b373a7453fc03ba337bb61b86d4694bd8d5065`. All
+three values reconfirmed by direct computation, not recollection:
+
+| commit | fixes present | `p037_evidence_b.instrument_identity` |
+|---|---|---|
+| `2ed4d92` | none (T_B naming commit) | `597320be8d4176b82b117c580ea2a2d3ddb7deec693d7fb036e920a9afffd5cc` |
+| `bf3520e` | classifier + gate (2 of 3) | `ed6ee5f8a86f4900e107b98ed6f7abfd7fe0fc2be5b456d78735f4cc60cac25e` |
+| `eb6c211` | classifier + gate + identity fix (3 of 3) | `75764c81ac49185adad6a02657b373a7453fc03ba337bb61b86d4694bd8d5065` |
+
+**Mechanism.** `eb6c211` edits `scripts/p037_evidence_b.py` (the §10.8c
+fix itself), and that file is one of Phase B's own nine `INSTRUMENT_PATHS`
+entries -- so the commit that fixes the identity function is itself an
+in-scope edit, and moves the identity a second time on top of `bf3520e`'s
+classifier/gate change. §10.8c's "Consequence" paragraph was written by
+computing the "after" value at `bf3520e` (the commit that existed when the
+prose was drafted) and labelling it as the final, all-three-fixes number,
+without re-measuring at the commit that would actually carry the
+identity fix once committed. The bug is in the narration, not the code:
+`instrument_manifest`/`instrument_identity` are deterministic and
+correctly scoped at all three commits (reconfirmed above), and the
+`selftest` §10.8c added is HEAD-relative and asserts a structural
+property, not a specific numeral -- it was never in a position to catch a
+mislabeled commit message, and does not need to.
+
+**Severity.** Documentation-only, and narrower than any of the first
+three findings. `docs/evidence/p037-b-epoch.json`'s `named_later.T_B` and
+`named_later.R_B` still name `349c7bc`/the pre-owner-review manifest at
+the moment this is written -- neither `ed6ee5f8...` nor `75764c81...` had
+yet been written into any frozen or gating artifact, so nothing consumed
+the wrong value as fact. No test, gate or CI check reads this prose. The
+`eb6c211` commit message cannot be corrected in place -- it is already
+pushed, and this project's standing rule is never to amend or rebase a
+pushed commit -- so it stands as a permanent, honestly-superseded record,
+exactly like `349c7bc`/`40cb9b4`/`2ed4d92` above; this section is the
+correction, the same pattern already used for those.
+
+**Consequence for `T_B`.** `eb6c211` remains a valid `T_B` candidate on
+every ground that actually matters: CI green (30/30 jobs), fast Kani
+independently reconfirmed at 15/15 `VERIFICATION:- SUCCESSFUL` / 0
+`FAILED` from the raw job log, working tree clean, and
+`instrument_identity` computed and stable under repeated evaluation. Only
+the prose describing it, not the commit's content or the gate's behaviour,
+was wrong. `75764c81ac49185adad6a02657b373a7453fc03ba337bb61b86d4694bd8d5065`,
+measured at `eb6c211`, is Phase B's true current instrument identity and
+is the value that `T_B`'s naming and every retaken `R_B` artifact will
+cite from here on -- not `ed6ee5f8...`.
