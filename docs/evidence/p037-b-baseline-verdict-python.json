@@ -784,7 +784,7 @@
  "environment_id": "P037_B_MEASUREMENT_M3",
  "epoch": "b",
  "epoch_record": {
-  "blob": "7c0e747824b971cb6bc096e23c0489003db14138",
+  "blob": "94fc5fb113a592be024e23321b560c0dd1c5fa9a",
   "path": "docs/evidence/p037-b-epoch.json"
  },
  "execution_profile": {
@@ -2200,7 +2200,7 @@
   "rust/crates/own-bridge/src/lower.rs",
   "frontend/roslyn/OwnSharp.Extractor/"
  ],
- "instrument_identity": "3591d8056a1debabca046ad1faa1715c71516f0ef37d2037da817a3bde2c5d2d",
+ "instrument_identity": "d93e34e0a6e740ad4ffaa6c1894f32c14fbded79b50b5fc2f678da860d2108d7",
  "instrument_paths": [
   "frontend/roslyn/OwnSharp.Extractor/",
   "ownlang/",
@@ -2215,15 +2215,15 @@
   "scripts/p037_b_extractor_diff_gate.py"
  ],
  "is_evidence": true,
- "materialization_root": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b7192231c73b6418",
- "population_commit": "cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd",
+ "materialization_root": ".p037-population/fdde0a026d264ceff0e44f8c86e7d059207f67e6/b7192231c73b6418",
+ "population_commit": "fdde0a026d264ceff0e44f8c86e7d059207f67e6",
  "post_run_population_intact": true,
  "reference_profile": {
   "OWN_EXTRA_REF_DIRS": "removed-from-child-environment",
   "observed_extra_reference_lines": 0
  },
  "schema": "p037-verdict-snapshot/3",
- "source_commit": "cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd",
+ "source_commit": "fdde0a026d264ceff0e44f8c86e7d059207f67e6",
  "support_manifest": [],
  "support_manifest_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
  "treatment_paths": [
