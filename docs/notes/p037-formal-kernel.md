@@ -2610,3 +2610,129 @@ terminal-green (including fast Kani) the same way `4e75abe` was. `4e75abe`
 stays exactly as committed, an honest record of the instrument as it
 stood one step before the gap was found — the same discipline §10.7a and
 §10.6.14a both already apply to their own preceding heads.
+
+#### 10.8b Phase B / B1: two owner-review findings in the frozen instrument itself
+
+`2ed4d92` named `T_B`/`R_B` and closed B1's own report. Owner review of
+that report, independently re-verified against the live `PhysShell/Own.NET`
+branch rather than accepted from the report's prose, found two real defects
+in the instrument B1 had just frozen — both in governance/measurement
+tooling, neither in `mos.rs`/`lower.rs` (confirmed: `5571ba4..2ed4d92`
+touches no byte of either file), and both caught before any semantic
+treatment could have been affected by them. Per §10.1, both are repairable
+within B1's own scope (case 1, tooling defects) — no owner sign-off was
+needed to fix them, only to find and rule on them, which is what this
+section records.
+
+**Finding 1 (P1): the classifier violated its own frozen overlap rule
+through check ORDER, not through the rule's own text.** `classify()`
+checked `class_3_shape` (`collapsed=="unknown" and legacy_t=="may"` →
+`LEGACY_HONESTY`) before the split-shape overlap check (`selected in
+("pos","neg") and collapse_differs` → `UNCLASSIFIED`). A witness legal
+under `check_witness()` and satisfying BOTH conditions at once —
+`legacy_transfer="may"`, `guarded.shape="split"`, `guarded.selection="pos"`
+(with a valid license), `guarded.collapsed="unknown"` — hit the
+`LEGACY_HONESTY` return first and never reached the overlap check, even
+though the frozen rule (this file's own §10.8, the epoch record's
+`difference_policy.rules`, and `classify()`'s own docstring) states
+plainly that a witness carrying both a selection and a collapse difference
+is `UNCLASSIFIED`, unconditionally. The existing overlap self-test
+(`both-application-and-summary-signal-is-unclassified`) used
+`collapsed="must"`, never `"unknown"`, so it could not have caught this —
+it tested the rule, not the intersection with a different narrow shape's
+own condition.
+
+**MEASURED/AUDITED FACT, not argued.** The bug was confirmed by execution,
+not by re-reading the code more carefully: `git show 2ed4d92:scripts/
+p037_b_classifier.py`'s own `classify()`, run directly against the
+counterexample witness above, returns `LEGACY_HONESTY`. The fixed version
+returns `UNCLASSIFIED`. Fix: the overlap check now runs first, unconditionally,
+ahead of every narrow-shape class including `LEGACY_HONESTY` — a witness
+satisfying a narrow shape's own condition while also carrying an
+independent selection is the overlap regardless of which narrow shape it
+also matches, and checking any narrow shape first would silently resolve
+that overlap in that shape's favor (itself an invented priority rule, a
+§10.1 case-5 event). All twelve prior self-test cases were re-traced by
+hand against the reordered logic before running them (none depend on
+`LEGACY_HONESTY` and the overlap check both being reachable for the same
+witness, since every existing `LEGACY_HONESTY` case uses
+`selection="unselected"`, for which `has_selection` is false and the new
+first check never fires) and all twelve still pass; a thirteenth,
+`selection-overlapping-legacy-honesty-shape-is-unclassified`, exercises
+the exact counterexample and is now the mechanical guard against this
+exact regression.
+
+**Finding 2 (P1): the production-diff gate could self-authorize.**
+`check()` read the allowlist (`production_diff_gate.rust`) from the epoch
+record AT THE HEAD BEING CHECKED — `doc = load_record(head_sha,
+record_path, repo)`, then `pol = _b_policy(gate_section["rust"])` — not
+from a reference pinned independently of that head. `frozen_policy()`
+already existed as the module's own hardcoded reference policy, and its
+own docstring already claimed the epoch record "must equal" it, but
+nothing in `check()` (or anywhere else — confirmed by `grep -rn
+frozen_policy scripts/ tests/`, no call site outside this module's own
+CLI print command) ever compared the two. Consequence: a single treatment
+commit could widen `production_diff_gate.rust.mutable_items` in
+`docs/evidence/p037-b-epoch.json` and make the newly-widened change to
+`mos.rs`/`lower.rs` at the same time, and `check()` would validate the
+change against the very permission that same commit had just written —
+a self-authorization hole, not a hypothetical one: `docs/evidence/
+p037-b-epoch.json` is not, and was never, part of `p037_evidence_b.
+INSTRUMENT_PATHS`, so `provenance_problems()` would not have flagged the
+policy-section edit as instrument drift either.
+
+**Fix, mechanical, not a documentation promise.** A new `IMMUTABLE_POLICY_
+FIELDS` tuple (`unit`, `mutable_files`, `mutable_items`, `frozen_files`,
+`controls` — every field except `registered_new_items`, which a treatment
+is explicitly meant to grow in its own commit) and `policy_drift(record_
+rust)`, which compares each of those fields against `frozen_policy()`'s
+own value and returns every mismatch found. `check()` now calls it
+immediately after loading the record and REFUSES (exit 2) if it returns
+anything, before a `Policy` is even built. Because `scripts/
+p037_b_production_diff_gate.py` is itself one of `INSTRUMENT_PATHS`,
+widening `frozen_policy()` to match a self-serving epoch-record edit would
+change these bytes too and surface as instrument drift the next time
+`provenance_problems()` runs — the fix does not have to reimplement that
+detection, only refuse to trust an unpinned record in the meantime. Six
+new self-tests exercise it directly: a lone addition to `mutable_items`,
+a lone removal from `frozen_files`, a changed `unit`, an emptied
+`controls`, a lone `registered_new_items` addition (must NOT be refused —
+that field is the one meant to move alone), and `frozen_policy()` compared
+against itself (must be clean). A seventh, end-to-end check ran `check()`
+against a real on-disk copy of the actual epoch record with `mos.rs`'s
+`mutable_items` tampered exactly as the self-authorization scenario
+describes: `REFUSED: production_diff_gate.rust.mutable_items differs from
+this module's own frozen_policy()...`, exit 2 — confirmed by running it,
+the tampered file deleted immediately after, never committed.
+
+**Explicitly not extended to `p037_evidence_b.py`.** Owner review also
+noted, as an optional strengthening rather than a second blocker, that
+`provenance_problems()` could itself be made to check this same
+projection, or the immutable-policy digest could be carried into R_B.
+Not done here: the `check()`-level fix above already closes the
+demonstrated hole (a treatment cannot land a `mos.rs`/`lower.rs` change
+outside the frozen boundary by also editing the epoch record in the same
+commit, because `check()` itself now refuses before comparing trees), and
+`p037_b_production_diff_gate.py`'s own bytes are already covered by the
+existing `INSTRUMENT_PATHS`/`provenance_problems()` machinery once this
+fix's commit lands. Widening `p037_evidence_b.py` on top would be
+repairing a hole that no longer exists rather than the one that did —
+the same restraint §10.1 asks for when a red build is found: fix the
+defect found, not seven adjacent things a red build makes tempting.
+
+**Consequence for `T_B`/`R_B`.** `scripts/p037_b_production_diff_gate.py`
+is one of `INSTRUMENT_PATHS`; changing it changes `instrument_identity`.
+`scripts/p037_b_classifier.py` is not part of `INSTRUMENT_PATHS` at all —
+the classifier interprets a difference after measurement, it does not
+produce or gate one — so fixing it alone would not have forced a retake,
+but fixing the gate in the same commit does. `349c7bc`'s own
+`instrument_identity` (`04525002af5383fcdda0c4f0d77c9b647cc2c5f6be759b4ec
+733067013e8a559`, carried by all four R_B artifacts) no longer describes
+the instrument once this fix commit lands. Per owner ruling, this is
+measured, not assumed: a new `T_B` is named only once this fix commit is
+itself terminal-green, R_B's four takes are retaken in full at that new
+head, and a fresh naming commit follows — mirroring B1's own original
+order exactly, not a shortcut taken because the data is expected to be
+unchanged. `349c7bc`, `40cb9b4` and `2ed4d92` are kept exactly as
+committed: honest records of the instrument and its first (flawed) R_B,
+superseded, not rewritten.

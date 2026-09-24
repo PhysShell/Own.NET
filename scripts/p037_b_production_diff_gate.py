@@ -54,6 +54,7 @@ Run:  python scripts/p037_b_production_diff_gate.py check --reference <sha> [--h
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import sys
 from pathlib import Path
@@ -162,6 +163,42 @@ def frozen_policy() -> dict[str, Any]:
     }
 
 
+# Everything EXCEPT registered_new_items: the boundary itself. A treatment
+# commit registers its own new items (growing registered_new_items in the
+# SAME commit that defines them, by design -- see the module docstring),
+# but it may never widen unit/mutable_files/mutable_items/frozen_files/
+# controls, because those are the boundary a registration is measured
+# against. Named here, not left implicit, because check() enforces exactly
+# this split below.
+IMMUTABLE_POLICY_FIELDS: tuple[str, ...] = (
+    "unit", "mutable_files", "mutable_items", "frozen_files", "controls",
+)
+
+
+def policy_drift(record_rust: dict[str, Any]) -> list[str]:
+    """Refuses a record whose IMMUTABLE_POLICY_FIELDS disagree with this
+    module's own frozen_policy() -- catches a real self-authorization hole:
+    check() used to read its allowlist from `record_rust` at whatever HEAD
+    it was checking, so a single commit could widen mutable_items AND make
+    the newly-widened item's change in the same breath, and the gate would
+    validate the change against the very permission that commit just wrote.
+    frozen_policy() is this module's OWN hardcoded reference; this file
+    (scripts/p037_b_production_diff_gate.py) is itself one of Phase B's
+    INSTRUMENT_PATHS, so widening frozen_policy() to match a self-serving
+    epoch-record edit would change these bytes too and surface as
+    instrument drift under p037_evidence_b.provenance_problems() -- the
+    check does not have to re-implement that detection, only refuse to
+    treat an unpinned record as authoritative in the meantime."""
+    frozen = frozen_policy()
+    problems = []
+    for field in IMMUTABLE_POLICY_FIELDS:
+        if record_rust.get(field) != frozen[field]:
+            problems.append(
+                f"production_diff_gate.rust.{field} differs from this module's own "
+                f"frozen_policy(): record={record_rust.get(field)!r} frozen={frozen[field]!r}")
+    return problems
+
+
 def load_record(rev: str, record_path: str, repo: Path = ROOT) -> dict[str, Any]:
     if rev == WORKTREE:
         text = (repo / record_path).read_text(encoding="utf-8")
@@ -191,6 +228,9 @@ def check(reference: str, head: str, record_path: str = DEFAULT_RECORD,
     gate_section = doc.get("production_diff_gate")
     if not isinstance(gate_section, dict) or not isinstance(gate_section.get("rust"), dict):
         raise Refused(f"{record_path}: no production_diff_gate.rust section")
+    drift = policy_drift(gate_section["rust"])
+    if drift:
+        raise Refused("; ".join(drift))
     pol = _b_policy(gate_section["rust"])
     ref_tree = snapshot(ref_sha, [pol.rust_unit], repo)
     head_tree = snapshot(head_sha, [pol.rust_unit], repo)
@@ -327,6 +367,43 @@ def selftest() -> int:
     rep = compare_rust(ref, head_new_item, reg_pol)
     _selfcheck("registered-new-item-in-mutable-file-is-allowed", rep.verdict == WITHIN,
               rep.as_dict())
+
+    # --- policy-drift hostile tests: the self-authorization hole check()
+    # used to have, where the allowlist was read from the very commit it
+    # was checking, so a treatment could widen mutable_items and use the
+    # widened permission in the same breath. Every IMMUTABLE_POLICY_FIELDS
+    # entry must refuse a lone change; only registered_new_items may move
+    # alone. ---
+    frozen = frozen_policy()
+
+    tampered = copy.deepcopy(frozen)
+    tampered["mutable_items"]["src/mos.rs"] = [*tampered["mutable_items"]["src/mos.rs"],
+                                               "fn smuggled_in_the_same_commit"]
+    _selfcheck("policy-drift-catches-added-mutable-item", bool(policy_drift(tampered)),
+              policy_drift(tampered))
+
+    tampered = copy.deepcopy(frozen)
+    tampered["frozen_files"] = tampered["frozen_files"][:-1]
+    _selfcheck("policy-drift-catches-removed-frozen-file", bool(policy_drift(tampered)),
+              policy_drift(tampered))
+
+    tampered = copy.deepcopy(frozen)
+    tampered["unit"] = "rust/crates/own-ir/"
+    _selfcheck("policy-drift-catches-changed-unit", bool(policy_drift(tampered)),
+              policy_drift(tampered))
+
+    tampered = copy.deepcopy(frozen)
+    tampered["controls"] = []
+    _selfcheck("policy-drift-catches-emptied-controls", bool(policy_drift(tampered)),
+              policy_drift(tampered))
+
+    tampered = copy.deepcopy(frozen)
+    tampered["registered_new_items"] = {"src/mos.rs": ["fn brand_new_registered"]}
+    _selfcheck("policy-drift-allows-registered-new-items-alone", not policy_drift(tampered),
+              policy_drift(tampered))
+
+    _selfcheck("policy-drift-clean-on-frozen-policy-itself", not policy_drift(frozen),
+              policy_drift(frozen))
 
     mos_src = (ROOT / "rust" / "crates" / "own-bridge" / "src" / "mos.rs").read_text(
         encoding="utf-8")

@@ -148,17 +148,28 @@ def check_witness(w: dict[str, Any]) -> None:
 def classify(w: dict[str, Any]) -> dict[str, Any]:
     """Returns {"class": one of CLOSED_CLASSES or UNCLASSIFIED, "reason": str}.
 
-    Decision order (checked, not guessed): LEGACY_HONESTY first (it is the
-    narrowest, most specific shape -- a collapsed value of exactly `unknown`
-    against a legacy `may`, both lowering to `plain`); then, for a `split`
-    shape, whether a call-site SELECTION was actually made (APPLICATION_
-    REFINEMENT) or not (SUMMARY_REFINEMENT then rests on the COLLAPSED value
-    alone). A witness whose collapsed value differs from legacy AND ALSO
-    carries a pos/neg selection is a real overlap the proposal's rows 1-19
-    do not settle (checked directly against the proposal text, not assumed);
-    this classifier reports that overlap as UNCLASSIFIED with a named
-    reason rather than inventing a priority rule -- inventing one would be
-    new semantics, a §10.1 case-5 event, not classification tooling.
+    Decision order (checked, not guessed): the overlap check runs FIRST,
+    ahead of every narrow-shape class including LEGACY_HONESTY -- a witness
+    that happens to satisfy a narrow shape's own condition (e.g. collapsed=
+    unknown against legacy=may) while ALSO carrying an independent pos/neg
+    selection is exactly the overlap the proposal's rows 1-19 do not settle,
+    regardless of which narrow shape it also matches; checking any narrow
+    shape first would silently resolve that overlap in that shape's favor,
+    which is itself an invented priority rule (a §10.1 case-5 event this
+    classifier refuses to make). Only once overlap is excluded does
+    LEGACY_HONESTY get to claim the witness (the narrowest, most specific
+    shape -- a collapsed value of exactly `unknown` against a legacy `may`,
+    both lowering to `plain`); then, for a `split` shape, whether a
+    call-site SELECTION was actually made (APPLICATION_REFINEMENT) or not
+    (SUMMARY_REFINEMENT then rests on the COLLAPSED value alone).
+
+    An earlier version of this function checked LEGACY_HONESTY before the
+    overlap test, so a witness satisfying BOTH conditions at once (legacy=
+    may, collapsed=unknown, split shape, selection=pos) was misclassified
+    as LEGACY_HONESTY -- caught by owner review, not by this module's own
+    selftest, whose overlap case used collapsed=must (not unknown) and so
+    never exercised the intersection. selftest() now has a dedicated
+    hostile case for exactly that intersection.
     """
     check_witness(w)
     guarded = w["guarded"]
@@ -167,6 +178,17 @@ def classify(w: dict[str, Any]) -> dict[str, Any]:
     legacy_lowered = lower(legacy_t)
     guarded_lowered = lower(collapsed)
 
+    selected = guarded["selection"]
+    collapse_differs = collapsed != legacy_t
+    has_selection = guarded["shape"] == "split" and selected in ("pos", "neg")
+
+    if has_selection and collapse_differs:
+        return {"class": UNCLASSIFIED,
+                "reason": "both a call-site selection and a collapsed-value difference are "
+                          "present at once; the proposal's rows 1-19 do not settle which "
+                          "class this is, and this classifier does not invent a priority "
+                          "rule for it (that would be new semantics, a case-5 event)"}
+
     class_3_shape = collapsed == "unknown" and legacy_t == "may"
     if class_3_shape and legacy_lowered == guarded_lowered == "plain":
         return {"class": LEGACY_HONESTY,
@@ -174,14 +196,6 @@ def classify(w: dict[str, Any]) -> dict[str, Any]:
                           "class 3, the K11b amendment's own declared verdict-equivalent case)"}
 
     if guarded["shape"] == "split":
-        selected = guarded["selection"]
-        collapse_differs = collapsed != legacy_t
-        if selected in ("pos", "neg") and collapse_differs:
-            return {"class": UNCLASSIFIED,
-                    "reason": "both a call-site selection and a collapsed-value difference are "
-                              "present at once; the proposal's rows 1-19 do not settle which "
-                              "class this is, and this classifier does not invent a priority "
-                              "rule for it (that would be new semantics, a case-5 event)"}
         if selected in ("pos", "neg"):
             license_ = guarded["selection_license"]
             return {"class": APPLICATION_REFINEMENT,
@@ -346,6 +360,23 @@ def selftest() -> int:
                   "finalized_cells": {"pos": "must", "neg": "must"}, "collapsed": "must"})
     r = classify(w)
     _check("both-application-and-summary-signal-is-unclassified", r["class"] == UNCLASSIFIED, r)
+
+    # --- hostile negative: the SAME overlap, but through the LEGACY_HONESTY
+    # shape specifically (collapsed=unknown, legacy=may) rather than through
+    # SUMMARY_REFINEMENT's shape (collapsed=must) -- the exact intersection
+    # an earlier version of classify() missed, because it checked LEGACY_
+    # HONESTY before the overlap test and this case satisfies both at once.
+    # Caught by owner review, not by the check above, precisely because
+    # that check never used collapsed="unknown" -- this one exists so the
+    # intersection stays caught mechanically from here on ---
+    w = _w(legacy_transfer="may",
+          guarded={"shape": "split", "selection": "pos",
+                  "selection_license": {"kind": "bool_const", "value": True},
+                  "finalized_cells": {"pos": "unknown", "neg": "unknown"},
+                  "collapsed": "unknown"})
+    r = classify(w)
+    _check("selection-overlapping-legacy-honesty-shape-is-unclassified",
+          r["class"] == UNCLASSIFIED, r)
 
     if _failures:
         print(f"RESULT: {_failures} check(s) failed")
