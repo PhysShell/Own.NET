@@ -800,7 +800,7 @@
    "executed": {
     "bytes": 1946672,
     "post_run_intact": true,
-    "sealed_path": "/tmp/p037-take-o8p8ghsn/own-cli",
+    "sealed_path": "/tmp/p037-take-hfetr4t4/own-cli",
     "sha256": "847fd8ed3e53e00dbb44abab6974a1256c6b72914336cf8b034fe6e709df9462"
    },
    "host": "x86_64-unknown-linux-gnu",
@@ -810,7 +810,7 @@
    "repo_path": "rust/target/release/own-cli",
    "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)\nbinary: rustc\ncommit-hash: e408947bfd200af42db322daf0fadfe7e26d3bd1\ncommit-date: 2026-03-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.94.1\nLLVM version: 21.1.8",
    "sha256": "847fd8ed3e53e00dbb44abab6974a1256c6b72914336cf8b034fe6e709df9462",
-   "source_commit": "349c7bcf456bdd33ce3efe7a19da43790c186145"
+   "source_commit": "a02ccf17d22eaf62c046fb95ba5060e6d66ffeae"
   }
  },
  "corpus": [
@@ -826,7 +826,7 @@
  "environment_id": "P037_B_MEASUREMENT_M3",
  "epoch": "b",
  "epoch_record": {
-  "blob": "671439124e59dab5b7d53fbc7e31ab54e6ad26ab",
+  "blob": "d3f5f18528dc11e4f31dfa6e79073f12ba2da785",
   "path": "docs/evidence/p037-b-epoch.json"
  },
  "execution_profile": {
@@ -2246,7 +2246,7 @@
   "rust/crates/own-bridge/src/mos.rs",
   "rust/crates/own-bridge/src/lower.rs"
  ],
- "instrument_identity": "04525002af5383fcdda0c4f0d77c9b647cc2c5f6be759b4ec733067013e8a559",
+ "instrument_identity": "75764c81ac49185adad6a02657b373a7453fc03ba337bb61b86d4694bd8d5065",
  "instrument_paths": [
   "frontend/roslyn/OwnSharp.Extractor/",
   "ownlang/",
@@ -2260,15 +2260,15 @@
   "scripts/p037_b_production_diff_gate.py"
  ],
  "is_evidence": true,
- "materialization_root": ".p037-population/349c7bcf456bdd33ce3efe7a19da43790c186145/b7192231c73b6418",
- "population_commit": "349c7bcf456bdd33ce3efe7a19da43790c186145",
+ "materialization_root": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b7192231c73b6418",
+ "population_commit": "a02ccf17d22eaf62c046fb95ba5060e6d66ffeae",
  "post_run_population_intact": true,
  "reference_profile": {
   "OWN_EXTRA_REF_DIRS": "removed-from-child-environment",
   "observed_extra_reference_lines": 0
  },
  "schema": "p037-verdict-snapshot/3",
- "source_commit": "349c7bcf456bdd33ce3efe7a19da43790c186145",
+ "source_commit": "a02ccf17d22eaf62c046fb95ba5060e6d66ffeae",
  "support_manifest": [],
  "support_manifest_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
  "treatment_paths": [
