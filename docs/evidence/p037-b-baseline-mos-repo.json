@@ -360,7 +360,7 @@
    "executed": {
     "bytes": 1891384,
     "post_run_intact": true,
-    "sealed_path": "/tmp/p037-take-g_1ei2w7/own-shadow-engine",
+    "sealed_path": "/tmp/p037-take-7_q1kg7k/own-shadow-engine",
     "sha256": "9f48cc76ba603cbb1b4a01bee69993f826e1f7314e9cf613c4cfeda73a36feea"
    },
    "host": "x86_64-unknown-linux-gnu",
@@ -370,7 +370,7 @@
    "repo_path": "rust/target/release/own-shadow-engine",
    "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)\nbinary: rustc\ncommit-hash: e408947bfd200af42db322daf0fadfe7e26d3bd1\ncommit-date: 2026-03-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.94.1\nLLVM version: 21.1.8",
    "sha256": "9f48cc76ba603cbb1b4a01bee69993f826e1f7314e9cf613c4cfeda73a36feea",
-   "source_commit": "a02ccf17d22eaf62c046fb95ba5060e6d66ffeae"
+   "source_commit": "cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd"
   }
  },
  "dirty": false,
@@ -379,7 +379,7 @@
    "facts": {
     "algorithm": "sha256",
     "bytes": 173502,
-    "digest": "c39c16162de1b6c2073bc96d98e0fe5310e92d08d42d88891d280ebfa892c14a"
+    "digest": "7a0b97d690d7ee9423e8cf4b309e1939d05a34cb3e133144237fe4375963f50c"
    },
    "inputs": [
     "audit/runtime/DuplicateDetector/Program.cs",
@@ -472,7 +472,7 @@
      "ownir_version": 0,
      "summaries": [
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
        "line": 0,
        "method": "Catalog.CatalogService.CreateUnitOfWork",
        "params": [],
@@ -482,7 +482,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
        "line": 0,
        "method": "Catalog.CatalogService.GetProductsFromCatalogWODocuments",
        "params": [],
@@ -492,7 +492,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
        "line": 0,
        "method": "Catalog.CatalogService.ImportProducts",
        "params": [],
@@ -502,7 +502,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/ColumnAnchorsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/ColumnAnchorsSample.cs",
        "line": 0,
        "method": "ColumnAnchorsSample.TwoLeaksOneLine",
        "params": [],
@@ -512,7 +512,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryLeakSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryLeakSample.cs",
        "line": 0,
        "method": "Factories.FactoryConsumers.Clean",
        "params": [],
@@ -522,7 +522,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryLeakSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryLeakSample.cs",
        "line": 0,
        "method": "Factories.FactoryConsumers.Leaks",
        "params": [],
@@ -532,7 +532,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryLeakSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryLeakSample.cs",
        "line": 0,
        "method": "Factories.StreamFactory.Make",
        "params": [],
@@ -542,7 +542,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.CatchThenDisposeAfter",
        "params": [],
@@ -552,7 +552,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.Clean",
        "params": [],
@@ -562,7 +562,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.CryptoFactoryDisposed",
        "params": [],
@@ -572,7 +572,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.CryptoFactoryLeaks",
        "params": [],
@@ -582,7 +582,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.CtorInLambdaNotThrow",
        "params": [],
@@ -592,7 +592,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.CtorThrowLeaksPrior",
        "params": [],
@@ -602,7 +602,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DisposeAsyncConfiguredInTry",
        "params": [],
@@ -612,7 +612,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DisposeInsideIfWithThrow",
        "params": [],
@@ -622,7 +622,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DisposeOnThrow",
        "params": [],
@@ -632,7 +632,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DisposedAsync",
        "params": [],
@@ -642,7 +642,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DisposedAsyncConfigured",
        "params": [],
@@ -652,7 +652,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DoClean",
        "params": [],
@@ -662,7 +662,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DoLeak",
        "params": [],
@@ -672,7 +672,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DoubleDispose",
        "params": [],
@@ -682,7 +682,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.EarlyReturnLeak",
        "params": [],
@@ -692,7 +692,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.Escapes",
        "params": [],
@@ -702,7 +702,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ForIncrementorBodyUseAfterReturn",
        "params": [],
@@ -712,7 +712,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ForLeak",
        "params": [],
@@ -722,7 +722,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ForeachLeak",
        "params": [],
@@ -732,7 +732,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.HasLoop",
        "params": [],
@@ -742,7 +742,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.LeakOnElse",
        "params": [],
@@ -752,7 +752,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.NameofInLambda",
        "params": [],
@@ -762,7 +762,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.NestedThrowLeaks",
        "params": [],
@@ -772,7 +772,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.NullCondFinallyDispose",
        "params": [],
@@ -782,7 +782,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.OutArgRebindSuppressesLaterUse",
        "params": [],
@@ -792,7 +792,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.OutArgSiblingUseAfterReturn",
        "params": [],
@@ -802,7 +802,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.PoolReturnedOnOnePath",
        "params": [],
@@ -812,7 +812,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.QualifiedTypedCatchLeaks",
        "params": [],
@@ -822,7 +822,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ReassignedView",
        "params": [],
@@ -832,7 +832,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.RefArgUseAfterReturn",
        "params": [],
@@ -842,7 +842,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.SemaphoreLeaks",
        "params": [],
@@ -852,7 +852,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.SliceReassignAfterReturn",
        "params": [],
@@ -862,7 +862,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.SwitchAllDispose",
        "params": [],
@@ -872,7 +872,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.SwitchOneLeak",
        "params": [],
@@ -882,7 +882,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.TcpListenerNeverStopped",
        "params": [],
@@ -892,7 +892,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.TcpListenerStopped",
        "params": [],
@@ -902,7 +902,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ThrowAfterAcquireLeaks",
        "params": [],
@@ -912,7 +912,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ThrowAfterDisposeClean",
        "params": [],
@@ -922,7 +922,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.TimerLeaks",
        "params": [],
@@ -932,7 +932,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.TryFinallyClean",
        "params": [],
@@ -942,7 +942,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.TryFinallyReturn",
        "params": [],
@@ -952,7 +952,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.TryNeverDisposed",
        "params": [],
@@ -962,7 +962,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.TypedCatchLeaks",
        "params": [],
@@ -972,7 +972,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.UseAfterDispose",
        "params": [],
@@ -982,7 +982,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ValidatedThenClean",
        "params": [],
@@ -992,7 +992,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ValidatedThenLeaks",
        "params": [],
@@ -1002,7 +1002,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.WhileClean",
        "params": [],
@@ -1012,7 +1012,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.WhileLeak",
        "params": [],
@@ -1022,7 +1022,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
        "line": 0,
        "method": "Own.Samples.BodyThrowEdgesSample.AdjacentDisposeClean",
        "params": [],
@@ -1032,7 +1032,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
        "line": 0,
        "method": "Own.Samples.BodyThrowEdgesSample.MayThrowInFinallyClean",
        "params": [],
@@ -1042,7 +1042,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
        "line": 0,
        "method": "Own.Samples.BodyThrowEdgesSample.MayThrowLeaks",
        "params": [],
@@ -1052,7 +1052,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/CloseReleaseSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/CloseReleaseSample.cs",
        "line": 0,
        "method": "Own.Samples.ClosesOtherInstanceField.CloseOther",
        "params": [
@@ -1069,7 +1069,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.LeakAsync",
        "params": [],
@@ -1079,7 +1079,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.LeakBareInheritedAsync",
        "params": [],
@@ -1089,7 +1089,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.LeakDerived",
        "params": [],
@@ -1099,7 +1099,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.LeakInheritedAsync",
        "params": [],
@@ -1109,7 +1109,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.LeakLegacy",
        "params": [],
@@ -1119,7 +1119,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.LeakReader",
        "params": [],
@@ -1129,7 +1129,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.LeakReal",
        "params": [],
@@ -1139,7 +1139,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.UseScratch",
        "params": [],
@@ -1149,7 +1149,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsDisposalSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsDisposalSample.cs",
        "line": 0,
        "method": "Own.Samples.ForeignContainerAdder.AttachTo",
        "params": [
@@ -1166,7 +1166,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/MemoryOwnerEscapeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/MemoryOwnerEscapeSample.cs",
        "line": 0,
        "method": "Own.Samples.MemoryOwnerEscape.PoolOwnerNotEscaped",
        "params": [],
@@ -1176,7 +1176,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/MemoryOwnerEscapeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/MemoryOwnerEscapeSample.cs",
        "line": 0,
        "method": "Own.Samples.MemoryOwnerEscape.ReadOnlyLeak",
        "params": [],
@@ -1186,7 +1186,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/AppDomainShutdownSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/AppDomainShutdownSample.cs",
        "line": 0,
        "method": "Own.Samples.NonAppDomainSubscriber..ctor",
        "params": [
@@ -1203,7 +1203,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/AliasDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/AliasDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.ScopedAliasNameLeak.Other",
        "params": [],
@@ -1213,7 +1213,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/weaved/WeavedEmptyDispose.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/weaved/WeavedEmptyDispose.cs",
        "line": 0,
        "method": "Own.Samples.Weaved.WeavedConsumer.Count",
        "params": [],
@@ -1223,7 +1223,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/audit/runtime/RetentionPath/Program.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/audit/runtime/RetentionPath/Program.cs",
        "line": 0,
        "method": "OwnNet.Audit.Runtime.Program.Census",
        "params": [
@@ -1240,7 +1240,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/OwnSharp.Cli/EngineRunner.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/OwnSharp.Cli/EngineRunner.cs",
        "line": 0,
        "method": "OwnSharp.Cli.EngineRunner.DrainAsync",
        "params": [
@@ -1257,7 +1257,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.AdoptConsumers.AdoptClean",
        "params": [],
@@ -1267,7 +1267,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.AdoptConsumers.AdoptDouble",
        "params": [],
@@ -1277,7 +1277,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.AdoptConsumers.AdoptInnerOnly",
        "params": [],
@@ -1287,7 +1287,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.AdoptConsumers.AdoptLeak",
        "params": [],
@@ -1297,7 +1297,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.AdoptConsumers.AdoptTargetTyped",
        "params": [],
@@ -1307,7 +1307,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.AdoptConsumers.NonAdoptDoubleOk",
        "params": [],
@@ -1317,7 +1317,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.StreamAdopter..ctor",
        "params": [
@@ -1334,7 +1334,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.StreamHolder..ctor",
        "params": [
@@ -1351,7 +1351,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/PooledBufferSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/PooledBufferSample.cs",
        "line": 0,
        "method": "PoolApp.Hasher.CleanHash",
        "params": [],
@@ -1361,7 +1361,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/PooledBufferSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/PooledBufferSample.cs",
        "line": 0,
        "method": "PoolApp.Hasher.LeakyHash",
        "params": [],
@@ -1371,7 +1371,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
        "line": 0,
        "method": "Sample.ConnectionResolver.Warm",
        "params": [],
@@ -1381,7 +1381,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
        "line": 0,
        "method": "Sample.ExprBodiedResolver.Warm",
        "params": [],
@@ -1391,7 +1391,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
        "line": 0,
        "method": "Sample.RequestResolver.Warm",
        "params": [],
@@ -1401,7 +1401,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
        "line": 0,
        "method": "Sample.ScopedResolver.Warm",
        "params": [],
@@ -1411,7 +1411,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
        "line": 0,
        "method": "SigOverloads.Drop",
        "params": [],
@@ -1421,7 +1421,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
        "line": 0,
        "method": "SigOverloads.Open",
        "params": [
@@ -1438,7 +1438,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
        "line": 0,
        "method": "SigOverloads.Open(System.IO.FileStream,System.Boolean)",
        "params": [
@@ -1455,7 +1455,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
        "line": 0,
        "method": "SigOverloads.Open(System.String)",
        "params": [],
@@ -1465,7 +1465,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/LocalDisposableSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/LocalDisposableSample.cs",
        "line": 0,
        "method": "Streams.Loader.Leaky",
        "params": [],
@@ -1475,7 +1475,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/LocalDisposableSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/LocalDisposableSample.cs",
        "line": 0,
        "method": "Streams.Loader.Transfer",
        "params": [],
@@ -1485,7 +1485,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
        "line": 0,
        "method": "WinFormsModelessSample.OpenModalLeak",
        "params": [],
@@ -1495,7 +1495,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
        "line": 0,
        "method": "WinFormsModelessSample.OpenModalOk",
        "params": [],
@@ -1505,7 +1505,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
        "line": 0,
        "method": "WinFormsModelessSample.OpenModeless",
        "params": [],
@@ -1515,7 +1515,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
        "line": 0,
        "method": "WinFormsModelessSample.OpenModelessConditional",
        "params": [],
@@ -1536,7 +1536,7 @@
      "ownir_version": 0,
      "summaries": [
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
        "line": 0,
        "method": "Catalog.CatalogService.CreateUnitOfWork",
        "params": [],
@@ -1546,7 +1546,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
        "line": 0,
        "method": "Catalog.CatalogService.GetProductsFromCatalogWODocuments",
        "params": [],
@@ -1556,7 +1556,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/UnitOfWorkFlowSample.cs",
        "line": 0,
        "method": "Catalog.CatalogService.ImportProducts",
        "params": [],
@@ -1566,7 +1566,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/ColumnAnchorsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/ColumnAnchorsSample.cs",
        "line": 0,
        "method": "ColumnAnchorsSample.TwoLeaksOneLine",
        "params": [],
@@ -1576,7 +1576,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryLeakSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryLeakSample.cs",
        "line": 0,
        "method": "Factories.FactoryConsumers.Clean",
        "params": [],
@@ -1586,7 +1586,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryLeakSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryLeakSample.cs",
        "line": 0,
        "method": "Factories.FactoryConsumers.Leaks",
        "params": [],
@@ -1596,7 +1596,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryLeakSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryLeakSample.cs",
        "line": 0,
        "method": "Factories.StreamFactory.Make",
        "params": [],
@@ -1606,7 +1606,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.CatchThenDisposeAfter",
        "params": [],
@@ -1616,7 +1616,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.Clean",
        "params": [],
@@ -1626,7 +1626,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.CryptoFactoryDisposed",
        "params": [],
@@ -1636,7 +1636,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.CryptoFactoryLeaks",
        "params": [],
@@ -1646,7 +1646,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.CtorInLambdaNotThrow",
        "params": [],
@@ -1656,7 +1656,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.CtorThrowLeaksPrior",
        "params": [],
@@ -1666,7 +1666,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DisposeAsyncConfiguredInTry",
        "params": [],
@@ -1676,7 +1676,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DisposeInsideIfWithThrow",
        "params": [],
@@ -1686,7 +1686,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DisposeOnThrow",
        "params": [],
@@ -1696,7 +1696,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DisposedAsync",
        "params": [],
@@ -1706,7 +1706,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DisposedAsyncConfigured",
        "params": [],
@@ -1716,7 +1716,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DoClean",
        "params": [],
@@ -1726,7 +1726,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DoLeak",
        "params": [],
@@ -1736,7 +1736,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.DoubleDispose",
        "params": [],
@@ -1746,7 +1746,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.EarlyReturnLeak",
        "params": [],
@@ -1756,7 +1756,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.Escapes",
        "params": [],
@@ -1766,7 +1766,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ForIncrementorBodyUseAfterReturn",
        "params": [],
@@ -1776,7 +1776,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ForLeak",
        "params": [],
@@ -1786,7 +1786,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ForeachLeak",
        "params": [],
@@ -1796,7 +1796,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.HasLoop",
        "params": [],
@@ -1806,7 +1806,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.LeakOnElse",
        "params": [],
@@ -1816,7 +1816,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.NameofInLambda",
        "params": [],
@@ -1826,7 +1826,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.NestedThrowLeaks",
        "params": [],
@@ -1836,7 +1836,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.NullCondFinallyDispose",
        "params": [],
@@ -1846,7 +1846,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.OutArgRebindSuppressesLaterUse",
        "params": [],
@@ -1856,7 +1856,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.OutArgSiblingUseAfterReturn",
        "params": [],
@@ -1866,7 +1866,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.PoolReturnedOnOnePath",
        "params": [],
@@ -1876,7 +1876,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.QualifiedTypedCatchLeaks",
        "params": [],
@@ -1886,7 +1886,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ReassignedView",
        "params": [],
@@ -1896,7 +1896,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.RefArgUseAfterReturn",
        "params": [],
@@ -1906,7 +1906,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.SemaphoreLeaks",
        "params": [],
@@ -1916,7 +1916,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.SliceReassignAfterReturn",
        "params": [],
@@ -1926,7 +1926,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.SwitchAllDispose",
        "params": [],
@@ -1936,7 +1936,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.SwitchOneLeak",
        "params": [],
@@ -1946,7 +1946,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.TcpListenerNeverStopped",
        "params": [],
@@ -1956,7 +1956,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.TcpListenerStopped",
        "params": [],
@@ -1966,7 +1966,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ThrowAfterAcquireLeaks",
        "params": [],
@@ -1976,7 +1976,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ThrowAfterDisposeClean",
        "params": [],
@@ -1986,7 +1986,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.TimerLeaks",
        "params": [],
@@ -1996,7 +1996,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.TryFinallyClean",
        "params": [],
@@ -2006,7 +2006,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.TryFinallyReturn",
        "params": [],
@@ -2016,7 +2016,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.TryNeverDisposed",
        "params": [],
@@ -2026,7 +2026,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.TypedCatchLeaks",
        "params": [],
@@ -2036,7 +2036,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.UseAfterDispose",
        "params": [],
@@ -2046,7 +2046,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ValidatedThenClean",
        "params": [],
@@ -2056,7 +2056,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.ValidatedThenLeaks",
        "params": [],
@@ -2066,7 +2066,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.WhileClean",
        "params": [],
@@ -2076,7 +2076,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FlowLocalsSample.cs",
        "line": 0,
        "method": "FlowLocalsSample.WhileLeak",
        "params": [],
@@ -2086,7 +2086,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
        "line": 0,
        "method": "Own.Samples.BodyThrowEdgesSample.AdjacentDisposeClean",
        "params": [],
@@ -2096,7 +2096,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
        "line": 0,
        "method": "Own.Samples.BodyThrowEdgesSample.MayThrowInFinallyClean",
        "params": [],
@@ -2106,7 +2106,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/BodyThrowEdgesSample.cs",
        "line": 0,
        "method": "Own.Samples.BodyThrowEdgesSample.MayThrowLeaks",
        "params": [],
@@ -2116,7 +2116,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/CloseReleaseSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/CloseReleaseSample.cs",
        "line": 0,
        "method": "Own.Samples.ClosesOtherInstanceField.CloseOther",
        "params": [
@@ -2133,7 +2133,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.LeakAsync",
        "params": [],
@@ -2143,7 +2143,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.LeakBareInheritedAsync",
        "params": [],
@@ -2153,7 +2153,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.LeakDerived",
        "params": [],
@@ -2163,7 +2163,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.LeakInheritedAsync",
        "params": [],
@@ -2173,7 +2173,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.LeakLegacy",
        "params": [],
@@ -2183,7 +2183,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.LeakReader",
        "params": [],
@@ -2193,7 +2193,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.LeakReal",
        "params": [],
@@ -2203,7 +2203,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/EmptyDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.EmptyDisposeConsumers.UseScratch",
        "params": [],
@@ -2213,7 +2213,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsDisposalSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsDisposalSample.cs",
        "line": 0,
        "method": "Own.Samples.ForeignContainerAdder.AttachTo",
        "params": [
@@ -2230,7 +2230,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/MemoryOwnerEscapeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/MemoryOwnerEscapeSample.cs",
        "line": 0,
        "method": "Own.Samples.MemoryOwnerEscape.PoolOwnerNotEscaped",
        "params": [],
@@ -2240,7 +2240,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/MemoryOwnerEscapeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/MemoryOwnerEscapeSample.cs",
        "line": 0,
        "method": "Own.Samples.MemoryOwnerEscape.ReadOnlyLeak",
        "params": [],
@@ -2250,7 +2250,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/AppDomainShutdownSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/AppDomainShutdownSample.cs",
        "line": 0,
        "method": "Own.Samples.NonAppDomainSubscriber..ctor",
        "params": [
@@ -2267,7 +2267,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/AliasDisposeSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/AliasDisposeSample.cs",
        "line": 0,
        "method": "Own.Samples.ScopedAliasNameLeak.Other",
        "params": [],
@@ -2277,7 +2277,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/weaved/WeavedEmptyDispose.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/weaved/WeavedEmptyDispose.cs",
        "line": 0,
        "method": "Own.Samples.Weaved.WeavedConsumer.Count",
        "params": [],
@@ -2287,7 +2287,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/audit/runtime/RetentionPath/Program.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/audit/runtime/RetentionPath/Program.cs",
        "line": 0,
        "method": "OwnNet.Audit.Runtime.Program.Census",
        "params": [
@@ -2304,7 +2304,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/OwnSharp.Cli/EngineRunner.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/OwnSharp.Cli/EngineRunner.cs",
        "line": 0,
        "method": "OwnSharp.Cli.EngineRunner.DrainAsync",
        "params": [
@@ -2321,7 +2321,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.AdoptConsumers.AdoptClean",
        "params": [],
@@ -2331,7 +2331,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.AdoptConsumers.AdoptDouble",
        "params": [],
@@ -2341,7 +2341,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.AdoptConsumers.AdoptInnerOnly",
        "params": [],
@@ -2351,7 +2351,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.AdoptConsumers.AdoptLeak",
        "params": [],
@@ -2361,7 +2361,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.AdoptConsumers.AdoptTargetTyped",
        "params": [],
@@ -2371,7 +2371,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.AdoptConsumers.NonAdoptDoubleOk",
        "params": [],
@@ -2381,7 +2381,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.StreamAdopter..ctor",
        "params": [
@@ -2398,7 +2398,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/FactoryAdoptSample.cs",
        "line": 0,
        "method": "OwnSharp.Samples.StreamHolder..ctor",
        "params": [
@@ -2415,7 +2415,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/PooledBufferSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/PooledBufferSample.cs",
        "line": 0,
        "method": "PoolApp.Hasher.CleanHash",
        "params": [],
@@ -2425,7 +2425,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/PooledBufferSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/PooledBufferSample.cs",
        "line": 0,
        "method": "PoolApp.Hasher.LeakyHash",
        "params": [],
@@ -2435,7 +2435,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
        "line": 0,
        "method": "Sample.ConnectionResolver.Warm",
        "params": [],
@@ -2445,7 +2445,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
        "line": 0,
        "method": "Sample.ExprBodiedResolver.Warm",
        "params": [],
@@ -2455,7 +2455,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
        "line": 0,
        "method": "Sample.RequestResolver.Warm",
        "params": [],
@@ -2465,7 +2465,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/DiCaptiveSample.cs",
        "line": 0,
        "method": "Sample.ScopedResolver.Warm",
        "params": [],
@@ -2475,7 +2475,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
        "line": 0,
        "method": "SigOverloads.Drop",
        "params": [],
@@ -2485,7 +2485,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
        "line": 0,
        "method": "SigOverloads.Open",
        "params": [
@@ -2502,7 +2502,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
        "line": 0,
        "method": "SigOverloads.Open(System.IO.FileStream,System.Boolean)",
        "params": [
@@ -2519,7 +2519,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/OverloadSigSample.cs",
        "line": 0,
        "method": "SigOverloads.Open(System.String)",
        "params": [],
@@ -2529,7 +2529,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/LocalDisposableSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/LocalDisposableSample.cs",
        "line": 0,
        "method": "Streams.Loader.Leaky",
        "params": [],
@@ -2539,7 +2539,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/LocalDisposableSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/LocalDisposableSample.cs",
        "line": 0,
        "method": "Streams.Loader.Transfer",
        "params": [],
@@ -2549,7 +2549,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
        "line": 0,
        "method": "WinFormsModelessSample.OpenModalLeak",
        "params": [],
@@ -2559,7 +2559,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
        "line": 0,
        "method": "WinFormsModelessSample.OpenModalOk",
        "params": [],
@@ -2569,7 +2569,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
        "line": 0,
        "method": "WinFormsModelessSample.OpenModeless",
        "params": [],
@@ -2579,7 +2579,7 @@
        "source": "inferred"
       },
       {
-       "file": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
+       "file": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd/frontend/roslyn/samples/WinFormsModelessSample.cs",
        "line": 0,
        "method": "WinFormsModelessSample.OpenModelessConditional",
        "params": [],
@@ -2598,7 +2598,7 @@
  "environment_id": "P037_B_MEASUREMENT_M3",
  "epoch": "b",
  "epoch_record": {
-  "blob": "d3f5f18528dc11e4f31dfa6e79073f12ba2da785",
+  "blob": "7c0e747824b971cb6bc096e23c0489003db14138",
   "path": "docs/evidence/p037-b-epoch.json"
  },
  "execution_profile": {
@@ -2629,9 +2629,10 @@
  ],
  "instrument_carve_outs": [
   "rust/crates/own-bridge/src/mos.rs",
-  "rust/crates/own-bridge/src/lower.rs"
+  "rust/crates/own-bridge/src/lower.rs",
+  "frontend/roslyn/OwnSharp.Extractor/"
  ],
- "instrument_identity": "75764c81ac49185adad6a02657b373a7453fc03ba337bb61b86d4694bd8d5065",
+ "instrument_identity": "3591d8056a1debabca046ad1faa1715c71516f0ef37d2037da817a3bde2c5d2d",
  "instrument_paths": [
   "frontend/roslyn/OwnSharp.Extractor/",
   "ownlang/",
@@ -2642,11 +2643,12 @@
   "scripts/p037_mos_snapshot.py",
   "scripts/p037_verdict_snapshot.py",
   "scripts/shadow_compare.py",
-  "scripts/p037_b_production_diff_gate.py"
+  "scripts/p037_b_production_diff_gate.py",
+  "scripts/p037_b_extractor_diff_gate.py"
  ],
  "is_evidence": true,
- "materialization_root": ".p037-population/a02ccf17d22eaf62c046fb95ba5060e6d66ffeae/b52433edc6bee0fd",
- "population_commit": "a02ccf17d22eaf62c046fb95ba5060e6d66ffeae",
+ "materialization_root": ".p037-population/cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd/b52433edc6bee0fd",
+ "population_commit": "cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd",
  "post_run_population_intact": true,
  "reference_profile": {
   "OWN_EXTRA_REF_DIRS": "removed-from-child-environment",
@@ -2654,7 +2656,7 @@
  },
  "schema": "p037-mos-snapshot/2",
  "source": "repo",
- "source_commit": "a02ccf17d22eaf62c046fb95ba5060e6d66ffeae",
+ "source_commit": "cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd",
  "support_manifest": [
   {
    "blob": "a070b9f433e0c5fe22afc9f7b33a7efd41026d70",
@@ -2675,6 +2677,7 @@
  "support_manifest_sha256": "9002111b5cdcce3f8d09beb75060b131678f315f6aca708713b884ebf2b553fa",
  "treatment_paths": [
   "rust/crates/own-bridge/src/mos.rs",
-  "rust/crates/own-bridge/src/lower.rs"
+  "rust/crates/own-bridge/src/lower.rs",
+  "frontend/roslyn/OwnSharp.Extractor/"
  ]
 }
