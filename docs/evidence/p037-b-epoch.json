@@ -255,12 +255,19 @@
     "R_B": "docs/evidence/p037-b-baseline-manifest.md",
     "status": "historical: honest B1 evidence at a boundary later found incomplete; not a baseline for any future comparison; superseded by the T_B/R_B this same field family names once B1-F2's own retake lands (see named_later below)"
   },
-  "named_later": {
+  "superseded_by_b1_f2_f2": {
+    "reason": "B1-F2's own corrected extractor seam (ConsumeReleaseArgs/ConsumesParam/CallReleasesReceiver, mos.rs/lower.rs-style carve-out) was itself mechanically too narrow for the future B2.1a treatment. B1-F2-F2 (formal-kernel.md #10.8f) proved, via a never-committed scratch prototype run against all 8 named acceptance fixtures plus the full corpus/p036-bakeoff and corpus/p037-shapes populations, that the existing 3-method seam cannot remove EmitFlowExpr's fabricated release without destroying caller obligation tracking: 7 of 8 fixtures had their caller orphaned out of functions[] entirely, the 8th lost tracking of an unrelated, genuinely-owned local. The fix widens scripts/p037_b_extractor_diff_gate.py's MUTABLE_METHODS to include EmitFlowExpr as a fourth, separately-authorized method -- the seam that owns release-emission, decoupled from ConsumeReleaseArgs's tracking role, which stays frozen. The measurements below were honest at the boundary B1-F2 drew -- the boundary was incomplete, not the measurement -- so they are superseded, never deleted or rewritten.",
     "T_B": "cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd",
     "T_B_title": "P-037 Phase B / B1-F2: correct the extractor's instrument/treatment boundary",
     "R_B": "docs/evidence/p037-b-baseline-manifest.md",
+    "status": "historical: honest B1-F2 evidence at a boundary later found mechanically insufficient; not a baseline for any future comparison; superseded by the T_B/R_B this same field family names once B1-F2-F2's own retake lands (see named_later below)"
+  },
+  "named_later": {
+    "T_B": "fdde0a026d264ceff0e44f8c86e7d059207f67e6",
+    "T_B_title": "P-037 Phase B / B1-F2-F2: the extractor seam itself was still too narrow",
+    "R_B": "docs/evidence/p037-b-baseline-manifest.md",
     "B_treatment_head": null,
     "B_after_evidence": null,
-    "note": "filled by B1-F2, naming last per the same order used every prior time (boundary fix terminal-green at cfe7e19 -- CI 32/32, fast Kani 15/15 independently reconfirmed from the raw log -- THEN R_B retaken fresh at it and itself terminal-green at 069d5bc -- CI 32/32, fast Kani 15/15 -- THEN this naming commit). B_treatment_head/B_after_evidence stay null: no semantic treatment exists yet. See superseded_by_b1_f2 for what T_B/R_B named before this fix."
+    "note": "filled by B1-F2-F2, naming last per the same order used every prior time (seam-widening fix terminal-green at fdde0a0 -- CI 32/32, fast Kani 15/15 independently reconfirmed from the raw log -- THEN R_B retaken fresh at it and itself terminal-green at 9418f57 -- CI 32/32, fast Kani 15/15 independently reconfirmed from the raw log -- THEN this naming commit). B_treatment_head/B_after_evidence stay null: no semantic treatment exists yet -- B2.1a is separate, later, and not yet authorized. See superseded_by_b1_f2_f2 for what T_B/R_B named before this fix, and superseded_by_b1_f2 for the one before that."
   }
 }
