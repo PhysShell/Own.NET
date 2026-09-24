@@ -188,6 +188,31 @@ def environment_id(commit: str = "HEAD", *, repo: Path = ROOT) -> str:
     return str(epoch_record(commit, repo=repo)["environment"]["id"])
 
 
+def instrument_manifest(commit: str, *, repo: Path = ROOT) -> list[dict[str, str]]:
+    """Phase B's OWN instrument closure at ``commit`` -- this module's
+    INSTRUMENT_PATHS minus INSTRUMENT_CARVE_OUTS, mirroring p037_evidence.
+    instrument_manifest's shape exactly but over Phase B's own paths, not
+    a2d's. `ev.instrument_manifest`/`ev.instrument_identity` are NOT reused
+    here (unlike the pure helpers this module imports elsewhere): both read
+    p037_evidence's own module-level INSTRUMENT_PATHS/INSTRUMENT_CARVE_OUTS
+    directly, with no parameter to redirect them -- they are two of the
+    ~11 epoch-coupled functions this module's own docstring already lists
+    as NOT safe to import unchanged. Built instead from `_tree_blobs`/
+    `_sorted_entries`, which take their paths as arguments and read no
+    module constant of either module's."""
+    blobs = ev._tree_blobs(ev.resolve_commit(commit, repo=repo), INSTRUMENT_PATHS, repo=repo)
+    return ev._sorted_entries(
+        {"path": path, "blob": blob}
+        for path, blob in blobs.items()
+        if not _covered(path, INSTRUMENT_CARVE_OUTS)
+    )
+
+
+def instrument_identity(commit: str, *, repo: Path = ROOT) -> str:
+    """One digest of Phase B's OWN instrument closure at ``commit``."""
+    return ev._manifest_digest(instrument_manifest(commit, repo=repo))
+
+
 def _record_closure_problems(doc: dict[str, Any]) -> list[str]:
     gate = doc.get("production_diff_gate", {})
     rust = gate.get("rust", {}) if isinstance(gate, dict) else {}
@@ -266,9 +291,7 @@ def evidence_fields(
         "instrument_paths": list(INSTRUMENT_PATHS),
         "instrument_carve_outs": list(INSTRUMENT_CARVE_OUTS),
         "treatment_paths": list(TREATMENT_PATHS),
-        "instrument_identity": ev.instrument_manifest(
-            source, repo=repo) and ev._manifest_digest(
-            ev.instrument_manifest(source, repo=repo)),
+        "instrument_identity": instrument_identity(source, repo=repo),
         **population,
     }
 
@@ -342,6 +365,63 @@ def provenance_problems(
     return problems
 
 
+# --------------------------------------------------------------------------- selftest
+
+_failures = 0
+
+
+def _selfcheck(name: str, ok: bool, detail: object = "") -> None:
+    global _failures
+    if ok:
+        print(f"ok[{name}]")
+    else:
+        _failures += 1
+        print(f"FAIL[{name}]: {detail}")
+
+
+def selftest() -> int:
+    """Regression cover for the instrument_manifest()/instrument_identity()
+    bug found after naming T_B/R_B at 2ed4d92: evidence_fields() had called
+    `ev.instrument_manifest`/`ev._manifest_digest` directly, which read
+    p037_evidence.py's OWN module-level INSTRUMENT_PATHS (a2d's closure)
+    with no parameter to redirect them -- so every Phase-B snapshot's
+    recorded instrument_identity was actually a2d's digest, structurally
+    insensitive to any Phase-B-only file such as scripts/p037_b_
+    production_diff_gate.py. Caught by a surprising measurement, not
+    predicted: fixing the gate's self-authorization hole (a change to a
+    Phase-B-only instrument path) did not move the recorded instrument_
+    identity at all, which is what led here.
+
+    These checks are deliberately timeless rather than pinned to the two
+    specific commits that exposed the bug (git history does not move, but
+    a test that only compares two named-forever SHAs never re-proves the
+    PROPERTY on any later commit) -- they check, at whatever HEAD this
+    runs on, that Phase B's own closure structurally differs from a2d's
+    and that the two identities computed from it actually differ, which
+    is the general shape of guarantee the bug violated."""
+    own_only = INSTRUMENT_PATHS[-1]
+    _selfcheck("phase-b-instrument-paths-include-b-production-diff-gate",
+              own_only == "scripts/p037_b_production_diff_gate.py", INSTRUMENT_PATHS)
+    _selfcheck("a2d-instrument-paths-do-not-include-it", own_only not in ev.INSTRUMENT_PATHS,
+              ev.INSTRUMENT_PATHS)
+
+    manifest = instrument_manifest("HEAD")
+    _selfcheck("phase-b-manifest-at-head-contains-the-b-only-file",
+              any(e["path"] == own_only for e in manifest),
+              [e["path"] for e in manifest])
+
+    b_id = instrument_identity("HEAD")
+    a2d_id = ev.instrument_identity("HEAD")
+    _selfcheck("phase-b-identity-differs-from-a2d-identity-at-head",
+              b_id != a2d_id, (b_id, a2d_id))
+
+    if _failures:
+        print(f"RESULT: {_failures} check(s) failed")
+        return 1
+    print("RESULT: p037-evidence-b selftest: all checks pass")
+    return 0
+
+
 # --------------------------------------------------------------------------- CLI
 
 
@@ -404,6 +484,9 @@ def main(argv: list[str]) -> int:
     p.add_argument("--materialize", action="store_true")
     p.add_argument("--cleanup", action="store_true")
     p.set_defaults(func=lambda a: _cli_population(a.source, a.commit, a.materialize, a.cleanup))
+
+    p = sub.add_parser("selftest")
+    p.set_defaults(func=lambda _a: selftest())
 
     args = ap.parse_args(argv)
     return int(args.func(args))

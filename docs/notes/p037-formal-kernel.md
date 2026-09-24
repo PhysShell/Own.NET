@@ -2736,3 +2736,74 @@ order exactly, not a shortcut taken because the data is expected to be
 unchanged. `349c7bc`, `40cb9b4` and `2ed4d92` are kept exactly as
 committed: honest records of the instrument and its first (flawed) R_B,
 superseded, not rewritten.
+
+#### 10.8c A third defect, self-found: `instrument_identity` was measuring the wrong epoch's closure
+
+Confirming §10.8b's own "consequence" paragraph directly, rather than
+taking it on faith, surfaced a third defect — this one found by neither
+owner review nor a hostile self-test, but by a measurement refusing to
+match a prediction. §10.8b's fix changes `scripts/p037_b_production_diff_
+gate.py`, which is in `p037_evidence_b.INSTRUMENT_PATHS`; the expectation
+was therefore that Phase B's recorded `instrument_identity` would move
+between `2ed4d92` and the fix commit. It did not:
+`p037_evidence.instrument_identity('2ed4d92')` and the same call at the
+fix commit both returned `04525002af5383fcdda0c4f0d77c9b647cc2c5f6be759b4
+ec733067013e8a559` — unchanged.
+
+**REPOSITORY FACT.** `p037_evidence_b.evidence_fields()` computed
+`instrument_identity` as `ev.instrument_manifest(source, repo=repo) and
+ev._manifest_digest(ev.instrument_manifest(source, repo=repo))` — calling
+`p037_evidence.py`'s OWN `instrument_manifest`/`instrument_identity`
+directly. Both read `p037_evidence.py`'s module-level `INSTRUMENT_PATHS`/
+`INSTRUMENT_CARVE_OUTS` (a2d's own eight-path closure) with no parameter
+to redirect them to Phase B's own nine-path closure (the same eight plus
+`scripts/p037_b_production_diff_gate.py`) — confirmed directly:
+`p037_evidence.instrument_identity('bf3520e')` returns the exact digest
+that had been recorded, unlabeled, as Phase B's own in every R_B artifact
+since B1 began. Every Phase-B snapshot's `instrument_identity` field has
+therefore always measured a2d's instrument, not Phase B's — mislabeled,
+not merely stale.
+
+**Severity, stated precisely rather than assumed uniform.** This is
+narrower than either §10.8b finding: `provenance_problems()`'s actual
+freshness gate does not use this field at all — it calls `ev.paths_
+differ(source, against, pathspec, repo=repo)` with a `pathspec` built
+fresh from Phase B's own `INSTRUMENT_PATHS`/`INSTRUMENT_CARVE_OUTS` at
+call time, a real git diff, not a precomputed-digest comparison. No
+snapshot was ever wrongly accepted as fresh because of this bug. What was
+wrong is exactly the descriptive `instrument_identity` value recorded
+and reported alongside each snapshot (including this note's own §10.8a/
+10.8 text and every B1 commit message that cited
+`04525002af5383fcdda0c4f0d77c9b647cc2c5f6be759b4ec733067013e8a559` as
+"Phase B's instrument identity") — real evidence corruption of a
+provenance field, not of a verdict.
+
+**Fix.** `p037_evidence_b.py` gains its own `instrument_manifest`/
+`instrument_identity`, built from the same pure, parametrized helpers
+(`ev._tree_blobs`, `ev._sorted_entries`, `ev._manifest_digest`,
+`ev.resolve_commit`) `provenance_problems()` already used correctly, over
+THIS module's own `INSTRUMENT_PATHS`/`INSTRUMENT_CARVE_OUTS` — the same
+"reuse the pure half, never the ~11 epoch-coupled functions" discipline
+§10.8 already established, just not carried far enough the first time.
+`evidence_fields()`'s `instrument_identity` field now calls this new,
+correctly-scoped function. `p037_evidence_b.py` gains its first `selftest`
+(a `selftest` subcommand, matching its three sibling modules): Phase B's
+own instrument paths include the gate file and a2d's do not (structural,
+timeless); Phase B's manifest at `HEAD` contains that file; Phase B's and
+a2d's identities differ at `HEAD`. Deliberately not pinned to the two
+specific commits that exposed the bug — a test that only compares two
+named-forever SHAs never re-proves the property on any later commit;
+these check the general shape of guarantee at whatever `HEAD` they run
+on.
+
+**Consequence.** With the bug fixed, Phase B's own instrument identity
+now genuinely differs across the §10.8b fix commit — confirmed by direct
+computation, not assumed: `597320be8d4176b82b117c580ea2a2d3ddb7deec693d7
+fb036e920a9afffd5cc` at `2ed4d92` versus `ed6ee5f8a86f4900e107b98ed6f7abf
+d7fe0fc2be5b456d78735f4cc60cac25e` at the commit carrying all three
+fixes — which is what a correctly-scoped measurement was always supposed
+to show once the gate changed. This closes out the "measured, not
+assumed" instruction from §10.8b's own consequence paragraph: the
+instrument genuinely moved, for a real and now-understood reason, and
+`T_B`/`R_B` are retaken against the corrected instrument, not the
+mislabeled one.
