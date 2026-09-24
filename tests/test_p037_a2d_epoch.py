@@ -93,6 +93,18 @@ DOCS_GENERATED_ADJUDICATED = (
 # could not see the still-uncommitted change at all -- a false green, not
 # a real one. Both are the same audit/measurement-tooling family as every
 # other PHASE_B_GOVERNANCE_FILES entry.
+#
+# B1-F2 adds one more: `p037_b_extractor_diff_gate.py`, the item-granular
+# production-diff gate for the extractor's legacy-consume-shortcut seam
+# (ConsumeReleaseArgs/ConsumesParam/CallReleasesReceiver in
+# frontend/roslyn/OwnSharp.Extractor/Program.cs). Same family, same
+# reasoning as every entry above it: Phase-B audit/measurement tooling,
+# landing in the commit that defines it, never `ownlang`/`rust/crates/
+# own-ir`/`spec` treatment. This is deliberately a single named file, not a
+# `"frontend/"` prefix: B1-F2 corrects the PROVENANCE CLOSURE and builds the
+# gate that will later police an extractor-side change -- it does not
+# itself touch Program.cs, which stays exactly as untouched by this
+# allowlist as it was before B1-F2.
 PHASE_B_GOVERNANCE_FILES = (
     "docs/evidence/p037-b-epoch.json",
     "docs/evidence/p037-b-ledger-assumptions.json",
@@ -103,6 +115,7 @@ PHASE_B_GOVERNANCE_FILES = (
     "scripts/p037_b_classifier.py",
     "scripts/p037_mos_snapshot.py",
     "scripts/p037_verdict_snapshot.py",
+    "scripts/p037_b_extractor_diff_gate.py",
 )
 #
 # R_B (the Phase-B baseline, taken at T_B) adds new docs/evidence/p037-b-

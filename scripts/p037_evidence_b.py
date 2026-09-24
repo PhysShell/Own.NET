@@ -13,14 +13,30 @@ comparison_problems, instrument_pathspec, instrument_manifest, ...) read
 those constants directly -- there is no parameter that redirects them, and
 that module is ITSELF one of a2d's own INSTRUMENT_PATHS, pinned by
 tests/test_p037_evidence.py's fourteen negative controls. Phase B is also a
-DIFFERENT SHAPE: Rust-only (no python door), a different crate
-(rust/crates/own-bridge/, not rust/crates/own-ir/), and its treatment
-carve-out is inside files that also hold frozen items -- p037_b_production_
-diff_gate.py, not file-level pathspec diffing, is the authoritative
-boundary there; this module's own TREATMENT_PATHS is deliberately the same
-coarse, file-level unit p037-b-epoch.json's candidate_scope names (mos.rs,
-lower.rs, in full), exactly as a2d's own TREATMENT_PATHS is wider than its
-door and the *door gate* is the boundary within it.
+DIFFERENT SHAPE: two treatment units, not one -- rust/crates/own-bridge/'s
+mos.rs/lower.rs (item-level boundary: p037_b_production_diff_gate.py) and,
+since B1-F2, frontend/roslyn/OwnSharp.Extractor/'s three-function legacy-
+consume-shortcut seam (item-level boundary: p037_b_extractor_diff_gate.py)
+-- neither is a python door, and both carve-outs sit inside a unit that
+also holds frozen items, so file-level pathspec diffing alone is never the
+authoritative boundary for either; this module's own TREATMENT_PATHS is
+deliberately the same coarse, file/directory-level union both item gates'
+own units name (mos.rs, lower.rs, and the whole extractor directory, each
+in full), exactly as a2d's own TREATMENT_PATHS is wider than its doors and
+the *door gate* is the boundary within them.
+
+B1 originally classified the whole extractor as measurement INSTRUMENT
+with no carve-out at all, even though the frozen A1 acceptance matrix
+(docs/notes/p037-formal-kernel.md #8.1, items 5 and 8) requires an eventual
+extractor-side semantic change there -- a treatment surface cannot
+simultaneously be frozen measurement instrument. B1-F2 is the repair: this
+module's own INSTRUMENT_CARVE_OUTS/TREATMENT_PATHS now carve the whole
+extractor directory out, the same way mos.rs/lower.rs already were,
+relying on p037_b_extractor_diff_gate.py to close the resulting hole at
+item granularity. This module still does NOT change what the extractor
+does -- see that gate's own module docstring for the exact seam and the
+standing prohibition on a second guarded-summary engine written inside
+Roslyn.
 
 This module therefore does NOT edit p037_evidence.py (Strategy A: a new,
 sibling contract owning epoch b's own closure) -- it IMPORTS that module's
@@ -100,10 +116,15 @@ FACT_DIFF_POLICIES: frozenset[str] = frozenset({"not_applicable_pre_treatment"})
 
 # What we measure WITH: the same broad roots a2d measured with (this crate's
 # whole rust/ tree, ownlang/, the extractor, the shared p037_* scripts),
-# minus the Phase-B treatment carve-out -- mirroring a2d's own
+# minus the Phase-B treatment carve-outs -- mirroring a2d's own
 # INSTRUMENT_PATHS/INSTRUMENT_CARVE_OUTS/TREATMENT_PATHS shape exactly, one
-# level down: own-bridge's mos.rs/lower.rs are now the carved-out door,
-# where own-ir's whole crate was a2d's.
+# level down: own-bridge's mos.rs/lower.rs and (since B1-F2) the whole
+# extractor directory are now the carved-out doors, where own-ir's whole
+# crate was a2d's. p037_b_extractor_diff_gate.py is listed here for the
+# same reason p037_b_production_diff_gate.py already was: this Phase-B
+# governance script's own correctness is load-bearing for the boundary
+# claim, so a change to it must move instrument_identity, not drift
+# silently underneath an unchanged digest.
 INSTRUMENT_PATHS: tuple[str, ...] = (
     "frontend/roslyn/OwnSharp.Extractor/",
     "ownlang/",
@@ -115,11 +136,20 @@ INSTRUMENT_PATHS: tuple[str, ...] = (
     "scripts/p037_verdict_snapshot.py",
     "scripts/shadow_compare.py",
     "scripts/p037_b_production_diff_gate.py",
+    "scripts/p037_b_extractor_diff_gate.py",
 )
 
+# B1-F2: the extractor joins mos.rs/lower.rs as a second carve-out. Carved
+# out WHOLE (the same directory-level unit p037_b_extractor_diff_gate.py's
+# own UNIT constant names), not just its three mutable methods -- exactly
+# how mos.rs/lower.rs are carved out whole even though only four of their
+# functions are actually mutable under p037_b_production_diff_gate.py.
+# Path-level provenance carve-out + item-level production diff gate is the
+# actual permitted semantic boundary; this tuple is only the first half.
 INSTRUMENT_CARVE_OUTS: tuple[str, ...] = (
     "rust/crates/own-bridge/src/mos.rs",
     "rust/crates/own-bridge/src/lower.rs",
+    "frontend/roslyn/OwnSharp.Extractor/",
 )
 
 TREATMENT_PATHS: tuple[str, ...] = INSTRUMENT_CARVE_OUTS
@@ -137,6 +167,7 @@ RUNTIME_REPO_PATHS: tuple[str, ...] = (
     "scripts/p037_verdict_snapshot.py",
     "scripts/shadow_compare.py",
     "scripts/p037_b_production_diff_gate.py",
+    "scripts/p037_b_extractor_diff_gate.py",
 )
 
 # a2d's own CORPUS_DIRS plus the fact-shape census -- section 7 of the B1
@@ -214,13 +245,25 @@ def instrument_identity(commit: str, *, repo: Path = ROOT) -> str:
 
 
 def _record_closure_problems(doc: dict[str, Any]) -> list[str]:
+    """Cross-check BOTH item-level gates' units against the epoch record --
+    not just the Rust one. A record whose production_diff_gate.extractor is
+    missing or names a different unit is exactly the same self-
+    authorization hole B1-F1 found and fixed for the Rust side (check() must
+    never trust a recorded allowlist the module itself did not also
+    hard-code), now closed for the extractor from the start."""
+    problems: list[str] = []
     gate = doc.get("production_diff_gate", {})
     rust = gate.get("rust", {}) if isinstance(gate, dict) else {}
     recorded_unit = rust.get("unit") if isinstance(rust, dict) else None
     if recorded_unit != "rust/crates/own-bridge/":
-        return [f"the epoch record's production_diff_gate.rust.unit "
-                f"{recorded_unit!r} differs from this module's own"]
-    return []
+        problems.append(f"the epoch record's production_diff_gate.rust.unit "
+                        f"{recorded_unit!r} differs from this module's own")
+    extractor = gate.get("extractor", {}) if isinstance(gate, dict) else {}
+    recorded_extractor_unit = extractor.get("unit") if isinstance(extractor, dict) else None
+    if recorded_extractor_unit != "frontend/roslyn/OwnSharp.Extractor/":
+        problems.append(f"the epoch record's production_diff_gate.extractor.unit "
+                        f"{recorded_extractor_unit!r} differs from this module's own")
+    return problems
 
 
 def closure_problems(*, repo: Path = ROOT) -> list[str]:
@@ -398,17 +441,45 @@ def selftest() -> int:
     PROPERTY on any later commit) -- they check, at whatever HEAD this
     runs on, that Phase B's own closure structurally differs from a2d's
     and that the two identities computed from it actually differ, which
-    is the general shape of guarantee the bug violated."""
-    own_only = INSTRUMENT_PATHS[-1]
+    is the general shape of guarantee the bug violated.
+
+    B1-F2 adds a second family: the extractor carve-out. (a) a Phase-B-only
+    INSTRUMENT file (this module's own governance script) is present by
+    name, not by fragile positional indexing into INSTRUMENT_PATHS; (b) an
+    authorized TREATMENT item -- anything under the whole carved-out
+    extractor directory, which is where the three mutable methods
+    p037_b_extractor_diff_gate.py actually polices live -- never appears in
+    instrument_manifest() at all, so a future edit there cannot masquerade
+    as instrument drift; (c) the unrelated-item protection itself is the
+    extractor gate's OWN job, proven by that module's own selftest() (18
+    hostile cases including the 6 named in the B1-F2 brief), not
+    re-proven here -- this module only proves the two are correctly WIRED
+    together (the carve-out exists, and closure_problems() cross-checks the
+    epoch record's production_diff_gate.extractor.unit against this
+    module's own, exactly as it already did for the Rust gate)."""
+    own_only = "scripts/p037_b_production_diff_gate.py"
     _selfcheck("phase-b-instrument-paths-include-b-production-diff-gate",
-              own_only == "scripts/p037_b_production_diff_gate.py", INSTRUMENT_PATHS)
+              own_only in INSTRUMENT_PATHS, INSTRUMENT_PATHS)
     _selfcheck("a2d-instrument-paths-do-not-include-it", own_only not in ev.INSTRUMENT_PATHS,
               ev.INSTRUMENT_PATHS)
 
+    extractor_gate = "scripts/p037_b_extractor_diff_gate.py"
+    _selfcheck("phase-b-instrument-paths-include-extractor-diff-gate",
+              extractor_gate in INSTRUMENT_PATHS, INSTRUMENT_PATHS)
+    _selfcheck("a2d-instrument-paths-do-not-include-the-extractor-gate",
+              extractor_gate not in ev.INSTRUMENT_PATHS, ev.INSTRUMENT_PATHS)
+
+    extractor_unit = "frontend/roslyn/OwnSharp.Extractor/"
+    _selfcheck("extractor-directory-is-a-declared-carve-out",
+              extractor_unit in INSTRUMENT_CARVE_OUTS, INSTRUMENT_CARVE_OUTS)
+
     manifest = instrument_manifest("HEAD")
+    manifest_paths = [e["path"] for e in manifest]
     _selfcheck("phase-b-manifest-at-head-contains-the-b-only-file",
-              any(e["path"] == own_only for e in manifest),
-              [e["path"] for e in manifest])
+              any(p == own_only for p in manifest_paths), manifest_paths)
+    _selfcheck("phase-b-manifest-excludes-the-whole-extractor-carve-out",
+              not any(_covered(p, (extractor_unit,)) for p in manifest_paths),
+              [p for p in manifest_paths if _covered(p, (extractor_unit,))])
 
     b_id = instrument_identity("HEAD")
     a2d_id = ev.instrument_identity("HEAD")

@@ -47,11 +47,20 @@
       "rust/crates/own-bridge/src/mos.rs": "every top-level item except two: `fn call_graph` and `fn sccs` are pure graph-topology helpers (SCC condensation over an adjacency map) that read no Transfer/join value at all and stay frozen; the other 15 items (enum Transfer, fn join, impl Transfer, enum PathAction, enum ReturnSkeleton, struct ParamSkeleton, struct MethodSkeleton, struct ParamSummary, struct MethodSummary, type Mos, type ParamKey, fn solve_with_log, fn solve, plus the file's one `use` and its `#![allow(...)]` inner attribute) are the guarded-kernel seam and may move",
       "rust/crates/own-bridge/src/lower.rs": "four named items, not one and not the file (73 top-level items total; the other 69 stay frozen at item granularity) -- corrected from the original 'fn lower_fn_params only' claim: lower_fn_params computes only a parameter's OWN type-shape from its OWN function's MethodSummary and never resolves a call site; the call-site decision (matching an argument against the CALLEE's summary, and choosing the may/unknown optimistic-default OWN051 path) is made in `fn unverified_transfer_calls` and `fn kill_sites_for_unverified`, with the advisory itself minted inside `fn lower_full`. A guard-aware call-site selection cannot land touching lower_fn_params alone; all four are the honest seam."
     },
+    "extractor_seam": {
+      "added_by": "B1-F2, correcting a boundary defect B1 itself introduced (see superseded_by_b1_f2): the frozen A1 acceptance matrix (docs/notes/p037-formal-kernel.md #8.1, items 5 and 8) requires an extractor-side semantic change -- the four F3-S* controls' `fabricated_release_at_call_site` must go false post-A1, measured from the RAW extractor facts.json output (scripts/own-check.sh --emit-facts is a byte copy of the extractor's own output, taken before either engine runs) that no Rust-only change can affect. A treatment surface cannot simultaneously be frozen measurement instrument.",
+      "unit": "frontend/roslyn/OwnSharp.Extractor/ (Program.cs only; the .csproj stays frozen -- no new dependency)",
+      "mutable_methods": ["ConsumeReleaseArgs", "ConsumesParam", "CallReleasesReceiver"],
+      "seam_derivation": "traced directly from source, not assumed: ConsumeReleaseArgs calls ConsumesParam, which recurses through first-party callees; CallReleasesReceiver is the extension-method-receiver twin of the same call. DisposesLocal, ParameterIsStable (the existing G-V4 whole-body write-exposure test) and BuildGuardedFacts (the guarded_facts producer) all stay FROZEN -- confirmed independent both by source reading and by running the real extractor on real fixtures.",
+      "authorized_change_shape": "abstain from the unconditional legacy release fabrication when the callee's OWN already-emitted guarded_facts say the call is guard territory -- never a new guard-eligibility test, never Election/Cells/Transform/fixpoint math inside Roslyn. That math stays exactly where B1 already froze it: rust/crates/own-bridge/, policed by production_diff_gate.rust. Making ConsumesParam path-sensitive is explicitly NOT authorized by this seam.",
+      "governed_by": "production_diff_gate.extractor (this record) + scripts/p037_b_extractor_diff_gate.py, mirroring production_diff_gate.rust + scripts/p037_b_production_diff_gate.py exactly: path-level provenance carve-out (scripts/p037_evidence_b.py's INSTRUMENT_CARVE_OUTS/TREATMENT_PATHS) plus item-level production diff gate is the actual permitted semantic boundary",
+      "not_implemented_by_b1_f2": true
+    },
     "must_not_touch_yet": [
       "ownlang/ownir.py (stays reference/oracle/rollback; not a Phase B treatment path)",
-      "frontend/roslyn/OwnSharp.Extractor/",
-      "OwnIR / extractor guarded-fact vocabulary",
-      "verdict mapping outside the named seam",
+      "frontend/roslyn/OwnSharp.Extractor/ outside extractor_seam.mutable_methods (as of B1-F2; before B1-F2 the WHOLE directory was listed here with no carve-out at all, which was itself the boundary defect B1-F2 corrects -- see superseded_by_b1_f2)",
+      "OwnIR / extractor guarded-fact VOCABULARY (the guarded_facts/guarded_functions SCHEMA, frozen by A2.2-D) -- extractor_seam authorizes reading the already-emitted sidecar as an input signal, never changing what it contains or how it validates",
+      "verdict mapping outside the named seam(s)",
       "launcher behaviour",
       "any docs/evidence/p037-a2d-* file"
     ]
@@ -92,7 +101,16 @@
       "controls": ["tests/"]
     },
     "registered_new_items_policy": "empty by design in B1: no treatment exists yet to know what new production items it needs, and a treatment registers its own new items in the SAME commit that defines them -- exactly A2.2-D's own door-gate discipline, not a relaxation of it",
-    "b1_must_measure": "IDENTICAL against 5571ba4 (the closed Phase-B entry-gate head): B1 adds tooling, ledgers and documentation and moves no byte of rust/crates/own-bridge/"
+    "b1_must_measure": "IDENTICAL against 5571ba4 (the closed Phase-B entry-gate head): B1 adds tooling, ledgers and documentation and moves no byte of rust/crates/own-bridge/",
+    "extractor": {
+      "unit": "frontend/roslyn/OwnSharp.Extractor/",
+      "tool": "scripts/p037_b_extractor_diff_gate.py",
+      "note": "Added by B1-F2. A second, separate item-level gate -- not scripts/p037_door_diff_gate.py repointed a third time, and not scripts/p037_b_production_diff_gate.py extended: that module's Policy/compare_rust are Rust-syntax-specific (classify_chars/_item_head parse Rust item heads, not C#). The extractor gate reuses only p037_door_diff_gate.py's language-agnostic half (compare_items/Tree/snapshot/UnitReport/_normalize) plus its own C#-aware csharp_items() extraction -- the same relationship compare_python already has to that shared half, now a third instance of it.",
+      "frozen_files": ["OwnSharp.Extractor.csproj"],
+      "mutable_methods": ["ConsumeReleaseArgs", "ConsumesParam", "CallReleasesReceiver"],
+      "registered_methods": [],
+      "b1_f2_must_measure": "IDENTICAL against bfa8647 (the closed, corrected-T_B B1-F1 head) for rust/crates/own-bridge/ -- B1-F2 moves no Rust production byte either. Only scripts/p037_evidence_b.py (the provenance-closure carve-out), the new scripts/p037_b_extractor_diff_gate.py, this record, tests/test_p037_a2d_epoch.py's one-file allowlist addition and docs/notes/p037-formal-kernel.md move."
+    }
   },
   "environment": {
     "id": "P037_B_MEASUREMENT_M3",
@@ -181,10 +199,18 @@
     "no edit, regeneration, reinterpretation or retaking of any a2/a2d evidence",
     "no change to ownlang/ownir.py, the extractor, OwnIR guarded-fact vocabulary, verdict mapping or launcher behaviour"
   ],
-  "named_later": {
+  "superseded_by_b1_f2": {
+    "reason": "B1 classified frontend/roslyn/OwnSharp.Extractor/ as full measurement instrument with no carve-out at all, while the frozen A1 acceptance matrix (formal-kernel.md #8.1, items 5 and 8) requires an extractor-side semantic change there -- a treatment surface cannot simultaneously be frozen measurement instrument. B1-F2 corrects the boundary (scripts/p037_evidence_b.py's INSTRUMENT_CARVE_OUTS/TREATMENT_PATHS, plus the new item-level scripts/p037_b_extractor_diff_gate.py) before any semantic movement. The measurements below were honest at the boundary B1 drew -- the boundary was wrong, not the measurement -- so they are superseded, never deleted or rewritten.",
     "T_B": "a02ccf17d22eaf62c046fb95ba5060e6d66ffeae",
+    "T_B_title": "P-037 Phase B / B1: name T_B at the corrected instrument (df9a433's evidence)",
     "R_B": "docs/evidence/p037-b-baseline-manifest.md",
+    "status": "historical: honest B1 evidence at a boundary later found incomplete; not a baseline for any future comparison; superseded by the T_B/R_B this same field family names once B1-F2's own retake lands (see named_later below)"
+  },
+  "named_later": {
+    "T_B": null,
+    "R_B": null,
     "B_treatment_head": null,
-    "B_after_evidence": null
+    "B_after_evidence": null,
+    "note": "cleared by B1-F2 pending its own corrected-instrument retake (order: land the boundary fix terminal-green, THEN name the new T_B, THEN take R_B fresh at it) -- see superseded_by_b1_f2 for what these named before B1-F2"
   }
 }

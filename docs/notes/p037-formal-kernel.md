@@ -2872,3 +2872,165 @@ was wrong. `75764c81ac49185adad6a02657b373a7453fc03ba337bb61b86d4694bd8d5065`,
 measured at `eb6c211`, is Phase B's true current instrument identity and
 is the value that `T_B`'s naming and every retaken `R_B` artifact will
 cite from here on -- not `ed6ee5f8...`.
+
+#### 10.8e Phase B / B1-F2: the extractor's instrument/treatment boundary was wrong (OWNER RULING)
+
+B2.0 (a separate, read-only preregistration task run against the frozen
+B1 instrument) traced the "may-as-must `ConsumesParam` hole" all the way
+to ground truth — not just source reading, but running the real extractor
+on real fixtures and inspecting the emitted `facts.json` — and found a
+contract conflict the task's own instructions required stopping on: the
+frozen A1 ACCEPTANCE block (§8.1, items 5 and 8) requires `fabricated_
+release_at_call_site: false` post-A1 for the four named F3-S* controls,
+and that field is measured from the RAW extractor `facts.json`
+(`scripts/own-check.sh --emit-facts` is a byte copy of the extractor's own
+output, taken before either engine ever runs) — a fact no Rust-only change
+can affect. This document already said as much: "A1's first target is
+therefore extractor-side," with the two-layer-acceptance rationale stated
+explicitly — a Rust summary engine must not compensate a bad extractor
+fact with another heuristic and produce a falsely green end-to-end result.
+
+**OWNER RULING.** Weakening A1-5/A1-8 to a verdict-only acceptance (B2.0's
+own "option 1") is refused: that is a post-hoc weakening of a frozen
+acceptance, not a discharge of it. An extractor-side A1 change is
+eventually required and is NOT authorized yet. Before it can be, a second,
+independent defect in B1's OWN governance must be fixed:
+`p037_evidence_b.INSTRUMENT_PATHS` classified
+`frontend/roslyn/OwnSharp.Extractor/` as full measurement instrument, in
+full, with no carve-out at all — while the frozen A1 contract requires
+that exact path to become a treatment surface. A treatment surface cannot
+simultaneously be treated as immutable measurement instrumentation. This
+is B1-F2, and it is scoped narrowly: fix the boundary and build the
+tooling that will police the eventual extractor treatment; do not perform
+that treatment yet. People sometimes build a perfectly convincing system
+of proofs for an incorrectly drawn boundary — that does not make the
+boundary correct.
+
+**REPOSITORY FACT: the seam, traced from source.** The extractor's
+flow-insensitive fabrication is jointly produced by exactly three named
+methods in `frontend/roslyn/OwnSharp.Extractor/Program.cs`:
+`ConsumeReleaseArgs` (`Program.cs:5223`, the call site) calls
+`ConsumesParam` (`Program.cs:5280`, the recursive "does the callee dispose
+this parameter on *some* path" flow-insensitive check), and
+`CallReleasesReceiver` (`Program.cs:5343`) is the extension-method-receiver
+twin of the same call. `DisposesLocal` (`Program.cs:5320`),
+`ParameterIsStable` (`Program.cs:2911`, the already-correct G-V4
+whole-body write-exposure test) and `BuildGuardedFacts` (`Program.cs:2962`,
+the `guarded_facts` sidecar producer) are independent and stay frozen —
+confirmed both by reading the call graph and by running the real extractor
+on two real fixtures
+(`corpus/p036-bakeoff/guarded-consume-flag-branch/before.cs` and
+`corpus/p036-bakeoff/legacy-honesty-else-unresolved-forward/control.cs`)
+and inspecting the emitted JSON directly: `guarded_facts.guards[]`/
+`calls[]` are already honest and unaffected by `ConsumesParam`'s
+fabrication, confirming the two mechanisms are genuinely independent, not
+merely presumed so.
+
+**Fix, in three parts.**
+
+1. **A second, item-granular production-diff gate.**
+   `scripts/p037_b_extractor_diff_gate.py`, mirroring `scripts/p037_b_
+   production_diff_gate.py`'s own architecture exactly (the same
+   IDENTICAL/WITHIN_ALLOWLIST/VIOLATION/REFUSED verdicts, the same
+   self-authorization-hole protection `IMMUTABLE_POLICY_FIELDS`/
+   `policy_drift()` applies from the start rather than after a second
+   owner-found bug) but for C# rather than Rust: `csharp_items()` locates
+   the three named methods by signature and brace-balances each one's body
+   using a conservative same-file character classifier (line/block
+   comments — which, unlike Rust's, do not nest — char literals, plain/
+   verbatim/interpolated strings), collapsing everything else in the
+   7600+-line file into one opaque remainder item compared as a whole. Two
+   corrections the gate's own `selftest()` caught before this section was
+   written, not assumed correct: raw-byte round-trip losslessness is
+   checked BEFORE normalization (proving the named spans plus the
+   remainder exactly cover the file); and every item — including the
+   remainder — is compared in NORMALIZED form (comments dropped,
+   whitespace collapsed), reusing `p037_door_diff_gate._normalize` exactly
+   as `rust_items` already does for every Rust item. Without that second
+   correction, formatting incidental to a genuinely authorized new
+   registered method (a blank line, an indent) would have masqueraded as
+   an unrelated change to "the rest of `Program.cs`" — the gate's own
+   hostile test (`registered-helper-is-allowed`) failed under raw-byte
+   comparison and passes under normalized comparison, which is what fixed
+   it. 18 selftest checks pass, including all six hostile cases named for
+   this gate (authorized item changed -> allowed; unrelated item changed
+   -> violation; new unregistered helper -> violation; registered helper
+   -> allowed; frozen `.csproj` changed -> violation; and a live-source
+   sanity block against the real `Program.cs`).
+
+2. **Provenance closure correction.** `scripts/p037_evidence_b.py`'s
+   `INSTRUMENT_CARVE_OUTS`/`TREATMENT_PATHS` now carve the WHOLE extractor
+   directory out — the same way `mos.rs`/`lower.rs` are carved out whole
+   even though only four of their functions are actually mutable under
+   `p037_b_production_diff_gate.py` — relying on the new item-level gate to
+   close the resulting hole at method granularity: path-level provenance
+   carve-out plus item-level production diff gate is the actual permitted
+   semantic boundary, the same composition A2.2-D and B1 already use for
+   `mos.rs`/`lower.rs`. `closure_problems()`'s `_record_closure_problems`
+   now cross-checks the epoch record's new `production_diff_gate.
+   extractor.unit` against this module's own, exactly as it already did
+   for the Rust gate's unit — the same self-authorization-hole fix B1-F1
+   found for the Rust side, applied here from the start. Two new
+   `selftest()` checks prove the composition actually holds, not just that
+   it is declared: the whole extractor carve-out is absent from
+   `instrument_manifest()` at `HEAD` (so an eventual edit to the three
+   mutable methods cannot masquerade as instrument drift), and the new
+   gate script itself is present in `INSTRUMENT_PATHS` (so a change to the
+   gate's own correctness moves `instrument_identity`, exactly as
+   `p037_b_production_diff_gate.py` already does).
+
+3. **`docs/evidence/p037-b-epoch.json` corrected truthfully.** A new
+   `production_diff_gate.extractor` section mirrors `.rust`'s shape
+   exactly (`unit`/`frozen_files`/`mutable_methods`/`registered_methods`,
+   byte-identical to the gate's own `frozen_policy()`). A new `treatment.
+   extractor_seam` section documents the seam, its derivation and its
+   authorized change shape, and `treatment.must_not_touch_yet` is corrected
+   in place — the old blanket "`frontend/roslyn/OwnSharp.Extractor/`"
+   entry is replaced with the precise statement (outside the three named
+   methods; the OwnIR guarded-fact VOCABULARY/SCHEMA itself, frozen by
+   A2.2-D, stays untouched regardless) rather than silently dropped, so the
+   correction is visible in place, the same pattern §10.8c/10.8d above
+   already use for a wrong claim discovered after the fact. The old `T_B`
+   (`a02ccf1`) and `R_B` (the B1-F1-corrected baseline manifest) are not
+   deleted, not declared garbage, and not rewritten: a new `superseded_by_
+   b1_f2` section names them explicitly, machine-readable, with the reason
+   — they were honest measurements at a boundary later found incomplete,
+   not a false measurement. `named_later.T_B`/`.R_B` are cleared to `null`
+   pending B1-F2's own retake (below), matching how `B_treatment_head`/
+   `B_after_evidence` already read `null` pending their own later steps.
+
+**Severity.** The defect was in classification, not in any measurement
+already taken: every fact/MOS/verdict `R_B` recorded was, and remains,
+accurate for the boundary B1 actually drew. What was wrong is that the
+boundary itself excluded a path the frozen A1 contract requires to move.
+No verdict was ever falsely accepted as A1-compliant because of this —
+`--post-a1` was, and must remain, RED throughout (reconfirmed as part of
+this same fix's own verification) — so this is a governance-boundary
+defect, not a silent correctness escape.
+
+**`tests/test_p037_a2d_epoch.py`.** This test governs a DIFFERENT epoch's
+record (`docs/evidence/p037-a2d-epoch.json`, A2.2-D's own door-registration
+closure) and its own hardcoded `extractor-is-instrument-not-treatment`
+check reads THAT record's `instrument.roots`/`treatment.paths`, not Phase
+B's — confirmed unaffected and still green. The only real gap this test
+had was `PHASE_B_GOVERNANCE_FILES` not yet naming the new gate script (the
+same allowlist-lags-a-new-Phase-B-file gap `b234599` hit twice before);
+fixed by adding exactly one entry, `scripts/p037_b_extractor_diff_gate.py`
+— not a `"frontend/"` prefix, since B1-F2 never touches `Program.cs`
+itself.
+
+**Consequence for `T_B`/`R_B`.** Widening `INSTRUMENT_CARVE_OUTS` moves
+`instrument_identity` (mechanically the same kind of event that forced a
+`T_B` retake in §10.8c/10.8d) — so B1-F2 ends the same way those did: name
+the corrected head as the new `T_B` once it is terminal-green, then retake
+all four `R_B` snapshots fresh at it, with the extractor still carrying
+its PRE-A1 semantics (B1-F2 performs no semantic treatment). B2.1a — the
+actual extractor-side A1 change — remains a separate, later, not-yet-
+authorized task, and it is scoped narrowly on purpose: stop emitting the
+unconditional legacy release where the callee's own already-emitted
+`guarded_facts` say the call is guard territory; never make `ConsumesParam`
+path-sensitive, and never re-implement Election/Cells/Transform/fixpoint
+math in C# — that stays exactly where B1 already froze it, in
+`rust/crates/own-bridge/`, policed by `production_diff_gate.rust`. Doing
+the narrower thing simultaneously satisfies the standing owner ruling and
+avoids creating a third implementation of P-037 inside Roslyn.
