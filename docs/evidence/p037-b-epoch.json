@@ -102,6 +102,7 @@
     },
     "registered_new_items_policy": "empty by design in B1: no treatment exists yet to know what new production items it needs, and a treatment registers its own new items in the SAME commit that defines them -- exactly A2.2-D's own door-gate discipline, not a relaxation of it",
     "b1_must_measure": "IDENTICAL against 5571ba4 (the closed Phase-B entry-gate head): B1 adds tooling, ledgers and documentation and moves no byte of rust/crates/own-bridge/",
+    "rust_b1_f2_must_measure": "IDENTICAL against bfa8647 (the closed, corrected-T_B B1-F1 head) for rust/crates/own-bridge/ -- this gate's own unit: B1-F2 moves no Rust production byte. A separate fact and a separate field from production_diff_gate.extractor.b1_f2_must_measure, which states the extractor unit's own IDENTICAL claim -- conflating the two under one field (stating this unit's fact inside the extractor's own must_measure) was the P2 wording defect B1-F2-F1 corrects.",
     "extractor": {
       "unit": "frontend/roslyn/OwnSharp.Extractor/",
       "tool": "scripts/p037_b_extractor_diff_gate.py",
@@ -109,7 +110,7 @@
       "frozen_files": ["OwnSharp.Extractor.csproj"],
       "mutable_methods": ["ConsumeReleaseArgs", "ConsumesParam", "CallReleasesReceiver"],
       "registered_methods": [],
-      "b1_f2_must_measure": "IDENTICAL against bfa8647 (the closed, corrected-T_B B1-F1 head) for rust/crates/own-bridge/ -- B1-F2 moves no Rust production byte either. Only scripts/p037_evidence_b.py (the provenance-closure carve-out), the new scripts/p037_b_extractor_diff_gate.py, this record, tests/test_p037_a2d_epoch.py's one-file allowlist addition and docs/notes/p037-formal-kernel.md move."
+      "b1_f2_must_measure": "IDENTICAL against bfa8647 (the closed, corrected-T_B B1-F1 head) for frontend/roslyn/OwnSharp.Extractor/ -- this gate's own unit, and its own fact: B1-F2 moves no extractor production byte (Program.cs and OwnSharp.Extractor.csproj both untouched). rust/crates/own-bridge/ is a SEPARATE fact, recorded by production_diff_gate.rust_b1_f2_must_measure, not this field -- stating the Rust unit's claim here, under the extractor gate's own must_measure, was the P2 wording defect B1-F2-F1 corrects. Beyond both units: only scripts/p037_evidence_b.py (the provenance-closure carve-out), the new scripts/p037_b_extractor_diff_gate.py, this record, tests/test_p037_a2d_epoch.py's one-file allowlist addition and docs/notes/p037-formal-kernel.md move."
     }
   },
   "environment": {
@@ -184,7 +185,8 @@
     "proof-boundary audit GREEN (this task's stop condition, or RED with named gaps if not met)",
     "terminal-green T_B: named only after the audit is green on a reviewed head (not this task)",
     "new Phase-B baseline R_B: a governed take on its own qualified environment, never a2d's R_D reused (not this task)",
-    "first semantic treatment: the frozen hypothesis above, implemented within production_diff_gate.rust's mutable scope (mos.rs's guarded-kernel items; lower.rs's lower_fn_params/unverified_transfer_calls/kill_sites_for_unverified/lower_full) (not this task)",
+    "first semantic treatment, stage a (B2.1a): extractor-side abstention/delegation within treatment.extractor_seam's authorized_change_shape, in Program.cs's three named methods only, governed by production_diff_gate.extractor (not this task) -- this entry originally read as a single Rust-only step naming production_diff_gate.rust first; B1-F2-F1 corrects that self-contradiction (an authoritative order naming the Rust stage first, right next to a treatment.extractor_seam this same record added, requiring the extractor stage) -- see superseded_by_b1_f2",
+    "first semantic treatment, stage b (B2.1b/c): the frozen hypothesis above, implemented within production_diff_gate.rust's mutable scope (mos.rs's guarded-kernel items; lower.rs's lower_fn_params/unverified_transfer_calls/kill_sites_for_unverified/lower_full) -- sequenced strictly after stage a, never before it: the two-layer-acceptance rationale (docs/notes/p037-formal-kernel.md) is that a Rust summary engine must not compensate a bad extractor fact with another heuristic (not this task)",
     "classified after measurement: the difference policy above applied for real (not this task)"
   ],
   "measurement_policy": {
@@ -192,6 +194,7 @@
     "note": "no take happens in this record; the field exists for shape-parity with the a2d record and is filled meaningfully only once R_B is planned in detail"
   },
   "non_goals": [
+    "scope note (added B1-F2-F1): this array describes B1's and B1-F2's OWN task boundaries, as each was written at its own time -- not a standing Phase-B rule. In particular \"no T_B, R_B, B_treatment_head or B_after_evidence naming\" and \"no change to ownlang/ownir.py, the extractor, OwnIR guarded-fact vocabulary, verdict mapping or launcher behaviour\" below are already superseded by design: T_B/R_B ARE named (see named_later), and treatment.extractor_seam explicitly authorizes an eventual, narrowly-scoped extractor change (B2.1a, not yet performed). Read every entry below as \"not in the task that wrote it\", never as \"never, for the rest of Phase B\".",
     "no production semantic movement of any kind",
     "no move of formal/p037-kernel/ into rust/crates/own-bridge",
     "no new corpus/p036-bakeoff fixture for family 1 (corpus/p037-shapes/guard-mutated, already anchored, already CI-checked, already discharges it -- see first_semantic_hypothesis.g_v4_discharge_matrix)",
