@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""P-037 Phase B / B1-F2: the mechanical production-diff gate on the
-extractor's legacy-consume-shortcut seam (frontend/roslyn/OwnSharp.Extractor/).
+"""P-037 Phase B / B1-F2 (widened by B1-F2-F2): the mechanical
+production-diff gate on the extractor's legacy-consume-shortcut seam
+(frontend/roslyn/OwnSharp.Extractor/).
 
 B1 originally classified frontend/roslyn/OwnSharp.Extractor/ as measurement
 INSTRUMENT, in full, with no carve-out (p037_evidence_b.INSTRUMENT_PATHS).
@@ -28,22 +29,36 @@ composition A2.2-D and B1 already use for mos.rs/lower.rs):
 Unit: frontend/roslyn/OwnSharp.Extractor/. Frozen file (byte-identical):
 OwnSharp.Extractor.csproj (no new dependency may be added this way -- the
 same discipline Cargo.toml gets in the Rust gate). Mutable, at NAMED-METHOD
-granularity inside Program.cs: exactly `ConsumeReleaseArgs`, `ConsumesParam`
-and `CallReleasesReceiver` -- the three functions that jointly decide
-whether a call site's argument gets fabricated into an unconditional
-`release` op (traced directly from source, not assumed: `ConsumeReleaseArgs`
-calls `ConsumesParam`, which recurses through first-party callees via
-`DisposesLocal`; `CallReleasesReceiver` is the extension-method-receiver
-twin of the same call). `DisposesLocal`, `ParameterIsStable` (the existing
-G-V4 whole-body write-exposure test) and `BuildGuardedFacts` (the
-guarded_facts producer) all stay FROZEN: the owner's explicit warning is
-that this gate must never license `ConsumesParam` becoming a second
-guarded-summary engine written inside Roslyn by a sequence of "small
-fixes" -- it authorizes ABSTAINING from a bad legacy classification when
-the callee's own already-emitted guarded_facts say a call is guard
-territory, never a new guard-eligibility or Election/Cells/Transform
-implementation in C#. That math stays exactly where B1 already froze it:
-rust/crates/own-bridge/ under p037_b_production_diff_gate.py.
+granularity inside Program.cs: `ConsumeReleaseArgs`, `ConsumesParam`,
+`CallReleasesReceiver` and (since B1-F2-F2) `EmitFlowExpr` -- the four
+functions that jointly decide whether a call site's argument gets
+fabricated into an unconditional `release` op (traced directly from
+source, not assumed: `ConsumeReleaseArgs` calls `ConsumesParam`, which
+recurses through first-party callees via `DisposesLocal`;
+`CallReleasesReceiver` is the extension-method-receiver twin of the same
+call; `EmitFlowExpr` is the ONE place that turns `ConsumeReleaseArgs`'s
+answer into the fabricated `release` op AND the one place whose
+`consumed` set suppresses the matching `use` -- B1-F2-F2's own scratch
+measurement proved that changing `ConsumeReleaseArgs`/`ConsumesParam`
+alone corrupts a SEPARATE consumer of the same answer, the escape/
+tracking check at Program.cs's `consumedArg`, orphaning 7 of 8 canonical
+acceptance fixtures' caller methods entirely). `DisposesLocal`,
+`ParameterIsStable` (the existing G-V4 whole-body write-exposure test)
+and `BuildGuardedFacts` (the guarded_facts producer) all stay FROZEN: the
+owner's explicit warning is that this gate must never license
+`ConsumesParam` becoming a second guarded-summary engine written inside
+Roslyn by a sequence of "small fixes" -- it authorizes ABSTAINING from a
+bad legacy classification when the callee's own already-emitted
+guarded_facts say a call is guard territory, never a new guard-
+eligibility or Election/Cells/Transform implementation in C#. That math
+stays exactly where B1 already froze it: rust/crates/own-bridge/ under
+p037_b_production_diff_gate.py. See docs/evidence/p037-b-epoch.json's
+treatment.extractor_seam and b1_f2_f2_seam_investigation for the full
+finding: G-V4-rejected guard candidates are invisible in the emitted
+sidecar by design (no entry, "not eligible" -- confirmed on the real
+gv4-control-aliased-self-null fixture), so a single-recognizer design
+covering both eligible and rejected cases likely also needs
+`BuildGuardedFacts` factored, which is NOT yet authorized here.
 
 Method extraction (`csharp_items`) does not attempt a general C# parser.
 It only ever looks for a small, named set of top-level `static` method
@@ -118,17 +133,39 @@ UNIT = "frontend/roslyn/OwnSharp.Extractor/"
 
 FROZEN_FILES: tuple[str, ...] = ("OwnSharp.Extractor.csproj",)
 
-# The three functions traced directly from Program.cs that jointly perform
+# The four functions traced directly from Program.cs that jointly perform
 # the flow-insensitive "consumes therefore releases at the call site"
 # fabrication. Not "all of ConsumesParam's callers" and not "everything
 # guard-adjacent" -- exactly the seam B1-F2 derived by reading the call
 # graph, named here so a future edit cannot silently widen it without also
 # widening this tuple (which policy_drift() below refuses to accept from
 # an epoch-record edit alone).
+#
+# B1-F2-F2 adds EmitFlowExpr, proven necessary rather than assumed: a
+# scratch (never-committed) edit forcing ConsumeReleaseArgs to always
+# answer "nothing consumed" -- the only way to change caller behaviour
+# through the original three-method seam alone -- was run against all
+# eight named acceptance fixtures plus the full corpus/p036-bakeoff and
+# corpus/p037-shapes populations. Result: 7 of 8 canonical callers were
+# dropped from functions[] entirely into a body-less guarded_functions[]
+# orphan (losing every acquire/release/use for the local, not just the
+# fabricated release), and the 8th silently lost tracking of a SEPARATE,
+# honest, unconditional dispose in the same method. ConsumeReleaseArgs/
+# ConsumesParam's return value also gates the escape/tracking admission
+# check (Program.cs's consumedArg), so changing its meaning to answer the
+# GUARD question instead of the CONSUME question corrupts tracking as a
+# side effect. EmitFlowExpr is the ONE place that turns that answer into
+# an unconditional `release` op; it must be mutable too so the two roles
+# (tracking vs release-emission) can be decoupled, per
+# docs/evidence/p037-b-epoch.json's treatment.extractor_seam and
+# b1_f2_f2_seam_investigation. BuildGuardedFacts is deliberately NOT
+# added here -- see that same record section for why it remains an open
+# question, not yet proven.
 MUTABLE_METHODS: tuple[str, ...] = (
     "ConsumeReleaseArgs",
     "ConsumesParam",
     "CallReleasesReceiver",
+    "EmitFlowExpr",
 )
 
 REMAINDER_KEY = "(the rest of Program.cs)"
@@ -613,6 +650,15 @@ static class Program
     {
         return false;
     }
+
+    // B1-F2-F2: a void-returning, multi-parameter sentinel shaped like the
+    // real EmitFlowExpr -- proves the extraction regex handles a `void`
+    // return and more than one parameter, not just the three original
+    // methods' shapes.
+    static void EmitFlowExpr(int expr, int tracked, int model)
+    {
+        Console.WriteLine("noop");
+    }
 }
 '''
 
@@ -621,7 +667,8 @@ def _mem_policy(**overrides: Any) -> CSharpPolicy:
     base: dict[str, Any] = {
         "unit": "crate/",
         "frozen_files": ("OwnSharp.Extractor.csproj",),
-        "mutable_methods": ("ConsumeReleaseArgs", "ConsumesParam", "CallReleasesReceiver"),
+        "mutable_methods": ("ConsumeReleaseArgs", "ConsumesParam", "CallReleasesReceiver",
+                            "EmitFlowExpr"),
         "registered_methods": (),
     }
     base.update(overrides)
@@ -646,6 +693,21 @@ def selftest() -> int:
     })
     rep = compare_csharp(ref, head, pol)
     _selfcheck("authorized-item-changed-is-allowed", rep.verdict == WITHIN, rep.as_dict())
+
+    # B1-F2-F2: EmitFlowExpr is the newly-authorized existing method -- proves
+    # the widened policy actually permits it to move, on its own dedicated
+    # shape (void return, multiple parameters), not just by incidental
+    # coverage from the other tests sharing the same _REF_PROGRAM.
+    head = memory_tree({
+        "crate/OwnSharp.Extractor.csproj": _REF_CSPROJ,
+        "crate/Program.cs": _REF_PROGRAM.replace(
+            "static void EmitFlowExpr(int expr, int tracked, int model)\n"
+            "    {\n        Console.WriteLine(\"noop\");\n    }",
+            "static void EmitFlowExpr(int expr, int tracked, int model)\n"
+            "    {\n        Console.WriteLine(\"changed\");\n    }"),
+    })
+    rep = compare_csharp(ref, head, pol)
+    _selfcheck("newly-authorized-EmitFlowExpr-may-move", rep.verdict == WITHIN, rep.as_dict())
 
     head = memory_tree({
         "crate/OwnSharp.Extractor.csproj": _REF_CSPROJ,

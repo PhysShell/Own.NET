@@ -3034,3 +3034,141 @@ math in C# — that stays exactly where B1 already froze it, in
 `rust/crates/own-bridge/`, policed by `production_diff_gate.rust`. Doing
 the narrower thing simultaneously satisfies the standing owner ruling and
 avoids creating a third implementation of P-037 inside Roslyn.
+
+#### 10.8f Phase B / B1-F2-F2: the extractor seam itself was still too narrow (OWNER RULING)
+
+Owner review of B1-F2 (§10.8e) accepted its boundary repair but, while
+deriving the actual B2.1a implementation from it, found the repaired seam
+still mechanically insufficient — a second, deeper mismatch discovered
+BEFORE any production byte moved, the same discipline that caught B1-F2's
+own boundary defect in the first place. Two corrections landed first as
+B1-F2-F1 (`order`'s Rust-first self-contradiction against the newly added
+`treatment.extractor_seam`; `production_diff_gate.extractor.b1_f2_must_
+measure` stating the wrong unit's claim) — record-only, no instrument
+byte moved, no retake needed. This section covers B1-F2-F2, which does
+move an instrument byte.
+
+**Finding A (mechanical): `ConsumeReleaseArgs` drives two decisions, only
+one of which B1-F2 authorized moving.** `EmitFlowExpr` (Program.cs
+~4485-4488) turns `ConsumeReleaseArgs`'s answer into the fabricated
+`release` op — the seam's whole target — but the SAME answer also gates
+an entirely separate decision, the escape/tracking admission check
+(~7380-7384's `consumedArg`): a local passed as a bare argument to a
+first-party call is normally an ambiguous escape (untracked) UNLESS
+`ConsumeReleaseArgs` says the call consumes it, in which case it stays
+TRACKED and is expected to be discharged by the very `release` op
+`EmitFlowExpr` emits. B1-F2's three-method seam (`ConsumeReleaseArgs`/
+`ConsumesParam`/`CallReleasesReceiver`, `EmitFlowExpr` frozen) can only
+change caller behaviour by changing what `ConsumeReleaseArgs` answers —
+but that answer is the SAME one the tracking check reads, so making it
+answer the GUARD question instead of the CONSUME question silently
+corrupts tracking as a side effect of trying to fix the release.
+
+**Proof, not assumption.** A scratch, never-committed edit (`return new
+List<string>();` as the first line of `ConsumeReleaseArgs`) was built,
+run against `own-check.sh --emit-facts` on all eight named acceptance
+fixtures, and reverted via `git checkout` before the next step — working
+tree confirmed clean before, between and after every pass. Result: 7 of
+8 canonical fixtures' caller method (`Leak`/`Use`) disappeared from
+`functions[]` entirely and reappeared as a body-less `guarded_functions[]`
+orphan — every `acquire`/`release`/`use` for the local gone, not just the
+fabricated release. The 8th (`gv4-control-aliased-self-null`) stayed in
+`functions[]` but lost ALL tracking of its local `s`, including a
+SEPARATE, honest, unconditional `s.Dispose()` three lines later — the
+very false `OWN003` that fixture exists to witness went from 1 finding to
+0, for the wrong reason (the local vanished from analysis, not because
+the guarded call was reasoned about correctly). Run again over the full
+`corpus/p036-bakeoff` (12 files) and `corpus/p037-shapes` (55 files)
+populations: 9 functions newly orphaned, 4 more with a changed body, out
+of 94 `functions[]` records (~14%); 0 new findings, 3 lost (all
+false-positive `OWN003`s disappearing by the same erasure, not by correct
+reasoning) — and, as a control, `corpus/real-world` (66 files) and
+`corpus/wpf` (56 files) show ZERO change, confirming the mechanism is
+completely inert outside the guarded-consume call shape. **Answer to "can
+the existing three-method seam remove the fabricated release without
+destroying caller obligation tracking": NO**, measured, not argued.
+
+This same scratch measurement IS the hostile "broad retirement" control
+(§B1-F2-F2 brief item 10): the forced-empty `ConsumeReleaseArgs` stops
+emitting a legacy release for every first-party consumer call the
+sidecar would represent, not only guard-territory ones, and the numbers
+above are its blast radius. **Verdict: REJECTED** — not narrow within the
+population it actually touches (14% of the P-037-relevant corpus), and
+its apparent verdict-level "improvement" is coincidental erasure that
+would identically mask a real leak sharing the same shape.
+
+**Finding B: the emitted sidecar cannot cover G-V4-rejected guards.**
+`BuildGuardedFacts`'s own guard loop (Program.cs ~3349-3356) reads: `if
+(!typeFits || !Stable(gp)) continue; // not eligible: no entry, by
+design`. Confirmed directly on the real `gv4-control-aliased-self-null`
+fixture: `Close`'s `functions[]` record carries no `guarded_facts` key at
+all — not an empty one, ABSENT — identical in shape to a genuinely
+unguarded method. A rule of the form "abstain when the callee's `guards[]`
+is non-empty" cannot tell the two apart, so it would leave the fabricated
+release (and the false `OWN003`) exactly as B1's own record already
+measured it, failing A1 acceptance items 5/8 for every G-V4-rejected
+control. The raw guard-CANDIDATE shape match (~3315-3348, an `OwnParam` +
+`truth`/`is_null`/`not_null` predicate test against an `if` condition,
+BEFORE the `typeFits`/`Stable` eligibility gate) is the one thing that
+would cover eligible and rejected cases uniformly, but it exists only as
+inline logic inside `BuildGuardedFacts`'s own loop today — extracting it
+into a shared, separately callable helper (a semantics-preserving
+refactor: `BuildGuardedFacts`'s own emitted `guarded_facts` must stay
+byte-identical, proven over the full fact-shape census, before
+`BuildGuardedFacts` is itself authorized into this seam) is the likely
+resolution. This is NOT proven by a scratch measurement the way Finding A
+is — deliberately left an open question for B2.1a itself, not
+rubber-stamped here. `ConsumesParam` recomputing guard eligibility
+independently (a second recognizer) remains forbidden regardless.
+
+**Finding C (record hygiene): a dangling reference.** `difference_policy.
+note` still asserted B1's pre-treatment "unchanged, full stop" raw-facts
+claim and pointed at `first_semantic_hypothesis.facts_expectation`, a
+field that did not exist. True when B1 wrote it (before any treatment
+existed to make it false), stale the moment `treatment.extractor_seam`
+did.
+
+**Fix.** `docs/evidence/p037-b-epoch.json`: `treatment.extractor_seam.
+mutable_methods` gains `EmitFlowExpr`; `authorized_change_shape` is
+rewritten around the two decoupled roles (`ConsumeReleaseArgs`/
+`ConsumesParam` keep answering the TRACKING question unchanged;
+`EmitFlowExpr` alone decides whether that answer is strong enough to
+materialize `release`, degrading to `use` rather than dropping the op
+outright — dropping it is exactly the tracking-loss failure mode just
+proven); a new `b1_f2_f2_seam_investigation` section carries the findings
+and numbers above; a new, closed `first_semantic_hypothesis.
+facts_expectation` field states the allowed/never raw-fact surface
+machine-readably (never prose); `difference_policy.note` is corrected in
+place and now explicitly separates the raw-fact layer from the semantic
+MOS/verdict classifier layer; a new `ci_transition_plan` section
+preregisters the staged CI shape B2.1a will use (a new, narrower,
+tests-only transitional control asserting `facts_expectation` alone,
+never editing `expected.json` or `scripts/p037_controls.py`) before the
+eventual `--post-a1` cutover. `scripts/p037_b_extractor_diff_gate.py`'s
+`MUTABLE_METHODS` gains `EmitFlowExpr` to match, with new selftest
+coverage (a dedicated hostile test proving the newly-authorized method
+may move, on its own void-returning multi-parameter shape; the existing
+live-source, policy-drift, and violation checks extend to it
+automatically since they already iterate the tuple rather than the three
+original names). `BuildGuardedFacts` is NOT added to either policy.
+
+**Severity.** Same class as B1-F2 itself: a governance-boundary
+correction, discovered and fixed BEFORE any semantic byte moved.
+`Program.cs` is verified byte-identical to the B1-F2-F1 head throughout —
+every scratch measurement was built, run, diffed and reverted via git
+before the next step, never committed. `p037_controls.py --post-a1`
+stays fully RED on both engines, reconfirmed fresh at this exact head, so
+no accidental semantic acceptance occurred while deriving these findings.
+
+**Consequence for `T_B`/`R_B`.** Widening `scripts/p037_b_extractor_diff_
+gate.py`'s `MUTABLE_METHODS` (a tracked Phase-B instrument path) moves
+`instrument_identity` — the same kind of event B1-F1 and B1-F2 each
+already forced a retake for. B1-F2-F2 ends the same way: name the
+corrected head as the new `T_B` once terminal-green, retake all four
+`R_B` snapshots fresh at it (extractor still carrying PRE-A1 semantics —
+B1-F2-F2 performs no semantic treatment), and only then land the naming
+commit. B2.1a — the actual extractor-side change, now correctly scoped
+to `ConsumeReleaseArgs`/`ConsumesParam`/`CallReleasesReceiver`/
+`EmitFlowExpr` with the decoupled two-role design above, and with
+Finding B's single-recognizer question still open for it to resolve —
+remains separate, later, and not yet authorized.
