@@ -207,10 +207,11 @@
     "status": "historical: honest B1 evidence at a boundary later found incomplete; not a baseline for any future comparison; superseded by the T_B/R_B this same field family names once B1-F2's own retake lands (see named_later below)"
   },
   "named_later": {
-    "T_B": null,
-    "R_B": null,
+    "T_B": "cfe7e19c4f6a9f4d2d7606bcc6f288b52f196bcd",
+    "T_B_title": "P-037 Phase B / B1-F2: correct the extractor's instrument/treatment boundary",
+    "R_B": "docs/evidence/p037-b-baseline-manifest.md",
     "B_treatment_head": null,
     "B_after_evidence": null,
-    "note": "cleared by B1-F2 pending its own corrected-instrument retake (order: land the boundary fix terminal-green, THEN name the new T_B, THEN take R_B fresh at it) -- see superseded_by_b1_f2 for what these named before B1-F2"
+    "note": "filled by B1-F2, naming last per the same order used every prior time (boundary fix terminal-green at cfe7e19 -- CI 32/32, fast Kani 15/15 independently reconfirmed from the raw log -- THEN R_B retaken fresh at it and itself terminal-green at 069d5bc -- CI 32/32, fast Kani 15/15 -- THEN this naming commit). B_treatment_head/B_after_evidence stay null: no semantic treatment exists yet. See superseded_by_b1_f2 for what T_B/R_B named before this fix."
   }
 }
