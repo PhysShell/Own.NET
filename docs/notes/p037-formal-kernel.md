@@ -3575,3 +3575,78 @@ instrument path, unaffected by this fact even though its own docstring
 moved. Only once this corrected head is terminal-green does the B1-F2-F4
 instrument-supersession retake (naming a fresh `T_B`, four fresh `R_B`
 snapshots) proceed.
+
+#### 10.8j Phase B / B1-F2-F4-R2: dump.rs was an authorized treatment surface still sitting inside the instrument (OWNER RULING)
+
+Found after the B1-F2-F4-R1 retake was itself named at `3ac13fd`, before
+any B2.1 production semantics were touched: `scripts/p037_evidence_b.py`'s
+own `INSTRUMENT_CARVE_OUTS` had not been updated to match B1-F2-F4's own
+widening of `scripts/p037_b_production_diff_gate.py`. The causal chain,
+exact:
+
+    B1-F2-F4 correctly made dump_summaries item-mutable
+            ↓
+    but p037_evidence_b.py remained on the older mos.rs/lower.rs carve-out
+            ↓
+    fresh R_B therefore included dump.rs in instrument_identity
+            ↓
+    required B2.1b/c dump movement would invalidate the differential
+            ↓
+    boundary corrected before any semantic treatment
+
+`INSTRUMENT_CARVE_OUTS`/`INSTRUMENT_PATHS` define what `instrument_
+manifest()`/`instrument_identity()` actually hash; `production_diff_gate.
+rust`'s own `mutable_items` define what the ITEM-level Rust gate permits to
+change within a unit. These are two different layers of the same boundary,
+and B1-F2-F4 had only corrected the second one. `dump.rs` therefore
+remained, in full, inside the Phase-B instrument closure while
+simultaneously being an already-authorized, already-preregistered B2.1b/c
+treatment file — the identical shape of defect B1-F2 first found for the
+whole extractor directory and B1-F2-F2 found a second time for the
+extractor's own mutable-method seam, now found a third time one layer
+over, in Rust.
+
+The consequence was not hypothetical: `comparison_problems()` refuses an
+`instrument_identity` mismatch between two records by design (that is the
+entire point of the field), so a real `B_after` evidence take following
+B2.1b/c's own already-authorized `dump_summaries` change would have been
+mechanically refused as ineligible against the unfixed `R_B` — regardless
+of how correct the eventual guarded-summary solver was. Measuring first,
+implementing second, only works when the measurement's own closure is
+complete; an incomplete closure turns the *correct* future treatment into
+the thing that invalidates its own evidence.
+
+**Fix, with zero production-semantic movement.** `rust/crates/own-bridge/
+src/dump.rs` joins `mos.rs`/`lower.rs` in `INSTRUMENT_CARVE_OUTS` (and
+therefore `TREATMENT_PATHS`, literally the same tuple), carved out WHOLE
+at the provenance layer — not because every byte of `dump.rs` may change,
+but because path-level provenance carve-out and item-level production
+diff gate together are what actually bounds the permitted semantic
+surface, exactly the relationship `mos.rs`/`lower.rs` already had to
+`production_diff_gate.rust`'s own item list. `production_diff_gate.rust`
+itself is untouched by this task: `fn dump_summaries` stays the only
+mutable item, `fn escape_py`/`fn emit`/`fn pad` and the file's `use`
+statements stay frozen. A new `scripts/p037_evidence_b.py` `selftest()`
+regression proves the fix structurally: `dump.rs` (with `mos.rs`/`lower.rs`
+re-asserted alongside it) is absent from `instrument_manifest('HEAD')`,
+while an unrelated, still-frozen own-bridge file (`verdict.rs`) remains
+present — proving the fix removed exactly the treatment files, never the
+whole `rust/crates/own-bridge/` directory.
+
+**Explicitly not touched, and explicitly recorded as such.**
+`rust/crates/own-bridge/tests/`, named in `production_diff_gate.rust.
+controls` as a control the item-level production gate already permits to
+move, is a different concept from this instrument closure and stays
+instrument-frozen for the upcoming B2.1 treatment — this task does not
+enlarge the carve-out to pre-empt a need that has not been shown; a
+separate, later, pre-treatment boundary amendment would be required to
+authorize and re-baseline it if B2.1 ever needs to touch it. Nothing about
+P-037 semantics, the A1 acceptance matrix, guard vocabulary, compatibility
+classes, or solver rules is amended by this task.
+
+**Instrument consequence.** `scripts/p037_evidence_b.py` is itself a
+tracked Phase-B instrument path, so `instrument_identity` moves again —
+the same kind of retake B1-F1/B1-F2/B1-F2-F2/B1-F2-F4/B1-F2-F4-R1 each
+already forced. Only once this corrected head is terminal-green does the
+fresh `T_B`/`R_B` retake proceed, and only after THAT retake is itself
+terminal-green does B2.1a become the next authorized task — not before.

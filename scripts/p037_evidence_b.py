@@ -21,9 +21,9 @@ consume-shortcut seam (item-level boundary: p037_b_extractor_diff_gate.py)
 also holds frozen items, so file-level pathspec diffing alone is never the
 authoritative boundary for either; this module's own TREATMENT_PATHS is
 deliberately the same coarse, file/directory-level union both item gates'
-own units name (mos.rs, lower.rs, and the whole extractor directory, each
-in full), exactly as a2d's own TREATMENT_PATHS is wider than its doors and
-the *door gate* is the boundary within them.
+own units name (mos.rs, lower.rs, dump.rs, and the whole extractor
+directory, each in full), exactly as a2d's own TREATMENT_PATHS is wider
+than its doors and the *door gate* is the boundary within them.
 
 B1 originally classified the whole extractor as measurement INSTRUMENT
 with no carve-out at all, even though the frozen A1 acceptance matrix
@@ -157,9 +157,33 @@ INSTRUMENT_PATHS: tuple[str, ...] = (
 # functions are actually mutable under p037_b_production_diff_gate.py.
 # Path-level provenance carve-out + item-level production diff gate is the
 # actual permitted semantic boundary; this tuple is only the first half.
+#
+# B1-F2-F4-R2: dump.rs joins them. B1-F2-F4 had already widened
+# p037_b_production_diff_gate.py to make `fn dump_summaries` mutable (the
+# future B2.1b/c guarded-summary path must see the same guarded-method
+# universe production does, including guarded_functions[]), but this
+# module's own carve-out was never updated to match -- so a Phase-B R_B
+# taken against the unfixed closure would have carried dump.rs's blob
+# inside instrument_identity, and the very treatment this project's own
+# production gate already authorizes would itself have moved the
+# instrument out from under any future R_B-vs-B_after comparison
+# (comparison_problems() correctly refuses an instrument_identity
+# mismatch -- see its own selftest coverage -- so that comparison would
+# have been refused no matter how correct the eventual solver was).
+# Carved out WHOLE, same discipline as mos.rs/lower.rs and for the same
+# reason: NOT because every byte of dump.rs may change -- the production
+# gate still freezes it at item granularity (`fn dump_summaries` alone;
+# `fn escape_py`/`fn emit`/`fn pad`, the file's `use` statements, and every
+# other, unregistered item stay frozen there) -- but because path-level
+# provenance carve-out plus item-level production diff gate, TOGETHER, are
+# what actually bounds the permitted semantic surface. Carving out only
+# the one mutable function would still need the same item gate to police
+# what may move within it, while leaving the frozen remainder inside the
+# instrument for no protective purpose.
 INSTRUMENT_CARVE_OUTS: tuple[str, ...] = (
     "rust/crates/own-bridge/src/mos.rs",
     "rust/crates/own-bridge/src/lower.rs",
+    "rust/crates/own-bridge/src/dump.rs",
     "frontend/roslyn/OwnSharp.Extractor/",
 )
 
@@ -533,7 +557,22 @@ def selftest() -> int:
     re-proven here -- this module only proves the two are correctly WIRED
     together (the carve-out exists, and closure_problems() cross-checks the
     epoch record's production_diff_gate.extractor.unit against this
-    module's own, exactly as it already did for the Rust gate)."""
+    module's own, exactly as it already did for the Rust gate).
+
+    B1-F2-F4-R2 adds a third family, the same general shape again: B1-F2-F4
+    widened p037_b_production_diff_gate.py to make dump.rs's own
+    `dump_summaries` an authorized B2.1b/c treatment item, but this
+    module's INSTRUMENT_CARVE_OUTS was never updated to match, so dump.rs
+    silently stayed inside the Phase-B instrument closure -- a real defect,
+    not a hypothetical one, since a fresh R_B taken before this fix would
+    have made the already-authorized dump_summaries treatment itself move
+    instrument_identity. Proven the same way as the extractor family: the
+    carve-out is declared (and therefore also TREATMENT_PATHS, which is
+    literally the same tuple), the file is structurally absent from
+    instrument_manifest() at HEAD (never inferred from the carve-out
+    declaration alone -- the manifest is rebuilt and inspected directly),
+    and an UNRELATED, still-frozen own-bridge file stays present, proving
+    the fix removed exactly the one path, not the whole directory."""
     own_only = "scripts/p037_b_production_diff_gate.py"
     _selfcheck("phase-b-instrument-paths-include-b-production-diff-gate",
               own_only in INSTRUMENT_PATHS, INSTRUMENT_PATHS)
@@ -557,6 +596,32 @@ def selftest() -> int:
     _selfcheck("phase-b-manifest-excludes-the-whole-extractor-carve-out",
               not any(_covered(p, (extractor_unit,)) for p in manifest_paths),
               [p for p in manifest_paths if _covered(p, (extractor_unit,))])
+
+    # B1-F2-F4-R2: dump.rs must be a declared carve-out/treatment path AND
+    # structurally absent from the manifest built at HEAD -- not merely
+    # declared, since instrument_manifest() is what instrument_identity()
+    # actually hashes. mos.rs/lower.rs are re-asserted alongside it (the
+    # exact three files p037_b_production_diff_gate.py's own item gate
+    # polices) so a future regression narrowing the carve-out back down is
+    # caught here too, not only in that other module's own selftest.
+    dump_path = "rust/crates/own-bridge/src/dump.rs"
+    mos_path = "rust/crates/own-bridge/src/mos.rs"
+    lower_path = "rust/crates/own-bridge/src/lower.rs"
+    _selfcheck("dump-rs-is-a-declared-carve-out",
+              dump_path in INSTRUMENT_CARVE_OUTS, INSTRUMENT_CARVE_OUTS)
+    _selfcheck("dump-rs-is-declared-treatment",
+              dump_path in TREATMENT_PATHS, TREATMENT_PATHS)
+    _selfcheck("dump-rs-is-excluded-from-the-instrument-manifest-at-head",
+              dump_path not in manifest_paths, manifest_paths)
+    _selfcheck("mos-rs-and-lower-rs-are-also-excluded-from-the-instrument-manifest",
+              mos_path not in manifest_paths and lower_path not in manifest_paths,
+              manifest_paths)
+    # An unrelated, still-frozen own-bridge file must remain IN the
+    # manifest -- proving the fix removed exactly the three treatment
+    # files, never the whole rust/crates/own-bridge/ directory.
+    unrelated_frozen = "rust/crates/own-bridge/src/verdict.rs"
+    _selfcheck("an-unrelated-frozen-own-bridge-file-stays-in-the-instrument-manifest",
+              unrelated_frozen in manifest_paths, manifest_paths)
 
     b_id = instrument_identity("HEAD")
     a2d_id = ev.instrument_identity("HEAD")
