@@ -800,7 +800,7 @@
    "executed": {
     "bytes": 1946672,
     "post_run_intact": true,
-    "sealed_path": "/tmp/p037-take-sf76uxth/own-cli",
+    "sealed_path": "/tmp/p037-take-byirilh9/own-cli",
     "sha256": "847fd8ed3e53e00dbb44abab6974a1256c6b72914336cf8b034fe6e709df9462"
    },
    "host": "x86_64-unknown-linux-gnu",
@@ -810,7 +810,7 @@
    "repo_path": "rust/target/release/own-cli",
    "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)\nbinary: rustc\ncommit-hash: e408947bfd200af42db322daf0fadfe7e26d3bd1\ncommit-date: 2026-03-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.94.1\nLLVM version: 21.1.8",
    "sha256": "847fd8ed3e53e00dbb44abab6974a1256c6b72914336cf8b034fe6e709df9462",
-   "source_commit": "718a673c01641883df433b89cb76d5e3942d8815"
+   "source_commit": "e4199ec4aa8d8f95c1b7e881f1ce3ba85f6ba58c"
   }
  },
  "corpus": [
@@ -826,7 +826,7 @@
  "environment_id": "P037_B_MEASUREMENT_M3",
  "epoch": "b",
  "epoch_record": {
-  "blob": "fab0ee7ae995b2fa8e83af25aa9d6a03611194b9",
+  "blob": "139e5f285f00f66e26e3236ebf72c4cdd5a0c5bd",
   "path": "docs/evidence/p037-b-epoch.json"
  },
  "execution_profile": {
@@ -2245,9 +2245,10 @@
  "instrument_carve_outs": [
   "rust/crates/own-bridge/src/mos.rs",
   "rust/crates/own-bridge/src/lower.rs",
+  "rust/crates/own-bridge/src/dump.rs",
   "frontend/roslyn/OwnSharp.Extractor/"
  ],
- "instrument_identity": "2b401fc72cc58c0f49e1d002c14a666f9863f657077f39467335e7ab8ec704ba",
+ "instrument_identity": "ed35d31337059ee5d7e3fd4b513025a0b460cc123dcd166d6be9b8494c58e33b",
  "instrument_paths": [
   "frontend/roslyn/OwnSharp.Extractor/",
   "ownlang/",
@@ -2263,20 +2264,21 @@
   "scripts/p037_b_classifier.py"
  ],
  "is_evidence": true,
- "materialization_root": ".p037-population/718a673c01641883df433b89cb76d5e3942d8815/b7192231c73b6418",
- "population_commit": "718a673c01641883df433b89cb76d5e3942d8815",
+ "materialization_root": ".p037-population/e4199ec4aa8d8f95c1b7e881f1ce3ba85f6ba58c/b7192231c73b6418",
+ "population_commit": "e4199ec4aa8d8f95c1b7e881f1ce3ba85f6ba58c",
  "post_run_population_intact": true,
  "reference_profile": {
   "OWN_EXTRA_REF_DIRS": "removed-from-child-environment",
   "observed_extra_reference_lines": 0
  },
  "schema": "p037-verdict-snapshot/3",
- "source_commit": "718a673c01641883df433b89cb76d5e3942d8815",
+ "source_commit": "e4199ec4aa8d8f95c1b7e881f1ce3ba85f6ba58c",
  "support_manifest": [],
  "support_manifest_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
  "treatment_paths": [
   "rust/crates/own-bridge/src/mos.rs",
   "rust/crates/own-bridge/src/lower.rs",
+  "rust/crates/own-bridge/src/dump.rs",
   "frontend/roslyn/OwnSharp.Extractor/"
  ]
 }
