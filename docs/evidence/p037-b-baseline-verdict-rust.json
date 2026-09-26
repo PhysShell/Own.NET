@@ -800,7 +800,7 @@
    "executed": {
     "bytes": 1946672,
     "post_run_intact": true,
-    "sealed_path": "/tmp/p037-take-bjwq8se8/own-cli",
+    "sealed_path": "/tmp/p037-take-sf76uxth/own-cli",
     "sha256": "847fd8ed3e53e00dbb44abab6974a1256c6b72914336cf8b034fe6e709df9462"
    },
    "host": "x86_64-unknown-linux-gnu",
@@ -810,7 +810,7 @@
    "repo_path": "rust/target/release/own-cli",
    "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)\nbinary: rustc\ncommit-hash: e408947bfd200af42db322daf0fadfe7e26d3bd1\ncommit-date: 2026-03-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.94.1\nLLVM version: 21.1.8",
    "sha256": "847fd8ed3e53e00dbb44abab6974a1256c6b72914336cf8b034fe6e709df9462",
-   "source_commit": "fdde0a026d264ceff0e44f8c86e7d059207f67e6"
+   "source_commit": "718a673c01641883df433b89cb76d5e3942d8815"
   }
  },
  "corpus": [
@@ -826,7 +826,7 @@
  "environment_id": "P037_B_MEASUREMENT_M3",
  "epoch": "b",
  "epoch_record": {
-  "blob": "94fc5fb113a592be024e23321b560c0dd1c5fa9a",
+  "blob": "fab0ee7ae995b2fa8e83af25aa9d6a03611194b9",
   "path": "docs/evidence/p037-b-epoch.json"
  },
  "execution_profile": {
@@ -2247,7 +2247,7 @@
   "rust/crates/own-bridge/src/lower.rs",
   "frontend/roslyn/OwnSharp.Extractor/"
  ],
- "instrument_identity": "d93e34e0a6e740ad4ffaa6c1894f32c14fbded79b50b5fc2f678da860d2108d7",
+ "instrument_identity": "2b401fc72cc58c0f49e1d002c14a666f9863f657077f39467335e7ab8ec704ba",
  "instrument_paths": [
   "frontend/roslyn/OwnSharp.Extractor/",
   "ownlang/",
@@ -2259,18 +2259,19 @@
   "scripts/p037_verdict_snapshot.py",
   "scripts/shadow_compare.py",
   "scripts/p037_b_production_diff_gate.py",
-  "scripts/p037_b_extractor_diff_gate.py"
+  "scripts/p037_b_extractor_diff_gate.py",
+  "scripts/p037_b_classifier.py"
  ],
  "is_evidence": true,
- "materialization_root": ".p037-population/fdde0a026d264ceff0e44f8c86e7d059207f67e6/b7192231c73b6418",
- "population_commit": "fdde0a026d264ceff0e44f8c86e7d059207f67e6",
+ "materialization_root": ".p037-population/718a673c01641883df433b89cb76d5e3942d8815/b7192231c73b6418",
+ "population_commit": "718a673c01641883df433b89cb76d5e3942d8815",
  "post_run_population_intact": true,
  "reference_profile": {
   "OWN_EXTRA_REF_DIRS": "removed-from-child-environment",
   "observed_extra_reference_lines": 0
  },
  "schema": "p037-verdict-snapshot/3",
- "source_commit": "fdde0a026d264ceff0e44f8c86e7d059207f67e6",
+ "source_commit": "718a673c01641883df433b89cb76d5e3942d8815",
  "support_manifest": [],
  "support_manifest_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
  "treatment_paths": [
