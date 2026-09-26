@@ -32,26 +32,66 @@ What CAN be built now, and IS built here, matching §10.4/§10.1's own
    yet -- proving the LOGIC is correct against the frozen CONTRACT, not that
    any real mos.rs output will ever conform to it. That binding happens only
    once B-after evidence exists to classify for real.
-3. A named, permanent GAP note (GAP_REAL_WITNESS_SOURCE below) instead of a
-   silent hole: real-data classification requires the treatment's own guard-
-   aware types and a genuinely new per-coordinate/per-call-site trace this
-   module does not and cannot emit. Building that trace is the treatment's
-   own first deliverable, not a B1 retrofit onto mos.rs/lower.rs (which stay
-   untouched through all of B1) -- see the formal note's B1 section for the
-   full reasoning, including why legacy-side provenance (PathAction origins,
-   which forwards release priority drops, a per-call-site consumed-transfer-
-   and-outcome record with column) COULD technically be added without any
-   guard concept, but is deliberately NOT added here: threading it through
-   lower.rs in isolation, then extending it again once guard-awareness
-   lands, is less coherent than doing both together as part of the first
-   treatment.
+3. (B1-F2-F4) `derive_document_witnesses(python_doc, rust_doc)`, the real
+   witness-derivation adapter GAP_REAL_WITNESS_SOURCE below used to name as
+   permanently missing. It reads two `dump_summaries`-shaped documents
+   (`{"summaries": [{"method", "params": [{"index","transfer",...}], ...}]}`
+   -- the exact byte-parity shape both `ownlang/ownir.py::dump_summaries`
+   and `rust/crates/own-bridge/src/dump.rs::dump_summaries` already emit)
+   STRUCTURALLY: every (method, param) pair present in both, comparing
+   `transfer` values. Forbidden inputs, enforced by construction (there is
+   no parameter through which one could enter): a fixture filename, a
+   directory name, a diagnostic code, a handwritten per-case allowlist, or
+   "this difference is expected because P-037". A `guarded` field on the
+   RUST side's per-parameter object (the field this module's own
+   `rust_param_witness_shape()` reads) is the forward-compatible contract a
+   future B2.1b/c dump-surface extension must populate (docs/evidence/
+   p037-b-epoch.json's b1_f2_f4_findings.summary_dump_surface_for_class_3)
+   -- today NO production dump emits it, so every derived witness is
+   `shape: "uncond"` with `collapsed` equal to whatever Rust's own
+   `transfer` says. This is not a stub standing in for missing logic: run
+   today, against the UNCHANGED (pre-treatment) population, Python and
+   Rust always report the same `transfer` for every (method, param), so
+   this adapter correctly derives ZERO divergent witnesses -- proven in
+   `selftest()` against REAL summaries documents (`python -m ownlang
+   summaries` over a real corpus file), not just literal witness dicts.
+   The moment a real divergence exists with no `guarded` field to justify
+   it, `classify()`'s OWN existing, already-tested branch ("an uncond shape
+   differing from legacy has no guard-mediated explanation available at
+   all") returns UNCLASSIFIED on its own -- this adapter adds no new
+   class-decision logic of its own, only the plumbing from a captured
+   document pair to a WITNESS.
+4. A named, permanent GAP note (GAP_REAL_WITNESS_SOURCE below) for the part
+   that STILL cannot be built: mos.rs's ParamSkeleton/ParamSummary/Transfer
+   model (and its dump) has no Split shape, Cells pair, or per-edge
+   Transform/Mask REPRESENTATION at all, so no real B2.1b/c-shaped `guarded`
+   value can be POPULATED before that treatment's own types exist -- the gap
+   is about the missing representation, never about missing plumbing to
+   read one once it exists. Building that representation is the treatment's
+   own first deliverable, not a B1/B1-F2-F4 retrofit onto mos.rs/lower.rs/
+   dump.rs (which stay semantically untouched throughout) -- see the formal
+   note's B1 and B1-F2-F4 sections for the full reasoning, including why
+   legacy-side provenance (PathAction origins, which forwards release
+   priority drops, a per-call-site consumed-transfer-and-outcome record
+   with column) COULD technically be added without any guard concept, but
+   is deliberately NOT added here: threading it through lower.rs in
+   isolation, then extending it again once guard-awareness lands, is less
+   coherent than doing both together as part of the first treatment.
 
 Run:  python scripts/p037_b_classifier.py selftest
 """
 
 from __future__ import annotations
 
+import copy
+import json
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
 from typing import Any, Literal
+
+ROOT = Path(__file__).resolve().parent.parent
 
 APPLICATION_REFINEMENT = "APPLICATION_REFINEMENT"
 SUMMARY_REFINEMENT = "SUMMARY_REFINEMENT"
@@ -119,6 +159,7 @@ def check_witness(w: dict[str, Any]) -> None:
              f"legacy_transfer must be one of {_TRANSFER_VALUES}")
     guarded = w.get("guarded")
     _require(isinstance(guarded, dict), "witness.guarded must be an object")
+    assert isinstance(guarded, dict)  # narrows for mypy; _require already enforced it at runtime
     _require(guarded.get("shape") in ("uncond", "split"), "guarded.shape must be uncond|split")
     if guarded["shape"] == "split":
         cells = guarded.get("finalized_cells")
@@ -224,6 +265,151 @@ def classify(w: dict[str, Any]) -> dict[str, Any]:
                           "classes covers an unguarded coordinate's own value changing"}
     return {"class": UNCLASSIFIED,
             "reason": "uncond shape, collapsed equals legacy: not a difference"}
+
+
+# ------------------------------------------------------------ real witness derivation (B1-F2-F4)
+
+
+def rust_param_witness_shape(param: dict[str, Any]) -> dict[str, Any]:
+    """The `guarded` sub-object of a WITNESS, from a Rust MOS dump's own
+    per-parameter object. A `guarded` key is the forward-compatible field a
+    future B2.1b/c dump-surface extension must populate (see this module's
+    docstring, point 3); its absence -- every real dump today -- means no
+    recorded justification exists, represented honestly as an unconditional
+    shape whose collapsed value is exactly whatever `transfer` already
+    says."""
+    guarded = param.get("guarded")
+    transfer = param.get("transfer")
+    if not isinstance(guarded, dict):
+        return {"shape": "uncond", "selection": None, "selection_license": None,
+               "finalized_cells": None, "collapsed": transfer}
+    return {
+        "shape": guarded.get("shape", "uncond"),
+        "selection": guarded.get("selection"),
+        "selection_license": guarded.get("selection_license"),
+        "finalized_cells": guarded.get("finalized_cells"),
+        "collapsed": guarded.get("collapsed", transfer),
+    }
+
+
+def build_witness(method: str, param_index: int, legacy_transfer: Any,
+                  rust_param: dict[str, Any]) -> dict[str, Any]:
+    """One WITNESS from structured data alone: the method/param coordinate,
+    the Python (legacy/reference) summary's own `transfer`, and the Rust
+    summary's own per-parameter object. No site is attached here -- a
+    `dump_summaries` per-method record carries a method-level `line`, not a
+    per-parameter coordinate, and `site` is optional in the WITNESS schema
+    precisely for callers with nothing better than that to offer."""
+    return {
+        "coordinate": {"method": method, "param": param_index},
+        "site": None,
+        "legacy_transfer": legacy_transfer,
+        "guarded": rust_param_witness_shape(rust_param),
+    }
+
+
+def _summaries_by_method(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    out: dict[str, dict[str, Any]] = {}
+    for s in doc.get("summaries", []) or []:
+        if isinstance(s, dict) and isinstance(s.get("method"), str):
+            out[s["method"]] = s
+    return out
+
+
+def _params_by_index(summary: dict[str, Any]) -> dict[int, dict[str, Any]]:
+    out: dict[int, dict[str, Any]] = {}
+    for p in summary.get("params", []) or []:
+        if isinstance(p, dict) and isinstance(p.get("index"), int):
+            out[p["index"]] = p
+    return out
+
+
+def derive_document_witnesses(python_doc: dict[str, Any],
+                              rust_doc: dict[str, Any]) -> list[dict[str, Any]]:
+    """Every (method, param) whose `transfer` differs between two
+    `dump_summaries`-shaped documents, each as {coordinate, python_transfer,
+    rust_transfer, witness, classification}. STRUCTURED data only (method
+    names, parameter ordinals, transfer values, and the Rust side's own
+    optional `guarded` field) -- see this module's docstring, point 3, for
+    the forbidden-input list this signature makes structurally impossible
+    to violate (there is no fixture-path or diagnostic-code parameter to
+    read one from). Returns the empty list whenever the two documents agree
+    everywhere, which is every real document pair measured before a
+    B2.1b/c-shaped divergence exists."""
+    py_by_method = _summaries_by_method(python_doc)
+    rs_by_method = _summaries_by_method(rust_doc)
+    out: list[dict[str, Any]] = []
+    for method in sorted(set(py_by_method) & set(rs_by_method)):
+        py_params = _params_by_index(py_by_method[method])
+        rs_params = _params_by_index(rs_by_method[method])
+        for idx in sorted(set(py_params) & set(rs_params)):
+            py_t = py_params[idx].get("transfer")
+            rs_t = rs_params[idx].get("transfer")
+            if py_t == rs_t:
+                continue
+            witness = build_witness(method, idx, py_t, rs_params[idx])
+            try:
+                verdict = classify(witness)
+            except WitnessError as exc:
+                verdict = {"class": UNCLASSIFIED, "reason": f"malformed witness: {exc}"}
+            out.append({"coordinate": dict(witness["coordinate"]), "python_transfer": py_t,
+                       "rust_transfer": rs_t, "witness": witness, "classification": verdict})
+    return out
+
+
+def explain_divergence(python_doc: dict[str, Any], rust_doc: dict[str, Any]) -> dict[str, Any]:
+    """Whether `derive_document_witnesses`'s classified witnesses account for
+    the ENTIRE difference between two `dump_summaries` documents, not merely
+    for the `transfer` values they name.
+
+    A `dump_summaries` document carries more than per-parameter `transfer`
+    (returns, unresolved, degraded, module, per-summary file/line/source);
+    the classifier's WITNESS vocabulary explains transfer divergences only.
+    So this reconstructs `python_doc` with EVERY witness's classified
+    `rust_transfer` patched onto its own (method, param) and nothing else,
+    then requires the result to equal `rust_doc` EXACTLY, modulo the one
+    field this comparison must not penalize: a `guarded` key on the Rust
+    side's own per-parameter object (the forward-compatible evidence field
+    `rust_param_witness_shape` reads) never appears on Python's side by
+    design -- Python is discharged of ever learning P-037 (docs/evidence/
+    p037-b-epoch.json's prerequisite_discharged.engine_scope_consequence),
+    so its presence on the Rust side alone is exactly what a WITNESS
+    already justified, not a second, unexplained difference. Both
+    documents are compared with that key stripped from every parameter.
+    Any OTHER leftover difference (a `returns`/`unresolved`/`degraded`
+    movement, a method appearing in one document and not the other, or
+    simply an UNCLASSIFIED witness) still makes `explained` False.
+    """
+    witnesses = derive_document_witnesses(python_doc, rust_doc)
+    if any(w["classification"]["class"] == UNCLASSIFIED for w in witnesses):
+        return {"explained": False, "witnesses": witnesses,
+               "reason": "at least one witness is UNCLASSIFIED"}
+    patched = copy.deepcopy(python_doc)
+    by_method = _summaries_by_method(patched)
+    for w in witnesses:
+        method, idx = w["coordinate"]["method"], w["coordinate"]["param"]
+        for p in by_method.get(method, {}).get("params", []) or []:
+            if isinstance(p, dict) and p.get("index") == idx:
+                p["transfer"] = w["rust_transfer"]
+    if _strip_guarded_fields(patched) != _strip_guarded_fields(rust_doc):
+        return {"explained": False, "witnesses": witnesses,
+               "reason": "classified transfer changes do not account for the whole document "
+                         "difference; something outside the witness vocabulary also moved"}
+    return {"explained": True, "witnesses": witnesses}
+
+
+def _strip_guarded_fields(doc: dict[str, Any]) -> dict[str, Any]:
+    """A deep copy of `doc` with every per-parameter `guarded` key removed --
+    the one field `explain_divergence` must not treat as an unexplained
+    residual (see its own docstring)."""
+    out = copy.deepcopy(doc)
+    for s in out.get("summaries", []) or []:
+        if not isinstance(s, dict):
+            continue
+        for p in s.get("params", []) or []:
+            if isinstance(p, dict):
+                p.pop("guarded", None)
+    return out
 
 
 # --------------------------------------------------------------------------- selftest
@@ -377,6 +563,115 @@ def selftest() -> int:
     r = classify(w)
     _check("selection-overlapping-legacy-honesty-shape-is-unclassified",
           r["class"] == UNCLASSIFIED, r)
+
+    # --- B1-F2-F4: derive_document_witnesses(), the real witness adapter,
+    # against a REAL `dump_summaries` document (not a literal witness dict) --
+    # `python -m ownlang summaries` over an actual extracted facts.json. ---
+    real_doc: dict[str, Any] | None = None
+    real_error = ""
+    try:
+        fixture = ROOT / "corpus" / "p036-bakeoff" / "guarded-consume-flag-branch" / "after.cs"
+        with tempfile.TemporaryDirectory(prefix="p037-classifier-selftest-") as td:
+            facts = Path(td) / "facts.json"
+            proc = subprocess.run(
+                ["bash", str(ROOT / "scripts" / "own-check.sh"), "--engine", "python",
+                 "--format", "human", "--severity", "warning", "--emit-facts", str(facts),
+                 "--", str(fixture)],
+                cwd=ROOT, capture_output=True, text=True, check=False)
+            if proc.returncode not in (0, 1):
+                real_error = f"extractor exit {proc.returncode}: {proc.stderr[-500:]}"
+            else:
+                out = subprocess.run(
+                    [sys.executable, "-m", "ownlang", "summaries", str(facts)],
+                    cwd=ROOT, capture_output=True, text=True, check=False)
+                if out.returncode != 0:
+                    real_error = f"summaries exit {out.returncode}: {out.stderr[-500:]}"
+                else:
+                    real_doc = json.loads(out.stdout)
+    except OSError as exc:
+        real_error = str(exc)
+
+    if real_doc is None:
+        _check("real-summaries-document-obtained", False, real_error)
+    else:
+        _check("real-summaries-document-has-summaries",
+              isinstance(real_doc.get("summaries"), list) and len(real_doc["summaries"]) >= 1,
+              real_doc)
+
+        # identical documents (even the SAME real one on both sides): zero
+        # divergent witnesses, exactly today's actual pre-treatment truth.
+        witnesses = derive_document_witnesses(real_doc, real_doc)
+        _check("real-identical-documents-derive-zero-witnesses", witnesses == [], witnesses)
+
+        # a divergence with NO guarded field: classify()'s own existing
+        # uncond/differs-from-legacy branch must return UNCLASSIFIED, added
+        # by NO new logic in this adapter.
+        mutated = copy.deepcopy(real_doc)
+        target = mutated["summaries"][0]
+        if target.get("params"):
+            original_transfer = target["params"][0].get("transfer")
+            # "must" is picked deliberately, not "unknown": collapsed=unknown
+            # against legacy=may is class_3_shape, classify()'s OWN
+            # LEGACY_HONESTY case regardless of shape (checked before the
+            # split/uncond branch) -- using it here would exercise that
+            # pre-existing rule, not the "no guard evidence" path this test
+            # means to isolate. "must" is incomparable-by-difference for an
+            # uncond shape (any uncond difference is UNCLASSIFIED) yet a
+            # legitimate SUMMARY_REFINEMENT under a split shape, so it
+            # actually distinguishes the two adapter paths.
+            flipped: Transfer = "must" if original_transfer != "must" else "no"
+            target["params"][0]["transfer"] = flipped
+            witnesses = derive_document_witnesses(real_doc, mutated)
+            _check("real-divergence-without-guarded-field-is-unclassified",
+                  len(witnesses) == 1 and witnesses[0]["classification"]["class"] == UNCLASSIFIED,
+                  witnesses)
+
+            # the SAME divergence, but with a `guarded` field justifying it as
+            # a genuine split-summary refinement -- proves the adapter reads
+            # the field when present rather than ignoring it.
+            mutated2 = copy.deepcopy(real_doc)
+            target2 = mutated2["summaries"][0]
+            target2["params"][0]["transfer"] = flipped
+            target2["params"][0]["guarded"] = {
+                "shape": "split", "selection": "unselected", "selection_license": None,
+                "finalized_cells": {"pos": flipped, "neg": flipped}, "collapsed": flipped,
+            }
+            witnesses = derive_document_witnesses(real_doc, mutated2)
+            expect_class = (SUMMARY_REFINEMENT if leq(flipped, original_transfer)
+                           and flipped != original_transfer else UNCLASSIFIED)
+            _check("real-divergence-with-guarded-field-is-read",
+                  len(witnesses) == 1 and witnesses[0]["classification"]["class"] == expect_class,
+                  witnesses)
+            # explain_divergence(): the split-shaped, classified divergence
+            # (mutated2, already proven SUMMARY_REFINEMENT above) is FULLY
+            # explained -- patching python_doc's transfer to match is the
+            # WHOLE difference between the two documents.
+            result = explain_divergence(real_doc, mutated2)
+            _check("explain-divergence-fully-explained-when-only-transfer-moved",
+                  result["explained"] is True, result)
+
+            # the UNCLASSIFIED case (mutated, no guarded field) is correctly
+            # NOT explained.
+            result = explain_divergence(real_doc, mutated)
+            _check("explain-divergence-unexplained-when-witness-is-unclassified",
+                  result["explained"] is False, result)
+
+            # a classified transfer change PLUS an unrelated residual
+            # difference (unresolved[] gains an entry) must still be
+            # unexplained -- the witness accounts for the transfer, nothing
+            # accounts for the rest, so the document as a whole is not
+            # fully explained by what was classified.
+            mutated3 = copy.deepcopy(mutated2)
+            mutated3["unresolved"] = [*mutated3.get("unresolved", []), "SomeExtern"]
+            result = explain_divergence(real_doc, mutated3)
+            _check("explain-divergence-unexplained-when-residual-difference-remains",
+                  result["explained"] is False
+                  and "outside the witness vocabulary" in result["reason"], result)
+        else:
+            _check("real-divergence-without-guarded-field-is-unclassified", False,
+                  "fixture's first summary has no params to mutate")
+            _check("real-divergence-with-guarded-field-is-read", False,
+                  "fixture's first summary has no params to mutate")
 
     if _failures:
         print(f"RESULT: {_failures} check(s) failed")

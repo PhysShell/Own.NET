@@ -30,12 +30,33 @@ The corrected scope is recorded in docs/evidence/p037-b-epoch.json's
 just here.
 
 Unit: rust/crates/own-bridge/. Frozen files (byte-identical): Cargo.toml,
-src/ast.rs, src/dump.rs, src/lib.rs, src/render.rs, src/verdict.rs. Mutable
-by item: src/mos.rs (every item except the two purely graph-topological
-helpers `fn call_graph` / `fn sccs`, which touch no Transfer/join semantics
-at all) and src/lower.rs (exactly `fn lower_fn_params`, `fn
+src/ast.rs, src/lib.rs, src/render.rs, src/verdict.rs. Mutable by item:
+src/mos.rs (every item except the two purely graph-topological helpers
+`fn call_graph` / `fn sccs`, which touch no Transfer/join semantics at
+all), src/lower.rs (exactly `fn lower_fn_params`, `fn
 unverified_transfer_calls`, `fn kill_sites_for_unverified`, `fn lower_full`;
-lower.rs's other 69 top-level items stay frozen at item granularity).
+lower.rs's other 69 top-level items stay frozen at item granularity) and
+(B1-F2-F4) src/dump.rs (exactly `fn dump_summaries`; its three other items
+-- `fn escape_py`, `fn emit`, `fn pad`, plus its `use` statements and inner
+attribute -- stay frozen at item granularity, same discipline as
+lower.rs's other 69).
+
+B1-F2-F4 widens dump.rs from a frozen file to an item-level mutable file
+because it was found holding a real blocker: `dump_summaries` calls legacy
+`build_skeletons(raw_fns)` reading ONLY `functions[]`, while `OwnIr` (the
+whole root it already receives) also carries `guarded_functions[]` -- the
+orphan carrier A2.2-3P built precisely for methods with guarded facts but
+no `functions[]` record (docs/notes/p037-formal-kernel.md §10.6.6: "Phase
+B builds one guarded-method view from functions[].guarded_facts plus
+guarded_functions[].guarded_facts"). A Phase-B production solver that ever
+reads `guarded_functions[]` while its OWN summary-evidence dump does not
+would silently measure a different universe than production computes --
+forbidden by the same "the instrument must see what production sees" rule
+this whole gate exists to enforce. Widening the file to item granularity
+(not unfreezing it wholesale) keeps `dump_summaries` the only surface the
+eventual fix may touch; `escape_py`/`emit`/`pad` are pure JSON-emission
+helpers with no summary semantics of their own and have no reason to move.
+
 tests/ is a control (free to move, watched, never gates the verdict).
 registered_new_items is empty in B1 by design: B1 does not yet know what new
 production items the first treatment will need, and a treatment registers
@@ -88,7 +109,6 @@ UNIT = "rust/crates/own-bridge/"
 FROZEN_FILES: tuple[str, ...] = (
     "Cargo.toml",
     "src/ast.rs",
-    "src/dump.rs",
     "src/lib.rs",
     "src/render.rs",
     "src/verdict.rs",
@@ -121,6 +141,15 @@ LOWER_MUTABLE_ITEMS: tuple[str, ...] = (
     "fn unverified_transfer_calls",
     "fn kill_sites_for_unverified",
     "fn lower_full",
+)
+
+# B1-F2-F4: dump.rs's own single mutable item -- `dump_summaries` is the
+# ONLY function in this file that reads `functions[]`/`guarded_functions[]`
+# at all; `escape_py`/`emit`/`pad` are pure JSON-serialization helpers with
+# no summary-construction semantics, and have no reason to be part of the
+# eventual fix.
+DUMP_MUTABLE_ITEMS: tuple[str, ...] = (
+    "fn dump_summaries",
 )
 
 
@@ -156,6 +185,7 @@ def frozen_policy() -> dict[str, Any]:
         "mutable_items": {
             "src/mos.rs": list(MOS_MUTABLE_ITEMS),
             "src/lower.rs": list(LOWER_MUTABLE_ITEMS),
+            "src/dump.rs": list(DUMP_MUTABLE_ITEMS),
         },
         "registered_new_items": {},
         "frozen_files": list(FROZEN_FILES),
@@ -368,6 +398,81 @@ def selftest() -> int:
     _selfcheck("registered-new-item-in-mutable-file-is-allowed", rep.verdict == WITHIN,
               rep.as_dict())
 
+    # --- B1-F2-F4: dump.rs's own item-granularity hostile tests, on a
+    # dedicated synthetic fixture shaped like the real file (one mutable
+    # summary function plus frozen helpers), proving the widening is exactly
+    # `fn dump_summaries` and nothing more. ---
+    _REF_DUMP = (
+        "pub(crate) fn dump_summaries(facts: &OwnIr) -> Result<String, BridgeError> {\n"
+        "    Ok(String::new())\n"
+        "}\n"
+        "fn escape_py(s: &str, out: &mut String) {\n"
+        "    out.push_str(s);\n"
+        "}\n"
+        "fn emit(v: &Value, indent: usize, out: &mut String) {\n"
+        "    out.push_str(\"{}\");\n"
+        "}\n"
+        "fn pad(n: usize, out: &mut String) {\n"
+        "    for _ in 0..n { out.push(' '); }\n"
+        "}\n"
+    )
+    dump_ref = memory_tree({
+        "crate/src/lib.rs": _REF_LIB,
+        "crate/src/frozen.rs": "pub fn frozen() {}\n",
+        "crate/src/dump.rs": _REF_DUMP,
+        "crate/tests/t.rs": "#[test]\nfn t() {}\n",
+    })
+    dump_pol = _mem_policy(rust_mutable_items={"src/lib.rs": ("fn mutable_fn",),
+                                              "src/dump.rs": ("fn dump_summaries",)})
+
+    rep = compare_rust(dump_ref, dump_ref, dump_pol)
+    _selfcheck("dump-identical-is-identical", rep.verdict == IDENTICAL, rep.as_dict())
+
+    head = memory_tree({
+        "crate/src/lib.rs": _REF_LIB,
+        "crate/src/frozen.rs": "pub fn frozen() {}\n",
+        "crate/src/dump.rs": _REF_DUMP.replace("Ok(String::new())", "Ok(\"{}\".to_owned())"),
+        "crate/tests/t.rs": "#[test]\nfn t() {}\n",
+    })
+    rep = compare_rust(dump_ref, head, dump_pol)
+    _selfcheck("dump-summaries-movement-is-allowed", rep.verdict == WITHIN, rep.as_dict())
+
+    head = memory_tree({
+        "crate/src/lib.rs": _REF_LIB,
+        "crate/src/frozen.rs": "pub fn frozen() {}\n",
+        "crate/src/dump.rs": _REF_DUMP.replace(
+            "out.push_str(s);", "out.push_str(s); out.push(' ');"),
+        "crate/tests/t.rs": "#[test]\nfn t() {}\n",
+    })
+    rep = compare_rust(dump_ref, head, dump_pol)
+    _selfcheck("dump-another-existing-fn-is-violation", rep.verdict == VIOLATION, rep.as_dict())
+
+    head = memory_tree({
+        "crate/src/lib.rs": _REF_LIB,
+        "crate/src/frozen.rs": "pub fn frozen() {}\n",
+        "crate/src/dump.rs": _REF_DUMP + "fn new_helper() -> i32 { 1 }\n",
+        "crate/tests/t.rs": "#[test]\nfn t() {}\n",
+    })
+    rep = compare_rust(dump_ref, head, dump_pol)
+    _selfcheck("dump-new-unregistered-helper-is-violation", rep.verdict == VIOLATION, rep.as_dict())
+    dump_reg_pol = _mem_policy(
+        rust_mutable_items={"src/lib.rs": ("fn mutable_fn",),
+                            "src/dump.rs": ("fn dump_summaries",)},
+        rust_registered_items={"src/dump.rs": ("fn new_helper",)})
+    rep = compare_rust(dump_ref, head, dump_reg_pol)
+    _selfcheck("dump-registered-new-helper-is-allowed", rep.verdict == WITHIN, rep.as_dict())
+
+    # whole-file / policy widening: a head trying to also move `emit` without
+    # ever registering it (already covered above), AND a policy that widens
+    # dump.rs to file-level mutability instead of item-level must be refused
+    # by policy_drift(), not silently accepted -- the real hostile case for
+    # "the whole file becomes mutable" is exactly this module's own
+    # frozen_policy() disagreeing with a record that tried it.
+    tampered = copy.deepcopy(frozen_policy())
+    tampered["mutable_files"] = ["src/dump.rs"]
+    _selfcheck("dump-whole-file-widening-is-policy-drift", bool(policy_drift(tampered)),
+              policy_drift(tampered))
+
     # --- policy-drift hostile tests: the self-authorization hole check()
     # used to have, where the allowlist was read from the very commit it
     # was checking, so a treatment could widen mutable_items and use the
@@ -418,6 +523,20 @@ def selftest() -> int:
     lower_items = {it.key for it in rust_items(lower_src, "lower.rs")}
     missing = set(LOWER_MUTABLE_ITEMS) - lower_items
     _selfcheck("lower-mutable-items-exist-in-live-source", not missing, missing)
+
+    dump_src = (ROOT / "rust" / "crates" / "own-bridge" / "src" / "dump.rs").read_text(
+        encoding="utf-8")
+    dump_items = {it.key for it in rust_items(dump_src, "dump.rs")}
+    expected_dump_frozen = {"fn escape_py", "fn emit", "fn pad"}
+    missing_dump_mutable = set(DUMP_MUTABLE_ITEMS) - dump_items
+    _selfcheck("dump-mutable-item-exists-in-live-source", not missing_dump_mutable,
+              missing_dump_mutable)
+    _selfcheck("dump-frozen-helpers-still-present-in-live-source",
+              expected_dump_frozen <= dump_items,
+              expected_dump_frozen - dump_items)
+    _selfcheck("dump-mutable-and-frozen-items-are-disjoint",
+              not (set(DUMP_MUTABLE_ITEMS) & expected_dump_frozen),
+              (DUMP_MUTABLE_ITEMS, expected_dump_frozen))
 
     if _failures:
         print(f"RESULT: {_failures} check(s) failed")

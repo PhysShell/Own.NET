@@ -3172,3 +3172,296 @@ to `ConsumeReleaseArgs`/`ConsumesParam`/`CallReleasesReceiver`/
 `EmitFlowExpr` with the decoupled two-role design above, and with
 Finding B's single-recognizer question still open for it to resolve —
 remains separate, later, and not yet authorized.
+
+#### 10.8g Phase B / B1-F2-F3a / F3a-R1 / F3b: uniform delegation replaces guard-territory abstention (OWNER RULING)
+
+Deriving B1-F2-F2's own two-role design (§10.8f: `EmitFlowExpr` abstains
+from fabricating `release` specifically when the callee is "guard
+territory") ran straight into the gap Finding B already named: G-V4
+deliberately emits no `guarded_facts` entry at all for a *rejected* guard
+candidate (Program.cs ~3349-3356, `// not eligible: no entry, by design`),
+so a rule reading only the emitted sidecar cannot distinguish a
+rejected-guard callee from a genuinely unguarded one. Three tasks
+(B1-F2-F3a, its correction F3a-R1, and F3b) investigated whether that gap
+could be closed with a smarter recognizer, and concluded it should not be
+closed at all — the abstention design itself was the wrong shape. No
+production byte moved in any of the three; this section is their
+consolidated record, written now because none of them got one at the
+time.
+
+**F3a: the emitter-only cut, measured correctly.** An earlier, informal
+measurement had set `ConsumeReleaseArgs` to return empty and reported "7 of
+8 fixtures orphaned" — but that measurement was itself confounded: forcing
+`ConsumeReleaseArgs` empty disables BOTH release fabrication (via
+`EmitFlowExpr`) AND the escape/tracking admission check (`consumedArg`) in
+the same breath, so the apparent catastrophe was mostly the tracking loss
+§10.8f already proved, not new evidence about the release cut alone. F3a
+reran the experiment correctly: `ConsumeReleaseArgs`/`ConsumesParam` held
+BYTE-IDENTICAL throughout; only `EmitFlowExpr`'s treatment of the
+already-computed `consumed` set changed, from `release` to `use`,
+unconditionally, for every site. Measured over the 8 named acceptance
+fixtures, the full `corpus/{real-world,wpf,di,fixtures,p036-bakeoff,
+p037-shapes}` population and the repo tree: admission and tracking are
+provably UNAFFECTED by this narrower cut (the confound is gone). A real
+leak becomes temporarily invisible to both engines on a handful of
+uncontrolled real files, and one frozen fixture regresses — both correctly
+read as INTERMEDIATE B2.1a-alone states a later Rust solver resolves, not
+defects in the cut itself, once Experiment A's own measurement is read
+correctly (see F3b below).
+
+**F3a-R1: a batched-compilation bug in the investigation's OWN scratch
+tooling, self-found.** Building F3a's mandatory causal trace (an exact
+caller→callee→guard-found trace for each G-V4 control) surfaced a
+discrepancy: an isolated single-file re-extraction of
+`gv4-control-ref-alias-guard` showed a REAL `OWN003` finding and its callee
+as an ordinary function, contradicting an earlier batched-directory
+measurement that had shown the callee as an orphan. Root cause:
+`corpus/p036-bakeoff` has 6+ files declaring identical top-level class
+names with no namespace (`Guarded`, `GuardedEarlyReturn`,
+`GuardedWrapper`, `GuardedNegation`, each with a `before.cs`/`after.cs`
+pair); a scratch script that globbed a whole directory into ONE Roslyn
+compilation corrupted symbol resolution across files that were never
+meant to compile together. The GOVERNED tooling (`scripts/
+p037_mos_snapshot.py`'s `source_documents()`, `scripts/
+p037_verdict_snapshot.py`'s `run_one`) was never affected — both already
+measure corpus fixtures strictly per file, batching only the repository
+tree (deliberately: "it is one program"). Only ad hoc scratch tooling built
+for this investigation had reintroduced the bug; F3a-R1 fixed it,
+reproduced every FA finding on corrected, isolated data, and reduced an
+earlier "3/3 G-V4 controls fixed by a narrow veto" claim to the true "1/3"
+(the two wrapper-shaped controls need the `Outer`→`Inner` forwarding
+boundary crossed, which a narrow same-method veto never inspects). B1-F2-F4
+independently repeated this exact class of mistake once more (see §10.8h's
+Blocker A discovery narrative) and fixed it the same way — per-file,
+never batched.
+
+**F3b: the delegation-closure census, and the architectural reframe.**
+F3a-R1's "true shared recognizer" (condition-match logic factored out of
+`BuildGuardedFacts` into pure top-level functions, proven byte-identical
+for `BuildGuardedFacts`'s own output) still only covered 1 of 3 G-V4
+controls, never early-return, and left class-3 untouched — confirming
+Finding B rather than resolving it. F3b's owner ruling rejected chasing a
+better recognizer entirely: classifying guard shape in the extractor AT
+ALL is the wrong architecture, however the classification is implemented,
+because it is building a "shadow P-037" in Roslyn piece by piece, exactly
+what this project's standing warning forbids. The replacement: the
+extractor NEVER decides guard territory, in either direction. It retains
+tracking (`ConsumeReleaseArgs`/`ConsumesParam`/`CallReleasesReceiver`
+untouched, forever), emits honest call facts (`guarded_facts`, already
+built), and turns every `ConsumeReleaseArgs`-derived `release` into `use`
+UNCONDITIONALLY — no guard inspection, no eligibility test, no partial
+cut. Rust becomes the SOLE authority deciding real interprocedural
+consume, reading the caller's own already-emitted `guarded_facts.calls[]`/
+`guards[]`. This rests on one empirical claim, proven by a delegation-
+closure census: every legacy-fabricated release site already has exactly
+one corresponding, already-emitted call fact on the same caller at the
+same site — first measured by a scratch, never-committed prototype (40/40,
+0 missing, 0 ambiguous) across the full frozen population, using BOTH
+argument-identity forms the sidecar carries (`kind: "var"`, matched by
+name; `kind: "param"`, resolved through the caller's own declared
+`params[]` ordinal — the wrapper-forwarding shape's own vocabulary,
+confirmed directly against `corpus/p036-bakeoff/guarded-consume-
+wrapper-forward`). F3b's own census script had one bug of its own, self-
+found and fixed: `find_matching_calls()` initially checked only
+`kind: "var"`, undercounting to a false "29/40, 11 missing" until the
+`kind: "param"` resolution path was added.
+
+**Severity and consequence.** A governance-boundary correction, not a
+semantic one: `Program.cs` stayed byte-identical to the B1-F2-F2 naming
+head throughout all three tasks (every measurement was either a read-only
+re-extraction or a scratch edit built, run, diffed and reverted via `git`
+before the next step), and `p037_controls.py --post-a1` stayed fully RED
+on both engines throughout. The consequence lands in B1-F2-F4 (§10.8h):
+`treatment.extractor_seam.mutable_methods` narrows from four methods back
+to `EmitFlowExpr` alone (the two-role split is no longer needed —
+`ConsumeReleaseArgs`/`ConsumesParam`/`CallReleasesReceiver` are never
+touched by this design, so nothing about them needs to be "safe to
+change"), and the 40/40 census is promoted from scratch investigation to
+committed machine evidence.
+
+#### 10.8h Phase B / B1-F2-F4: two governance blockers closed before treatment (OWNER RULING)
+
+Owner review accepted F3b's delegation architecture in full, independently
+re-verifying its supporting claims against the live repository (the typed
+`GuardedFacts`/`GuardedOrphan` door registration, `p037_mos_snapshot.py`'s
+per-file corpus methodology, `p037_controls.py`'s own "observation, not
+contract" docstring) — but, before authorizing B2.1a/B2.1b/c, found two
+concrete, repository-level blockers that a semantic treatment landing on
+top of them would make far harder to fix cleanly afterward. Both are
+measurement/governance defects, closed here with no production semantic
+byte moved; `Program.cs`, `rust/crates/own-bridge/`'s production
+semantics, `ownlang/`, and OwnIR vocabulary all stay byte-identical to the
+B1-F2-F2 naming head throughout.
+
+**Blocker A: the Phase-B MOS evidence tool physically forbade the
+divergence its own accepted architecture requires.** `scripts/
+p037_mos_snapshot.py`'s `_measure()`/`compare()` treated ANY Python ≠ Rust
+MOS divergence as automatic evidence failure — correct for epoch `a2d`
+(A2's own contract is zero MOS movement, full stop), but flatly
+contradicting this record's own `prerequisite_discharged.
+engine_scope_consequence` ("after Stage 3, Python need not learn P-037 at
+all... Python's role [is] legacy / reference / rollback") and
+`p037_controls.py`'s own docstring ("both agreeing is an OBSERVATION, not
+a contract"). Once B2.1b/c lands, Rust will correctly restore an answer
+Python (frozen forever on this feature) never will — and the evidence tool
+as written would have declared that correct result "not evidence," on
+sight, forever. Fixed by making the tool epoch-aware:
+`divergence_status(epoch, ...)` keeps epoch `a2d`'s policy byte-for-byte
+(any divergence fails); for epoch `b`, a divergence is captured, a
+structured WITNESS is derived from the two whole MOS documents
+(`p037_b_classifier.derive_document_witnesses`), classified
+(`p037_b_classifier.classify`), and accepted only when
+`explain_divergence` shows the classified transfer changes account for the
+ENTIRE document difference — not merely the parameter a witness names, so
+an unrelated `returns`/`unresolved`/`degraded` movement riding alongside a
+legitimately classified transfer change still fails the snapshot. `take`/
+`compare` now also record a named Python-rollback observation per
+snapshot (`python_rollback_observation`: how many documents were exact,
+how many were a classified treatment-slice divergence, how many were
+unexplained, how many failed extraction) — "rollback still works" (exact
+on the unaffected sample) is never conflated with "rollback produces new
+Rust semantics" (never required, never measured).
+
+**The classifier's own real-witness gap, closed as plumbing, not as
+representation.** `scripts/p037_b_classifier.py`'s `GAP_REAL_WITNESS_SOURCE`
+named a real limit: `mos.rs`'s `ParamSkeleton`/`ParamSummary`/`Transfer`
+model has no Split shape, Cells pair, or per-edge Transform at all, so no
+real B2.1b/c-shaped guarded value can be POPULATED before that treatment's
+own types exist. That representation gap is NOT closed here, and cannot
+be — building it is B2.1b/c's own first deliverable. What B1-F2-F4 closes
+is the missing PLUMBING: `derive_document_witnesses(python_doc, rust_doc)`
+reads two `dump_summaries`-shaped documents structurally (method names,
+parameter ordinals, `transfer` values, and a forward-compatible `guarded`
+field on the Rust side the future dump-surface extension must populate),
+builds a WITNESS per divergent (method, param), and classifies it with the
+classifier's OWN unmodified rules. Run today, with no production `guarded`
+field emitted anywhere, every derived witness is honestly `uncond`, and
+the adapter correctly finds ZERO divergent witnesses over the unchanged
+population — proven against a REAL `python -m ownlang summaries` document
+in the classifier's own selftest, not just literal witness dicts. Building
+and testing this adapter surfaced a real bug in itself (`explain_divergence`
+initially required byte-for-byte document equality after patching, which
+failed on the adapter's OWN synthetic `guarded` field since Python never
+carries one — fixed by excluding that one forward-compatible key from the
+comparison, the same "Python never learns P-037" fact the rollback
+contract states elsewhere) — caught by the adapter's own selftest before
+this task's own verification pass, not by later use.
+
+**Blocker B: `guarded_functions[]` is invisible to the summary-evidence
+dump.** `rust/crates/own-ir/src/lib.rs` types `OwnIr.functions[].
+guarded_facts` and `OwnIr.guarded_functions[]` (A2.2-D); `lower_full`
+receives the WHOLE `OwnIr` root and could read both; `dump_summaries` also
+receives the whole `OwnIr`, but calls legacy `build_skeletons(raw_fns)`
+using ONLY `functions[]` — confirmed by reading `rust/crates/own-bridge/
+src/dump.rs` directly, not assumed. `guarded_functions[]` exists
+specifically for methods with guarded facts but no `functions[]` record
+(§10.6.6); a future Phase-B solver that reads it in `lower_full` while its
+own MOS evidence dump silently ignores it would measure a different
+summary universe than production computes — the exact "instrument sees
+less than production" gap this whole governance apparatus exists to
+prevent. Fixed by widening `rust/crates/own-bridge/src/dump.rs` from a
+FROZEN file to an item-level MUTABLE file in `scripts/
+p037_b_production_diff_gate.py`: the only mutable existing item is `fn
+dump_summaries`; `fn escape_py`/`fn emit`/`fn pad` (pure JSON-serialization
+helpers with no summary semantics) and the file's `use` statements stay
+frozen, proven by hostile tests (`dump_summaries` movement allowed;
+another existing function's change is a violation; a new unregistered
+helper is a violation; a registered helper is allowed only through the
+gate's existing registration mechanism; widening `dump.rs` to file-level
+mutability instead of item-level is caught by `policy_drift()`). This task
+does NOT implement `guarded_functions[]`-aware summary construction — that
+stays B2.1b/c's own deliverable — it only widens the boundary so B2.1b/c
+can build it without a second, later boundary correction.
+
+**Frozen, not implemented: one production path, a formal-twin linkage
+plan, and a class-3 dump-surface extension, all preregistered now.**
+Three architectural requirements are recorded as binding on B2.1b/c
+without being implemented here, exactly `docs/evidence/p037-b-epoch.json`'s
+`b1_f2_f4_findings` states machine-readably: (1) `lower_full` and
+`dump_summaries` must invoke the SAME production guarded-summary
+construction/solver path once it exists — one implementation, two
+consumers, never a real solver in one and a simplified reconstruction in
+the other; (2) the A1 rule that formal twins exercise the SAME production
+functions remains binding, and an implementable linkage already exists
+under the CURRENT file/Cargo.toml boundary (`formal/p037-kernel/`
+importing/re-exporting the production functions, or shared source
+inclusion — never a copy, never two files kept in sync by test) with no
+frozen-file or `Cargo.toml` change required to satisfy it; (3) the F1
+pin's class-3 shape (`(must, unknown)` collapsing to `unknown`, never
+silently repaired to legacy's `may`) needs a summary-dump surface
+extension `dump_summaries` does not carry today (a `guarded` block per
+parameter) — identified and preregistered now, specifically so it is not
+discovered missing only after a solver exists to need it.
+
+**Delegation closure: from scratch investigation to committed machine
+evidence.** `scripts/p037_delegation_closure.py` replaces F3b's
+never-committed prototype with a governed control run against the
+UNMODIFIED extractor — no patch, ever, on a committed tool. It derives the
+population MECHANICALLY (never hardcoding 40): a release is a candidate
+only if its function's OWN `guarded_facts.calls[]` contains an ELIGIBLE
+co-located call at the same statement line (`form == "statement"`, no
+`call_kind` — a plain method-call statement, the only shape
+`ConsumeReleaseArgs`/`ConsumesParam`/`EmitFlowExpr` ever fabricate a
+release for); among eligible co-located calls, exactly one must name the
+released variable (`kind: "var"` by name, `kind: "param"` resolved through
+the caller's own `params[]`). Building the eligibility filter surfaced a
+genuine bug on the FIRST full-population run, not a synthetic one:
+`corpus/p037-shapes/sidecar-ctorinit-base` packs `var f = new
+Forwarding(r); f.Dispose();` onto ONE physical source line, so `f`'s
+direct-dispose release shared its line with an unrelated
+initializer-form, `object_creation`-kind call (`new Forwarding(r)`,
+A2.2-4R5's own constructor-initializer territory, which
+`ConsumeReleaseArgs` never reasons about) — read as a false MISSING before
+the eligibility filter excluded non-statement, non-plain calls from
+candidacy. Measured over the full frozen population (192 corpus files +
+the repo tree, per file for corpus, one compilation for the repo tree —
+the same governed split `p037_mos_snapshot.py`/`p037_verdict_snapshot.py`
+already use, and the same discipline F3a-R1 had to re-learn once already):
+**40 total, 40 covered, 0 missing, 0 ambiguous** — independently
+reproducing F3b's scratch count exactly, now as committed, re-derivable
+evidence, with one additional real edge case found and correctly excluded
+along the way. `guarded_functions[]`-hosted calls (orphans; no body, so
+structurally unable to host a release) are asserted and counted
+separately (5), never silently ignored; calls with no matching release at
+all are reported informationally (18, including the already-known
+`CallReleasesReceiver` gap on `extension-receiver`), never as a failure.
+
+**Correction to the extractor production gate.** `scripts/
+p037_b_extractor_diff_gate.py`'s `MUTABLE_METHODS` narrows from
+`(ConsumeReleaseArgs, ConsumesParam, CallReleasesReceiver, EmitFlowExpr)`
+back to `(EmitFlowExpr,)` alone, matching §10.8g's architectural finding
+that the other three are never touched by uniform delegation. The three
+re-frozen methods fold back into the gate's opaque "rest of Program.cs"
+remainder — the identical mechanism every other frozen method in the file
+already relies on — with hostile tests proving each now VIOLATES if
+changed. `first_semantic_hypothesis.facts_expectation` is corrected to the
+closed uniform rule (`release(var, line)` → `use(var, the SAME line)` for
+every site the delegation-closure checker finds a match for, unconditional,
+never scoped to "guard territory"); the final control gate is corrected to
+`p037_controls.py --post-a1 --engine rust` (Python is measured separately,
+under the rollback rule, never folded into this gate's pass/fail); the
+treatment ordering is corrected so only a combined, terminal-green
+B2.1a+B2.1b/c head may ever be named `B_treatment_head` — B2.1a alone is
+expected to leave `--post-a1` red on both engines and is not eligible by
+itself. None of `corpus/p036-bakeoff/*/expected.json`'s historical
+`current`/`post_a1` records move; the CI transition's staged design (a
+new, narrower B2.1a-only control; the eventual full-matrix cutover) stays
+exactly what B1-F2-F2 preregistered, corrected only in which final gate
+the full cutover targets.
+
+**Instrument consequence.** Every fix above touches a tracked Phase-B
+instrument path (`scripts/p037_mos_snapshot.py`, `scripts/
+p037_evidence_b.py`, `scripts/p037_b_classifier.py` — newly added to
+`INSTRUMENT_PATHS`, since its class rules and witness adapter are now
+load-bearing for `p037_mos_snapshot.py`'s own `is_evidence` decision —
+`scripts/p037_b_production_diff_gate.py`, `scripts/
+p037_b_extractor_diff_gate.py`), so `instrument_identity` moves, the same
+kind of event B1-F1, B1-F2 and B1-F2-F2 each already forced a retake for.
+`scripts/p037_delegation_closure.py` is deliberately NOT added: it is a
+standalone control (the same category as `scripts/p037_proof_boundary.py`,
+also not an instrument path) that never feeds `is_evidence` for any other
+tool's snapshot. B1-F2-F4 ends the same way every prior instrument
+correction has: name the corrected head as the new `T_B` once
+terminal-green, retake all four `R_B` snapshots fresh at it, and only then
+land the naming commit. B2.1a/B2.1b/c remain separate, later, and not yet
+authorized.

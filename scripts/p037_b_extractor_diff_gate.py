@@ -29,36 +29,54 @@ composition A2.2-D and B1 already use for mos.rs/lower.rs):
 Unit: frontend/roslyn/OwnSharp.Extractor/. Frozen file (byte-identical):
 OwnSharp.Extractor.csproj (no new dependency may be added this way -- the
 same discipline Cargo.toml gets in the Rust gate). Mutable, at NAMED-METHOD
-granularity inside Program.cs: `ConsumeReleaseArgs`, `ConsumesParam`,
-`CallReleasesReceiver` and (since B1-F2-F2) `EmitFlowExpr` -- the four
-functions that jointly decide whether a call site's argument gets
-fabricated into an unconditional `release` op (traced directly from
-source, not assumed: `ConsumeReleaseArgs` calls `ConsumesParam`, which
-recurses through first-party callees via `DisposesLocal`;
-`CallReleasesReceiver` is the extension-method-receiver twin of the same
-call; `EmitFlowExpr` is the ONE place that turns `ConsumeReleaseArgs`'s
-answer into the fabricated `release` op AND the one place whose
-`consumed` set suppresses the matching `use` -- B1-F2-F2's own scratch
-measurement proved that changing `ConsumeReleaseArgs`/`ConsumesParam`
-alone corrupts a SEPARATE consumer of the same answer, the escape/
-tracking check at Program.cs's `consumedArg`, orphaning 7 of 8 canonical
-acceptance fixtures' caller methods entirely). `DisposesLocal`,
-`ParameterIsStable` (the existing G-V4 whole-body write-exposure test)
-and `BuildGuardedFacts` (the guarded_facts producer) all stay FROZEN: the
-owner's explicit warning is that this gate must never license
-`ConsumesParam` becoming a second guarded-summary engine written inside
-Roslyn by a sequence of "small fixes" -- it authorizes ABSTAINING from a
-bad legacy classification when the callee's own already-emitted
-guarded_facts say a call is guard territory, never a new guard-
-eligibility or Election/Cells/Transform implementation in C#. That math
-stays exactly where B1 already froze it: rust/crates/own-bridge/ under
-p037_b_production_diff_gate.py. See docs/evidence/p037-b-epoch.json's
-treatment.extractor_seam and b1_f2_f2_seam_investigation for the full
-finding: G-V4-rejected guard candidates are invisible in the emitted
-sidecar by design (no entry, "not eligible" -- confirmed on the real
-gv4-control-aliased-self-null fixture), so a single-recognizer design
-covering both eligible and rejected cases likely also needs
-`BuildGuardedFacts` factored, which is NOT yet authorized here.
+granularity inside Program.cs: `EmitFlowExpr` ALONE (B1-F2-F4, correcting
+B1-F2-F2's four-method seam). `ConsumeReleaseArgs`, `ConsumesParam` and
+`CallReleasesReceiver` are FROZEN AGAIN.
+
+WHY THE SEAM NARROWS BACK DOWN. B1-F2-F2 widened it to four methods
+because its own design still needed the extractor to DECIDE, per call
+site, whether a callee was "guard territory": a two-role split where
+`ConsumeReleaseArgs`/`ConsumesParam` kept answering the tracking question
+and `EmitFlowExpr` alone would ABSTAIN from fabricating `release` when the
+callee's own guard shape made the legacy answer untrustworthy. Deriving
+that abstention test hit an unresolved gap (B1-F2-F2's own Finding B):
+G-V4-rejected guard candidates are invisible in the emitted `guarded_facts`
+sidecar BY DESIGN (no entry at all, "not eligible" -- confirmed directly
+on the real `gv4-control-aliased-self-null` fixture), so no rule reading
+only the emitted sidecar could tell a rejected-guard callee from a
+genuinely unguarded one; covering both would need `BuildGuardedFacts`
+itself factored into a shared recognizer -- turning the sidecar's own
+silence into a signal it was never built to carry.
+
+B1-F2-F3a/F3a-R1/F3b (docs/notes/p037-formal-kernel.md, the B1-F2-F4
+section) replaced that whole design. The extractor makes NO guard-
+territory decision at all, ever, in either direction: `EmitFlowExpr`
+uniformly turns every `ConsumeReleaseArgs`/`ConsumesParam`-derived
+`release` into a `use` at the SAME call site, unconditionally -- no guard
+inspection, no sidecar read, no eligibility test, no path-sensitivity.
+`ConsumeReleaseArgs`/`ConsumesParam`'s TRACKING role (the escape/tracking
+check at Program.cs's `consumedArg`) is therefore completely untouched --
+B1-F2-F2's own proof that changing those two corrupts tracking is simply
+avoided by never touching them again. Rust becomes the SOLE authority
+deciding real interprocedural consume, reading the caller's own already-
+emitted `guarded_facts.calls[]`/`guards[]` -- facts A2.2 already emits for
+EVERY relevant call, including the ones the legacy heuristic wrongly
+consumed (frozen note §10.3). `scripts/p037_delegation_closure.py` is the
+governed, machine-derived proof that every legacy-fabricated release
+already has exactly one such call fact waiting for Rust to read, over the
+FULL frozen population -- the seam's own correctness proof, not this
+gate's job to repeat.
+
+`DisposesLocal`, `ParameterIsStable` (the existing G-V4 whole-body write-
+exposure test), `CallReleasesReceiver` and `BuildGuardedFacts` (the
+guarded_facts producer) all stay FROZEN: the owner's standing warning is
+unchanged by this correction -- this gate must never license a second
+guarded-summary engine written inside Roslyn. `CallReleasesReceiver`'s own
+pre-existing field-path false positive (`corpus/p037-shapes/
+extension-receiver`: an unconditionally-disposing extension method's
+RECEIVER, not its argument, so this seam's argument-consume machinery
+never reaches it at all) is explicitly out of A1's scope, not something
+this narrower seam needs to, or may, touch.
 
 Method extraction (`csharp_items`) does not attempt a general C# parser.
 It only ever looks for a small, named set of top-level `static` method
@@ -133,38 +151,23 @@ UNIT = "frontend/roslyn/OwnSharp.Extractor/"
 
 FROZEN_FILES: tuple[str, ...] = ("OwnSharp.Extractor.csproj",)
 
-# The four functions traced directly from Program.cs that jointly perform
-# the flow-insensitive "consumes therefore releases at the call site"
-# fabrication. Not "all of ConsumesParam's callers" and not "everything
-# guard-adjacent" -- exactly the seam B1-F2 derived by reading the call
-# graph, named here so a future edit cannot silently widen it without also
-# widening this tuple (which policy_drift() below refuses to accept from
-# an epoch-record edit alone).
-#
-# B1-F2-F2 adds EmitFlowExpr, proven necessary rather than assumed: a
-# scratch (never-committed) edit forcing ConsumeReleaseArgs to always
-# answer "nothing consumed" -- the only way to change caller behaviour
-# through the original three-method seam alone -- was run against all
-# eight named acceptance fixtures plus the full corpus/p036-bakeoff and
-# corpus/p037-shapes populations. Result: 7 of 8 canonical callers were
-# dropped from functions[] entirely into a body-less guarded_functions[]
-# orphan (losing every acquire/release/use for the local, not just the
-# fabricated release), and the 8th silently lost tracking of a SEPARATE,
-# honest, unconditional dispose in the same method. ConsumeReleaseArgs/
-# ConsumesParam's return value also gates the escape/tracking admission
-# check (Program.cs's consumedArg), so changing its meaning to answer the
-# GUARD question instead of the CONSUME question corrupts tracking as a
-# side effect. EmitFlowExpr is the ONE place that turns that answer into
-# an unconditional `release` op; it must be mutable too so the two roles
-# (tracking vs release-emission) can be decoupled, per
-# docs/evidence/p037-b-epoch.json's treatment.extractor_seam and
-# b1_f2_f2_seam_investigation. BuildGuardedFacts is deliberately NOT
-# added here -- see that same record section for why it remains an open
-# question, not yet proven.
+# B1-F2-F4: EmitFlowExpr alone. B1-F2-F2 had widened this to four methods
+# (ConsumeReleaseArgs, ConsumesParam, CallReleasesReceiver, EmitFlowExpr)
+# for a "two decoupled roles" design that turned out to hit an unresolved
+# gap (Finding B: G-V4-rejected guards are invisible in guarded_facts by
+# design, so no sidecar-only rule can abstain correctly for them either).
+# B1-F2-F3a/F3a-R1/F3b replaced that design with uniform delegation: the
+# extractor never decides guard territory at all, in either direction.
+# EmitFlowExpr alone still needs to be mutable (it is the ONE place that
+# turns ConsumeReleaseArgs's answer into the fabricated `release` op, and
+# the one place whose `consumed` set suppresses the matching `use`);
+# ConsumeReleaseArgs/ConsumesParam/CallReleasesReceiver are FROZEN AGAIN,
+# because uniform delegation never changes their tracking-facing answer at
+# all -- B1-F2-F2's own proof that changing them corrupts caller tracking
+# is avoided by construction, not by a narrower rule for changing them
+# safely. See this module's own docstring and docs/notes/
+# p037-formal-kernel.md's B1-F2-F4 section for the full history.
 MUTABLE_METHODS: tuple[str, ...] = (
-    "ConsumeReleaseArgs",
-    "ConsumesParam",
-    "CallReleasesReceiver",
     "EmitFlowExpr",
 )
 
@@ -667,8 +670,7 @@ def _mem_policy(**overrides: Any) -> CSharpPolicy:
     base: dict[str, Any] = {
         "unit": "crate/",
         "frozen_files": ("OwnSharp.Extractor.csproj",),
-        "mutable_methods": ("ConsumeReleaseArgs", "ConsumesParam", "CallReleasesReceiver",
-                            "EmitFlowExpr"),
+        "mutable_methods": ("EmitFlowExpr",),
         "registered_methods": (),
     }
     base.update(overrides)
@@ -685,19 +687,9 @@ def selftest() -> int:
     rep = compare_csharp(ref, ref, pol)
     _selfcheck("identical-head-is-identical", rep.verdict == IDENTICAL, rep.as_dict())
 
-    head = memory_tree({
-        "crate/OwnSharp.Extractor.csproj": _REF_CSPROJ,
-        "crate/Program.cs": _REF_PROGRAM.replace(
-            "static bool ConsumesParam(int method, int param)\n    {\n        return false;\n    }",
-            "static bool ConsumesParam(int method, int param)\n    {\n        return true;\n    }"),
-    })
-    rep = compare_csharp(ref, head, pol)
-    _selfcheck("authorized-item-changed-is-allowed", rep.verdict == WITHIN, rep.as_dict())
-
-    # B1-F2-F2: EmitFlowExpr is the newly-authorized existing method -- proves
-    # the widened policy actually permits it to move, on its own dedicated
-    # shape (void return, multiple parameters), not just by incidental
-    # coverage from the other tests sharing the same _REF_PROGRAM.
+    # B1-F2-F4: EmitFlowExpr is the sole mutable method -- proves the
+    # narrowed policy still permits it to move, on its own dedicated shape
+    # (void return, multiple parameters).
     head = memory_tree({
         "crate/OwnSharp.Extractor.csproj": _REF_CSPROJ,
         "crate/Program.cs": _REF_PROGRAM.replace(
@@ -707,7 +699,40 @@ def selftest() -> int:
             "    {\n        Console.WriteLine(\"changed\");\n    }"),
     })
     rep = compare_csharp(ref, head, pol)
-    _selfcheck("newly-authorized-EmitFlowExpr-may-move", rep.verdict == WITHIN, rep.as_dict())
+    _selfcheck("emitflowexpr-is-the-sole-mutable-method", rep.verdict == WITHIN, rep.as_dict())
+
+    # B1-F2-F4: the three methods B1-F2/B1-F2-F2 had authorized are FROZEN
+    # AGAIN -- each must now VIOLATE if changed, folded back into "the rest
+    # of Program.cs" opaque remainder exactly like every other frozen method
+    # in the file (DisposesLocal, ParameterIsStable, BuildGuardedFacts).
+    head = memory_tree({
+        "crate/OwnSharp.Extractor.csproj": _REF_CSPROJ,
+        "crate/Program.cs": _REF_PROGRAM.replace(
+            "static bool ConsumesParam(int method, int param)\n    {\n        return false;\n    }",
+            "static bool ConsumesParam(int method, int param)\n    {\n        return true;\n    }"),
+    })
+    rep = compare_csharp(ref, head, pol)
+    _selfcheck("consumesparam-is-frozen-again", rep.verdict == VIOLATION, rep.as_dict())
+
+    head = memory_tree({
+        "crate/OwnSharp.Extractor.csproj": _REF_CSPROJ,
+        "crate/Program.cs": _REF_PROGRAM.replace(
+            "static List<string> ConsumeReleaseArgs(int e, int model)\n"
+            "    {\n        var consumed = new List<string>();\n        return consumed;\n    }",
+            "static List<string> ConsumeReleaseArgs(int e, int model)\n"
+            "    {\n        return new List<string>();\n    }"),
+    })
+    rep = compare_csharp(ref, head, pol)
+    _selfcheck("consumereleaseargs-is-frozen-again", rep.verdict == VIOLATION, rep.as_dict())
+
+    head = memory_tree({
+        "crate/OwnSharp.Extractor.csproj": _REF_CSPROJ,
+        "crate/Program.cs": _REF_PROGRAM.replace(
+            "static bool CallReleasesReceiver(int sym)\n    {\n        return false;\n    }",
+            "static bool CallReleasesReceiver(int sym)\n    {\n        return true;\n    }"),
+    })
+    rep = compare_csharp(ref, head, pol)
+    _selfcheck("callreleasesreceiver-is-frozen-again", rep.verdict == VIOLATION, rep.as_dict())
 
     head = memory_tree({
         "crate/OwnSharp.Extractor.csproj": _REF_CSPROJ,

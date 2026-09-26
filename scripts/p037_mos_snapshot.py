@@ -45,6 +45,7 @@ SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(ROOT))
 
+import p037_b_classifier  # noqa: E402
 import p037_evidence as ev  # noqa: E402
 import p037_evidence_b  # noqa: E402
 from shadow_compare import (  # noqa: E402
@@ -172,6 +173,43 @@ def summary_surface(entry: dict[str, Any]) -> dict[str, Any]:
     raise RuntimeError(f"summaries layer has unknown status {status!r}")
 
 
+def divergence_status(epoch: str, py_surface: dict[str, Any],
+                      rs_surface: dict[str, Any]) -> dict[str, Any]:
+    """Whether one document's Python/Rust MOS divergence counts against
+    `is_evidence`, epoch-aware (B1-F2-F4).
+
+    epoch 'a2d': byte-for-byte the ORIGINAL, unconditional policy -- ANY
+    divergence is unexplained. A1/A2's own contract is zero MOS movement,
+    full stop; there is no legitimate reason for the two engines to differ,
+    so this module must never even ATTEMPT to explain one away here.
+
+    epoch 'b': the accepted post-Stage-3 contract (docs/evidence/
+    p037-b-epoch.json's prerequisite_discharged.engine_scope_consequence;
+    p037_controls.py's own docstring, "both agreeing is an OBSERVATION, not
+    a contract") means Python (legacy/reference/rollback) is EXPECTED to
+    diverge from Rust (sole guarded-summary authority) on the treatment
+    slice. A divergence is therefore CAPTURED, explained via
+    p037_b_classifier.derive_document_witnesses/explain_divergence against
+    the two whole summaries documents, and accepted as evidence ONLY when
+    every last byte of the difference is accounted for by a witness
+    classified into one of the three closed classes -- never merely "the
+    engines disagree, and Phase B expects that now". An unexplained
+    divergence (any UNCLASSIFIED witness, or a difference outside what any
+    witness can explain at all -- see explain_divergence's own docstring)
+    still fails the snapshot, exactly as it always did.
+    """
+    if py_surface == rs_surface:
+        return {"moved": False}
+    if epoch != "b":
+        return {"moved": True}
+    py_doc = py_surface.get("document") if py_surface.get("status") == "produced" else None
+    rs_doc = rs_surface.get("document") if rs_surface.get("status") == "produced" else None
+    if not isinstance(py_doc, dict) or not isinstance(rs_doc, dict):
+        return {"moved": True, "reason": "one or both engines refused; no document to explain"}
+    explanation = p037_b_classifier.explain_divergence(py_doc, rs_doc)
+    return {"moved": not explanation["explained"], "classified_divergence": explanation}
+
+
 def capture_pair(raw: bytes, adapter: dict[str, Any], timeout: float
                  ) -> tuple[dict[str, Any], dict[str, Any]]:
     reference = run_reference(raw)
@@ -198,7 +236,7 @@ def _refuse(problems: list[str]) -> None:
         raise ev.EvidenceRefused("; ".join(problems))
 
 
-def take(source: str, out: Path, timeout: float, population_commit: str) -> int:
+def take(epoch: str, source: str, out: Path, timeout: float, population_commit: str) -> int:
     roots = _sources(ev)[source]
     try:
         _refuse(ev.scratch_problems(out))
@@ -215,13 +253,14 @@ def take(source: str, out: Path, timeout: float, population_commit: str) -> int:
         return 2
     take_dir = ev.new_take_dir()
     try:
-        return _measure(source, out, timeout, provenance, profile, artifact, take_dir)
+        return _measure(epoch, source, out, timeout, provenance, profile, artifact, take_dir)
     finally:
         ev.release_population(lease)
         shutil.rmtree(take_dir, ignore_errors=True)
 
 
 def _measure(
+    epoch: str,
     source: str,
     out: Path,
     timeout: float,
@@ -257,7 +296,9 @@ def _measure(
         "documents": {},
     }
     failures: list[str] = []
+    failed_ids: set[str] = set()
     parity_moved: list[str] = []
+    classified_divergences: dict[str, Any] = {}
     for i, (doc_id, paths) in enumerate(documents, 1):
         rels = [path.relative_to(root).as_posix() for path in paths]
         try:
@@ -271,16 +312,22 @@ def _measure(
                 ENGINE_PYTHON: py_surface,
                 ENGINE_RUST: rs_surface,
             }
-            if py_surface != rs_surface:
+            status = divergence_status(epoch, py_surface, rs_surface)
+            if status["moved"]:
                 parity_moved.append(doc_id)
+            if "classified_divergence" in status:
+                record["classified_divergence"] = status["classified_divergence"]
+                classified_divergences[doc_id] = status["classified_divergence"]
         except ReferenceContamination as exc:
             reference_profile["observed_extra_reference_lines"] = (
                 int(reference_profile["observed_extra_reference_lines"]) + len(exc.lines)
             )
             failures.append(f"{doc_id}: {exc}")
+            failed_ids.add(doc_id)
             record = {"inputs": rels, "error": str(exc)}
         except (RuntimeError, ExecutionFailure) as exc:
             failures.append(f"{doc_id}: {exc}")
+            failed_ids.add(doc_id)
             record = {"inputs": rels, "error": str(exc)}
         snapshot["documents"][doc_id] = record
         print(
@@ -295,12 +342,34 @@ def _measure(
         snapshot["failures"] = failures
     if parity_moved:
         snapshot["cross_engine_mismatches"] = parity_moved
+    if classified_divergences:
+        snapshot["classified_divergences"] = classified_divergences
+    if epoch == "b":
+        # B1-F2-F4 §4: the Python rollback contract, named and counted, not
+        # left for a reader to infer from set differences. "rollback still
+        # works" (Python stays exact on the unaffected sample) is a
+        # different claim from "rollback produces new Rust semantics"
+        # (never required, never measured here): a document belongs to
+        # EXACTLY one bucket -- exact (no divergence at all), classified
+        # (a treatment-slice divergence every witness explained), or
+        # unexplained (counted in cross_engine_mismatches above, already
+        # failing is_evidence).
+        explained_ids = set(classified_divergences) - set(parity_moved)
+        exact_ids = (set(snapshot["documents"]) - set(classified_divergences)
+                    - set(parity_moved) - failed_ids)
+        snapshot["python_rollback_observation"] = {
+            "unaffected_sample_exact": len(exact_ids),
+            "treatment_slice_classified": len(explained_ids),
+            "unexplained": len(set(parity_moved)),
+            "extraction_failed": len(failed_ids),
+        }
 
     out.write_text(json.dumps(snapshot, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     print(
         f"snapshot: {len(documents)} document(s) / {len(files)} source file(s), source={source}, "
         f"population={provenance['population_commit'][:12]}, "
-        f"cross-engine mismatches={len(parity_moved)}, failures={len(failures)}, "
+        f"cross-engine mismatches={len(parity_moved)}, "
+        f"classified divergences={len(classified_divergences)}, failures={len(failures)}, "
         f"at {snapshot['source_commit'][:7]}"
         f"{'' if snapshot['is_evidence'] else ' (NOT evidence)'}"
     )
@@ -350,7 +419,7 @@ def _snapshot_problems(record: dict[str, Any]) -> list[str]:
     return problems
 
 
-def compare(before: Path, after: Path, against: str) -> int:
+def compare(epoch: str, before: Path, after: Path, against: str) -> int:
     try:
         a, b = _load(before), _load(after)
         problems = [
@@ -384,10 +453,22 @@ def compare(before: Path, after: Path, against: str) -> int:
             if left.get(engine) != right.get(engine):
                 moved[engine].append(rel)
 
-    after_parity = [
-        rel for rel, rec in b.get("documents", {}).items()
-        if isinstance(rec, dict) and rec.get(ENGINE_PYTHON) != rec.get(ENGINE_RUST)
-    ]
+    after_parity: list[str] = []
+    after_parity_classified: list[str] = []
+    for rel, rec in b.get("documents", {}).items():
+        if not isinstance(rec, dict):
+            continue
+        py_surface, rs_surface = rec.get(ENGINE_PYTHON), rec.get(ENGINE_RUST)
+        if py_surface == rs_surface:
+            continue
+        if not isinstance(py_surface, dict) or not isinstance(rs_surface, dict):
+            after_parity.append(rel)
+            continue
+        status = divergence_status(epoch, py_surface, rs_surface)
+        if status["moved"]:
+            after_parity.append(rel)
+        else:
+            after_parity_classified.append(rel)
 
     for engine in (ENGINE_PYTHON, ENGINE_RUST):
         for rel in moved[engine]:
@@ -396,6 +477,8 @@ def compare(before: Path, after: Path, against: str) -> int:
         print(f"  FACT-DIFF {rel}")
     for rel in after_parity:
         print(f"  PARITY-DIFF[after] {rel}")
+    for rel in after_parity_classified:
+        print(f"  PARITY-DIFF[after, CLASSIFIED] {rel}")
 
     failed = bool(moved[ENGINE_PYTHON] or moved[ENGINE_RUST] or after_parity)
     print(
@@ -405,7 +488,8 @@ def compare(before: Path, after: Path, against: str) -> int:
           f"documents={len(names)}, facts_moved={len(moved['facts'])}, "
           f"python_mos_moved={len(moved[ENGINE_PYTHON])}, "
           f"rust_mos_moved={len(moved[ENGINE_RUST])}, "
-          f"after_parity_moved={len(after_parity)}"
+          f"after_parity_moved={len(after_parity)}, "
+          f"after_parity_classified={len(after_parity_classified)}"
     )
     return 1 if failed else 0
 
@@ -462,6 +546,52 @@ def selftest() -> int:
         print("FAIL[selftest]: whole-document reader missed unresolved movement")
         return 1
     print("OK: whole summaries document is the level-2 comparison surface")
+
+    # --- B1-F2-F4: divergence_status() epoch-aware policy ---
+    identical = {"status": "produced", "document": {
+        "summaries": [{"method": "M", "params": [{"index": 0, "transfer": "may"}]}],
+        "unresolved": [], "degraded": None,
+    }}
+    twin2 = json.loads(json.dumps(identical))
+    status = divergence_status("a2d", identical, twin2)
+    if status["moved"]:
+        print("FAIL[selftest]: identical surfaces reported as moved")
+        return 1
+
+    diverged = json.loads(json.dumps(identical))
+    diverged["document"]["summaries"][0]["params"][0]["transfer"] = "must"
+
+    status = divergence_status("a2d", identical, diverged)
+    if not status["moved"] or "classified_divergence" in status:
+        print(f"FAIL[selftest]: epoch a2d must reject ANY divergence unconditionally: {status}")
+        return 1
+
+    status = divergence_status("b", identical, diverged)
+    if not status["moved"]:
+        print(f"FAIL[selftest]: epoch b with no guarded field must still be unexplained: {status}")
+        return 1
+    if "classified_divergence" not in status:
+        print(f"FAIL[selftest]: epoch b must attempt and record classification: {status}")
+        return 1
+
+    justified = json.loads(json.dumps(diverged))
+    justified["document"]["summaries"][0]["params"][0]["guarded"] = {
+        "shape": "split", "selection": "unselected", "selection_license": None,
+        "finalized_cells": {"pos": "must", "neg": "must"}, "collapsed": "must",
+    }
+    status = divergence_status("b", identical, justified)
+    if status["moved"]:
+        print(f"FAIL[selftest]: epoch b with a classified, fully-explained divergence "
+             f"must be accepted: {status}")
+        return 1
+
+    refused = {"status": "refused", "error": "solver failed"}
+    status = divergence_status("b", identical, refused)
+    if not status["moved"]:
+        print("FAIL[selftest]: epoch b cannot classify a refused engine as explained")
+        return 1
+
+    print("OK: divergence_status() is epoch-aware (a2d unconditional, b classified)")
     return 0
 
 
@@ -495,9 +625,9 @@ def main(argv: list[str]) -> int:
         global ev
         ev = EPOCH_MODULES[args.epoch]
     if args.cmd == "take":
-        return take(args.source, args.out, args.timeout, args.population_commit)
+        return take(args.epoch, args.source, args.out, args.timeout, args.population_commit)
     if args.cmd == "compare":
-        return compare(args.before, args.after, args.against)
+        return compare(args.epoch, args.before, args.after, args.against)
     if args.cmd == "verify":
         return verify(args.snapshot, args.against)
     ap.error("one command is required (or --selftest)")

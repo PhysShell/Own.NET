@@ -124,7 +124,17 @@ FACT_DIFF_POLICIES: frozenset[str] = frozenset({"not_applicable_pre_treatment"})
 # same reason p037_b_production_diff_gate.py already was: this Phase-B
 # governance script's own correctness is load-bearing for the boundary
 # claim, so a change to it must move instrument_identity, not drift
-# silently underneath an unchanged digest.
+# silently underneath an unchanged digest. B1-F2-F4 adds
+# p037_b_classifier.py for the identical reason: scripts/p037_mos_snapshot.
+# py's epoch-b is_evidence decision now calls its derive_document_witnesses/
+# explain_divergence directly (divergence_status()), so a change to the
+# classifier's class rules or its witness-derivation adapter can change
+# whether a Phase-B snapshot counts as evidence -- exactly the kind of
+# correctness this closure exists to pin. p037_delegation_closure.py is
+# deliberately NOT here: it is a standalone control (like
+# p037_proof_boundary.py, also not here) that never feeds is_evidence for
+# any OTHER tool's snapshot, so its own correctness is not load-bearing for
+# this closure the way the classifier's now is.
 INSTRUMENT_PATHS: tuple[str, ...] = (
     "frontend/roslyn/OwnSharp.Extractor/",
     "ownlang/",
@@ -137,6 +147,7 @@ INSTRUMENT_PATHS: tuple[str, ...] = (
     "scripts/shadow_compare.py",
     "scripts/p037_b_production_diff_gate.py",
     "scripts/p037_b_extractor_diff_gate.py",
+    "scripts/p037_b_classifier.py",
 )
 
 # B1-F2: the extractor joins mos.rs/lower.rs as a second carve-out. Carved
@@ -168,6 +179,7 @@ RUNTIME_REPO_PATHS: tuple[str, ...] = (
     "scripts/shadow_compare.py",
     "scripts/p037_b_production_diff_gate.py",
     "scripts/p037_b_extractor_diff_gate.py",
+    "scripts/p037_b_classifier.py",
 )
 
 # a2d's own CORPUS_DIRS plus the fact-shape census -- section 7 of the B1
@@ -381,6 +393,71 @@ def record_problems(record: dict[str, Any], *, repo: Path = ROOT) -> list[str]:
     return problems
 
 
+def comparison_problems(
+    before: dict[str, Any], after: dict[str, Any], *, against: str = "HEAD", repo: Path = ROOT
+) -> list[str]:
+    """Differential eligibility for a Phase-B before/after pair -- the B-after
+    counterpart p037_evidence.py's own module docstring names as "a later,
+    B-after-time addition, built once there is a second take to compare
+    against the first" (B1-F2-F4: that time is now, for scripts/
+    p037_mos_snapshot.py's `compare --epoch b` to work at all instead of
+    raising AttributeError on a module with no such function). Mirrors
+    p037_evidence.comparison_problems's own checks exactly, substituting
+    this module's own record_problems/provenance_problems/EPOCH and its own
+    instrument pathspec (INSTRUMENT_PATHS minus INSTRUMENT_CARVE_OUTS, the
+    same construction provenance_problems already uses inline) for
+    p037_evidence's a2d-scoped equivalents -- none of `ev.commit_exists`/
+    `ev.is_ancestor`/`ev.paths_differ` are epoch-coupled (see this module's
+    own docstring's list of the ~11 that are), so they are called directly."""
+    problems = [f"before: {p}" for p in record_problems(before, repo=repo)]
+    problems += [f"after: {p}" for p in provenance_problems(after, against=against, repo=repo)]
+    if before.get("epoch") != EPOCH or after.get("epoch") != EPOCH:
+        problems.append(
+            f"before/after are not both {EPOCH!r} records; no record of another epoch is "
+            "compared with one of this epoch")
+    if (not isinstance(before.get("environment_id"), str)
+            or before.get("environment_id") != after.get("environment_id")):
+        problems.append(
+            "before/after environment ids differ; a comparison is taken on one environment")
+    if before.get("instrument_identity") != after.get("instrument_identity"):
+        problems.append("before/after instrument identities differ")
+
+    before_source = before.get("source_commit")
+    after_source = after.get("source_commit")
+    if (isinstance(before_source, str) and isinstance(after_source, str)
+            and ev.commit_exists(before_source, repo=repo)
+            and ev.commit_exists(after_source, repo=repo)):
+        if not ev.is_ancestor(before_source, after_source, repo=repo):
+            problems.append(
+                f"before source {before_source[:12]} is not an ancestor of "
+                f"after source {after_source[:12]}")
+        else:
+            try:
+                pathspec = [*INSTRUMENT_PATHS, *(f":(exclude){c}" for c in INSTRUMENT_CARVE_OUTS)]
+                if ev.paths_differ(before_source, after_source, pathspec, repo=repo):
+                    problems.append(
+                        "the measurement instrument differs between before and after; "
+                        "only the treatment may move across a comparison")
+            except EvidenceRefused as exc:
+                problems.append(str(exc))
+
+    if before.get("population_commit") != after.get("population_commit"):
+        problems.append("before/after name different frozen populations")
+    if before.get("input_roots") != after.get("input_roots"):
+        problems.append("before/after input_roots differ")
+    if before.get("analysis_manifest") != after.get("analysis_manifest"):
+        problems.append("before/after primary population manifests differ")
+    if before.get("support_manifest") != after.get("support_manifest"):
+        problems.append("before/after semantic support manifests differ")
+
+    before_profile = before.get("execution_profile")
+    after_profile = after.get("execution_profile")
+    if (isinstance(before_profile, dict) and isinstance(after_profile, dict)
+            and before_profile and after_profile and before_profile != after_profile):
+        problems.append("before/after execution profiles differ")
+    return problems
+
+
 def provenance_problems(
     record: dict[str, Any], *, against: str = "HEAD", repo: Path = ROOT
 ) -> list[str]:
@@ -485,6 +562,34 @@ def selftest() -> int:
     a2d_id = ev.instrument_identity("HEAD")
     _selfcheck("phase-b-identity-differs-from-a2d-identity-at-head",
               b_id != a2d_id, (b_id, a2d_id))
+
+    # B1-F2-F4: comparison_problems() exists at all (calling it used to raise
+    # AttributeError -- p037_mos_snapshot.py's `compare --epoch b` and
+    # `verify`'s sibling machinery both need it) and correctly refuses the
+    # epoch-b-specific hostile cases without touching git or the filesystem.
+    base_record: dict[str, Any] = {
+        "epoch": EPOCH, "environment_id": "P037_B_MEASUREMENT_M3",
+        "instrument_identity": "deadbeef", "source_commit": "0" * 40,
+        "population_commit": "1" * 40, "input_roots": ["corpus"],
+        "analysis_manifest": [], "support_manifest": [], "execution_profile": {},
+        "dirty": False, "is_evidence": True, "post_run_dirty": False,
+        "post_run_population_intact": True,
+        "instrument_carve_outs": list(INSTRUMENT_CARVE_OUTS),
+    }
+    wrong_epoch = dict(base_record, epoch="a2d")
+    problems = comparison_problems(wrong_epoch, base_record)
+    _selfcheck("comparison-problems-catches-epoch-mismatch",
+              any("not both" in p for p in problems), problems)
+
+    wrong_env = dict(base_record, environment_id="SOME_OTHER_ENV")
+    problems = comparison_problems(wrong_env, base_record)
+    _selfcheck("comparison-problems-catches-environment-mismatch",
+              any("environment ids differ" in p for p in problems), problems)
+
+    wrong_instrument = dict(base_record, instrument_identity="cafef00d")
+    problems = comparison_problems(wrong_instrument, base_record)
+    _selfcheck("comparison-problems-catches-instrument-identity-mismatch",
+              any("instrument identities differ" in p for p in problems), problems)
 
     if _failures:
         print(f"RESULT: {_failures} check(s) failed")
