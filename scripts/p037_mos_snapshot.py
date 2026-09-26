@@ -173,22 +173,34 @@ def summary_surface(entry: dict[str, Any]) -> dict[str, Any]:
     raise RuntimeError(f"summaries layer has unknown status {status!r}")
 
 
-def divergence_status(epoch: str, py_surface: dict[str, Any],
-                      rs_surface: dict[str, Any]) -> dict[str, Any]:
-    """Whether one document's Python/Rust MOS divergence counts against
-    `is_evidence`, epoch-aware (B1-F2-F4).
+def divergence_status(epoch: str, legacy_surface: dict[str, Any],
+                      new_surface: dict[str, Any]) -> dict[str, Any]:
+    """Whether one CAPTURED SURFACE's divergence from a REFERENCE surface
+    counts against `is_evidence`, epoch-aware (B1-F2-F4/B1-F2-F4-R1).
+
+    Generic over WHICH TWO surfaces are compared -- named `legacy_surface`/
+    `new_surface`, not `py_surface`/`rs_surface`, because B1-F2-F4-R1 reuses
+    this one function for TWO axes: `_measure()` and `compare()`'s
+    after-parity loop call it intra-document (Python plays `legacy_surface`,
+    Rust plays `new_surface`); `compare()`'s before/after loop calls it
+    inter-snapshot (before-Rust plays `legacy_surface`, after-Rust plays
+    `new_surface`) -- see p037_b_classifier.explain_divergence's own
+    docstring for the same genericity one layer down. Either way the
+    question is identical: does `new_surface` diverge from `legacy_surface`,
+    and if so is the WHOLE divergence explained by a classified witness.
 
     epoch 'a2d': byte-for-byte the ORIGINAL, unconditional policy -- ANY
     divergence is unexplained. A1/A2's own contract is zero MOS movement,
-    full stop; there is no legitimate reason for the two engines to differ,
-    so this module must never even ATTEMPT to explain one away here.
+    full stop; there is no legitimate reason for either axis to differ, so
+    this module must never even ATTEMPT to explain one away here.
 
     epoch 'b': the accepted post-Stage-3 contract (docs/evidence/
     p037-b-epoch.json's prerequisite_discharged.engine_scope_consequence;
     p037_controls.py's own docstring, "both agreeing is an OBSERVATION, not
     a contract") means Python (legacy/reference/rollback) is EXPECTED to
     diverge from Rust (sole guarded-summary authority) on the treatment
-    slice. A divergence is therefore CAPTURED, explained via
+    slice, and Rust's own before/after movement is expected once a
+    treatment lands. A divergence is therefore CAPTURED, explained via
     p037_b_classifier.derive_document_witnesses/explain_divergence against
     the two whole summaries documents, and accepted as evidence ONLY when
     every last byte of the difference is accounted for by a witness
@@ -198,15 +210,16 @@ def divergence_status(epoch: str, py_surface: dict[str, Any],
     witness can explain at all -- see explain_divergence's own docstring)
     still fails the snapshot, exactly as it always did.
     """
-    if py_surface == rs_surface:
+    if legacy_surface == new_surface:
         return {"moved": False}
     if epoch != "b":
         return {"moved": True}
-    py_doc = py_surface.get("document") if py_surface.get("status") == "produced" else None
-    rs_doc = rs_surface.get("document") if rs_surface.get("status") == "produced" else None
-    if not isinstance(py_doc, dict) or not isinstance(rs_doc, dict):
-        return {"moved": True, "reason": "one or both engines refused; no document to explain"}
-    explanation = p037_b_classifier.explain_divergence(py_doc, rs_doc)
+    legacy_doc = (legacy_surface.get("document")
+                 if legacy_surface.get("status") == "produced" else None)
+    new_doc = new_surface.get("document") if new_surface.get("status") == "produced" else None
+    if not isinstance(legacy_doc, dict) or not isinstance(new_doc, dict):
+        return {"moved": True, "reason": "one or both sides refused; no document to explain"}
+    explanation = p037_b_classifier.explain_divergence(legacy_doc, new_doc)
     return {"moved": not explanation["explained"], "classified_divergence": explanation}
 
 
@@ -419,6 +432,100 @@ def _snapshot_problems(record: dict[str, Any]) -> list[str]:
     return problems
 
 
+def _compare_documents(
+    epoch: str, a_documents: dict[str, Any], b_documents: dict[str, Any]
+) -> dict[str, Any]:
+    """The epoch-aware before/after decision over two snapshots' `documents`
+    maps alone (B1-F2-F4-R1) -- factored out of `compare()` so it is
+    directly unit-testable without fabricating a full provenance-carrying
+    snapshot pair (population/source commit, analysis manifest, artifacts,
+    ...) for every scenario; `compare()` itself only adds the I/O,
+    provenance checks, printing and exit code around this pure function.
+
+    Two independent axes, both epoch-aware, matching `divergence_status()`'s
+    own dual reuse:
+
+    - Python axis (legacy/reference/rollback): under epoch b, movement is
+      accepted ONLY as a direct mechanical consequence of the raw `facts`
+      hash ALSO moving on the same document -- never independently. Epoch
+      a2d keeps the original unconditional zero-movement policy.
+    - Rust axis (sole P-037 semantic authority): under epoch b, movement is
+      accepted only when `divergence_status()`/`explain_divergence()`
+      explains the WHOLE before/after difference, with before-Rust as the
+      reference ("legacy") role and after-Rust as the value a `guarded`
+      field must justify -- the SAME whole-document classifier discipline
+      already required for intra-after divergence (`after_parity` below),
+      never a separate, looser rule for this axis. Epoch a2d never attempts
+      this either.
+
+    `after_parity`/`after_parity_classified` are the AFTER snapshot's OWN
+    intra-document Python-vs-Rust divergence, unchanged from B1-F2-F4.
+    """
+    moved: dict[str, list[str]] = {ENGINE_PYTHON: [], ENGINE_RUST: [], "facts": []}
+    rust_moved_classified: list[str] = []
+    python_moved_rollback: list[str] = []
+    names = sorted(set(a_documents) | set(b_documents))
+    for rel in names:
+        left = a_documents.get(rel)
+        right = b_documents.get(rel)
+        if not isinstance(left, dict) or not isinstance(right, dict):
+            moved[ENGINE_PYTHON].append(rel)
+            moved[ENGINE_RUST].append(rel)
+            moved["facts"].append(rel)
+            continue
+        facts_moved = left.get("facts") != right.get("facts")
+        if facts_moved:
+            moved["facts"].append(rel)
+
+        left_py, right_py = left.get(ENGINE_PYTHON), right.get(ENGINE_PYTHON)
+        if left_py != right_py:
+            if (epoch != "b" or not facts_moved
+                    or not isinstance(left_py, dict) or not isinstance(right_py, dict)):
+                moved[ENGINE_PYTHON].append(rel)
+            else:
+                python_moved_rollback.append(rel)
+
+        left_rust, right_rust = left.get(ENGINE_RUST), right.get(ENGINE_RUST)
+        if left_rust != right_rust:
+            if (epoch != "b"
+                    or not isinstance(left_rust, dict) or not isinstance(right_rust, dict)):
+                moved[ENGINE_RUST].append(rel)
+            else:
+                status = divergence_status(epoch, left_rust, right_rust)
+                if status["moved"]:
+                    moved[ENGINE_RUST].append(rel)
+                else:
+                    rust_moved_classified.append(rel)
+
+    after_parity: list[str] = []
+    after_parity_classified: list[str] = []
+    for rel, rec in b_documents.items():
+        if not isinstance(rec, dict):
+            continue
+        py_surface, rs_surface = rec.get(ENGINE_PYTHON), rec.get(ENGINE_RUST)
+        if py_surface == rs_surface:
+            continue
+        if not isinstance(py_surface, dict) or not isinstance(rs_surface, dict):
+            after_parity.append(rel)
+            continue
+        status = divergence_status(epoch, py_surface, rs_surface)
+        if status["moved"]:
+            after_parity.append(rel)
+        else:
+            after_parity_classified.append(rel)
+
+    failed = bool(moved[ENGINE_PYTHON] or moved[ENGINE_RUST] or after_parity)
+    return {
+        "names": names,
+        "moved": moved,
+        "python_moved_rollback": python_moved_rollback,
+        "rust_moved_classified": rust_moved_classified,
+        "after_parity": after_parity,
+        "after_parity_classified": after_parity_classified,
+        "failed": failed,
+    }
+
+
 def compare(epoch: str, before: Path, after: Path, against: str) -> int:
     try:
         a, b = _load(before), _load(after)
@@ -437,42 +544,20 @@ def compare(epoch: str, before: Path, after: Path, against: str) -> int:
             print(f"REFUSED: {problem}", file=sys.stderr)
         return 2
 
-    moved: dict[str, list[str]] = {ENGINE_PYTHON: [], ENGINE_RUST: [], "facts": []}
-    names = sorted(set(a.get("documents", {})) | set(b.get("documents", {})))
-    for rel in names:
-        left = a.get("documents", {}).get(rel)
-        right = b.get("documents", {}).get(rel)
-        if not isinstance(left, dict) or not isinstance(right, dict):
-            moved[ENGINE_PYTHON].append(rel)
-            moved[ENGINE_RUST].append(rel)
-            moved["facts"].append(rel)
-            continue
-        if left.get("facts") != right.get("facts"):
-            moved["facts"].append(rel)
-        for engine in (ENGINE_PYTHON, ENGINE_RUST):
-            if left.get(engine) != right.get(engine):
-                moved[engine].append(rel)
-
-    after_parity: list[str] = []
-    after_parity_classified: list[str] = []
-    for rel, rec in b.get("documents", {}).items():
-        if not isinstance(rec, dict):
-            continue
-        py_surface, rs_surface = rec.get(ENGINE_PYTHON), rec.get(ENGINE_RUST)
-        if py_surface == rs_surface:
-            continue
-        if not isinstance(py_surface, dict) or not isinstance(rs_surface, dict):
-            after_parity.append(rel)
-            continue
-        status = divergence_status(epoch, py_surface, rs_surface)
-        if status["moved"]:
-            after_parity.append(rel)
-        else:
-            after_parity_classified.append(rel)
+    result = _compare_documents(epoch, a.get("documents", {}), b.get("documents", {}))
+    moved, names = result["moved"], result["names"]
+    python_moved_rollback = result["python_moved_rollback"]
+    rust_moved_classified = result["rust_moved_classified"]
+    after_parity = result["after_parity"]
+    after_parity_classified = result["after_parity_classified"]
 
     for engine in (ENGINE_PYTHON, ENGINE_RUST):
         for rel in moved[engine]:
             print(f"  MOVED[{engine}] {rel}")
+    for rel in python_moved_rollback:
+        print(f"  MOVED[{ENGINE_PYTHON}, ROLLBACK] {rel}")
+    for rel in rust_moved_classified:
+        print(f"  MOVED[{ENGINE_RUST}, CLASSIFIED] {rel}")
     for rel in moved["facts"]:
         print(f"  FACT-DIFF {rel}")
     for rel in after_parity:
@@ -480,14 +565,16 @@ def compare(epoch: str, before: Path, after: Path, against: str) -> int:
     for rel in after_parity_classified:
         print(f"  PARITY-DIFF[after, CLASSIFIED] {rel}")
 
-    failed = bool(moved[ENGINE_PYTHON] or moved[ENGINE_RUST] or after_parity)
+    failed = result["failed"]
     print(
         "RESULT: "
         + ("MOVED" if failed else "UNCHANGED")
         + f" — source={a.get('source')}, population={str(a.get('population_commit'))[:12]}, "
           f"documents={len(names)}, facts_moved={len(moved['facts'])}, "
           f"python_mos_moved={len(moved[ENGINE_PYTHON])}, "
+          f"python_mos_moved_rollback={len(python_moved_rollback)}, "
           f"rust_mos_moved={len(moved[ENGINE_RUST])}, "
+          f"rust_mos_moved_classified={len(rust_moved_classified)}, "
           f"after_parity_moved={len(after_parity)}, "
           f"after_parity_classified={len(after_parity_classified)}"
     )
@@ -592,6 +679,92 @@ def selftest() -> int:
         return 1
 
     print("OK: divergence_status() is epoch-aware (a2d unconditional, b classified)")
+
+    # --- B1-F2-F4-R1: _compare_documents(), the before/after MOS decision.
+    # An independent review found compare() classified intra-after
+    # divergence (above) but still used bare, epoch-blind inequality for
+    # its OWN before/after axis -- so a real R_B-vs-B_after comparison would
+    # have reported MOVED/failure even when the movement was fully
+    # classified. These three scenarios are the ones that review required. ---
+    def _rust_doc(transfer: str, guarded: dict[str, Any] | None = None,
+                  unresolved: list[str] | None = None) -> dict[str, Any]:
+        param: dict[str, Any] = {"index": 0, "transfer": transfer}
+        if guarded is not None:
+            param["guarded"] = guarded
+        return {"status": "produced", "document": {
+            "summaries": [{"method": "M", "params": [param]}],
+            "unresolved": list(unresolved or []), "degraded": None,
+        }}
+
+    py_unmoved = _rust_doc("may")
+    before_doc = {"inputs": ["m.cs"], "facts": "F1",
+                 ENGINE_PYTHON: py_unmoved, ENGINE_RUST: _rust_doc("may")}
+    refined_guard = {"shape": "split", "selection": "unselected", "selection_license": None,
+                     "finalized_cells": {"pos": "must", "neg": "must"}, "collapsed": "must"}
+
+    # Scenario 1: classified B refinement -- Rust alone moves may -> must,
+    # justified by a split-summary guarded field (SUMMARY_REFINEMENT).
+    # Python and the raw facts hash stay byte-identical.
+    after_classified = {"inputs": ["m.cs"], "facts": "F1", ENGINE_PYTHON: py_unmoved,
+                       ENGINE_RUST: _rust_doc("must", guarded=refined_guard)}
+    r = _compare_documents("b", {"m.cs": before_doc}, {"m.cs": after_classified})
+    if r["failed"] or "m.cs" not in r["rust_moved_classified"]:
+        print(f"FAIL[selftest]: epoch b must PASS a classified Rust refinement: {r}")
+        return 1
+    r = _compare_documents("a2d", {"m.cs": before_doc}, {"m.cs": after_classified})
+    if not r["failed"] or "m.cs" not in r["moved"][ENGINE_RUST]:
+        print(f"FAIL[selftest]: epoch a2d must reject the SAME movement unconditionally: {r}")
+        return 1
+    print("OK: _compare_documents() PASSes a classified Rust refinement under epoch b, "
+         "FAILs the identical movement under epoch a2d")
+
+    # Scenario 2: the SAME transfer movement with no guarded field to
+    # justify it -- classify() has nothing to work with (UNCLASSIFIED),
+    # must still FAIL even under epoch b.
+    after_unclassified = {"inputs": ["m.cs"], "facts": "F1", ENGINE_PYTHON: py_unmoved,
+                         ENGINE_RUST: _rust_doc("must")}
+    r = _compare_documents("b", {"m.cs": before_doc}, {"m.cs": after_unclassified})
+    if not r["failed"] or "m.cs" not in r["moved"][ENGINE_RUST]:
+        print(f"FAIL[selftest]: an unclassified Rust refinement must FAIL under epoch b: {r}")
+        return 1
+    print("OK: _compare_documents() FAILs an unclassified Rust before/after movement")
+
+    # Scenario 3: the SAME classified transfer movement PLUS an unrelated
+    # residual movement (unresolved[] gains an entry) -- explain_divergence's
+    # whole-document discipline must refuse this exactly as it already does
+    # for intra-after divergence; a classified witness never excuses a
+    # difference outside what it names.
+    after_residual = {"inputs": ["m.cs"], "facts": "F1", ENGINE_PYTHON: py_unmoved,
+                     ENGINE_RUST: _rust_doc("must", guarded=refined_guard,
+                                           unresolved=["SomeExtern"])}
+    r = _compare_documents("b", {"m.cs": before_doc}, {"m.cs": after_residual})
+    if not r["failed"] or "m.cs" not in r["moved"][ENGINE_RUST]:
+        print(f"FAIL[selftest]: a classified change plus an unrelated residual movement "
+             f"must still FAIL: {r}")
+        return 1
+    print("OK: _compare_documents() FAILs a classified change riding alongside an "
+         "unrelated residual movement")
+
+    # Python axis: legacy/reference/rollback engine. Movement with the raw
+    # facts hash UNCHANGED must FAIL (never an independent legacy movement);
+    # movement WITH the facts hash also moving is the accepted mechanical
+    # rollback consequence -- but only under epoch b, never a2d.
+    py_moved_alone = {"inputs": ["m.cs"], "facts": "F1", ENGINE_PYTHON: _rust_doc("no")}
+    r = _compare_documents("b", {"m.cs": before_doc}, {"m.cs": py_moved_alone})
+    if "m.cs" not in r["moved"][ENGINE_PYTHON]:
+        print(f"FAIL[selftest]: Python moving with facts UNCHANGED must FAIL under epoch b: {r}")
+        return 1
+    py_moved_with_facts = {"inputs": ["m.cs"], "facts": "F2", ENGINE_PYTHON: _rust_doc("no")}
+    r = _compare_documents("b", {"m.cs": before_doc}, {"m.cs": py_moved_with_facts})
+    if "m.cs" in r["moved"][ENGINE_PYTHON] or "m.cs" not in r["python_moved_rollback"]:
+        print(f"FAIL[selftest]: Python moving WITH facts must be accepted as rollback: {r}")
+        return 1
+    r = _compare_documents("a2d", {"m.cs": before_doc}, {"m.cs": py_moved_with_facts})
+    if "m.cs" not in r["moved"][ENGINE_PYTHON]:
+        print(f"FAIL[selftest]: epoch a2d must reject Python movement even WITH facts moving: {r}")
+        return 1
+    print("OK: _compare_documents() gates Python before/after movement on the raw facts "
+         "hash also moving, only under epoch b")
     return 0
 
 

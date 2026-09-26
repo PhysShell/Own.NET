@@ -32,7 +32,7 @@ What CAN be built now, and IS built here, matching §10.4/§10.1's own
    yet -- proving the LOGIC is correct against the frozen CONTRACT, not that
    any real mos.rs output will ever conform to it. That binding happens only
    once B-after evidence exists to classify for real.
-3. (B1-F2-F4) `derive_document_witnesses(python_doc, rust_doc)`, the real
+3. (B1-F2-F4) `derive_document_witnesses(legacy_doc, new_doc)`, the real
    witness-derivation adapter GAP_REAL_WITNESS_SOURCE below used to name as
    permanently missing. It reads two `dump_summaries`-shaped documents
    (`{"summaries": [{"method", "params": [{"index","transfer",...}], ...}]}`
@@ -42,13 +42,22 @@ What CAN be built now, and IS built here, matching §10.4/§10.1's own
    `transfer` values. Forbidden inputs, enforced by construction (there is
    no parameter through which one could enter): a fixture filename, a
    directory name, a diagnostic code, a handwritten per-case allowlist, or
-   "this difference is expected because P-037". A `guarded` field on the
-   RUST side's per-parameter object (the field this module's own
+   "this difference is expected because P-037". Parameters are named
+   generically (`legacy_doc`/`new_doc`), not `python_doc`/`rust_doc`,
+   because B1-F2-F4-R1 reuses this same adapter for TWO distinct axes:
+   `p037_mos_snapshot.py`'s `divergence_status()` calls it intra-document
+   (Python plays `legacy_doc`, Rust plays `new_doc`) AND `compare()` calls
+   it inter-snapshot, before-Rust-vs-after-Rust (before plays `legacy_doc`,
+   after plays `new_doc`) -- the classifier does not know or care which
+   engine or which snapshot produced either side, only that `legacy_doc` is
+   the reference a divergence is measured AGAINST and `new_doc` is the
+   value a `guarded` field must justify. A `guarded` field on the `new_doc`
+   side's per-parameter object (the field this module's own
    `rust_param_witness_shape()` reads) is the forward-compatible contract a
    future B2.1b/c dump-surface extension must populate (docs/evidence/
    p037-b-epoch.json's b1_f2_f4_findings.summary_dump_surface_for_class_3)
    -- today NO production dump emits it, so every derived witness is
-   `shape: "uncond"` with `collapsed` equal to whatever Rust's own
+   `shape: "uncond"` with `collapsed` equal to whatever the new side's own
    `transfer` says. This is not a stub standing in for missing logic: run
    today, against the UNCHANGED (pre-treatment) population, Python and
    Rust always report the same `transfer` for every (method, param), so
@@ -324,74 +333,90 @@ def _params_by_index(summary: dict[str, Any]) -> dict[int, dict[str, Any]]:
     return out
 
 
-def derive_document_witnesses(python_doc: dict[str, Any],
-                              rust_doc: dict[str, Any]) -> list[dict[str, Any]]:
+def derive_document_witnesses(legacy_doc: dict[str, Any],
+                              new_doc: dict[str, Any]) -> list[dict[str, Any]]:
     """Every (method, param) whose `transfer` differs between two
-    `dump_summaries`-shaped documents, each as {coordinate, python_transfer,
-    rust_transfer, witness, classification}. STRUCTURED data only (method
-    names, parameter ordinals, transfer values, and the Rust side's own
+    `dump_summaries`-shaped documents, each as {coordinate, legacy_transfer,
+    new_transfer, witness, classification}. STRUCTURED data only (method
+    names, parameter ordinals, transfer values, and the new side's own
     optional `guarded` field) -- see this module's docstring, point 3, for
     the forbidden-input list this signature makes structurally impossible
     to violate (there is no fixture-path or diagnostic-code parameter to
-    read one from). Returns the empty list whenever the two documents agree
-    everywhere, which is every real document pair measured before a
-    B2.1b/c-shaped divergence exists."""
-    py_by_method = _summaries_by_method(python_doc)
-    rs_by_method = _summaries_by_method(rust_doc)
+    read one from), and for why the parameters are named generically
+    (`legacy_doc`/`new_doc`) rather than after one specific pair of callers.
+    Returns the empty list whenever the two documents agree everywhere,
+    which is every real document pair measured before a B2.1b/c-shaped
+    divergence exists."""
+    legacy_by_method = _summaries_by_method(legacy_doc)
+    new_by_method = _summaries_by_method(new_doc)
     out: list[dict[str, Any]] = []
-    for method in sorted(set(py_by_method) & set(rs_by_method)):
-        py_params = _params_by_index(py_by_method[method])
-        rs_params = _params_by_index(rs_by_method[method])
-        for idx in sorted(set(py_params) & set(rs_params)):
-            py_t = py_params[idx].get("transfer")
-            rs_t = rs_params[idx].get("transfer")
-            if py_t == rs_t:
+    for method in sorted(set(legacy_by_method) & set(new_by_method)):
+        legacy_params = _params_by_index(legacy_by_method[method])
+        new_params = _params_by_index(new_by_method[method])
+        for idx in sorted(set(legacy_params) & set(new_params)):
+            legacy_t = legacy_params[idx].get("transfer")
+            new_t = new_params[idx].get("transfer")
+            if legacy_t == new_t:
                 continue
-            witness = build_witness(method, idx, py_t, rs_params[idx])
+            witness = build_witness(method, idx, legacy_t, new_params[idx])
             try:
                 verdict = classify(witness)
             except WitnessError as exc:
                 verdict = {"class": UNCLASSIFIED, "reason": f"malformed witness: {exc}"}
-            out.append({"coordinate": dict(witness["coordinate"]), "python_transfer": py_t,
-                       "rust_transfer": rs_t, "witness": witness, "classification": verdict})
+            out.append({"coordinate": dict(witness["coordinate"]), "legacy_transfer": legacy_t,
+                       "new_transfer": new_t, "witness": witness, "classification": verdict})
     return out
 
 
-def explain_divergence(python_doc: dict[str, Any], rust_doc: dict[str, Any]) -> dict[str, Any]:
+def explain_divergence(legacy_doc: dict[str, Any], new_doc: dict[str, Any]) -> dict[str, Any]:
     """Whether `derive_document_witnesses`'s classified witnesses account for
     the ENTIRE difference between two `dump_summaries` documents, not merely
     for the `transfer` values they name.
 
+    Generic over WHICH two documents are being compared -- see this module's
+    docstring point 3 and `derive_document_witnesses`'s own docstring for why
+    the parameters are `legacy_doc`/`new_doc`, not `python_doc`/`rust_doc`:
+    `p037_mos_snapshot.py` calls this both intra-document (Python as
+    `legacy_doc`, Rust as `new_doc`, deciding epoch-b `is_evidence`) and
+    inter-snapshot (before-Rust as `legacy_doc`, after-Rust as `new_doc`,
+    deciding whether a Phase-B before/after MOS movement is classifiable).
+    Both call sites need the identical "does a classified transfer change
+    explain the WHOLE document" discipline; only which two documents play
+    the two roles differs.
+
     A `dump_summaries` document carries more than per-parameter `transfer`
     (returns, unresolved, degraded, module, per-summary file/line/source);
     the classifier's WITNESS vocabulary explains transfer divergences only.
-    So this reconstructs `python_doc` with EVERY witness's classified
-    `rust_transfer` patched onto its own (method, param) and nothing else,
-    then requires the result to equal `rust_doc` EXACTLY, modulo the one
-    field this comparison must not penalize: a `guarded` key on the Rust
+    So this reconstructs `legacy_doc` with EVERY witness's classified
+    `new_transfer` patched onto its own (method, param) and nothing else,
+    then requires the result to equal `new_doc` EXACTLY, modulo the one
+    field this comparison must not penalize: a `guarded` key on the new
     side's own per-parameter object (the forward-compatible evidence field
-    `rust_param_witness_shape` reads) never appears on Python's side by
-    design -- Python is discharged of ever learning P-037 (docs/evidence/
-    p037-b-epoch.json's prerequisite_discharged.engine_scope_consequence),
-    so its presence on the Rust side alone is exactly what a WITNESS
-    already justified, not a second, unexplained difference. Both
-    documents are compared with that key stripped from every parameter.
-    Any OTHER leftover difference (a `returns`/`unresolved`/`degraded`
-    movement, a method appearing in one document and not the other, or
-    simply an UNCLASSIFIED witness) still makes `explained` False.
+    `rust_param_witness_shape` reads) never appears on the legacy side by
+    design in the Python-vs-Rust use (Python is discharged of ever learning
+    P-037, docs/evidence/p037-b-epoch.json's
+    prerequisite_discharged.engine_scope_consequence) -- and cannot appear
+    on a BEFORE-Rust snapshot either, since no production dump emits it yet
+    (see point 3). Either way, its presence on the new side alone is
+    exactly what a WITNESS already justified, not a second, unexplained
+    difference, so both documents are compared with that key stripped from
+    every parameter. Any OTHER leftover difference (a
+    `returns`/`unresolved`/`degraded` movement, a method appearing in one
+    document and not the other, or simply an UNCLASSIFIED witness) still
+    makes `explained` False.
     """
-    witnesses = derive_document_witnesses(python_doc, rust_doc)
+    witnesses = derive_document_witnesses(legacy_doc, new_doc)
     if any(w["classification"]["class"] == UNCLASSIFIED for w in witnesses):
         return {"explained": False, "witnesses": witnesses,
                "reason": "at least one witness is UNCLASSIFIED"}
-    patched = copy.deepcopy(python_doc)
+    patched = copy.deepcopy(legacy_doc)
     by_method = _summaries_by_method(patched)
     for w in witnesses:
         method, idx = w["coordinate"]["method"], w["coordinate"]["param"]
         for p in by_method.get(method, {}).get("params", []) or []:
             if isinstance(p, dict) and p.get("index") == idx:
-                p["transfer"] = w["rust_transfer"]
-    if _strip_guarded_fields(patched) != _strip_guarded_fields(rust_doc):
+                p["transfer"] = w["new_transfer"]
+    if _strip_guarded_fields(patched) != _strip_guarded_fields(new_doc):
         return {"explained": False, "witnesses": witnesses,
                "reason": "classified transfer changes do not account for the whole document "
                          "difference; something outside the witness vocabulary also moved"}
@@ -644,8 +669,8 @@ def selftest() -> int:
                   witnesses)
             # explain_divergence(): the split-shaped, classified divergence
             # (mutated2, already proven SUMMARY_REFINEMENT above) is FULLY
-            # explained -- patching python_doc's transfer to match is the
-            # WHOLE difference between the two documents.
+            # explained -- patching real_doc's (legacy_doc's) transfer to
+            # match is the WHOLE difference between the two documents.
             result = explain_divergence(real_doc, mutated2)
             _check("explain-divergence-fully-explained-when-only-transfer-moved",
                   result["explained"] is True, result)

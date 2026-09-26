@@ -17,22 +17,55 @@ the population was hand-picked. This module is the governed replacement,
 built to run against the UNMODIFIED, frozen extractor, over the FULL
 population, deriving its own count.
 
-WHY NO EXTRACTOR PATCH IS NEEDED. A release op carries only `{var, line}`
--- no provenance tag -- so the original prototype toggled
-`ConsumeReleaseArgs` and watched which releases flipped to `use`. That
-technique cannot be committed (a permanent tool cannot keep patching and
-reverting frozen production source on every run, and doing so would be
-exactly the kind of instrument/treatment confusion this project's own
-governance forbids). It is also unnecessary: a legacy-fabricated release
-can be identified STRUCTURALLY, from one unmodified extraction, because a
-release with no interprocedural cause (a direct `s.Dispose()`/`s.Close()`)
-can never correlate with an ELIGIBLE `guarded_facts.calls[]` entry at all
--- that sidecar records calls where a value is passed AS AN ARGUMENT,
-never a receiver-based call on the resource itself (confirmed directly
-against `corpus/p037-shapes/extension-receiver`: `CallReleasesReceiver` is
-untouched by this seam and that fixture's own `Caller` carries a `use`,
-never a `release`, at its call site). So the checked population is derived
-in two independent steps, never assumed:
+WHAT THIS MODULE ACTUALLY PROVES, AND WHAT IT DOES NOT (corrected by
+B1-F2-F4-R1 -- read this before citing the number below anywhere). A
+release op carries only `{var, line}` -- no provenance tag -- so there is
+no way, from one unmodified extraction, to ask "was THIS release fabricated
+by the interprocedural shortcut, or is it a direct `s.Dispose()`/
+`s.Close()` that merely happens to share its physical line with an
+unrelated call?" Both produce the textually identical `release(var, line)`
+shape. What this module CAN, and does, prove mechanically is CORRELATION
+CLOSURE: every candidate release site structurally matches exactly one
+eligible `guarded_facts.calls[]` entry naming the released variable
+(covered), matches none (missing), or matches more than one (ambiguous) --
+never CAUSATION. A direct dispose that happens to share its statement line
+with an unrelated, ELIGIBLE, same-variable call -- `s.Dispose(); Take(s);`
+on one physical line, where `Take` is a plain first-party call statement
+that, for some unrelated reason, also takes `s` as an argument -- is
+INDISTINGUISHABLE, under this vocabulary, from a genuinely call-fabricated
+release, and IS reported `covered` exactly as if it were one.
+`selftest()`'s `hostile-direct-dispose-colocated-with-unrelated-eligible-
+call-is-a-known-correlation-not-provenance-gap` proves this is real,
+current behaviour, not a hypothetical: the direct dispose in that case is
+NOT evidence that `Take` fabricated the release, and no claim in this
+module, or in docs/evidence/p037-b-epoch.json's b1_f2_f3b_delegation_
+architecture/b1_f2_f4_findings, may say otherwise.
+
+A heavier, EXACT mechanism could close this gap: an isolated, materialized
+COPY of the extractor, mutated to turn the release-fabrication path into a
+`use` (the original scratch prototype's own technique, but run against a
+detached copy instead of patching the governed working tree, computing an
+exact release-to-use delta) -- never patching the checked-out, committed
+extractor, never duplicating `ConsumeReleaseArgs`'s semantics in Python.
+B1-F2-F4-R1 deliberately does NOT build that mechanism now. The TRUE
+population of sites B2.1a will actually change is established, once and
+honestly, the moment B2.1a itself lands, by the governed BEFORE/AFTER
+RAW-FACT DIFF docs/evidence/p037-b-epoch.json's first_semantic_hypothesis.
+facts_expectation.verified_by already requires (the frozen population's raw
+facts.json, diffed byte-for-byte, before vs after the real treatment
+commit) -- not by this tool's pre-treatment correlation count, and not by
+building a second, heavier counterfactual-extraction tool speculatively
+before there is a real treatment to check it against. The number this
+module reports is therefore a CORRELATION count over the current, unchanged
+population -- real, useful, machine-derived, independently reproducible,
+and strongly corroborating the scratch prototype's own 40/40 -- never a
+claim that provenance was exhaustively proven, and never to be hardcoded
+elsewhere as the final changed-site population.
+
+So the checked population is still derived in two independent steps, never
+assumed -- unchanged by this correction, and sound AS A CORRELATION
+CLOSURE (every candidate site is accounted for by the vocabulary below,
+none silently dropped):
 
 1. STRUCTURAL candidacy: a `release(var=V, line=L)` inside a `functions[]`
    body is a candidate iff the SAME function's `guarded_facts.calls[]`
@@ -539,6 +572,38 @@ def selftest() -> int:
           not r["covered"] and not r["missing"] and not r["ambiguous"], r)
     _check("ineligible-call-not-in-calls-without-release-either",
           not r["calls_without_release"], r)
+
+    # --- HOSTILE (B1-F2-F4-R1): a direct-dispose release sharing its line
+    # with an UNRELATED but ELIGIBLE, same-variable call -- the collision
+    # the eligibility filter above does NOT, and structurally CANNOT,
+    # survive: nothing in the {var, line} release vocabulary distinguishes
+    # "this call fabricated the release" from "this call is merely eligible
+    # and happens to be co-located with an unrelated direct dispose of the
+    # same variable". `s.Dispose(); Take(s);` on one physical line, with
+    # `Take` a plain first-party call statement that, for some unrelated
+    # reason, also takes `s` as a `var`-kind argument -- never actually
+    # implicated in the release at all. This module CORRECTLY, per its
+    # corrected, correlation-only docstring, reports this as `covered`:
+    # this test exists to make that a machine-checked, hostile fact rather
+    # than a claim nobody verifies. The direct dispose here MUST NOT be
+    # read, by this test or by any prose in this module, as evidence that
+    # `Take` fabricated the release -- it did not; `check_document()`
+    # simply cannot tell the difference from the vocabulary it is given,
+    # and this assertion documents that limit rather than hiding it. A
+    # future, stricter result here (e.g. from the heavier counterfactual
+    # mechanism the module docstring names but does not build) would also
+    # be correct; a SILENT change of this verdict without updating the
+    # module docstring's own worked example would not be. ---
+    doc = {"functions": [
+        _fn("Caller", "f.cs", "", None,
+            [{"op": "acquire", "var": "s", "line": 1},
+             {"op": "release", "var": "s", "line": 2}],
+            [_call(2, "Take", "System.Void", [{"param": 0, "kind": "var", "name": "s"}])]),
+    ]}
+    r = check_document(doc, "synthetic")
+    _check("hostile-direct-dispose-colocated-with-unrelated-eligible-call-"
+          "is-a-known-correlation-not-provenance-gap",
+          len(r["covered"]) == 1 and not r["missing"] and not r["ambiguous"], r)
 
     # --- live-source: the real sidecar-ctorinit-base fixture, per-file,
     # reproducing the exact collision above on real extractor output. ---

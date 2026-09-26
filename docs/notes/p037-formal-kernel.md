@@ -3329,7 +3329,7 @@ model has no Split shape, Cells pair, or per-edge Transform at all, so no
 real B2.1b/c-shaped guarded value can be POPULATED before that treatment's
 own types exist. That representation gap is NOT closed here, and cannot
 be — building it is B2.1b/c's own first deliverable. What B1-F2-F4 closes
-is the missing PLUMBING: `derive_document_witnesses(python_doc, rust_doc)`
+is the missing PLUMBING: `derive_document_witnesses(legacy_doc, new_doc)`
 reads two `dump_summaries`-shaped documents structurally (method names,
 parameter ordinals, `transfer` values, and a forward-compatible `guarded`
 field on the Rust side the future dump-surface extension must populate),
@@ -3465,3 +3465,113 @@ correction has: name the corrected head as the new `T_B` once
 terminal-green, retake all four `R_B` snapshots fresh at it, and only then
 land the naming commit. B2.1a/B2.1b/c remain separate, later, and not yet
 authorized.
+
+#### 10.8i Phase B / B1-F2-F4-R1: three instrument defects found by independent review, closed before any R_B retake (OWNER RULING)
+
+Owner review of the B1-F2-F4 head independently re-verified every claim
+against the live repository — CI green, the production-isolation claim,
+the a2d allowlist follow-up, the Rust `dump.rs` item boundary, the
+EmitFlowExpr-only extractor seam, the classified intra-after divergence —
+and accepted all of it, but held the planned `R_B` retake on finding three
+further defects in the INSTRUMENT itself (never in production code; zero
+production semantics move in this task either). Two were serious enough
+that taking `R_B` on the unfixed head would have produced snapshots the
+review's own next pass would have had to discard.
+
+**Finding 1: `p037_mos_snapshot.py`'s `compare()` was still not Phase-B
+aware where it mattered most.** B1-F2-F4 made `_measure()`'s intra-document
+Python-vs-Rust check epoch-aware (`divergence_status()`), and `compare()`'s
+OWN after-snapshot intra-document check inherited that same awareness
+(`after_parity`/`after_parity_classified`) — but `compare()`'s BEFORE-vs-
+AFTER per-engine check (`moved[python]`/`moved[rust]`), the axis that
+actually decides whether a real `R_B`-vs-`B_after` comparison passes once
+B2.1b/c lands, was left as bare, epoch-blind inequality. A genuinely
+classified Rust refinement between two snapshots would have reported
+MOVED regardless — making the whole classification apparatus built for
+this exact purpose pointless the moment it was actually needed. Fixed by
+extracting `compare()`'s core decision into a new, directly unit-tested
+`_compare_documents()`, and applying `divergence_status()`/
+`explain_divergence()` to the Rust before/after axis too (before-Rust as
+the reference "legacy" role, after-Rust as the value a `guarded` field must
+justify — the identical discipline already required intra-after, reused
+rather than duplicated: `p037_b_classifier.py`'s
+`derive_document_witnesses()`/`explain_divergence()` parameters were
+renamed `legacy_doc`/`new_doc`, generically, precisely so the same two
+functions serve both the intra-document Python-vs-Rust comparison and this
+inter-snapshot Rust-vs-Rust one without either caller's own axis being
+hardcoded into their names). Python, the legacy/reference/rollback engine,
+gets a different rule for its own before/after axis: movement is accepted
+only as a direct mechanical consequence of the raw facts hash ALSO moving
+on the same document, never independently — epoch a2d keeps the original,
+unconditional zero-movement policy on both axes throughout, exactly as it
+always had. Three new selftest scenarios exercise exactly what the review
+asked for: a classified Rust refinement passes under epoch b and fails
+identically under epoch a2d; the same movement with no guarded field fails
+under epoch b; a classified movement riding alongside an unrelated
+residual difference (an `unresolved[]` entry) still fails.
+
+**Finding 2: the delegation-closure tool's provenance claim was stronger
+than a column-less, provenance-less raw-fact vocabulary can support.**
+`scripts/p037_delegation_closure.py`'s docstring, and this record's own
+`b1_f2_f3b_delegation_architecture.delegation_closure_claim`, stated the
+40/40 correlation result as though it PROVED that every legacy-fabricated
+release has a corresponding sidecar call fact. It does not, and cannot: a
+release op carries only `{var, line}`, no provenance tag, so a genuinely
+direct dispose that happens to share its statement line with an unrelated,
+ELIGIBLE, same-variable call — `s.Dispose(); Take(s);` on one physical line
+— is structurally indistinguishable from a call-fabricated release, and
+the tool reports it `covered` either way. This does not make the 40/40
+wrong as a correlation count (it remains real, independently reproduced,
+and strongly corroborating); it makes "mechanically derives every
+ConsumeReleaseArgs-derived release" an overclaim about what kind of
+evidence a bare `{var, line}` vocabulary can produce. Fixed by re-scoping
+every claim — the module docstring, `b1_f2_f3b_delegation_architecture.
+delegation_closure_claim`, `b1_f2_f4_findings.delegation_closure_tool`, and
+`first_semantic_hypothesis.facts_expectation.verified_by` — to CORRELATION
+closure, never causal provenance, and by adding a hostile selftest
+constructing exactly the `s.Dispose(); Take(s);` collision, proving the
+tool currently, honestly, reports it `covered` (a machine-checked
+acknowledgment of the gap, not a silent one). The TRUE population of sites
+B2.1a will actually change is deferred, on purpose, to the governed
+before/after raw-fact diff `facts_expectation.verified_by` already required
+B2.1a itself to produce (diffing the frozen population's raw facts.json
+byte-for-byte, before vs after the real treatment commit) — never to a
+heavier, speculative counterfactual-extraction tool built before there is a
+real treatment to check it against — and the delegation-closure tool's own
+count is never hardcoded elsewhere as that population's exact size, only
+retained as a corroborating expectation.
+
+**Finding 3: the epoch record's own CI-transition wording contradicted the
+epoch record's own `facts_expectation`.** `ci_transition_plan.
+current_ci_unaffected` claimed today's `p037_controls.py --engine both
+(current)` job "keeps passing... unmodified through B2.1a" — already false
+the moment it was written, since this record's OWN `facts_expectation`
+makes the four F3-S* and four G-V4/legacy-honesty controls'
+`fabricated_release_at_call_site` flip `true` to `false` UNCONDITIONALLY
+the instant B2.1a lands, which the current-mode check reads as a failure
+against `expected.json`'s `current` layer for those eight controls. Fixed
+(renaming the field `current_ci_transition`) to the correct sequence:
+pre-B2.1a, today's current-mode check stays green and blocking; B2.1a
+landing makes it non-blocking going forward (an EXPECTED, not accidental,
+red) while a new, narrower transitional gate becomes blocking in its
+place; the combined-treatment head's mandatory gate stays `p037_controls.py
+--post-a1 --engine rust`, Python measured separately under the rollback
+rule. No historical `expected.json` `current`/`post_a1` layer is rewritten
+at any stage of this transition — only WHICH gate is blocking, at which
+stage, changes.
+
+**Nothing already accepted moves.** The EmitFlowExpr-only extractor seam,
+the `dump.rs::dump_summaries` item-level Rust seam, `guarded_functions[]`'s
+future summary universe, Rust's sole P-037 semantic authority, Python's
+legacy/reference/rollback role, the class-3 guarded-dump preregistration,
+and the formal SAME-production-functions requirement are all untouched by
+this task — it corrects three claims the instrument made about itself,
+never anything the instrument measures. Every fix above touches a tracked
+Phase-B instrument path (`scripts/p037_mos_snapshot.py`, `scripts/
+p037_b_classifier.py`), so `instrument_identity` moves again, forcing the
+same kind of retake B1-F1/B1-F2/B1-F2-F2/B1-F2-F4 each already required —
+`scripts/p037_delegation_closure.py` stays a standalone control, not an
+instrument path, unaffected by this fact even though its own docstring
+moved. Only once this corrected head is terminal-green does the B1-F2-F4
+instrument-supersession retake (naming a fresh `T_B`, four fresh `R_B`
+snapshots) proceed.
