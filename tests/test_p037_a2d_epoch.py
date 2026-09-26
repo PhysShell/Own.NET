@@ -105,6 +105,13 @@ DOCS_GENERATED_ADJUDICATED = (
 # gate that will later police an extractor-side change -- it does not
 # itself touch Program.cs, which stays exactly as untouched by this
 # allowlist as it was before B1-F2.
+#
+# B1-F2-F4 adds `p037_delegation_closure.py`: the committed replacement for
+# F3b's scratch delegation-closure census (40/40, now machine-derived
+# against the unmodified extractor -- docs/notes/p037-formal-kernel.md
+# #10.8h). Same family, same reasoning: Phase-B audit/measurement tooling
+# landing in the commit that defines it, touching no `ownlang`/`rust/
+# crates/own-ir`/`spec` treatment and no `frontend/` production byte.
 PHASE_B_GOVERNANCE_FILES = (
     "docs/evidence/p037-b-epoch.json",
     "docs/evidence/p037-b-ledger-assumptions.json",
@@ -116,6 +123,7 @@ PHASE_B_GOVERNANCE_FILES = (
     "scripts/p037_mos_snapshot.py",
     "scripts/p037_verdict_snapshot.py",
     "scripts/p037_b_extractor_diff_gate.py",
+    "scripts/p037_delegation_closure.py",
 )
 #
 # R_B (the Phase-B baseline, taken at T_B) adds new docs/evidence/p037-b-
