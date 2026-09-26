@@ -312,12 +312,19 @@
     "R_B": "docs/evidence/p037-b-baseline-manifest.md",
     "status": "historical: honest B1-F2 evidence at a boundary later found mechanically insufficient; not a baseline for any future comparison; superseded by the T_B/R_B this same field family names once B1-F2-F2's own retake lands (see named_later below)"
   },
-  "named_later": {
+  "superseded_by_b1_f2_f4_r1": {
+    "reason": "B1-F2-F4 (docs/notes/p037-formal-kernel.md #10.8h) made scripts/p037_mos_snapshot.py epoch-aware, closed the classifier's GAP_REAL_WITNESS_SOURCE real-witness adapter, widened rust/crates/own-bridge/src/dump.rs to an item-level mutable file, narrowed the extractor production-diff gate back to EmitFlowExpr alone, and added scripts/p037_delegation_closure.py. B1-F2-F4-R1 (#10.8i) then closed three defects an independent owner review found in that head before any retake was taken against it: compare()'s own before/after per-engine axis was still epoch-blind (fixed via a new _compare_documents() reusing the SAME whole-document classifier discipline already required intra-after); the delegation-closure tool's claim overstated what a {var, line}-only release vocabulary can prove (re-scoped from provenance to correlation closure); and the epoch record's own ci_transition_plan.current_ci_unaffected field contradicted this record's own facts_expectation (corrected and renamed current_ci_transition). Both tasks changed the Phase-B measurement instrument (scripts/p037_mos_snapshot.py and scripts/p037_b_classifier.py, both tracked INSTRUMENT_PATHS) and its governance record, never production semantics -- both production diff gates report IDENTICAL between ad55df46de07b9de1c026b804c0c8c73e5bdb35d (the closed B1-F2-F4 naming head) and 718a673c01641883df433b89cb76d5e3942d8815 (this retake's own T_B), reconfirmed directly, not assumed. The measurements below were honest at the instrument boundary B1-F2-F2 held -- that boundary was itself later corrected twice, not the measurement -- so they are superseded, never deleted or rewritten.",
     "T_B": "fdde0a026d264ceff0e44f8c86e7d059207f67e6",
     "T_B_title": "P-037 Phase B / B1-F2-F2: the extractor seam itself was still too narrow",
     "R_B": "docs/evidence/p037-b-baseline-manifest.md",
+    "status": "historical: honest B1-F2-F2 evidence at an instrument boundary later corrected twice (B1-F2-F4, B1-F2-F4-R1); not a baseline for any future comparison; superseded by the T_B/R_B this same field family names once B1-F2-F4-R1's own retake lands (see named_later below)"
+  },
+  "named_later": {
+    "T_B": "718a673c01641883df433b89cb76d5e3942d8815",
+    "T_B_title": "P-037 Phase B / B1-F2-F4-R1: fix three instrument defects found by review",
+    "R_B": "docs/evidence/p037-b-baseline-manifest.md",
     "B_treatment_head": null,
     "B_after_evidence": null,
-    "note": "filled by B1-F2-F2, naming last per the same order used every prior time (seam-widening fix terminal-green at fdde0a0 -- CI 32/32, fast Kani 15/15 independently reconfirmed from the raw log -- THEN R_B retaken fresh at it and itself terminal-green at 9418f57 -- CI 32/32, fast Kani 15/15 independently reconfirmed from the raw log -- THEN this naming commit). B_treatment_head/B_after_evidence stay null: no semantic treatment exists yet -- B2.1a is separate, later, and not yet authorized. See superseded_by_b1_f2_f2 for what T_B/R_B named before this fix, and superseded_by_b1_f2 for the one before that."
+    "note": "filled by B1-F2-F4-R1, naming last per the same order used every prior time (the corrected instrument head, 718a673, was already terminal-green -- CI 32/32, fast Kani 15/15 independently reconfirmed from the raw log, per B1-F2-F4-R1's own final report -- THEN four fresh, sequential, individually-verified M3 R_B takes were measured against it and copied into docs/evidence/ -- THEN that evidence-only commit (9d914e33f67f922da2218dd3e276252fa83a3638) went itself terminal-green -- CI 32/32, fast Kani 15/15 independently reconfirmed from the raw log -- THEN this naming commit). B_treatment_head/B_after_evidence stay null: no semantic treatment exists yet -- B2.1a is separate, later, and not yet authorized. See superseded_by_b1_f2_f4_r1 for what T_B/R_B named before this retake, superseded_by_b1_f2_f2 for the one before that, and superseded_by_b1_f2 for the one before that."
   }
 }
