@@ -68,6 +68,7 @@ Run:  python scripts/p037_evidence_b.py profile
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import shutil
 import sys
@@ -286,7 +287,34 @@ def _record_closure_problems(doc: dict[str, Any]) -> list[str]:
     missing or names a different unit is exactly the same self-
     authorization hole B1-F1 found and fixed for the Rust side (check() must
     never trust a recorded allowlist the module itself did not also
-    hard-code), now closed for the extractor from the start."""
+    hard-code), now closed for the extractor from the start.
+
+    B1-F2-F4-R2 adds a third, GENERIC check, closing the CLASS of defect the
+    dump.rs omission belonged to rather than only that one instance: every
+    file `production_diff_gate.rust` names as carrying a mutable item
+    (`mutable_items`) or being wholly mutable (`mutable_files`), plus the
+    extractor's own whole-unit carve-out, is DERIVED from the epoch record
+    already in hand and required to equal `INSTRUMENT_CARVE_OUTS` (hence
+    `TREATMENT_PATHS`, the same tuple) EXACTLY -- not a subset check. A
+    future item added to `mutable_items` with no matching carve-out (the
+    dump.rs defect, generalized to any filename) is refused as MISSING; a
+    carve-out left behind after its last mutable item is retired is refused
+    as EXCESS -- an unjustified exclusion is also a false claim about what
+    the instrument does not need to see, not merely over-caution.
+    `production_diff_gate.rust.controls` (e.g. `tests/`) is deliberately
+    EXCLUDED from this derivation: it names files the item-level PRODUCTION
+    gate already permits to move for a different reason entirely (test/
+    control churn, never Phase-B treatment provenance) -- folding it in
+    would either wrongly demand `tests/` be carved out of the instrument or
+    let a real treatment addition hide behind the controls list. No new
+    runtime import of either diff-gate module is needed or added: their own
+    `mutable_items`/`mutable_files`/`unit` are already present in the epoch
+    record `epoch_record()` reads from the frozen commit, which is what
+    this function is handed -- the gate modules themselves are not imported
+    or executed here. The derived-set comparison only runs once both units
+    are already confirmed correct above; a wrong unit is reported as that
+    one root problem, not as a cascade of "everything is missing" noise
+    computed from a bogus prefix."""
     problems: list[str] = []
     gate = doc.get("production_diff_gate", {})
     rust = gate.get("rust", {}) if isinstance(gate, dict) else {}
@@ -299,13 +327,39 @@ def _record_closure_problems(doc: dict[str, Any]) -> list[str]:
     if recorded_extractor_unit != "frontend/roslyn/OwnSharp.Extractor/":
         problems.append(f"the epoch record's production_diff_gate.extractor.unit "
                         f"{recorded_extractor_unit!r} differs from this module's own")
+
+    if (recorded_unit == "rust/crates/own-bridge/"
+            and recorded_extractor_unit == "frontend/roslyn/OwnSharp.Extractor/"):
+        expected_carve_outs: set[str] = {recorded_extractor_unit}
+        mutable_items = rust.get("mutable_items", {})
+        if isinstance(mutable_items, dict):
+            expected_carve_outs.update(
+                recorded_unit + name for name in mutable_items if isinstance(name, str))
+        mutable_files = rust.get("mutable_files", [])
+        if isinstance(mutable_files, list):
+            expected_carve_outs.update(
+                recorded_unit + name for name in mutable_files if isinstance(name, str))
+        actual_carve_outs = set(INSTRUMENT_CARVE_OUTS)
+        for path in sorted(expected_carve_outs - actual_carve_outs):
+            problems.append(
+                f"production_diff_gate authorizes {path!r} as a mutable treatment "
+                "file/unit, but it is not in INSTRUMENT_CARVE_OUTS -- it would still "
+                "be inside the Phase-B instrument closure")
+        for path in sorted(actual_carve_outs - expected_carve_outs):
+            problems.append(
+                f"INSTRUMENT_CARVE_OUTS carves out {path!r}, but no production_diff_gate "
+                "mutable_items/mutable_files/unit entry justifies it any more")
     return problems
 
 
 def closure_problems(*, repo: Path = ROOT) -> list[str]:
     """Static self-check: every repo-local runtime path is in the closure,
-    the carve-outs are treatment under instrument roots, and HEAD's epoch
-    record agrees with this module on the production-diff gate's unit."""
+    the carve-outs are treatment under instrument roots, HEAD's epoch
+    record agrees with this module on both production-diff gates' units,
+    and (see _record_closure_problems) the epoch record's own mutable-item/
+    mutable-file/unit declarations derive EXACTLY this module's
+    INSTRUMENT_CARVE_OUTS -- catching a future widened allowlist with no
+    matching carve-out generically, not only by filename."""
     problems: list[str] = []
     for path in RUNTIME_REPO_PATHS:
         if not _covered(path, SUBJECT_PATHS):
@@ -655,6 +709,29 @@ def selftest() -> int:
     problems = comparison_problems(wrong_instrument, base_record)
     _selfcheck("comparison-problems-catches-instrument-identity-mismatch",
               any("instrument identities differ" in p for p in problems), problems)
+
+    # B1-F2-F4-R2: the GENERIC carve-out/mutable-item invariant, proven
+    # against a DEEP COPY of the real, committed epoch record (never a
+    # hand-built shape that could silently drift from the real one) --
+    # closing the CLASS of defect the dump.rs omission belonged to, not
+    # only that one filename. See _record_closure_problems's own docstring.
+    real_doc = epoch_record("HEAD")
+    _selfcheck("current-real-epoch-record-closes-cleanly",
+              not _record_closure_problems(real_doc), _record_closure_problems(real_doc))
+
+    hostile_missing = copy.deepcopy(real_doc)
+    hostile_missing["production_diff_gate"]["rust"]["mutable_items"]["src/render.rs"] = ["fn foo"]
+    problems = _record_closure_problems(hostile_missing)
+    _selfcheck("hostile-mutable-item-with-no-matching-carve-out-is-refused",
+              any("render.rs" in p and "is not in INSTRUMENT_CARVE_OUTS" in p for p in problems),
+              problems)
+
+    hostile_excess = copy.deepcopy(real_doc)
+    del hostile_excess["production_diff_gate"]["rust"]["mutable_items"]["src/dump.rs"]
+    problems = _record_closure_problems(hostile_excess)
+    _selfcheck("hostile-excess-carve-out-with-no-backing-mutable-item-is-refused",
+              any("dump.rs" in p and "no production_diff_gate" in p for p in problems),
+              problems)
 
     if _failures:
         print(f"RESULT: {_failures} check(s) failed")
