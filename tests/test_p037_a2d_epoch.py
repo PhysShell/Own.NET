@@ -124,6 +124,29 @@ PHASE_B_GOVERNANCE_FILES = (
     "scripts/p037_verdict_snapshot.py",
     "scripts/p037_b_extractor_diff_gate.py",
     "scripts/p037_delegation_closure.py",
+    # B2.1a (docs/evidence/p037-b-epoch.json's treatment.b2_1a_findings) is
+    # Phase B's own FIRST semantic treatment commit, and the first to need
+    # anything outside the "docs/scripts under Phase B's own prefix" shape
+    # every entry above and PHASE_B_PREFIXES already covered -- four new,
+    # individually justified entries, not a widened prefix:
+    "scripts/p037_b2_1a_raw_diff.py",
+    # a new Phase-B instrument-path tool, same family as every script above.
+    "frontend/roslyn/OwnSharp.Extractor/Program.cs",
+    # treatment.extractor_seam explicitly authorizes this file (EmitFlowExpr
+    # only, governed item-level by scripts/p037_b_extractor_diff_gate.py,
+    # not by this file-level check) -- first exercised here. This check
+    # stays file-level on purpose: the item-level boundary is that gate's
+    # job, not a second copy of it here.
+    ".github/workflows/ci.yml",
+    # ci_transition_plan.b2_1a_gate explicitly authorizes wiring the new
+    # transitional gate into CI -- first exercised here.
+    "corpus/p037-mutation/report.json",
+    # NOT a Phase-B file -- the unrelated, older A2.2-5 mutation campaign
+    # against the completeness oracle (AGENTS.md), whose own documented
+    # rule is that report.json must be re-recorded whenever its production
+    # digest moves. B2.1a's authorized Program.cs change moves that digest
+    # mechanically; this is the required, routine consequence, not a
+    # second, independent Phase-B change.
 )
 #
 # R_B (the Phase-B baseline, taken at T_B) adds new docs/evidence/p037-b-
