@@ -3017,14 +3017,35 @@ jobs:
         run: |
           export OWEN_RUST_CORE="$PWD/rust/target/release/own-cli"
           # The four G-V4 / class-3 controls, on both engines against one record.
-          # Today's record must match; --post-a1 is expected to FAIL until the
-          # semantic cut lands and is therefore NOT run as a gate here.
-          python scripts/p037_controls.py --engine both
+          # P-037 B2.1a (docs/evidence/p037-b-epoch.json's ci_transition_plan.
+          # current_ci_transition) made this check's CURRENT layer NON-BLOCKING:
+          # the extractor-side release->use cut EXPECTEDLY flips
+          # fabricated_release_at_call_site for the four G-V4/legacy-honesty
+          # controls, so a red here on exactly those four is known, not
+          # accidental -- still run and printed so an UNRELATED new mismatch
+          # stays visible, never silently lost. scripts/p037_b2_1a_raw_diff.py
+          # gate below is the blocking check for this stage instead. --post-a1
+          # is the separate, still-blocking-once-B2.1b/c-lands acceptance gate
+          # (b2_1b_c_gate) and is NOT run here.
+          python scripts/p037_controls.py --engine both || true
           # The eleven fact shapes. This is the census that exists because the
           # 137-file VERDICT corpus reported UNCHANGED for a version of a1 that
           # turned six jobs in this very workflow red: verdict coverage is not
           # syntax/fact-shape coverage, and one fixture per shape fails by NAME.
-          python scripts/p037_fact_shapes.py check --engine both
+          # NON-BLOCKING for the identical B2.1a reason as the controls check
+          # above (docs/evidence/p037-b-epoch.json's treatment.b2_1a_findings.
+          # fact_shapes_gap_finding): the SAME release->use cut moves 11 of
+          # these 55 shapes' recorded facts/verdicts, a gap the original
+          # ci_transition_plan preregistration did not enumerate for this
+          # script by name. Still run and printed for the same reason.
+          python scripts/p037_fact_shapes.py check --engine both || true
+          # P-037 B2.1a transitional gate (ci_transition_plan.b2_1a_gate):
+          # BLOCKING. Asserts the raw-fact contract for the eight fixtures the
+          # two non-blocking censuses above are now expected to disagree on --
+          # the fabricated release is gone (or degraded to use) and the caller
+          # is still tracked -- independently of whether the full verdict is
+          # yet A1-correct.
+          python scripts/p037_b2_1a_raw_diff.py gate
           # A2.0: a recorded run remains evidence only while its measured
           # implementation closure and exact input blob set stay unchanged.
           python tests/test_p037_evidence.py

@@ -4477,15 +4477,27 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
         nodes.Add(new { op = "release", var = pbuf, line = LineOf(expr) });
         return;
     }
-    // Foo(s) where Foo consumes (disposes) a by-value IDisposable parameter -> the handoff
-    // RELEASES the matching argument(s) here (the inter-procedural consume contract,
-    // modelled at the call site like pool Return). A later use of an argument is then a
-    // use-after-handoff (OWN002). Do NOT return — other tracked arguments of the same call
-    // (`Consume(s, t)`) still need their `use` below; a consumed arg is excluded from it.
+    // Foo(s) where Foo consumes (disposes) a by-value IDisposable parameter, per the SAME
+    // ConsumeReleaseArgs/ConsumesParam interprocedural check as before (frozen, unchanged
+    // by P-037 B2.1a) — but this call site stops turning that answer into an unconditional
+    // `release`. The check is flow-insensitive (a callee that disposes on SOME path counts
+    // as consuming, regardless of which guard actually reaches it), which is the may-as-must
+    // hole P-037 exists to close: crediting a release the callee might not take on THIS path
+    // gives a real leak a clean bill of health. B2.1a makes the argument a plain `use` here
+    // instead — honest about what this extractor pass alone can prove — leaving the real,
+    // guard-aware consume/leak verdict to the Rust summary solver (P-037 B2.1b/c), which
+    // reads the SAME call's already-emitted guarded_facts.calls[] sidecar entry rather than
+    // this op. Known, accepted, INTERMEDIATE consequence of B2.1a landing alone: an
+    // unconditionally-consuming callee (no guard at all) is temporarily invisible as a leak
+    // too, until B2.1b/c's solver restores that case from the same sidecar — not a defect in
+    // this cut. Do NOT return — other tracked arguments of the same call (`Consume(s, t)`)
+    // still need their `use` below; this loop already emits one for each consumed argument,
+    // and the general scan's own `consumed`-exclusion (below) is what stops a second, not a
+    // `return` here.
     var consumed = ConsumeReleaseArgs(expr, model);
     foreach (var c in consumed)
         if (tracked.Contains(c))
-            nodes.Add(new { op = "release", var = c, line = LineOf(expr) });
+            nodes.Add(new { op = "use", var = c, line = LineOf(expr) });
     // any other reference to a tracked local -> use (once per local; a consumed arg is a
     // release above, never also a use). A Span/Memory VIEW of a tracked buffer is a BORROW: a
     // reference to the view is a use of the OWNER, so using it after the owner was Returned/Disposed

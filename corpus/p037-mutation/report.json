@@ -486,18 +486,14 @@
       "surface": "taxonomy"
     }
   },
-  "production_digest": "74d600cf46aa9b7d2e3b7dbdea184243fe5ab413e9bb92154d46db165dcd1caa",
+  "production_digest": "d01b9a619238d5fa4b29e3bfc78a536e3c6d268cda321fcf51d441bb463548f1",
   "provenance": {
-    "base_sha": "27aadf22ed38488d721f5217705326b7653a4bb6",
+    "base_sha": "fc90d72136bd9ec3d4bac602ef7b0bca6d05e102",
     "pending_paths": [
-      " M AGENTS.md",
+      " M docs/evidence/p037-b-epoch.json",
       " M docs/notes/p037-formal-kernel.md",
-      " M frontend/roslyn/OwnSharp.Oracle/README.md",
-      " M pyproject.toml",
-      " M scripts/p037_completeness_oracle.py",
-      "?? corpus/p037-mutation/",
-      "?? scripts/p037_mutation_campaign.py",
-      "?? tests/test_p037_mutation_campaign.py",
+      " M frontend/roslyn/OwnSharp.Extractor/Program.cs",
+      "?? scripts/p037_b2_1a_raw_diff.py",
       "M .github/workflows/ci.yml"
     ]
   },

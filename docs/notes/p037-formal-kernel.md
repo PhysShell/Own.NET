@@ -3616,6 +3616,120 @@ implementing second, only works when the measurement's own closure is
 complete; an incomplete closure turns the *correct* future treatment into
 the thing that invalidates its own evidence.
 
+#### 10.8k Phase B / B2.1a: the first semantic treatment — extractor-side uniform delegation lands
+
+The first commit under this record to move a byte of production semantics
+(`treatment.entered_by_this_record` flips `false` -> `true`). Implements
+exactly `extractor_seam.authorized_change_shape`, nothing beyond it: inside
+`frontend/roslyn/OwnSharp.Extractor/Program.cs`'s `EmitFlowExpr`, the
+`ConsumeReleaseArgs`/`ConsumesParam`-derived consumed-argument loop now
+emits `use(var, line)` where it emitted an unconditional `release(var,
+line)` before — same variable, same line, nothing else on the op, uniformly
+and unconditionally, no guard inspection added. `ConsumeReleaseArgs`,
+`ConsumesParam`, `CallReleasesReceiver`, `BuildGuardedFacts`,
+`DisposesLocal` and `ParameterIsStable` are byte-identical; the tracking-
+facing `consumedArg` admission decision (Program.cs ~7380) reads the same
+`ConsumeReleaseArgs` and is untouched. `scripts/p037_b_extractor_diff_gate.
+py` confirms `EmitFlowExpr` is the only changed item, WITHIN_ALLOWLIST
+against `3ac13fd`.
+
+**Why this specific line, and only this line.** The flow-insensitive
+`ConsumesParam` check (a callee that disposes its parameter on SOME path
+counts as consuming it, regardless of which guard actually reaches that
+path) is the may-as-must hole P-037 exists to close. Crediting a release
+the callee might not take on a given path gives a real leak a clean bill of
+health. `EmitFlowExpr`'s consumed-argument loop was the ONE place this
+answer was materialized into an unconditional flow op (traced directly
+from source, not assumed — `b1_f2_f3b_delegation_architecture.
+seam_derivation`); degrading it to `use` stops the extractor claiming more
+than it can honestly prove, leaving the guard-aware consume/leak verdict to
+the Rust summary solver B2.1b/c will add, reading the SAME call's already-
+emitted `guarded_facts.calls[]` sidecar entry rather than this op.
+
+**The governed full-population raw-fact diff.** A new tool,
+`scripts/p037_b2_1a_raw_diff.py` (a tracked `INSTRUMENT_PATHS` file),
+snapshots raw facts for the full frozen population (193 documents —
+real-world, wpf, di, fixtures, p036-bakeoff, p037-shapes, repo-tree; never
+batched, the same population `scripts/p037_delegation_closure.py` walks)
+before the change (`git stash`, rebuild, snapshot) and after it (`git stash
+pop`, rebuild, snapshot), then classifies every leaf difference between the
+two as either the one authorized op-label-only `release`->`use` flip or a
+named violation. Result: `documents_compared=193, changed_files=30,
+authorized_movements=40, violations=0`. Zero violations over the WHOLE
+population — not merely the eight named fixtures — is the empirical
+discharge of `first_semantic_hypothesis.facts_expectation`'s entire `never`
+list: no release disappeared outright, no `functions[]`/`guarded_functions
+[]` admission changed anywhere, no acquire changed, no unrelated use/
+release changed, no `guarded_facts` content changed, no call-site identity
+changed, no component/service/effect/protocol changed. The 40 count
+independently and exactly reproduces `scripts/p037_delegation_closure.py`'s
+own pre-treatment correlation count (`documents=193, total=40, covered=
+40`) — two structurally unrelated measurement methods (a live before/after
+diff versus a static correlation census) agreeing exactly, which resolves
+the open question `facts_expectation.verified_by` itself raised: a
+correlation count is not guaranteed to equal the real changed-site
+population, and here, empirically, it does.
+
+**The transitional gate.** The same tool's `gate` subcommand is
+`ci_transition_plan.b2_1a_gate`, built as preregistered: fast, no
+historical snapshot needed, it asserts at the current head that each of
+the eight named fixtures (the four F3-S* `guarded-consume-*` before/after
+pairs, whose call-site/caller identity is hardcoded since they carry no
+`expected.json`; the four G-V4/legacy-honesty `corpus/p036-bakeoff`
+controls, reusing their own `expected.json`'s `call_site_line`) shows no
+fabricated release at its call site and its caller is still admitted to
+`functions[]`. It reads neither layer of `corpus/p036-bakeoff/*/expected.
+json` and does not touch `scripts/p037_controls.py`. All eight pass.
+
+**An unanticipated partial pass, found by running the check, not by
+inspection.** At B2.1a alone, `p037_controls.py --post-a1 --engine rust`
+now shows three of the four controls (`gv4-control-aliased-self-null`,
+`gv4-control-mutated-guard`, `gv4-control-ref-alias-guard`) already fully
+post-A1-acceptable: their bug was a pure false positive — the fabricated
+release colliding with a genuine later use or dispose — which degrading it
+to `use` removes with no guard-literal reasoning required at all. Only
+`legacy-honesty-else-unresolved-forward` still mismatches (gains OWN001,
+wants no finding): its target, `M(r, flag, sink)`'s unresolved forward
+collapsing to `plain + OWN051` rather than a hard leak, genuinely needs
+B2.1b/c's guard-aware unknown-collapse logic. `b2_1b_c_gate` is unchanged
+by this: the combined mandatory acceptance gate still requires all four
+post-A1, still gated on B2.1b/c landing.
+
+**A gap in this record's own prior preregistration, found the same way.**
+`ci_transition_plan` never enumerated `scripts/p037_fact_shapes.py`
+(`corpus/p037-shapes/*/expected.json`, 55 shapes) — only `p037_controls.
+py`. The identical authorized movement also moves 11 of the 55 shapes'
+recorded facts and, for most, their verdicts (`call-expression-statement`,
+`guard-bool-const-false`/`true`, `guard-forward-bare`/`negated`,
+`guard-mutated`, `guard-opaque-expression`, `guard-ref-alias`,
+`named-arguments-reordered`, `orphan-disjoint-from-records`, `orphan-
+expression-bodied`) — confirmed structurally identical to the authorized
+shape by `p037_b2_1a_raw_diff.py`'s own classification (these 11 files are
+a subset of its 30 `changed_files`), not a second, different phenomenon.
+Treated identically to `p037_controls.py`'s own current-layer transition,
+by the same reasoning, extended here rather than reinvented: neither
+`corpus/p037-shapes/*/expected.json` nor `scripts/p037_fact_shapes.py` is
+edited by this task.
+
+**CI, implemented as designed plus this one measured extension.** `.github/
+workflows/ci.yml`'s "P-037 conformance controls + fact-shape census" step
+now runs `p037_controls.py --engine both` and `p037_fact_shapes.py check
+--engine both` non-blocking (`|| true`; both still run and print, so an
+unrelated new divergence beyond the known affected set stays visible in
+logs, but neither fails the build) and `p037_b2_1a_raw_diff.py gate`
+blocking in their place — the historical current-mode reds on the eight
+plus eleven affected controls/shapes are expected, not accidental, per
+`facts_expectation`.
+
+**Frozen, unchanged by this task.** `named_later.B_treatment_head` and
+`B_after_evidence` stay `null` — B2.1a alone is not eligible to be named
+the combined treatment head (`order` above). No Rust production byte
+moves (`production_diff_gate.rust` reports IDENTICAL against `3ac13fd`);
+no `guarded_facts` vocabulary, validation, or door changes; neither
+`post_a1_partial_pass_finding` nor `fact_shapes_gap_finding`'s affected
+controls are repaired — both stay exactly as observed. B2.1b/c is a
+separate, later, not-yet-authorized task.
+
 **Fix, with zero production-semantic movement.** `rust/crates/own-bridge/
 src/dump.rs` joins `mos.rs`/`lower.rs` in `INSTRUMENT_CARVE_OUTS` (and
 therefore `TREATMENT_PATHS`, literally the same tuple), carved out WHOLE
