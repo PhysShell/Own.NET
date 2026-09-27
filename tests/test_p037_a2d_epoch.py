@@ -112,6 +112,19 @@ DOCS_GENERATED_ADJUDICATED = (
 # #10.8h). Same family, same reasoning: Phase-B audit/measurement tooling
 # landing in the commit that defines it, touching no `ownlang`/`rust/
 # crates/own-ir`/`spec` treatment and no `frontend/` production byte.
+#
+# CH3 (docs(p037): amend Phase B conditionality evidence contract, ca84cb1)
+# adds `docs/proposals/P-037-guarded-effect-summaries.md`: the CH-7 edit
+# recording the CONDITIONALITY_HONESTY amendment to the kernel's own
+# semantic-class proposal. This is the SAME false-green mechanism b234599
+# already hit and documented above: CH-7 modified this file back in Phase
+# C, but it sat uncommitted through every intervening Phase-B commit, so
+# `git diff T_D HEAD` never saw it move until ca84cb1 finally committed it
+# -- a pre-existing gap this allowlist never had to close before, not new
+# damage from ca84cb1's own 7-file scope. Same family, same reasoning as
+# every entry above it: Phase-B project documentation landing in the
+# commit that actually commits it, touching no `ownlang`/`rust/crates/
+# own-ir`/`spec` treatment.
 PHASE_B_GOVERNANCE_FILES = (
     "docs/evidence/p037-b-epoch.json",
     "docs/evidence/p037-b-ledger-assumptions.json",
@@ -124,6 +137,7 @@ PHASE_B_GOVERNANCE_FILES = (
     "scripts/p037_verdict_snapshot.py",
     "scripts/p037_b_extractor_diff_gate.py",
     "scripts/p037_delegation_closure.py",
+    "docs/proposals/P-037-guarded-effect-summaries.md",
 )
 #
 # R_B (the Phase-B baseline, taken at T_B) adds new docs/evidence/p037-b-
