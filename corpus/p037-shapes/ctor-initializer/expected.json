@@ -1,7 +1,7 @@
 {
   "schema": "p037-fact-shape/1",
   "shape": "ctor-initializer",
-  "status": "pending_a2",
+  "status": "anchored",
   "why": "A2.2 G-B. `: base(s, keep)` is a call that hands the owned parameter to the base constructor before the body runs; A2.1 does not record constructor initializers.",
   "a2_contract": "A2.2 records the initializer as a calls[] entry: callee = `GuardedBase..ctor`, site = the initializer, statement_line = its line, form = statement (it runs as a statement and its result is discarded), args param 0 -> param{0}, param 1 -> param{1}.",
   "measured_at": "23e3203",
@@ -43,11 +43,66 @@
       "body": [
         "use:s@22"
       ],
-      "guarded_facts": null
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 20,
+              "column": 51
+            },
+            "statement_line": 20,
+            "form": "statement",
+            "callee": "GuardedBase..ctor",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "param",
+                "source_param": 1
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
     }
   },
   "verdict": {
     "rust": [],
     "python": []
-  }
+  },
+  "a2_landed": "A2.2 landed: object creations and constructor initializers are calls, value-preserving wrappers (parentheses, `!`, identity/non-user-defined reference casts) are looked through, and a handle inside `as`/`?:`/`??`/a non-preserving cast keeps the record with an opaque slot (docs/notes/p037-a2.2-call-facts.md §4). Body, params and verdicts unchanged; the sidecar stays inert.",
+  "a2_expect": [
+    {
+      "function": "ForwardingDerived..ctor",
+      "call": {
+        "form": "statement",
+        "callee": "GuardedBase..ctor",
+        "sig": "System.IO.Stream,System.Boolean",
+        "args": [
+          {
+            "param": 0,
+            "kind": "param",
+            "source_param": 0
+          },
+          {
+            "param": 1,
+            "kind": "param",
+            "source_param": 1
+          }
+        ]
+      }
+    }
+  ],
+  "status_history": [
+    "pending_a2 (recorded at 23e3203, base of A2.2)",
+    "anchored (A2.2)"
+  ]
 }

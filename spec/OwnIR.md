@@ -354,8 +354,10 @@ guarded_facts:
   version         1
   calls[]         one per RELEVANT call: a disposable local of this method (any
                   candidate, escaped or not) or an owned parameter flows in, as an
-                  argument or as a reduced extension method's receiver
-    site          {line, column} — start of the invocation expression (identity)
+                  argument or as a reduced extension method's receiver. A call is an
+                  invocation, an object creation (A2.2), or a constructor
+                  initializer `: base(...)` / `: this(...)` (A2.2)
+    site          {line, column} — start of the call expression (identity)
     statement_line the enclosing statement's line (what the legacy ops carry)
     form          statement | initializer | expression
     callee, sig   the resolved method's functions[] key and §5.1 signature, or null
@@ -374,11 +376,30 @@ guarded_facts:
 Binding rules: a named argument resolves to its parameter; a reduced extension's
 receiver is ordinal 0 (the unreduced declaration is the summary's home); an
 argument bound to a `params` array collapses to one `opaque` slot; an omitted
-optional argument has no entry; a `ref`/`out` argument is `opaque`. For an
+optional argument has no entry; a `ref`/`out` argument is `opaque`.
+
+Call forms (A2.2). An object creation's callee is its constructor, named by the
+constructor's own `functions[]` key (`T..ctor`); its `form` follows its parent
+like an invocation's (`using var w = new T(...)` is an `initializer`). A
+constructor initializer's callee is the target constructor, its `site` the
+initializer, and its `form` is `statement` (it runs before the body and its
+result is discarded).
+
+Argument unwrapping (A2.2). A value-preserving wrapper is looked through before
+the argument is classified: parentheses, the null-forgiving `!`, and a cast whose
+own conversion is identity or a non-user-defined reference conversion — the same
+object, a different static type — so `(Stream)p` is `param` and `(Stream)fs` is
+`var`. A boxing, unboxing, numeric or user-defined cast is a different value and
+stays `opaque`. A handle inside `x as T`, `c ? a : b`, `a ?? b` or a
+non-preserving cast still flows into the call: the slot is `opaque` and the
+record is kept (opaque, not absent). For an
 **unresolved** callee (`callee: null`) the ordinal is the *source position* —
 there is no declaration to bind against, and the record says so rather than
 guessing. Calls inside lambdas and local functions belong to those bodies, not
-to the method.
+to the method. A method with no `functions[]` record carries no sidecar (an
+expression-bodied member, an empty lowered body, a method whose every
+disposable local escapes): that record-level boundary is not closed in A2
+(`docs/notes/p037-a2.2-call-facts.md` §3).
 
 The call-site identity — the invocation's own coordinate plus `statement_line` —
 is what lets the legacy view (`body`) and this one be joined until the C+
