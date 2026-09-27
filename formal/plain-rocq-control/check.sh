@@ -13,9 +13,11 @@ if ! cmp -s theories/RustTables.v.new theories/RustTables.v 2>/dev/null; then
   echo "RustTables.v regenerated from formal/p037-kernel." >&2
 fi
 mv theories/RustTables.v.new theories/RustTables.v
-for f in Lfp P037 RustTables Correspondence; do
+for f in Lfp P037 RustTables Correspondence Election; do
   t0=$(date +%s.%N)
   rocq compile "${W[@]}" -Q theories PlainSpike "theories/$f.v" > /dev/null
   printf '  %-18s %.1fs\n' "$f.v" "$(echo "$(date +%s.%N) - $t0" | bc)"
 done
-rocq compile "${W[@]}" -Q theories PlainSpike theories/Audit.v | grep -E "Closed|Axioms|^[A-Za-z_]+ :" || true
+for a in Audit ElectionAudit; do
+  rocq compile "${W[@]}" -Q theories PlainSpike "theories/$a.v" | grep -E "Closed|Axioms|^[A-Za-z_]+ :" || true
+done
