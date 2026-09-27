@@ -30,16 +30,50 @@ The corrected scope is recorded in docs/evidence/p037-b-epoch.json's
 just here.
 
 Unit: rust/crates/own-bridge/. Frozen files (byte-identical): Cargo.toml,
-src/ast.rs, src/lib.rs, src/render.rs, src/verdict.rs. Mutable by item:
+src/ast.rs, src/lib.rs. Mutable by item:
 src/mos.rs (every item except the two purely graph-topological helpers
 `fn call_graph` / `fn sccs`, which touch no Transfer/join semantics at
 all), src/lower.rs (exactly `fn lower_fn_params`, `fn
 unverified_transfer_calls`, `fn kill_sites_for_unverified`, `fn lower_full`;
-lower.rs's other 69 top-level items stay frozen at item granularity) and
+lower.rs's other 69 top-level items stay frozen at item granularity),
 (B1-F2-F4) src/dump.rs (exactly `fn dump_summaries`; its three other items
 -- `fn escape_py`, `fn emit`, `fn pad`, plus its `use` statements and inner
 attribute -- stay frozen at item granularity, same discipline as
-lower.rs's other 69).
+lower.rs's other 69) and (CH3-3) src/verdict.rs / src/render.rs (see below).
+
+CH3-3 widens src/verdict.rs (exactly `struct Finding`, `impl Finding`,
+`fn transfer_note`; its other 47 top-level items stay frozen at item
+granularity) and src/render.rs (exactly `struct Properties`, `fn
+sarif_result`; its other 35 top-level items stay frozen) from whole-file-
+frozen to item-level mutable. Why, recorded here and not just in the epoch
+document: the U1 fixture (docs/evidence/p037-b-epoch.json's
+b2_1b_c_r1_conditionality_honesty_amendment) proved a real, measured
+CONDITIONALITY_HONESTY movement can exist with NO (method,param) SUMMARY
+coordinate at all -- the resource is a caller-local, never a parameter --
+so the call-site witness p037_verdict_snapshot.py already reads is the
+ONLY evidence shape that can explain it. That witness's read side (SARIF
+`properties.p037_call_site_witness`) is fully wired and tested; its WRITE
+side needs a real producer, and `Finding`/`Properties` are the two places
+one must plug in: `Finding::new()` (inside `impl Finding`) is verdict.rs's
+ONLY struct-literal constructor for `Finding` (confirmed by running this
+module's own rust_items() over the live file, not assumed), so a new
+optional field needs exactly that one default line plus the field
+declaration itself; `fn transfer_note` is the one place a real OWN051
+`Finding` is minted and so the one place the field can be populated from
+`Own051` (itself already item-level mutable in lower.rs, unaffected here);
+`struct Properties` / `fn sarif_result` are render.rs's own single
+construction site for the SARIF `properties` bag, and `sarif_result`'s only
+job here is copying an already-formed value across -- no semantic logic
+moves into render.rs. This authorizes TRANSPORT for a future producer, not
+new semantics: no OwnIR field, no launcher change, and every other
+finding-builder in verdict.rs (di_findings/effect_findings/protocol_findings/
+etc.) and every other render.rs surface (render_human/render_github/
+render_msbuild/build_sarif's own structure) is untouched and stays frozen
+at item granularity, same discipline as lower.rs's other 69 items. A cheap,
+fully-reverted scratch compile experiment (never committed) proved the
+plumbing reaches SARIF `properties` with zero change to any diagnostic's
+decision/code/level/message/location, to the other three render formats,
+or to any existing golden fixture, before this policy was authorized.
 
 B1-F2-F4 widens dump.rs from a frozen file to an item-level mutable file
 because it was found holding a real blocker: `dump_summaries` calls legacy
@@ -110,8 +144,6 @@ FROZEN_FILES: tuple[str, ...] = (
     "Cargo.toml",
     "src/ast.rs",
     "src/lib.rs",
-    "src/render.rs",
-    "src/verdict.rs",
 )
 
 # Every top-level item in mos.rs today except the two pure graph-topology
@@ -152,6 +184,29 @@ DUMP_MUTABLE_ITEMS: tuple[str, ...] = (
     "fn dump_summaries",
 )
 
+# CH3-3: verdict.rs's own three mutable items -- `Finding::new()` (inside
+# `impl Finding`) is the file's ONLY struct-literal constructor for
+# `Finding` (every other finding-builder mutates fields on an
+# already-built value), and `fn transfer_note` is the one place a real
+# OWN051 `Finding` is minted. Every other finding-builder
+# (di_findings/effect_findings/unresolved_findings/protocol_findings/etc.)
+# stays frozen at item granularity -- confirmed disjoint below.
+VERDICT_MUTABLE_ITEMS: tuple[str, ...] = (
+    "struct Finding",
+    "impl Finding",
+    "fn transfer_note",
+)
+
+# CH3-3: render.rs's own two mutable items -- `struct Properties` /
+# `fn sarif_result` are each other's only construction site (confirmed by
+# running this module's own rust_items() over the live file). Every other
+# render.rs surface (render_human/render_github/render_msbuild/
+# build_sarif's own structure, every other SARIF struct) stays frozen.
+RENDER_MUTABLE_ITEMS: tuple[str, ...] = (
+    "struct Properties",
+    "fn sarif_result",
+)
+
 
 def _b_policy(rs: dict[str, Any]) -> Policy:
     """Build a Policy from docs/evidence/p037-b-epoch.json's own
@@ -186,6 +241,8 @@ def frozen_policy() -> dict[str, Any]:
             "src/mos.rs": list(MOS_MUTABLE_ITEMS),
             "src/lower.rs": list(LOWER_MUTABLE_ITEMS),
             "src/dump.rs": list(DUMP_MUTABLE_ITEMS),
+            "src/verdict.rs": list(VERDICT_MUTABLE_ITEMS),
+            "src/render.rs": list(RENDER_MUTABLE_ITEMS),
         },
         "registered_new_items": {},
         "frozen_files": list(FROZEN_FILES),
@@ -537,6 +594,150 @@ def selftest() -> int:
     _selfcheck("dump-mutable-and-frozen-items-are-disjoint",
               not (set(DUMP_MUTABLE_ITEMS) & expected_dump_frozen),
               (DUMP_MUTABLE_ITEMS, expected_dump_frozen))
+
+    # --- CH3-3: verdict.rs/render.rs's own item-granularity hostile tests,
+    # on dedicated synthetic fixtures shaped like the real files (a mutable
+    # struct+impl+constructor-user plus one frozen sibling finding-builder /
+    # render surface), proving the widening is exactly the six named items
+    # and nothing more -- same discipline as the dump.rs block above, which
+    # this one is deliberately modeled on. ---
+    _REF_VERDICT = (
+        "struct Finding {\n"
+        "    file: String,\n"
+        "}\n"
+        "impl Finding {\n"
+        "    fn new(file: String) -> Self {\n"
+        "        Self { file }\n"
+        "    }\n"
+        "}\n"
+        "fn transfer_note(file: &str) -> Finding {\n"
+        "    Finding::new(file.to_owned())\n"
+        "}\n"
+        "fn di_findings(file: &str) -> Finding {\n"
+        "    Finding::new(String::from(file))\n"
+        "}\n"
+    )
+    _REF_RENDER = (
+        "struct Properties {\n"
+        "    kind: String,\n"
+        "}\n"
+        "fn sarif_result(kind: &str) -> Properties {\n"
+        "    Properties { kind: kind.to_owned() }\n"
+        "}\n"
+        "fn render_human(kind: &str) -> String {\n"
+        "    format!(\"{kind}\")\n"
+        "}\n"
+    )
+    cv_ref = memory_tree({
+        "crate/src/lib.rs": _REF_LIB,
+        "crate/src/frozen.rs": "pub fn frozen() {}\n",
+        "crate/src/verdict.rs": _REF_VERDICT,
+        "crate/src/render.rs": _REF_RENDER,
+        "crate/tests/t.rs": "#[test]\nfn t() {}\n",
+    })
+    cv_pol = _mem_policy(rust_mutable_items={
+        "src/lib.rs": ("fn mutable_fn",),
+        "src/verdict.rs": tuple(VERDICT_MUTABLE_ITEMS),
+        "src/render.rs": tuple(RENDER_MUTABLE_ITEMS),
+    })
+
+    rep = compare_rust(cv_ref, cv_ref, cv_pol)
+    _selfcheck("verdict-render-identical-is-identical", rep.verdict == IDENTICAL, rep.as_dict())
+
+    for label, replacement in (
+        ("struct", ("    file: String,\n}\n", "    file: String,\n    extra: bool,\n}\n")),
+        ("impl", ("        Self { file }\n",
+                  "        let out = Self { file };\n        out\n")),
+        ("transfer_note",
+         ("fn transfer_note(file: &str) -> Finding {\n    Finding::new(file.to_owned())\n}\n",
+          "fn transfer_note(file: &str) -> Finding {\n    let file = file.to_owned();\n"
+          "    Finding::new(file)\n}\n")),
+    ):
+        head = memory_tree({
+            "crate/src/lib.rs": _REF_LIB,
+            "crate/src/frozen.rs": "pub fn frozen() {}\n",
+            "crate/src/verdict.rs": _REF_VERDICT.replace(*replacement),
+            "crate/src/render.rs": _REF_RENDER,
+            "crate/tests/t.rs": "#[test]\nfn t() {}\n",
+        })
+        rep = compare_rust(cv_ref, head, cv_pol)
+        _selfcheck(f"verdict-{label}-movement-is-allowed", rep.verdict == WITHIN, rep.as_dict())
+
+    head = memory_tree({
+        "crate/src/lib.rs": _REF_LIB,
+        "crate/src/frozen.rs": "pub fn frozen() {}\n",
+        "crate/src/verdict.rs": _REF_VERDICT.replace(
+            "Finding::new(String::from(file))", "Finding::new(String::from(file.trim()))"),
+        "crate/src/render.rs": _REF_RENDER,
+        "crate/tests/t.rs": "#[test]\nfn t() {}\n",
+    })
+    rep = compare_rust(cv_ref, head, cv_pol)
+    _selfcheck("verdict-other-finding-builder-is-violation", rep.verdict == VIOLATION,
+              rep.as_dict())
+
+    for label, replacement in (
+        ("struct", ("    kind: String,\n}\n", "    kind: String,\n    extra: bool,\n}\n")),
+        ("sarif_result", ("Properties { kind: kind.to_owned() }",
+                          "Properties { kind: kind.trim().to_owned() }")),
+    ):
+        head = memory_tree({
+            "crate/src/lib.rs": _REF_LIB,
+            "crate/src/frozen.rs": "pub fn frozen() {}\n",
+            "crate/src/verdict.rs": _REF_VERDICT,
+            "crate/src/render.rs": _REF_RENDER.replace(*replacement),
+            "crate/tests/t.rs": "#[test]\nfn t() {}\n",
+        })
+        rep = compare_rust(cv_ref, head, cv_pol)
+        _selfcheck(f"render-{label}-movement-is-allowed", rep.verdict == WITHIN, rep.as_dict())
+
+    head = memory_tree({
+        "crate/src/lib.rs": _REF_LIB,
+        "crate/src/frozen.rs": "pub fn frozen() {}\n",
+        "crate/src/verdict.rs": _REF_VERDICT,
+        "crate/src/render.rs": _REF_RENDER.replace('format!("{kind}")', 'format!("[{kind}]")'),
+        "crate/tests/t.rs": "#[test]\nfn t() {}\n",
+    })
+    rep = compare_rust(cv_ref, head, cv_pol)
+    _selfcheck("render-other-surface-is-violation", rep.verdict == VIOLATION, rep.as_dict())
+
+    head = memory_tree({
+        "crate/src/lib.rs": _REF_LIB,
+        "crate/src/frozen.rs": "pub fn frozen() {}\n",
+        "crate/src/verdict.rs": _REF_VERDICT + "fn new_helper() -> i32 { 1 }\n",
+        "crate/src/render.rs": _REF_RENDER,
+        "crate/tests/t.rs": "#[test]\nfn t() {}\n",
+    })
+    rep = compare_rust(cv_ref, head, cv_pol)
+    _selfcheck("verdict-new-unregistered-helper-is-violation", rep.verdict == VIOLATION,
+              rep.as_dict())
+    cv_reg_pol = _mem_policy(
+        rust_mutable_items={"src/lib.rs": ("fn mutable_fn",),
+                            "src/verdict.rs": tuple(VERDICT_MUTABLE_ITEMS),
+                            "src/render.rs": tuple(RENDER_MUTABLE_ITEMS)},
+        rust_registered_items={"src/verdict.rs": ("fn new_helper",)})
+    rep = compare_rust(cv_ref, head, cv_reg_pol)
+    _selfcheck("verdict-registered-new-helper-is-allowed", rep.verdict == WITHIN, rep.as_dict())
+
+    tampered = copy.deepcopy(frozen_policy())
+    tampered["mutable_files"] = ["src/verdict.rs"]
+    _selfcheck("verdict-whole-file-widening-is-policy-drift", bool(policy_drift(tampered)),
+              policy_drift(tampered))
+    tampered = copy.deepcopy(frozen_policy())
+    tampered["mutable_files"] = ["src/render.rs"]
+    _selfcheck("render-whole-file-widening-is-policy-drift", bool(policy_drift(tampered)),
+              policy_drift(tampered))
+
+    verdict_src = (ROOT / "rust" / "crates" / "own-bridge" / "src" / "verdict.rs").read_text(
+        encoding="utf-8")
+    verdict_items = {it.key for it in rust_items(verdict_src, "verdict.rs")}
+    missing_verdict = set(VERDICT_MUTABLE_ITEMS) - verdict_items
+    _selfcheck("verdict-mutable-items-exist-in-live-source", not missing_verdict, missing_verdict)
+
+    render_src = (ROOT / "rust" / "crates" / "own-bridge" / "src" / "render.rs").read_text(
+        encoding="utf-8")
+    render_items = {it.key for it in rust_items(render_src, "render.rs")}
+    missing_render = set(RENDER_MUTABLE_ITEMS) - render_items
+    _selfcheck("render-mutable-items-exist-in-live-source", not missing_render, missing_render)
 
     if _failures:
         print(f"RESULT: {_failures} check(s) failed")

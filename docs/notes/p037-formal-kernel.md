@@ -3650,3 +3650,174 @@ the same kind of retake B1-F1/B1-F2/B1-F2-F2/B1-F2-F4/B1-F2-F4-R1 each
 already forced. Only once this corrected head is terminal-green does the
 fresh `T_B`/`R_B` retake proceed, and only after THAT retake is itself
 terminal-green does B2.1a become the next authorized task — not before.
+
+## 11. Phase B / B2.1b/c-R1: the CONDITIONALITY_HONESTY case-5 amendment
+
+The held B2.1b/c-R1 treatment (the guarded-effect summary engine actually
+wired into `mos.rs`/`lower.rs`/`dump.rs`, uncommitted on its own branch)
+gave the B1 classifier (`scripts/p037_b_classifier.py`) its first REAL
+`guarded` representation to measure real documents against. Doing exactly
+what B1-F2-F4's own `derive_document_witnesses`/`explain_divergence`
+adapter was built for — classify a REAL structural divergence, not a
+hand-built one — surfaced a §10.1 case 5: a real, user-visible verdict/
+advisory movement that fits none of the three declared classes in the
+P-037 proposal's G-T2b (§7) or this note's own §10.8 framing of them.
+
+**The measurement.** Three fixtures, built deliberately around a NON-
+static, non-literal `bool` guard argument (a direct call to a genuinely
+conditional callee, the same callee reached through a bare-forward
+wrapper, and that wrapper followed by a defensive dispose), run through
+the real pipeline at three states: a scratch worktree at the pre-B2.1a
+instrument head (this section's own commit lineage), the current
+instrument head's own extractor/`mos.rs` (post-B2.1a, still guard-
+unaware — `mos.rs`/`lower.rs`/`dump.rs` are byte-identical between these
+two states; only `frontend/roslyn/OwnSharp.Extractor/Program.cs` moved
+under B2.1a), and the held R1 treatment. Measured, not assumed (§10's own
+discipline throughout): the wrapper's own summary transfer walks `must`
+(state A — the pre-B2.1a extractor fabricates an unconditional release
+at the delegating call site) -> `no` (state B — B2.1a's own EmitFlowExpr
+change degrades that fabrication to a bare `use`, and legacy's `no` is
+frozen there today, since `ownlang/ownir.py`'s own derivation is
+byte-identical across all three states) -> a real `Split(no,must)`/
+`Split(must,no)` collapsing to `may` (state C, R1's own guarded solver).
+The verdict moves in lockstep: a real `OWN001` (states A and B) becomes a
+`0 findings + OWN051` advisory (state C) — `own-cli`'s own SARIF marks
+`OWN001` `warning` and `OWN051` `note`, so this is visible even at
+`p037_verdict_snapshot.py`'s default `--level verdict` filter, not only
+under `--level all`. The direct-call fixture additionally proved the
+existing (method,param) WITNESS schema cannot even represent the
+divergence at its own call site: the caller acquires its resource as a
+LOCAL, never receives it as a parameter, so no `dump_summaries` row for
+that method exists at all — the movement is real (the same verdict
+transition, same three states) but structurally invisible to
+`derive_document_witnesses`, which walks `summaries[].params[]`.
+
+**Kernel theorem vs. composed pipeline — kept as two separate claims, on
+purpose.** G-T2a/G-T2b (proposal §7) are proofs about the relationship
+between the guarded lfp system and `_build_skeletons`'s derivation FROM
+WHATEVER RAW BODY OPS IT IS HANDED. Nothing about this finding moves
+K11/K11' or their `formal/p037-kernel` mechanization, and no hand-derived
+row in the proposal's §8 stops holding — the kernel theorem is not
+rewritten, because its premises still hold exactly where it states them.
+What was false is a SEPARATE, later claim layered on top of it: that
+diffing the collapsed view against the real, composed pipeline's golden
+dumps — extractor facts as B2.1a actually changed them, feeding both
+derivations — lands in exactly those three classes and nothing else.
+B2.1a's own EmitFlowExpr change is precisely a movement in WHICH raw body
+op `_build_skeletons` is handed for a delegating call, for both engines at
+once — a variable the kernel theorem's own statement, quantified over
+"today's derivation" reading whatever op the extractor already produced,
+never modeled. This is the same distinction `docs/evidence/
+p037-b-epoch.json`'s own `b1_f2_f3b_delegation_architecture` note already
+draws between the raw-fact layer's authorization (`facts_expectation`) and
+the semantic classification layered on top of an authorized fact move
+(APPLICATION_REFINEMENT/SUMMARY_REFINEMENT/LEGACY_HONESTY/UNCLASSIFIED) —
+extended here to name the fourth, newly-authorized member of that second
+list.
+
+**CONDITIONALITY_HONESTY, the fourth declared class.** Legacy collapsed a
+genuinely conditional callee to one lattice extreme (`no` or `must`,
+whichever the raw fact handed to it implied); the guarded solver now
+honestly recovers the real `Split(no,must)` (either orientation); an
+unselected call site collapses it to `may` because the branch outcome is
+genuinely unresolved there. `may` is `<= no` in neither direction and
+`<= must` in neither direction (the lattice of §3), so this is provably,
+structurally never SUMMARY_REFINEMENT (which requires the guarded value
+strictly below legacy) regardless of which lattice extreme legacy happened
+to pick — checked both ways in `scripts/p037_b_classifier.py`'s own
+selftest (`conditionality-honesty-positive-legacy-no` and its
+`-legacy-must-twin`). It carries no static selection (`kind:"param"`/
+`"var"` in the real extracted `guarded_facts`, never `bool_const`, so
+`classify_guard_call_arg` never produces `ConstPos`/`ConstNeg` for it),
+so it is never APPLICATION_REFINEMENT; `collapsed` is `may`, never
+`unknown`, so class 3's own shape does not match. The precision LOSS
+relative to whichever extreme legacy chose is a conditionality-HONESTY
+GAIN, the same "narrower claim, more honest" shape class 3 already
+established for `unknown`, landing at a different, previously
+unrepresentable point of the lattice. A SEPARATE, distinctly-typed
+CALL-SITE witness (not a variant of the (method,param) SUMMARY witness)
+represents the direct-call shape a real caller-local resource produces,
+classified into the identical four-class vocabulary.
+
+**Case-5 discipline followed, not shortcut.** Per §10.1, this is
+unambiguously case 5 ("requires new semantics ... STOP: explicit contract
+amendment before implementation continues"), never cases 1-4: it is not an
+implementation defect (the R1 solver's Cells/Selection/apply() machinery
+was independently proven correct for exactly this shape before this
+finding, and stays byte-identical throughout this amendment); not a proof-
+boundary gap (no unrecorded Kani assumption is implicated); not a shape-
+census gap (the raw fact shape — a `kind:"param"`, non-const boolean
+guard argument — was already known vocabulary); not a missing test alone
+(the gap is in the declared semantic contract itself, not merely in
+coverage of it). The amendment therefore lands as: (1) the fourth class in
+`scripts/p037_b_classifier.py`, with the narrow structural predicate above
+and hostile negatives proving it cannot be reached by an uncond shape, a
+non-`{no,must}` cell pair, a statically-selected site, or the pre-existing
+class-3 shape; (2) the call-site witness kind, frozen (schema, validator,
+classifier branch, synthetic and real-measured tests) with no production
+emitter wired yet — the same "contract before implementation" B1 already
+used for the original three classes; (3) `p037_verdict_snapshot.py`'s
+comparison contract extended to consume a frozen, optional
+`call_site_witnesses` field (present on no snapshot recorded before this
+amendment), reclassifying every witness itself rather than trusting a
+recorded verdict, excusing exactly the `(line, code, level)` keys a
+CLOSED-classified witness names and never the rest of a file's own diff.
+Zero bytes of `mos.rs`/`lower.rs`/`dump.rs`/the extractor/`ownlang/` move
+under this amendment; `p037_b_production_diff_gate.py` and the extractor's
+own diff gate both report IDENTICAL against this section's own commit.
+
+**Instrument consequence, the same rule §10.8's own corrections already
+established.** `scripts/p037_b_classifier.py`, `scripts/p037_mos_snapshot.
+py`, `scripts/p037_verdict_snapshot.py` and `scripts/p037_evidence_b.py`
+are `INSTRUMENT_PATHS` entries with no carve-out (`scripts/
+p037_evidence_b.py`'s own `INSTRUMENT_CARVE_OUTS` names only `mos.rs`/
+`lower.rs`/`dump.rs`/the extractor). This amendment touches three of the
+four, so `instrument_identity` moves, exactly like every prior B1-F1/
+B1-F2/B1-F2-F2/B1-F2-F4/B1-F2-F4-R1/B1-F2-F4-R2 correction already forced.
+The prior `T_B`/`R_B` are SUPERSEDED, not rewritten or invalidated
+retroactively — they were honest evidence of what the instrument, as it
+stood, actually measured. Built on the pre-B2.1a instrument head named in
+this amendment's own commit (never on top of B2.1a, so the eventual
+after-measurement still exercises B2.1a as its own, separately-authorized
+treatment step, per the order this section's own title states), so that
+after a fresh T_B/R_B retake, the sequence resumes as: new instrument/R_B
+-> B2.1a extractor treatment (replayed) -> the held B2.1b/c-R1 treatment
+(replayed, not reimplemented from memory — the working diff is preserved
+separately) -> B_after. The held R1 treatment is not discarded by this
+finding; the measurement in this section is, if anything, a working proof
+of its own honesty — at every one of the three states above, the engine
+either claimed a definite consume/borrow it could not support or genuinely
+lost track of the obligation; only the R1 state declines to claim more
+than it knows and says so via `OWN051`, the load-bearing distinction
+`docs/evidence/p037-b-epoch.json`'s own class-3 framing already drew for
+`unknown`, now shown to hold one lattice point further out.
+
+**Pre-T_B instrument-closure gate (owner review).** Naming T_B on the
+amendment above alone would have frozen an instrument with no real capture
+path for the call-site witness -- a thermometer with no wire attached, and
+any future B2.1b/c-R1 replay would have had to edit the just-frozen
+instrument again to attach one, exactly the instrument/treatment collision
+B1-F2/B1-F2-F2/B1-F2-F4/B1-F2-F4-R2 each already found and fixed in other
+shapes. Closed before T_B, not after: the transport is SARIF
+`properties.p037_call_site_witness` (own-cli's own qualified,
+already-consumed SARIF surface -- `own-shadow-engine` is explicitly excluded,
+being #260's dev oracle, never wired into production); `p037_verdict_
+snapshot.py` reads/validates/stores it unconditionally today (schema bumped
+to `/4`, fail-closed on absence/bad version/malformed witness); populating
+it for real needs `verdict.rs`/`render.rs` (both still frozen) to gain a
+call-site-carrying field, PREREGISTERED here as a separate, later boundary
+amendment, not assumed or implemented now. A second review finding, in the
+same pass: the original design let a witness NAME the diagnostic key(s) it
+explained, trusted at face value -- a small permission system that could
+let a structurally valid witness excuse an unrelated diagnostic merely by
+naming it. Replaced with observation binding: the expected signature is
+DERIVED from the witness's own semantic fields (`lowered=="plain"` implies
+`OWN051`/`note` at exactly its own `site.line`) and independently confirmed
+against the REAL captured SARIF message text, never against a claim; the
+before-side key is derived and confirmed the same way at
+`resource_acquire_site`. `docs/evidence/p037-b-epoch.json`'s own amendment
+entry carries the full transport schema, the frozen-file finding, and an
+explicitly un-resolved open question this same review raised: G-V4's
+mutated-guard fixture (`Guarded.Outer`, uncond shape, correctly outside this
+class's predicate) still needs its own resolution before any B_after take
+that includes it -- flagged, not deferred.

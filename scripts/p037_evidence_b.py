@@ -181,10 +181,26 @@ INSTRUMENT_PATHS: tuple[str, ...] = (
 # the one mutable function would still need the same item gate to police
 # what may move within it, while leaving the frozen remainder inside the
 # instrument for no protective purpose.
+# CH3-3/CH3-4: verdict.rs/render.rs join the carve-outs, for the SAME two
+# reasons dump.rs did (B1-F2-F4-R2, above) -- not because every byte of
+# either file may change (p037_b_production_diff_gate.py still freezes
+# each at item granularity: exactly `struct Finding`/`impl Finding`/`fn
+# transfer_note` in verdict.rs, `struct Properties`/`fn sarif_result` in
+# render.rs; every other item in either file stays frozen) but because
+# path-level provenance carve-out plus item-level production diff gate,
+# TOGETHER, are what bounds the permitted surface -- and because leaving
+# them out here the moment production_diff_gate.rust.mutable_items grows
+# a "src/verdict.rs"/"src/render.rs" key is now a MISSING-carve-out defect
+# _record_closure_problems (below) refuses generically, the same class of
+# defect B1-F2-F4-R2 fixed for dump.rs. Mechanically required, not assumed:
+# derived by reading production_diff_gate.rust.mutable_items's own new
+# keys, not chosen independently of it.
 INSTRUMENT_CARVE_OUTS: tuple[str, ...] = (
     "rust/crates/own-bridge/src/mos.rs",
     "rust/crates/own-bridge/src/lower.rs",
     "rust/crates/own-bridge/src/dump.rs",
+    "rust/crates/own-bridge/src/verdict.rs",
+    "rust/crates/own-bridge/src/render.rs",
     "frontend/roslyn/OwnSharp.Extractor/",
 )
 
@@ -672,8 +688,11 @@ def selftest() -> int:
               manifest_paths)
     # An unrelated, still-frozen own-bridge file must remain IN the
     # manifest -- proving the fix removed exactly the three treatment
-    # files, never the whole rust/crates/own-bridge/ directory.
-    unrelated_frozen = "rust/crates/own-bridge/src/verdict.rs"
+    # files, never the whole rust/crates/own-bridge/ directory. CH3-4:
+    # this used to name verdict.rs, before verdict.rs/render.rs themselves
+    # joined the carve-outs; src/lib.rs is one of the three files that
+    # actually stays frozen (Cargo.toml, src/ast.rs, src/lib.rs).
+    unrelated_frozen = "rust/crates/own-bridge/src/lib.rs"
     _selfcheck("an-unrelated-frozen-own-bridge-file-stays-in-the-instrument-manifest",
               unrelated_frozen in manifest_paths, manifest_paths)
 
@@ -719,11 +738,42 @@ def selftest() -> int:
     _selfcheck("current-real-epoch-record-closes-cleanly",
               not _record_closure_problems(real_doc), _record_closure_problems(real_doc))
 
+    # CH3-4: the record committed at HEAD predates CH3-3's widening of
+    # verdict.rs/render.rs to item-level mutable, so the check above is
+    # EXPECTED to stay green only until the boundary-amendment commit lands
+    # (production_diff_gate.rust in the epoch record and this module's own
+    # INSTRUMENT_CARVE_OUTS are a matched pair, same discipline as
+    # p037_b_production_diff_gate.py's own policy_drift()). Proven here
+    # instead, on a deep copy of the real record patched EXACTLY the way
+    # CH3-5 records the amendment (never a hand-invented shape), that the
+    # module's ALREADY-updated INSTRUMENT_CARVE_OUTS and that intended
+    # future record shape close cleanly TOGETHER -- the actual end-to-end
+    # coherence proof, ahead of the commit that makes it the live one.
+    future_doc = copy.deepcopy(real_doc)
+    future_doc["production_diff_gate"]["rust"]["mutable_items"]["src/verdict.rs"] = [
+        "struct Finding", "impl Finding", "fn transfer_note"]
+    future_doc["production_diff_gate"]["rust"]["mutable_items"]["src/render.rs"] = [
+        "struct Properties", "fn sarif_result"]
+    future_doc["production_diff_gate"]["rust"]["frozen_files"] = [
+        f for f in future_doc["production_diff_gate"]["rust"]["frozen_files"]
+        if f not in ("src/render.rs", "src/verdict.rs")]
+    _selfcheck("ch3-amended-epoch-record-shape-closes-cleanly-with-live-module",
+              not _record_closure_problems(future_doc), _record_closure_problems(future_doc))
+
+    # CH3-4: this was `src/render.rs` before render.rs itself joined
+    # INSTRUMENT_CARVE_OUTS as a REAL, legitimate entry -- reusing it here
+    # now would silently stop testing the missing-carve-out case (the real
+    # entry would just get overwritten with a fake item list, and the path
+    # would still be correctly carved out for its own real reason). A name
+    # that can never legitimately appear in either list stays a true
+    # negative regardless of which files are carved out this month.
     hostile_missing = copy.deepcopy(real_doc)
-    hostile_missing["production_diff_gate"]["rust"]["mutable_items"]["src/render.rs"] = ["fn foo"]
+    hostile_missing["production_diff_gate"]["rust"]["mutable_items"][
+        "src/hypothetical_unauthorized.rs"] = ["fn foo"]
     problems = _record_closure_problems(hostile_missing)
     _selfcheck("hostile-mutable-item-with-no-matching-carve-out-is-refused",
-              any("render.rs" in p and "is not in INSTRUMENT_CARVE_OUTS" in p for p in problems),
+              any("hypothetical_unauthorized.rs" in p and "is not in INSTRUMENT_CARVE_OUTS" in p
+                  for p in problems),
               problems)
 
     hostile_excess = copy.deepcopy(real_doc)

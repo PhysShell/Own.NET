@@ -495,6 +495,65 @@ branch-sensitive machinery D1/D7 already built (`_definite_release`,
   implementation or of this contract, never a fourth class by fiat; and a
   class-3 difference that changes a verdict is a defect, not a refinement.
 
+- **Amendment (post-B1, the CONDITIONALITY_HONESTY finding) — this last
+  claim was FALSE, and the falsification does not touch G-T2a/G-T2b's own
+  proofs.** Measured directly (three fixtures built around a non-static,
+  non-literal `bool` guard argument — a direct call, a bare-forward wrapper,
+  and the same wrapper with a defensive dispose after it — run through the
+  real pipeline at three states: pre-B2.1a, post-B2.1a-pre-B2.1b/c, and the
+  B2.1b/c-R1 treatment): a real, user-visible verdict/advisory movement
+  exists that fits none of the three classes above. Two levels, kept
+  separate on purpose:
+  - **The kernel theorem itself is untouched.** G-T2a/G-T2b are proofs about
+    the relationship between the guarded lfp system and `_build_skeletons`'s
+    derivation FROM WHATEVER RAW BODY OPS IT IS HANDED — they say nothing
+    about where those ops come from, and nothing in K11/K11′ or their formal-
+    kernel mechanization moves. Every hand-derived row in §8 is still exactly
+    as proven.
+  - **The "exactly the three classes, and nothing else" claim above is a
+    claim about the COMPOSED, real pipeline — extractor raw facts as
+    actually produced today feeding both derivations — and THAT is what the
+    counterexample falsifies.** #304's own later B2.1a step (EmitFlowExpr:
+    an interprocedural call recognized as consuming its argument now emits
+    `use(var, line)` where it used to emit an unconditional `release(var,
+    line)`, so a plain flow-insensitive fabrication cannot misreport a
+    conditional callee as an unconditional one) changes WHICH raw body op
+    `_build_skeletons` is handed for a delegating call site, for BOTH
+    engines — a transformation this proposal's own G-T2b proof, stated
+    against "today's derivation" reading whatever op the extractor already
+    produced, never modeled as a variable at all. Composed with the guarded
+    solver genuinely reconstructing the delegating call's real
+    `Split(no,must)`/`Split(must,no)` shape, an UNSELECTED call site collapses
+    that recovered split to `may` (G-A1: plain, OWN051) — and legacy (which
+    now sees only a bare `use`, or, before B2.1a, a body op that was itself
+    already fabricated to a single extreme) collapsed the SAME conditional
+    callee to `no` or `must`. `may` is `≰ no` and `≰ must` in this proposal's
+    own lattice (§3), so this is provably never summary refinement (which
+    requires the guarded value strictly *below* legacy); it carries no
+    static selection, so it is not application refinement; and `collapsed`
+    is `may`, not `unknown`, so class 3's own shape does not match either.
+  - **CONDITIONALITY_HONESTY, a fourth declared class**, added by amendment,
+    not by classifier fiat (`scripts/p037_b_classifier.py`'s own comment on
+    `CLOSED_CLASSES` carries the same reasoning as here): legacy collapsed a
+    genuinely conditional callee to one lattice extreme (`no` or `must`,
+    whichever the raw fact it was handed implied); the guarded solver now
+    honestly recovers the real `Split(no,must)` (either orientation); an
+    unselected site collapses it to `may` because the branch outcome is
+    genuinely unresolved there — a precision LOSS relative to either
+    extreme that is a conditionality-HONESTY gain, exactly the same
+    "narrower claim, more honest" shape class 3 already established for
+    `unknown`, at a different point in the lattice. A call site with no
+    (method,param) summary coordinate of its own (the direct-call fixture:
+    the resource is a caller-local, never a parameter) cannot even be
+    represented by the SUMMARY diffing this section describes at all —
+    the classifier's separate call-site witness kind exists for exactly
+    that shape; see its own module docstring point 5.
+  - The corrected claim: diffing the collapsed view against today's golden
+    dumps isolates the differences into exactly the **four** declared
+    classes above, and nothing else — an implementation difference outside
+    all four remains a defect, never a fifth class by fiat, and this
+    amendment does not reopen that discipline.
+
 ## 8. Worked adversarial cases (hand-derived; the conformance seeds for #304)
 
 Notation: `S = Split(g, pos, neg)`; call-site column shows the applied effect.
@@ -599,3 +658,12 @@ Acceptance for this proposal (design review, no code):
   **legacy-honesty difference** (guarded `unknown` for today's `may`, never
   verdict-changing) — entered into the #304 conformance matrix;
 - the walls of §9 accepted as walls.
+
+This list records what THIS design review accepted, at the time it accepted
+it, and is not rewritten by the amendment §7 now carries: a **fourth**
+declared verdict-change class, **conditionality honesty** (guarded `may`
+recovered from a legacy `no` or `must` that had collapsed a genuinely
+conditional callee to one extreme, no static selection), entered the #304
+conformance matrix separately, by its own review (see
+`docs/evidence/p037-b-epoch.json`'s appended supersession entry for that
+review's own record) — it is not retroactively folded into this bullet list.

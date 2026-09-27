@@ -23,9 +23,10 @@ What CAN be built now, and IS built here, matching §10.4/§10.1's own
    Election, Transform, Selection, collapse/finalize). This is the contract
    a real treatment's own trace output will be checked against later; it is
    frozen here so the treatment does not invent its own ad hoc shape.
-2. `classify(witness)`, the three CLOSED classes plus UNCLASSIFIED, decided
-   from WITNESS fields alone -- never from a file path, a fixture name or a
-   diagnostic code (§10.1's own rule, repeated in the B1 brief). Tested here
+2. `classify(witness)`, the (now four, see CLOSED_CLASSES' own comment)
+   CLOSED classes plus UNCLASSIFIED, decided from WITNESS fields alone --
+   never from a file path, a fixture name or a diagnostic code (§10.1's own
+   rule, repeated in the B1 brief). Tested here
    against SYNTHETIC witnesses built by hand from the proposal's own worked
    rows (18-19, K11b), the same way formal/p037-kernel/'s Kani harnesses are
    tested against hand-built System values with no production code existing
@@ -86,6 +87,22 @@ What CAN be built now, and IS built here, matching §10.4/§10.1's own
    is deliberately NOT added here: threading it through lower.rs in
    isolation, then extending it again once guard-awareness lands, is less
    coherent than doing both together as part of the first treatment.
+5. (amendment, post-B1) `check_call_site_witness`/`classify_call_site`, a
+   SECOND, separately-typed witness for a real, measured shape the
+   (method,param) SUMMARY WITNESS above cannot represent at all: a call site
+   whose CALLER has no disposable parameter of its own to carry a
+   coordinate (U1's own shape -- `Use` acquires its resource as a LOCAL,
+   never as a parameter, so no `dump_summaries` row exists for `Use` full
+   stop, yet the call site's own lowering/verdict genuinely moves across the
+   same three measured states as U2/U3's summary-level movement does). This
+   is not a workaround bolted onto WITNESS; it is a distinct, honestly-named
+   evidence kind for a distinct thing being observed (a call site's own
+   applied behavior, not a method's own summary), classified into the SAME
+   closed class vocabulary `classify()` uses. Frozen here, exactly like the
+   summary WITNESS originally was in B1: no production code emits one yet
+   (mos.rs/lower.rs/dump.rs stay untouched by this amendment), tested only
+   against synthetic and real-measured-by-hand witnesses; wiring a real
+   emitter is the eventual R1-replay's own deliverable, not this amendment's.
 
 Run:  python scripts/p037_b_classifier.py selftest
 """
@@ -105,9 +122,41 @@ ROOT = Path(__file__).resolve().parent.parent
 APPLICATION_REFINEMENT = "APPLICATION_REFINEMENT"
 SUMMARY_REFINEMENT = "SUMMARY_REFINEMENT"
 LEGACY_HONESTY = "LEGACY_HONESTY"
+CONDITIONALITY_HONESTY = "CONDITIONALITY_HONESTY"
 UNCLASSIFIED = "UNCLASSIFIED"
 
-CLOSED_CLASSES = (APPLICATION_REFINEMENT, SUMMARY_REFINEMENT, LEGACY_HONESTY)
+CLOSED_CLASSES = (APPLICATION_REFINEMENT, SUMMARY_REFINEMENT, LEGACY_HONESTY,
+                  CONDITIONALITY_HONESTY)
+
+# --- amendment (post-B1, pre-new-T_B; see docs/evidence/p037-b-epoch.json's
+# appended supersession entry for the full record) ---------------------------
+# U1/U2/U3 (a direct call, a bare-forward wrapper, and the same wrapper with a
+# defensive dispose after it -- all built around a NON-static, non-literal
+# `bool` guard argument) measured, against the real pipeline at three states
+# (pre-B2.1a, post-B2.1a-pre-B2.1b/c, and the held B2.1b/c-R1 treatment), a
+# real, user-visible verdict/advisory movement that none of the original three
+# classes covers: legacy's OWN scalar engine collapses a genuinely
+# conditional callee (`if (!keep) s.Dispose();`) to a single extreme --
+# `must` when the pre-B2.1a extractor fabricates an unconditional release at
+# the delegating call site, `no` once B2.1a degrades that fabrication to a
+# bare `use` -- and the guarded solver now honestly reconstructs the real
+# Split(no,must)/Split(must,no) shape, which an UNSELECTED call site collapses
+# to `may` (INF-A1: Plain, OWN051). `may` is neither `<= no` nor `<= must` in
+# this module's own `_LEQ` table, so this is provably never SUMMARY_
+# REFINEMENT (which requires an order-preserving improvement); it is not
+# APPLICATION_REFINEMENT (no static selection exists at either measured
+# state); and it is not LEGACY_HONESTY (`collapsed` is `may`, not `unknown`
+# -- class 3 is a narrower, different shape). The module docstring's original
+# point 2 claim -- "the three CLOSED classes plus UNCLASSIFIED" cover every
+# observable difference -- was therefore FALSE, discovered only once a real
+# `guarded` representation existed to measure against (B2.1b/c-R1, not B1).
+# CONDITIONALITY_HONESTY names this fourth, narrowly-scoped shape: a
+# recovered, genuinely conditional callee, no static selection, collapsing to
+# `may` because the branch outcome is honestly UNRESOLVED at this site --
+# never a lattice regression, a precision LOSS that is a semantic HONESTY
+# gain. The other three classes' own predicates are UNCHANGED by this
+# amendment (see `classify()`'s own reasoning below for why the new check
+# cannot overlap SUMMARY_REFINEMENT's shape by construction).
 
 GAP_REAL_WITNESS_SOURCE = (
     "no pre-treatment mechanism in this repository can populate a WITNESS "
@@ -220,6 +269,13 @@ def classify(w: dict[str, Any]) -> dict[str, Any]:
     selftest, whose overlap case used collapsed=must (not unknown) and so
     never exercised the intersection. selftest() now has a dedicated
     hostile case for exactly that intersection.
+
+    Amendment (post-B1): a split, unselected witness that is neither
+    SUMMARY_REFINEMENT nor an ordering violation is checked once more,
+    against CONDITIONALITY_HONESTY's own narrow shape, before falling
+    through to the final "collapsed is not <= legacy" UNCLASSIFIED case --
+    see CLOSED_CLASSES' own comment for why this new shape provably cannot
+    overlap SUMMARY_REFINEMENT's.
     """
     check_witness(w)
     guarded = w["guarded"]
@@ -257,6 +313,31 @@ def classify(w: dict[str, Any]) -> dict[str, Any]:
                     "reason": f"no call-site selection; the summary's own collapsed value "
                               f"({collapsed}) is strictly below legacy ({legacy_t}) before any "
                               "site decides anything"}
+        # CONDITIONALITY_HONESTY (amendment, see CLOSED_CLASSES' own comment):
+        # deliberately narrow, structural, no fixture/path/diagnostic-code
+        # input -- exactly legacy collapsed to ONE extreme of a genuinely
+        # conditional callee, unselected, recovered as Split(no,must) (either
+        # orientation) collapsing to `may`. This can NEVER also satisfy the
+        # SUMMARY_REFINEMENT branch above: that branch requires
+        # `leq(collapsed, legacy_t)`, and `_LEQ` makes `leq("may", "no")` and
+        # `leq("may", "must")` both False by construction (no/must are the
+        # two INCOMPARABLE bottom-ish points; may sits strictly above both) --
+        # so the two branches are mutually exclusive on this shape, not
+        # ordered by a priority choice.
+        cells = guarded["finalized_cells"]
+        is_recovered_conditional = (
+            collapsed == "may" and legacy_t in ("no", "must")
+            and {cells["pos"], cells["neg"]} == {"no", "must"}
+        )
+        if collapse_differs and is_recovered_conditional:
+            return {"class": CONDITIONALITY_HONESTY,
+                    "reason": f"no call-site selection; legacy ({legacy_t}) is a scalar "
+                              "collapse of a genuinely conditional callee that the guarded "
+                              "solver now honestly represents as a real Split(no,must) (finalized "
+                              "cells {no,must} in either orientation) -- collapse is `may` "
+                              "because the branch outcome is unresolved at this unselected site, "
+                              "never a lattice regression (`may` is neither <= `no` nor <= "
+                              "`must`), a precision loss that is a conditionality-honesty gain"}
         if not collapse_differs:
             return {"class": UNCLASSIFIED,
                     "reason": "a split shape with no selection and no collapsed-value "
@@ -437,6 +518,147 @@ def _strip_guarded_fields(doc: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+# --------------------------------------------------- call-site witness (amendment, post-B1)
+#
+# A SEPARATE schema from WITNESS above, not a variant of it. WITNESS names a
+# (method, param) SUMMARY coordinate; a call-site witness names one CALL SITE
+# inside some caller, whose own summary coordinate may not exist at all (U1's
+# `Use`: the resource is a LOCAL, `Use` itself has no disposable parameter, so
+# there is no (method,param) row anywhere for a `guarded` field to attach to
+# -- yet the call site's own applied behavior still moves, measurably, across
+# the same three states U2/U3's summary witness moves across). Contorting
+# WITNESS to represent this by inventing a fake caller parameter would be
+# describing something that is not there; this is a distinct, honestly-typed
+# evidence kind for a distinct thing being observed instead.
+
+
+def check_call_site_witness(w: dict[str, Any]) -> None:
+    """Validates a CALL_SITE_WITNESS. Refuses (raises), never guesses past a
+    malformed shape -- same discipline as check_witness().
+
+    Fields: `site` (file/line/column of the call), `callee` (the first-party
+    method named at that site) and `callee_param` (which of ITS parameters
+    is guarded), `resource_name` (the CALLER's own local/parameter name for
+    the resource passed at `callee_param` -- e.g. `"s"` -- carried so a
+    consumer can independently CONFIRM a claimed correlation against a real
+    diagnostic's own message text, never merely trust a claimed line/code;
+    see p037_verdict_snapshot.py's own observation-binding design),
+    `resource_acquire_site` (`{"line": int}` or `None` -- the line a REAL
+    before-side diagnostic about this resource, if any, would be anchored
+    at; `None` when no single acquire line applies), `guarded` (that callee
+    parameter's OWN finalized shape/cells/collapsed -- the SAME
+    representation WITNESS.guarded uses, read from the same solved object,
+    never re-derived), `selection` (this call site's own Pos/Neg/Unselected,
+    #175's own vocabulary), and `lowered` (what #175's apply() actually
+    produced at this site: consume/borrow/plain).
+
+    Deliberately NO `legacy` field (an earlier draft had one: a free-text
+    `observation` plus a closed `action`, meant to name what the UNGUARDED
+    engine concluded here). Dropped, not merely unused: a REAL Rust producer
+    mints this witness from ITS OWN computed state alone and has no channel
+    to what a SEPARATE, independently-run Python analysis concluded at mint
+    time -- asking it to fill `legacy.action` would force either a guess
+    (exactly the "not measured" shape this whole file refuses) or plumbing
+    a second engine's output into the first, which is not this contract's
+    job. The question `legacy.action` was for -- is there a REAL before-side
+    diagnostic this call site's own recovery explains -- is answered more
+    rigorously elsewhere, by `p037_verdict_snapshot.py`'s own independent
+    `resource_acquire_site` correlation against the ACTUAL captured
+    before-snapshot (observation binding, not a witness-side claim); a
+    witness with no acquire site to check simply explains no before-side key
+    at all, which is honest, not a gap.
+    """
+    _require(isinstance(w, dict), "call-site witness must be an object")
+    _require(w.get("kind") == "call_site", 'call-site witness must carry kind: "call_site"')
+    site = w.get("site")
+    _require(isinstance(site, dict) and isinstance(site.get("file"), str) and site["file"]
+             and isinstance(site.get("line"), int) and isinstance(site.get("column"), int),
+             "call-site witness.site must carry a non-empty file and integer line/column")
+    _require(isinstance(w.get("callee"), str) and w["callee"],
+             "call-site witness.callee must be a non-empty string")
+    _require(isinstance(w.get("callee_param"), int),
+             "call-site witness.callee_param must be an integer ordinal")
+    _require(isinstance(w.get("resource_name"), str) and w["resource_name"],
+             "call-site witness.resource_name must be a non-empty string (the caller-side "
+             "name a real diagnostic's own message can be checked against)")
+    acquire = w.get("resource_acquire_site")
+    _require(acquire is None
+             or (isinstance(acquire, dict) and isinstance(acquire.get("line"), int)),
+             "call-site witness.resource_acquire_site must be null or {line: int}")
+    guarded = w.get("guarded")
+    _require(isinstance(guarded, dict), "call-site witness.guarded must be an object")
+    assert isinstance(guarded, dict)  # narrows for mypy; _require already enforced it at runtime
+    _require(guarded.get("shape") in ("uncond", "split"), "guarded.shape must be uncond|split")
+    if guarded["shape"] == "split":
+        cells = guarded.get("finalized_cells")
+        _require(isinstance(cells, dict) and cells.get("pos") in _TRANSFER_VALUES
+                 and cells.get("neg") in _TRANSFER_VALUES,
+                 "guarded.finalized_cells must be {pos,neg} Transfer values for a split shape")
+    _require(guarded.get("collapsed") in _TRANSFER_VALUES,
+             "guarded.collapsed must be a Transfer value")
+    _require(w.get("selection") in ("pos", "neg", "unselected"),
+             "call-site witness.selection must be pos|neg|unselected")
+    _require(w.get("lowered") in ("consume", "borrow", "plain"),
+             "call-site witness.lowered must be consume|borrow|plain (#175's own Lowered)")
+
+
+def classify_call_site(w: dict[str, Any]) -> dict[str, Any]:
+    """Classifies a CALL_SITE_WITNESS into the SAME closed class vocabulary
+    classify() uses. Today CONDITIONALITY_HONESTY is the only positive class
+    reachable here: APPLICATION_REFINEMENT and SUMMARY_REFINEMENT both name a
+    (method,param) SUMMARY's own value (a summary either got a static
+    selection applied to it, or the summary itself refined) -- a call-site
+    witness, by construction, names no such summary, so neither class is
+    authorized here without a SEPARATE amendment extending them to this
+    witness kind, which this one does not do. LEGACY_HONESTY is a summary-
+    level, verdict-equivalent shape (collapsed=unknown, legacy=may, both
+    plain) that this witness kind cannot even express: it carries no
+    `legacy` field at all (see check_call_site_witness's own docstring for
+    why), so there is no scalar legacy Transfer value to compare against."""
+    check_call_site_witness(w)
+    guarded = w["guarded"]
+    collapsed: Transfer = guarded["collapsed"]
+    selection = w["selection"]
+    lowered = w["lowered"]
+
+    if selection in ("pos", "neg"):
+        return {"class": UNCLASSIFIED,
+                "reason": "a call-site witness with a static pos/neg selection is outside this "
+                          "amendment's scope: APPLICATION_REFINEMENT is defined over a "
+                          "(method,param) summary's own selection_license, which this witness "
+                          "kind does not carry, and extending it to call sites is a separate, "
+                          "unauthorized amendment"}
+    if guarded["shape"] != "split":
+        return {"class": UNCLASSIFIED,
+                "reason": "an uncond call-site guarded shape has no conditional structure to "
+                          "recover honestly; a legacy/new movement here has no class-4 "
+                          "explanation"}
+
+    cells = guarded["finalized_cells"]
+    is_recovered_conditional = (collapsed == "may"
+                                and {cells["pos"], cells["neg"]} == {"no", "must"})
+    if not is_recovered_conditional:
+        return {"class": UNCLASSIFIED,
+                "reason": f"finalized_cells {cells} collapsing to {collapsed} is not the "
+                          "{no,must}-split-collapsing-to-may shape CONDITIONALITY_HONESTY is "
+                          "narrowly defined over"}
+    if lowered != "plain":
+        return {"class": UNCLASSIFIED,
+                "reason": f"lowered={lowered}, not plain -- a genuinely conditional, unselected "
+                          "callee must apply() to Plain (collapse(Split(no,must))=may lowers to "
+                          "plain); this witness's own lowered/guarded fields disagree with each "
+                          "other, which is refused rather than explained away"}
+    return {"class": CONDITIONALITY_HONESTY,
+            "reason": "a genuinely conditional callee recovered as a real Split(no,must) (either "
+                      "orientation) with no static selection at this site, collapsing to 'may' "
+                      "(Plain, OWN051 once an owned obligation reaches the call) because the "
+                      "branch outcome is honestly unresolved here, not because information was "
+                      "lost; whether a real before-side diagnostic this recovery explains exists "
+                      "is answered separately, by p037_verdict_snapshot.py's own "
+                      "resource_acquire_site correlation against the actual captured "
+                      "before-snapshot -- this classification does not depend on that answer"}
+
+
 # --------------------------------------------------------------------------- selftest
 
 _failures = 0
@@ -492,6 +714,90 @@ def selftest() -> int:
     r = classify(w)
     _check("legacy-honesty-positive", r["class"] == LEGACY_HONESTY, r)
 
+    # --- positive: CONDITIONALITY_HONESTY (amendment; U2/U3's own measured
+    # shape -- a genuinely conditional callee recovered as Split(no,must),
+    # unselected, collapsing to may, against a legacy that collapsed it to
+    # `no` -- the B2.1a-degraded reading, current Python's own value today) ---
+    w = _w(legacy_transfer="no",
+          guarded={"shape": "split", "selection": "unselected", "selection_license": None,
+                  "finalized_cells": {"pos": "no", "neg": "must"}, "collapsed": "may"})
+    r = classify(w)
+    _check("conditionality-honesty-positive-legacy-no", r["class"] == CONDITIONALITY_HONESTY, r)
+
+    # --- positive twin (item 9): the SAME real shape, but against the
+    # pre-B2.1a legacy value (`must` -- the fabricated-consume reading a
+    # scratch measurement against e4199ec actually produced for U2/U3's
+    # wrapper), and the opposite cell orientation. One class must cover both
+    # extremes legacy happened to collapse to -- it must not need a second
+    # class solely because the old scalar chose the other extreme ---
+    w = _w(legacy_transfer="must",
+          guarded={"shape": "split", "selection": "unselected", "selection_license": None,
+                  "finalized_cells": {"pos": "must", "neg": "no"}, "collapsed": "may"})
+    r = classify(w)
+    _check("conditionality-honesty-positive-legacy-must-twin",
+          r["class"] == CONDITIONALITY_HONESTY, r)
+
+    # --- hostile: uncond shape, legacy no -> may -- no split evidence exists
+    # to recover, so there is no conditionality to be honest ABOUT here ---
+    w = _w(legacy_transfer="no", guarded={"shape": "uncond", "selection": None,
+                                         "selection_license": None, "finalized_cells": None,
+                                         "collapsed": "may"})
+    r = classify(w)
+    _check("hostile-uncond-no-to-may-is-unclassified", r["class"] == UNCLASSIFIED, r)
+
+    # --- hostile: split(no,may), legacy=no -- one cell is already `may`, not
+    # the closed {no,must} pair CONDITIONALITY_HONESTY is narrowly defined
+    # over; this is also not SUMMARY_REFINEMENT (leq(may,no) is False) ---
+    w = _w(legacy_transfer="no",
+          guarded={"shape": "split", "selection": "unselected", "selection_license": None,
+                  "finalized_cells": {"pos": "no", "neg": "may"}, "collapsed": "may"})
+    r = classify(w)
+    _check("hostile-split-no-may-is-unclassified", r["class"] == UNCLASSIFIED, r)
+
+    # --- hostile: split(must,may), legacy=must -- same reasoning, the other
+    # extreme ---
+    w = _w(legacy_transfer="must",
+          guarded={"shape": "split", "selection": "unselected", "selection_license": None,
+                  "finalized_cells": {"pos": "must", "neg": "may"}, "collapsed": "may"})
+    r = classify(w)
+    _check("hostile-split-must-may-is-unclassified", r["class"] == UNCLASSIFIED, r)
+
+    # --- hostile: split(no,must) but WITH a static selection -- must stay
+    # APPLICATION_REFINEMENT, never be pulled into class 4 just because the
+    # cells match its {no,must} shape. `legacy_transfer` is set equal to
+    # `collapsed` ("may"), matching the EXISTING application-refinement-
+    # positive test's own pattern above and classify()'s own, unamended
+    # overlap rule: a selection present ALONGSIDE a collapsed-vs-legacy
+    # difference is the pre-existing, unrelated UNCLASSIFIED-overlap case
+    # (checked first, unconditionally, well before this amendment's own
+    # code even runs) -- proving APPLICATION_REFINEMENT and this amendment
+    # are also disjoint by construction, for a second, independent reason
+    # from the SUMMARY_REFINEMENT one CLOSED_CLASSES' comment already gives ---
+    w = _w(legacy_transfer="may",
+          guarded={"shape": "split", "selection": "pos",
+                  "selection_license": {"kind": "bool_const", "value": True},
+                  "finalized_cells": {"pos": "no", "neg": "must"}, "collapsed": "may"})
+    r = classify(w)
+    _check("hostile-split-no-must-pos-selected-is-application-refinement",
+          r["class"] == APPLICATION_REFINEMENT, r)
+    w = _w(legacy_transfer="may",
+          guarded={"shape": "split", "selection": "neg",
+                  "selection_license": {"kind": "bool_const", "value": False},
+                  "finalized_cells": {"pos": "no", "neg": "must"}, "collapsed": "may"})
+    r = classify(w)
+    _check("hostile-split-no-must-neg-selected-is-application-refinement",
+          r["class"] == APPLICATION_REFINEMENT, r)
+
+    # --- hostile: split(must,unknown), legacy=may -- LEGACY_HONESTY's own
+    # existing shape must still win here, unamended (collapsed=unknown, not
+    # may, so class 4's own predicate never even matches) ---
+    w = _w(legacy_transfer="may",
+          guarded={"shape": "split", "selection": "unselected", "selection_license": None,
+                  "finalized_cells": {"pos": "must", "neg": "unknown"}, "collapsed": "unknown"})
+    r = classify(w)
+    _check("hostile-split-must-unknown-legacy-may-is-legacy-honesty",
+          r["class"] == LEGACY_HONESTY, r)
+
     # --- hostile negative: same diagnostic-adjacent shape but no guarded
     # cell selection at all (uncond, no difference) must not classify ---
     w = _w(legacy_transfer="may", guarded={"shape": "uncond", "selection": None,
@@ -530,10 +836,11 @@ def selftest() -> int:
     except WitnessError:
         _check("hostile-missing-coordinate-is-refused", True)
 
-    # --- hostile negative: a made-up fourth class is not a thing this module
-    # can even express -- CLOSED_CLASSES has exactly three members, checked
-    # directly rather than trusted ---
-    _check("closed-classes-has-exactly-three-members", len(CLOSED_CLASSES) == 3,
+    # --- a made-up fifth class is not a thing this module can even express --
+    # CLOSED_CLASSES has exactly four members (the original three plus the
+    # amendment's CONDITIONALITY_HONESTY), checked directly rather than
+    # trusted ---
+    _check("closed-classes-has-exactly-four-members", len(CLOSED_CLASSES) == 4,
           CLOSED_CLASSES)
     _check("unclassified-is-not-in-closed-classes", UNCLASSIFIED not in CLOSED_CLASSES)
 
@@ -697,6 +1004,134 @@ def selftest() -> int:
                   "fixture's first summary has no params to mutate")
             _check("real-divergence-with-guarded-field-is-read", False,
                   "fixture's first summary has no params to mutate")
+
+    # --- call-site witness (amendment): U1's own real, measured shape -----
+    # `ShapeU1.Use` calls `ShapeU1.Inner(s, keep)` directly on a LOCAL `s`
+    # (never a parameter of `Use`), so no (method,param) coordinate for `Use`
+    # exists at all -- measured via a scratch e4199ec worktree + the held R1
+    # treatment worktree (own-check.sh --emit-facts, own-shadow-engine, and
+    # own-cli ownir over U1.cs), not invented: Inner's real finalized cells
+    # are {pos: no, neg: must} (`if (!keep) s.Dispose();`), the call argument
+    # for `keep` is `kind: "param", source_param: 1` in the real
+    # `guarded_facts` (a syntactic forward, never a `bool_const`) so
+    # `call_arg_selection` maps it Unselected by construction, R1's own
+    # lowered layer folds the acquire/use pair away entirely at this site and
+    # the real verdict shows `[OWN051] cannot verify whether
+    # 'ShapeU1.Inner' takes ownership of 's' ... optimistically assuming it
+    # does` -- i.e. lowered=plain.
+    def _cs(**kwargs: Any) -> dict[str, Any]:
+        base: dict[str, Any] = {
+            "kind": "call_site",
+            "site": {"file": "U1.cs", "line": 16, "column": 9},
+            "callee": "ShapeU1.Inner",
+            "callee_param": 0,
+            "resource_name": "s",
+            "resource_acquire_site": {"line": 14},
+            "guarded": {"shape": "split", "finalized_cells": {"pos": "no", "neg": "must"},
+                       "collapsed": "may"},
+            "selection": "unselected",
+            "lowered": "plain",
+        }
+        base.update(kwargs)
+        return base
+
+    # positive: U1's own real, measured shape classifies regardless of what
+    # either engine's SCALAR analysis separately concluded at this site --
+    # there is no more `legacy` axis to hold fixed or vary here (dropped per
+    # check_call_site_witness's own docstring: unpopulatable by a real Rust
+    # producer, and redundant with p037_verdict_snapshot.py's own
+    # resource_acquire_site correlation against the real captured
+    # before-snapshot). The former state-A/state-B "twin" pair collapses to
+    # one test since both anchorings produced the identical witness once
+    # `legacy` is gone.
+    r = classify_call_site(_cs())
+    _check("call-site-u1-conditionality-honesty-positive",
+          r["class"] == CONDITIONALITY_HONESTY, r)
+
+    # hostile: a static selection at a call-site witness is out of THIS
+    # amendment's scope, not silently folded into class 4.
+    r = classify_call_site(_cs(selection="pos"))
+    _check("call-site-hostile-selected-is-unclassified", r["class"] == UNCLASSIFIED, r)
+
+    # hostile: uncond guarded shape at the call site -- nothing conditional
+    # to recover.
+    r = classify_call_site(_cs(guarded={"shape": "uncond", "finalized_cells": None,
+                                       "collapsed": "may"}))
+    _check("call-site-hostile-uncond-is-unclassified", r["class"] == UNCLASSIFIED, r)
+
+    # hostile: split cells that are not the closed {no,must} pair.
+    r = classify_call_site(_cs(guarded={"shape": "split",
+                                       "finalized_cells": {"pos": "no", "neg": "may"},
+                                       "collapsed": "may"}))
+    _check("call-site-hostile-non-nomust-cells-is-unclassified", r["class"] == UNCLASSIFIED, r)
+
+    # hostile: lowered disagrees with the guarded/selection fields (a
+    # malformed witness a real emitter should never produce) -- refused as
+    # UNCLASSIFIED, not silently trusted.
+    r = classify_call_site(_cs(lowered="consume"))
+    _check("call-site-hostile-lowered-mismatch-is-unclassified", r["class"] == UNCLASSIFIED, r)
+
+    # hostile: the schema itself refuses a witness missing `kind`.
+    try:
+        bad = _cs()
+        del bad["kind"]
+        classify_call_site(bad)
+        _check("call-site-hostile-missing-kind-is-refused", False, "did not raise")
+    except WitnessError:
+        _check("call-site-hostile-missing-kind-is-refused", True)
+
+    # hostile: a missing/empty resource_name is refused -- a claimed
+    # correlation with nothing to check it against is not measurement.
+    try:
+        classify_call_site(_cs(resource_name=""))
+        _check("call-site-hostile-empty-resource-name-is-refused", False, "did not raise")
+    except WitnessError:
+        _check("call-site-hostile-empty-resource-name-is-refused", True)
+
+    # hostile: a malformed resource_acquire_site (not null, not {line:int})
+    # is refused, not silently coerced.
+    try:
+        classify_call_site(_cs(resource_acquire_site={"line": "14"}))
+        _check("call-site-hostile-malformed-acquire-site-is-refused", False, "did not raise")
+    except WitnessError:
+        _check("call-site-hostile-malformed-acquire-site-is-refused", True)
+
+    # null resource_acquire_site is legal (no single acquire line applies)
+    # and does not itself change the classification.
+    r = classify_call_site(_cs(resource_acquire_site=None))
+    _check("call-site-null-acquire-site-is-legal-and-still-classifies",
+          r["class"] == CONDITIONALITY_HONESTY, r)
+
+    # --- an unrelated residual document difference is not excused by one
+    # classified CONDITIONALITY_HONESTY witness elsewhere in the same
+    # document -- explain_divergence() must still call the whole document
+    # unexplained, same discipline as its existing SUMMARY_REFINEMENT case ---
+    if real_doc is not None and real_doc["summaries"][0].get("params"):
+        base_doc = real_doc
+        ch_doc = copy.deepcopy(base_doc)
+        ch_target = ch_doc["summaries"][0]["params"][0]
+        ch_target["transfer"] = "may"
+        ch_target["guarded"] = {
+            "shape": "split", "selection": "unselected", "selection_license": None,
+            "finalized_cells": {"pos": "no", "neg": "must"}, "collapsed": "may",
+        }
+        legacy_for_ch = copy.deepcopy(base_doc)
+        legacy_for_ch["summaries"][0]["params"][0]["transfer"] = "no"
+        witnesses = derive_document_witnesses(legacy_for_ch, ch_doc)
+        _check("conditionality-honesty-real-document-witness",
+              len(witnesses) == 1
+              and witnesses[0]["classification"]["class"] == CONDITIONALITY_HONESTY,
+              witnesses)
+        result = explain_divergence(legacy_for_ch, ch_doc)
+        _check("explain-divergence-fully-explained-for-conditionality-honesty",
+              result["explained"] is True, result)
+        ch_doc_plus_residual = copy.deepcopy(ch_doc)
+        ch_doc_plus_residual["unresolved"] = [
+            *ch_doc_plus_residual.get("unresolved", []), "SomeOtherExtern",
+        ]
+        result = explain_divergence(legacy_for_ch, ch_doc_plus_residual)
+        _check("explain-divergence-unexplained-when-residual-remains-alongside-class4",
+              result["explained"] is False, result)
 
     if _failures:
         print(f"RESULT: {_failures} check(s) failed")
