@@ -1,0 +1,95 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "record-absence-boundary",
+  "status": "boundary",
+  "why": "BOUNDARY R, not closed by A2.2: an expression-bodied forwarder, an empty-body constructor whose only statement is `: base(...)`, and a method whose every disposable local escapes into a call get NO functions[] record, so no sidecar can ride on them. Measured on the evidence populations at 23e3203: 1 relevant call lost on the repo tree, 0 on the corpus (docs/notes/p037-a2.2-call-facts.md §3).",
+  "a2_contract": "Closing R needs a new record (the engines would summarize it: a MOS change forbidden in A2) or a new sidecar carrier outside functions[] (an OwnIR layout change to §5.2): a case-5 decision under docs/notes/p037-formal-kernel.md §10.1. A2.2 does not code around it; this shape pins today's absence so any change to it is deliberate and visible.",
+  "measured_at": "23e3203",
+  "facts": {
+    "Helper.Close": {
+      "params": [
+        {
+          "name": "s",
+          "line": 12
+        }
+      ],
+      "body": [
+        "if:None@14",
+        "then:release:s@16"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 14,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    "BoundaryBase..ctor": {
+      "params": [
+        {
+          "name": "s",
+          "line": 23
+        }
+      ],
+      "body": [
+        "if:None@25",
+        "then:release:s@27"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 25,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    "ShapeRecordAbsence.Inner": {
+      "params": [
+        {
+          "name": "s",
+          "line": 39
+        }
+      ],
+      "body": [
+        "if:None@41",
+        "then:release:s@43"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 41,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

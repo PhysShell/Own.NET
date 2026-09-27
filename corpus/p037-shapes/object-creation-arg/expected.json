@@ -1,0 +1,46 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "object-creation-arg",
+  "status": "pending_a2",
+  "why": "A2.2 G-A. A2.1 walks InvocationExpressionSyntax only, so a handle handed to a constructor (`new Wrapper(p, keep)`, `new StreamReader(s, leaveOpen: true)`) produces no calls[] entry although the constructor has its own functions[] record for the engine to apply here.",
+  "a2_contract": "A2.2 records each object creation with a relevant argument as a calls[] entry: callee = the constructor's functions[] key (`Wrapper..ctor`, `System.IO.StreamReader..ctor`), sig/first_party as for invocations, args by declared ordinal (named resolved), site = the creation expression, form from its parent (`using var w = new ...` -> initializer). Body, params and verdicts unchanged.",
+  "measured_at": "23e3203",
+  "facts": {
+    "Wrapper..ctor": {
+      "params": [
+        {
+          "name": "s",
+          "line": 13
+        }
+      ],
+      "body": [
+        "use:s@15"
+      ],
+      "guarded_facts": null
+    },
+    "ShapeObjCreation.Adopt": {
+      "params": [
+        {
+          "name": "p",
+          "line": 30
+        }
+      ],
+      "body": [
+        "use:p@33"
+      ],
+      "guarded_facts": null
+    },
+    "ShapeObjCreation.Reader": {
+      "params": null,
+      "body": [
+        "acquire:r@39",
+        "release:r@40"
+      ],
+      "guarded_facts": null
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

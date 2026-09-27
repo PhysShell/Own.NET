@@ -1,0 +1,76 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "unresolved-callee",
+  "status": "anchored",
+  "why": "Negative control: an unresolved call target. There is no declaration to bind against.",
+  "a2_contract": "Already correct at A2.1 and must stay so: the record exists, callee and sig are null, first_party is false, args bind by SOURCE position.",
+  "a2_expect": [
+    {
+      "function": "ShapeUnresolved.Caller",
+      "call": {
+        "callee": null,
+        "sig": null,
+        "first_party": false,
+        "args": [
+          {
+            "param": 0,
+            "kind": "param",
+            "source_param": 0
+          },
+          {
+            "param": 1,
+            "kind": "param",
+            "source_param": 1
+          }
+        ]
+      }
+    }
+  ],
+  "measured_at": "23e3203",
+  "facts": {
+    "ShapeUnresolved.Caller": {
+      "params": [
+        {
+          "name": "p",
+          "line": 8
+        }
+      ],
+      "body": [
+        "use:p@10"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 10,
+              "column": 9
+            },
+            "statement_line": 10,
+            "form": "statement",
+            "callee": null,
+            "sig": null,
+            "first_party": false,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "param",
+                "source_param": 1
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

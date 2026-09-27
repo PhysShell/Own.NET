@@ -1,0 +1,39 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "object-creation-named",
+  "status": "pending_a2",
+  "why": "A2.2 G-A with named arguments in reversed source order on a constructor.",
+  "a2_contract": "A2.2 records `new NamedWrapper(keep: true, s: p)` with args bound by DECLARED ordinal: param 0 -> param{source_param 0}, param 1 -> bool_const true. Source order must not leak into the binding.",
+  "measured_at": "23e3203",
+  "facts": {
+    "NamedWrapper..ctor": {
+      "params": [
+        {
+          "name": "s",
+          "line": 12
+        }
+      ],
+      "body": [
+        "use:s@14"
+      ],
+      "guarded_facts": null
+    },
+    "ShapeObjCreationNamed.Adopt": {
+      "params": [
+        {
+          "name": "p",
+          "line": 29
+        }
+      ],
+      "body": [
+        "acquire:w@31",
+        "release:w@32"
+      ],
+      "guarded_facts": null
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

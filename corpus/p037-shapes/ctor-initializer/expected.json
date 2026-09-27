@@ -1,0 +1,53 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "ctor-initializer",
+  "status": "pending_a2",
+  "why": "A2.2 G-B. `: base(s, keep)` is a call that hands the owned parameter to the base constructor before the body runs; A2.1 does not record constructor initializers.",
+  "a2_contract": "A2.2 records the initializer as a calls[] entry: callee = `GuardedBase..ctor`, site = the initializer, statement_line = its line, form = statement (it runs as a statement and its result is discarded), args param 0 -> param{0}, param 1 -> param{1}.",
+  "measured_at": "23e3203",
+  "facts": {
+    "GuardedBase..ctor": {
+      "params": [
+        {
+          "name": "s",
+          "line": 9
+        }
+      ],
+      "body": [
+        "if:None@11",
+        "then:release:s@13"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 11,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    "ForwardingDerived..ctor": {
+      "params": [
+        {
+          "name": "s",
+          "line": 20
+        }
+      ],
+      "body": [
+        "use:s@22"
+      ],
+      "guarded_facts": null
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

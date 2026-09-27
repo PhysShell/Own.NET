@@ -1,0 +1,87 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "arg-compound-relevance",
+  "status": "pending_a2",
+  "why": "A2.2 G-D. `p as Stream`, `c ? p : q`, `p ?? q` carry a handle into the call but cannot be represented precisely; A2.1 drops the whole record.",
+  "a2_contract": "A2.2 records each call with the compound slot `opaque` (relevance = a value operand is a handle after unwrapping): opaque, not absent — the rule A' applied to params/ref/out slots.",
+  "measured_at": "23e3203",
+  "facts": {
+    "ShapeCompound.Keep": {
+      "params": [
+        {
+          "name": "s",
+          "line": 9
+        }
+      ],
+      "body": [
+        "if:None@11",
+        "then:release:s@13"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 11,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    "ShapeCompound.As": {
+      "params": [
+        {
+          "name": "p",
+          "line": 17
+        }
+      ],
+      "body": [
+        "use:p@19"
+      ],
+      "guarded_facts": null
+    },
+    "ShapeCompound.Conditional": {
+      "params": [
+        {
+          "name": "p",
+          "line": 22
+        },
+        {
+          "name": "q",
+          "line": 22
+        }
+      ],
+      "body": [
+        "use:p@24",
+        "use:q@24"
+      ],
+      "guarded_facts": null
+    },
+    "ShapeCompound.Coalesce": {
+      "params": [
+        {
+          "name": "p",
+          "line": 27
+        },
+        {
+          "name": "q",
+          "line": 27
+        }
+      ],
+      "body": [
+        "use:p@29",
+        "use:q@29"
+      ],
+      "guarded_facts": null
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

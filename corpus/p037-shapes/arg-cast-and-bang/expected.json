@@ -1,0 +1,77 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "arg-cast-and-bang",
+  "status": "pending_a2",
+  "why": "A2.2 G-C. A handle behind a value-preserving wrapper is the same object: `(Stream)p` (reference conversion) and `p!` (null-forgiving). A2.1 loses the call record because the argument is not a bare identifier. A boxing cast `(object)h` is not value-preserving.",
+  "a2_contract": "A2.2 unwraps parentheses, `!` and identity/non-user-defined reference casts before classifying: Cast and Bang record Keep with param 0 -> param{source_param 0}. Boxed records Sink with param 0 -> opaque (boxing copies), call present because the handle flowed.",
+  "measured_at": "23e3203",
+  "facts": {
+    "ShapeCastBang.Keep": {
+      "params": [
+        {
+          "name": "s",
+          "line": 16
+        }
+      ],
+      "body": [
+        "if:None@18",
+        "then:release:s@20"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 18,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    "ShapeCastBang.Cast": {
+      "params": [
+        {
+          "name": "p",
+          "line": 26
+        }
+      ],
+      "body": [
+        "use:p@28"
+      ],
+      "guarded_facts": null
+    },
+    "ShapeCastBang.Bang": {
+      "params": [
+        {
+          "name": "p",
+          "line": 31
+        }
+      ],
+      "body": [
+        "use:p@33"
+      ],
+      "guarded_facts": null
+    },
+    "ShapeCastBang.Boxed": {
+      "params": [
+        {
+          "name": "h",
+          "line": 36
+        }
+      ],
+      "body": [
+        "use:h@38"
+      ],
+      "guarded_facts": null
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}
