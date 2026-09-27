@@ -34,7 +34,8 @@ def main() -> None:
     mc_dir, plain_dir = Path(sys.argv[1]), Path(sys.argv[2])
     names = sys.argv[3:]
     tot = {"mc": [0, 0], "plain": [0, 0], "added": 0}
-    print(f"{'file':<20}{'MC model':>9}{'MC proof':>9}{'PL model':>9}{'PL proof':>9}{'PL added':>9}")
+    cols = ["MC model", "MC proof", "PL model", "PL proof", "PL added"]
+    print(f"{'file':<20}" + "".join(f"{c:>9}" for c in cols))
     for n in names:
         mc = code_lines((mc_dir / n).read_text()) if (mc_dir / n).exists() else []
         pl = code_lines((plain_dir / n).read_text()) if (plain_dir / n).exists() else []
