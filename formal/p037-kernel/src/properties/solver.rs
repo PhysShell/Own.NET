@@ -48,6 +48,63 @@ mod tests {
             assert_eq!(solve_with(&sys, &[2, 2, 0, 1, 0, 1, 2]), Some(least));
         }
     }
+
+    /// #368 witness (P-037 B0, `formal/p037-kernel/proof-boundary.json`
+    /// assumption A7). K10 holds for FAIR schedules only: a schedule that
+    /// never visits a live coordinate returns `Some` of a state that is not a
+    /// fixpoint. This pins the defect of the schedule-taking API. It does not
+    /// fix it: the production contract is that no production path calls
+    /// `solve_with` / `elect_with` / `lfp_chaotic` while #368 is open. The
+    /// full-sweep `solve` / `elect` are unaffected.
+    #[test]
+    fn issue_368_unfair_schedule_returns_a_non_fixpoint() {
+        use super::super::DEAD;
+        use crate::{
+            elect, elect_with, solve, Coord, Election, ElectionCoord, ElectionSystem, Shape,
+            Transfer, MAX_EDGES,
+        };
+        // coordinate 1 holds a local definite release; the schedule [0]
+        // never visits it
+        let released = Coord {
+            shape: Shape::Uncond,
+            seed: Cells::diag(Transfer::Must),
+            edges: [None; MAX_EDGES],
+        };
+        let idle = Coord {
+            shape: Shape::Uncond,
+            seed: Cells::BOT,
+            edges: [None; MAX_EDGES],
+        };
+        let sys = System {
+            n: 2,
+            coords: [idle, released, DEAD],
+        };
+        assert!(sys.well_formed());
+        let unfair = solve_with(&sys, &[0]);
+        assert!(
+            unfair.is_some_and(|x| !is_fixpoint(&sys, x)),
+            "Some(non-fixpoint)"
+        );
+        assert_ne!(unfair, solve(&sys), "the full sweep is not affected");
+
+        // the election half of the same hazard
+        let dead = ElectionCoord {
+            seed: Election::None,
+            edges: [None; MAX_EDGES],
+        };
+        let one = ElectionCoord {
+            seed: Election::One(0),
+            edges: [None; MAX_EDGES],
+        };
+        let esys = ElectionSystem {
+            n: 2,
+            coords: [dead, one, dead],
+        };
+        assert!(esys.well_formed());
+        let eunfair = elect_with(&esys, &[0]);
+        assert!(eunfair.is_some_and(|x| x.get(1).copied() != Some(esys.step(1, &x))));
+        assert_ne!(eunfair, elect(&esys));
+    }
 }
 
 #[cfg(kani)]

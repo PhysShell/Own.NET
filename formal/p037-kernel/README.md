@@ -57,7 +57,11 @@ solver is a schedule-independent least fixpoint (K10).
 cargo test                      # the exhaustive / randomized twins (~20 s)
 cargo clippy --all-targets      # the rust/ workspace's strict lints, copied
 cargo kani                      # every #[kani::proof] harness (needs cargo-kani;
-                                #  22 harnesses, ~14 min sequential on 4 cores)
+                                #  ~15 min sequential on 4 cores). The inventory
+                                #  and its fast/heavy CI split are derived from
+                                #  source by scripts/p037_proof_boundary.py, and
+                                #  proof-boundary.json maps each harness's claim
+                                #  and assumptions (P-037 B0)
 cargo kani --harness k9_residual_bottom_lemma_all_three_groundings
 ```
 

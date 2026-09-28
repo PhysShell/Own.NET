@@ -1,0 +1,656 @@
+{
+ "Probe": {
+  "records": {
+   "Probe.Inner": {
+    "body": [
+     {
+      "op": "if",
+      "line": 7,
+      "then": [
+       {
+        "op": "release",
+        "var": "s",
+        "line": 9
+       }
+      ],
+      "else": []
+     }
+    ],
+    "guarded_facts": {
+     "version": 1,
+     "calls": [],
+     "guards": [
+      {
+       "site": {
+        "line": 7,
+        "column": 9
+       },
+       "param": 1,
+       "predicate": "truth",
+       "negated": true
+      }
+     ]
+    }
+   },
+   "Probe.Sink": {
+    "body": [
+     {
+      "op": "release",
+      "var": "s",
+      "line": 13
+     }
+    ],
+    "guarded_facts": null
+   },
+   "Probe.Branchy": {
+    "body": [
+     {
+      "op": "if",
+      "line": 18,
+      "then": [
+       {
+        "op": "release",
+        "var": "s",
+        "line": 20
+       }
+      ],
+      "else": [
+       {
+        "op": "release",
+        "var": "s",
+        "line": 24
+       }
+      ]
+     }
+    ],
+    "guarded_facts": {
+     "version": 1,
+     "calls": [
+      {
+       "site": {
+        "line": 20,
+        "column": 13
+       },
+       "statement_line": 20,
+       "form": "statement",
+       "callee": "Probe.Inner",
+       "sig": "System.IO.Stream,System.Boolean",
+       "first_party": true,
+       "args": [
+        {
+         "param": 0,
+         "kind": "param",
+         "source_param": 0
+        },
+        {
+         "param": 1,
+         "kind": "bool_const",
+         "value": true
+        }
+       ]
+      },
+      {
+       "site": {
+        "line": 24,
+        "column": 13
+       },
+       "statement_line": 24,
+       "form": "statement",
+       "callee": "Probe.Sink",
+       "sig": "System.IO.Stream",
+       "first_party": true,
+       "args": [
+        {
+         "param": 0,
+         "kind": "param",
+         "source_param": 0
+        }
+       ]
+      }
+     ],
+     "guards": [
+      {
+       "site": {
+        "line": 18,
+        "column": 9
+       },
+       "param": 1,
+       "predicate": "truth",
+       "negated": false
+      }
+     ]
+    }
+   },
+   "Probe.TwoIfs": {
+    "body": [
+     {
+      "op": "if",
+      "line": 31,
+      "then": [
+       {
+        "op": "release",
+        "var": "s",
+        "line": 31
+       }
+      ],
+      "else": []
+     },
+     {
+      "op": "if",
+      "line": 31,
+      "then": [
+       {
+        "op": "release",
+        "var": "s",
+        "line": 31
+       }
+      ],
+      "else": []
+     }
+    ],
+    "guarded_facts": {
+     "version": 1,
+     "calls": [
+      {
+       "site": {
+        "line": 31,
+        "column": 18
+       },
+       "statement_line": 31,
+       "form": "statement",
+       "callee": "Probe.Inner",
+       "sig": "System.IO.Stream,System.Boolean",
+       "first_party": true,
+       "args": [
+        {
+         "param": 0,
+         "kind": "param",
+         "source_param": 0
+        },
+        {
+         "param": 1,
+         "kind": "bool_const",
+         "value": true
+        }
+       ]
+      },
+      {
+       "site": {
+        "line": 31,
+        "column": 45
+       },
+       "statement_line": 31,
+       "form": "statement",
+       "callee": "Probe.Sink",
+       "sig": "System.IO.Stream",
+       "first_party": true,
+       "args": [
+        {
+         "param": 0,
+         "kind": "param",
+         "source_param": 0
+        }
+       ]
+      }
+     ],
+     "guards": [
+      {
+       "site": {
+        "line": 31,
+        "column": 9
+       },
+       "param": 1,
+       "predicate": "truth",
+       "negated": false
+      },
+      {
+       "site": {
+        "line": 31,
+        "column": 36
+       },
+       "param": 2,
+       "predicate": "truth",
+       "negated": false
+      }
+     ]
+    }
+   },
+   "Probe.Early": {
+    "body": [
+     {
+      "op": "if",
+      "line": 37,
+      "then": [
+       {
+        "op": "return",
+        "var": null,
+        "line": 37
+       }
+      ],
+      "else": []
+     },
+     {
+      "op": "release",
+      "var": "s",
+      "line": 38
+     }
+    ],
+    "guarded_facts": {
+     "version": 1,
+     "calls": [
+      {
+       "site": {
+        "line": 38,
+        "column": 9
+       },
+       "statement_line": 38,
+       "form": "statement",
+       "callee": "Probe.Sink",
+       "sig": "System.IO.Stream",
+       "first_party": true,
+       "args": [
+        {
+         "param": 0,
+         "kind": "param",
+         "source_param": 0
+        }
+       ]
+      }
+     ],
+     "guards": [
+      {
+       "site": {
+        "line": 37,
+        "column": 9
+       },
+       "param": 1,
+       "predicate": "truth",
+       "negated": false
+      }
+     ]
+    }
+   }
+  }
+ },
+ "Probe2": {
+  "records": {
+   "Probe2.Inner": {
+    "body": [
+     {
+      "op": "if",
+      "line": 8,
+      "then": [
+       {
+        "op": "release",
+        "var": "s",
+        "line": 10
+       }
+      ],
+      "else": []
+     }
+    ],
+    "guarded_facts": {
+     "version": 1,
+     "calls": [],
+     "guards": [
+      {
+       "site": {
+        "line": 8,
+        "column": 9
+       },
+       "param": 1,
+       "predicate": "truth",
+       "negated": true
+      }
+     ]
+    }
+   },
+   "Probe2.InBranch": {
+    "body": [
+     {
+      "op": "if",
+      "line": 18,
+      "then": [
+       {
+        "op": "use",
+        "var": "s",
+        "line": 19
+       }
+      ],
+      "else": []
+     }
+    ],
+    "guarded_facts": {
+     "version": 1,
+     "calls": [
+      {
+       "site": {
+        "line": 19,
+        "column": 13
+       },
+       "statement_line": 19,
+       "form": "statement",
+       "callee": "Probe2.Log",
+       "sig": "System.IO.Stream",
+       "first_party": true,
+       "args": [
+        {
+         "param": 0,
+         "kind": "param",
+         "source_param": 0
+        }
+       ]
+      }
+     ],
+     "guards": [
+      {
+       "site": {
+        "line": 18,
+        "column": 9
+       },
+       "param": 1,
+       "predicate": "truth",
+       "negated": false
+      }
+     ]
+    }
+   },
+   "Probe2.AfterIf": {
+    "body": [
+     {
+      "op": "if",
+      "line": 26,
+      "then": [],
+      "else": []
+     },
+     {
+      "op": "use",
+      "var": "s",
+      "line": 27
+     }
+    ],
+    "guarded_facts": {
+     "version": 1,
+     "calls": [
+      {
+       "site": {
+        "line": 27,
+        "column": 13
+       },
+       "statement_line": 27,
+       "form": "statement",
+       "callee": "Probe2.Log",
+       "sig": "System.IO.Stream",
+       "first_party": true,
+       "args": [
+        {
+         "param": 0,
+         "kind": "param",
+         "source_param": 0
+        }
+       ]
+      }
+     ],
+     "guards": [
+      {
+       "site": {
+        "line": 26,
+        "column": 9
+       },
+       "param": 1,
+       "predicate": "truth",
+       "negated": false
+      }
+     ]
+    }
+   },
+   "Probe2.Behind": {
+    "body": [
+     {
+      "op": "if",
+      "line": 33,
+      "then": [
+       {
+        "op": "release",
+        "var": "s",
+        "line": 35
+       }
+      ],
+      "else": []
+     }
+    ],
+    "guarded_facts": {
+     "version": 1,
+     "calls": [
+      {
+       "site": {
+        "line": 35,
+        "column": 13
+       },
+       "statement_line": 35,
+       "form": "statement",
+       "callee": "Probe2.Inner",
+       "sig": "System.IO.Stream,System.Boolean",
+       "first_party": true,
+       "args": [
+        {
+         "param": 0,
+         "kind": "param",
+         "source_param": 0
+        },
+        {
+         "param": 1,
+         "kind": "param",
+         "source_param": 1
+        }
+       ]
+      }
+     ],
+     "guards": []
+    }
+   }
+  }
+ },
+ "Probe3": {
+  "records": {
+   "Probe3.Sink": {
+    "body": [
+     {
+      "op": "release",
+      "var": "s",
+      "line": 6
+     }
+    ],
+    "guarded_facts": null
+   },
+   "Probe3.Ok": {
+    "body": [
+     {
+      "op": "release",
+      "var": "s",
+      "line": 7
+     },
+     {
+      "op": "return",
+      "var": null,
+      "line": 7
+     }
+    ],
+    "guarded_facts": null
+   },
+   "Probe3.Use": {
+    "body": [
+     {
+      "op": "release",
+      "var": "s",
+      "line": 13
+     },
+     {
+      "op": "return",
+      "var": null,
+      "line": 13
+     }
+    ],
+    "guarded_facts": null
+   },
+   "Probe3.ShortCircuit": {
+    "body": [
+     {
+      "op": "if",
+      "line": 17,
+      "then": [],
+      "else": []
+     }
+    ],
+    "guarded_facts": {
+     "version": 1,
+     "calls": [
+      {
+       "site": {
+        "line": 17,
+        "column": 18
+       },
+       "statement_line": 17,
+       "form": "expression",
+       "callee": "Probe3.Ok",
+       "sig": "System.IO.Stream",
+       "first_party": true,
+       "args": [
+        {
+         "param": 0,
+         "kind": "param",
+         "source_param": 0
+        }
+       ]
+      }
+     ],
+     "guards": []
+    }
+   },
+   "Probe3.Switch": {
+    "body": [
+     {
+      "op": "if",
+      "line": 22,
+      "then": [
+       {
+        "op": "release",
+        "var": "s",
+        "line": 24
+       }
+      ],
+      "else": []
+     }
+    ],
+    "guarded_facts": {
+     "version": 1,
+     "calls": [
+      {
+       "site": {
+        "line": 24,
+        "column": 21
+       },
+       "statement_line": 24,
+       "form": "statement",
+       "callee": "Probe3.Sink",
+       "sig": "System.IO.Stream",
+       "first_party": true,
+       "args": [
+        {
+         "param": 0,
+         "kind": "param",
+         "source_param": 0
+        }
+       ]
+      }
+     ],
+     "guards": []
+    }
+   },
+   "Probe3.TryCatch": {
+    "body": [
+     {
+      "op": "if",
+      "line": 31,
+      "then": [
+       {
+        "op": "return",
+        "var": null,
+        "line": 31
+       }
+      ],
+      "else": []
+     },
+     {
+      "op": "use",
+      "var": "s",
+      "line": 31
+     }
+    ],
+    "guarded_facts": {
+     "version": 1,
+     "calls": [
+      {
+       "site": {
+        "line": 32,
+        "column": 31
+       },
+       "statement_line": 32,
+       "form": "statement",
+       "callee": "Probe3.Sink",
+       "sig": "System.IO.Stream",
+       "first_party": true,
+       "args": [
+        {
+         "param": 0,
+         "kind": "param",
+         "source_param": 0
+        }
+       ]
+      }
+     ],
+     "guards": []
+    }
+   },
+   "Probe3.Loop": {
+    "body": [
+     {
+      "op": "while",
+      "line": 37,
+      "body": [
+       {
+        "op": "release",
+        "var": "s",
+        "line": 37
+       }
+      ]
+     }
+    ],
+    "guarded_facts": {
+     "version": 1,
+     "calls": [
+      {
+       "site": {
+        "line": 37,
+        "column": 39
+       },
+       "statement_line": 37,
+       "form": "statement",
+       "callee": "Probe3.Sink",
+       "sig": "System.IO.Stream",
+       "first_party": true,
+       "args": [
+        {
+         "param": 0,
+         "kind": "param",
+         "source_param": 0
+        }
+       ]
+      }
+     ],
+     "guards": []
+    }
+   }
+  }
+ }
+}
