@@ -207,6 +207,16 @@ ROCQ_CONSOLIDATION_PREFIXES = ("formal/p037-rocq/",)
 VALUE_BENCHMARK_NOTE_PATH = "docs/notes/p037-value-benchmark-2026-09-28.md"
 VALUE_BENCHMARK_PREFIXES = ("docs/evidence/p037-value-benchmark/",)
 
+# Real-world mining gate (this branch's own third and final research
+# deliverable): the identical gap, a third time, for the identical reason
+# -- the prereg and result notes plus the candidate-inventory evidence
+# directory are new paths this test never saw until they were committed
+# here. Two named notes (a prefix, since this gate produces exactly two --
+# prereg and result -- unlike the single-note Rocq/value-benchmark cases)
+# plus one evidence-directory prefix, matching every precedent above.
+MINING_NOTE_PREFIXES = ("docs/notes/p037-real-world-mining-",)
+MINING_EVIDENCE_PREFIXES = ("docs/evidence/p037-real-world-mining/",)
+
 # 10.6.14b: order step 6 (D after) lands its evidence as exactly these six
 # files under docs/evidence/, and nothing about them is inferred or
 # regenerated -- each is pinned to the exact sha256 the accepted external
@@ -240,7 +250,8 @@ def classify_outside_paths(changed: list[str], t_paths: list[str],
     Factored out so the hostile controls below can probe it with synthetic
     `changed` lists instead of needing a real git commit per probe."""
     allowed_prefixes = (*tuple(t_paths), "tests/", *PHASE_B_PREFIXES,
-                        *ROCQ_CONSOLIDATION_PREFIXES, *VALUE_BENCHMARK_PREFIXES)
+                        *ROCQ_CONSOLIDATION_PREFIXES, *VALUE_BENCHMARK_PREFIXES,
+                        *MINING_NOTE_PREFIXES, *MINING_EVIDENCE_PREFIXES)
     governance = (EPOCH_RECORD_PATH, FORMAL_NOTE_PATH, *PHASE_B_GOVERNANCE_FILES,
                  ROCQ_CONSOLIDATION_NOTE_PATH, VALUE_BENCHMARK_NOTE_PATH)
     return [f for f in changed if f not in governance
@@ -566,6 +577,21 @@ def run() -> int:
                 vb_forbidden, t_paths, r_d_files, d_after_ok)
             check("value-benchmark-carveout-does-not-broaden-to-docs-evidence-generally",
                   sorted(vb_forbidden_probe) == sorted(vb_forbidden), f"{vb_forbidden_probe}")
+
+            # Same two hostile shapes for the real-world mining carve-out.
+            mining_admits_probe = classify_outside_paths(
+                ["docs/notes/p037-real-world-mining-prereg-2026-09-28.md",
+                 "docs/notes/p037-real-world-mining-result-2026-09-28.md",
+                 "docs/evidence/p037-real-world-mining/candidates.json"],
+                t_paths, r_d_files, d_after_ok)
+            check("mining-carveout-admits-exactly-its-own-paths",
+                  not mining_admits_probe, f"{mining_admits_probe}")
+            mining_forbidden = ["docs/notes/some-other-unrelated-note.md"]
+            mining_forbidden_probe = classify_outside_paths(
+                mining_forbidden, t_paths, r_d_files, d_after_ok)
+            check("mining-carveout-does-not-broaden-to-docs-notes-generally",
+                  sorted(mining_forbidden_probe) == sorted(mining_forbidden),
+                  f"{mining_forbidden_probe}")
 
             d_after_evidence = later.get("D_after_evidence")
             if d_after_evidence is not None:
