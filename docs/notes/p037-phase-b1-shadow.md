@@ -1,6 +1,8 @@
 # P-037 Phase B1: the guarded shadow read (pre-registered)
 
-> Status: **PRE-REGISTERED. No Rust code written; stopped for owner review.**
+> Status: **PRE-REGISTERED and AMENDED by owner review (§G). Implementation is
+> authorized from the amendment commit on; the boundaries do not move after
+> it.**
 >
 > This contract is committed before any implementation, so the result is
 > judged against it rather than an impression afterwards.
@@ -116,17 +118,37 @@ B1, and that refusal is correct. The pre-registered evidence instead:
 - it must still leave MOS and verdicts unchanged (the inertness script, with a
   guarded layer added).
 
-**N5 — every guarded-vs-legacy difference is classified.** Legacy is
-`own-bridge`'s MOS, read through `own-shadow`. Every coordinate lands in
-exactly one of:
-- `EQUAL`;
-- `SUMMARY_REFINEMENT` (guarded ⊑ legacy after finalization, G-T2a);
-- `LEGACY_HONESTY` (guarded unknown vs legacy may, G-T2b class 3);
-- `APPLICATION_REFINEMENT` (call-site selection differs; the collapse agrees);
+**N5 — every guarded-vs-legacy difference is classified, at two separate
+levels.** Legacy is `own-bridge`'s MOS, read through `own-shadow`.
+
+- **Legacy comparison is justified by G-T2b and nothing else.** G-T2a is the
+  pre-finalization lax refinement of the guarded lfp against the *collapsed
+  semantic system* `F_C` (`C(lfp F_G) ≤ lfp F_C`, §7.2). It says nothing
+  about legacy, which A0.5 established by splitting G-T2.
+- G-T2a may be checked as a separate **internal algebraic invariant** of the
+  shadow run (guarded collapse against the collapsed system, before
+  finalization). A violation of it is an implementation defect, never a
+  classification.
+
+**Summary report**, one row per coordinate, each in exactly one class:
+- `EQUAL`: the finalized guarded collapse equals the legacy value;
+- `SUMMARY_REFINEMENT`: the finalized guarded collapse is strictly below the
+  legacy value (G-T2b, first disjunct);
+- `LEGACY_HONESTY`: guarded `unknown` against legacy `may` (G-T2b class 3);
+- `NO_GUARDED_EVIDENCE(reason)`;
+- `UNEXPLAINED`: anything else.
+
+**Application report**, one row per relevant call site, each in exactly one
+class:
+- `EQUAL`: the guarded lowering, through `apply` with the site's selection,
+  equals the legacy lowering;
+- `APPLICATION_REFINEMENT`: the selection at the site gives a different
+  lowered effect than lowering the collapse, and that effect is within what
+  G-A1/G-A2 permit;
 - `NO_GUARDED_EVIDENCE(reason)`;
 - `UNEXPLAINED`.
 
-`UNEXPLAINED > 0` is a KILL (§D).
+`UNEXPLAINED > 0` in **either** report is a KILL (§D).
 
 **N6 — the first shadow population collects the gate metrics.**
 - **A14 exposure** (measurement only; OwnIR is not amended, per §10.7):
@@ -134,16 +156,26 @@ exactly one of:
   - exact calls (static, non-virtual, or a sealed/struct target);
   - virtual / abstract / interface / override dispatch candidates;
   - candidates in a guarded summary chain;
-  - candidates whose admissible first-party implementations (in the
-    compilation) have **different** guarded summary classes;
-  - the subset where the static target yields MUST and some admissible target
-    does not (the A14 hard-KILL witness count).
+  - candidates whose **observed first-party targets in this compilation**
+    have different guarded summary classes. The class is computed by the
+    shadow measurement, never by the side report;
+  - the subset where the static target yields MUST and some observed target
+    does not: the A14 hard-KILL witness count.
 
   Dispatch class is not in the facts. The measurement therefore comes from a
-  **side report** of the extractor: an opt-in flag that writes a separate JSON
-  keyed by call site. It is not OwnIR, not read by either engine, and facts
-  are byte-identical when it is off (N2). It is an instrument, not a fact, and
-  it is reported, not acted upon.
+  **side report** of the extractor. It is strictly measurement:
+  - it is opt-in, and writes a separate JSON keyed by call site;
+  - it is not OwnIR and not read by either engine, and facts are
+    byte-identical when it is off (N2);
+  - it emits only Roslyn/source dispatch metadata: `dispatch: exact | open`,
+    plus the **observed first-party targets in this compilation**;
+  - it never calls those targets "admissible" or "the implementations". For
+    an open-world virtual/interface call they are not the exhaustive runtime
+    set, and the report says so;
+  - it computes no guarded summary class and decides nothing about safety;
+    that is the shadow measurement's job;
+  - no conflicting observed target never turns an `open` call into one proven
+    safe for phase C. `open` stays `open` in every count.
 - **R record-absence:** first-party resolved callees with no `functions[]`
   record, how many guarded paths end there, and the share of otherwise-eligible
   guarded chains that break on R.
@@ -167,7 +199,9 @@ exactly one of:
 | G10 | the contradictory sidecar no longer changes the shadow | the N4 required-read test fails |
 | G11 | the report drops `static_dispatch_conditional` or acts on dispatch | the A14 report test fails |
 | G12 | an own-bridge / own-cli source change sneaks in | the N2 path guard fails |
-| G13 | a synthetic guarded-vs-legacy pair outside the three classes | the classifier reports `UNEXPLAINED` (it is not silently bucketed) |
+| G13 | a synthetic guarded-vs-legacy pair outside the classes of its level | the summary or application classifier reports `UNEXPLAINED` (it is not silently bucketed); a pair whose only justification would be G-T2a is `UNEXPLAINED` too |
+| G14 | a shadow run over any input not at `population_commit` `571669e` | the report generator refuses; population drift is not a measurement |
+| G15 | the side report marks an `open` call as safe, or emits a summary class | the side-report schema test fails |
 
 ## D. Hard KILL / PASS
 
@@ -181,21 +215,23 @@ semantics here, and triggers when:
    comment;
 4. any positive guarded conclusion (a selected MUST / NO, or borrow) is
    produced where §0.9 requires `NO_GUARDED_EVIDENCE`;
-5. `UNEXPLAINED > 0` on the population. Each such difference is classified
-   under §10.1 before anything else happens; case 5 goes to the owner;
+5. `UNEXPLAINED > 0` in the summary or the application report. Each such
+   difference is classified under §10.1 before anything else happens; case 5
+   goes to the owner;
 6. the fail-closed join (A15) cannot be implemented from the A2 facts without
    a sidecar/OwnIR change. That is a case-5 STOP, as B0 §E.3 item 3 foresaw;
 7. A14 is assumed away or acted on;
 8. the kernel is re-implemented rather than reused;
-9. the budget below is exceeded.
+9. any hard cap in §F is reached with the work unfinished. That is a STOP
+   and review: no 2x grace and no quiet overrun.
 
 **PASS** gives `RESULT: PASS — GUARDED SHADOW READ ESTABLISHED`, and requires
 all of:
 - N1–N6 hold;
-- G1–G13 fire;
+- G1–G15 fire;
 - the first shadow report is committed as evidence (population, commit,
   toolchain), together with the A14 and R metrics;
-- the degradation census, and the classification counts with
+- the degradation census, and the classification counts of both reports with
   `UNEXPLAINED = 0`.
 
 A PASS authorizes nothing further by itself. The A14 gate and the R value
@@ -205,7 +241,15 @@ authorization.
 
 ## E. Population (the first shadow run)
 
-All of it is at one commit and one toolchain. The legacy side is `own-bridge`'s MOS (the Rust production core); Python/Rust parity is already gated by P-022, and B1 does not re-measure it. The population:
+**`population_commit` = `571669e`** (frozen by the owner). Every input is
+read from that exact commit, materialized from git as the A2 evidence harness
+does, and the run uses one toolchain.
+- The legacy side is `own-bridge`'s MOS, the Rust production core. Python/Rust
+  parity is already gated by P-022, and B1 does not re-measure it.
+- Fixtures B1 adds later are **acceptance tests only**; they are never added
+  to this measurement population (G14).
+
+The population:
 - the repository C# tree (`frontend/`, `audit/`);
 - the committed corpus (the 137 files of `corpus/real-world`, `wpf`, `di`,
   `fixtures`, `p036-bakeoff`);
@@ -219,21 +263,56 @@ evidence, not a gate on verdicts.
 
 ## F. Budget and stop point
 
-Budget:
-- `own-guarded`: at most ~900 lines of non-test Rust. That covers the join,
-  the fact-to-system builder, the dynamic full-sweep driver, application
-  through `apply`, and the classifier.
-- `own-shadow`: one report entry point, at most ~200 lines, following owner
-  decision R-1: stdin is the facts document, stdout is the report, and it
-  takes no path arguments.
-- The extractor side report (A14): at most ~150 lines of C#, opt-in.
-- The architecture and reuse guards, plus fixture tests.
-- No new framework.
+Hard caps (owner amendment; measured as handwritten lines, excluding blank
+lines and comments, by the same counter for every file):
 
-Twice the budget is a STOP and a re-plan, not a quiet overrun (the #369 lesson).
+| scope | cap |
+|---|---|
+| `own-guarded`, non-test Rust | **900** |
+| `own-shadow`, B1 additions (the report entry point) | **200** |
+| extractor A14 side report, C# | **150** |
+| **everything B1 hand-writes**: code, tests, guards, fixtures' harness code and scripts | **2500** |
+
+- The report entry point follows owner decision R-1: stdin is the facts
+  document, stdout is the report, and it takes no path arguments.
+- No new framework.
+- **Reaching any cap with the work unfinished means STOP and review.** There is
+  no 2x grace; the #369 overrun is the precedent this rule exists for.
 
 Stop point: the PASS/FAIL result, the committed first shadow report, and the
 metrics for the A14 and R gates. **No phase-C wiring, no A14 solution, no R
 experiment, no #368 fix.**
 
 Implementation starts only after the owner has reviewed this contract.
+
+## G. Owner amendments (review of `571669e`, recorded 2026-09-28)
+
+The owner reviewed the pre-registration at `571669e` and required four
+corrections before any implementation. They are applied above.
+
+1. **N5.** G-T2a is only the pre-finalization refinement against `F_C` and is
+   never a justification for a legacy comparison. Legacy classification rests
+   on G-T2b, and summary-level and application-level classification are
+   separate reports.
+2. **Population.** Every first-shadow population input is frozen at exact
+   commit `571669e`. Later B1 fixtures are tests, never additions to that
+   measurement population.
+3. **Budget.** Hard caps replace the approximate and 2x budgets:
+   `own-guarded` 900 non-test Rust, `own-shadow` 200, A14 C# 150, total
+   handwritten code/tests/guards 2500. Reaching any cap unfinished means
+   STOP.
+4. **A14 side report.** It is strictly measurement: `exact | open` plus the
+   observed first-party targets. It never claims those targets exhaust runtime
+   dispatch and never computes semantic conclusions.
+
+Also accepted as written:
+- The zero-semantic-cut evidence of N2. An identical `own-cli` SHA is the
+  cheap fast path, not a theorem. A different SHA is not a KILL by itself: it
+  runs the recorded fallback (before/after MOS and verdicts on the frozen
+  population), and if the tooling cannot honestly express the instrument
+  move, the tooling is fixed first.
+- The architecture of §0.
+
+Implementation is authorized from the commit that records these amendments.
+The draft PR is opened before any Rust code, so this SHA is visible and the
+boundaries do not move after it.
