@@ -6,6 +6,24 @@ precision/recall benchmark. Not B2.1a, not a #368 fix, not implementation —
 zero production/frontend/ownlang/rust/formal LOC changed. Machine-readable
 data: [`docs/evidence/p037-value-benchmark/manifest.json`](../evidence/p037-value-benchmark/manifest.json).
 
+**Correction (this revision).** An independent review caught that the first
+version of this note over-read issue #278 as satisfying R2's materiality
+branch (see "Real-world materiality" and "DECISION" below) and that this
+note understated its own manifest's chronology. Both are corrected in
+place; no measurement changed. Original decision was `REOPEN_CANDIDATE_R2`,
+corrected to `CAPABILITY_GAP_ONLY`.
+
+**Preregistration status: retrospective, not prereg-frozen.** This
+benchmark did not preregister a new ground-truth manifest before execution.
+Its expected labels were pre-existing committed corpus truth
+(`corpus/p036-bakeoff/*/expected-diagnostics.txt`, authored before this task
+existed) and were not edited by this task; the manifest retrospectively
+binds those pre-existing labels, source hashes, and measured tool
+identities into one evidence record. The risk this creates is small — the
+labels predate the benchmark — but the distinction is named rather than
+implied: expected labels are pre-existing/pre-measurement, the manifest
+binding them to hashes and results is retrospective.
+
 ## What this reused (nothing new built)
 
 - `.github/workflows/oracle.yml` + `scripts/oracle_compare.py` — the existing
@@ -116,7 +134,7 @@ measurement — flagged for a docs fix, not touched here (out of scope).
   specific 2025/2026 answer), and Infer# could not be run against this
   corpus (see above). Recorded as an open uncertainty, not a clearance.
 
-## Real-world materiality (existing evidence only, no new mining)
+## Real-world motivation (existing evidence only, no new mining) — does NOT establish current materiality
 
 **Issue #278** (closed, fixed by merged PR #293): a **P1, heap-proven**
 production defect on the project's own SectorTS reference codebase —
@@ -129,9 +147,17 @@ traced through the static publisher's invocation list to the document
 graph. This is **structurally the same pattern** as
 `guarded-consume-flag-branch`/`early-return` (a boolean-parameter-guarded
 release, callers passing the constant that skips it) — on subscription
-release (`-=`) rather than `IDisposable.Dispose()`. It satisfies the frozen
-threshold's first branch ("1 material production incident current
-predicates miss") on its own.
+release (`-=`) rather than `IDisposable.Dispose()`.
+
+**Scored against the frozen threshold honestly, this does not pass.** The
+threshold requires "1 material production incident **current** production
+predicates still miss." #278 is real (YES), material (YES), heap-proven
+(YES), same semantic family (YES, very relevant) — but **currently missed?
+NO**. It is closed, fixed by merged PR #293 (part of the #293/#302/#306
+slice), so current production predicates do *not* miss it. #278 is real-world
+**motivation** that the pattern class is dangerous and expensive, and (below)
+a concrete counterexample to one cheap mitigation for it — it is not a
+currently-uncovered incident, and must not be counted as one.
 
 **The shipped fix is not P-037-shaped, and that is informative.** #293's
 rule (`corpus/wpf/subscription-param-guarded-unregister`) is: *a release
@@ -188,27 +214,44 @@ already tried for it cannot also stay precise.
    the required 2), each confirmed missed by 2 independent baselines
    (own-rust-production and CodeQL), spanning 3 of the 5 named transform
    edges (const via two call shapes, id, neg).
-5. **Real-world materiality** (existing evidence only) — met via issue #278
-   (P1, heap-proven, closed/fixed), on the frozen threshold's "1 material
-   production incident current predicates miss" branch. The incident is the
-   `-=`/subscription-release analog of the measured `Dispose()` pattern, not
-   a `Dispose()`-specific real-world instance — named explicitly, not
-   blurred.
+5. **Real-world materiality** (existing evidence only) — **NOT met**. Issue
+   #278 is real, material, heap-proven, and same-family — but it is
+   **closed**, fixed by merged PR #293 (part of the #293/#302/#306 slice),
+   so current production predicates do *not* currently miss it. It supports
+   real-world motivation for the pattern class and is a concrete
+   counterexample to one cheap (blanket, non-call-site-sensitive) mitigation
+   for it — it does not satisfy the frozen threshold's "current predicates
+   still miss it" clause. No second, currently-open instance was searched
+   for or found this session.
 
-## DECISION: REOPEN_CANDIDATE_R2
+## DECISION: CAPABILITY_GAP_ONLY
 
-Per #304's own terms, this does **not** lift the freeze. It means R2
-("measurable need") has evidence that was not available at freeze time:
-a real, material, project-native production incident of the exact pattern
-class P-037's guarded/Election lattice targets, plus a synthetic corpus
-showing 4 independent instances of that class going uncaught by both
-current Own.NET engines and CodeQL, plus an analytical (not hypothetical)
-demonstration that the cheapest already-tried mitigation for the pattern
-class cannot be both correct and precise without call-site sensitivity.
+Meaning, precisely:
 
-**NEXT AUTHORIZED ACTION: owner ruling on #304 only.** Not B2.1a, not a
-guarded-solver design, not a #368 fix, not a production change — none of
-that is authorized by this note.
+- guarded conditional transfer is a demonstrated **current capability gap**;
+- current Own.NET Rust misses all 4 measured families;
+- CodeQL misses all 4 measured families;
+- desired P-037 semantics has pre-existing, unambiguous ground truth for
+  this corpus (the committed `expected-diagnostics.txt` files);
+- real historical production evidence (#278) establishes that the pattern
+  *family* matters and has been costly;
+- **current, uncovered real-world materiality has NOT yet been
+  established** — #278 is closed, and no second (or first currently-open)
+  real instance was searched for or found this session.
+
+This is deliberately weaker than the previous revision's
+`REOPEN_CANDIDATE_R2`, which over-read #278's closed, historical incident as
+satisfying the frozen "current predicates still miss it" clause. It did not.
+The corrected reading: the mechanism is proven non-decorative (CodeQL does
+not catch it either, and a cheap blanket mitigation for the closed analog
+provably cannot stay precise) — what remains is showing that someone other
+than this project's own synthetic corpus currently needs it.
+
+**NEXT: P-037 implementation freeze is STILL IN FORCE.** Next research
+action, if the owner chooses to pursue it: **owner may authorize a bounded
+real-world mining gate** — not a ruling to lift #304, not B2.1a, not a
+guarded-solver design, not a #368 fix, not a production change. The freeze
+is not reopened by this note.
 
 ## Budget
 
