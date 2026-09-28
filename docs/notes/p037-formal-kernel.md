@@ -873,3 +873,87 @@ Consequences for Phase B (OWNER RULING, from the same decision):
   - a material share (for example 15–20 % of real wrapper chains breaking
     at expression-bodied members): that is the basis for paying for an IR
     extension, through the kill-first comparison above.
+
+### 10.7 Owner ruling on B0 and A14 (Phase B0, #372)
+
+B0 (`docs/notes/p037-phase-b-proof-boundary.md`) closed with PASS and
+escalated one inherited assumption, A14 (static dispatch), as a phase-C
+obligation. The owner ruled:
+
+```text
+OWNER RULING — B0 / A14 (2026-09-28)
+
+B0 PASS accepted.
+
+The two §E.4 interpretations stand.
+
+B1 shadow is authorized with all 16 entry obligations.
+B1 must report guarded results as conditional on static dispatch and
+must not change public semantics.
+
+A14 is NOT accepted as a permanent production assumption.
+
+A14 is a mandatory pre-Phase-C gate.
+
+Before guarded summaries can become authoritative:
+1. measure dynamic-dispatch exposure on the first B1 shadow population;
+2. test whether any admissible runtime target can invalidate a static-target
+   positive conclusion, especially MUST;
+3. if yes, Phase C must fail closed for non-exact dispatch, either through
+   a minimal dispatch fact or another explicitly approved mechanism;
+4. no non-exact call may fabricate MUST merely from the statically resolved
+   callee.
+
+Do not amend OwnIR before the measurement establishes that the information
+is actually needed.
+```
+
+What the owner said alongside it, recorded as ruling context:
+
+- **The two §E.4 interpretations.**
+  - `PRODUCTION_GUARANTOR` means a mechanism that exists now: future B1 code
+    cannot be its own proof of correctness. The 16 B1 obligations stay B1's
+    debts; they are not "proven production properties".
+  - `apply` / `lower` are the formal-to-production seam, because A1 must
+    reuse the kernel rather than rewrite it. If B1 builds another semantic
+    path around `apply`, F9 must kill it. B1 must move the K7 witness onto the
+    real adapter.
+- **Why A14 is a hard pre-C blocker and not a B1 blocker.** "Legacy does
+  static dispatch too" is enough to allow a shadow experiment that changes
+  nothing. It is not enough to make the guarded engine authoritative. At a
+  virtual call the statically chosen callee may have `must` while the override
+  that actually runs does not: a potentially fabricated consume, not merely a
+  precision loss. An old bug does not earn citizenship by having lived here
+  long enough.
+- **The A14 gate (kill-first, hours not a week), after the first B1 shadow
+  run and before phase C.**
+  - Population: the repo tree, the committed corpus, the P-037 controls and
+    shapes, and the first B1 shadow corpus.
+  - Count:
+    - relevant calls in total;
+    - statically non-virtual / exact calls;
+    - virtual / interface / abstract dispatch candidates;
+    - candidates that take part in a guarded summary chain;
+    - candidates where two or more possible implementations have different
+      summary classes.
+  - Cheapest falsifier of "we need a dispatch fact": if relevant
+    dynamic-dispatch sites are practically absent, or none shows a summary
+    disagreement, build no infrastructure. A14 stays an explicit boundary, and
+    work proceeds only if conservative behavior can be guaranteed.
+  - Hard KILL the other way: if even one reachable virtual/interface call
+    exists where the static callee can give `must` and an admissible runtime
+    target does not, static dispatch cannot be allowed into an authoritative
+    phase C. Then either:
+    1. the producer adds a minimal dispatch fact that tells an exact call
+       from open-world dispatch; or
+    2. non-exact dispatch degrades to Opaque/Unknown in the guarded adapter,
+       never to `must`.
+
+    Preferred: option 2, if one cheap source fact such as
+    `dispatch: exact | open` suffices, rather than a set of possible targets.
+    Soundness needs to know when the static target cannot be trusted as the
+    only one, not the whole virtual hierarchy.
+- **A13 / A16 are not touched now.** A13 is an ordinary B1 implementation
+  obligation. A16 is honestly classified as inherited normal-return scope. If
+  the first shadow shows that catch/exception paths make a material hole, that
+  is a separate experiment; B1 does not rewrite C# semantics wholesale.

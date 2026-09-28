@@ -1,8 +1,9 @@
 # P-037 Phase B0: the formal/production proof-boundary audit (pre-registered)
 
 > Status: **RESULT: PASS — PROOF BOUNDARY CLOSED FOR PHASE B SHADOW (§E),
-> with 16 B1 entry obligations and 2 phase-C obligations. One phase-C item
-> (A14, static dispatch) needs an owner decision before phase C.**
+> with 16 B1 entry obligations and 2 phase-C obligations. ACCEPTED by owner
+> ruling (`docs/notes/p037-formal-kernel.md` §10.7). Both §E.4 interpretations
+> stand, B1 shadow is authorized, and A14 is a mandatory pre-Phase-C gate.**
 > §§A–D were pre-registered in `ee73dd1`, before any audit artifact, and are
 > left as registered; the result is judged against them rather than an
 > impression afterwards. Governance:
