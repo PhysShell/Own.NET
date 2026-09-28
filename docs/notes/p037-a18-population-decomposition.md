@@ -1,8 +1,10 @@
 # P-037 A18-1: population decomposition (pre-registered)
 
-> Status: **PRE-REGISTERED.** Committed before any implementation. The owner
-> authorized implementing this gate right after this commit. The boundaries
-> below do not move after this SHA.
+> Status: **STOP: HARD CAP REACHED BEFORE THE POPULATION ANSWER (§I).**
+> Pre-registered in `8046688`; the boundaries did not move. The
+> implementation measures 200 added code lines against the 180 cap. Neither
+> `--selftest` nor the population run has been executed. There is no result,
+> and no conclusion about the population.
 >
 > - Base: `3745975`, the head of #374 (A18-0, `RESULT: PASS — A18 8-ROW
 >   DECOMPOSITION HOLDS`, accepted by the owner).
@@ -186,3 +188,53 @@ B1-reconciliation gate needs its own authorization.
 - Not touched: the B1 result, `missing_sidecar`, R, A14, `ConsumesParam`,
   OwnIR, extractor semantics, the application classifier, Phase C, #368, the
   three P-037 classes, production MOS/verdicts, and `own-guarded`.
+
+## I. STOP (MEASURED OBSERVATION): the cap is reached before any answer
+
+§H says that reaching 180 added lines unfinished is a STOP. The
+implementation `scripts/p037_a18_decompose.py` measures **200** counted
+lines added or changed relative to `#374` (`3745975`), counted like A18-0
+(non-blank, non-comment, docstrings included). The first draft measured
+**208**.
+
+The reduction to 200 came from genuine de-duplication only, with no
+formatting or golfing:
+- a shorter docstring;
+- an inlined single-use helper;
+- a dict lookup instead of a quadratic scan;
+- a print that reuses the output dict.
+
+`ruff` and `mypy` are clean. **Neither `--selftest` nor `--population` has
+been run**, because a result obtained over the cap would violate the
+pre-registration. So this STOP says nothing about the population: no row was
+decomposed and no falsifier was exercised.
+
+Where the 200 lines go, roughly:
+
+| part | lines | pre-registered by |
+|---|---|---|
+| forwarding-site enumeration, local-honesty test, document-wide rewrite | ~40 | §C (`L_canonical` document-wide) |
+| forward-closure attribution and the reason rule | ~30 | §C (closure), N4/N5 |
+| typed coverage / drift against B1's per-population counts | ~25 | N1, N2, §B.1 |
+| frozen-tree / per-document plumbing (the A18-0 main still has its own copy) | ~25 | §B |
+| the six falsifiers | ~40 | §E |
+| verdict, cross-tab and evidence writer | ~25 | §F, §G |
+| docstring, imports, small refactors of A18-0 (`ops_at`) | ~15 | |
+
+**Reading (INFERENCE, for the owner).** Going from eight isolated rows to the
+population costs more than the cap assumed, for two reasons:
+- document-wide `L_canonical` needs closure attribution, which A18-0 did not;
+- B1 committed no per-row values for its 28 `EQUAL` rows, so coverage and
+  drift must be reconstructed from class counts.
+
+Neither is a new semantic mechanism, but §H reads the overrun as a signal
+that the abstraction may be wrong, and that is the owner's call. The honest
+options are:
+- raise the cap, knowing what the lines are for;
+- narrow the gate, e.g. per-row `L_canonical` (A18-0's definition), which
+  drops closure attribution but can misclassify callers of normalized
+  wrappers;
+- first make B1 commit per-row evidence (a small B1 evidence addition),
+  which would shrink the coverage/drift part.
+
+Nothing further is done until the owner decides.
