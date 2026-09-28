@@ -1,9 +1,9 @@
 # P-037 A18-1R: population decomposition, re-planned (pre-registered)
 
-> Status: **PRE-REGISTERED.** Committed before any executable change of this
-> gate. The owner authorized implementing it and running it right after this
-> commit, but only while it stays within the cap. The boundaries below do not
-> move after this SHA.
+> Status: **STOP: HARD CAP EXCEEDED BEFORE ANY RUN (§I).** Pre-registered in
+> `02ff00e`; the boundaries did not move. The implementation measures 192
+> added code lines against the 180 cap. Per §H it is neither run nor
+> accepted. There is no F0 result, no population result, and no conclusion.
 >
 > - Base: `ca14336`, the head of #376 (B1 evidence completion, stacked on #374). That
 >   PR adds the per-row snapshot `docs/evidence/p037-b1/comparable-summary-rows.json`.
@@ -191,3 +191,45 @@ A separate B1-reconciliation gate needs its own authorization.
 - Not touched: production semantics, extractor facts, OwnIR, `ConsumesParam`,
   B1 (#373 and its evidence), R, A14, #368, Phase C, the three P-037 classes,
   `own-guarded`, and #375.
+
+## I. STOP (MEASURED OBSERVATION)
+
+§H allows the gate to be implemented and run **only** within 180 added or
+changed code lines. The implementation, extending
+`scripts/p037_a18_decompose.py`, measures **192** relative to `ca14336`,
+counted like A18-0. The first draft measured 194. Two genuine
+simplifications brought it to 192, and nothing else was changed:
+- F0's caller is derived from B's own frozen record instead of hand-built
+  dicts;
+- `coverage` no longer uses a lambda.
+
+`ruff` and `mypy` are clean. **Neither `--selftest` (F0–F6) nor
+`--population` was run.** There is therefore no F0 outcome, no population
+decomposition, and nothing is claimed about the corrected definition either.
+
+Where the lines go:
+
+| part | lines | pre-registered by |
+|---|---|---|
+| `population()`: eligible sites, canonical `call` for every one, one MOS run, closure attribution; plus `reason_of` | ~57 | §C |
+| `coverage`, exact against the #376 snapshot | ~10 | N1, N2 |
+| `frozen_tree` + `comparable` (frozen tree, per-document extraction, wrapper probe) | ~21 | §B, §C |
+| `selftest`: F0 (transitive, against the old local rule), F1–F6, and a non-vacuity check | ~52 | §E |
+| `population_run`: verdict, A18-0 consistency, cross-tab, value-neutral count, evidence | ~34 | §D, §F, §G |
+| CLI, imports, docstring, the probe's per-line lookup | ~18 | |
+
+The only cuts left are:
+- dropping the probe's per-line lookup, which is fail-closed but costs
+  precision on multi-forward `use` sites;
+- dropping the non-vacuity check;
+- dropping a few evidence fields.
+
+Together that is about 7 lines, not 12. Anything further would be golfing
+or would remove pre-registered checks, and neither is acceptable.
+
+**For the owner (INFERENCE).** The pre-registered falsifier suite alone is
+about 52 lines, including F0 against the old rule, which is itself new. The
+corrected definition is not larger than #375's (it dropped the local-honesty
+test), and the snapshot shrank coverage from ~25 to ~10 lines. The
+remaining cost is the harness that makes the gate killable, not the
+decomposition. Nothing is done until the owner decides.
