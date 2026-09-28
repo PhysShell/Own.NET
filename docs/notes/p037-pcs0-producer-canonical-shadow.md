@@ -247,9 +247,9 @@ RUN:    NONE — no falsifier, no C1 byte-identity control, no A18-0 row
 
 | part | lines | cap |
 |------|------:|----:|
-| C#: `CanonicalForward` (the whole honest-forward representation) | 38 | |
-| C#: the A2.2 unwrap lifted into a shared `ValueUnwrap` (a move, counted as added) | 24 | |
-| C#: switch, `--fix-candidates` refusal, second lowering, shadow write, three `EmitFlowExpr` hook lines | 21 | |
+| C#: `CanonicalForward` (the whole honest-forward representation) | 34 | |
+| C#: the A2.2 unwrap lifted into a shared `ValueUnwrap`, plus the one-line local delegate (a move, counted as added) | 24 | |
+| C#: switch field and flag, usage line, `--fix-candidates` refusal, second lowering, shadow write, three `EmitFlowExpr` hook lines | 25 | |
 | **C# total** | **83** | 100 |
 | driver `scripts/p037_pcs0.py`: header and imports 18, `extract()` 13, `main()` 35, entry 2 | **68** | 40 |
 | falsifiers `tests/p037_pcs0_falsifiers.py` 32 + probe `Transitive.cs` 25 | **57** | 60 |
