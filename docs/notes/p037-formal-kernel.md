@@ -3821,3 +3821,14 @@ explicitly un-resolved open question this same review raised: G-V4's
 mutated-guard fixture (`Guarded.Outer`, uncond shape, correctly outside this
 class's predicate) still needs its own resolution before any B_after take
 that includes it -- flagged, not deferred.
+
+**Rocq consolidation pointer (append-only).** The plain-Rocq generic/
+unbounded proof layer researched in #367/#369/#370 (KILL MathComp, KEEP
+plain Rocq; K10/K10c/G-T2a unbounded; a Rust<->Rocq correspondence seam for
+the transfer/cells solver; Election as a separate generic-theory instance)
+is consolidated at `formal/p037-rocq/`, deriving its Rust semantics from
+this same `formal/p037-kernel` by path, never a copy. See
+`docs/notes/p037-rocq-consolidation.md` for the decision, what is and is
+not proved, and verification. This is a research-only consolidation under
+the existing P-037 implementation freeze (issue #304); it does not
+retroactively claim Rocq was part of this kernel's original acceptance.
