@@ -211,10 +211,19 @@ VALUE_BENCHMARK_PREFIXES = ("docs/evidence/p037-value-benchmark/",)
 # deliverable): the identical gap, a third time, for the identical reason
 # -- the prereg and result notes plus the candidate-inventory evidence
 # directory are new paths this test never saw until they were committed
-# here. Two named notes (a prefix, since this gate produces exactly two --
-# prereg and result -- unlike the single-note Rocq/value-benchmark cases)
-# plus one evidence-directory prefix, matching every precedent above.
-MINING_NOTE_PREFIXES = ("docs/notes/p037-real-world-mining-",)
+# here. One evidence-directory prefix (matching every precedent above),
+# but the two notes are two EXACT governance paths, not a prefix: this
+# gate produces exactly two, and a `p037-real-world-mining-` prefix would
+# have silently admitted any future file sharing that spelling (a
+# `-round-97.md`, a `-please-ignore-this.md`) with no further governance
+# decision -- caught on independent review before it ever mattered, not
+# after. FORMAL_NOTE_PATH/ROCQ_CONSOLIDATION_NOTE_PATH/
+# VALUE_BENCHMARK_NOTE_PATH are all exact-path entries for the same
+# reason; this corrects the one place that drifted from that pattern.
+MINING_NOTE_PATHS = (
+    "docs/notes/p037-real-world-mining-prereg-2026-09-28.md",
+    "docs/notes/p037-real-world-mining-result-2026-09-28.md",
+)
 MINING_EVIDENCE_PREFIXES = ("docs/evidence/p037-real-world-mining/",)
 
 # 10.6.14b: order step 6 (D after) lands its evidence as exactly these six
@@ -251,9 +260,10 @@ def classify_outside_paths(changed: list[str], t_paths: list[str],
     `changed` lists instead of needing a real git commit per probe."""
     allowed_prefixes = (*tuple(t_paths), "tests/", *PHASE_B_PREFIXES,
                         *ROCQ_CONSOLIDATION_PREFIXES, *VALUE_BENCHMARK_PREFIXES,
-                        *MINING_NOTE_PREFIXES, *MINING_EVIDENCE_PREFIXES)
+                        *MINING_EVIDENCE_PREFIXES)
     governance = (EPOCH_RECORD_PATH, FORMAL_NOTE_PATH, *PHASE_B_GOVERNANCE_FILES,
-                 ROCQ_CONSOLIDATION_NOTE_PATH, VALUE_BENCHMARK_NOTE_PATH)
+                 ROCQ_CONSOLIDATION_NOTE_PATH, VALUE_BENCHMARK_NOTE_PATH,
+                 *MINING_NOTE_PATHS)
     return [f for f in changed if f not in governance
            and not f.startswith(allowed_prefixes)
            and f not in DOCS_GENERATED_ADJUDICATED
@@ -586,7 +596,15 @@ def run() -> int:
                 t_paths, r_d_files, d_after_ok)
             check("mining-carveout-admits-exactly-its-own-paths",
                   not mining_admits_probe, f"{mining_admits_probe}")
-            mining_forbidden = ["docs/notes/some-other-unrelated-note.md"]
+            mining_forbidden = [
+                "docs/notes/some-other-unrelated-note.md",
+                # Same prefix as the two admitted notes, but not one of
+                # them -- exact-path governance must still refuse this,
+                # not just an unrelated filename (a prefix would have
+                # silently admitted it; this is the control that would
+                # have caught that before it landed).
+                "docs/notes/p037-real-world-mining-unapproved-future-note.md",
+            ]
             mining_forbidden_probe = classify_outside_paths(
                 mining_forbidden, t_paths, r_d_files, d_after_ok)
             check("mining-carveout-does-not-broaden-to-docs-notes-generally",
