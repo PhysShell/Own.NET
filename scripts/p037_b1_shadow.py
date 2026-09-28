@@ -38,6 +38,7 @@ REPORT_BIN = ROOT / "rust/target/release/own-guarded-report"
 CORPUS = ("corpus/real-world", "corpus/wpf", "corpus/di", "corpus/fixtures", "corpus/p036-bakeoff")
 CONTROLS = ("guarded-consume-", "gv4-control-", "legacy-honesty-")
 SIDE_KEYS = {"caller", "site", "callee", "dispatch", "observed_targets"}
+COMPARABLE_KEYS = ("method", "index", "ordinal", "param", "legacy", "guarded", "class")
 
 
 class Refused(RuntimeError):
@@ -199,6 +200,9 @@ def main(argv: list[str]) -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--commit", default=POPULATION_COMMIT)
     ap.add_argument("--out", required=True)
+    # A18 evidence completion (case 4): the per-row comparable summary rows,
+    # opt-in; without it the --out document is byte-identical.
+    ap.add_argument("--comparable-rows-out")
     args = ap.parse_args(argv)
     try:
         commit = frozen(args.commit)
@@ -242,6 +246,19 @@ def main(argv: list[str]) -> int:
         "unexplained_in_p037_controls": len(controls),
     }
     Path(args.out).write_text(json.dumps(out, indent=1, sort_keys=False) + "\n", encoding="utf-8")
+    if args.comparable_rows_out:
+        comparable = sorted(
+            ({"population": pop, "document": name, **{k: s[k] for k in COMPARABLE_KEYS}}
+             for pop, name, _, rep, _ in rows for s in rep["summary"]
+             if s["class"] != "NO_GUARDED_EVIDENCE"),
+            key=lambda r: (r["population"], r["document"], r["method"], r["index"]))
+        snap = {"schema": "p037-b1-comparable-rows/1",
+                **{k: out[k] for k in ("population_commit", "instrument_commit", "toolchain",
+                                       "instrument")},
+                "counts": dict(collections.Counter(r["class"] for r in comparable)),
+                "rows": comparable}
+        Path(args.comparable_rows_out).write_text(json.dumps(snap, indent=1) + "\n",
+                                                  encoding="utf-8")
     unexplained = sum(1 for _ in result["unexplained"])
     print(json.dumps({k: out[k] for k in ("documents", "counts", "a14", "r")}, indent=1))
     print(f"RESULT: {'FAIL' if unexplained else 'PASS'}: UNEXPLAINED = {unexplained}")
