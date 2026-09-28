@@ -194,6 +194,70 @@ def lower(t: Transfer) -> str:
     return {"must": "consume", "no": "borrow", "may": "plain", "unknown": "plain"}[t]
 
 
+# R1-review of 20b09c9 (independent pushed-byte review, held-T_B repair):
+# a selection_license carrying a truthy `kind` was accepted as licensing
+# WHATEVER selection the witness itself claimed, never checked against what
+# that license actually licenses -- a fabricated `{"kind": "bool_const",
+# "value": false}` claiming `selection: "pos"` (or any unknown `kind`
+# string) passed validation. Fixed by grounding the license->selection
+# relationship in the frozen R1 PRODUCTION definition (mechanically read
+# from the held R1 worktree's rust/crates/own-bridge/src/lower.rs, never
+# guessed from the raw own_ir::GuardedArgKind vocabulary alone):
+# `classify_guard_call_arg()` maps BoolConst true/false to ConstPos/ConstNeg,
+# NullLiteral unconditionally to ConstNeg (a literal `null` takes a `g !=
+# null` guard's false branch), ObjectCreation unconditionally to ConstPos (a
+# fresh `new T(...)` is provably non-null); `call_arg_selection()` then maps
+# ConstPos/ConstNeg to Selection::Pos/Neg. Param/Var/CallResult/Opaque never
+# produce a static selection at all (Selection::Unselected) -- they are
+# outside this vocabulary's domain, not mapped to `None` by omission.
+_STATIC_LICENSE_SELECTIONS: dict[str, str] = {
+    "null_literal": "neg",
+    "object_creation": "pos",
+}
+
+# Independently measured so far: ONLY bool_const, via AR1/AR2's own real
+# captured witnesses (both `{"kind": "bool_const", "value": true}`).
+# null_literal/object_creation's mapping above is read directly from frozen
+# production source, not guessed -- but has never been exercised by a real
+# captured witness end to end. classify_call_site() below limits
+# APPLICATION_REFINEMENT to this measured set for now; a consistent but
+# unmeasured license classifies UNCLASSIFIED, a case review at B_after, per
+# the same review. classify()'s own, older SUMMARY witness path is
+# unaffected by this narrower scope -- only licensed_selection()'s
+# CORRECTNESS fix (below) applies there, not this measured-evidence limit.
+_MEASURED_CALL_SITE_LICENSE_KINDS: frozenset[str] = frozenset({"bool_const"})
+
+
+def licensed_selection(license_: Any) -> str | None:
+    """What Selection this selection_license object actually licenses --
+    `"pos"`, `"neg"`, or `None` if it licenses no fixed selection at all (an
+    unknown/missing `kind`, or a `bool_const` with a missing or non-bool
+    `value`). Shared by BOTH check_witness()/classify() (the summary
+    witness) and check_call_site_witness()/classify_call_site() (the
+    call-site witness): a witness's claimed `selection` is never trusted
+    merely because a selection_license object with a truthy `kind` is
+    present -- it must equal what THIS function says that license actually
+    licenses, checked mechanically, never assumed.
+
+    `value is True`/`value is False` (identity, not `==`) deliberately reject
+    a non-bool truthy/falsy stand-in (`1`, `"true"`, `1.0`) -- the same
+    bool-is-int trap this codebase's own OwnIR door work is elsewhere
+    careful to avoid."""
+    if not isinstance(license_, dict):
+        return None
+    kind = license_.get("kind")
+    if kind == "bool_const":
+        value = license_.get("value")
+        if value is True:
+            return "pos"
+        if value is False:
+            return "neg"
+        return None
+    if isinstance(kind, str) and kind in _STATIC_LICENSE_SELECTIONS:
+        return _STATIC_LICENSE_SELECTIONS[kind]
+    return None
+
+
 class WitnessError(Exception):
     """A witness is malformed against the frozen schema -- refused, not
     guessed through, same discipline as every other P-037 audit script."""
@@ -227,9 +291,11 @@ def check_witness(w: dict[str, Any]) -> None:
         _require(guarded.get("selection") in ("pos", "neg", "unselected"),
                  "guarded.selection must be pos|neg|unselected for a split shape")
         if guarded["selection"] in ("pos", "neg"):
-            _require(isinstance(guarded.get("selection_license"), dict)
-                     and guarded["selection_license"].get("kind"),
-                     "a pos/neg selection needs a selection_license naming what licensed it")
+            _require(licensed_selection(guarded.get("selection_license")) == guarded["selection"],
+                     "a pos/neg selection needs a selection_license that actually licenses "
+                     "that exact selection (checked mechanically against the frozen R1 "
+                     "production mapping) -- never a merely-present license object with any "
+                     "truthy kind")
         _require(guarded.get("collapsed") in _TRANSFER_VALUES,
                  "guarded.collapsed must be a Transfer value")
     else:
@@ -616,9 +682,11 @@ def check_call_site_witness(w: dict[str, Any]) -> None:
     # opaque) is the PRODUCER's, not re-validated bit-for-bit here, the same
     # looseness check_witness() already accepts for its own selection_license.
     if w.get("selection") in ("pos", "neg"):
-        license_ = w.get("selection_license")
-        _require(bool(isinstance(license_, dict) and license_.get("kind")),
-                 "a pos/neg call-site selection needs a selection_license naming what licensed it")
+        _require(licensed_selection(w.get("selection_license")) == w.get("selection"),
+                 "a pos/neg call-site selection needs a selection_license that actually "
+                 "licenses that exact selection (checked mechanically against the frozen R1 "
+                 "production mapping) -- never a merely-present license object with any "
+                 "truthy kind")
     _require(w.get("lowered") in ("consume", "borrow", "plain"),
              "call-site witness.lowered must be consume|borrow|plain (#175's own Lowered)")
 
@@ -661,10 +729,30 @@ def classify_call_site(w: dict[str, Any]) -> dict[str, Any]:
                               f"lowered field says {lowered} -- the witness's selection/lowered "
                               "fields disagree with each other, which is refused rather than "
                               "explained away"}
+        # check_call_site_witness() already confirmed licensed_selection()
+        # equals this exact selection -- never re-derived here, but a
+        # SEPARATE question remains: has this license kind's mapping ever
+        # been independently MEASURED end to end (a real captured witness),
+        # or only mechanically read from frozen source? R1-review of
+        # 20b09c9: only bool_const has (AR1/AR2's own real captures) --
+        # null_literal/object_creation stay UNCLASSIFIED here until a real
+        # witness measures them too, a case review at B_after rather than a
+        # silent extrapolation from source reading alone.
         license_ = w["selection_license"]
+        license_kind = license_["kind"]
+        if license_kind not in _MEASURED_CALL_SITE_LICENSE_KINDS:
+            return {"class": UNCLASSIFIED,
+                    "reason": f"selection_license.kind={license_kind!r} correctly licenses the "
+                              f"{selection} cell (check_call_site_witness's own "
+                              "licensed_selection() already confirmed it), but no real captured "
+                              "call-site witness has independently measured this license kind "
+                              f"yet (measured so far: {sorted(_MEASURED_CALL_SITE_LICENSE_KINDS)}, "
+                              "AR1/AR2's own real captures) -- a case review at B_after is "
+                              "required before widening this set, never a silent extrapolation "
+                              "from source reading alone"}
         return {"class": APPLICATION_REFINEMENT,
                 "reason": f"call site selected the {selection} cell ({selected_cell}) via "
-                          f"{license_['kind']}, lowering to {lowered} (#175's own apply()); the "
+                          f"{license_kind}, lowering to {lowered} (#175's own apply()); the "
                           "guarded summary already existed at this callee/param, only the "
                           "call-site's own static selection is new (the same G-A1/G-A2 route "
                           "classify()'s own summary-level APPLICATION_REFINEMENT branch already "
@@ -857,6 +945,20 @@ def selftest() -> int:
         _check("hostile-selection-without-license-is-refused", False, "did not raise")
     except WitnessError:
         _check("hostile-selection-without-license-is-refused", True)
+
+    # --- hostile negative (R1-review of 20b09c9): a FABRICATED license --
+    # present, truthy `kind`, but licensing the OPPOSITE cell from the one
+    # claimed -- must be refused here too, not just in the newer call-site
+    # witness path. Proves licensed_selection() is the one shared validator
+    # for both witness kinds, not a call-site-only fix. ---
+    try:
+        classify(_w(guarded={"shape": "split", "selection": "pos",
+                             "selection_license": {"kind": "bool_const", "value": False},
+                             "finalized_cells": {"pos": "must", "neg": "no"},
+                             "collapsed": "may"}))
+        _check("hostile-summary-fabricated-license-is-refused", False, "did not raise")
+    except WitnessError:
+        _check("hostile-summary-fabricated-license-is-refused", True)
 
     # --- hostile negative: an unknown transform/shape value is refused by
     # the schema check ---
@@ -1137,6 +1239,45 @@ def selftest() -> int:
         _check("call-site-hostile-invalid-license-is-refused", False, "did not raise")
     except WitnessError:
         _check("call-site-hostile-invalid-license-is-refused", True)
+
+    # R1-review of 20b09c9: a selection_license must actually LICENSE the
+    # claimed selection, not merely be present with a truthy kind --
+    # licensed_selection() is checked mechanically here, ported from the
+    # frozen R1 production mapping (lower.rs's classify_guard_call_arg()/
+    # call_arg_selection()), never guessed.
+    for label, selection, license_ in (
+        ("fabricated-bool-const-false-claiming-pos", "pos",
+         {"kind": "bool_const", "value": False}),
+        ("fabricated-bool-const-true-claiming-neg", "neg",
+         {"kind": "bool_const", "value": True}),
+        ("unknown-license-kind", "pos", {"kind": "potato"}),
+        ("bool-const-missing-value", "pos", {"kind": "bool_const"}),
+        ("bool-const-non-bool-value", "pos", {"kind": "bool_const", "value": 1}),
+        ("null-literal-claiming-pos", "pos", {"kind": "null_literal"}),
+        ("object-creation-claiming-neg", "neg", {"kind": "object_creation"}),
+    ):
+        try:
+            classify_call_site(_cs(selection=selection, selection_license=license_,
+                                  lowered="borrow"))
+            _check(f"call-site-hostile-{label}-is-refused", False, "did not raise")
+        except WitnessError:
+            _check(f"call-site-hostile-{label}-is-refused", True)
+
+    # positive (mechanically correct license, but not yet independently
+    # MEASURED by any real captured witness -- AR1/AR2 only ever measured
+    # bool_const): null_literal ALWAYS licenses neg, object_creation ALWAYS
+    # licenses pos (read directly from the frozen R1 production mapping),
+    # so these pass validation and the selected-cell/lowered consistency
+    # check, but classify_call_site() itself stops short of
+    # APPLICATION_REFINEMENT until a real witness measures the kind too.
+    r = classify_call_site(_cs(selection="neg", selection_license={"kind": "null_literal"},
+                              lowered="consume"))
+    _check("call-site-null-literal-licenses-neg-but-unmeasured-is-unclassified",
+          r["class"] == UNCLASSIFIED, r)
+    r = classify_call_site(_cs(selection="pos", selection_license={"kind": "object_creation"},
+                              lowered="borrow"))
+    _check("call-site-object-creation-licenses-pos-but-unmeasured-is-unclassified",
+          r["class"] == UNCLASSIFIED, r)
 
     # hostile: uncond guarded shape at the call site -- nothing conditional
     # to recover.
