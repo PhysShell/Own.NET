@@ -1,8 +1,9 @@
 # P-037 Phase B1: the guarded shadow read (pre-registered)
 
-> Status: **PRE-REGISTERED and AMENDED by owner review (§G). Implementation is
-> authorized from the amendment commit on; the boundaries do not move after
-> it.**
+> Status: **RESULT: FAIL — B1 BLOCKED (KILL 5, §H).** Pre-registered and
+> amended by owner review (§G); the boundaries did not move. Eight UNEXPLAINED
+> summary rows on the frozen population, all from one cause, classified under
+> §10.1 in §H.3. Case 5 goes to the owner; nothing is fixed here.
 >
 > This contract is committed before any implementation, so the result is
 > judged against it rather than an impression afterwards.
@@ -316,3 +317,164 @@ Also accepted as written:
 Implementation is authorized from the commit that records these amendments.
 The draft PR is opened before any Rust code, so this SHA is visible and the
 boundaries do not move after it.
+
+## H. Result (MEASURED OBSERVATION unless tagged)
+
+`RESULT: FAIL — B1 BLOCKED`. The instrument is complete and every control
+fires. The frozen population measures **UNEXPLAINED = 8** in the summary
+report, which is KILL 5. All eight have one cause (§H.3). The application
+report has UNEXPLAINED = 0.
+
+Instrument commit `5c6207e`, population `571669e`, toolchain rustc/cargo
+1.94.1 and .NET SDK 8.0.425. The evidence is
+`docs/evidence/p037-b1/shadow-run.json` (aggregates plus every UNEXPLAINED
+row), produced by `scripts/p037_b1_shadow.py`. The extractor's sha256 is
+`bc7f746c…` and `own-guarded-report`'s is `4e1339e9…`.
+
+### H.1 Conditions
+
+| | result |
+|---|---|
+| N1 architecture | holds. `dag.rs::p037_kernel_reaches_only_the_shadow` reads every package's dependencies of every kind: only `own-guarded` names the kernel, only `own-shadow` names `own-guarded`, and no production crate reaches either. The Python mirror is in `--check`. The guard fires on `own-bridge → own-guarded` (G1) and on a second crate naming the kernel, even as a dev-dependency (G2) |
+| N2 zero cut | holds. The source-level path guard (`p037_proof_boundary.py --b1-gate`) is PASS. The release `own-cli` at base `0e2c01a` and at head is byte-identical: sha256 `4f97263c…`, the same SHA as recorded in A2.2. Extractor facts with the flag absent: see §H.4 |
+| N3 the 16 obligations | holds. Each has an executable control in `rust/crates/own-guarded/tests/acceptance.rs` or in the checker; the table is §H.2 |
+| N4 required read | holds. The contradictory sidecar changes the guarded report (the `n4_` test, G10). `p037_sidecar_inertness.py` with the guarded layer: 24 documents and 70 sidecars. Lowered, MOS and verdicts are unchanged on both engines, Python equals Rust, and the guarded read changes on every document |
+| N5 classification | **fails**: summary UNEXPLAINED = 8 (§H.3). Application: EQUAL 15, APPLICATION_REFINEMENT 15, NO_GUARDED_EVIDENCE 104, UNEXPLAINED 0 |
+| N6 gate metrics | collected (§H.5) |
+| G1–G15 | all fire: G1/G2/G3/G4/G5/G11/G12 and the caps in `--selftest`; G6–G11 as real code mutants killed by their named tests in `--mutants`; G13 in `g13_classifiers_never_bucket`; G14/G15 in `tests/test_p037_b1_shadow.py` |
+| §F caps | `own-guarded` 894/900, `own-shadow` 31/200, extractor side report 77/150, total 1845/2500 (before this note). The first formatted draft of `own-guarded` measured **1107**. De-duplication (resolving forwards inside the join, dropping a redundant taint pass, a single report builder) brought it under the cap. No formatting setting was changed |
+
+### H.2 The obligations and their controls
+
+| B0 id | control |
+|---|---|
+| WF / EWF | `wf_edge_without_a_coordinate`: an edge into a slot with no coordinate is `callee_no_coord`, never solved |
+| A2 | `a2_a5_edges_and_selection`: an Id edge imports the callee's election. `record_absence_boundary`: an unresolved callee (`callee: null`) is `callee_unresolved` |
+| A3 | an Uncond seed is only `Cells::diag`. `a13_…` asserts an Uncond caller's cells are diagonal |
+| A4 / A15 | `a15_b0_probe_outcomes`: all eleven B0 §E.6 outcomes. Placeable are Branchy, Early, InBranch, AfterIf, Behind (`(no, may)`: the kept path joins `no`) and Switch. `NO_GUARDED_EVIDENCE` are TwoIfs `multi_guard`, ShortCircuit `expression_form`, TryCatch `no_body_op`, Loop `join_structural` and ctor-initializer `no_body_op`. Ternary has no coordinate. Mutant G6 kills it |
+| A5 | `a2_a5_…`: `true`/`object_creation` select pos; `false`/`null_literal` select neg; `call_result` is Opaque |
+| A6 / A8 | the reuse guard G3 and F9 (a raw `.collapse()`, any `lower(`) in `--check` |
+| A7 | F8 over `own-guarded` (G4). The driver has no schedule parameter |
+| A8 (K7) | `k7_witness_on_the_adapter`: `K7.Rec` is `(⊥, must)` from real facts, and its unselected site lowers to plain. The kernel mutant "apply skips fin" kills it (G8) |
+| A9–A11 | `record_absence_boundary`: `callee_no_record`, `missing_sidecar`, `via:missing_sidecar`, `callee_unresolved`. The mutant that reads absence as nothing kills it (G7) |
+| A12 | `a12_bound_failure_is_no_evidence`: the fault-injected bound gives `bound` / `via:bound`, never a value or a panic |
+| A13 | `a13_only_finalized_cells_cross_sccs`: the opaque read of `(⊥, must)` across an SCC gives `may`, not `must`. The raw-cell mutant kills it (G9) |
+| A14 | `a14_report_is_static_dispatch_conditional` (G11), and the static G11 guard: `own-guarded` code reads no dispatch |
+
+### H.3 The eight UNEXPLAINED rows and their classification
+
+| document | coordinate | guarded (cells) | legacy | legacy call op |
+|---|---|---|---|---|
+| `p036-bakeoff/guarded-consume-negation-wrapper/{before,after}` | `GuardedNegation.Outer` | may `(must, no)` | must | `release` (fold) |
+| `p036-bakeoff/guarded-consume-wrapper-forward/{before,after}` | `GuardedWrapper.Outer` | may `(no, must)` | must | `release` (fold) |
+| `p037-shapes/guard-forward-bare` | `ShapeForwardBare.Outer` | may `(no, must)` | must | `release` (fold) |
+| `p037-shapes/guard-forward-negated` | `ShapeForwardNegated.Outer` | may `(must, no)` | must | `release` (fold) |
+| `p037-shapes/arg-cast-and-bang` | `ShapeCastBang.Cast`, `.Bang` | may `(no, must)` | no | `use` |
+
+**One cause, two doors.** Every row is a wrapper that forwards its parameter
+to a callee that disposes on one side of a guard. The legacy value is not
+derived by the MOS from that callee: the extractor has already decided the
+call's effect in the legacy `body`.
+- In six rows it lowered the call to `release`: the may-as-must
+  `ConsumesParam` fold, the hole §8.1 names as A1's first target and the
+  owner froze until Stage 3.
+- In two rows it lowered the call to `use`: legacy does not see through
+  `(Stream)p` / `p!`, which A2.2 G-C taught only the sidecar.
+
+The guarded read gives the honest split in all eight. Four of the rows are
+the P-037 controls themselves.
+
+G-T2b cannot classify these rows, and that is the finding. G-T2b is a
+theorem about the kernel's `today()` model of legacy, in which a call on the
+parameter is a forward edge. The real legacy summary is computed from a body
+in which the extractor has already replaced some forwards by `release` or
+`use`. So:
+
+- **Origin: §10.1 case 2**, an unrecorded theorem assumption. "The legacy
+  summary is `today()` over the same forwards" is false for folded and
+  unseen calls. B0 did not list it. It is recorded here as **A18** for the
+  owner and is not written into the manifest by this phase.
+- **Remedy: §10.1 case 5.** Classifying these rows needs one of two things:
+  - a new declared class for "legacy's call effect decided in the
+    extractor";
+  - or a different legacy side for B1: `today()` over the sidecar-placed
+    forwards instead of `own-bridge`'s MOS.
+
+  Either changes the frozen N5 rule. **STOP; the owner decides.** Nothing is
+  re-bucketed, `ConsumesParam` is not touched (A1, frozen until Stage 3), and
+  the rows stay UNEXPLAINED in the committed evidence.
+
+### H.4 Extractor facts with the side report absent
+
+Holds. The base extractor (`0e2c01a`) and the head extractor ran without
+`--dispatch-report` on all 162 frozen documents: the repo tree, 137 corpus
+files, 23 shapes and the B0 probes, materialized from `571669e`. The facts
+are **byte-identical on 162 of 162**. With the flag present, the facts are
+also byte-identical, checked on the B1 fixture. The A2 census and inertness
+run (§H.1 N4) shows both engines unchanged.
+
+### H.5 Gate metrics (N6)
+
+**A14** (static dispatch; measurement only, OwnIR not amended). Across 137
+relevant calls:
+- 107 are `exact` and 30 are `open`;
+- 0 open calls sit in a guarded summary chain;
+- 0 open calls have observed first-party targets with different guarded
+  summaries;
+- 0 are hard-KILL witnesses (static target `must`, some observed target not).
+
+These zeros are measured on a population where most coordinates degrade (see
+the census below), so they bound nothing about a phase C that removes the
+degradations. `open` stays `open` in every count.
+
+**R** (record absence):
+- 10 first-party callees without a `functions[]` record: `Catalog.CatalogService.ConsumeUnitOfWork`,
+  `Corpus.PatriciaTree.GetNew`, `Holder..ctor`, `PoolAliasedReceiver.Work`,
+  `PoolDoubleReturn.Work`, `PoolFullSpanOverread.Fill`, `PoolLengthOverread.Fill`,
+  `PoolUseAfterReturn.BuildResult`, `PoolUseAfterReturn.Compute`, `Probe2.Log`;
+- 2 coordinates end at R and 0 are tainted through it;
+- R breaks 5.26% of the otherwise eligible chains.
+
+**Degradation census** (104 summary coordinates: EQUAL 28, UNEXPLAINED 8,
+NO_GUARDED_EVIDENCE 68):
+
+| reason | count |
+|---|---|
+| `missing_sidecar` | 39 |
+| `via:missing_sidecar` | 8 |
+| `join_line` | 7 |
+| `no_body_op` | 4 |
+| `callee_no_record` | 2 |
+| `opaque_slot` | 2 |
+| `expression_form` | 1 |
+| `join_structural` | 1 |
+| `multi_guard` | 1 |
+| `ordinal_map` | 1 |
+| `overloaded` | 1 |
+| `callee_unresolved` | 1 |
+
+Application NGE (104): `callee_external` 45, `via:missing_sidecar` 33,
+`callee_no_record` 19, `caller_ordinal_map` 3, `via:opaque_slot` 2,
+`callee_ordinal_map` 1, `callee_unresolved` 1.
+
+### H.6 Findings for the owner besides the KILL
+
+- **B1-a, missing-sidecar ambiguity (§10.1 case 4 candidate).** The
+  extractor emits `guarded_facts` only for a function with a relevant call
+  or an eligible guard. So an absent sidecar cannot tell "nothing relevant"
+  from "no evidence", and a leaf `release` cannot be told apart from a
+  folded call. That is the largest degradation: 47 of 68. An always-present
+  (possibly empty) sidecar would resolve it; that is an A2-style producer
+  change and is not done here.
+- **B1-b, A17 coordinate identity.** `functions[].params` carries no
+  declared ordinal. The adapter maps a params index to an ordinal only when
+  every other declared type is a known non-disposable type (in
+  `own-guarded/src/facts.rs`), and fails closed otherwise
+  (`ordinal_map` 1, `caller_ordinal_map` 3, `callee_ordinal_map` 1).
+- **B1-c, A15 as implemented is conservative.** A call with any `opaque`
+  slot degrades (`opaque_slot`), because an opaque slot may hide the
+  parameter. `call_result` is not opaque for this purpose, since it cannot
+  carry the caller's handle.
+
+B1 authorizes nothing further: no phase-C wiring, no A14 solution, no R
+experiment, no #368 fix, no `ConsumesParam` change.

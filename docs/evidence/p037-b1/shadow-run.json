@@ -1,0 +1,270 @@
+{
+ "schema": "p037-b1-shadow-run/1",
+ "population_commit": "571669e8c40e46d1c29908f00dea2311b88ae4fd",
+ "instrument_commit": "5c6207e7e6f5f7fced0ad5e16bef5588049ed33c",
+ "toolchain": {
+  "dotnet": "8.0.425",
+  "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)"
+ },
+ "instrument": {
+  "extractor_sha256": "bc7f746c435752a635cc4225090a3a2a92d2bd937a25cef53ca941cb77b4ed6c",
+  "report_sha256": "4e1339e932d42aef1ad438e5f944ba2ebd3edaee83e82a0914285b19919c2800"
+ },
+ "documents": {
+  "repo": 1,
+  "corpus": 137,
+  "p037-shapes": 23,
+  "b0-probes": 1
+ },
+ "static_dispatch_conditional": true,
+ "counts": {
+  "application": {
+   "APPLICATION_REFINEMENT": 15,
+   "EQUAL": 15,
+   "NO_GUARDED_EVIDENCE": 104
+  },
+  "application/b0-probes": {
+   "APPLICATION_REFINEMENT": 2,
+   "EQUAL": 1,
+   "NO_GUARDED_EVIDENCE": 9
+  },
+  "application/corpus": {
+   "APPLICATION_REFINEMENT": 6,
+   "EQUAL": 8,
+   "NO_GUARDED_EVIDENCE": 62
+  },
+  "application/p037-shapes": {
+   "APPLICATION_REFINEMENT": 7,
+   "EQUAL": 6,
+   "NO_GUARDED_EVIDENCE": 10
+  },
+  "application/repo": {
+   "NO_GUARDED_EVIDENCE": 23
+  },
+  "nge/application": {
+   "callee_external": 45,
+   "callee_no_record": 19,
+   "callee_ordinal_map": 1,
+   "callee_unresolved": 1,
+   "caller_ordinal_map": 3,
+   "via:missing_sidecar": 33,
+   "via:opaque_slot": 2
+  },
+  "nge/summary": {
+   "callee_no_record": 2,
+   "callee_unresolved": 1,
+   "expression_form": 1,
+   "join_line": 7,
+   "join_structural": 1,
+   "missing_sidecar": 39,
+   "multi_guard": 1,
+   "no_body_op": 4,
+   "opaque_slot": 2,
+   "ordinal_map": 1,
+   "overloaded": 1,
+   "via:missing_sidecar": 8
+  },
+  "summary": {
+   "EQUAL": 28,
+   "NO_GUARDED_EVIDENCE": 68,
+   "UNEXPLAINED": 8
+  },
+  "summary/b0-probes": {
+   "EQUAL": 3,
+   "NO_GUARDED_EVIDENCE": 13
+  },
+  "summary/corpus": {
+   "EQUAL": 10,
+   "NO_GUARDED_EVIDENCE": 26,
+   "UNEXPLAINED": 4
+  },
+  "summary/p037-shapes": {
+   "EQUAL": 15,
+   "NO_GUARDED_EVIDENCE": 21,
+   "UNEXPLAINED": 4
+  },
+  "summary/repo": {
+   "NO_GUARDED_EVIDENCE": 8
+  }
+ },
+ "unexplained": [
+  {
+   "level": "summary",
+   "doc": "corpus/p036-bakeoff/guarded-consume-negation-wrapper/after.cs",
+   "cells": [
+    "must",
+    "no"
+   ],
+   "class": "UNEXPLAINED",
+   "file": "corpus/p036-bakeoff/guarded-consume-negation-wrapper/after.cs",
+   "guarded": "may",
+   "index": 0,
+   "legacy": "must",
+   "method": "GuardedNegation.Outer",
+   "ordinal": 0,
+   "param": "s",
+   "reason": null,
+   "shape": "split(1)",
+   "legacy_fold": true
+  },
+  {
+   "level": "summary",
+   "doc": "corpus/p036-bakeoff/guarded-consume-negation-wrapper/before.cs",
+   "cells": [
+    "must",
+    "no"
+   ],
+   "class": "UNEXPLAINED",
+   "file": "corpus/p036-bakeoff/guarded-consume-negation-wrapper/before.cs",
+   "guarded": "may",
+   "index": 0,
+   "legacy": "must",
+   "method": "GuardedNegation.Outer",
+   "ordinal": 0,
+   "param": "s",
+   "reason": null,
+   "shape": "split(1)",
+   "legacy_fold": true
+  },
+  {
+   "level": "summary",
+   "doc": "corpus/p036-bakeoff/guarded-consume-wrapper-forward/after.cs",
+   "cells": [
+    "no",
+    "must"
+   ],
+   "class": "UNEXPLAINED",
+   "file": "corpus/p036-bakeoff/guarded-consume-wrapper-forward/after.cs",
+   "guarded": "may",
+   "index": 0,
+   "legacy": "must",
+   "method": "GuardedWrapper.Outer",
+   "ordinal": 0,
+   "param": "s",
+   "reason": null,
+   "shape": "split(1)",
+   "legacy_fold": true
+  },
+  {
+   "level": "summary",
+   "doc": "corpus/p036-bakeoff/guarded-consume-wrapper-forward/before.cs",
+   "cells": [
+    "no",
+    "must"
+   ],
+   "class": "UNEXPLAINED",
+   "file": "corpus/p036-bakeoff/guarded-consume-wrapper-forward/before.cs",
+   "guarded": "may",
+   "index": 0,
+   "legacy": "must",
+   "method": "GuardedWrapper.Outer",
+   "ordinal": 0,
+   "param": "s",
+   "reason": null,
+   "shape": "split(1)",
+   "legacy_fold": true
+  },
+  {
+   "level": "summary",
+   "doc": "arg-cast-and-bang",
+   "cells": [
+    "no",
+    "must"
+   ],
+   "class": "UNEXPLAINED",
+   "file": "corpus/p037-shapes/arg-cast-and-bang/case.cs",
+   "guarded": "may",
+   "index": 0,
+   "legacy": "no",
+   "method": "ShapeCastBang.Cast",
+   "ordinal": 0,
+   "param": "p",
+   "reason": null,
+   "shape": "split(1)",
+   "legacy_fold": false
+  },
+  {
+   "level": "summary",
+   "doc": "arg-cast-and-bang",
+   "cells": [
+    "no",
+    "must"
+   ],
+   "class": "UNEXPLAINED",
+   "file": "corpus/p037-shapes/arg-cast-and-bang/case.cs",
+   "guarded": "may",
+   "index": 0,
+   "legacy": "no",
+   "method": "ShapeCastBang.Bang",
+   "ordinal": 0,
+   "param": "p",
+   "reason": null,
+   "shape": "split(1)",
+   "legacy_fold": false
+  },
+  {
+   "level": "summary",
+   "doc": "guard-forward-bare",
+   "cells": [
+    "no",
+    "must"
+   ],
+   "class": "UNEXPLAINED",
+   "file": "corpus/p037-shapes/guard-forward-bare/case.cs",
+   "guarded": "may",
+   "index": 0,
+   "legacy": "must",
+   "method": "ShapeForwardBare.Outer",
+   "ordinal": 0,
+   "param": "s",
+   "reason": null,
+   "shape": "split(1)",
+   "legacy_fold": true
+  },
+  {
+   "level": "summary",
+   "doc": "guard-forward-negated",
+   "cells": [
+    "must",
+    "no"
+   ],
+   "class": "UNEXPLAINED",
+   "file": "corpus/p037-shapes/guard-forward-negated/case.cs",
+   "guarded": "may",
+   "index": 0,
+   "legacy": "must",
+   "method": "ShapeForwardNegated.Outer",
+   "ordinal": 0,
+   "param": "s",
+   "reason": null,
+   "shape": "split(1)",
+   "legacy_fold": true
+  }
+ ],
+ "a14": {
+  "relevant_calls": 137,
+  "exact": 107,
+  "open": 30,
+  "open_in_guarded_chain": 0,
+  "open_observed_targets_differ": 0,
+  "kill_witness_static_must_observed_not": 0
+ },
+ "r": {
+  "first_party_callees_without_record": [
+   "Catalog.CatalogService.ConsumeUnitOfWork",
+   "Corpus.PatriciaTree.GetNew",
+   "Holder..ctor",
+   "PoolAliasedReceiver.Work",
+   "PoolDoubleReturn.Work",
+   "PoolFullSpanOverread.Fill",
+   "PoolLengthOverread.Fill",
+   "PoolUseAfterReturn.BuildResult",
+   "PoolUseAfterReturn.Compute",
+   "Probe2.Log"
+  ],
+  "coordinates_ending_at_r": 2,
+  "coordinates_tainted_by_r": 0,
+  "share_of_eligible_chains_broken_by_r": 0.0526
+ },
+ "unexplained_in_p037_controls": 4
+}
