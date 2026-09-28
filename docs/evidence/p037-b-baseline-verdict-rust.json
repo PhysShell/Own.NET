@@ -796,11 +796,11 @@
    "cargo_lock_blob": "d8adbb1dc4d90da0c80aa1a2d8ba85bef805620f",
    "cargo_lock_sha256": "17553420691d96febcfac54bd8f530b4f9e2a1ad7c79e6aaa022510e56692f45",
    "dirty": false,
-   "executable": "/home/user/Own.NET/rust/target/release/own-cli",
+   "executable": "/tmp/claude-0/-home-user-Own-NET/d55a6faa-7900-5815-81a8-7b591559b8e9/scratchpad/u_experiment/worktree-rb-measurement/rust/target/release/own-cli",
    "executed": {
     "bytes": 1946672,
     "post_run_intact": true,
-    "sealed_path": "/tmp/p037-take-sf76uxth/own-cli",
+    "sealed_path": "/tmp/p037-take-o16yp3kj/own-cli",
     "sha256": "847fd8ed3e53e00dbb44abab6974a1256c6b72914336cf8b034fe6e709df9462"
    },
    "host": "x86_64-unknown-linux-gnu",
@@ -810,7 +810,7 @@
    "repo_path": "rust/target/release/own-cli",
    "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)\nbinary: rustc\ncommit-hash: e408947bfd200af42db322daf0fadfe7e26d3bd1\ncommit-date: 2026-03-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.94.1\nLLVM version: 21.1.8",
    "sha256": "847fd8ed3e53e00dbb44abab6974a1256c6b72914336cf8b034fe6e709df9462",
-   "source_commit": "718a673c01641883df433b89cb76d5e3942d8815"
+   "source_commit": "cf0f95f3f9af85df46d5506a87de806cf3f00c46"
   }
  },
  "corpus": [
@@ -826,7 +826,7 @@
  "environment_id": "P037_B_MEASUREMENT_M3",
  "epoch": "b",
  "epoch_record": {
-  "blob": "fab0ee7ae995b2fa8e83af25aa9d6a03611194b9",
+  "blob": "143f79e74032fb238cffe39dd94273d371d9271a",
   "path": "docs/evidence/p037-b-epoch.json"
  },
  "execution_profile": {
@@ -853,1383 +853,1680 @@
  },
  "files": {
   "corpus/di/singleton-captures-scoped-dbcontext/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/di/singleton-captures-scoped-dbcontext/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "DI001",
      "level": "warning",
-     "line": 31
+     "line": 31,
+     "message": "singleton 'NotificationService' captures scoped service 'AppDbContext' (captive dependency: NotificationService -> AppDbContext) [consumed by the 'NotificationService' constructor at .p037-population/cf0f95f3f9af85df46d5506a87de806cf3f00c46/b7192231c73b6418/corpus/di/singleton-captures-scoped-dbcontext/before.cs:23] [resource: DI lifetime]"
     }
    ]
   },
   "corpus/fixtures/systemevents-console/Program.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN050",
      "level": "note",
-     "line": 20
+     "line": 20,
+     "message": "cannot verify 'SystemEvents.DisplaySettingsChanged' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
     },
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 43
+     "line": 43,
+     "message": "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
     },
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 54
+     "line": 54,
+     "message": "IDisposable local 'tried' is never disposed (leak) [resource: disposable]"
     },
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 77
+     "line": 77,
+     "message": "IDisposable local 'onThrow' may not be disposed on every path (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p036-bakeoff/guarded-consume-early-return/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p036-bakeoff/guarded-consume-early-return/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p036-bakeoff/guarded-consume-flag-branch/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p036-bakeoff/guarded-consume-flag-branch/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p036-bakeoff/guarded-consume-negation-wrapper/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p036-bakeoff/guarded-consume-negation-wrapper/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p036-bakeoff/guarded-consume-wrapper-forward/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p036-bakeoff/guarded-consume-wrapper-forward/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p036-bakeoff/gv4-control-aliased-self-null/control.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN003",
      "level": "warning",
-     "line": 28
+     "line": 28,
+     "message": "IDisposable local 's' is disposed more than once [resource: disposable]"
     }
    ]
   },
   "corpus/p036-bakeoff/gv4-control-mutated-guard/control.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN003",
      "level": "warning",
-     "line": 38
+     "line": 38,
+     "message": "IDisposable local 'r' is disposed more than once [resource: disposable]"
     }
    ]
   },
   "corpus/p036-bakeoff/gv4-control-ref-alias-guard/control.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN003",
      "level": "warning",
-     "line": 35
+     "line": 35,
+     "message": "IDisposable local 'r' is disposed more than once [resource: disposable]"
     }
    ]
   },
   "corpus/p036-bakeoff/legacy-honesty-else-unresolved-forward/control.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/call-expression-statement/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/extension-receiver/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 22
+     "line": 22,
+     "message": "IDisposable local 's' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/guard-bool-const-false/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/guard-bool-const-true/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/guard-forward-bare/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/guard-forward-negated/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/guard-mutated/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN003",
      "level": "warning",
-     "line": 21
+     "line": 21,
+     "message": "IDisposable local 'r' is disposed more than once [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/guard-opaque-expression/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/guard-ref-alias/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN003",
      "level": "warning",
-     "line": 24
+     "line": 24,
+     "message": "IDisposable local 'r' is disposed more than once [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/named-arguments-reordered/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/orphan-ctor-statement/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/orphan-delegate-local/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/orphan-disjoint-from-records/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/orphan-expression-bodied/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/orphan-guards-only/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/orphan-nested-inner-call/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/orphan-nonconsuming-callee/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/orphan-none-for-excluded/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/orphan-struct-method/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/orphan-unmodelled-lock/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/return-disposable-parameter/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-boxing-struct-handle/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-cast-nonhandle/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-ctor-collection-initializer/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 12
+     "line": 12,
+     "message": "IDisposable local 's' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-ctor-expression-nested/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-ctor-implicit-new/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 8
+     "line": 8,
+     "message": "IDisposable local 'w' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-ctor-initializer/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 11
+     "line": 11,
+     "message": "IDisposable local 'w' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-ctor-named-args/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 8
+     "line": 8,
+     "message": "IDisposable local 'w' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-ctor-nonhandle-args/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 11
+     "line": 11,
+     "message": "IDisposable local 'w' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-ctor-object-initializer/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-ctor-owned-param/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 8
+     "line": 8,
+     "message": "IDisposable local 'w' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-ctor-params-handle/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 9
+     "line": 9,
+     "message": "IDisposable local 'w' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-ctor-statement/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-ctorinit-base/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-delegate-conditional-invoke/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-delegate-explicit-invoke/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-delegate-invoke-local-keep/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-delegate-invoke-owned-param/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-delegate-named-args/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-delegate-nonhandle-arg/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-mayvalue-as-downcast/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 11
+     "line": 11,
+     "message": "IDisposable local 's' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-mayvalue-coalesce/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 10
+     "line": 10,
+     "message": "IDisposable local 's' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-mayvalue-conditional/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 11
+     "line": 11,
+     "message": "IDisposable local 's' is never disposed (leak) [resource: disposable]"
     },
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 12
+     "line": 12,
+     "message": "IDisposable local 't' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-mayvalue-switch/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 11
+     "line": 11,
+     "message": "IDisposable local 's' is never disposed (leak) [resource: disposable]"
     },
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 12
+     "line": 12,
+     "message": "IDisposable local 't' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-mayvalue-userconv-arm/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-relevance-params-handle/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-relevance-refout-handle/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-relevance-unstable-owned/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-transparent-as-upcast/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 9
+     "line": 9,
+     "message": "IDisposable local 's' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-transparent-bang/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 9
+     "line": 9,
+     "message": "IDisposable local 's' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-transparent-cast/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 10
+     "line": 10,
+     "message": "IDisposable local 's' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-transparent-identity-cast/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 8
+     "line": 8,
+     "message": "IDisposable local 's' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-transparent-reference-checked/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 15
+     "line": 15,
+     "message": "IDisposable local 'r' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/p037-shapes/sidecar-userconv-explicit/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/p037-shapes/sidecar-userconv-implicit/case.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/ado-executereader-leak/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/ado-executereader-leak/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 11
+     "line": 11,
+     "message": "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/real-world/arraypool-aliased-receiver/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/arraypool-aliased-receiver/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN003",
      "level": "warning",
-     "line": 21
+     "line": 21,
+     "message": "pooled buffer 'rented' is returned to the pool more than once [resource: pooled buffer]"
     }
    ]
   },
   "corpus/real-world/arraypool-double-return/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/arraypool-double-return/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN003",
      "level": "warning",
-     "line": 15
+     "line": 15,
+     "message": "pooled buffer 'rented' is returned to the pool more than once [resource: pooled buffer]"
     }
    ]
   },
   "corpus/real-world/arraypool-field-fullspan-overread/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/arraypool-field-fullspan-overread/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN025",
      "level": "warning",
-     "line": 40
+     "line": 40,
+     "message": "pooled buffer '_buf' is viewed at its full length, past the logical length it was rented for (over-read / over-clear) [resource: pooled buffer]"
     },
     {
      "code": "OWN025",
      "level": "warning",
-     "line": 46
+     "line": 46,
+     "message": "pooled buffer '_meta' is viewed at its full length, past the logical length it was rented for (over-read / over-clear) [resource: pooled buffer]"
     }
    ]
   },
   "corpus/real-world/arraypool-fullspan-overread/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/arraypool-fullspan-overread/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN025",
      "level": "warning",
-     "line": 24
+     "line": 24,
+     "message": "pooled buffer 'buf' is viewed at its full length, past the logical length it was rented for (over-read / over-clear) [resource: pooled buffer]"
     },
     {
      "code": "OWN025",
      "level": "warning",
-     "line": 26
+     "line": 26,
+     "message": "pooled buffer 'buf' is viewed at its full length, past the logical length it was rented for (over-read / over-clear) [resource: pooled buffer]"
     }
    ]
   },
   "corpus/real-world/arraypool-length-overread/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/arraypool-length-overread/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN025",
      "level": "warning",
-     "line": 23
+     "line": 23,
+     "message": "pooled buffer 'buf' is viewed at its full length, past the logical length it was rented for (over-read / over-clear) [resource: pooled buffer]"
     }
    ]
   },
   "corpus/real-world/arraypool-memory-view-escape/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/arraypool-memory-view-escape/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN002",
      "level": "warning",
-     "line": 17
+     "line": 17,
+     "message": "pooled buffer 'buf' is used after it is returned to the pool [resource: pooled buffer]"
     }
    ]
   },
   "corpus/real-world/arraypool-span-view-after-return/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/arraypool-span-view-after-return/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN002",
      "level": "warning",
-     "line": 17
+     "line": 17,
+     "message": "pooled buffer 'buf' is used after it is returned to the pool [resource: pooled buffer]"
     }
    ]
   },
   "corpus/real-world/arraypool-use-after-return/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/arraypool-use-after-return/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN002",
      "level": "warning",
-     "line": 15
+     "line": 15,
+     "message": "pooled buffer 'quotient' is used after it is returned to the pool [resource: pooled buffer]"
     }
    ]
   },
   "corpus/real-world/arraypool-view-into-field-overread/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/arraypool-view-into-field-overread/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN025",
      "level": "warning",
-     "line": 40
+     "line": 40,
+     "message": "pooled buffer '_buf' is viewed at its full length, past the logical length it was rented for (over-read / over-clear) [resource: pooled buffer]"
     },
     {
      "code": "OWN025",
      "level": "warning",
-     "line": 41
+     "line": 41,
+     "message": "pooled buffer '_meta' is viewed at its full length, past the logical length it was rented for (over-read / over-clear) [resource: pooled buffer]"
     }
    ]
   },
   "corpus/real-world/field-dispose-via-exchange/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/field-dispose-via-exchange/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 20
+     "line": 20,
+     "message": "IDisposable field '_timer' (type 'Timer?') is never disposed \u2014 its owner 'Continuation' leaks it (leak) [resource: disposable field]"
     }
    ]
   },
   "corpus/real-world/field-dispose-via-helper/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/field-dispose-via-helper/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 21
+     "line": 21,
+     "message": "IDisposable field '_timer' (type 'Timer') is never disposed \u2014 its owner 'Worker' leaks it (leak) [resource: disposable field]"
     }
    ]
   },
   "corpus/real-world/field-noop-dispose-wrapper/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/field-noop-dispose-wrapper/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 9
+     "line": 9,
+     "message": "IDisposable field '_reader' (type 'StreamReader') is never disposed \u2014 its owner 'FileLineReader' leaks it (leak) [resource: disposable field]"
     }
    ]
   },
   "corpus/real-world/local-dispose-via-using-statement/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/local-dispose-via-using-statement/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 19
+     "line": 19,
+     "message": "IDisposable local 'r' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/real-world/memorypool-double-dispose/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/memorypool-double-dispose/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN003",
      "level": "warning",
-     "line": 17
+     "line": 17,
+     "message": "IDisposable local 'owner' is disposed more than once [resource: disposable]"
     }
    ]
   },
   "corpus/real-world/memorypool-using-owner-escape/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/memorypool-using-owner-escape/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN002",
      "level": "warning",
-     "line": 17
+     "line": 17,
+     "message": "IDisposable local 'owner' is used after it is disposed [resource: disposable]"
     }
    ]
   },
   "corpus/real-world/memorypool-using-statement-view-escape/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/memorypool-using-statement-view-escape/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN002",
      "level": "warning",
-     "line": 17
+     "line": 17,
+     "message": "IDisposable local 'owner' is used after it is disposed [resource: disposable]"
     }
    ]
   },
   "corpus/real-world/memorypool-using-view-escape/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/memorypool-using-view-escape/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN002",
      "level": "warning",
-     "line": 19
+     "line": 19,
+     "message": "IDisposable local 'owner' is used after it is disposed [resource: disposable]"
     }
    ]
   },
   "corpus/real-world/memorypool-view-after-dispose/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/memorypool-view-after-dispose/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN002",
      "level": "warning",
-     "line": 18
+     "line": 18,
+     "message": "IDisposable local 'owner' is used after it is disposed [resource: disposable]"
     }
    ]
   },
   "corpus/real-world/nethermind-patriciatree-arraypool-leak/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/nethermind-patriciatree-arraypool-leak/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 23
+     "line": 23,
+     "message": "pooled buffer 'array' may not be returned to the pool on every path (leak) [resource: pooled buffer]"
     }
    ]
   },
   "corpus/real-world/ownership-handoff-consume/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/ownership-handoff-consume/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 20
+     "line": 20,
+     "message": "IDisposable local 's' is never disposed (leak) [resource: disposable]"
     },
     {
      "code": "OWN002",
      "level": "warning",
-     "line": 28
+     "line": 28,
+     "message": "IDisposable local 's' is used after it is disposed [resource: disposable]"
     }
    ]
   },
   "corpus/real-world/ownership-handoff-use-transitive/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/ownership-handoff-use-transitive/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN002",
      "level": "warning",
-     "line": 31
+     "line": 31,
+     "message": "IDisposable local 's' is used after it is disposed [resource: disposable]"
     }
    ]
   },
   "corpus/real-world/ownership-handoff-use/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/ownership-handoff-use/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN002",
      "level": "warning",
-     "line": 22
+     "line": 22,
+     "message": "IDisposable local 's' is used after it is disposed [resource: disposable]"
     }
    ]
   },
   "corpus/real-world/pool-transfer-via-wrapper-local/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/pool-transfer-via-wrapper-local/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 20
+     "line": 20,
+     "message": "pooled buffer 'buf' is rented but never returned to the pool (leak) [resource: pooled buffer]"
     },
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 21
+     "line": 21,
+     "message": "IDisposable local 'holder' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/real-world/screentogif-loaded-subscription/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN050",
      "level": "note",
-     "line": 21
+     "line": 21,
+     "message": "cannot verify 'Closing' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
     }
    ]
   },
   "corpus/real-world/screentogif-loaded-subscription/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 24
+     "line": 24,
+     "message": "event '_viewModel.ShowErrorRequested' is subscribed (handler '(_, args) => StatusBand.Error(args?.ToString())') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'VideoSource' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
     },
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 25
+     "line": 25,
+     "message": "event '_viewModel.HideErrorRequested' is subscribed (handler '(_, _) => StatusBand.Hide()') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'VideoSource' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
     },
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 26
+     "line": 26,
+     "message": "event '_viewModel.CloseRequested' is subscribed (handler '(_, _) => DialogResult = true') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'VideoSource' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
     }
    ]
   },
   "corpus/real-world/screentogif-systemevents-leak/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN050",
      "level": "note",
-     "line": 12
+     "line": 12,
+     "message": "cannot verify 'SystemEvents.DisplaySettingsChanged' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
     },
     {
      "code": "OWN050",
      "level": "note",
-     "line": 13
+     "line": 13,
+     "message": "cannot verify 'Closed' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
     }
    ]
   },
   "corpus/real-world/screentogif-systemevents-leak/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN050",
      "level": "note",
-     "line": 20
+     "line": 20,
+     "message": "cannot verify 'SystemEvents.DisplaySettingsChanged' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
     }
    ]
   },
   "corpus/real-world/sharex-rfc2898-derivebytes-leak/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/sharex-rfc2898-derivebytes-leak/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 24
+     "line": 24,
+     "message": "IDisposable local 'rng' is never disposed (leak) [resource: disposable]"
     },
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 27
+     "line": 27,
+     "message": "IDisposable local 'rfcDeriver' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/real-world/sharex-shapemanager-menuform-leak/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/sharex-shapemanager-menuform-leak/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/socket-accept-leak/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/socket-accept-leak/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 10
+     "line": 10,
+     "message": "IDisposable local 'conn' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/real-world/subscription-self-owned-property/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/subscription-self-owned-property/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 17
+     "line": 17,
+     "message": "event '_bus.Changed' is subscribed (handler '(s, e) => _count++') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'Watcher' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
     }
    ]
   },
   "corpus/real-world/tcplistener-accept-leak/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/tcplistener-accept-leak/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 11
+     "line": 11,
+     "message": "IDisposable local 'client' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/real-world/tcplistener-acceptsocket-leak/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/tcplistener-acceptsocket-leak/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 10
+     "line": 10,
+     "message": "IDisposable local 'sock' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/real-world/using-statement-throw-releases/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/real-world/using-statement-throw-releases/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 15
+     "line": 15,
+     "message": "IDisposable local 'conn' is never disposed (leak) [resource: disposable]"
     }
    ]
   },
   "corpus/wpf/custom-weak-wrapper/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/custom-weak-wrapper/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 13
+     "line": 13,
+     "message": "event 'settings.PropertyChanged' is subscribed (handler 'OnSettingsChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'DocumentViewModel' alive (possible leak) [resource: subscription token]"
     }
    ]
   },
   "corpus/wpf/field-use-after-dispose/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/field-use-after-dispose/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN002",
      "level": "warning",
-     "line": 21
+     "line": 21,
+     "message": "IDisposable local '_conn' is used after it is disposed [resource: disposable]"
     }
    ]
   },
   "corpus/wpf/handler-use-after-dispose-wrapped-delegate/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/handler-use-after-dispose-wrapped-delegate/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN002",
      "level": "warning",
-     "line": 15
+     "line": 15,
+     "message": "IDisposable local '_conn' is used after it is disposed [resource: disposable]"
     }
    ]
   },
   "corpus/wpf/handler-use-after-dispose/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/handler-use-after-dispose/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN002",
      "level": "warning",
-     "line": 17
+     "line": 17,
+     "message": "IDisposable local '_conn' is used after it is disposed [resource: disposable]"
     }
    ]
   },
   "corpus/wpf/pooled-view-after-dispose/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/pooled-view-after-dispose/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN002",
      "level": "warning",
-     "line": 17
+     "line": 17,
+     "message": "IDisposable local '_owner' is used after it is disposed [resource: disposable]"
     }
    ]
   },
   "corpus/wpf/subscription-ambiguous-overload-wiring/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN050",
      "level": "note",
-     "line": 20
+     "line": 20,
+     "message": "cannot verify 'Closing' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
     }
    ]
   },
   "corpus/wpf/subscription-ambiguous-overload-wiring/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 26
+     "line": 26,
+     "message": "event '_orders.PropertyChanged' is subscribed (handler 'OnOrdersChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'OrdersWindow' alive (possible leak) [resource: subscription token]"
     },
     {
      "code": "OWN050",
      "level": "note",
-     "line": 27
+     "line": 27,
+     "message": "cannot verify 'Closing' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
     }
    ]
   },
   "corpus/wpf/subscription-disposing-else-branch-release/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/subscription-disposing-else-branch-release/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 25
+     "line": 25,
+     "message": "event '_properties.PropertyChanged' is subscribed (handler 'new PropertyChangedEventHandler(OnPropertiesChanged)') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ReportView' alive (possible leak) [resource: subscription token]"
     }
    ]
   },
   "corpus/wpf/subscription-explicit-delegate-release/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/subscription-explicit-delegate-release/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 18
+     "line": 18,
+     "message": "event '_source.PropertyChanged' is subscribed (handler 'new PropertyChangedEventHandler(OnSourcePropertyChanged)') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SourceView' alive (possible leak) [resource: subscription token]"
     }
    ]
   },
   "corpus/wpf/subscription-finalizer-release/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/subscription-finalizer-release/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 22
+     "line": 22,
+     "message": "event '_properties.PropertyChanged' is subscribed (handler 'OnPropertiesChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'FinalizerDetachDocument' alive (possible leak) [resource: subscription token]"
     }
    ]
   },
   "corpus/wpf/subscription-nonteardown-release/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/subscription-nonteardown-release/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 21
+     "line": 21,
+     "message": "event '_prices.PropertyChanged' is subscribed (handler 'OnPricesChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'PriceListener' alive (possible leak) [resource: subscription token]"
     }
    ]
   },
   "corpus/wpf/subscription-overload-conflated-cleanup/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/subscription-overload-conflated-cleanup/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 20
+     "line": 20,
+     "message": "event '_report.PropertyChanged' is subscribed (handler 'OnReportChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ReportView' alive (possible leak) [resource: subscription token]"
     }
    ]
   },
   "corpus/wpf/subscription-param-guarded-unregister/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/subscription-param-guarded-unregister/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 25
+     "line": 25,
+     "message": "event '_properties.PropertyChanged' is subscribed (handler 'new PropertyChangedEventHandler(OnPropertiesChanged)') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'GoodsDocument' alive (possible leak) [resource: subscription token]"
     }
    ]
   },
   "corpus/wpf/subscription-target-typed-delegate-release/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/subscription-target-typed-delegate-release/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 14
+     "line": 14,
+     "message": "event '_source.PropertyChanged' is subscribed (handler 'new(OnSourcePropertyChanged)') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SourceView' alive (possible leak) [resource: subscription token]"
     }
    ]
   },
   "corpus/wpf/subscription-teardown-early-return-guard/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/subscription-teardown-early-return-guard/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 31
+     "line": 31,
+     "message": "event '_properties.PropertyChanged' is subscribed (handler 'new PropertyChangedEventHandler(OnPropertiesChanged)') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SessionDocument' alive (possible leak) [resource: subscription token]"
     }
    ]
   },
   "corpus/wpf/subscription-uncalled-local-function/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/subscription-uncalled-local-function/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 20
+     "line": 20,
+     "message": "event '_model.PropertyChanged' is subscribed (handler 'OnModelChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'UncalledLocalFunctionView' alive (possible leak) [resource: subscription token]"
     },
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 42
+     "line": 42,
+     "message": "event '_model.PropertyChanged' is subscribed (handler 'OnModelChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'UncalledLambdaView' alive (possible leak) [resource: subscription token]"
     }
    ]
   },
   "corpus/wpf/subscription-xaml-name-only-release/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/subscription-xaml-name-only-release/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 23
+     "line": 23,
+     "message": "event '_settings.PropertyChanged' is subscribed (handler 'OnSettingsChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SettingsView' alive (possible leak) [resource: subscription token]"
     }
    ]
   },
   "corpus/wpf/systemevents-region-escape/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN050",
      "level": "note",
-     "line": 15
+     "line": 15,
+     "message": "cannot verify 'SystemEvents.DisplaySettingsChanged' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
     },
     {
      "code": "OWN050",
      "level": "note",
-     "line": 16
+     "line": 16,
+     "message": "cannot verify 'Closed' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
     }
    ]
   },
   "corpus/wpf/systemevents-region-escape/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN050",
      "level": "note",
-     "line": 26
+     "line": 26,
+     "message": "cannot verify 'SystemEvents.DisplaySettingsChanged' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
     }
    ]
   },
   "corpus/wpf/timer-stop-disposing-else-branch/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/timer-stop-disposing-else-branch/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 20
+     "line": 20,
+     "message": "timer '_timer.Tick' (handler 'OnTick') is started but never stopped or detached \u2014 the running timer keeps 'FeedTicker' alive (leak) [resource: timer]"
     }
    ]
   },
   "corpus/wpf/timer-stop-early-return-guard/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/timer-stop-early-return-guard/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 19
+     "line": 19,
+     "message": "timer '_timer.Tick' (handler 'OnTick') is started but never stopped or detached \u2014 the running timer keeps 'FeedTicker' alive (leak) [resource: timer]"
     }
    ]
   },
   "corpus/wpf/timer-stop-finalizer-release/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/timer-stop-finalizer-release/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 17
+     "line": 17,
+     "message": "timer '_timer.Tick' (handler 'OnBeat') is started but never stopped or detached \u2014 the running timer keeps 'HeartbeatMonitor' alive (leak) [resource: timer]"
     }
    ]
   },
   "corpus/wpf/timer-stop-nonteardown-release/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/timer-stop-nonteardown-release/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 18
+     "line": 18,
+     "message": "timer '_timer.Tick' (handler 'OnTick') is started but never stopped or detached \u2014 the running timer keeps 'TickerView' alive (leak) [resource: timer]"
     }
    ]
   },
   "corpus/wpf/timer-stop-param-guarded/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/timer-stop-param-guarded/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 17
+     "line": 17,
+     "message": "timer '_timer.Tick' (handler 'OnTick') is started but never stopped or detached \u2014 the running timer keeps 'FeedTicker' alive (leak) [resource: timer]"
     }
    ]
   },
   "corpus/wpf/timer-stop-uncalled-helper/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/timer-stop-uncalled-helper/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 17
+     "line": 17,
+     "message": "timer '_timer.Tick' (handler 'OnRefresh') is started but never stopped or detached \u2014 the running timer keeps 'ChartRefresher' alive (leak) [resource: timer]"
     }
    ]
   },
   "corpus/wpf/timer-stop-uncalled-lambda/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/timer-stop-uncalled-lambda/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 17
+     "line": 17,
+     "message": "timer '_timer.Tick' (handler 'OnPoll') is started but never stopped or detached \u2014 the running timer keeps 'PollingPane' alive (leak) [resource: timer]"
     }
    ]
   },
   "corpus/wpf/timer-stop-unwired-lifecycle/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/timer-stop-unwired-lifecycle/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 17
+     "line": 17,
+     "message": "timer '_timer.Tick' (handler 'OnTick') is started but never stopped or detached \u2014 the running timer keeps 'SplashTicker' alive (leak) [resource: timer]"
     }
    ]
   },
   "corpus/wpf/timer-stop-wrong-receiver/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/timer-stop-wrong-receiver/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 16
+     "line": 16,
+     "message": "timer '_fast.Tick' (handler 'OnFast') is started but never stopped or detached \u2014 the running timer keeps 'DualPoller' alive (leak) [resource: timer]"
     }
    ]
   },
   "corpus/wpf/viewmodel-escapes-to-app/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/viewmodel-escapes-to-app/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN050",
      "level": "note",
-     "line": 14
+     "line": 14,
+     "message": "cannot verify 'appBus.CustomerChanged' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
     }
    ]
   },
   "corpus/wpf/zombie-viewmodel/after.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": []
   },
   "corpus/wpf/zombie-viewmodel/before.cs": {
+   "call_site_witnesses": [],
    "exit": 0,
    "findings": [
     {
      "code": "OWN001",
      "level": "warning",
-     "line": 13
+     "line": 13,
+     "message": "the result of 'bus.Subscribe<CustomerChanged>' is ignored \u2014 the IDisposable subscription is never disposed, leaking 'CustomerViewModel' (leak) [resource: subscription token]"
     }
    ]
   }
@@ -2245,9 +2542,13 @@
  "instrument_carve_outs": [
   "rust/crates/own-bridge/src/mos.rs",
   "rust/crates/own-bridge/src/lower.rs",
-  "frontend/roslyn/OwnSharp.Extractor/"
+  "rust/crates/own-bridge/src/dump.rs",
+  "rust/crates/own-bridge/src/verdict.rs",
+  "rust/crates/own-bridge/src/render.rs",
+  "frontend/roslyn/OwnSharp.Extractor/",
+  "rust/crates/own-cli/src/ownir.rs"
  ],
- "instrument_identity": "2b401fc72cc58c0f49e1d002c14a666f9863f657077f39467335e7ab8ec704ba",
+ "instrument_identity": "c953acda915859449a69ef2866bd947591d48a6d8c302d8955e356f370788c69",
  "instrument_paths": [
   "frontend/roslyn/OwnSharp.Extractor/",
   "ownlang/",
@@ -2260,23 +2561,43 @@
   "scripts/shadow_compare.py",
   "scripts/p037_b_production_diff_gate.py",
   "scripts/p037_b_extractor_diff_gate.py",
-  "scripts/p037_b_classifier.py"
+  "scripts/p037_b_classifier.py",
+  "scripts/p037_b_cli_diff_gate.py"
  ],
  "is_evidence": true,
- "materialization_root": ".p037-population/718a673c01641883df433b89cb76d5e3942d8815/b7192231c73b6418",
- "population_commit": "718a673c01641883df433b89cb76d5e3942d8815",
+ "materialization_root": ".p037-population/cf0f95f3f9af85df46d5506a87de806cf3f00c46/b7192231c73b6418",
+ "population_commit": "cf0f95f3f9af85df46d5506a87de806cf3f00c46",
  "post_run_population_intact": true,
  "reference_profile": {
   "OWN_EXTRA_REF_DIRS": "removed-from-child-environment",
   "observed_extra_reference_lines": 0
  },
- "schema": "p037-verdict-snapshot/3",
- "source_commit": "718a673c01641883df433b89cb76d5e3942d8815",
+ "schema": "p037-verdict-snapshot/5",
+ "source_commit": "cf0f95f3f9af85df46d5506a87de806cf3f00c46",
+ "subject_paths": [
+  "frontend/roslyn/OwnSharp.Extractor/",
+  "ownlang/",
+  "rust/",
+  "scripts/own-check.sh",
+  "scripts/p037_evidence.py",
+  "scripts/p037_evidence_b.py",
+  "scripts/p037_mos_snapshot.py",
+  "scripts/p037_verdict_snapshot.py",
+  "scripts/shadow_compare.py",
+  "scripts/p037_b_production_diff_gate.py",
+  "scripts/p037_b_extractor_diff_gate.py",
+  "scripts/p037_b_classifier.py",
+  "scripts/p037_b_cli_diff_gate.py"
+ ],
  "support_manifest": [],
  "support_manifest_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
  "treatment_paths": [
   "rust/crates/own-bridge/src/mos.rs",
   "rust/crates/own-bridge/src/lower.rs",
-  "frontend/roslyn/OwnSharp.Extractor/"
+  "rust/crates/own-bridge/src/dump.rs",
+  "rust/crates/own-bridge/src/verdict.rs",
+  "rust/crates/own-bridge/src/render.rs",
+  "frontend/roslyn/OwnSharp.Extractor/",
+  "rust/crates/own-cli/src/ownir.rs"
  ]
 }
