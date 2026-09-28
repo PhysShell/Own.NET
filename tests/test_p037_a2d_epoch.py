@@ -164,6 +164,30 @@ PHASE_B_GOVERNANCE_FILES = (
 # commit reasoned about.
 PHASE_B_PREFIXES = ("formal/p037-kernel/", "docs/evidence/p037-b-")
 
+# Rocq consolidation integration (e4c73f4/06e3d78, cherry-picked onto this
+# branch from claude/p037-rocq-consolidation): the same false-green mechanism
+# b234599 and ca84cb1 already hit above -- this allowlist keys on which paths
+# moved between T_D and HEAD, and neither the consolidated Rocq package nor
+# its research note existed before this branch cherry-picked them, so nothing
+# caught the gap until CI ran on a clean checkout (run 36400084949, job
+# "tests (py3.13)", FAIL[only-treatment-paths-tests-record-and-adjudicated-
+# docs-move] naming exactly the 17 files under formal/p037-rocq/ plus
+# docs/notes/p037-rocq-consolidation.md). `formal/p037-rocq/` gets a full
+# prefix exception for the same reason `formal/p037-kernel/` already has one:
+# it is a self-contained, non-production verification tree (its own README:
+# a disposable-mutation-tested, zero-MathComp plain-Rocq proof package that
+# "must share no source with the extractor, never writes OwnIR") holding no
+# ownlang/rust/own-ir/spec/frontend byte -- confirmed by this same test's own
+# zero-drift check at the consolidation's own commit, not re-derived here.
+# `docs/notes/p037-rocq-consolidation.md` is a single named research note,
+# not a prefix, matching how FORMAL_NOTE_PATH is one named file rather than
+# all of `docs/notes/`: only this one path is exempted, every other doc stays
+# governed exactly as before. `docs/notes/p037-formal-kernel.md`'s own append
+# (the consolidation's "pointer" paragraph) needed no new entry -- it is
+# already FORMAL_NOTE_PATH and was never in the FAIL list above.
+ROCQ_CONSOLIDATION_NOTE_PATH = "docs/notes/p037-rocq-consolidation.md"
+ROCQ_CONSOLIDATION_PREFIXES = ("formal/p037-rocq/",)
+
 # 10.6.14b: order step 6 (D after) lands its evidence as exactly these six
 # files under docs/evidence/, and nothing about them is inferred or
 # regenerated -- each is pinned to the exact sha256 the accepted external
@@ -188,6 +212,24 @@ D_AFTER_EVIDENCE_PINS = {
     D_AFTER_EVIDENCE_MANIFEST_PATH:
         "18912d32707f66b704c78eabdd02e26cdbef9e046a3240ab48c4af9b42e13e7b",
 }
+
+def classify_outside_paths(changed: list[str], t_paths: list[str],
+                          r_d_files: set[str] = frozenset(),
+                          d_after_ok: set[str] = frozenset()) -> list[str]:
+    """The exact logic `only-treatment-paths-tests-record-and-adjudicated-
+    docs-move` checks: paths outside every allowlist this test recognises.
+    Factored out so the hostile controls below can probe it with synthetic
+    `changed` lists instead of needing a real git commit per probe."""
+    allowed_prefixes = (*tuple(t_paths), "tests/", *PHASE_B_PREFIXES,
+                        *ROCQ_CONSOLIDATION_PREFIXES)
+    governance = (EPOCH_RECORD_PATH, FORMAL_NOTE_PATH, *PHASE_B_GOVERNANCE_FILES,
+                 ROCQ_CONSOLIDATION_NOTE_PATH)
+    return [f for f in changed if f not in governance
+           and not f.startswith(allowed_prefixes)
+           and f not in DOCS_GENERATED_ADJUDICATED
+           and f not in r_d_files
+           and f not in d_after_ok]
+
 
 _failures: list[str] = []
 
@@ -422,8 +464,6 @@ def run() -> int:
             check("gate-holds-this-head-within-the-allowlist-of-T-D", rc == 0, line)
 
             changed = [f for f in git("diff", "--name-only", t_d, "HEAD")[1].splitlines() if f]
-            allowed_prefixes = (*tuple(t_paths), "tests/", *PHASE_B_PREFIXES)
-            governance = (EPOCH_RECORD_PATH, FORMAL_NOTE_PATH, *PHASE_B_GOVERNANCE_FILES)
             # R_D (order step 4) sits between T_D and the D treatment on this
             # branch and is a separately governed, already-accepted
             # evidence-only commit; "only the treatment paths and tests move"
@@ -455,13 +495,42 @@ def run() -> int:
                   not d_after_mismatched, f"{d_after_mismatched}")
             d_after_ok = d_after_changed - set(d_after_mismatched)
 
-            outside = [f for f in changed if f not in governance
-                      and not f.startswith(allowed_prefixes)
-                      and f not in DOCS_GENERATED_ADJUDICATED
-                      and f not in r_d_files
-                      and f not in d_after_ok]
+            outside = classify_outside_paths(changed, t_paths, r_d_files, d_after_ok)
             check("only-treatment-paths-tests-record-and-adjudicated-docs-move",
                   not outside, f"{outside}")
+
+            # Hostile controls for the Rocq consolidation carve-out: prove it
+            # admits exactly its own two paths and nothing wider, on synthetic
+            # `changed` lists rather than a real commit (classify_outside_paths
+            # is the exact function the check above calls, so this probes the
+            # same logic, not a re-implementation of it).
+            admits_probe = classify_outside_paths(
+                ["formal/p037-rocq/theories/P037.v", "formal/p037-rocq/check.sh",
+                 ROCQ_CONSOLIDATION_NOTE_PATH],
+                t_paths, r_d_files, d_after_ok)
+            check("rocq-carveout-admits-exactly-its-own-two-paths",
+                  not admits_probe, f"{admits_probe}")
+            still_forbidden = [
+                "frontend/roslyn/OwnSharp.Extractor/Program.cs",  # instrument, frozen in a2d
+                "rust/crates/own-bridge/src/lower.rs",  # Phase-B-measured, not epoch-allowed
+                "ownlang/analysis.py",  # ownlang production; only ownlang/ownir.py is a named door
+                "docs/notes/some-unrelated-research-note.md",  # arbitrary doc, not the carve-out
+            ]
+            forbidden_probe = classify_outside_paths(
+                still_forbidden, t_paths, r_d_files, d_after_ok)
+            check("rocq-carveout-does-not-broaden-unrelated-forbidden-paths",
+                  sorted(forbidden_probe) == sorted(still_forbidden), f"{forbidden_probe}")
+            # formal/p037-kernel/ is deliberately NOT probed as forbidden here:
+            # it is already an allowed PHASE_B_PREFIXES entry (Phase B's own
+            # verification-tree exception, landed before this carve-out and
+            # untouched by it) -- asserting it forbidden would assert a
+            # regression against Phase B's own already-accepted policy, not a
+            # property of this fix. What this carve-out owes is that entry
+            # staying exactly as allowed as it already was:
+            unaffected_probe = classify_outside_paths(
+                ["formal/p037-kernel/src/lib.rs"], t_paths, r_d_files, d_after_ok)
+            check("phase-b-formal-kernel-prefix-unaffected-by-rocq-carveout",
+                  not unaffected_probe, f"{unaffected_probe}")
 
             d_after_evidence = later.get("D_after_evidence")
             if d_after_evidence is not None:
