@@ -23,11 +23,40 @@ if ! cmp -s "$fresh" theories/RustTables.v; then
 fi
 
 for f in Lfp P037 RustTables Correspondence Election; do
-  t0=$(date +%s.%N)
   rocq compile "${W[@]}" -Q theories PlainSpike "theories/$f.v" > /dev/null
-  printf '  %-18s %.1fs\n' "$f.v" "$(echo "$(date +%s.%N) - $t0" | bc)"
+  echo "  $f.v compiled"
 done
+
+# The assumptions audit fails closed: a failed compile, a missing "Closed
+# under the global context" line, or any "Axioms:" line are hard failures,
+# never just displayed and ignored. The exact expected count is pinned per
+# file so a silently dropped or silently added Print Assumptions line is
+# also caught, not just an outright axiom.
+check_audit() {
+  local file="$1" want="$2" out closed axioms
+  out=$(mktemp)
+  if ! rocq compile "${W[@]}" -Q theories PlainSpike "theories/$file.v" > "$out" 2>&1; then
+    echo "FAIL: $file.v failed to compile:" >&2
+    cat "$out" >&2
+    rm -f "$out"
+    return 1
+  fi
+  cat "$out"
+  closed=$(grep -c "^Closed under the global context$" "$out" || true)
+  axioms=$(grep -c "^Axioms:" "$out" || true)
+  rm -f "$out"
+  if [ "$axioms" -ne 0 ]; then
+    echo "FAIL: $file.v reports $axioms axiom-dependent result(s) -- expected none." >&2
+    return 1
+  fi
+  if [ "$closed" -ne "$want" ]; then
+    echo "FAIL: $file.v reports $closed \"Closed under the global context\" result(s)," \
+         "expected exactly $want." >&2
+    return 1
+  fi
+}
+
 echo "--- Audit.v ---"
-rocq compile "${W[@]}" -Q theories PlainSpike theories/Audit.v | grep -E "Closed|Axioms|^[A-Za-z_]+ :" || true
+check_audit Audit 10
 echo "--- ElectionAudit.v ---"
-rocq compile "${W[@]}" -Q theories PlainSpike theories/ElectionAudit.v | grep -E "Closed|Axioms|^[A-Za-z_]+ :" || true
+check_audit ElectionAudit 6
