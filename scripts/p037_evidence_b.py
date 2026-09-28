@@ -72,6 +72,7 @@ import copy
 import json
 import shutil
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -721,11 +722,53 @@ def comparison_problems(
     return problems
 
 
+def _path_freshness_problems(source: str, against: str, *, repo: Path = ROOT) -> list[str]:
+    """The two path-drift checks that decide whether ``source`` is still
+    fresh at ``against``: neither the instrument closure (INSTRUMENT_PATHS
+    minus INSTRUMENT_CARVE_OUTS) nor the treatment closure (TREATMENT_PATHS
+    -- exactly those same carve-outs) may have moved in between. Ported
+    from p037_evidence.provenance_problems (R1-review of 84c06a2, CH3-13):
+    the prior version of provenance_problems() below checked only the
+    instrument half, despite its own docstring already promising both --
+    load-bearing specifically BECAUSE Phase-B's treatment files are
+    deliberately carved OUT of the instrument pathspec, so a treatment-only
+    change (a real future lower.rs/extractor/own-cli edit) moves neither
+    instrument_identity nor the instrument-pathspec diff, and an AFTER
+    record taken before that edit would stay "fresh" at a HEAD that no
+    longer describes the analyzer it measured. Factored into its own
+    function so a selftest can drive it with a controlled ev.paths_differ
+    stub instead of needing a disposable pair of really-differing commits
+    on this branch."""
+    problems: list[str] = []
+    try:
+        pathspec = [*INSTRUMENT_PATHS, *(f":(exclude){c}" for c in INSTRUMENT_CARVE_OUTS)]
+        if ev.paths_differ(source, against, pathspec, repo=repo):
+            problems.append(
+                f"the measurement instrument changed between {source[:12]} and {against}; "
+                "re-take the evidence")
+        if ev.paths_differ(source, against, TREATMENT_PATHS, repo=repo):
+            problems.append(
+                f"the treatment changed between {source[:12]} and {against}; this record "
+                "does not describe the analyzer at that commit")
+    except EvidenceRefused as exc:
+        problems.append(str(exc))
+    return problems
+
+
 def provenance_problems(
     record: dict[str, Any], *, against: str = "HEAD", repo: Path = ROOT
 ) -> list[str]:
     """Whether ``record`` is fresh evidence at ``against``: self-valid, an
-    ancestor, and neither instrument nor treatment moved in between."""
+    ancestor, and neither instrument nor treatment moved in between.
+
+    Deliberately NOT mirrored into comparison_problems()'s own before/after
+    pair: a differential's whole POINT is the treatment moving between
+    before and after, so treatment drift between THOSE two commits is
+    expected and correct, never a staleness defect. comparison_problems()
+    already delegates the AFTER side's own staleness -- at ``against``, not
+    at ``before`` -- to this exact function via its own
+    ``provenance_problems(after, against=against)`` call, which is where
+    the treatment-freshness check belongs and is now enforced."""
     problems = [*closure_problems(repo=repo), *record_problems(record, repo=repo)]
     source = record.get("source_commit")
     if not isinstance(source, str) or not source or not ev.commit_exists(source, repo=repo):
@@ -737,14 +780,7 @@ def provenance_problems(
             f"source commit {source[:12]} is not an ancestor of {against}; "
             "the evidence describes a history this tree does not contain")
         return problems
-    try:
-        pathspec = [*INSTRUMENT_PATHS, *(f":(exclude){c}" for c in INSTRUMENT_CARVE_OUTS)]
-        if ev.paths_differ(source, against, pathspec, repo=repo):
-            problems.append(
-                f"the measurement instrument changed between {source[:12]} and {against}; "
-                "re-take the evidence")
-    except EvidenceRefused as exc:
-        problems.append(str(exc))
+    problems.extend(_path_freshness_problems(source, against, repo=repo))
     return problems
 
 
@@ -1180,6 +1216,92 @@ def selftest() -> int:
         and any(p.startswith("after: analysis_manifest_sha256 does not name")
                 for p in _forged_digest_pair_problems),
         _forged_digest_pair_problems)
+
+    # --- CH3-13 (R1-review of 84c06a2): provenance_problems()'s own
+    # docstring already promised "neither instrument nor treatment moved in
+    # between", but the body only ever checked the instrument half --
+    # load-bearing precisely because TREATMENT_PATHS is deliberately carved
+    # OUT of the instrument pathspec, so a treatment-only change moves
+    # neither instrument_identity nor the instrument-pathspec diff, and a
+    # stale AFTER record would stay "fresh". First, the real, unstubbed
+    # sanity check (item 11): a real record checked fresh against its own
+    # source commit -- zero diff on ANY pathspec -- passes with no path-
+    # freshness problem of either kind, using the real ev.paths_differ.
+    _selfcheck(
+        "real-fresh-record-at-source-equals-against-passes-cleanly",
+        provenance_problems(_valid_record, against=_valid_record["source_commit"]) == [],
+        provenance_problems(_valid_record, against=_valid_record["source_commit"]))
+
+    # The four drift combinations are then isolated behind a controlled
+    # ev.paths_differ stub (item 5A) -- never a disposable pair of really-
+    # differing commits on this branch -- so each hostile is driven by
+    # WHICH pathspec was asked about, not by which commits happen to exist
+    # right now. `_path_freshness_problems` is the exact, only, function
+    # this drives; provenance_problems() itself is exercised separately
+    # above and below with the real, unstubbed helper.
+    _real_paths_differ = ev.paths_differ
+
+    def _stub_paths_differ(
+        *, instrument_changed: bool, treatment_changed: bool
+    ) -> Callable[..., bool]:
+        def _stub(a: str, b: str, paths: Any, *, repo: Path = ROOT) -> bool:
+            if list(paths) == list(TREATMENT_PATHS):
+                return treatment_changed
+            return instrument_changed
+        return _stub
+
+    def _stubbed_freshness(instrument_changed: bool, treatment_changed: bool) -> list[str]:
+        ev.paths_differ = _stub_paths_differ(instrument_changed=instrument_changed,
+                                             treatment_changed=treatment_changed)
+        try:
+            return _path_freshness_problems("1" * 40, "2" * 40)
+        finally:
+            ev.paths_differ = _real_paths_differ
+
+    problems = _stubbed_freshness(instrument_changed=False, treatment_changed=True)
+    _selfcheck("hostile-treatment-only-drift-is-caught-in-isolation",
+              any("the treatment changed" in p for p in problems)
+              and not any("the measurement instrument changed" in p for p in problems),
+              problems)
+
+    problems = _stubbed_freshness(instrument_changed=False, treatment_changed=False)
+    _selfcheck("both-fresh-control-emits-no-path-freshness-problem", problems == [], problems)
+
+    problems = _stubbed_freshness(instrument_changed=True, treatment_changed=False)
+    _selfcheck("hostile-instrument-only-drift-still-caught",
+              any("the measurement instrument changed" in p for p in problems)
+              and not any("the treatment changed" in p for p in problems),
+              problems)
+
+    problems = _stubbed_freshness(instrument_changed=True, treatment_changed=True)
+    _selfcheck("both-stale-emits-both-problems-independently",
+              any("the measurement instrument changed" in p for p in problems)
+              and any("the treatment changed" in p for p in problems),
+              problems)
+
+    # item 7: the asymmetry this whole repair depends on. A differential's
+    # whole POINT is the treatment moving between before and after, so
+    # comparison_problems() must never gain a direct before/after
+    # treatment-path prohibition of its own -- only provenance_problems
+    # (AFTER, against) may call an AFTER record stale, and only relative to
+    # `against`, never relative to `before`. Proven behaviorally (not by
+    # reading the source) under the SAME stub, TREATMENT_PATHS reporting
+    # "changed" unconditionally: comparison_problems(_valid_record,
+    # _valid_record, against=<the same real commit>) must report EXACTLY
+    # ONE "treatment" complaint, and it must be provenance_problems' own
+    # after-freshness one -- never a second, before-vs-after-shaped one.
+    ev.paths_differ = _stub_paths_differ(instrument_changed=False, treatment_changed=True)
+    try:
+        pairwise_problems = comparison_problems(
+            _valid_record, _valid_record, against=_valid_record["source_commit"])
+    finally:
+        ev.paths_differ = _real_paths_differ
+    treatment_mentions = [p for p in pairwise_problems if "treatment" in p]
+    _selfcheck(
+        "comparison-problems-has-no-before-after-treatment-prohibition-of-its-own",
+        len(treatment_mentions) == 1
+        and treatment_mentions[0].startswith("after: the treatment changed between "),
+        pairwise_problems)
 
     if _failures:
         print(f"RESULT: {_failures} check(s) failed")
