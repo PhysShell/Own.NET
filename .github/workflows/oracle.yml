@@ -42,13 +42,9 @@ on:
   # Dev-loop fallback (the automation token can't `workflow_dispatch`): bump the
   # sentinel corpus/oracle-target.txt to run the oracle push-triggered, reading the
   # target from that file. Dev-branch only — remove before merging to main.
-  # claude/p037-value-benchmark added TEMPORARILY for the P-037 value-benchmark
-  # measurement (workflow_dispatch confirmed 403 for this session); revert this
-  # line before that branch's work is finalized.
   push:
     branches:
       - claude/zen-pasteur-76hfs1
-      - claude/p037-value-benchmark
     paths:
       - corpus/oracle-target.txt
 
