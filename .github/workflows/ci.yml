@@ -108,7 +108,9 @@ jobs:
       # P-037 B0 (docs/notes/p037-phase-b-proof-boundary.md): F5, the
       # finalize-before-apply controls must go red when apply/lower stop
       # finalizing (temp copy of the crate), and the #368 witness must hold.
-      - name: proof-boundary kernel mutants (B0 F5 / F7)
+      # P-037 B1 (docs/notes/p037-phase-b1-shadow.md §C): the same run kills
+      # the own-guarded mutants G6-G11 on a temporary copy of rust/.
+      - name: proof-boundary mutants (B0 F5 / F7, B1 G6-G11)
         run: python3 ../../scripts/p037_proof_boundary.py --mutants
       - name: install Kani (pinned) and its toolchain bundle
         run: |

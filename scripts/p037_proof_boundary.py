@@ -20,7 +20,9 @@ Modes::
     --check      audit the tree; RESULT: PASS | FAIL (exit 0 | 1)
     --selftest   the cheap falsifiers F1-F4 and F6-F10 as in-memory mutants
     --mutants    F5 (and the #368 witness) as real `cargo test` runs on a
-                 temporary copy of the kernel crate; needs cargo
+                 temporary copy of the kernel crate, then B1's G6-G11 on a
+                 copy of rust/ (docs/notes/p037-phase-b1-shadow.md); needs cargo
+    --b1-gate    B1's N2 zero-cut path set and §F hard caps against B1_BASE
 
 Stdlib only. A new generic verification framework is out of budget by rule.
 """
@@ -29,6 +31,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -90,7 +93,32 @@ PRODUCTION_SUFFIXES = {".rs", ".py", ".cs"}
 SKIP_DIRS = {"target", "bin", "obj", "node_modules", "__pycache__", ".git"}
 SCHEDULE_API = re.compile(r"\b(solve_with|elect_with|lfp_chaotic)\s*\(")
 KERNEL_IMPORT = re.compile(r"\bp037_kernel\b")
-DIRECT_LOWER = re.compile(r"\.collapse\s*\(\s*\)|\blower\s*\(")
+# `.fin().collapse()` reads a FINALIZED summary (B1's summary report); a raw
+# `.collapse()` or any direct `lower(` bypasses `apply` (F9 / G5).
+DIRECT_LOWER = re.compile(r"(?<!\.fin\(\))\.collapse\s*\(\s*\)|\blower\s*\(")
+
+# B1 (docs/notes/p037-phase-b1-shadow.md): the guarded shadow read.
+B1_BASE = "0e2c01a"
+GUARDED_SRC = "rust/crates/own-guarded/src/"
+REUSE = re.compile(
+    r"\bfn\s+(join|leq|fin|collapse|swap|read|contribute|import|apply|lower|shape_of)\b"
+    r"|\b(enum|struct|type|trait)\s+(Transfer|Cells|Election|GuardBinding|Shape|Transform|"
+    r"Mask|Selection|Lowered|Lattice)\b")
+DISPATCH = re.compile(r"\b(virtual|override|interface)\b|(?<!static_)dispatch(?!_conditional)")
+ZERO_CUT = ("ownlang/", "spec/", "scripts/own-check.sh", *(
+    f"rust/crates/{c}/src/" for c in ("own-bridge", "own-cli", "own-ir", "own-lowered",
+                                     "own-analysis", "own-cfg", "own-syntax",
+                                     "own-diagnostics")))
+# §F hard caps, counted lines (no blanks, no comment lines) added since B1_BASE.
+CAPS: list[tuple[str, tuple[str, ...], int]] = [
+    ("own-guarded non-test Rust", (GUARDED_SRC,), 900),
+    ("own-shadow B1 additions", ("rust/crates/own-shadow/",), 200),
+    ("extractor A14 side report (C#)", ("frontend/roslyn/OwnSharp.Extractor/",), 150),
+    ("everything B1 hand-writes", ("rust/crates/own-guarded/", "rust/crates/own-shadow/",
+                                   "rust/crates/own-diagnostics/tests/dag.rs",
+                                   "frontend/roslyn/OwnSharp.Extractor/", "scripts/p037_",
+                                   "tests/test_p037_"), 2500),
+]
 
 
 @dataclass
@@ -103,6 +131,7 @@ class Tree:
     ci_runs_harness: dict[str, bool]    # the loop actually calls cargo kani
     lib: str
     production: dict[str, str]          # repo-relative path -> text
+    manifests: dict[str, str] = field(default_factory=dict)  # rust/**/Cargo.toml
     root: Path = ROOT
 
 
@@ -196,6 +225,9 @@ def load_tree() -> Tree:
         ci_runs_harness=runs,
         lib=LIB.read_text(encoding="utf-8"),
         production=production_texts(),
+        manifests={f.relative_to(ROOT).as_posix(): f.read_text(encoding="utf-8")
+                   for f in (ROOT / "rust").rglob("Cargo.toml")
+                   if not SKIP_DIRS & set(f.relative_to(ROOT).parts)},
     )
 
 
@@ -398,7 +430,76 @@ def audit(tree: Tree) -> Report:
             r.err(f"F8 {rel}: production calls the schedule-taking {mm.group(1)} (#368)")
         if DIRECT_LOWER.search(text):
             r.err(f"F9 {rel}: imports the kernel and lowers/collapses cells outside `apply`")
+    audit_b1(tree, r)
     return r
+
+
+def audit_b1(tree: Tree, r: Report) -> None:
+    """B1's static guards: reuse (G3), dispatch (G11), kernel edges (G1/G2)."""
+    guarded = {k: v for k, v in tree.production.items() if k.startswith(GUARDED_SRC)}
+    if not guarded:
+        r.err(f"B1 no sources under {GUARDED_SRC}")
+    for rel, text in sorted(guarded.items()):
+        code = re.sub(r"//[^\n]*", "", text)
+        for mm in REUSE.finditer(code):
+            r.err(f"G3 {rel}: defines kernel algebra {mm.group(0)!r} instead of reusing it")
+        if DISPATCH.search(code):
+            r.err(f"G11 {rel}: reads dispatch; A14 is a condition, never acted on")
+    for rel, text in sorted(tree.manifests.items()):
+        crate = rel.split("/")[-2]
+        for dep, owner in (("p037-kernel", "own-guarded"), ("own-guarded", "own-shadow")):
+            if crate != owner and re.search(rf"^\s*{dep}\s*=", text, re.M):
+                r.err(f"N1 {rel}: names {dep}; only {owner} may")
+
+
+def _git(*args: str) -> str:
+    return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True,
+                          check=True).stdout
+
+
+def zero_cut(changed: list[str]) -> list[str]:
+    """N2 / G12: B1 touches no production source path."""
+    return [f"N2 {p}: B1 must not change it" for p in changed if p.startswith(ZERO_CUT)]
+
+
+def counted(lines: list[str], rel: str) -> int:
+    mark = "#" if rel.endswith(".py") else "//"
+    return sum(1 for ln in lines if ln.strip() and not ln.strip().startswith(mark))
+
+
+def added(rel: str) -> list[str]:
+    """The lines `rel` gained since B1_BASE (all of it when it is new)."""
+    diff = _git("diff", "-U0", B1_BASE, "--", rel)
+    if diff:
+        return [ln[1:] for ln in diff.splitlines() if ln.startswith("+") and
+                not ln.startswith("+++")]
+    tracked = _git("ls-files", "--", rel).strip()
+    known = subprocess.run(["git", "cat-file", "-e", f"{B1_BASE}:{rel}"], cwd=ROOT,
+                           capture_output=True, check=False).returncode == 0
+    return [] if tracked and known else (ROOT / rel).read_text(encoding="utf-8").splitlines()
+
+
+def caps(sizes: dict[str, int]) -> list[str]:
+    """§F: every cap holds; reaching one unfinished is a STOP."""
+    out = []
+    for label, prefixes, cap in CAPS:
+        n = sum(v for k, v in sizes.items() if k.startswith(prefixes))
+        print(f"  {label}: {n} / {cap}")
+        if n > cap:
+            out.append(f"CAP {label}: {n} > {cap}")
+    return out
+
+
+def b1_gate() -> int:
+    changed = sorted(set(_git("diff", "--name-only", B1_BASE).split()) |
+                     set(_git("ls-files", "--others", "--exclude-standard").split()))
+    code = [p for p in changed if p.endswith((".rs", ".py", ".cs")) and
+            any(p.startswith(pre) for _, pres, _ in CAPS for pre in pres)]
+    problems = zero_cut(changed) + caps({p: counted(added(p), p) for p in code})
+    for e in problems:
+        print(f"  ERROR {e}")
+    print("RESULT: FAIL — B1 BLOCKED" if problems else "RESULT: PASS — B1 GATE (N2 paths, §F caps)")
+    return 1 if problems else 0
 
 
 # ---------------------------------------------------------------------------
@@ -501,6 +602,50 @@ def selftest() -> int:
                "rust/crates/own-bridge/src/guarded.rs",
                "use p037_kernel::{lower, Cells};\nfn f(c: Cells) { lower(c.collapse()); }")),
            "F9")
+    ok = not audit(_mutant(base, lambda t: t.production.__setitem__(
+        "rust/crates/own-guarded/src/x.rs",
+        "use p037_kernel::Cells;\nfn f(c: Cells) -> T { c.fin().collapse() }"))).errors
+    print(f"{'ok ' if ok else 'MISS'} F9' a finalized summary read stays green")
+    fails += not ok
+    expect("G5  own-guarded collapses a raw cell",
+           _mutant(base, lambda t: t.production.__setitem__(
+               "rust/crates/own-guarded/src/x.rs",
+               "use p037_kernel::Cells;\nfn f(c: Cells) -> T { c.collapse() }")), "F9")
+    expect("G4  own-guarded takes a schedule",
+           _mutant(base, lambda t: t.production.__setitem__(
+               "rust/crates/own-guarded/src/x.rs",
+               "use p037_kernel::elect_with;\nfn f() { elect_with(&s, &[1, 0]); }")), "F8")
+    expect("G3  own-guarded defines its own join",
+           _mutant(base, lambda t: t.production.__setitem__(
+               "rust/crates/own-guarded/src/x.rs",
+               "use p037_kernel::Cells;\nfn join(a: T, b: T) -> T { a }")), "G3")
+    expect("G11 own-guarded acts on dispatch",
+           _mutant(base, lambda t: t.production.__setitem__(
+               "rust/crates/own-guarded/src/x.rs", "fn f(c: &Call) { if c.dispatch == 1 {} }")),
+           "G11")
+    expect("G1  own-bridge names own-guarded",
+           _mutant(base, lambda t: t.manifests.__setitem__(
+               "rust/crates/own-bridge/Cargo.toml",
+               t.manifests["rust/crates/own-bridge/Cargo.toml"] +
+               '\nown-guarded = { path = "../own-guarded" }\n')), "N1")
+    expect("G2  a second crate names p037-kernel",
+           _mutant(base, lambda t: t.manifests.__setitem__(
+               "rust/crates/own-cli/Cargo.toml",
+               t.manifests["rust/crates/own-cli/Cargo.toml"] +
+               '\n[dev-dependencies]\np037-kernel = { path = "x" }\n')), "N1")
+    for label, hit in (
+            ("G12 an own-bridge source change sneaks in",
+             zero_cut(["rust/crates/own-bridge/src/lower.rs"])),
+            ("G12' an own-cli source change sneaks in",
+             zero_cut(["rust/crates/own-cli/src/main.rs"])),
+            ("§F  a cap reached unfinished is a STOP",
+             caps({"rust/crates/own-guarded/src/lib.rs": 901}))):
+        print(f"{'ok ' if hit else 'MISS'} {label}")
+        fails += not hit
+    ok = not zero_cut(["rust/crates/own-guarded/src/lib.rs", "rust/Cargo.lock",
+                       "rust/crates/own-diagnostics/tests/dag.rs"])
+    print(f"{'ok ' if ok else 'MISS'} G12' B1's own paths stay green")
+    fails += not ok
     well_formed_user = next(n for n, h in sorted(base.source.items())
                             if re.search(r"\bany_system\s*\(", h))
     expect(f"F10 {well_formed_user} stops declaring WF",
@@ -534,6 +679,65 @@ KERNEL_MUTANTS = [
 ]
 
 
+# B1: each falsifier of docs/notes/p037-phase-b1-shadow.md §C that is a code
+# mutation, as (label, repo-relative file, old, new, own-guarded test filter).
+# Run on a temporary copy of rust/ + the kernel; the named test must PANIC.
+GUARDED_MUTANTS = [
+    ("G6  the A15 join places what it cannot", "rust/crates/own-guarded/src/facts.rs",
+     "w.check_calls()?;", "let _ = w.check_calls();", "a15_"),
+    ("G7  an unresolvable forward is read as nothing", "rust/crates/own-guarded/src/facts.rs",
+     "fwds.push((n, callee_coord(fns, c, slot)));",
+     "fwds.extend(callee_coord(fns, c, slot).ok().map(|t| (n, Ok(t))));", "record_absence"),
+    ("G8  the K7 witness: apply skips fin", "formal/p037-kernel/src/lib.rs",
+     "let c = solved.fin();", "let c = solved;", "k7_"),
+    ("G9  a raw cell crosses an SCC", "rust/crates/own-guarded/src/solve.rs",
+     "callee.fin()", "callee", "a13_"),
+    ("G10 the sidecar is no longer read", "rust/crates/own-guarded/src/facts.rs",
+     'f.extra.get("guarded_facts")', "None::<&Value>", "n4_"),
+    ("G11 the report drops static_dispatch_conditional", "rust/crates/own-guarded/src/lib.rs",
+     '"static_dispatch_conditional": true,', "", "a14_"),
+]
+
+
+def _killed(run: subprocess.CompletedProcess[str], test: str) -> tuple[bool, list[str]]:
+    """Killed = a test matching `test` PANICKED; a compile error is not a kill."""
+    out = run.stdout + run.stderr
+    died = sorted(set(re.findall(r"^---- (\S+) stdout ----$", out, re.M)))
+    red = run.returncode != 0 and "test result: FAILED" in out and any(
+        d.split("::")[-1].startswith(test) for d in died)
+    return red, died
+
+
+def guarded_mutants(cargo: str) -> int:
+    fails = 0
+    with tempfile.TemporaryDirectory(prefix="p037-b1-") as tmp:
+        work = Path(tmp)
+        for top in ("rust", "formal/p037-kernel"):
+            shutil.copytree(ROOT / top, work / top, ignore=shutil.ignore_patterns("target"))
+        env = {**os.environ, "CARGO_TARGET_DIR": str(work / "target")}
+        test = [cargo, "test", "-q", "-p", "own-guarded", "--test", "acceptance"]
+        base = subprocess.run(test, cwd=work / "rust", capture_output=True, text=True,
+                              check=False, env=env)
+        ok = base.returncode == 0
+        print(f"{'ok ' if ok else 'MISS'} B1  the own-guarded acceptance controls pass unmutated")
+        fails += not ok
+        for label, rel, old, new, flt in GUARDED_MUTANTS:
+            f = work / rel
+            pristine = f.read_text(encoding="utf-8")
+            if pristine.count(old) != 1:
+                print(f"MISS {label}: the mutation site {old!r} is not unique")
+                fails += 1
+                continue
+            f.write_text(pristine.replace(old, new), encoding="utf-8")
+            run = subprocess.run([*test, flt], cwd=work / "rust", capture_output=True,
+                                 text=True, check=False, env=env)
+            f.write_text(pristine, encoding="utf-8")
+            red, died = _killed(run, flt)
+            print(f"{'ok ' if red else 'MISS'} {label}: killed by {', '.join(died) or 'nothing'}")
+            fails += not red
+    return fails
+
+
 def mutants() -> int:
     cargo = shutil.which("cargo")
     if cargo is None:
@@ -564,15 +768,12 @@ def mutants() -> int:
             run = subprocess.run(
                 [cargo, "test", "--release", test],
                 cwd=crate, capture_output=True, text=True, check=False)
-            # killed = a matching test PANICKED; a compile error is not a kill
-            out = run.stdout + run.stderr
-            died = sorted(set(re.findall(r"^---- (\S+) stdout ----$", out, re.M)))
-            red = run.returncode != 0 and "test result: FAILED" in out and any(
-                d.split("::")[-1].startswith(test) for d in died)
+            red, died = _killed(run, test)
             print(f"{'ok ' if red else 'MISS'} {label}: killed by {', '.join(died) or 'nothing'}")
             fails += not red
         lib.write_text(pristine, encoding="utf-8")
-    print(f"RESULT: {'every kernel mutant is killed' if not fails else f'{fails} miss(es)'}")
+    fails += guarded_mutants(cargo)
+    print(f"RESULT: {'every kernel and B1 mutant is killed' if not fails else f'{fails} miss(es)'}")
     return 1 if fails else 0
 
 
@@ -583,7 +784,10 @@ def main(argv: list[str]) -> int:
     g.add_argument("--check", action="store_true")
     g.add_argument("--selftest", action="store_true")
     g.add_argument("--mutants", action="store_true")
+    g.add_argument("--b1-gate", action="store_true")
     args = ap.parse_args(argv)
+    if args.b1_gate:
+        return b1_gate()
     if args.selftest:
         return selftest()
     if args.mutants:
