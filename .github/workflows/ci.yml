@@ -3050,7 +3050,11 @@ jobs:
           # shape and the samples compilation go through both engines three
           # times (as emitted, stripped, deliberately contradictory) and the
           # lowered/summaries/verdicts layers must not move. Needs the
-          # own-shadow-engine the artifacts step just built.
+          # own-shadow-engine the artifacts step just built. P-037 B1 (N4) adds
+          # the guarded layer, which reads own-guarded-report from the same
+          # target dir: build it there explicitly (it is not an evidence
+          # artifact, so the qualified artifacts step does not build it).
+          (cd rust && cargo build --locked --release -p own-shadow --bin own-guarded-report)
           python scripts/p037_sidecar_inertness.py
       # The Windows launcher is a separate implementation, not a wrapper around
       # the shell one, so the Windows leg has to go through it to mean anything.
