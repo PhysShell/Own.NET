@@ -481,6 +481,7 @@ def evidence_fields(
         "instrument_paths": list(INSTRUMENT_PATHS),
         "instrument_carve_outs": list(INSTRUMENT_CARVE_OUTS),
         "treatment_paths": list(TREATMENT_PATHS),
+        "subject_paths": list(SUBJECT_PATHS),
         "instrument_identity": instrument_identity(source, repo=repo),
         **population,
     }
@@ -488,7 +489,40 @@ def evidence_fields(
 
 def record_problems(record: dict[str, Any], *, repo: Path = ROOT) -> list[str]:
     """Self-consistency of one Phase-B evidence record at its OWN source
-    commit -- same clauses as p037_evidence.record_problems, epoch 'b'."""
+    commit -- ported clause for clause from p037_evidence.record_problems
+    (CH3-12, R1-review of 460557e: the prior version of this function
+    claimed that parity in its own docstring but actually implemented only
+    a small subset -- instrument_paths/treatment_paths/subject_paths exact
+    equality were never checked at all (only instrument_carve_outs, and
+    only as a SET, which also tolerates a reordered/duplicated closure);
+    input_roots was never validated; instrument_identity(source) was never
+    cross-checked against the recorded value (comparison_problems's own
+    before==after check cannot catch two independently forged-but-equal
+    digests); population_commit existence/ancestry was never checked;
+    analysis_manifest/support_manifest were never re-derived from the
+    population commit, nor their sha256 fields checked against the carried
+    manifest; reference_profile/execution_profile were never checked;
+    artifacts were never validated at all). Ported below using the SAME
+    pure, parameter-driven ev.* helpers the generic function itself calls
+    (population_fields/analysis_manifest/support_manifest/_manifest_
+    entries/_manifest_digest/reference_profile_problems/commit_exists/
+    is_ancestor -- confirmed against this module's own top docstring: none
+    of these read EPOCH/INSTRUMENT_PATHS/TREATMENT_PATHS internally), and
+    this module's OWN environment_id()/instrument_identity() (the two
+    that ARE epoch-coupled, already defined above for exactly that reason,
+    already used by evidence_fields()).
+
+    One intentional divergence from the generic function, named explicitly
+    rather than silently kept: the old `materialized_root`/`population_
+    intact()` branch is REMOVED, not merely renamed to the field verdict
+    snapshots actually write (`materialization_root`) -- it was dead code
+    (that typo'd field name is never written, so the branch never ran) and
+    reintroducing it correctly would still make historical validation
+    depend on an ephemeral materialized directory that need not still
+    exist. Population integrity is proven durably instead, exactly as the
+    generic function proves it: by re-deriving analysis_manifest/support_
+    manifest from the population commit and checking their digests -- both
+    already ported above, no separate directory inspection needed."""
     problems: list[str] = []
     source = record.get("source_commit")
     if not isinstance(source, str) or not source:
@@ -504,27 +538,121 @@ def record_problems(record: dict[str, Any], *, repo: Path = ROOT) -> list[str]:
             "record does not attest that the population stayed intact through the run")
     epoch = record.get("epoch")
     if epoch is None:
-        problems.append(f"record carries no epoch: it predates {EPOCH} and is not eligible")
+        problems.append(
+            f"record carries no epoch: it predates {EPOCH} and is not eligible in it, "
+            "as a before side or otherwise")
     elif epoch != EPOCH:
         problems.append(f"record names epoch {epoch!r}, not {EPOCH!r}")
+    env_id = record.get("environment_id")
+    if not isinstance(env_id, str) or not env_id:
+        problems.append("record carries no environment_id")
+    if record.get("instrument_paths") != list(INSTRUMENT_PATHS):
+        problems.append("recorded instrument_paths differ from this tool's instrument closure")
+    if record.get("instrument_carve_outs") != list(INSTRUMENT_CARVE_OUTS):
+        problems.append("recorded instrument_carve_outs differ from this tool's")
+    if record.get("treatment_paths") != list(TREATMENT_PATHS):
+        problems.append("recorded treatment_paths differ from this tool's treatment closure")
+    if record.get("subject_paths") != list(SUBJECT_PATHS):
+        problems.append("recorded subject_paths differ from this tool's measurement closure")
+
+    roots_raw = record.get("input_roots")
+    roots: tuple[str, ...] = ()
+    if (
+        isinstance(roots_raw, list)
+        and roots_raw
+        and all(isinstance(x, str) and x for x in roots_raw)
+    ):
+        roots = tuple(str(x) for x in roots_raw)
+    else:
+        problems.append("record carries no valid input_roots")
+
     if not ev.commit_exists(source, repo=repo):
         return [*problems, f"source commit {source[:12]} is not present in this checkout"]
-    if not isinstance(record.get("instrument_carve_outs"), list) or (
-            set(record["instrument_carve_outs"]) != set(INSTRUMENT_CARVE_OUTS)):
-        problems.append("record's instrument_carve_outs differs from this module's own")
-    env_id = record.get("environment_id")
+
     try:
-        want_env = environment_id(source, repo=repo)
+        expected_env = environment_id(source, repo=repo)
     except EvidenceRefused as exc:
         problems.append(str(exc))
     else:
-        if env_id != want_env:
+        if isinstance(env_id, str) and env_id and env_id != expected_env:
             problems.append(
-                f"record names environment {env_id!r}, not the epoch record's {want_env!r}")
-    root = record.get("materialized_root")
-    if isinstance(root, str) and root:
-        tampered = ev.population_intact(record, Path(root), repo=repo)
-        problems.extend(tampered)
+                f"record names environment {env_id!r}, not the epoch record's "
+                f"{expected_env!r} at its source commit")
+    try:
+        identity = instrument_identity(source, repo=repo)
+    except EvidenceRefused as exc:
+        problems.append(str(exc))
+    else:
+        if record.get("instrument_identity") != identity:
+            problems.append(
+                "recorded instrument_identity is not the instrument closure's digest at the "
+                "source commit")
+
+    population = record.get("population_commit")
+    if not isinstance(population, str) or not ev.commit_exists(population, repo=repo):
+        problems.append("record names no population_commit present in this checkout")
+    else:
+        if not ev.is_ancestor(population, source, repo=repo):
+            problems.append(
+                f"population commit {population[:12]} is not an ancestor of (or equal to) "
+                f"source commit {source[:12]}")
+        try:
+            recorded_analysis = ev._manifest_entries(record, "analysis_manifest")
+            recorded_support = ev._manifest_entries(record, "support_manifest")
+        except EvidenceRefused as exc:
+            problems.append(str(exc))
+        else:
+            if roots:
+                try:
+                    analysis = ev.analysis_manifest(population, roots, repo=repo)
+                    support = ev.support_manifest(population, analysis, repo=repo)
+                except EvidenceRefused as exc:
+                    problems.append(str(exc))
+                else:
+                    if recorded_analysis != analysis:
+                        problems.append(
+                            "recorded analysis_manifest does not match the population "
+                            "commit's exact C# input set")
+                    if recorded_support != support:
+                        problems.append(
+                            "recorded support_manifest does not match the population "
+                            "commit's semantic support closure")
+            if record.get("analysis_manifest_sha256") != ev._manifest_digest(recorded_analysis):
+                problems.append("analysis_manifest_sha256 does not name the carried manifest")
+            if record.get("support_manifest_sha256") != ev._manifest_digest(recorded_support):
+                problems.append("support_manifest_sha256 does not name the carried manifest")
+
+    problems.extend(ev.reference_profile_problems(record))
+
+    profile = record.get("execution_profile")
+    if not isinstance(profile, dict) or not profile:
+        problems.append("record carries no execution_profile")
+
+    artifacts = record.get("artifacts", {})
+    if not isinstance(artifacts, dict):
+        problems.append("artifacts is not an object")
+    else:
+        for name, artifact in artifacts.items():
+            if not isinstance(artifact, dict):
+                problems.append(f"artifact {name!r} is not an object")
+                continue
+            if artifact.get("source_commit") != source:
+                problems.append(
+                    f"artifact {name!r} was not built from the record's source commit")
+            if artifact.get("dirty") is not False:
+                problems.append(f"artifact {name!r} was built on a dirty tree")
+            if not isinstance(artifact.get("sha256"), str):
+                problems.append(f"artifact {name!r} carries no sha256")
+            executed = artifact.get("executed")
+            if not isinstance(executed, dict):
+                problems.append(f"artifact {name!r} carries no executed attestation")
+            else:
+                if executed.get("sha256") != artifact.get("sha256"):
+                    problems.append(
+                        f"artifact {name!r} executed a file other than the qualified build")
+                if executed.get("post_run_intact") is not True:
+                    problems.append(
+                        f"artifact {name!r} does not attest it stayed intact through the run")
     return problems
 
 
@@ -872,6 +1000,186 @@ def selftest() -> int:
     _selfcheck("hostile-excess-carve-out-with-no-backing-mutable-item-is-refused",
               any("dump.rs" in p and "no production_diff_gate" in p for p in problems),
               problems)
+
+    # --- CH3-12 (R1-review of 460557e, items 16/17): record_problems() was
+    # just ported clause-for-clause from the generic p037_evidence.record_
+    # problems (see this function's own docstring) after the review found it
+    # had claimed that parity without implementing it -- a hand-built
+    # "invalid record" fixture compared only to another hand-built one would
+    # risk re-committing exactly that mistake (both sides could drift from
+    # what a REAL take actually produces without either test noticing). So
+    # the base fixture below is the REAL current helper's own output --
+    # `evidence_fields()` called against live HEAD, the same call `take()`
+    # itself makes -- with only the handful of fields a full `_measure()` run
+    # adds afterwards (execution_profile/reference_profile/artifacts/
+    # post_run_*) filled in from the same real, parameter-driven ev.*
+    # helpers `_measure()` itself uses. `dirty`/`is_evidence` are forced
+    # rather than read from the live tree's actual state, because THIS
+    # selftest routinely runs on a dirty tree mid-repair -- record_problems()
+    # itself never re-derives "dirty" from git (that would check validation-
+    # time state, not take-time state), it only checks the field says
+    # `False`, so overriding it here is a fixture choice, not a cheat past
+    # the function under test. One mutation per test, per field, proving
+    # each ported clause is independently load-bearing -- never two
+    # hand-crafted invalid records compared only to each other.
+    _valid_provenance = evidence_fields(CORPUS_DIRS, population_commit="HEAD")
+    _valid_record: dict[str, Any] = {
+        **_valid_provenance,
+        "dirty": False,
+        "is_evidence": True,
+        "post_run_dirty": False,
+        "post_run_population_intact": True,
+        "execution_profile": ev.execution_profile(include_rust=False),
+        "reference_profile": {ev.EXTRA_REF_ENV: ev.REFERENCE_PROFILE_CLEAN,
+                              "observed_extra_reference_lines": 0},
+        "artifacts": {},
+    }
+    _selfcheck("real-valid-record-passes-record-problems-cleanly",
+              record_problems(_valid_record) == [], record_problems(_valid_record))
+
+    _wrong_identity = {**_valid_record, "instrument_identity": "deadbeef"}
+    problems = record_problems(_wrong_identity)
+    _selfcheck("hostile-wrong-instrument-identity",
+              any("recorded instrument_identity is not the instrument closure" in p
+                  for p in problems),
+              problems)
+
+    _wrong_instrument_paths = {**_valid_record, "instrument_paths": ["not/a/real/path"]}
+    problems = record_problems(_wrong_instrument_paths)
+    _selfcheck("hostile-wrong-instrument-paths",
+              any("recorded instrument_paths differ" in p for p in problems), problems)
+
+    _missing_treatment_paths = {k: v for k, v in _valid_record.items() if k != "treatment_paths"}
+    problems = record_problems(_missing_treatment_paths)
+    _selfcheck("hostile-missing-treatment-paths",
+              any("recorded treatment_paths differ" in p for p in problems), problems)
+
+    _wrong_subject_paths = {**_valid_record, "subject_paths": ["not/a/real/path"]}
+    problems = record_problems(_wrong_subject_paths)
+    _selfcheck("hostile-wrong-subject-paths",
+              any("recorded subject_paths differ" in p for p in problems), problems)
+
+    _invalid_input_roots = {**_valid_record, "input_roots": []}
+    problems = record_problems(_invalid_input_roots)
+    _selfcheck("hostile-invalid-input-roots",
+              any("no valid input_roots" in p for p in problems), problems)
+
+    _nonexistent_population = {**_valid_record, "population_commit": "0" * 40}
+    problems = record_problems(_nonexistent_population)
+    _selfcheck("hostile-nonexistent-population-commit",
+              any("no population_commit present" in p for p in problems), problems)
+
+    # population stays the real, current HEAD (a real, existing commit) but
+    # source moves to HEAD's own parent -- population is then a DESCENDANT
+    # of source, never its ancestor, without needing any commit outside this
+    # branch's own linear history.
+    _ancestor_hostile = {**_valid_record, "source_commit": ev.resolve_commit("HEAD~1")}
+    problems = record_problems(_ancestor_hostile)
+    _selfcheck("hostile-population-commit-not-ancestor-of-source",
+              any("is not an ancestor of" in p for p in problems), problems)
+
+    _tampered_analysis = {**_valid_record,
+                          "analysis_manifest": [{"path": "fake.cs", "blob": "0" * 40}]}
+    problems = record_problems(_tampered_analysis)
+    _selfcheck("hostile-tampered-analysis-manifest",
+              any("recorded analysis_manifest does not match" in p for p in problems), problems)
+
+    _wrong_analysis_digest = {**_valid_record, "analysis_manifest_sha256": "deadbeef" * 8}
+    problems = record_problems(_wrong_analysis_digest)
+    _selfcheck("hostile-wrong-analysis-manifest-sha256",
+              any("analysis_manifest_sha256 does not name the carried manifest" in p
+                  for p in problems),
+              problems)
+
+    _tampered_support = {**_valid_record,
+                         "support_manifest": [{"path": "fake.xaml", "blob": "0" * 40,
+                                               "mechanism": "sibling-xaml"}]}
+    problems = record_problems(_tampered_support)
+    _selfcheck("hostile-tampered-support-manifest",
+              any("recorded support_manifest does not match" in p for p in problems), problems)
+
+    _wrong_support_digest = {**_valid_record, "support_manifest_sha256": "cafebabe" * 8}
+    problems = record_problems(_wrong_support_digest)
+    _selfcheck("hostile-wrong-support-manifest-sha256",
+              any("support_manifest_sha256 does not name the carried manifest" in p
+                  for p in problems),
+              problems)
+
+    _empty_profile = {**_valid_record, "execution_profile": {}}
+    problems = record_problems(_empty_profile)
+    _selfcheck("hostile-empty-execution-profile",
+              any("carries no execution_profile" in p for p in problems), problems)
+
+    _good_artifact: dict[str, Any] = {
+        "source_commit": _valid_record["source_commit"], "dirty": False, "sha256": "a" * 64,
+        "executed": {"sha256": "a" * 64, "post_run_intact": True},
+    }
+    _base_with_artifact = {**_valid_record, "artifacts": {"own-cli": _good_artifact}}
+    _selfcheck("real-valid-record-plus-one-good-artifact-passes-cleanly",
+              record_problems(_base_with_artifact) == [], record_problems(_base_with_artifact))
+
+    _artifact_wrong_source = {**_base_with_artifact,
+                              "artifacts": {"own-cli": {**_good_artifact,
+                                                        "source_commit": "1" * 40}}}
+    problems = record_problems(_artifact_wrong_source)
+    _selfcheck("hostile-artifact-source-commit-mismatch",
+              any("was not built from the record's source commit" in p for p in problems),
+              problems)
+
+    _artifact_dirty = {**_base_with_artifact,
+                       "artifacts": {"own-cli": {**_good_artifact, "dirty": True}}}
+    problems = record_problems(_artifact_dirty)
+    _selfcheck("hostile-artifact-dirty-true",
+              any("was built on a dirty tree" in p for p in problems), problems)
+
+    _artifact_wrong_executed_sha = {
+        **_base_with_artifact,
+        "artifacts": {"own-cli": {**_good_artifact,
+                                  "executed": {"sha256": "b" * 64, "post_run_intact": True}}},
+    }
+    problems = record_problems(_artifact_wrong_executed_sha)
+    _selfcheck("hostile-artifact-executed-sha256-mismatch",
+              any("executed a file other than the qualified build" in p for p in problems),
+              problems)
+
+    _artifact_not_intact = {
+        **_base_with_artifact,
+        "artifacts": {"own-cli": {**_good_artifact,
+                                  "executed": {"sha256": "a" * 64, "post_run_intact": False}}},
+    }
+    problems = record_problems(_artifact_not_intact)
+    _selfcheck("hostile-artifact-post-run-intact-false",
+              any("does not attest it stayed intact through the run" in p for p in problems),
+              problems)
+
+    # item 17: pairwise equality is not authenticity. Both sides carry the
+    # SAME forged value, so the (pre-existing) before==after equality check
+    # in comparison_problems() cannot see anything wrong -- only because
+    # record_problems() now independently recomputes and cross-checks each
+    # side's own value does the forgery surface, on BOTH sides, not just one.
+    _forged_identity_pair_problems = comparison_problems(
+        {**_valid_record, "instrument_identity": "deadbeefdeadbeef"},
+        {**_valid_record, "instrument_identity": "deadbeefdeadbeef"},
+    )
+    _selfcheck(
+        "pairwise-equal-but-forged-instrument-identity-still-refused-on-both-sides",
+        any(p.startswith("before: recorded instrument_identity is not")
+            for p in _forged_identity_pair_problems)
+        and any(p.startswith("after: recorded instrument_identity is not")
+                for p in _forged_identity_pair_problems),
+        _forged_identity_pair_problems)
+
+    _forged_digest_pair_problems = comparison_problems(
+        {**_valid_record, "analysis_manifest_sha256": "cafecafe" * 8},
+        {**_valid_record, "analysis_manifest_sha256": "cafecafe" * 8},
+    )
+    _selfcheck(
+        "pairwise-equal-but-forged-analysis-digest-still-refused-on-both-sides",
+        any(p.startswith("before: analysis_manifest_sha256 does not name")
+            for p in _forged_digest_pair_problems)
+        and any(p.startswith("after: analysis_manifest_sha256 does not name")
+                for p in _forged_digest_pair_problems),
+        _forged_digest_pair_problems)
 
     if _failures:
         print(f"RESULT: {_failures} check(s) failed")

@@ -648,6 +648,53 @@ def _verify_call_site_witness(
     return None
 
 
+def _canonical_materialization_root(record: dict[str, Any]) -> str | None:
+    """The materialization root ``ev.materialization_root()`` deterministically
+    derives from this record's OWN ``population_commit``/``analysis_manifest_
+    sha256`` -- the value ``materialization_root`` must equal, never an
+    authority trusted from the recorded field alone (R1-review of 460557e,
+    item 13: without this, a manually altered snapshot can change BOTH
+    `materialization_root` and `witness.site.file` to matching forged
+    strings, and the prior exact-equality check between the two recorded
+    fields would still pass -- only re-deriving the root from fields
+    independently required to be correct elsewhere (record_problems' own
+    analysis_manifest_sha256 cross-check against the re-derived manifest)
+    closes that loop). `None` if the record does not carry enough to derive
+    it at all -- the caller must treat that as a refusal, not as "no
+    opinion"."""
+    population_commit = record.get("population_commit")
+    digest = record.get("analysis_manifest_sha256")
+    if not isinstance(population_commit, str) or not population_commit:
+        return None
+    if not isinstance(digest, str) or not digest:
+        return None
+    return ev.materialization_root(population_commit, digest).relative_to(ROOT).as_posix()
+
+
+def _materialization_root_problems(record: dict[str, Any], *, label: str) -> list[str]:
+    """`record["materialization_root"]` bound to its OWN canonical derivation
+    -- an observation/attestation checked against authority, never authority
+    itself (item 13). Bounded to exactly this one field; population_commit's
+    and analysis_manifest_sha256's OWN correctness is record_problems' job,
+    not this function's -- this only checks that the THIRD field agrees with
+    what the other two, whatever they are, deterministically imply."""
+    problems: list[str] = []
+    recorded = record.get("materialization_root")
+    canonical = _canonical_materialization_root(record)
+    if not isinstance(recorded, str) or not recorded:
+        problems.append(f"{label}: snapshot carries no materialization_root for witness "
+                        "file binding")
+    elif canonical is None:
+        problems.append(f"{label}: snapshot carries no population_commit/"
+                        "analysis_manifest_sha256 to derive the canonical materialization root")
+    elif recorded != canonical:
+        problems.append(
+            f"{label}: recorded materialization_root {recorded!r} does not match the "
+            f"canonical root {canonical!r} its own population_commit/analysis_manifest_sha256 "
+            "derive -- the stored field is an observation, not authority")
+    return problems
+
+
 def compare(before: Path, after: Path, level: str, against: str) -> int:
     try:
         a, b = _load(before), _load(after)
@@ -662,19 +709,15 @@ def compare(before: Path, after: Path, level: str, against: str) -> int:
     if a["engine"] != b["engine"]:
         problems.append(f"engines differ ({a['engine']} vs {b['engine']}); a comparison "
                         "across engines measures the engine, not the change")
-    # R1-review of b31e7a0 (F2.5): witness file binding below reconstructs
-    # the producer's own path spelling from the AFTER snapshot's
-    # `materialization_root` -- fail closed on a missing/malformed value
-    # rather than silently falling back to a shorter, wrong string
-    # (`_snapshot_problems()` does not already check this field).
-    after_root = b.get("materialization_root")
-    if not isinstance(after_root, str) or not after_root:
-        problems.append("after: snapshot carries no materialization_root for witness "
-                        "file binding")
+    # R1-review of 460557e (item 13): materialization_root is bound to its
+    # own canonical derivation, never trusted as authority by itself -- see
+    # _materialization_root_problems's own docstring.
+    problems.extend(_materialization_root_problems(b, label="after"))
     if problems:
         for problem in problems:
             print(f"REFUSED: {problem}", file=sys.stderr)
         return 2
+    canonical_root = _canonical_materialization_root(b)
     print(f"comparing engine={a['engine']} at {a['source_commit'][:7]} -> "
           f"{b['source_commit'][:7]}, population={a['population_commit'][:12]}, level={level}")
     moved = 0
@@ -690,11 +733,17 @@ def compare(before: Path, after: Path, level: str, against: str) -> int:
         if ka == kb and not exit_moved:
             continue
         removed, added = ka - kb, kb - ka
-        # R1-review of b31e7a0 (F2): the producer-native file spelling a real
-        # witness's own `site.file` would carry is `<materialization_root>/
-        # <rel>` (Program.cs's `Rel()` against `run_one()`'s own `cwd=ROOT`
-        # and absolute, materialized input path), never bare `rel` alone.
-        expected_witness_file = f"{after_root}/{rel}"
+        # R1-review of 460557e (item 13): the producer-native file spelling a
+        # real witness's own `site.file` would carry is `<materialization_
+        # root>/<rel>` (Program.cs's `Rel()` against `run_one()`'s own
+        # `cwd=ROOT` and absolute, materialized input path), never bare `rel`
+        # alone -- and the root half of that spelling is `canonical_root`,
+        # the DERIVED value, never the AFTER snapshot's own recorded
+        # `materialization_root` field directly (that field is only an
+        # attestation, already bound to `canonical_root` by
+        # `_materialization_root_problems` above, and REFUSED before this
+        # loop runs if it disagreed).
+        expected_witness_file = f"{canonical_root}/{rel}"
         verified = [v for w in (rb.get("call_site_witnesses") or [])
                    if isinstance(w, dict)
                    and (v := _verify_call_site_witness(w, ra, rb, expected_witness_file))]
@@ -1046,6 +1095,71 @@ def selftest() -> int:
         _witness_with_subdir_file, before, after, _witness_file("corpus/y/U1.cs"))
     _vfail(failures, "hostile-file-identity-different-rel-under-the-same-root-fails",
           v_subdir_other_rel is None, v_subdir_other_rel)
+
+    # --- items 13/14/15 (R1-review of 460557e): `materialization_root` is
+    # bound to its OWN canonical derivation from `population_commit`/
+    # `analysis_manifest_sha256`, never trusted as authority by itself.
+    # `ev.materialization_root()` is pure path arithmetic (no git/filesystem
+    # access), so these fixtures need no real commit -- only a
+    # population_commit/digest PAIR consistent (or, for the hostile cases,
+    # deliberately inconsistent) with a recorded materialization_root.
+    # `_TEST_MATERIALIZATION_ROOT` is confirmed below to BE
+    # `_canonical_materialization_root()`'s own value for this pair, never
+    # merely assumed to match it by construction. ---
+    _TEST_POPULATION_COMMIT = "1111111111111111111111111111111111abcd"
+    _TEST_ANALYSIS_DIGEST = "deadbeefcafebabe" + "0" * 48
+    canonical_record = {
+        "population_commit": _TEST_POPULATION_COMMIT,
+        "analysis_manifest_sha256": _TEST_ANALYSIS_DIGEST,
+        "materialization_root": _TEST_MATERIALIZATION_ROOT,
+    }
+    _vfail(failures, "materialization-root-fixture-matches-the-real-test-constant",
+          _canonical_materialization_root(canonical_record) == _TEST_MATERIALIZATION_ROOT,
+          _canonical_materialization_root(canonical_record))
+    _vfail(failures, "materialization-root-correct-case-has-no-problems",
+          _materialization_root_problems(canonical_record, label="after") == [],
+          _materialization_root_problems(canonical_record, label="after"))
+
+    missing_root = {k: v for k, v in canonical_record.items() if k != "materialization_root"}
+    problems_missing_root = _materialization_root_problems(missing_root, label="after")
+    _vfail(failures, "hostile-materialization-root-missing-is-refused",
+          any("carries no materialization_root" in p for p in problems_missing_root),
+          problems_missing_root)
+
+    _forged_root = ".p037-population/9999999999999999999999999999999999ffff/f00df00df00df00d"
+    forged_root_record = {**canonical_record, "materialization_root": _forged_root}
+    problems_forged_root = _materialization_root_problems(forged_root_record, label="after")
+    _vfail(failures, "hostile-materialization-root-forged-population-half-is-refused",
+          any("does not match the canonical root" in p for p in problems_forged_root),
+          problems_forged_root)
+
+    wrong_digest_record = {
+        **canonical_record,
+        # materialization_root is unchanged -- still claims the ORIGINAL
+        # root -- but the digest half of the pair that would derive it moved.
+        "analysis_manifest_sha256": "f00df00df00df00d" + "0" * 48,
+    }
+    problems_wrong_digest = _materialization_root_problems(wrong_digest_record, label="after")
+    _vfail(failures, "hostile-materialization-root-wrong-digest-derived-root-is-refused",
+          any("does not match the canonical root" in p for p in problems_wrong_digest),
+          problems_wrong_digest)
+
+    # item 14, the actual loop-closing proof: a witness whose OWN `site.file`
+    # was ALSO forged to match the (wrong) recorded materialization_root
+    # would, under the prior (460557e) rule, still exact-match `after_root`
+    # and classify -- the two forged strings agreeing with EACH OTHER, not
+    # with reality. Under this fix, `compare()` passes `canonical_root`
+    # (never the recorded field) as `expected_file`, so the forged-but-
+    # self-consistent pair still fails to correlate.
+    witness_matching_forged_root = {
+        **_U1_WITNESS,
+        "site": {**_U1_WITNESS["site"], "file": f"{_forged_root}/U1.cs"},
+    }
+    v_forged_root_witness = _verify_call_site_witness(
+        witness_matching_forged_root, before, after, _witness_file("U1.cs"))
+    _vfail(failures,
+          "hostile-witness-file-matching-forged-recorded-root-fails-against-canonical-root",
+          v_forged_root_witness is None, v_forged_root_witness)
 
     # --- CH3-8: AR1/AR2's own measured shapes, through the SAME real
     # _parse_sarif_doc()/_verify_call_site_witness() path U1 used above --
