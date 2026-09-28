@@ -23,6 +23,11 @@ documents on each engine, and Python must equal Rust on each. A difference is a
 semantic cut that began early, and the answer to that is to isolate it, never to
 note that the verdicts happened to agree.
 
+P-037 B1 (docs/notes/p037-phase-b1-shadow.md N4) adds the guarded layer: the
+same contradictory sidecar must CHANGE the guarded shadow report
+(`own-guarded-report`, next to the engine binary) while the three layers above
+stay identical. That required read proves the shadow reads the sidecar.
+
 Run:  python scripts/p037_sidecar_inertness.py [--only NAME,...]
       (needs dotnet for the extractor and a built own-shadow-engine; the CI
       dogfood step builds the latter via `p037_evidence.py artifacts` first)
@@ -127,6 +132,14 @@ def capture_both(raw: bytes, adapter: dict[str, Any], timeout: float
     return layers_of(py), layers_of(envelope["engine"])
 
 
+def guarded_report(raw: bytes, adapter: dict[str, Any]) -> Any:
+    binary = Path(str(adapter["path"])).with_name("own-guarded-report")
+    run = subprocess.run([str(binary)], input=raw, capture_output=True, check=False)
+    if run.returncode != 0:
+        raise RuntimeError(f"own-guarded-report failed: {run.stderr.decode()[-300:]}")
+    return json.loads(run.stdout)
+
+
 def documents(only: set[str]) -> list[tuple[str, list[Path]]]:
     docs = [(p.name, [p / "case.cs"]) for p in sorted(SHAPES.iterdir())
             if p.is_dir() and (p / "case.cs").exists() and (not only or p.name in only)]
@@ -182,13 +195,20 @@ def main(argv: list[str]) -> int:
                     problems.append(f"rust {layer} differs between emitted and {label}")
                 if py[layer] != rs[layer]:
                     problems.append(f"{label}: python and rust {layer} layers differ")
+        try:
+            honest = guarded_report(variants["emitted"], adapter)
+            lie = guarded_report(variants["contradictory"], adapter)
+            if honest["summary"] and honest == lie:
+                problems.append("guarded shadow ignored the contradictory sidecar (N4)")
+        except (RuntimeError, OSError, ValueError) as exc:
+            problems.append(f"guarded shadow: {exc}")
         checked += 1
         if problems:
             failures += 1
             print(f"FAIL[{name}]: " + "; ".join(sorted(set(problems))))
         else:
             print(f"ok[{name}] {len(inputs)} file(s), {carried} sidecar(s): emitted == stripped == "
-                  f"contradictory on {len(LAYERS)} layers, python == rust")
+                  f"contradictory on {len(LAYERS)} layers, python == rust; guarded read")
     if checked and sidecars == 0:
         failures += 1
         print("FAIL[non-vacuous]: no function carried a sidecar, so nothing was tested")
