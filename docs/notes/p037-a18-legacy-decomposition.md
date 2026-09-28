@@ -1,8 +1,8 @@
 # P-037 A18: legacy decomposition (pre-registered)
 
-> Status: **PRE-REGISTERED.** Committed before any implementation. The owner
-> authorized implementing A18-0 right after this commit, without a further
-> review stop. The boundaries below do not move after this SHA.
+> Status: **RESULT: PASS — A18 8-ROW DECOMPOSITION HOLDS (§F).**
+> Pre-registered in `ccde27c` before any implementation; the boundaries did
+> not move. This PASS does not make B1 pass. It only authorizes A18-1.
 >
 > - Base: `92cedb7`, the head of #373 (B1, `RESULT: FAIL — B1 BLOCKED (KILL 5)`).
 > - Branch: `research/p037-a18-legacy-decomposition`.
@@ -167,3 +167,76 @@ Phase C.
 - Not touched: `ConsumesParam`, B1's eight classifications, missing-sidecar
   behavior, R, A14, #368, Phase C, the three P-037 difference classes,
   production verdicts/MOS, `own-guarded`, and the extractor.
+
+## F. Result (MEASURED OBSERVATION)
+
+`RESULT: PASS — A18 8-ROW DECOMPOSITION HOLDS`
+
+- Instrument: `scripts/p037_a18_decompose.py` at `a3270b9`. It reuses the
+  unchanged B1 extractor and `own-guarded-report`.
+- Population: `571669e`.
+- Evidence: `docs/evidence/p037-a18/eight-rows.json`.
+
+| row | legacy op at the forward | `L_actual` | `L_canonical` | `G` | `G ↔ L_canonical` | reason |
+|---|---|---|---|---|---|---|
+| `GuardedNegation.Outer` (before, after) | `release`, line 18 | must | may | may | EQUAL | `CONSUMES_PARAM_FOLD` |
+| `GuardedWrapper.Outer` (after, before) | `release`, lines 18 / 19 | must | may | may | EQUAL | `CONSUMES_PARAM_FOLD` |
+| `ShapeForwardBare.Outer` | `release`, line 17 | must | may | may | EQUAL | `CONSUMES_PARAM_FOLD` |
+| `ShapeForwardNegated.Outer` | `release`, line 17 | must | may | may | EQUAL | `CONSUMES_PARAM_FOLD` |
+| `ShapeCastBang.Cast` | `use`, line 28 | no | may | may | EQUAL | `ARGUMENT_SHAPE_LOSS` |
+| `ShapeCastBang.Bang` | `use`, line 33 | no | may | may | EQUAL | `ARGUMENT_SHAPE_LOSS` |
+
+The PASS conditions:
+- rows checked 8;
+- `G == L_canonical` 8;
+- deterministic reason 8;
+- witness holds 8;
+- unexplained decomposition 0.
+
+`L_actual` and `G` equal the values B1 committed on all eight, so the gate is
+not void. `G` is unchanged by the rewrite on all eight: the rewrite does not
+leak into the guarded read.
+
+**Witnesses.**
+- `CONSUMES_PARAM_FOLD`: each row's callee has production MOS `may` (the four
+  `Inner`s), yet a `release` stands at the forwarding line. That is
+  may-as-must. Rewriting only that op to the honest forward moves the row
+  from `must` to `may`.
+- `ARGUMENT_SHAPE_LOSS`: the same one-op rewrite moves the row from `no` to
+  `may`. The source probe strips only the value-preserving wrapper on that
+  line:
+  - `Keep((Stream)p, keep);` → `Keep(p, keep);`
+  - `Keep(p!, keep);` → `Keep(p, keep);`
+
+  After that change, legacy emits `release` and `L_actual` becomes `must`.
+
+**Hard KILL: none fired.**
+1. `G == L_canonical` on 8.
+2. Guarded semantics were not modified.
+3. `ConsumesParam` was not changed.
+4. OwnIR/A2 facts were not changed; the rewrite is a measurement input.
+5. `L_canonical` reads only the frozen records, bodies and sidecars. The
+   callee position comes from B1's own coordinate rows. Source text is used
+   only by the shape-loss witness.
+6. One deterministic reason per row.
+7. There is no framework: one 158-line script.
+
+The diff since `92cedb7` is this note and that script only.
+
+### F.1 Findings for A18-1 (INFERENCE, not measured beyond these eight)
+
+- **The two reasons compose.** Under the wrapper, the shape-loss rows hide a
+  fold: without the wrapper they read `must`, exactly like the six fold rows.
+  So `L_actual` of a shape-loss row is "the fold, masked by an argument shape
+  legacy cannot see through". In A18-1 a row must therefore get the reason
+  that explains **its own** `L_actual` (here `ARGUMENT_SHAPE_LOSS`), never the
+  one it would have without the wrapper. Stacked reasons on one row would
+  need a pre-registered rule first.
+- **The rewrite rule is narrow on purpose.** It needs exactly one forwarding
+  sidecar call and exactly one legacy op on the parameter at that line. In
+  the population, rows outside that shape have no reason under this rule.
+  Per §D they stay `UNEXPLAINED` and block Phase C; they are never bucketed.
+
+**Authorized next:** A18-1, the same decomposition on the frozen `571669e`
+population, with the §D two-classification rule. Not started here. B1 stays
+`RESULT: FAIL — B1 BLOCKED (KILL 5)` in #373.
