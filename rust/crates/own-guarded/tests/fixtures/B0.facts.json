@@ -1,0 +1,882 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "Probe.Inner",
+      "file": "docs/evidence/p037-b0-probes/Probe.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 5
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 7,
+          "then": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 9
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 7,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "Probe.Sink",
+      "file": "docs/evidence/p037-b0-probes/Probe.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 13
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 13
+        }
+      ]
+    },
+    {
+      "name": "Probe.Branchy",
+      "file": "docs/evidence/p037-b0-probes/Probe.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 16
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 18,
+          "then": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 20
+            }
+          ],
+          "else": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 24
+            }
+          ]
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 20,
+              "column": 13
+            },
+            "statement_line": 20,
+            "form": "statement",
+            "callee": "Probe.Inner",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          },
+          {
+            "site": {
+              "line": 24,
+              "column": 13
+            },
+            "statement_line": 24,
+            "form": "statement",
+            "callee": "Probe.Sink",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": [
+          {
+            "site": {
+              "line": 18,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "Probe.TwoIfs",
+      "file": "docs/evidence/p037-b0-probes/Probe.cs",
+      "sig": "System.IO.Stream,System.Boolean,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 29
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 31,
+          "then": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 31
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 31,
+          "then": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 31
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 31,
+              "column": 18
+            },
+            "statement_line": 31,
+            "form": "statement",
+            "callee": "Probe.Inner",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          },
+          {
+            "site": {
+              "line": 31,
+              "column": 45
+            },
+            "statement_line": 31,
+            "form": "statement",
+            "callee": "Probe.Sink",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": [
+          {
+            "site": {
+              "line": 31,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": false
+          },
+          {
+            "site": {
+              "line": 31,
+              "column": 36
+            },
+            "param": 2,
+            "predicate": "truth",
+            "negated": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "Probe.Early",
+      "file": "docs/evidence/p037-b0-probes/Probe.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 35
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 37,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 37
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "release",
+          "var": "s",
+          "line": 38
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 38,
+              "column": 9
+            },
+            "statement_line": 38,
+            "form": "statement",
+            "callee": "Probe.Sink",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": [
+          {
+            "site": {
+              "line": 37,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "Probe2.Inner",
+      "file": "docs/evidence/p037-b0-probes/Probe2.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 6
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 8,
+          "then": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 10
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 8,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "Probe2.InBranch",
+      "file": "docs/evidence/p037-b0-probes/Probe2.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 16
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 18,
+          "then": [
+            {
+              "op": "use",
+              "var": "s",
+              "line": 19
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 19,
+              "column": 13
+            },
+            "statement_line": 19,
+            "form": "statement",
+            "callee": "Probe2.Log",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": [
+          {
+            "site": {
+              "line": 18,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "Probe2.AfterIf",
+      "file": "docs/evidence/p037-b0-probes/Probe2.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 24
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 26,
+          "then": [],
+          "else": []
+        },
+        {
+          "op": "use",
+          "var": "s",
+          "line": 27
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 27,
+              "column": 13
+            },
+            "statement_line": 27,
+            "form": "statement",
+            "callee": "Probe2.Log",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": [
+          {
+            "site": {
+              "line": 26,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "Probe2.Behind",
+      "file": "docs/evidence/p037-b0-probes/Probe2.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 31
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 33,
+          "then": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 35
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 35,
+              "column": 13
+            },
+            "statement_line": 35,
+            "form": "statement",
+            "callee": "Probe2.Inner",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "param",
+                "source_param": 1
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "Probe3.Sink",
+      "file": "docs/evidence/p037-b0-probes/Probe3.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 6
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "Probe3.Ok",
+      "file": "docs/evidence/p037-b0-probes/Probe3.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 7
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 7
+        },
+        {
+          "op": "return",
+          "var": null,
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "Probe3.Use",
+      "file": "docs/evidence/p037-b0-probes/Probe3.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 13
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 13
+        },
+        {
+          "op": "return",
+          "var": null,
+          "line": 13
+        }
+      ]
+    },
+    {
+      "name": "Probe3.ShortCircuit",
+      "file": "docs/evidence/p037-b0-probes/Probe3.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 15
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 17,
+          "then": [],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 17,
+              "column": 18
+            },
+            "statement_line": 17,
+            "form": "expression",
+            "callee": "Probe3.Ok",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "Probe3.Switch",
+      "file": "docs/evidence/p037-b0-probes/Probe3.cs",
+      "sig": "System.IO.Stream,System.Int32",
+      "params": [
+        {
+          "name": "s",
+          "line": 20
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 22,
+          "then": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 24
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 24,
+              "column": 21
+            },
+            "statement_line": 24,
+            "form": "statement",
+            "callee": "Probe3.Sink",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "Probe3.TryCatch",
+      "file": "docs/evidence/p037-b0-probes/Probe3.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 29
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 31,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 31
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "use",
+          "var": "s",
+          "line": 31
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 32,
+              "column": 31
+            },
+            "statement_line": 32,
+            "form": "statement",
+            "callee": "Probe3.Sink",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "Probe3.Loop",
+      "file": "docs/evidence/p037-b0-probes/Probe3.cs",
+      "sig": "System.IO.Stream,System.Int32",
+      "params": [
+        {
+          "name": "s",
+          "line": 35
+        }
+      ],
+      "body": [
+        {
+          "op": "while",
+          "line": 37,
+          "body": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 37
+            }
+          ]
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 37,
+              "column": 39
+            },
+            "statement_line": 37,
+            "form": "statement",
+            "callee": "Probe3.Sink",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "GuardedBase..ctor",
+      "file": "corpus/p037-shapes/ctor-initializer/case.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 9
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 11,
+          "then": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 13
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 11,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "ForwardingDerived..ctor",
+      "file": "corpus/p037-shapes/ctor-initializer/case.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 20
+        }
+      ],
+      "body": [
+        {
+          "op": "use",
+          "var": "s",
+          "line": 22
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 20,
+              "column": 51
+            },
+            "statement_line": 20,
+            "form": "statement",
+            "callee": "GuardedBase..ctor",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "param",
+                "source_param": 1
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  ],
+  "stats": {
+    "methods_with_local": 20,
+    "methods_flow_analysed": 18,
+    "methods_skipped_unmodelled": 2
+  }
+}

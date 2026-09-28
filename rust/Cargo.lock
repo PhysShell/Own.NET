@@ -126,6 +126,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "own-guarded"
+version = "0.1.0"
+dependencies = [
+ "own-ir",
+ "p037-kernel",
+ "serde_json",
+]
+
+[[package]]
 name = "own-ir"
 version = "0.1.0"
 dependencies = [
@@ -161,6 +170,10 @@ dependencies = [
  "serde_json",
  "unicode-properties",
 ]
+
+[[package]]
+name = "p037-kernel"
+version = "0.0.1"
 
 [[package]]
 name = "proc-macro2"

@@ -89,6 +89,10 @@ fn allowed_edges() -> HashMap<&'static str, BTreeSet<&'static str>> {
     // one's. Only entry-point crates may depend on `own-bridge`, and this is
     // the one the constraint below names.
     m.insert("own-cli", ["own-ir", "own-bridge"].into_iter().collect());
+    // P-037 B1 (#304): the guarded SHADOW read. Its one workspace edge is the
+    // fact contract; its other dependency, the formal kernel, lives outside
+    // this workspace and is locked by `p037_kernel_reaches_only_the_shadow`.
+    m.insert("own-guarded", std::iter::once("own-ir").collect());
     // own-analysis CONSTRUCTS diagnostics and consumes the cfg lowering. It reads
     // the effect type through `own_cfg::Effect`, NOT the parser — so there is no
     // production own-syntax edge (own-syntax is a dev-only edge for its tests).
@@ -273,4 +277,85 @@ fn own_ir_is_a_leaf() {
         deps.is_empty(),
         "own-ir is the leaf — it must depend on no workspace crate, got {deps:?}"
     );
+}
+
+/// Every package's dependency names, of every kind (normal, dev, build) and
+/// from anywhere (workspace, path or registry): the B1 guard needs to see the
+/// `p037-kernel` path dependency that `workspace_edges` filters out.
+fn all_deps() -> HashMap<String, BTreeSet<String>> {
+    let manifest = concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml");
+    let out = Command::new(env!("CARGO"))
+        .args([
+            "metadata",
+            "--no-deps",
+            "--format-version",
+            "1",
+            "--manifest-path",
+            manifest,
+        ])
+        .output()
+        .expect("cargo metadata runs");
+    let meta: Value = serde_json::from_slice(&out.stdout).expect("metadata JSON parses");
+    let mut all = HashMap::new();
+    for pkg in meta["packages"].as_array().expect("packages") {
+        let deps = pkg["dependencies"].as_array().expect("dependencies array");
+        let names = deps
+            .iter()
+            .filter_map(|d| d["name"].as_str())
+            .map(str::to_owned);
+        all.insert(
+            pkg["name"].as_str().expect("pkg name").to_owned(),
+            names.collect(),
+        );
+    }
+    all
+}
+
+#[test]
+fn p037_kernel_reaches_only_the_shadow() {
+    // P-037 B1 (docs/notes/p037-phase-b1-shadow.md §0, N1): `own-guarded` is
+    // the ONLY crate that names the formal kernel, `own-shadow` the only one
+    // that names `own-guarded`, and nothing on the production path reaches
+    // either, directly or transitively. `own-bridge -> own-guarded` is phase
+    // C and is not authorized here.
+    let all = all_deps();
+    for (krate, deps) in &all {
+        if krate != "own-guarded" {
+            assert!(
+                !deps.contains("p037-kernel"),
+                "{krate} names p037-kernel (B1: own-guarded only)"
+            );
+        }
+        if krate != "own-shadow" {
+            assert!(
+                !deps.contains("own-guarded"),
+                "{krate} names own-guarded (B1: own-shadow only)"
+            );
+        }
+    }
+    let production = [
+        "own-ir",
+        "own-syntax",
+        "own-cfg",
+        "own-diagnostics",
+        "own-lowered",
+        "own-analysis",
+        "own-bridge",
+        "own-cli",
+    ];
+    for root in production {
+        let mut seen = BTreeSet::new();
+        let mut stack = vec![root.to_owned()];
+        while let Some(k) = stack.pop() {
+            for d in all.get(&k).into_iter().flatten() {
+                assert!(
+                    d != "own-guarded" && d != "p037-kernel",
+                    "{root} reaches {d} through {k}: the production path must not see the guarded shadow"
+                );
+                if seen.insert(d.clone()) {
+                    stack.push(d.clone());
+                }
+            }
+        }
+    }
 }

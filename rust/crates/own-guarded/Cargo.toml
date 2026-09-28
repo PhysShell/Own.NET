@@ -1,0 +1,31 @@
+# P-037 B1 (#304): the guarded SHADOW read. It computes guarded summaries from
+# A2's sidecar, the legacy body and the `functions[]` records, reusing the
+# formal kernel's algebra instead of re-implementing it, and classifies every
+# difference against the legacy MOS it is handed. Contract:
+# docs/notes/p037-phase-b1-shadow.md.
+#
+# Shadow only. Nothing in the production path reads it: `own-shadow` (an
+# entry-point-class oracle crate) is its one allowed consumer, and
+# `own-bridge -> own-guarded` is phase C, NOT pre-authorized. Both are asserted
+# by own-diagnostics/tests/dag.rs and scripts/p037_proof_boundary.py.
+#
+# The ONLY Rust crate allowed to depend on `p037-kernel`. The kernel lives
+# outside this workspace on purpose (its own [workspace] root), so this path
+# dependency is invisible to the workspace-internal DAG map; the dedicated
+# guard in dag.rs reads every package's dependencies to see it.
+[package]
+name = "own-guarded"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "P-037 B1 guarded shadow read: guarded summaries over the A2 sidecar via the p037 kernel, classified against the legacy MOS (shadow only)"
+
+[dependencies]
+serde_json = { workspace = true }
+own-ir = { path = "../own-ir" }
+p037-kernel = { path = "../../../formal/p037-kernel" }
+
+[lints]
+workspace = true
