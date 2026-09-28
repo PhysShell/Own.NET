@@ -105,6 +105,11 @@ jobs:
         run: cargo clippy --all-targets
       - name: cargo test (the exhaustive / randomized twins)
         run: cargo test
+      # P-037 B0 (docs/notes/p037-phase-b-proof-boundary.md): F5, the
+      # finalize-before-apply controls must go red when apply/lower stop
+      # finalizing (temp copy of the crate), and the #368 witness must hold.
+      - name: proof-boundary kernel mutants (B0 F5 / F7)
+        run: python3 ../../scripts/p037_proof_boundary.py --mutants
       - name: install Kani (pinned) and its toolchain bundle
         run: |
           cargo install --locked kani-verifier --version 0.68.0
