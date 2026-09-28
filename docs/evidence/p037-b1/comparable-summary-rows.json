@@ -1,0 +1,415 @@
+{
+ "schema": "p037-b1-comparable-rows/1",
+ "population_commit": "571669e8c40e46d1c29908f00dea2311b88ae4fd",
+ "instrument_commit": "61efa3e1c01767c9734594e8c0851a38a261ebcf",
+ "toolchain": {
+  "dotnet": "8.0.425",
+  "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)"
+ },
+ "instrument": {
+  "extractor_sha256": "6e3b8ecc7d66d316b9e72750cb1a3089fcc1e853d6ddee41ae5556784b939b52",
+  "report_sha256": "4e1339e932d42aef1ad438e5f944ba2ebd3edaee83e82a0914285b19919c2800"
+ },
+ "counts": {
+  "EQUAL": 28,
+  "UNEXPLAINED": 8
+ },
+ "rows": [
+  {
+   "population": "b0-probes",
+   "document": "probes",
+   "method": "Probe.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "b0-probes",
+   "document": "probes",
+   "method": "Probe2.Behind",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "b0-probes",
+   "document": "probes",
+   "method": "Probe2.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "corpus",
+   "document": "corpus/p036-bakeoff/guarded-consume-early-return/after.cs",
+   "method": "GuardedEarlyReturn.Close",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "corpus",
+   "document": "corpus/p036-bakeoff/guarded-consume-early-return/before.cs",
+   "method": "GuardedEarlyReturn.Close",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "corpus",
+   "document": "corpus/p036-bakeoff/guarded-consume-flag-branch/after.cs",
+   "method": "Guarded.Close",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "corpus",
+   "document": "corpus/p036-bakeoff/guarded-consume-flag-branch/before.cs",
+   "method": "Guarded.Close",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "corpus",
+   "document": "corpus/p036-bakeoff/guarded-consume-negation-wrapper/after.cs",
+   "method": "GuardedNegation.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "corpus",
+   "document": "corpus/p036-bakeoff/guarded-consume-negation-wrapper/after.cs",
+   "method": "GuardedNegation.Outer",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "must",
+   "guarded": "may",
+   "class": "UNEXPLAINED"
+  },
+  {
+   "population": "corpus",
+   "document": "corpus/p036-bakeoff/guarded-consume-negation-wrapper/before.cs",
+   "method": "GuardedNegation.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "corpus",
+   "document": "corpus/p036-bakeoff/guarded-consume-negation-wrapper/before.cs",
+   "method": "GuardedNegation.Outer",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "must",
+   "guarded": "may",
+   "class": "UNEXPLAINED"
+  },
+  {
+   "population": "corpus",
+   "document": "corpus/p036-bakeoff/guarded-consume-wrapper-forward/after.cs",
+   "method": "GuardedWrapper.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "corpus",
+   "document": "corpus/p036-bakeoff/guarded-consume-wrapper-forward/after.cs",
+   "method": "GuardedWrapper.Outer",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "must",
+   "guarded": "may",
+   "class": "UNEXPLAINED"
+  },
+  {
+   "population": "corpus",
+   "document": "corpus/p036-bakeoff/guarded-consume-wrapper-forward/before.cs",
+   "method": "GuardedWrapper.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "corpus",
+   "document": "corpus/p036-bakeoff/guarded-consume-wrapper-forward/before.cs",
+   "method": "GuardedWrapper.Outer",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "must",
+   "guarded": "may",
+   "class": "UNEXPLAINED"
+  },
+  {
+   "population": "corpus",
+   "document": "corpus/p036-bakeoff/gv4-control-mutated-guard/control.cs",
+   "method": "Guarded.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "p",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "corpus",
+   "document": "corpus/p036-bakeoff/gv4-control-ref-alias-guard/control.cs",
+   "method": "Guarded.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "p",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "arg-cast-and-bang",
+   "method": "ShapeCastBang.Bang",
+   "index": 0,
+   "ordinal": 0,
+   "param": "p",
+   "legacy": "no",
+   "guarded": "may",
+   "class": "UNEXPLAINED"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "arg-cast-and-bang",
+   "method": "ShapeCastBang.Cast",
+   "index": 0,
+   "ordinal": 0,
+   "param": "p",
+   "legacy": "no",
+   "guarded": "may",
+   "class": "UNEXPLAINED"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "arg-cast-and-bang",
+   "method": "ShapeCastBang.Keep",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "arg-compound-relevance",
+   "method": "ShapeCompound.Keep",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "arg-raw-facts",
+   "method": "ShapeRawArgFacts.Keep",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "arg-raw-facts",
+   "method": "ShapeRawArgFacts.Keep",
+   "index": 1,
+   "ordinal": 1,
+   "param": "other",
+   "legacy": "no",
+   "guarded": "no",
+   "class": "EQUAL"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "call-expression-statement",
+   "method": "ShapeStatementCall.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "ctor-initializer",
+   "method": "GuardedBase..ctor",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "guard-bool-const-false",
+   "method": "ShapeConstFalse.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "guard-bool-const-true",
+   "method": "ShapeConstTrue.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "guard-forward-bare",
+   "method": "ShapeForwardBare.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "guard-forward-bare",
+   "method": "ShapeForwardBare.Outer",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "must",
+   "guarded": "may",
+   "class": "UNEXPLAINED"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "guard-forward-negated",
+   "method": "ShapeForwardNegated.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "guard-forward-negated",
+   "method": "ShapeForwardNegated.Outer",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "must",
+   "guarded": "may",
+   "class": "UNEXPLAINED"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "guard-opaque-expression",
+   "method": "ShapeOpaqueArg.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "named-arguments-reordered",
+   "method": "ShapeNamedArgs.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "resource",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "record-absence-boundary",
+   "method": "BoundaryBase..ctor",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "record-absence-boundary",
+   "method": "Helper.Close",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  },
+  {
+   "population": "p037-shapes",
+   "document": "record-absence-boundary",
+   "method": "ShapeRecordAbsence.Inner",
+   "index": 0,
+   "ordinal": 0,
+   "param": "s",
+   "legacy": "may",
+   "guarded": "may",
+   "class": "EQUAL"
+  }
+ ]
+}
