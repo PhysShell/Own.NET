@@ -73,7 +73,7 @@ fn allowed_edges() -> HashMap<&'static str, BTreeSet<&'static str>> {
     // constraint runs the other way and is asserted by name below.
     m.insert(
         "own-shadow",
-        ["own-ir", "own-lowered", "own-bridge"]
+        ["own-ir", "own-lowered", "own-bridge", "own-guarded"]
             .into_iter()
             .collect(),
     );

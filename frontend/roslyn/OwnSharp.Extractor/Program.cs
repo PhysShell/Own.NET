@@ -151,6 +151,7 @@ Options:
                      facts are byte-identical without it, `ownir_version` unchanged
   --flow-locals      path-sensitive flow analysis of non-escaping local IDisposables
   --stats            print flow-locals coverage (requires --flow-locals)
+  --dispatch-report FILE  P-037 A14 measurement: dispatch facts per relevant call (not OwnIR)
   --body-throw-edges treat escaping body-level may-throw as a dispose-on-throw point (needs --flow-locals)
   -h, --help         show this help and exit
 """;
@@ -184,6 +185,8 @@ for (int i = 0; i < args0.Length; i++)
     else if (args0[i] == "--flow-locals") flowLocals = true;
     else if (args0[i] == "--body-throw-edges") BodyThrowEdges = true;
     else if (args0[i] == "--stats") reportStats = true;
+    // P-037 B1 A14 measurement (DispatchReport.cs): a separate JSON, never OwnIR.
+    else if (args0[i] == "--dispatch-report" && i + 1 < args0.Length) DispatchReport.Path = args0[++i];
     else rawInputs.Add(args0[i]);
 }
 
@@ -3139,6 +3142,7 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
             return;
 
         var pos0 = PosOf(siteNode);
+        DispatchReport.Record(where, pos0.Line, pos0.Column, sym, siteNode, model.Compilation);
         calls.Add(new Dictionary<string, object?>
         {
             ["site"] = new Dictionary<string, object?> { ["line"] = pos0.Line, ["column"] = pos0.Column },
@@ -7283,6 +7287,7 @@ if (reportStats)
 
 if (outPath is null) Console.WriteLine(json);
 else File.WriteAllText(outPath, json);
+DispatchReport.Write();
 return 0;
 
 // Opt-in recall knob for the flow pass, read deep in InjectThrowEdge (a static field rather than

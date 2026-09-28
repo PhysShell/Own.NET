@@ -156,6 +156,7 @@ name = "own-shadow"
 version = "0.1.0"
 dependencies = [
  "own-bridge",
+ "own-guarded",
  "own-ir",
  "own-lowered",
  "serde",
