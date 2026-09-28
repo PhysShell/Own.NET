@@ -297,14 +297,24 @@ fn all_deps() -> HashMap<String, BTreeSet<String>> {
         .expect("cargo metadata runs");
     let meta: Value = serde_json::from_slice(&out.stdout).expect("metadata JSON parses");
     let mut all = HashMap::new();
-    for pkg in meta["packages"].as_array().expect("packages") {
-        let deps = pkg["dependencies"].as_array().expect("dependencies array");
+    for pkg in meta
+        .get("packages")
+        .and_then(Value::as_array)
+        .expect("packages")
+    {
+        let deps = pkg
+            .get("dependencies")
+            .and_then(Value::as_array)
+            .expect("dependencies array");
         let names = deps
             .iter()
-            .filter_map(|d| d["name"].as_str())
+            .filter_map(|d| d.get("name").and_then(Value::as_str))
             .map(str::to_owned);
         all.insert(
-            pkg["name"].as_str().expect("pkg name").to_owned(),
+            pkg.get("name")
+                .and_then(Value::as_str)
+                .expect("pkg name")
+                .to_owned(),
             names.collect(),
         );
     }
