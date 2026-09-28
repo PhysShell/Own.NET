@@ -33,15 +33,19 @@ Unit: rust/crates/own-bridge/. Frozen files (byte-identical): Cargo.toml,
 src/ast.rs, src/lib.rs. Mutable by item:
 src/mos.rs (every item except the two purely graph-topological helpers
 `fn call_graph` / `fn sccs`, which touch no Transfer/join semantics at
-all), src/lower.rs (exactly `fn lower_fn_params`, `fn
-unverified_transfer_calls`, `fn kill_sites_for_unverified`, `fn lower_full`;
-lower.rs's other 69 top-level items stay frozen at item granularity),
+all), src/lower.rs (CH3-8: exactly `fn lower_fn_params`, `fn
+unverified_transfer_calls`, `fn kill_sites_for_unverified`, `fn lower_full`,
+`struct Lowering`; lower.rs's other 68 top-level items -- 73 total, per
+`rust_items()` on the live file -- stay frozen at item granularity; see
+CH3-8's own paragraph below for why this is 5 items, not the 7 a first
+sketch expected),
 (B1-F2-F4) src/dump.rs (exactly `fn dump_summaries`; its three other items
 -- `fn escape_py`, `fn emit`, `fn pad`, plus its `use` statements and inner
 attribute -- stay frozen at item granularity, same discipline as
-lower.rs's other 69) and (CH3-3) src/verdict.rs / src/render.rs (see below).
+lower.rs's other 68) and (CH3-3, its own item set superseded by CH3-8)
+src/verdict.rs / src/render.rs (see below).
 
-CH3-3 widens src/verdict.rs (exactly `struct Finding`, `impl Finding`,
+CH3-3 originally widened src/verdict.rs (exactly `struct Finding`, `impl Finding`,
 `fn transfer_note`; its other 47 top-level items stay frozen at item
 granularity) and src/render.rs (exactly `struct Properties`, `fn
 sarif_result`; its other 35 top-level items stay frozen) from whole-file-
@@ -74,6 +78,91 @@ fully-reverted scratch compile experiment (never committed) proved the
 plumbing reaches SARIF `properties` with zero change to any diagnostic's
 decision/code/level/message/location, to the other three render formats,
 or to any existing golden fixture, before this policy was authorized.
+
+CH3-8 SUPERSEDES CH3-3's item set above (does not retract the boundary
+concept -- narrows and replaces its specific items). AR1/AR2 (measured
+against the held R1 treatment, docs/evidence/p037-b-epoch.json's
+`ar1_ar2_falsification`) found the per-result SARIF transport CH3-3
+authorized necessary but not sufficient: AR2's own statically-selected
+Borrow that removes a fabricated double-dispose produces a CORRECT, empty
+`results: []` SARIF document -- there is no per-result `properties` bag for
+a witness to attach to. The selected replacement is a RUN-level carrier
+(`runs[].properties.p037_call_site_witnesses[]`), representable even when
+`results` is empty, and a scratch (never-committed) two-crate PoC against
+the held R1 treatment's own architecture measured the exact minimal item
+set a real producer needs -- smaller than CH3-3's, and disjoint from it
+except at `impl Finding`. Concretely:
+
+* src/verdict.rs: CH3-3's `struct Finding` and `fn transfer_note` are
+  RE-FROZEN (the selected design never touches them -- the run-level
+  witness is built once in lower.rs and carried to render.rs without a
+  per-`Finding` field). `impl Finding` REMAINS mutable, but for a different
+  reason than CH3-3 gave it one: not `Finding::new()`'s default line for a
+  hypothetical new field, but as the additive public evidence entry point
+  (an inherent method reachable cross-crate without any `src/lib.rs` text
+  change -- see the PoC report). `fn check_facts` joins as newly mutable:
+  the selected design threads one `lower_full` call through a thin
+  `check_facts` wrapper around a new `check_facts_with_evidence`.
+* src/render.rs: CH3-3's `struct Properties` and `fn sarif_result` are
+  RE-FROZEN (no per-result properties bag in the selected design). `struct
+  Run` and `fn build_sarif` join as newly mutable: `Run` gains an optional
+  `properties` field (`skip_serializing_if`, so every existing caller's
+  byte output is unchanged), and `build_sarif`'s own literal construction
+  needs the one corresponding `properties: None` line.
+* src/lower.rs widens by exactly ONE item, `struct Lowering` (the future
+  witness-carrying field's home) -- NOT the 3-item shape a first sketch of
+  this amendment expected. Checked mechanically, not assumed: `fn
+  guarded_use_lowered` and `fn apply_guarded_uses` do not exist ANYWHERE in
+  this branch's own lower.rs today (`rust_items()` over the live file, zero
+  matches), because this branch's own merge-base with the held R1
+  treatment is e4199ec -- confirmed by `git merge-base` -- and e4199ec
+  itself already has zero occurrences of `guarded_use_lowered` or
+  `p037_kernel` in lower.rs. The guarded-call-site-APPLICATION mechanism
+  those two functions belong to (B2.1b/c-R1 §175 and its own #171-188
+  prerequisites: the shared `mos::p037_kernel` module, the `ParamCells`/
+  `ParamElections`/`Selection`/`apply()` machinery) was built entirely on
+  R1's own separate lineage AFTER the two branches diverged; it was never
+  ported to this one.
+
+  KEEP THE BASE, NARROW THE AUTHORIZATION -- this absence is expected and
+  load-bearing, not a defect to route around. f1acf953 is intentionally
+  pre-B2.1b/c-R1: moving the governance baseline to a commit that already
+  contains R1's guarded-application mechanism would absorb treatment
+  semantics into a new T_B and invalidate the intended baseline ->
+  B2.1a -> R1-replay comparison this whole epoch measures. So this
+  amendment does NOT preregister `fn guarded_use_lowered`, `fn
+  apply_guarded_uses`, `struct CallSiteWitnessFact`, any `_with_evidence`/
+  `_inner` helper, or any wildcard/family permission for them --
+  `registered_new_items` stays `{}` under the SAME discipline B1 already
+  established (a treatment registers its own new items in the SAME commit
+  that introduces them; nothing is named in advance of existing). When the
+  held R1 treatment is eventually replayed on top of a fresh T_B/R_B taken
+  against this amendment's own head, it must: (1) port/recreate the
+  already-measured #171-188/§175 guarded-application mechanism onto this
+  lineage -- a real, larger scope than the scratch PoC measured, not
+  hidden here; (2) enter every top-level item new relative to THIS
+  baseline (`guarded_use_lowered`, `apply_guarded_uses`, the witness type,
+  every helper) into `registered_new_items` explicitly, in the same
+  treatment commit that defines it -- no wildcard, no family, no item
+  registered ahead of existing; (3) STOP for a fresh boundary review,
+  rather than silently widen, if the replay needs to touch any existing
+  item not already named in `mutable_items` above (`struct Lowering` is
+  the only one on lower.rs) or needs a brand-new file. This is a scope-gap
+  annotation, not a base-selection defect: the scratch PoC ran on the held
+  R1 lineage specifically because that is where the eventual architecture
+  could be proven; this amendment governs the legal replay surface on the
+  actual baseline without pretending the treatment's own items already
+  exist here.
+
+On src/verdict.rs and src/render.rs, by contrast, every newly-mutable item
+named above (`impl Finding`, `fn check_facts`, `struct Run`, `fn
+build_sarif`) already exists on this exact branch -- confirmed the same
+way, via `rust_items()` over the live files, not assumed -- so pre-
+authorizing them as mutable is not a gap of this kind: a treatment
+extending them stays inside `mutable_items` as usual, and the SAME rule
+applies to any brand-new item within them (`fn check_facts_with_evidence`,
+`struct RunProperties`, `impl SarifLog`): registered in the treatment's own
+commit, not here, not as a family, not in advance.
 
 B1-F2-F4 widens dump.rs from a frozen file to an item-level mutable file
 because it was found holding a real blocker: `dump_summaries` calls legacy
@@ -173,6 +262,11 @@ LOWER_MUTABLE_ITEMS: tuple[str, ...] = (
     "fn unverified_transfer_calls",
     "fn kill_sites_for_unverified",
     "fn lower_full",
+    # CH3-8: the one item on this lineage the run-level evidence carrier
+    # needs widened -- see this module's own docstring for why this is 5
+    # items, not the 7 the PoC's own (R1-only) architecture used: `fn
+    # guarded_use_lowered`/`fn apply_guarded_uses` do not exist here.
+    "struct Lowering",
 )
 
 # B1-F2-F4: dump.rs's own single mutable item -- `dump_summaries` is the
@@ -184,27 +278,37 @@ DUMP_MUTABLE_ITEMS: tuple[str, ...] = (
     "fn dump_summaries",
 )
 
-# CH3-3: verdict.rs's own three mutable items -- `Finding::new()` (inside
-# `impl Finding`) is the file's ONLY struct-literal constructor for
-# `Finding` (every other finding-builder mutates fields on an
-# already-built value), and `fn transfer_note` is the one place a real
-# OWN051 `Finding` is minted. Every other finding-builder
-# (di_findings/effect_findings/unresolved_findings/protocol_findings/etc.)
-# stays frozen at item granularity -- confirmed disjoint below.
+# CH3-8 (superseding CH3-3's ORIGINAL grant of `struct Finding` / `impl
+# Finding` / `fn transfer_note` -- see this module's own docstring for the
+# full falsification-and-supersession account): `impl Finding` remains
+# mutable, but now as the additive public evidence entry point
+# (`Finding::check_facts_with_p037_evidence`-shaped, reachable cross-crate
+# with zero src/lib.rs change); `fn check_facts` joins as the one place
+# `lower_full` is called and findings are built, becoming a thin wrapper
+# around a new (not-yet-registered) `check_facts_with_evidence`. `struct
+# Finding` and `fn transfer_note` are RE-FROZEN: the selected run-level
+# design never adds a field to `Finding` and never touches OWN051 minting.
+# Every other finding-builder (di_findings/effect_findings/
+# unresolved_findings/protocol_findings/etc.) stays frozen at item
+# granularity, unchanged from CH3-3 -- confirmed disjoint below.
 VERDICT_MUTABLE_ITEMS: tuple[str, ...] = (
-    "struct Finding",
     "impl Finding",
-    "fn transfer_note",
+    "fn check_facts",
 )
 
-# CH3-3: render.rs's own two mutable items -- `struct Properties` /
-# `fn sarif_result` are each other's only construction site (confirmed by
-# running this module's own rust_items() over the live file). Every other
-# render.rs surface (render_human/render_github/render_msbuild/
-# build_sarif's own structure, every other SARIF struct) stays frozen.
+# CH3-8 (superseding CH3-3's ORIGINAL grant of `struct Properties` / `fn
+# sarif_result`): `struct Run` and `fn build_sarif` join as mutable --
+# `Run` gains an optional `properties` field (`skip_serializing_if`, byte-
+# identical for every caller that never populates it) and `build_sarif`'s
+# own literal construction needs the one corresponding `properties: None`
+# line. `struct Properties` and `fn sarif_result` are RE-FROZEN: the
+# selected run-level design carries the witness on `Run`, never inside a
+# per-result `properties` bag. Every other render.rs surface
+# (render_human/render_github/render_msbuild, every other SARIF struct)
+# stays frozen at item granularity, unchanged from CH3-3.
 RENDER_MUTABLE_ITEMS: tuple[str, ...] = (
-    "struct Properties",
-    "fn sarif_result",
+    "struct Run",
+    "fn build_sarif",
 )
 
 
@@ -595,12 +699,14 @@ def selftest() -> int:
               not (set(DUMP_MUTABLE_ITEMS) & expected_dump_frozen),
               (DUMP_MUTABLE_ITEMS, expected_dump_frozen))
 
-    # --- CH3-3: verdict.rs/render.rs's own item-granularity hostile tests,
-    # on dedicated synthetic fixtures shaped like the real files (a mutable
-    # struct+impl+constructor-user plus one frozen sibling finding-builder /
-    # render surface), proving the widening is exactly the six named items
-    # and nothing more -- same discipline as the dump.rs block above, which
-    # this one is deliberately modeled on. ---
+    # --- CH3-8 (superseding CH3-3): verdict.rs/render.rs's own
+    # item-granularity hostile tests, on dedicated synthetic fixtures shaped
+    # like the real files, proving BOTH halves of the supersession at once:
+    # the NEW items (`impl Finding`, `fn check_facts`, `struct Run`, `fn
+    # build_sarif`) move freely, and CH3-3's OLD items (`struct Finding`,
+    # `fn transfer_note`, `struct Properties`, `fn sarif_result`) are
+    # REJECTED if touched -- re-frozen, not merely "no longer granted." Same
+    # discipline as the dump.rs block above, which this one is modeled on. ---
     _REF_VERDICT = (
         "struct Finding {\n"
         "    file: String,\n"
@@ -613,6 +719,9 @@ def selftest() -> int:
         "fn transfer_note(file: &str) -> Finding {\n"
         "    Finding::new(file.to_owned())\n"
         "}\n"
+        "fn check_facts(file: &str) -> Finding {\n"
+        "    Finding::new(String::from(file))\n"
+        "}\n"
         "fn di_findings(file: &str) -> Finding {\n"
         "    Finding::new(String::from(file))\n"
         "}\n"
@@ -623,6 +732,12 @@ def selftest() -> int:
         "}\n"
         "fn sarif_result(kind: &str) -> Properties {\n"
         "    Properties { kind: kind.to_owned() }\n"
+        "}\n"
+        "struct Run {\n"
+        "    kind: String,\n"
+        "}\n"
+        "fn build_sarif(kind: &str) -> Run {\n"
+        "    Run { kind: kind.to_owned() }\n"
         "}\n"
         "fn render_human(kind: &str) -> String {\n"
         "    format!(\"{kind}\")\n"
@@ -644,13 +759,13 @@ def selftest() -> int:
     rep = compare_rust(cv_ref, cv_ref, cv_pol)
     _selfcheck("verdict-render-identical-is-identical", rep.verdict == IDENTICAL, rep.as_dict())
 
+    # the two NEWLY-mutable verdict.rs items move freely.
     for label, replacement in (
-        ("struct", ("    file: String,\n}\n", "    file: String,\n    extra: bool,\n}\n")),
         ("impl", ("        Self { file }\n",
                   "        let out = Self { file };\n        out\n")),
-        ("transfer_note",
-         ("fn transfer_note(file: &str) -> Finding {\n    Finding::new(file.to_owned())\n}\n",
-          "fn transfer_note(file: &str) -> Finding {\n    let file = file.to_owned();\n"
+        ("check-facts",
+         ("fn check_facts(file: &str) -> Finding {\n    Finding::new(String::from(file))\n}\n",
+          "fn check_facts(file: &str) -> Finding {\n    let file = String::from(file.trim());\n"
           "    Finding::new(file)\n}\n")),
     ):
         head = memory_tree({
@@ -663,11 +778,34 @@ def selftest() -> int:
         rep = compare_rust(cv_ref, head, cv_pol)
         _selfcheck(f"verdict-{label}-movement-is-allowed", rep.verdict == WITHIN, rep.as_dict())
 
+    # the two RE-FROZEN verdict.rs items (CH3-3's own grant) are violations
+    # if touched, under the CURRENT (CH3-8) policy -- the whole point of a
+    # re-freeze, not merely "not additionally granted."
+    for label, replacement in (
+        ("struct-finding-reFROZEN",
+         ("    file: String,\n}\n", "    file: String,\n    extra: bool,\n}\n")),
+        ("transfer-note-reFROZEN",
+         ("fn transfer_note(file: &str) -> Finding {\n    Finding::new(file.to_owned())\n}\n",
+          "fn transfer_note(file: &str) -> Finding {\n    let file = file.to_owned();\n"
+          "    Finding::new(file)\n}\n")),
+    ):
+        head = memory_tree({
+            "crate/src/lib.rs": _REF_LIB,
+            "crate/src/frozen.rs": "pub fn frozen() {}\n",
+            "crate/src/verdict.rs": _REF_VERDICT.replace(*replacement),
+            "crate/src/render.rs": _REF_RENDER,
+            "crate/tests/t.rs": "#[test]\nfn t() {}\n",
+        })
+        rep = compare_rust(cv_ref, head, cv_pol)
+        _selfcheck(f"verdict-{label}-is-violation", rep.verdict == VIOLATION, rep.as_dict())
+
     head = memory_tree({
         "crate/src/lib.rs": _REF_LIB,
         "crate/src/frozen.rs": "pub fn frozen() {}\n",
         "crate/src/verdict.rs": _REF_VERDICT.replace(
-            "Finding::new(String::from(file))", "Finding::new(String::from(file.trim()))"),
+            "fn di_findings(file: &str) -> Finding {\n    Finding::new(String::from(file))\n}\n",
+            "fn di_findings(file: &str) -> Finding {\n"
+            "    Finding::new(String::from(file.trim()))\n}\n"),
         "crate/src/render.rs": _REF_RENDER,
         "crate/tests/t.rs": "#[test]\nfn t() {}\n",
     })
@@ -675,10 +813,20 @@ def selftest() -> int:
     _selfcheck("verdict-other-finding-builder-is-violation", rep.verdict == VIOLATION,
               rep.as_dict())
 
+    # the two NEWLY-mutable render.rs items move freely.
     for label, replacement in (
-        ("struct", ("    kind: String,\n}\n", "    kind: String,\n    extra: bool,\n}\n")),
-        ("sarif_result", ("Properties { kind: kind.to_owned() }",
-                          "Properties { kind: kind.trim().to_owned() }")),
+        # NOTE: `str.replace` has no count limit -- the old text must be
+        # unique to `struct Run`'s OWN two-line body (the newline right
+        # after `{` picks out the multi-line struct declaration, never the
+        # single-line `Run { kind: ... }` call site in `fn build_sarif`,
+        # and never `struct Properties`'s identically-shaped body, which
+        # this same literal would otherwise also match).
+        ("run", (
+            "Run {\n    kind: String,\n}\n",
+            "Run {\n    kind: String,\n    extra: bool,\n}\n",
+        )),
+        ("build-sarif", ("Run { kind: kind.to_owned() }",
+                         "Run { kind: kind.trim().to_owned() }")),
     ):
         head = memory_tree({
             "crate/src/lib.rs": _REF_LIB,
@@ -689,6 +837,25 @@ def selftest() -> int:
         })
         rep = compare_rust(cv_ref, head, cv_pol)
         _selfcheck(f"render-{label}-movement-is-allowed", rep.verdict == WITHIN, rep.as_dict())
+
+    # the two RE-FROZEN render.rs items (CH3-3's own grant) are violations
+    # if touched, under the CURRENT (CH3-8) policy.
+    for label, replacement in (
+        ("struct-properties-reFROZEN",
+         ("    kind: String,\n}\nfn sarif_result",
+          "    kind: String,\n    extra: bool,\n}\nfn sarif_result")),
+        ("sarif-result-reFROZEN",
+         ("Properties { kind: kind.to_owned() }", "Properties { kind: kind.trim().to_owned() }")),
+    ):
+        head = memory_tree({
+            "crate/src/lib.rs": _REF_LIB,
+            "crate/src/frozen.rs": "pub fn frozen() {}\n",
+            "crate/src/verdict.rs": _REF_VERDICT,
+            "crate/src/render.rs": _REF_RENDER.replace(*replacement),
+            "crate/tests/t.rs": "#[test]\nfn t() {}\n",
+        })
+        rep = compare_rust(cv_ref, head, cv_pol)
+        _selfcheck(f"render-{label}-is-violation", rep.verdict == VIOLATION, rep.as_dict())
 
     head = memory_tree({
         "crate/src/lib.rs": _REF_LIB,

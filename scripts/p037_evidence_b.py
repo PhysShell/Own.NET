@@ -149,6 +149,13 @@ INSTRUMENT_PATHS: tuple[str, ...] = (
     "scripts/p037_b_production_diff_gate.py",
     "scripts/p037_b_extractor_diff_gate.py",
     "scripts/p037_b_classifier.py",
+    # CH3-8: the new own-cli item-level gate joins for the same reason
+    # p037_b_production_diff_gate.py/p037_b_extractor_diff_gate.py/
+    # p037_b_classifier.py already did -- its own correctness is load-
+    # bearing for the boundary claim it polices, so a change to it must
+    # move instrument_identity, not drift silently underneath an unchanged
+    # digest.
+    "scripts/p037_b_cli_diff_gate.py",
 )
 
 # B1-F2: the extractor joins mos.rs/lower.rs as a second carve-out. Carved
@@ -195,6 +202,17 @@ INSTRUMENT_PATHS: tuple[str, ...] = (
 # defect B1-F2-F4-R2 fixed for dump.rs. Mechanically required, not assumed:
 # derived by reading production_diff_gate.rust.mutable_items's own new
 # keys, not chosen independently of it.
+# CH3-8: rust/crates/own-cli/src/ownir.rs joins -- the ONE FILE, not the
+# whole own-cli crate. own-cli was previously inside the instrument with no
+# carve-out at all (the unqualified "rust/" entry in INSTRUMENT_PATHS
+# covered it with no exception), so it could not be touched by any
+# treatment without silently moving the instrument out from under itself.
+# The new scripts/p037_b_cli_diff_gate.py (added to INSTRUMENT_PATHS above)
+# is the item-level policeman INSIDE this one carved-out file -- exactly
+# the same two-part shape (path-level provenance carve-out + item-level
+# production diff gate) every other carve-out in this tuple already uses;
+# see that gate's own module docstring for why the file, not the crate, is
+# the unit carved out here.
 INSTRUMENT_CARVE_OUTS: tuple[str, ...] = (
     "rust/crates/own-bridge/src/mos.rs",
     "rust/crates/own-bridge/src/lower.rs",
@@ -202,6 +220,7 @@ INSTRUMENT_CARVE_OUTS: tuple[str, ...] = (
     "rust/crates/own-bridge/src/verdict.rs",
     "rust/crates/own-bridge/src/render.rs",
     "frontend/roslyn/OwnSharp.Extractor/",
+    "rust/crates/own-cli/src/ownir.rs",
 )
 
 TREATMENT_PATHS: tuple[str, ...] = INSTRUMENT_CARVE_OUTS
@@ -298,19 +317,21 @@ def instrument_identity(commit: str, *, repo: Path = ROOT) -> str:
 
 
 def _record_closure_problems(doc: dict[str, Any]) -> list[str]:
-    """Cross-check BOTH item-level gates' units against the epoch record --
-    not just the Rust one. A record whose production_diff_gate.extractor is
-    missing or names a different unit is exactly the same self-
-    authorization hole B1-F1 found and fixed for the Rust side (check() must
-    never trust a recorded allowlist the module itself did not also
-    hard-code), now closed for the extractor from the start.
+    """Cross-check ALL THREE item-level gates' units against the epoch
+    record -- not just the Rust one. A record whose production_diff_gate.
+    extractor (or, since CH3-8, .cli) is missing or names a different unit
+    is exactly the same self-authorization hole B1-F1 found and fixed for
+    the Rust side (check() must never trust a recorded allowlist the module
+    itself did not also hard-code), now closed for the extractor and the
+    CLI gate from the start.
 
     B1-F2-F4-R2 adds a third, GENERIC check, closing the CLASS of defect the
     dump.rs omission belonged to rather than only that one instance: every
     file `production_diff_gate.rust` names as carrying a mutable item
     (`mutable_items`) or being wholly mutable (`mutable_files`), plus the
-    extractor's own whole-unit carve-out, is DERIVED from the epoch record
-    already in hand and required to equal `INSTRUMENT_CARVE_OUTS` (hence
+    extractor's own whole-unit carve-out and (since CH3-8) every file
+    `production_diff_gate.cli` names the same way, is DERIVED from the
+    epoch record already in hand and required to equal `INSTRUMENT_CARVE_OUTS` (hence
     `TREATMENT_PATHS`, the same tuple) EXACTLY -- not a subset check. A
     future item added to `mutable_items` with no matching carve-out (the
     dump.rs defect, generalized to any filename) is refused as MISSING; a
@@ -343,9 +364,17 @@ def _record_closure_problems(doc: dict[str, Any]) -> list[str]:
     if recorded_extractor_unit != "frontend/roslyn/OwnSharp.Extractor/":
         problems.append(f"the epoch record's production_diff_gate.extractor.unit "
                         f"{recorded_extractor_unit!r} differs from this module's own")
+    # CH3-8: a third item-level gate, same cross-check as rust/extractor
+    # above -- see scripts/p037_b_cli_diff_gate.py's own module docstring.
+    cli = gate.get("cli", {}) if isinstance(gate, dict) else {}
+    recorded_cli_unit = cli.get("unit") if isinstance(cli, dict) else None
+    if recorded_cli_unit != "rust/crates/own-cli/":
+        problems.append(f"the epoch record's production_diff_gate.cli.unit "
+                        f"{recorded_cli_unit!r} differs from this module's own")
 
     if (recorded_unit == "rust/crates/own-bridge/"
-            and recorded_extractor_unit == "frontend/roslyn/OwnSharp.Extractor/"):
+            and recorded_extractor_unit == "frontend/roslyn/OwnSharp.Extractor/"
+            and recorded_cli_unit == "rust/crates/own-cli/"):
         expected_carve_outs: set[str] = {recorded_extractor_unit}
         mutable_items = rust.get("mutable_items", {})
         if isinstance(mutable_items, dict):
@@ -355,6 +384,18 @@ def _record_closure_problems(doc: dict[str, Any]) -> list[str]:
         if isinstance(mutable_files, list):
             expected_carve_outs.update(
                 recorded_unit + name for name in mutable_files if isinstance(name, str))
+        # CH3-8: the CLI gate's own mutable_items/mutable_files derive their
+        # OWN expected carve-outs the identical way, rooted at
+        # recorded_cli_unit rather than recorded_unit -- a second unit, same
+        # derivation, not a special case.
+        cli_mutable_items = cli.get("mutable_items", {})
+        if isinstance(cli_mutable_items, dict):
+            expected_carve_outs.update(
+                recorded_cli_unit + name for name in cli_mutable_items if isinstance(name, str))
+        cli_mutable_files = cli.get("mutable_files", [])
+        if isinstance(cli_mutable_files, list):
+            expected_carve_outs.update(
+                recorded_cli_unit + name for name in cli_mutable_files if isinstance(name, str))
         actual_carve_outs = set(INSTRUMENT_CARVE_OUTS)
         for path in sorted(expected_carve_outs - actual_carve_outs):
             problems.append(
@@ -371,7 +412,7 @@ def _record_closure_problems(doc: dict[str, Any]) -> list[str]:
 def closure_problems(*, repo: Path = ROOT) -> list[str]:
     """Static self-check: every repo-local runtime path is in the closure,
     the carve-outs are treatment under instrument roots, HEAD's epoch
-    record agrees with this module on both production-diff gates' units,
+    record agrees with this module on all three production-diff gates' units,
     and (see _record_closure_problems) the epoch record's own mutable-item/
     mutable-file/unit declarations derive EXACTLY this module's
     INSTRUMENT_CARVE_OUTS -- catching a future widened allowlist with no
@@ -738,27 +779,69 @@ def selftest() -> int:
     _selfcheck("current-real-epoch-record-closes-cleanly",
               not _record_closure_problems(real_doc), _record_closure_problems(real_doc))
 
-    # CH3-4: the record committed at HEAD predates CH3-3's widening of
-    # verdict.rs/render.rs to item-level mutable, so the check above is
-    # EXPECTED to stay green only until the boundary-amendment commit lands
-    # (production_diff_gate.rust in the epoch record and this module's own
-    # INSTRUMENT_CARVE_OUTS are a matched pair, same discipline as
-    # p037_b_production_diff_gate.py's own policy_drift()). Proven here
-    # instead, on a deep copy of the real record patched EXACTLY the way
-    # CH3-5 records the amendment (never a hand-invented shape), that the
-    # module's ALREADY-updated INSTRUMENT_CARVE_OUTS and that intended
-    # future record shape close cleanly TOGETHER -- the actual end-to-end
-    # coherence proof, ahead of the commit that makes it the live one.
+    # CH3-8: the record committed at HEAD predates this amendment's own
+    # supersession of CH3-3's item set AND the brand-new production_diff_
+    # gate.cli section, so the check above is EXPECTED to stay green only
+    # once the epoch record itself is updated in the SAME commit as this
+    # module (production_diff_gate.{rust,cli} and this module's own
+    # INSTRUMENT_CARVE_OUTS are a matched pair, same discipline as both
+    # diff-gate modules' own policy_drift()). Proven here instead, on a deep
+    # copy of the real record patched EXACTLY the shape this amendment
+    # records (never a hand-invented one), that the module's ALREADY-
+    # updated INSTRUMENT_CARVE_OUTS and that intended future record shape
+    # close cleanly TOGETHER -- the actual end-to-end coherence proof, ahead
+    # of the commit that makes it the live one.
     future_doc = copy.deepcopy(real_doc)
+    future_doc["production_diff_gate"]["rust"]["mutable_items"]["src/lower.rs"] = [
+        "fn lower_fn_params", "fn unverified_transfer_calls",
+        "fn kill_sites_for_unverified", "fn lower_full", "struct Lowering"]
     future_doc["production_diff_gate"]["rust"]["mutable_items"]["src/verdict.rs"] = [
-        "struct Finding", "impl Finding", "fn transfer_note"]
+        "impl Finding", "fn check_facts"]
     future_doc["production_diff_gate"]["rust"]["mutable_items"]["src/render.rs"] = [
-        "struct Properties", "fn sarif_result"]
+        "struct Run", "fn build_sarif"]
     future_doc["production_diff_gate"]["rust"]["frozen_files"] = [
         f for f in future_doc["production_diff_gate"]["rust"]["frozen_files"]
         if f not in ("src/render.rs", "src/verdict.rs")]
-    _selfcheck("ch3-amended-epoch-record-shape-closes-cleanly-with-live-module",
+    future_doc["production_diff_gate"]["cli"] = {
+        "unit": "rust/crates/own-cli/",
+        "mutable_files": [],
+        "mutable_items": {"src/ownir.rs": ["fn check", "fn display"]},
+        "registered_new_items": {},
+        "frozen_files": ["Cargo.toml", "src/main.rs", "src/faults.rs",
+                         "src/pyrepr.rs", "src/sarif.rs", "src/text.rs"],
+        "controls": ["tests/"],
+    }
+    _selfcheck("ch3-8-amended-epoch-record-shape-closes-cleanly-with-live-module",
               not _record_closure_problems(future_doc), _record_closure_problems(future_doc))
+
+    # CH3-8: the three required own-cli closure hostile cases (a CLI-gate
+    # mutable item with no matching carve-out; the real own-cli carve-out
+    # with no matching CLI-gate mutable_items entry backing it; a unit
+    # mismatch), each proven on `future_doc` (the shape that otherwise
+    # closes cleanly, per the check directly above) so the failure is
+    # attributable to the ONE hostile change and nothing else.
+    cli_hostile_missing = copy.deepcopy(future_doc)
+    cli_hostile_missing["production_diff_gate"]["cli"]["mutable_items"][
+        "src/hypothetical_unauthorized.rs"] = ["fn foo"]
+    problems = _record_closure_problems(cli_hostile_missing)
+    _selfcheck("cli-mutable-item-with-no-matching-carve-out-is-refused",
+              any("own-cli/src/hypothetical_unauthorized.rs" in p
+                  and "is not in INSTRUMENT_CARVE_OUTS" in p for p in problems),
+              problems)
+
+    cli_hostile_excess = copy.deepcopy(future_doc)
+    del cli_hostile_excess["production_diff_gate"]["cli"]["mutable_items"]["src/ownir.rs"]
+    problems = _record_closure_problems(cli_hostile_excess)
+    _selfcheck("cli-carve-out-with-no-backing-mutable-item-is-refused",
+              any("own-cli/src/ownir.rs" in p and "no production_diff_gate" in p
+                  for p in problems),
+              problems)
+
+    cli_hostile_unit = copy.deepcopy(future_doc)
+    cli_hostile_unit["production_diff_gate"]["cli"]["unit"] = "rust/crates/own-bridge/"
+    problems = _record_closure_problems(cli_hostile_unit)
+    _selfcheck("cli-unit-mismatch-is-refused",
+              any("production_diff_gate.cli.unit" in p for p in problems), problems)
 
     # CH3-4: this was `src/render.rs` before render.rs itself joined
     # INSTRUMENT_CARVE_OUTS as a REAL, legitimate entry -- reusing it here
@@ -767,7 +850,14 @@ def selftest() -> int:
     # would still be correctly carved out for its own real reason). A name
     # that can never legitimately appear in either list stays a true
     # negative regardless of which files are carved out this month.
-    hostile_missing = copy.deepcopy(real_doc)
+    #
+    # CH3-8: built on `future_doc` (the shape that closes cleanly, proven
+    # directly above), not `real_doc` -- `real_doc` still lacks
+    # production_diff_gate.cli entirely (this amendment's own epoch-record
+    # commit has not landed yet), so the three-way unit check would refuse
+    # it on the CLI mismatch alone and never reach the rust-side derivation
+    # this test means to isolate. Same fix applies to both tests below.
+    hostile_missing = copy.deepcopy(future_doc)
     hostile_missing["production_diff_gate"]["rust"]["mutable_items"][
         "src/hypothetical_unauthorized.rs"] = ["fn foo"]
     problems = _record_closure_problems(hostile_missing)
@@ -776,7 +866,7 @@ def selftest() -> int:
                   for p in problems),
               problems)
 
-    hostile_excess = copy.deepcopy(real_doc)
+    hostile_excess = copy.deepcopy(future_doc)
     del hostile_excess["production_diff_gate"]["rust"]["mutable_items"]["src/dump.rs"]
     problems = _record_closure_problems(hostile_excess)
     _selfcheck("hostile-excess-carve-out-with-no-backing-mutable-item-is-refused",

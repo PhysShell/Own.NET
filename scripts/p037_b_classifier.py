@@ -585,6 +585,8 @@ def check_call_site_witness(w: dict[str, Any]) -> None:
     _require(acquire is None
              or (isinstance(acquire, dict) and isinstance(acquire.get("line"), int)),
              "call-site witness.resource_acquire_site must be null or {line: int}")
+    _require(w.get("selection") in ("pos", "neg", "unselected"),
+             "call-site witness.selection must be pos|neg|unselected")
     guarded = w.get("guarded")
     _require(isinstance(guarded, dict), "call-site witness.guarded must be an object")
     assert isinstance(guarded, dict)  # narrows for mypy; _require already enforced it at runtime
@@ -594,27 +596,50 @@ def check_call_site_witness(w: dict[str, Any]) -> None:
         _require(isinstance(cells, dict) and cells.get("pos") in _TRANSFER_VALUES
                  and cells.get("neg") in _TRANSFER_VALUES,
                  "guarded.finalized_cells must be {pos,neg} Transfer values for a split shape")
+    else:
+        # CH3-8: an uncond shape has no split to select between -- the same
+        # constraint check_witness() already enforces for the summary-level
+        # witness's own guarded.selection, ported here now that a call-site
+        # selection is a real, checked field rather than always "unselected".
+        _require(w.get("selection") == "unselected",
+                 "an uncond call-site guarded shape has no call-site selection to make")
     _require(guarded.get("collapsed") in _TRANSFER_VALUES,
              "guarded.collapsed must be a Transfer value")
-    _require(w.get("selection") in ("pos", "neg", "unselected"),
-             "call-site witness.selection must be pos|neg|unselected")
+    # CH3-8: selection_license, added for APPLICATION_REFINEMENT -- the SAME
+    # requirement check_witness() already enforces for the summary-level
+    # witness's own guarded.selection_license (a pos/neg selection needs a
+    # license naming what licensed it), at this witness kind's own top level
+    # rather than nested in `guarded`, matching where `selection`/`lowered`
+    # themselves already live here. Only `kind` truthiness is checked, not a
+    # closed set of kind values: the legal vocabulary (own_ir::GuardedArgKind
+    # -- var/param/bool_const/null_literal/object_creation/call_result/
+    # opaque) is the PRODUCER's, not re-validated bit-for-bit here, the same
+    # looseness check_witness() already accepts for its own selection_license.
+    if w.get("selection") in ("pos", "neg"):
+        license_ = w.get("selection_license")
+        _require(bool(isinstance(license_, dict) and license_.get("kind")),
+                 "a pos/neg call-site selection needs a selection_license naming what licensed it")
     _require(w.get("lowered") in ("consume", "borrow", "plain"),
              "call-site witness.lowered must be consume|borrow|plain (#175's own Lowered)")
 
 
 def classify_call_site(w: dict[str, Any]) -> dict[str, Any]:
     """Classifies a CALL_SITE_WITNESS into the SAME closed class vocabulary
-    classify() uses. Today CONDITIONALITY_HONESTY is the only positive class
-    reachable here: APPLICATION_REFINEMENT and SUMMARY_REFINEMENT both name a
-    (method,param) SUMMARY's own value (a summary either got a static
-    selection applied to it, or the summary itself refined) -- a call-site
-    witness, by construction, names no such summary, so neither class is
-    authorized here without a SEPARATE amendment extending them to this
-    witness kind, which this one does not do. LEGACY_HONESTY is a summary-
-    level, verdict-equivalent shape (collapsed=unknown, legacy=may, both
-    plain) that this witness kind cannot even express: it carries no
-    `legacy` field at all (see check_call_site_witness's own docstring for
-    why), so there is no scalar legacy Transfer value to compare against."""
+    classify() uses. This is NOT a fifth class: CH3-8 ports classify()'s own,
+    already-tested APPLICATION_REFINEMENT branch (a static pos/neg selection
+    against an existing split summary) to this witness kind, now that it
+    carries its own `selection_license` (check_call_site_witness's own
+    validation). SUMMARY_REFINEMENT stays unreachable here, unchanged: it
+    names a (method,param) SUMMARY's own collapsed value refining with NO
+    call-site selection at all, and a call-site witness carries no such
+    summary value to refine -- SUMMARY_REFINEMENT stays p037_mos_snapshot.py's
+    document-level classification's job (see docs/evidence/p037-b-epoch.json's
+    own supersession note: no new call-site machinery is built for it).
+    LEGACY_HONESTY is a summary-level, verdict-equivalent shape (collapsed=
+    unknown, legacy=may, both plain) that this witness kind cannot even
+    express: it carries no `legacy` field at all (see
+    check_call_site_witness's own docstring for why), so there is no scalar
+    legacy Transfer value to compare against."""
     check_call_site_witness(w)
     guarded = w["guarded"]
     collapsed: Transfer = guarded["collapsed"]
@@ -622,12 +647,28 @@ def classify_call_site(w: dict[str, Any]) -> dict[str, Any]:
     lowered = w["lowered"]
 
     if selection in ("pos", "neg"):
-        return {"class": UNCLASSIFIED,
-                "reason": "a call-site witness with a static pos/neg selection is outside this "
-                          "amendment's scope: APPLICATION_REFINEMENT is defined over a "
-                          "(method,param) summary's own selection_license, which this witness "
-                          "kind does not carry, and extending it to call sites is a separate, "
-                          "unauthorized amendment"}
+        # check_call_site_witness() already required guarded.shape == "split"
+        # for a pos/neg selection (the uncond branch there requires
+        # selection == "unselected"), so this cannot be reached with an
+        # uncond shape -- no invented priority needed for that combination.
+        cells = guarded["finalized_cells"]
+        selected_cell: Transfer = cells["pos"] if selection == "pos" else cells["neg"]
+        expected_lowered = lower(selected_cell)
+        if lowered != expected_lowered:
+            return {"class": UNCLASSIFIED,
+                    "reason": f"selected the {selection} cell ({selected_cell}), which #175's "
+                              f"apply() lowers to {expected_lowered}, but this witness's own "
+                              f"lowered field says {lowered} -- the witness's selection/lowered "
+                              "fields disagree with each other, which is refused rather than "
+                              "explained away"}
+        license_ = w["selection_license"]
+        return {"class": APPLICATION_REFINEMENT,
+                "reason": f"call site selected the {selection} cell ({selected_cell}) via "
+                          f"{license_['kind']}, lowering to {lowered} (#175's own apply()); the "
+                          "guarded summary already existed at this callee/param, only the "
+                          "call-site's own static selection is new (the same G-A1/G-A2 route "
+                          "classify()'s own summary-level APPLICATION_REFINEMENT branch already "
+                          "recognizes, ported to this witness kind)"}
     if guarded["shape"] != "split":
         return {"class": UNCLASSIFIED,
                 "reason": "an uncond call-site guarded shape has no conditional structure to "
@@ -1048,10 +1089,54 @@ def selftest() -> int:
     _check("call-site-u1-conditionality-honesty-positive",
           r["class"] == CONDITIONALITY_HONESTY, r)
 
-    # hostile: a static selection at a call-site witness is out of THIS
-    # amendment's scope, not silently folded into class 4.
-    r = classify_call_site(_cs(selection="pos"))
-    _check("call-site-hostile-selected-is-unclassified", r["class"] == UNCLASSIFIED, r)
+    # positive (CH3-8): a static selection with a valid selection_license
+    # against the SAME {no,must} split classifies as APPLICATION_REFINEMENT
+    # -- the class-4 CONDITIONALITY_HONESTY shape above and this class-1
+    # shape are the same guarded coordinate, differing only in whether the
+    # call site made a static choice; not a fifth class, the same
+    # (method,param)-summary-level branch classify() already recognizes,
+    # ported here now that this witness kind carries its own license.
+    r = classify_call_site(_cs(selection="pos",
+                              selection_license={"kind": "bool_const", "value": True},
+                              lowered="borrow"))
+    _check("call-site-pos-no-selected-borrow-is-application-refinement",
+          r["class"] == APPLICATION_REFINEMENT, r)
+    r = classify_call_site(_cs(selection="neg",
+                              selection_license={"kind": "bool_const", "value": False},
+                              lowered="consume"))
+    _check("call-site-neg-must-selected-consume-is-application-refinement",
+          r["class"] == APPLICATION_REFINEMENT, r)
+
+    # hostile: the two possible selected-cell/lowered mismatches -- selected
+    # No (which #175 lowers to Borrow) claiming Consume, and selected Must
+    # (which lowers to Consume) claiming Borrow. Neither is silently
+    # accepted as APPLICATION_REFINEMENT or folded into any other class.
+    r = classify_call_site(_cs(selection="pos",
+                              selection_license={"kind": "bool_const", "value": True},
+                              lowered="consume"))
+    _check("call-site-hostile-selected-no-lowered-consume-is-unclassified",
+          r["class"] == UNCLASSIFIED, r)
+    r = classify_call_site(_cs(selection="neg",
+                              selection_license={"kind": "bool_const", "value": False},
+                              lowered="borrow"))
+    _check("call-site-hostile-selected-must-lowered-borrow-is-unclassified",
+          r["class"] == UNCLASSIFIED, r)
+
+    # hostile: a pos/neg selection with no selection_license at all, or a
+    # structurally invalid one (missing `kind`), is REFUSED (raises), never
+    # silently classified either way -- the schema-level check, not the
+    # classifier's own priority logic, catches this.
+    try:
+        classify_call_site(_cs(selection="pos", lowered="borrow"))
+        _check("call-site-hostile-selection-without-license-is-refused", False, "did not raise")
+    except WitnessError:
+        _check("call-site-hostile-selection-without-license-is-refused", True)
+    try:
+        classify_call_site(_cs(selection="pos", selection_license={"value": True},
+                              lowered="borrow"))
+        _check("call-site-hostile-invalid-license-is-refused", False, "did not raise")
+    except WitnessError:
+        _check("call-site-hostile-invalid-license-is-refused", True)
 
     # hostile: uncond guarded shape at the call site -- nothing conditional
     # to recover.

@@ -54,27 +54,35 @@ VERDICT movement directly, AND the instrument must already know where a real
 capture would deliver that witness from, before T_B is named, or naming T_B
 now would freeze a thermometer with no wire yet attached.
 
-Capture transport (schema `p037-verdict-snapshot/4`; chosen over the other
-two candidates in `docs/evidence/p037-b-epoch.json`'s own amendment entry):
-a real future producer attaches ONE optional SARIF `properties` key,
-`p037_call_site_witness: {"version": 1, "witness": <CALL_SITE_WITNESS>}`, to
-the one SARIF *result* whose location is the witness's own call site --
+Capture transport (schema `p037-verdict-snapshot/5`; superseding schema `/4`'s
+per-result design -- see `docs/evidence/p037-b-epoch.json`'s
+`ch3_8_run_level_supersession` entry for the full falsification-and-
+supersession account, and this repository's PoC report for the measured
+proof this transport survives it): a real future producer attaches ONE
+`properties` key on the RUN, `p037_call_site_witnesses` (plural), a plain
+array of `<CALL_SITE_WITNESS>` objects -- never wrapped in a per-item
+version envelope, since the whole SNAPSHOT is versioned by `SCHEMA` above.
 `run_one()`'s SARIF parsing (factored into `_parse_sarif_doc()`, directly
 testable on a hand-built SARIF document, never only through the subprocess)
-already reads this key on EVERY result, TODAY, validates it via
+reads this key on EVERY run, TODAY, validates each array entry via
 `clf.check_call_site_witness()`, and stores whatever verified list results as
 `snap["files"][rel]["call_site_witnesses"]` -- a STANDARD field of every
 snapshot from this schema on, `[]` where no producer populates it (every
 snapshot today; the real B2.1b/c-R1 producer does not exist yet, see
 p037_b_classifier.py's own docstring point 5). Fail-closed, pinned by
-selftest(): absent key, wrong/missing `version`, or a witness failing
-`check_call_site_witness()` all degrade to "no witness for this result",
-never a crash and never a guessed witness. Preregistered, not implemented:
-`rust/crates/own-bridge/src/verdict.rs`'s `Finding` (no call-site/callee/
-guarded/lowered field today) and `src/render.rs`'s `Properties` (a closed,
-4-field struct, no generic bag) are BOTH frozen files today -- populating
-this key for real requires a SEPARATE, later boundary amendment authorizing
-both as treatment-mutable, which this task does not perform or assume.
+selftest(): a missing/non-list key, or an array entry failing
+`check_call_site_witness()`, degrades that ONE entry to absent, never a
+crash and never a guessed witness, and never poisons the other entries in
+the same array. Representable even when `run["results"] == []` -- the exact
+shape schema `/4`'s per-result carrier could not express (AR2). Schema `/4`'s
+OLD per-result reader is REMOVED, not kept as a silent second accepted
+transport: no governed R_B was ever taken against it (T_B/R_B have stayed
+unretaken through this whole amendment arc), so there is no real backward-
+compatibility need, and one transport is safer than two. Preregistered, not
+implemented: `rust/crates/own-bridge/src/verdict.rs`/`src/render.rs`'s exact
+new items are authorized as mutable by `production_diff_gate.rust`
+(CH3-8's own item set; see that record's own supersession note) -- this
+task does not implement the producer or assume its existence.
 
 A witness is NEVER trusted at face value, and neither is a CLAIMED
 correlation to a diagnostic key -- a structurally valid witness must not be
@@ -118,10 +126,11 @@ import p037_evidence as ev
 import p037_evidence_b
 
 ROOT = Path(__file__).resolve().parent.parent
-SCHEMA = "p037-verdict-snapshot/4"
+SCHEMA = "p037-verdict-snapshot/5"
 VERDICT_LEVELS = ("error", "warning")
-CALL_SITE_WITNESS_PROPERTY = "p037_call_site_witness"
-CALL_SITE_WITNESS_VERSION = 1
+# CH3-8: run-level, plural -- schema /4's per-result singular
+# `p037_call_site_witness` is retired with it (see module docstring).
+RUN_LEVEL_WITNESS_PROPERTY = "p037_call_site_witnesses"
 # Epoch is explicit and required -- same precedent this module's own
 # docstring already states for ENGINE, extended to epoch selection (P-037
 # Phase B: never an implicit "current epoch", branch-name inference or a
@@ -132,29 +141,35 @@ CALL_SITE_WITNESS_VERSION = 1
 EPOCH_MODULES: dict[str, Any] = {"a2d": ev, "b": p037_evidence_b}
 
 
-def _extract_call_site_witness(res: dict[str, Any]) -> dict[str, Any] | None:
-    """One SARIF result's own `properties.p037_call_site_witness`, if
-    present and well-formed -- fail-closed (item D): absent, the wrong
-    `version`, a non-object payload, or a witness `check_call_site_witness()`
-    itself refuses all degrade to `None` (no witness for this result), never
-    a crash and never a guessed witness. No production emitter populates
-    this key yet (see this module's own docstring) -- every real SARIF
-    result today lacks `properties` entirely, or lacks this key within it,
-    so this function returns `None` for all of them, unconditionally."""
-    props = res.get("properties")
+def _extract_run_level_witnesses(run: dict[str, Any]) -> list[dict[str, Any]]:
+    """One SARIF run's own `properties.p037_call_site_witnesses[]`, filtered
+    to well-formed entries -- fail-closed (item D, ported to the run-level
+    carrier): a missing key, a non-list payload, a non-object array entry,
+    or an entry `check_call_site_witness()` itself refuses is DROPPED (that
+    ONE witness is absent), never a crash, never a guessed witness, and
+    never poisons the other witnesses in the same array. Representable even
+    when `run["results"] == []` -- the exact shape schema `/4`'s per-result
+    carrier could not express (AR2; see module docstring). No production
+    emitter populates this key yet (see this module's own docstring) --
+    every real SARIF run today lacks `properties` entirely, or lacks this
+    key within it, so this function returns `[]` for all of them,
+    unconditionally."""
+    props = run.get("properties")
     if not isinstance(props, dict):
-        return None
-    payload = props.get(CALL_SITE_WITNESS_PROPERTY)
-    if not isinstance(payload, dict) or payload.get("version") != CALL_SITE_WITNESS_VERSION:
-        return None
-    witness = payload.get("witness")
-    if not isinstance(witness, dict):
-        return None
-    try:
-        clf.check_call_site_witness(witness)
-    except clf.WitnessError:
-        return None
-    return witness
+        return []
+    raw = props.get(RUN_LEVEL_WITNESS_PROPERTY)
+    if not isinstance(raw, list):
+        return []
+    witnesses: list[dict[str, Any]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        try:
+            clf.check_call_site_witness(item)
+        except clf.WitnessError:
+            continue
+        witnesses.append(item)
+    return witnesses
 
 
 def _parse_sarif_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -178,9 +193,7 @@ def _parse_sarif_doc(doc: dict[str, Any]) -> tuple[list[dict[str, Any]], list[di
                 "line": region.get("startLine", 0),
                 "message": (res.get("message") or {}).get("text", ""),
             })
-            witness = _extract_call_site_witness(res)
-            if witness is not None:
-                witnesses.append(witness)
+        witnesses.extend(_extract_run_level_witnesses(run))
     findings.sort(key=lambda f: (f["line"], f["code"], f["level"]))
     return findings, witnesses
 
@@ -378,16 +391,51 @@ def verify(path: Path, against: str) -> int:
     return 0
 
 
-_AFTER_ANCHOR_CODE: dict[str, tuple[str, str] | None] = {
-    # lowered -> (code, sarif level) the AFTER snapshot must independently
-    # show at the witness's own site.line for that lowering, or None if this
-    # lowering has no fixed, derivable signature (own-cli's own, already-
-    # frozen OWN051 message format is the only one this module knows how to
-    # check without inventing a second reading of "consume"/"borrow").
-    "plain": ("OWN051", "note"),
+_AFTER_ANCHOR: dict[str, tuple[str, str, str, bool] | None] = {
+    # lowered -> (code, sarif level, anchor point, must_contain_callee) the
+    # AFTER snapshot must independently show for that lowering, or None if
+    # this lowering has no fixed, derivable ADDED-side signature.
+    #
+    # The anchor point is NOT the same coordinate for every lowering,
+    # checked against real captured text, not assumed by analogy: "site" is
+    # the call site itself (`witness.site.line` -- U1's own measured
+    # OWN051, which own-cli anchors at the call); "acquire" is the
+    # resource's OWN acquire site (`witness.resource_acquire_site.line` --
+    # AR1's own measured OWN001, which own-cli anchors where the resource
+    # was created, e.g. `var s = File.OpenRead(...)`, not where it was
+    # passed to the guarded callee). An "acquire"-anchored lowering with no
+    # `resource_acquire_site` at all has no line to check and cannot be
+    # explained this way -- not a skipped check, there is genuinely nothing
+    # to anchor to.
+    #
+    # must_contain_callee is ALSO not uniform, checked against real
+    # captured text, not assumed: U1's own OWN051 message names both the
+    # callee and the resource ("cannot verify whether 'ShapeU1.Inner' takes
+    # ownership of 's'..."), but AR1's own OWN001 message names ONLY the
+    # resource ("IDisposable local 's' is never disposed (leak)...") -- a
+    # generic local-leak diagnostic that does not know or care which
+    # downstream call (mis)handled it. Requiring the callee in `borrow`'s
+    # own match would make a REAL, correctly-measured AR1 movement
+    # unmatchable, which is exactly the kind of assumed-not-measured defect
+    # this whole file's own discipline exists to catch.
+    "plain": ("OWN051", "note", "site", True),
+    "borrow": ("OWN001", "error", "acquire", False),
+    # "consume": no measured before/after shape exists for a consume-lowered
+    # call site yet (AR1/AR2 both measured a Borrow selection) -- left
+    # unmapped rather than invented; see _verify_call_site_witness's own
+    # docstring and item 12's own closing rule (UNCLASSIFIED, not a guess,
+    # until a real measurement extends this).
     "consume": None,
-    "borrow": None,
 }
+
+# CH3-8: AR2's own measured shape -- a REMOVED explanation, for a lowering
+# whose AFTER-added anchor above does not correlate at all (e.g. because the
+# correct Borrow selection removed a fabricated double-dispose rather than
+# adding a leak: AR2's own `results == []`). Bounded to exactly this one
+# measured lowering, never a second, invented "any code disappears" rule --
+# extending it to "consume" needs its own measurement first, the same
+# discipline `_AFTER_ANCHOR` above already states.
+_BEFORE_REMOVED_LOWERINGS: frozenset[str] = frozenset({"borrow"})
 
 
 def _finding_at(rec: dict[str, Any], line: int, code: str, level: str,
@@ -430,18 +478,42 @@ def _verify_call_site_witness(
     """Independently verifies one call-site witness against the REAL
     before/after records for the SAME file -- never trusts a claimed
     correlation (see module docstring: observation binding, not permission
-    naming). Returns `None` (explains nothing) unless ALL of: the witness is
-    schema-valid; it classifies into a CLOSED class; the AFTER record
-    carries the signature `lowered` derives (today only `plain` ->
-    `OWN051`/`note`) at EXACTLY `witness.site.line`, with a message
-    containing both `callee` and `resource_name`; and, if
-    `resource_acquire_site` is given, the BEFORE record carries SOME
-    finding at that exact line whose message contains `resource_name` (a
-    given, uncorrelatable acquire site is a hard failure, not a skipped
-    check -- item D's fail-closed rule). On success, returns the single
-    derived `after_key` and the single derived `before_key` (or `None` if no
-    acquire site was claimed) plus the classification -- never a witness-
-    supplied key of any kind."""
+    naming). Returns `None` (explains nothing) unless the witness is
+    schema-valid, it classifies into a CLOSED class, AND one of two
+    independently-observed shapes holds:
+
+    ADDED (every lowering with an `_AFTER_ANCHOR` entry -- today `plain`
+    and, since CH3-8, `borrow`/AR1's own measured shape): the AFTER record
+    carries that lowering's fixed signature, at the coordinate `_AFTER_
+    ANCHOR` names for it (`site.line` for `plain`; `resource_acquire_site.
+    line` for `borrow` -- checked against real captured text, NOT the same
+    coordinate for both: own-cli anchors OWN051 at the call and OWN001 at
+    the resource's own acquire site), with a message containing both
+    `callee` and `resource_name`. For a `site`-anchored lowering ONLY, if
+    `resource_acquire_site` is ALSO given, the BEFORE record must
+    independently correlate too -- a claimed acquire site that does not
+    correlate is a hard failure, never a skipped check (item D's fail-closed
+    rule); an `acquire`-anchored lowering has no SEPARATE before-side
+    correlation to demand on top of its own anchor (AR1's own measured
+    shape has no before-side finding at all -- it is a genuinely NEW leak,
+    not a movement with two sides).
+
+    REMOVED (CH3-8, bounded to `_BEFORE_REMOVED_LOWERINGS` -- today only
+    `borrow`/AR2's own measured shape, the AR2 kill-gate itself: a run-level
+    witness can exist with NO after-side finding at all, `run["results"] ==
+    []`): only tried when ADDED does not correlate, and only when
+    `resource_acquire_site` is given -- the BEFORE record must carry SOME
+    finding at that exact line whose message contains `resource_name`
+    (broad, uncoded, the SAME `_finding_containing_at_line` the ADDED
+    branch's own acquire-site check already uses -- never a witness-claimed
+    code). A witness satisfying NEITHER shape explains nothing: UNCLASSIFIED
+    is the correct outcome for a real future movement outside these two
+    measured signatures, not an invitation to widen this function in
+    advance (item 12's own closing rule).
+
+    On success, returns the single derived `after_key` and/or `before_key`
+    (never both `None`, never a witness-supplied key of any kind) plus the
+    classification."""
     try:
         clf.check_call_site_witness(witness)
     except clf.WitnessError:
@@ -449,24 +521,39 @@ def _verify_call_site_witness(
     classification = clf.classify_call_site(witness)
     if classification["class"] not in clf.CLOSED_CLASSES:
         return None
-    anchor = _AFTER_ANCHOR_CODE.get(witness["lowered"])
-    if anchor is None:
-        return None
-    code, sarif_level = anchor
+    lowered = witness["lowered"]
     site = witness["site"]
-    after_key = _finding_at(after_rec, site["line"], code, sarif_level,
-                            (witness["callee"], witness["resource_name"]))
-    if after_key is None:
-        return None
-    before_key = None
     acquire = witness.get("resource_acquire_site")
-    if acquire is not None:
+
+    after_key = None
+    anchor = _AFTER_ANCHOR.get(lowered)
+    if anchor is not None:
+        code, sarif_level, anchor_point, must_contain_callee = anchor
+        anchor_line = site["line"] if anchor_point == "site" else (
+            acquire["line"] if acquire is not None else None)
+        if anchor_line is not None:
+            must_contain = ((witness["callee"], witness["resource_name"]) if must_contain_callee
+                           else (witness["resource_name"],))
+            after_key = _finding_at(after_rec, anchor_line, code, sarif_level, must_contain)
+
+    if after_key is not None:
+        if anchor is not None and anchor[2] == "site" and acquire is not None:
+            before_key = _finding_containing_at_line(before_rec, acquire["line"],
+                                                      (witness["resource_name"],))
+            if before_key is None:
+                return None  # a claimed acquire site that does not correlate is a hard failure
+            return {"witness": witness, "classification": classification,
+                   "before_key": before_key, "after_key": after_key}
+        return {"witness": witness, "classification": classification,
+               "before_key": None, "after_key": after_key}
+
+    if lowered in _BEFORE_REMOVED_LOWERINGS and acquire is not None:
         before_key = _finding_containing_at_line(before_rec, acquire["line"],
                                                   (witness["resource_name"],))
-        if before_key is None:
-            return None  # a claimed acquire site that does not correlate is a hard failure
-    return {"witness": witness, "classification": classification,
-           "before_key": before_key, "after_key": after_key}
+        if before_key is not None:
+            return {"witness": witness, "classification": classification,
+                   "before_key": before_key, "after_key": None}
+    return None
 
 
 def compare(before: Path, after: Path, level: str, against: str) -> int:
@@ -583,41 +670,48 @@ _U1_AFTER_MESSAGE = ("cannot verify whether 'ShapeU1.Inner' takes ownership of '
                     "— 's' is not checked past this call [resource: ownership transfer]")
 
 
-def _sarif_doc(results: list[dict[str, Any]]) -> dict[str, Any]:
-    return {"runs": [{"results": results}]}
+def _sarif_doc(results: list[dict[str, Any]], *,
+              witnesses: list[Any] | None = None,
+              witnesses_present: bool = True) -> dict[str, Any]:
+    """One SARIF run with `results` and, since CH3-8, the RUN-level
+    `properties.p037_call_site_witnesses[]` -- `witnesses_present=False`
+    reproduces a run with no properties bag at all (item D.1's own shape,
+    every real SARIF document before a producer exists); `witnesses=None`
+    with `witnesses_present=True` reproduces the property present but
+    empty (every real snapshot today, once a producer exists but this file
+    has no guarded call site)."""
+    run: dict[str, Any] = {"results": results}
+    if witnesses_present:
+        run["properties"] = {RUN_LEVEL_WITNESS_PROPERTY: witnesses if witnesses is not None else []}
+    return {"runs": [run]}
 
 
-def _sarif_result(line: int, code: str, level: str, message: str,
-                  witness: dict[str, Any] | None = None,
-                  witness_version: int = CALL_SITE_WITNESS_VERSION) -> dict[str, Any]:
-    res: dict[str, Any] = {
+def _sarif_result(line: int, code: str, level: str, message: str) -> dict[str, Any]:
+    return {
         "ruleId": code, "level": level, "message": {"text": message},
         "locations": [{"physicalLocation": {"region": {"startLine": line}}}],
     }
-    if witness is not None:
-        res["properties"] = {
-            CALL_SITE_WITNESS_PROPERTY: {"version": witness_version, "witness": witness},
-        }
-    return res
 
 
 def _u1_before_rec() -> dict[str, Any]:
     findings, witnesses = _parse_sarif_doc(_sarif_doc(
-        [_sarif_result(14, "OWN001", "warning", _U1_BEFORE_MESSAGE)]))
+        [_sarif_result(14, "OWN001", "warning", _U1_BEFORE_MESSAGE)], witnesses_present=False))
     return {"exit": 1, "findings": findings, "call_site_witnesses": witnesses}
 
 
 def _u1_after_rec(**overrides: Any) -> dict[str, Any]:
-    """The real, future-shaped AFTER capture: one SARIF result (the real
-    OWN051) carrying the properties-bag witness, parsed through the REAL
-    `_parse_sarif_doc()` -- never a hand-built `call_site_witnesses` list."""
+    """The real, future-shaped AFTER capture: a SARIF run (the real OWN051
+    result, `results` possibly empty per AR2's own measured shape) carrying
+    the RUN-level witness array, parsed through the REAL `_parse_sarif_doc()`
+    -- never a hand-built `call_site_witnesses` list."""
     witness = {**_U1_WITNESS, **overrides.pop("witness_overrides", {})}
     extra_results = overrides.pop("extra_results", [])
-    findings, witnesses = _parse_sarif_doc(_sarif_doc([
-        _sarif_result(16, "OWN051", "note", _U1_AFTER_MESSAGE, witness=witness,
-                     **overrides),
-        *extra_results,
-    ]))
+    extra_witnesses = overrides.pop("extra_witnesses", [])
+    base_results = overrides.pop(
+        "results", [_sarif_result(16, "OWN051", "note", _U1_AFTER_MESSAGE)])
+    findings, witnesses = _parse_sarif_doc(_sarif_doc(
+        [*base_results, *extra_results],
+        witnesses=[witness, *extra_witnesses]))
     return {"exit": 0, "findings": findings, "call_site_witnesses": witnesses}
 
 
@@ -644,20 +738,37 @@ def selftest() -> int:
     _vfail(failures, "e2e-derives-the-real-before-key",
           v is not None and v["before_key"] == (14, "OWN001", "warning"), v)
 
-    # item D.1 -- absent witness: an AFTER record with no properties bag at
-    # all carries no witnesses, exactly today's every real snapshot.
-    plain_after = {"exit": 0, "findings": [{"line": 16, "code": "OWN051", "level": "note",
-                                           "message": _U1_AFTER_MESSAGE}],
-                  "call_site_witnesses": []}
-    _vfail(failures, "absent-witness-list-is-empty",
-          plain_after["call_site_witnesses"] == [])
+    # item D.1 -- absent witness: an AFTER run with no properties bag at
+    # all carries no witnesses, exactly today's every real snapshot, through
+    # the REAL _parse_sarif_doc() path (never a hand-built list).
+    _, no_props_witnesses = _parse_sarif_doc(_sarif_doc(
+        [_sarif_result(16, "OWN051", "note", _U1_AFTER_MESSAGE)], witnesses_present=False))
+    _vfail(failures, "absent-properties-bag-is-empty", no_props_witnesses == [])
 
-    # item D.2 -- malformed witness (fails check_call_site_witness): parsed
-    # out during _parse_sarif_doc itself, never reaches verification at all.
-    malformed = _sarif_doc([_sarif_result(16, "OWN051", "note", _U1_AFTER_MESSAGE,
-                                          witness={"not": "a real witness"})])
+    # item D.1b (CH3-8) -- the property present but empty: the exact shape
+    # AR1/AR2's own hostile-plain control measured for a file with no
+    # guarded call site at all (results present, zero witnesses).
+    _, empty_prop_witnesses = _parse_sarif_doc(_sarif_doc(
+        [_sarif_result(16, "OWN051", "note", _U1_AFTER_MESSAGE)], witnesses=[]))
+    _vfail(failures, "empty-witnesses-property-is-empty", empty_prop_witnesses == [])
+
+    # item D.1c (CH3-8) -- a non-list property value (e.g. the old schema/4
+    # shape's own singular object, or any other malformed payload) is
+    # treated as absent, not guessed or partially read.
+    _, non_list_witnesses = _parse_sarif_doc({"runs": [{
+        "results": [_sarif_result(16, "OWN051", "note", _U1_AFTER_MESSAGE)],
+        "properties": {RUN_LEVEL_WITNESS_PROPERTY: {"version": 1, "witness": _U1_WITNESS}},
+    }]})
+    _vfail(failures, "non-list-witnesses-property-fails-closed", non_list_witnesses == [])
+
+    # item D.2 -- malformed witness (fails check_call_site_witness): DROPPED
+    # during _parse_sarif_doc itself, never reaches verification at all, and
+    # never poisons a well-formed witness in the SAME array.
+    malformed = _sarif_doc([_sarif_result(16, "OWN051", "note", _U1_AFTER_MESSAGE)],
+                           witnesses=[{"not": "a real witness"}, _U1_WITNESS])
     _, malformed_witnesses = _parse_sarif_doc(malformed)
-    _vfail(failures, "malformed-witness-never-parsed-out", malformed_witnesses == [])
+    _vfail(failures, "malformed-witness-never-parsed-out-others-survive",
+          malformed_witnesses == [_U1_WITNESS], malformed_witnesses)
 
     # item D.3 -- cannot be correlated uniquely: resource_acquire_site is
     # given but the BEFORE record has nothing at that line mentioning the
@@ -667,13 +778,6 @@ def selftest() -> int:
         after["call_site_witnesses"][0], uncorrelated_before, after)
     _vfail(failures, "uncorrelatable-acquire-site-fails-closed", v_uncorrelated is None,
           v_uncorrelated)
-
-    # item D.4 -- unsupported producer/output version: version 2 (this
-    # module only understands version 1) is treated as absent, not guessed.
-    unsupported = _sarif_doc([_sarif_result(16, "OWN051", "note", _U1_AFTER_MESSAGE,
-                                            witness=_U1_WITNESS, witness_version=2)])
-    _, unsupported_witnesses = _parse_sarif_doc(unsupported)
-    _vfail(failures, "unsupported-version-fails-closed", unsupported_witnesses == [])
 
     # an UNCLASSIFIED witness (uncond shape) explains nothing even though
     # the real AFTER message still matches -- classify_call_site() itself
@@ -744,6 +848,137 @@ def selftest() -> int:
         "call_site_witnesses": [_U1_WITNESS]}
     v_cross = _verify_call_site_witness(_U1_WITNESS, before, cross_file_after)
     _vfail(failures, "hostile-cross-file-substitution-fails-closed", v_cross is None, v_cross)
+
+    # --- CH3-8: AR1/AR2's own measured shapes, through the SAME real
+    # _parse_sarif_doc()/_verify_call_site_witness() path U1 used above --
+    # never hand-injected witnesses. Message text is REAL, previously
+    # measured against the held R1 treatment (AR1) and against d69a6ed, the
+    # pre-B2.1a commit (AR2's own state-A false positive) -- reproduced
+    # verbatim, not invented prose, the same discipline _U1_BEFORE_MESSAGE/
+    # _U1_AFTER_MESSAGE already state. ---
+    _AR1_WITNESS: dict[str, Any] = {
+        "kind": "call_site", "callee": "ShapeAR1.Inner", "callee_param": 0,
+        "site": {"file": "case.cs", "line": 16, "column": 9},
+        "resource_name": "s", "resource_acquire_site": {"line": 14},
+        "guarded": {"shape": "split", "finalized_cells": {"pos": "no", "neg": "must"},
+                   "collapsed": "may"},
+        "selection": "pos", "selection_license": {"kind": "bool_const", "value": True},
+        "lowered": "borrow",
+    }
+    _AR1_AFTER_MESSAGE = "IDisposable local 's' is never disposed (leak) [resource: disposable]"
+    ar1_before: dict[str, Any] = {"exit": 0, "findings": [], "call_site_witnesses": []}
+    ar1_findings, ar1_witnesses = _parse_sarif_doc(_sarif_doc(
+        [_sarif_result(14, "OWN001", "error", _AR1_AFTER_MESSAGE)], witnesses=[_AR1_WITNESS]))
+    ar1_after: dict[str, Any] = {
+        "exit": 1, "findings": ar1_findings, "call_site_witnesses": ar1_witnesses}
+    _vfail(failures, "run-level-ar1-witness-is-extracted-even-with-a-real-result-present",
+          len(ar1_after["call_site_witnesses"]) == 1, ar1_after)
+    v_ar1 = _verify_call_site_witness(ar1_after["call_site_witnesses"][0], ar1_before, ar1_after)
+    _vfail(failures, "run-level-ar1-is-application-refinement-explaining-real-own001-addition",
+          v_ar1 is not None and v_ar1["classification"]["class"] == clf.APPLICATION_REFINEMENT
+          and v_ar1["after_key"] == (14, "OWN001", "error") and v_ar1["before_key"] is None,
+          v_ar1)
+
+    _AR2_WITNESS: dict[str, Any] = {
+        "kind": "call_site", "callee": "ShapeAR2.Inner", "callee_param": 0,
+        "site": {"file": "case.cs", "line": 15, "column": 9},
+        "resource_name": "s", "resource_acquire_site": {"line": 14},
+        "guarded": {"shape": "split", "finalized_cells": {"pos": "no", "neg": "must"},
+                   "collapsed": "may"},
+        "selection": "pos", "selection_license": {"kind": "bool_const", "value": True},
+        "lowered": "borrow",
+    }
+    _AR2_BEFORE_MESSAGE = "IDisposable local 's' is disposed more than once [resource: disposable]"
+    ar2_before_findings, _ = _parse_sarif_doc(_sarif_doc(
+        [_sarif_result(14, "OWN003", "error", _AR2_BEFORE_MESSAGE)], witnesses_present=False))
+    ar2_before: dict[str, Any] = {
+        "exit": 1, "findings": ar2_before_findings, "call_site_witnesses": []}
+    # AR2's own kill-gate shape: `results == []`, the exact document the
+    # per-result-only schema/4 transport could not carry a witness on at
+    # all -- the run-level property is still present and non-empty.
+    ar2_after_findings, ar2_after_witnesses = _parse_sarif_doc(_sarif_doc(
+        [], witnesses=[_AR2_WITNESS]))
+    ar2_after: dict[str, Any] = {
+        "exit": 0, "findings": ar2_after_findings,
+        "call_site_witnesses": ar2_after_witnesses}
+    _vfail(failures, "run-level-ar2-witness-survives-an-empty-results-array",
+          ar2_after["findings"] == [] and len(ar2_after["call_site_witnesses"]) == 1, ar2_after)
+    v_ar2 = _verify_call_site_witness(ar2_after["call_site_witnesses"][0], ar2_before, ar2_after)
+    _vfail(failures, "run-level-ar2-is-application-refinement-explaining-real-own003-removal",
+          v_ar2 is not None and v_ar2["classification"]["class"] == clf.APPLICATION_REFINEMENT
+          and v_ar2["before_key"] == (14, "OWN003", "error") and v_ar2["after_key"] is None,
+          v_ar2)
+
+    # hostile (AR-shaped): witness absent entirely -- an empty run-level
+    # array explains nothing, even against the identical before/after pair.
+    _ar2_no_witness_findings, ar2_no_witness = _parse_sarif_doc(_sarif_doc([], witnesses=[]))
+    _vfail(failures, "hostile-ar-witness-absent-is-unexplained", ar2_no_witness == [])
+
+    # hostile (AR-shaped): a malformed run-level witness (fails
+    # check_call_site_witness) is dropped during parsing, never reaches
+    # verification, and does not resurrect AR2's own real removal either.
+    _ar2_malformed_findings, ar2_malformed_witnesses = _parse_sarif_doc(_sarif_doc(
+        [], witnesses=[{"kind": "call_site", "site": {"file": "x", "line": 1, "column": 1}}]))
+    _vfail(failures, "hostile-ar-malformed-run-level-witness-is-dropped",
+          ar2_malformed_witnesses == [])
+
+    # hostile (AR-shaped): an invalid selection_license (missing `kind`) is
+    # refused at the schema level, never silently classified either way.
+    ar1_bad_license = {**_AR1_WITNESS, "selection_license": {"value": True}}
+    try:
+        clf.check_call_site_witness(ar1_bad_license)
+        _vfail(failures, "hostile-ar-invalid-selection-license-is-refused", False,
+              "did not raise")
+    except clf.WitnessError:
+        _vfail(failures, "hostile-ar-invalid-selection-license-is-refused", True)
+
+    # hostile (AR-shaped): the selected-cell/lowered mismatch -- classify_
+    # call_site() itself rejects this (own tests in p037_b_classifier.py),
+    # so _verify_call_site_witness must also explain nothing for it, end to
+    # end, through the real SARIF-document path.
+    ar1_mismatched = {**_AR1_WITNESS, "lowered": "consume"}
+    v_ar1_mismatch = _verify_call_site_witness(ar1_mismatched, ar1_before, ar1_after)
+    _vfail(failures, "hostile-ar-selected-cell-lowered-mismatch-is-unexplained",
+          v_ar1_mismatch is None, v_ar1_mismatch)
+
+    # hostile (AR-shaped): a same-resource-looking diagnostic in ANOTHER
+    # file must not correlate -- _finding_at/_finding_containing_at_line
+    # never cross files (each before/after record is already one file's
+    # own capture; simulated here as a before record whose own message
+    # happens to share the resource name but is a different file's finding
+    # in spirit, at a DIFFERENT line than the witness's own acquire site).
+    ar2_other_file_before = {"exit": 1,
+        "findings": [{"line": 99, "code": "OWN003", "level": "error",
+                     "message": "IDisposable local 's' is disposed more than once "
+                               "[resource: disposable]"}],
+        "call_site_witnesses": []}
+    v_ar2_other_file = _verify_call_site_witness(
+        ar2_after["call_site_witnesses"][0], ar2_other_file_before, ar2_after)
+    _vfail(failures, "hostile-ar-same-resource-wrong-line-stays-unexplained",
+          v_ar2_other_file is None, v_ar2_other_file)
+
+    # hostile (AR-shaped): extra unrelated movement alongside a valid
+    # classified one -- compare()'s own set arithmetic (simulated directly,
+    # the same pattern hostile-e2/e3 above already use) must still call the
+    # OTHER key unexplained even though AR1's own key IS explained.
+    ar1_after_plus_unrelated: dict[str, Any] = {
+        "exit": 1,
+        "findings": [*ar1_after["findings"],
+                    {"line": 50, "code": "OWN002", "level": "warning",
+                     "message": "an unrelated finding elsewhere in the same file"}],
+        "call_site_witnesses": ar1_after["call_site_witnesses"],
+    }
+    added_ar1_plus = {(14, "OWN001", "error"), (50, "OWN002", "warning")}
+    verified_ar1_plus = [
+        r for w in ar1_after_plus_unrelated["call_site_witnesses"]
+        if (r := _verify_call_site_witness(w, ar1_before, ar1_after_plus_unrelated))
+    ]
+    explained_ar1_plus = ({r["after_key"] for r in verified_ar1_plus if r["after_key"]}
+                          & added_ar1_plus)
+    unexplained_ar1_plus = added_ar1_plus - explained_ar1_plus
+    _vfail(failures, "hostile-ar-extra-unrelated-movement-stays-unexplained-overall",
+          explained_ar1_plus == {(14, "OWN001", "error")}
+          and unexplained_ar1_plus == {(50, "OWN002", "warning")}, unexplained_ar1_plus)
 
     if failures:
         print(f"RESULT: {len(failures)} check(s) failed")

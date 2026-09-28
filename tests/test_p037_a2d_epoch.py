@@ -125,6 +125,14 @@ DOCS_GENERATED_ADJUDICATED = (
 # every entry above it: Phase-B project documentation landing in the
 # commit that actually commits it, touching no `ownlang`/`rust/crates/
 # own-ir`/`spec` treatment.
+#
+# CH3-8 (docs(p037): govern run-level call-site evidence) adds
+# `scripts/p037_b_cli_diff_gate.py`: the item-granular production-diff gate
+# for the new own-cli seam (rust/crates/own-cli/src/ownir.rs's fn check/fn
+# display) the run-level SARIF call-site-witness transport needs on the
+# own-cli side. Same family, same reasoning as every entry above it:
+# Phase-B audit/measurement tooling landing in the commit that defines it,
+# touching no `ownlang`/`rust/crates/own-ir`/`spec` treatment.
 PHASE_B_GOVERNANCE_FILES = (
     "docs/evidence/p037-b-epoch.json",
     "docs/evidence/p037-b-ledger-assumptions.json",
@@ -138,6 +146,7 @@ PHASE_B_GOVERNANCE_FILES = (
     "scripts/p037_b_extractor_diff_gate.py",
     "scripts/p037_delegation_closure.py",
     "docs/proposals/P-037-guarded-effect-summaries.md",
+    "scripts/p037_b_cli_diff_gate.py",
 )
 #
 # R_B (the Phase-B baseline, taken at T_B) adds new docs/evidence/p037-b-
