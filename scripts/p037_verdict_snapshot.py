@@ -478,6 +478,20 @@ _BEFORE_REMOVED_ANCHOR: dict[str, tuple[str, str] | None] = {
 }
 
 
+def _quoted_identifier(value: str) -> str:
+    """The exact quoted-token form every frozen diagnostic template uses for
+    an identifier (own-cli's own OWN001/OWN003: `local '{name}'`; OWN051:
+    `'{callee}' takes ownership of '{arg}'`) -- R1-review of b31e7a0: a bare
+    `resource_name`/`callee` substring check is unsound for a real
+    single-letter resource (`"s"` is a substring of "disposed"/"resource"/
+    "disposable", so a message about a DIFFERENT resource can still contain
+    it) and for a prefix-sharing callee name (`ShapeU1.Inner` is a substring
+    of `ShapeU1.InnerExtra`). A C# identifier cannot itself contain `'`, so
+    the quoted token is a strictly stronger, still-substring, still
+    real-template-grounded boundary -- never a general prose parser."""
+    return f"'{value}'"
+
+
 def _finding_at(rec: dict[str, Any], line: int, code: str, level: str,
                 must_contain: tuple[str, ...]) -> tuple[int, str, str] | None:
     """The `(line, code, level)` key of a finding actually present in `rec`
@@ -524,16 +538,27 @@ def _verify_call_site_witness(
     `site.file` is the file actually being compared, AND one of two
     independently-observed shapes holds:
 
-    FILE IDENTITY (R1-review of 20b09c9): `witness["site"]["file"]` must
-    equal `expected_file` -- the snapshot's OWN per-file key (`rel`,
-    root-relative POSIX; `compare()` passes its own loop variable, never a
-    value read from own-cli's SARIF `artifactLocation.uri`, which is an
-    own-check.sh materialization-path artifact with no stable relationship
-    to `rel` at all, confirmed by a real scratch run, not assumed). Checked
-    BEFORE either shape below: a witness naming a different file must not
-    explain a movement in this one, however well every other field lines
-    up -- exact string equality, no basename or suffix matching invented
-    for a producer that does not exist yet.
+    FILE IDENTITY (R1-review of 20b09c9, corrected again by the review of
+    b31e7a0): `witness["site"]["file"]` must equal `expected_file` --
+    reconstructed by `compare()`, NEVER the snapshot's own bare per-file key
+    (`rel`) by itself. Mechanically derived from committed source, not a
+    future producer's choice: the frozen extractor's `Rel(path)` (Program.cs)
+    is `Path.GetRelativePath(Directory.GetCurrentDirectory(), path)`; `own-
+    check.sh` never changes directory; `run_one()` invokes it with
+    `cwd=ROOT` and an ABSOLUTE `path` under `ROOT/<materialization_root>/
+    <rel>` (`ev.materialize_population`/`analysis_paths`). So the one
+    spelling any OwnIR-derived `file` field (and, by the same construction,
+    a real future call-site witness's own `site.file`) can carry is
+    `<materialization_root>/<rel>`, exactly -- bare `rel` alone (what
+    b31e7a0 actually checked) is a DIFFERENT, shorter string a real witness
+    would never produce, confirmed by walking the actual path arithmetic,
+    not assumed by analogy to `compare()`'s own per-file loop key. own-cli's
+    SARIF `artifactLocation.uri` is a separate, own-check.sh-internal
+    materialization-path artifact (confirmed by a real scratch run) and is
+    never the source of `expected_file` either. Checked BEFORE either shape
+    below: a witness naming a different file must not explain a movement in
+    this one, however well every other field lines up -- exact string
+    equality, no basename or suffix matching.
 
     ADDED (every lowering with an `_AFTER_ANCHOR` entry -- today `plain`
     and, since CH3-8, `borrow`/AR1's own measured shape): the AFTER record
@@ -541,8 +566,13 @@ def _verify_call_site_witness(
     ANCHOR` names for it (`site.line` for `plain`; `resource_acquire_site.
     line` for `borrow` -- checked against real captured text, NOT the same
     coordinate for both: own-cli anchors OWN051 at the call and OWN001 at
-    the resource's own acquire site), with a message containing both
-    `callee` and `resource_name`. For a `site`-anchored lowering ONLY, if
+    the resource's own acquire site), with a message containing the
+    QUOTED-IDENTIFIER-TOKEN form (`_quoted_identifier()`, R1-review of
+    b31e7a0) of both `callee` and `resource_name` -- never a bare substring
+    check, which a real single-letter `resource_name` like AR1/AR2's own
+    "s" cannot survive (it is a substring of "disposed"/"resource"/
+    "disposable" regardless of which local the message actually names).
+    For a `site`-anchored lowering ONLY, if
     `resource_acquire_site` is ALSO given, the BEFORE record must
     independently correlate too -- a claimed acquire site that does not
     correlate is a hard failure, never a skipped check (item D's fail-closed
@@ -561,7 +591,9 @@ def _verify_call_site_witness(
     let an unrelated same-line same-resource diagnostic be silently
     legalized away by a witness that never actually explained it; now the
     same exact-match `_finding_at` the ADDED branch already uses) whose
-    message contains `resource_name`. A witness satisfying NEITHER shape
+    message contains `resource_name`'s own quoted-identifier-token form
+    (same `_quoted_identifier()`, same reasoning). A witness satisfying
+    NEITHER shape
     explains nothing: UNCLASSIFIED is the correct outcome for a real future
     movement outside these two measured signatures, not an invitation to
     widen this function in advance (item 12's own closing rule).
@@ -589,14 +621,15 @@ def _verify_call_site_witness(
         anchor_line = site["line"] if anchor_point == "site" else (
             acquire["line"] if acquire is not None else None)
         if anchor_line is not None:
-            must_contain = ((witness["callee"], witness["resource_name"]) if must_contain_callee
-                           else (witness["resource_name"],))
+            quoted_resource = _quoted_identifier(witness["resource_name"])
+            must_contain = ((_quoted_identifier(witness["callee"]), quoted_resource)
+                           if must_contain_callee else (quoted_resource,))
             after_key = _finding_at(after_rec, anchor_line, code, sarif_level, must_contain)
 
     if after_key is not None:
         if anchor is not None and anchor[2] == "site" and acquire is not None:
-            before_key = _finding_containing_at_line(before_rec, acquire["line"],
-                                                      (witness["resource_name"],))
+            before_key = _finding_containing_at_line(
+                before_rec, acquire["line"], (_quoted_identifier(witness["resource_name"]),))
             if before_key is None:
                 return None  # a claimed acquire site that does not correlate is a hard failure
             return {"witness": witness, "classification": classification,
@@ -608,7 +641,7 @@ def _verify_call_site_witness(
     if removed_anchor is not None and acquire is not None:
         code, sarif_level = removed_anchor
         before_key = _finding_at(before_rec, acquire["line"], code, sarif_level,
-                                 (witness["resource_name"],))
+                                 (_quoted_identifier(witness["resource_name"]),))
         if before_key is not None:
             return {"witness": witness, "classification": classification,
                    "before_key": before_key, "after_key": None}
@@ -629,6 +662,15 @@ def compare(before: Path, after: Path, level: str, against: str) -> int:
     if a["engine"] != b["engine"]:
         problems.append(f"engines differ ({a['engine']} vs {b['engine']}); a comparison "
                         "across engines measures the engine, not the change")
+    # R1-review of b31e7a0 (F2.5): witness file binding below reconstructs
+    # the producer's own path spelling from the AFTER snapshot's
+    # `materialization_root` -- fail closed on a missing/malformed value
+    # rather than silently falling back to a shorter, wrong string
+    # (`_snapshot_problems()` does not already check this field).
+    after_root = b.get("materialization_root")
+    if not isinstance(after_root, str) or not after_root:
+        problems.append("after: snapshot carries no materialization_root for witness "
+                        "file binding")
     if problems:
         for problem in problems:
             print(f"REFUSED: {problem}", file=sys.stderr)
@@ -648,9 +690,14 @@ def compare(before: Path, after: Path, level: str, against: str) -> int:
         if ka == kb and not exit_moved:
             continue
         removed, added = ka - kb, kb - ka
+        # R1-review of b31e7a0 (F2): the producer-native file spelling a real
+        # witness's own `site.file` would carry is `<materialization_root>/
+        # <rel>` (Program.cs's `Rel()` against `run_one()`'s own `cwd=ROOT`
+        # and absolute, materialized input path), never bare `rel` alone.
+        expected_witness_file = f"{after_root}/{rel}"
         verified = [v for w in (rb.get("call_site_witnesses") or [])
                    if isinstance(w, dict)
-                   and (v := _verify_call_site_witness(w, ra, rb, rel))]
+                   and (v := _verify_call_site_witness(w, ra, rb, expected_witness_file))]
         explained_removed = {v["before_key"] for v in verified if v["before_key"]} & removed
         explained_added = {v["after_key"] for v in verified if v["after_key"]} & added
         unexplained_removed = removed - explained_removed
@@ -713,9 +760,25 @@ def compare(before: Path, after: Path, level: str, against: str) -> int:
 # the parsing layer. This is the "closest directly-testable _measure/
 # run_one path" the pre-T_B closure gate asks for.
 
+# R1-review of b31e7a0 (F2): every test witness's `site.file` -- and every
+# direct `_verify_call_site_witness()` call's own `expected_file` argument --
+# now carries the REAL producer-native spelling `compare()` itself
+# reconstructs (`<materialization_root>/<rel>`), never a bare filename.
+# `_TEST_MATERIALIZATION_ROOT` is a realistic, clearly-synthetic stand-in for
+# `ev.materialization_root()`'s own shape (`.p037-population/<40-char
+# population commit>/<16-char digest prefix>`), fixed once here so every
+# fixture below composes it identically.
+_TEST_MATERIALIZATION_ROOT = (
+    ".p037-population/1111111111111111111111111111111111abcd/deadbeefcafebabe")
+
+
+def _witness_file(rel: str) -> str:
+    return f"{_TEST_MATERIALIZATION_ROOT}/{rel}"
+
+
 _U1_WITNESS: dict[str, Any] = {
     "kind": "call_site", "callee": "ShapeU1.Inner", "callee_param": 0,
-    "site": {"file": "U1.cs", "line": 16, "column": 9},
+    "site": {"file": _witness_file("U1.cs"), "line": 16, "column": 9},
     "resource_name": "s", "resource_acquire_site": {"line": 14},
     "guarded": {"shape": "split", "finalized_cells": {"pos": "no", "neg": "must"},
                "collapsed": "may"},
@@ -790,7 +853,8 @@ def selftest() -> int:
     _vfail(failures, "parse-sarif-doc-extracts-the-real-witness",
           len(after["call_site_witnesses"]) == 1, after)
 
-    v = _verify_call_site_witness(after["call_site_witnesses"][0], before, after, "U1.cs")
+    v = _verify_call_site_witness(after["call_site_witnesses"][0], before, after,
+                                  _witness_file("U1.cs"))
     _vfail(failures, "e2e-classifies-a-real-captured-witness",
           v is not None and v["classification"]["class"] == clf.CONDITIONALITY_HONESTY, v)
     _vfail(failures, "e2e-derives-the-real-after-key",
@@ -835,7 +899,7 @@ def selftest() -> int:
     # resource -- hard failure, not a skipped check.
     uncorrelated_before = {"exit": 0, "findings": [], "call_site_witnesses": []}
     v_uncorrelated = _verify_call_site_witness(
-        after["call_site_witnesses"][0], uncorrelated_before, after, "U1.cs")
+        after["call_site_witnesses"][0], uncorrelated_before, after, _witness_file("U1.cs"))
     _vfail(failures, "uncorrelatable-acquire-site-fails-closed", v_uncorrelated is None,
           v_uncorrelated)
 
@@ -846,7 +910,7 @@ def selftest() -> int:
         witness_overrides={"guarded": {"shape": "uncond", "finalized_cells": None,
                                       "collapsed": "may"}})
     v_uncond = _verify_call_site_witness(
-        uncond_after["call_site_witnesses"][0], before, uncond_after, "U1.cs")
+        uncond_after["call_site_witnesses"][0], before, uncond_after, _witness_file("U1.cs"))
     _vfail(failures, "uncond-witness-is-unclassified-and-explains-nothing", v_uncond is None,
           v_uncond)
 
@@ -866,7 +930,8 @@ def selftest() -> int:
         extra_results=[_sarif_result(99, "OWN002", "warning", "unrelated finding")])
     added = {(16, "OWN051", "note"), (99, "OWN002", "warning")}
     verified = [r for w in after_plus_unrelated_line["call_site_witnesses"]
-               if (r := _verify_call_site_witness(w, before, after_plus_unrelated_line, "U1.cs"))]
+               if (r := _verify_call_site_witness(
+                   w, before, after_plus_unrelated_line, _witness_file("U1.cs")))]
     explained_added = {r["after_key"] for r in verified if r["after_key"]} & added
     _vfail(failures, "hostile-e2-unrelated-diagnostic-another-line-stays-unexplained",
           explained_added == {(16, "OWN051", "note")}
@@ -879,7 +944,8 @@ def selftest() -> int:
         extra_results=[_sarif_result(16, "OWN999", "warning", "unrelated same-line finding")])
     added_same_line = {(16, "OWN051", "note"), (16, "OWN999", "warning")}
     verified_sl = [r for w in after_plus_same_line["call_site_witnesses"]
-                  if (r := _verify_call_site_witness(w, before, after_plus_same_line, "U1.cs"))]
+                  if (r := _verify_call_site_witness(
+                      w, before, after_plus_same_line, _witness_file("U1.cs")))]
     explained_sl = {r["after_key"] for r in verified_sl if r["after_key"]} & added_same_line
     _vfail(failures, "hostile-e3-unrelated-diagnostic-same-line-stays-unexplained",
           explained_sl == {(16, "OWN051", "note")}
@@ -894,7 +960,8 @@ def selftest() -> int:
         "findings": [{"line": 16, "code": "OWN002", "level": "warning",
                      "message": "an unrelated diagnostic that happens to share the line"}],
         "call_site_witnesses": [_U1_WITNESS]}
-    v_wrong_code = _verify_call_site_witness(_U1_WITNESS, before, after_wrong_code_at_site, "U1.cs")
+    v_wrong_code = _verify_call_site_witness(_U1_WITNESS, before, after_wrong_code_at_site,
+                                             _witness_file("U1.cs"))
     _vfail(failures, "hostile-e4-witness-cannot-rename-what-is-actually-at-its-own-site",
           v_wrong_code is None, v_wrong_code)
 
@@ -910,7 +977,7 @@ def selftest() -> int:
                                "(inferred contract: may); optimistically assuming it does"}],
         "call_site_witnesses": [_U1_WITNESS]}
     v_wrong_message = _verify_call_site_witness(_U1_WITNESS, before, same_site_wrong_message_after,
-                                                "U1.cs")
+                                                _witness_file("U1.cs"))
     _vfail(failures, "hostile-same-site-unrelated-message-content-fails-closed",
           v_wrong_message is None, v_wrong_message)
 
@@ -926,6 +993,60 @@ def selftest() -> int:
     _vfail(failures, "real-cross-file-control-the-same-witness-classifies-for-its-own-file",
           v is not None and v["classification"]["class"] == clf.CONDITIONALITY_HONESTY, v)
 
+    # F1.4 (R1-review of b31e7a0): the callee token must also be an exact
+    # quoted match, not a bare-substring prefix -- a message naming
+    # 'ShapeU1.InnerExtra' must not be read as also naming 'ShapeU1.Inner'.
+    after_wrong_callee_prefix = {"exit": 0,
+        "findings": [{"line": 16, "code": "OWN051", "level": "note",
+                     "message": "cannot verify whether 'ShapeU1.InnerExtra' takes "
+                               "ownership of 's' (inferred contract: may); optimistically "
+                               "assuming it does"}],
+        "call_site_witnesses": [_U1_WITNESS]}
+    v_wrong_callee_prefix = _verify_call_site_witness(
+        _U1_WITNESS, before, after_wrong_callee_prefix, _witness_file("U1.cs"))
+    _vfail(failures, "hostile-callee-prefix-does-not-match-a-longer-similar-name",
+          v_wrong_callee_prefix is None, v_wrong_callee_prefix)
+
+    # F2.4 (R1-review of b31e7a0): the file-identity check against every
+    # wrong shape a bare `rel` (b31e7a0's own actual rule), a basename, or a
+    # same-suffix path under a DIFFERENT materialization root could produce
+    # -- none of these is the real producer-native spelling, only the exact
+    # `<materialization_root>/<rel>` reconstruction is. Uses a witness whose
+    # own `rel` carries a subdirectory (`corpus/x/U1.cs`) specifically so
+    # "bare rel" and "basename alone" are two genuinely different strings,
+    # not the same accidental one; `before`/`after` are U1's own real
+    # records, which correlate purely on line/code/message, never on file,
+    # so they compose freely with this dedicated witness.
+    _witness_subdir_rel = "corpus/x/U1.cs"
+    _witness_with_subdir_file = {**_U1_WITNESS,
+                                 "site": {**_U1_WITNESS["site"],
+                                          "file": _witness_file(_witness_subdir_rel)}}
+    v_subdir_correct = _verify_call_site_witness(
+        _witness_with_subdir_file, before, after, _witness_file(_witness_subdir_rel))
+    _vfail(failures, "file-identity-correct-reconstructed-path-classifies",
+          v_subdir_correct is not None
+          and v_subdir_correct["classification"]["class"] == clf.CONDITIONALITY_HONESTY,
+          v_subdir_correct)
+    v_subdir_rel_alone = _verify_call_site_witness(
+        _witness_with_subdir_file, before, after, _witness_subdir_rel)
+    _vfail(failures, "hostile-file-identity-bare-rel-alone-fails",
+          v_subdir_rel_alone is None, v_subdir_rel_alone)
+    v_subdir_basename = _verify_call_site_witness(
+        _witness_with_subdir_file, before, after, "U1.cs")
+    _vfail(failures, "hostile-file-identity-basename-alone-fails",
+          v_subdir_basename is None, v_subdir_basename)
+    _other_materialization_root = (
+        ".p037-population/2222222222222222222222222222222222dcba/fadedcafebabebeef")
+    v_subdir_other_root = _verify_call_site_witness(
+        _witness_with_subdir_file, before, after,
+        f"{_other_materialization_root}/{_witness_subdir_rel}")
+    _vfail(failures, "hostile-file-identity-same-suffix-under-another-root-fails",
+          v_subdir_other_root is None, v_subdir_other_root)
+    v_subdir_other_rel = _verify_call_site_witness(
+        _witness_with_subdir_file, before, after, _witness_file("corpus/y/U1.cs"))
+    _vfail(failures, "hostile-file-identity-different-rel-under-the-same-root-fails",
+          v_subdir_other_rel is None, v_subdir_other_rel)
+
     # --- CH3-8: AR1/AR2's own measured shapes, through the SAME real
     # _parse_sarif_doc()/_verify_call_site_witness() path U1 used above --
     # never hand-injected witnesses. Message text is REAL, previously
@@ -935,7 +1056,7 @@ def selftest() -> int:
     # _U1_AFTER_MESSAGE already state. ---
     _AR1_WITNESS: dict[str, Any] = {
         "kind": "call_site", "callee": "ShapeAR1.Inner", "callee_param": 0,
-        "site": {"file": "case.cs", "line": 16, "column": 9},
+        "site": {"file": _witness_file("case.cs"), "line": 16, "column": 9},
         "resource_name": "s", "resource_acquire_site": {"line": 14},
         "guarded": {"shape": "split", "finalized_cells": {"pos": "no", "neg": "must"},
                    "collapsed": "may"},
@@ -952,16 +1073,33 @@ def selftest() -> int:
     _vfail(failures, "run-level-ar1-witness-is-extracted-even-with-a-real-result-present",
           len(ar1_after["call_site_witnesses"]) == 1, ar1_after)
     v_ar1 = _verify_call_site_witness(ar1_after["call_site_witnesses"][0], ar1_before, ar1_after,
-                                      "case.cs")
+                                      _witness_file("case.cs"))
     _vfail(failures, "run-level-ar1-is-application-refinement-explaining-real-own001-addition",
           v_ar1 is not None and v_ar1["classification"]["class"] == clf.APPLICATION_REFINEMENT
           and v_ar1["after_key"] == (14, "OWN001", _RUN_ONE_SEVERITY)
           and v_ar1["before_key"] is None,
           v_ar1)
 
+    # F1.3 (R1-review of b31e7a0): the same real AR1 witness/after-record,
+    # but an OWN001 naming a DIFFERENT resource ('other', not 's') at the
+    # SAME acquire line -- must stay unexplained despite the bare letter
+    # "s" appearing many times in the surrounding English prose.
+    ar1_after_wrong_resource: dict[str, Any] = {
+        "exit": 1,
+        "findings": [{"line": 14, "code": "OWN001", "level": _RUN_ONE_SEVERITY,
+                     "message": "IDisposable local 'other' is never disposed (leak) "
+                               "[resource: disposable]"}],
+        "call_site_witnesses": ar1_after["call_site_witnesses"],
+    }
+    v_ar1_wrong_resource = _verify_call_site_witness(
+        ar1_after["call_site_witnesses"][0], ar1_before, ar1_after_wrong_resource,
+        _witness_file("case.cs"))
+    _vfail(failures, "hostile-ar1-own001-wrong-resource-stays-unexplained",
+          v_ar1_wrong_resource is None, v_ar1_wrong_resource)
+
     _AR2_WITNESS: dict[str, Any] = {
         "kind": "call_site", "callee": "ShapeAR2.Inner", "callee_param": 0,
-        "site": {"file": "case.cs", "line": 15, "column": 9},
+        "site": {"file": _witness_file("case.cs"), "line": 15, "column": 9},
         "resource_name": "s", "resource_acquire_site": {"line": 14},
         "guarded": {"shape": "split", "finalized_cells": {"pos": "no", "neg": "must"},
                    "collapsed": "may"},
@@ -985,7 +1123,7 @@ def selftest() -> int:
     _vfail(failures, "run-level-ar2-witness-survives-an-empty-results-array",
           ar2_after["findings"] == [] and len(ar2_after["call_site_witnesses"]) == 1, ar2_after)
     v_ar2 = _verify_call_site_witness(ar2_after["call_site_witnesses"][0], ar2_before, ar2_after,
-                                      "case.cs")
+                                      _witness_file("case.cs"))
     _vfail(failures, "run-level-ar2-is-application-refinement-explaining-real-own003-removal",
           v_ar2 is not None and v_ar2["classification"]["class"] == clf.APPLICATION_REFINEMENT
           and v_ar2["before_key"] == (14, "OWN003", _RUN_ONE_SEVERITY)
@@ -1019,7 +1157,7 @@ def selftest() -> int:
           ar1_mixed_witnesses == [_AR1_WITNESS], ar1_mixed_witnesses)
     ar1_after_mixed = {**ar1_after, "call_site_witnesses": ar1_mixed_witnesses}
     v_ar1_mixed = _verify_call_site_witness(ar1_mixed_witnesses[0], ar1_before, ar1_after_mixed,
-                                            "case.cs")
+                                            _witness_file("case.cs"))
     _vfail(failures, "malformed-sibling-does-not-poison-the-survivors-own-classification",
           v_ar1_mixed is not None
           and v_ar1_mixed["classification"]["class"] == clf.APPLICATION_REFINEMENT, v_ar1_mixed)
@@ -1039,7 +1177,8 @@ def selftest() -> int:
     # so _verify_call_site_witness must also explain nothing for it, end to
     # end, through the real SARIF-document path.
     ar1_mismatched = {**_AR1_WITNESS, "lowered": "consume"}
-    v_ar1_mismatch = _verify_call_site_witness(ar1_mismatched, ar1_before, ar1_after, "case.cs")
+    v_ar1_mismatch = _verify_call_site_witness(ar1_mismatched, ar1_before, ar1_after,
+                                               _witness_file("case.cs"))
     _vfail(failures, "hostile-ar-selected-cell-lowered-mismatch-is-unexplained",
           v_ar1_mismatch is None, v_ar1_mismatch)
 
@@ -1052,7 +1191,8 @@ def selftest() -> int:
                                "[resource: disposable]"}],
         "call_site_witnesses": []}
     v_ar2_other_file = _verify_call_site_witness(
-        ar2_after["call_site_witnesses"][0], ar2_other_file_before, ar2_after, "case.cs")
+        ar2_after["call_site_witnesses"][0], ar2_other_file_before, ar2_after,
+        _witness_file("case.cs"))
     _vfail(failures, "hostile-ar-same-resource-wrong-line-stays-unexplained",
           v_ar2_other_file is None, v_ar2_other_file)
 
@@ -1067,29 +1207,28 @@ def selftest() -> int:
                      "message": "an unrelated finding mentioning 's' at the same acquire line"}],
         "call_site_witnesses": []}
     v_ar2_same_line_wrong_code = _verify_call_site_witness(
-        ar2_after["call_site_witnesses"][0], ar2_before_same_line_unrelated, ar2_after, "case.cs")
+        ar2_after["call_site_witnesses"][0], ar2_before_same_line_unrelated, ar2_after,
+        _witness_file("case.cs"))
     _vfail(failures, "hostile-ar2-same-line-unrelated-code-stays-unexplained",
           v_ar2_same_line_wrong_code is None, v_ar2_same_line_wrong_code)
 
-    # R2.2: OWN003, same line, but naming a DIFFERENT resource -- must also
-    # stay unexplained (message-content correlation still required, exact
-    # code/level match is necessary but not sufficient on its own). AR2's own
-    # real resource_name is the single letter "s", which a plain substring
-    # check (`s in message`) matches inside almost any English sentence
-    # ("disposed", "resource", "disposable" all contain it) -- not a defect
-    # this narrow repair introduces or should paper over with a same-line
-    # hand-picked message, so this ONE control uses a synthetic, clearly
-    # multi-character resource name instead of AR2's real "s" to actually
-    # exercise exclusion; the AFTER side is unaffected (ar2_after's own
-    # `findings` is already empty, AR2's own measured shape).
-    ar2_buf_witness = {**_AR2_WITNESS, "resource_name": "buf"}
+    # R2.2/F1 (R1-review of b31e7a0): OWN003, same line, but naming a
+    # DIFFERENT resource -- must also stay unexplained. AR2's own real
+    # resource_name is the single letter "s": a plain substring check
+    # (`"s" in message`) would match this message anyway ("disposed",
+    # "resource", "disposable" all contain the bare letter), which is
+    # exactly the defect the quoted-identifier-token correlation
+    # (`_quoted_identifier`) fixes -- `"'s'"` is NOT a substring of a message
+    # naming `'other'`, so this now uses AR2's REAL witness/resource_name
+    # directly, no synthetic multi-character stand-in needed.
     ar2_before_wrong_resource = {"exit": 1,
         "findings": [{"line": 14, "code": "OWN003", "level": _RUN_ONE_SEVERITY,
                      "message": "IDisposable local 'other' is disposed more than once "
                                "[resource: disposable]"}],
         "call_site_witnesses": []}
     v_ar2_wrong_resource = _verify_call_site_witness(
-        ar2_buf_witness, ar2_before_wrong_resource, ar2_after, "case.cs")
+        ar2_after["call_site_witnesses"][0], ar2_before_wrong_resource, ar2_after,
+        _witness_file("case.cs"))
     _vfail(failures, "hostile-ar2-own003-wrong-resource-stays-unexplained",
           v_ar2_wrong_resource is None, v_ar2_wrong_resource)
 
@@ -1107,7 +1246,8 @@ def selftest() -> int:
     added_ar1_plus = {(14, "OWN001", _RUN_ONE_SEVERITY), (50, "OWN002", "warning")}
     verified_ar1_plus = [
         r for w in ar1_after_plus_unrelated["call_site_witnesses"]
-        if (r := _verify_call_site_witness(w, ar1_before, ar1_after_plus_unrelated, "case.cs"))
+        if (r := _verify_call_site_witness(
+            w, ar1_before, ar1_after_plus_unrelated, _witness_file("case.cs")))
     ]
     explained_ar1_plus = ({r["after_key"] for r in verified_ar1_plus if r["after_key"]}
                           & added_ar1_plus)
