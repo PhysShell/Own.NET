@@ -266,3 +266,57 @@ This gate does not touch any of these:
 - the three P-037 classes, `own-guarded`, and the application level.
 
 It adds no normalization reason.
+
+## J. RESULT: KILL — A18 POPULATION-DECOMPOSITION APPROACH (BUDGET)
+
+```text
+STATE:  KILL — measurement 165 / 145 (first complete draft, before any test line)
+TESTS:  not written (0 / 60)   TOTAL: 165 / 200
+RUN:    NONE — no falsifier and no population run
+```
+
+- **What happened.** The first complete draft of the measurement component
+  counts 165 lines under the §H rule (`git diff ca14336`; excludes blank and
+  `#` lines; counts docstrings). That exceeds the binding 145-line component
+  cap, so the §F KILL fires.
+- **What was not done.** Getting under the cap would mean cutting about 12 %
+  by compressing Python lines. That is the "one more round of line
+  optimization" the owner ruled out, so it was not attempted. The unrun
+  draft is committed as the artifact. The falsifier module was not written,
+  and nothing was run.
+
+Where the 165 lines go (same counting rule):
+
+| part | lines |
+|------|------:|
+| `population()` — C.1 eligibility (E1–E3) and document-wide rewrite ≈ 35, C.4 lazy witness ≈ 10, C.3 closure with broken propagation and output ≈ 25 | 70 |
+| `population_run()` — N1–N7 aggregates, the seven-way verdict ladder, the evidence document | 43 |
+| `reason_of()` — C.5 | 12 |
+| `coverage()` — N1 and N2, exact per row | 11 |
+| `frozen_tree()` and `comparable()` — frozen-tree and B1-run plumbing | 18 |
+| constants, imports, docstring line, CLI dispatch | 11 |
+
+- **Reading.** The requirements added after the #377 STOP each cost only a
+  few lines:
+  - closure-propagated breakage;
+  - executable per-site witnesses;
+  - `equal_identity` vs `equal_after_rewrite`;
+  - E1/E2 claim checks;
+  - explicit G-moved and A18-0 drift checks.
+
+  Together they moved the measurement component from about 140 to 165. The
+  decomposition core (canonicalize, run the MOS once, walk the closure) is
+  still about 60 lines. It is not a growing solver. What does not fit the
+  frozen budget is the measurement discipline the owner required around it.
+
+**Standing after this KILL:**
+- **A18-0** (#374): PASS on its 8 rows.
+- **B1** (#373): `RESULT: FAIL — B1 BLOCKED (KILL 5)`.
+- **#375 and #377:** STOP artifacts.
+- **#376:** the accepted supplemental 36-row baseline.
+
+**What this KILL does not say.** The two-seam model was **not measured** on
+the population. It is neither confirmed nor refuted there. Only this
+approach to measuring it is killed. Per §0 there is no A18-1G. Any further
+work on the question needs a new owner decision with a different approach,
+not a new budget.
