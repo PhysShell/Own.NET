@@ -152,6 +152,7 @@ Options:
   --flow-locals      path-sensitive flow analysis of non-escaping local IDisposables
   --stats            print flow-locals coverage (requires --flow-locals)
   --dispatch-report FILE  P-037 A14 measurement: dispatch facts per relevant call (not OwnIR)
+  --p037-canonical-shadow FILE  P-037 PCS-0 measurement: also write a canonical-forward shadow OwnIR
   --body-throw-edges treat escaping body-level may-throw as a dispose-on-throw point (needs --flow-locals)
   -h, --help         show this help and exit
 """;
@@ -187,6 +188,8 @@ for (int i = 0; i < args0.Length; i++)
     else if (args0[i] == "--stats") reportStats = true;
     // P-037 B1 A14 measurement (DispatchReport.cs): a separate JSON, never OwnIR.
     else if (args0[i] == "--dispatch-report" && i + 1 < args0.Length) DispatchReport.Path = args0[++i];
+    // P-037 PCS-0 measurement: a second, canonical-forward OwnIR document (see CanonicalForward).
+    else if (args0[i] == "--p037-canonical-shadow" && i + 1 < args0.Length) CanonicalShadowPath = args0[++i];
     else rawInputs.Add(args0[i]);
 }
 
@@ -194,6 +197,12 @@ if (rawInputs.Count == 0)
 {
     Console.Error.WriteLine("usage: ownsharp-extract [extract] <file.cs | dir | *.csproj | *.sln> [...] [-o|--out facts.json] [--ref-dir <bin-dir>]");
     Console.Error.WriteLine("       ownsharp-extract --help   for the full option list");
+    return 2;
+}
+// PCS-0: the shadow is defined for the plain facts shape only.
+if (CanonicalShadowPath is not null && emitFixCandidates)
+{
+    Console.Error.WriteLine("extractor: --p037-canonical-shadow is not defined with --fix-candidates");
     return 2;
 }
 
@@ -2955,6 +2964,39 @@ static bool ParameterIsStable(IParameterSymbol p, SyntaxNode body, SemanticModel
     return true;
 }
 
+// A2.2: a VALUE-PRESERVING wrapper is the same value as its operand, so it is looked
+// through before classifying — parentheses, the null-forgiving `!` (no runtime effect),
+// and a cast whose conversion is identity or a non-user-defined reference conversion
+// (the same object, only a different static type). Any other cast (boxing, unboxing,
+// numeric, user-defined) produces a different value and is left in place.
+static ExpressionSyntax? ValueUnwrap(ExpressionSyntax? e, SemanticModel model)
+{
+    while (true)
+    {
+        e = StripParens(e);
+        switch (e)
+        {
+            case PostfixUnaryExpressionSyntax bang
+                when bang.IsKind(SyntaxKind.SuppressNullableWarningExpression):
+                e = bang.Operand;
+                continue;
+            // The cast's OWN conversion (operand -> cast type). `GetConversion(cast)`
+            // would answer the contextual conversion of the cast node instead — for
+            // `Sink((object)h)` that is object -> object, identity, and a boxing cast
+            // would pass as value-preserving (caught by corpus/p037-shapes/arg-cast-and-bang).
+            case CastExpressionSyntax cast
+                when model.GetTypeInfo(cast.Type).Type is { } castTo
+                     && model.ClassifyConversion(cast.Expression, castTo, isExplicitInSource: true)
+                         is var conv
+                     && (conv.IsIdentity || (conv.IsReference && !conv.IsUserDefined)):
+                e = cast.Expression;
+                continue;
+            default:
+                return e;
+        }
+    }
+}
+
 static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax mbody,
                                  HashSet<string> handles, HashSet<string> ownedParamNames,
                                  SemanticModel model, string where)
@@ -2977,38 +3019,8 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
         return known;
     }
 
-    // A2.2: a VALUE-PRESERVING wrapper is the same value as its operand, so it is looked
-    // through before classifying — parentheses, the null-forgiving `!` (no runtime effect),
-    // and a cast whose conversion is identity or a non-user-defined reference conversion
-    // (the same object, only a different static type). Any other cast (boxing, unboxing,
-    // numeric, user-defined) produces a different value and is left in place.
-    ExpressionSyntax? Unwrap(ExpressionSyntax? e)
-    {
-        while (true)
-        {
-            e = StripParens(e);
-            switch (e)
-            {
-                case PostfixUnaryExpressionSyntax bang
-                    when bang.IsKind(SyntaxKind.SuppressNullableWarningExpression):
-                    e = bang.Operand;
-                    continue;
-                // The cast's OWN conversion (operand -> cast type). `GetConversion(cast)`
-                // would answer the contextual conversion of the cast node instead — for
-                // `Sink((object)h)` that is object -> object, identity, and a boxing cast
-                // would pass as value-preserving (caught by corpus/p037-shapes/arg-cast-and-bang).
-                case CastExpressionSyntax cast
-                    when model.GetTypeInfo(cast.Type).Type is { } castTo
-                         && model.ClassifyConversion(cast.Expression, castTo, isExplicitInSource: true)
-                             is var conv
-                         && (conv.IsIdentity || (conv.IsReference && !conv.IsUserDefined)):
-                    e = cast.Expression;
-                    continue;
-                default:
-                    return e;
-            }
-        }
-    }
+    // A2.2 value-preserving unwrap, shared with the PCS-0 shadow (ValueUnwrap).
+    ExpressionSyntax? Unwrap(ExpressionSyntax? e) => ValueUnwrap(e, model);
 
     // One argument expression -> one raw fact, plus whether a HANDLE of this method flowed.
     (Dictionary<string, object?> fact, bool handle) ArgFact(ExpressionSyntax? raw)
@@ -4247,7 +4259,11 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
     // modelled at the call site like pool Return). A later use of an argument is then a
     // use-after-handoff (OWN002). Do NOT return — other tracked arguments of the same call
     // (`Consume(s, t)`) still need their `use` below; a consumed arg is excluded from it.
+    // P-037 PCS-0: under the shadow switch only, honest forwards become one `call` op and get
+    // neither the handoff `release` nor a `use` below. With the switch off `forwarded` is empty.
+    var forwarded = CanonicalForwards ? CanonicalForward(expr, tracked, model, nodes) : new List<string>();
     var consumed = ConsumeReleaseArgs(expr, model);
+    consumed.RemoveAll(forwarded.Contains);
     foreach (var c in consumed)
         if (tracked.Contains(c))
             nodes.Add(new { op = "release", var = c, line = LineOf(expr) });
@@ -4277,6 +4293,7 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
                  && tracked.Contains(owner) && !consumed.Contains(owner))
             used.Add(owner);
     }
+    used.ExceptWith(forwarded);
     foreach (var u in used)
         nodes.Add(new { op = "use", var = u, line = LineOf(expr) });
     // POOL005: a full-length view of a pooled buffer anywhere in this expression -> overspan/OWN025.
@@ -5007,6 +5024,49 @@ static List<string> ConsumeReleaseArgs(ExpressionSyntax e, SemanticModel model)
     return consumed;
 }
 
+// P-037 PCS-0 (measurement only; runs solely under --p037-canonical-shadow): the HONEST
+// representation of a forwarding call. Each argument that, after the A2.2 value-preserving
+// unwrap, is a tracked identifier bound to one of the callee's `functions[].params` becomes a
+// positional slot of ONE legacy `call` op (the D5.2 op the bridge already reads as a forward),
+// instead of the `release`/`use` the ordinary lowering folds it into. It decides nothing — no
+// ConsumesParam, no transfer value: the MOS reads the callee's summary. Returns the forwarded
+// identifiers, which then get no `release`/`use` op for this expression.
+static List<string> CanonicalForward(ExpressionSyntax e, HashSet<string> tracked,
+                                     SemanticModel model, List<object> nodes)
+{
+    var forwarded = new List<string>();
+    if (e is not InvocationExpressionSyntax inv
+        || model.GetSymbolInfo(inv).Symbol is not IMethodSymbol { ReducedFrom: null } sym
+        || sym.DeclaringSyntaxReferences.Length == 0)
+        return forwarded;
+    var decl = sym.OriginalDefinition;
+    // The callee's params[] list, by the predicate that builds it: by-value, owned disposable.
+    var owned = decl.Parameters.Where(p => p.RefKind == RefKind.None
+        && p.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() is ParameterSyntax { Type: { } pt } ps
+        && IsOwnedDisposableType(pt, model.Compilation.GetSemanticModel(ps.SyntaxTree))).ToList();
+    var slots = new List<string>();
+    var args = inv.ArgumentList.Arguments;
+    for (var i = 0; i < args.Count; i++)
+    {
+        var p = args[i].NameColon is { } nc
+            ? decl.Parameters.FirstOrDefault(q => q.Name == nc.Name.Identifier.Text)
+            : (i < decl.Parameters.Length ? decl.Parameters[i] : null);
+        var k = p is null || p.IsParams ? -1 : owned.FindIndex(q => SymbolEqualityComparer.Default.Equals(q, p));
+        if (k < 0 || !args[i].RefKindKeyword.IsKind(SyntaxKind.None)
+            || ValueUnwrap(args[i].Expression, model) is not IdentifierNameSyntax id
+            || !tracked.Contains(id.Identifier.Text))
+            continue;
+        while (slots.Count <= k)
+            slots.Add("_");
+        slots[k] = id.Identifier.Text;
+        forwarded.Add(id.Identifier.Text);
+    }
+    if (forwarded.Count > 0)
+        nodes.Add(new { op = "call", callee = $"{decl.ContainingType.ToDisplayString()}.{decl.Name}",
+                        sig = CanonicalSig(sym), args = slots, line = LineOf(e) });
+    return forwarded;
+}
+
 // The body of a first-party method or LOCAL FUNCTION (block or expression-bodied), scanning
 // partial declarations; null for an interface/abstract/extern method (no body to inspect). A
 // directly-called local function runs synchronously, so a forwarding chain through one must be
@@ -5661,6 +5721,8 @@ static string? OwnIgnoreReason(SyntaxList<AttributeListSyntax> attrLists, Semant
 var components = new List<object>();
 // P-016 B0b/B2: per-method flow bodies (only when --flow-locals).
 var flowFunctions = new List<object>();
+// P-037 PCS-0: the same records with the canonical-forward body (only under the shadow flag).
+var shadowFunctions = new List<object>();
 
 // Parse every input into a syntax tree first (keeping the file path we report
 // it under), then build ONE compilation over all of them so the SemanticModel
@@ -7207,6 +7269,15 @@ foreach (var (file, tree) in parsed)
                 if (guardedFacts is not null)
                     record["guarded_facts"] = guardedFacts;
                 flowFunctions.Add(record);
+                // P-037 PCS-0: lower the same body a second time with honest forwards; the
+                // record above (and so `-o`) was built with the switch off and is untouched.
+                if (CanonicalShadowPath is not null)
+                {
+                    CanonicalForwards = true;
+                    var shadowBody = LowerFlowBody(mbody, flowNames, model);
+                    CanonicalForwards = false;
+                    shadowFunctions.Add(new Dictionary<string, object?>(record) { ["body"] = shadowBody });
+                }
             }
 
         if (subs.Count > 0)
@@ -7287,6 +7358,12 @@ if (reportStats)
 
 if (outPath is null) Console.WriteLine(json);
 else File.WriteAllText(outPath, json);
+// P-037 PCS-0: the shadow document — the plain shape, only `functions[].body` differs.
+if (CanonicalShadowPath is not null)
+    File.WriteAllText(CanonicalShadowPath, JsonSerializer.Serialize(
+        new { ownir_version = 0, module = "Extracted", components, services = factServices,
+              functions = shadowFunctions, stats = factStats },
+        new JsonSerializerOptions { WriteIndented = true }));
 DispatchReport.Write();
 return 0;
 
@@ -7297,6 +7374,11 @@ return 0;
 partial class Program
 {
     internal static bool BodyThrowEdges;
+
+    // P-037 PCS-0 (measurement only): where the canonical-forward shadow document goes, and
+    // the switch the SECOND lowering of each method runs under. Off for the ordinary lowering.
+    internal static string? CanonicalShadowPath;
+    internal static bool CanonicalForwards;
 
     // #240 (Codex review): full paths of files compiled by a Fody-enabled PROJECT, recorded
     // while expanding its <Compile> items — a linked source outside the project directory

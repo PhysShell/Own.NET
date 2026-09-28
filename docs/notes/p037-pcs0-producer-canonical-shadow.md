@@ -224,3 +224,51 @@ This gate does not touch any of these:
 - the three P-037 classes and `own-guarded`.
 
 There is no population run in this gate.
+
+## I. RESULT: KILL — PCS-0 (BUDGET), not run
+
+```text
+STATE:  KILL — driver 68 / 40, total 208 / 180 (first complete, lint-clean draft)
+WITHIN: C# producer shadow 83 / 100 · tests + probe 57 / 60
+RUN:    NONE — no falsifier, no C1 byte-identity control, no A18-0 row
+```
+
+- **The count.** Measured with the §G rule (`git diff ca14336`; excludes
+  blank, `//` and `#` lines; counts braces, docstrings and usage text), the
+  first complete draft exceeds two binding caps:
+  - the driver: 61 lines as first written, 68 once wrapped to the repo's
+    100-column ruff limit;
+  - the total.
+
+  Per §E/§G that is a KILL. The draft was not reworked to fit after the
+  count, and nothing was run. The unrun, lint-clean draft is committed as
+  the artifact.
+- **Where the lines are.**
+
+| part | lines | cap |
+|------|------:|----:|
+| C#: `CanonicalForward` (the whole honest-forward representation) | 38 | |
+| C#: the A2.2 unwrap lifted into a shared `ValueUnwrap` (a move, counted as added) | 24 | |
+| C#: switch, `--fix-candidates` refusal, second lowering, shadow write, three `EmitFlowExpr` hook lines | 21 | |
+| **C# total** | **83** | 100 |
+| driver `scripts/p037_pcs0.py`: header and imports 18, `extract()` 13, `main()` 35, entry 2 | **68** | 40 |
+| falsifiers `tests/p037_pcs0_falsifiers.py` 32 + probe `Transitive.cs` 25 | **57** | 60 |
+| **total** | **208** | 180 |
+
+- **Reading.** The premise-specific cap held with room: the producer shadow
+  is 83/100 C# lines. It adds no schema change, and with the switch off the
+  ordinary lowering path is unchanged. It makes no `ConsumesParam` call,
+  computes no transfer value, builds no call graph, and shares the unwrap
+  instead of copying it.
+- **Why it still died.** The overrun is entirely measurement plumbing. The
+  driver was written as a **new standalone script**, so it pays its own
+  docstring, imports, argparse, clean-tree refusal, frozen-tree
+  materialization and evidence writing. That is about 45 of its 68 lines.
+  §G budgeted "driver changes", and extending the existing A18-0 driver,
+  which already has that plumbing, might have fit. That judgment comes after
+  the count, so it was not acted on: reworking code until it fits a cap
+  after seeing the count is what kill-first forbids.
+- **What the KILL does not say.** Nothing was measured, neither F0 nor the
+  8 rows. The producer-shadow premise is neither confirmed nor refuted. Per
+  §0 there is no PCS-1R2. Whether this is the point to freeze the P-037
+  implementation as a whole, as §E anticipates, is the owner's decision.
