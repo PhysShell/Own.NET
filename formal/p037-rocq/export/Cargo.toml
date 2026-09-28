@@ -1,0 +1,14 @@
+[package]
+name = "p037-rocq-export"
+description = "Prints the P-037 kernel's finite operation tables and solver vectors as a Rocq file. Research only; wired to nothing."
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+publish = false
+
+# Own workspace root: this must never join rust/ or formal/p037-kernel.
+[workspace]
+
+[dependencies]
+# The kernel itself, by path: the tables are computed by THE functions, not a copy.
+p037-kernel = { path = "../../p037-kernel" }

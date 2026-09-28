@@ -1,0 +1,8 @@
+export/target/
+theories/*.vo
+theories/*.vok
+theories/*.vos
+theories/*.glob
+theories/.*.aux
+theories/RustTables.v.new
+.lia.cache
