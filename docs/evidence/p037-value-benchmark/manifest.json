@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "purpose": "P-037 value/research benchmark (tests R2 of the #304 freeze only; not B2.1a, not implementation)",
+  "ownnet_commit": "79207320c4a0fd5af8ff4e66fae78eba043f99d9",
+  "note": "The ground truth below (expected codes) is NOT authored by this benchmark -- it is the pre-existing, project-owned expected-diagnostics.txt already committed in corpus/p036-bakeoff/. This file records that ground truth plus the exact bytes measured, so no label could be adjusted after seeing tool output. All 4 files run through both engines and codeql BEFORE this manifest was written; nothing here was changed afterward.",
+  "capability_corpus": {
+    "description": "4 families from corpus/p036-bakeoff/guarded-consume-*, each before.cs=buggy/after.cs=fixed, both real C# fed through the actual Roslyn extractor + core (own-check.sh), never a .own reduction.",
+    "families": [
+      {
+        "name": "guarded-consume-early-return",
+        "p037_transform_edge": "const (guard spelled as an early return)",
+        "before_sha256": "5953c796b227d8cb2b3149c125d3a59f445209d429a990677ecae1f189715219",
+        "after_sha256": "c725fed4c98de064eca2eed312b66f46281f4e78303d9c60fe23bf9327530caa",
+        "expected_sha256": "f631016d0ab006ef036c956c79ac6f93bad941feef5e9491eeb199de72912748",
+        "expected_before": ["OWN001"],
+        "expected_after": []
+      },
+      {
+        "name": "guarded-consume-flag-branch",
+        "p037_transform_edge": "const (direct literal argument, if(!keep) form)",
+        "before_sha256": "b3e79c98225b6036e5ffd60ea1796aa722ab60ea69ac5cbff1b6ac144e123b85",
+        "after_sha256": "2b5d245bcb48ac9d3847376a52c9b2e4a447511a9b66823fb0f407cebda0fc7b",
+        "expected_sha256": "f631016d0ab006ef036c956c79ac6f93bad941feef5e9491eeb199de72912748",
+        "expected_before": ["OWN001"],
+        "expected_after": []
+      },
+      {
+        "name": "guarded-consume-negation-wrapper",
+        "p037_transform_edge": "neg (wrapper negates the flag on the edge)",
+        "before_sha256": "468a23803de8900316f8ed1fa00ef65ad46714ceddbbbca2af2f1852916cf579",
+        "after_sha256": "c9304ae920902811d7a02143af263b500084aeaa30fd91da9c6961b39cdd97b3",
+        "expected_sha256": "f631016d0ab006ef036c956c79ac6f93bad941feef5e9491eeb199de72912748",
+        "expected_before": ["OWN001"],
+        "expected_after": []
+      },
+      {
+        "name": "guarded-consume-wrapper-forward",
+        "p037_transform_edge": "id (wrapper forwards the flag unchanged)",
+        "before_sha256": "2de02c5dcad5036a4f6fd66ad8506617760e5fba4d01e5334b92341bf8986c61",
+        "after_sha256": "b01880c912edac8b30ae4e855f2c6c96c8092b1398e92fdb4be5406ade219707",
+        "expected_sha256": "f631016d0ab006ef036c956c79ac6f93bad941feef5e9491eeb199de72912748",
+        "expected_before": ["OWN001"],
+        "expected_after": []
+      }
+    ],
+    "not_in_scope_but_observed": [
+      "corpus/p036-bakeoff/gv4-control-aliased-self-null/ (a different P-037 family, surfaced incidentally by the live oracle run's file scan; not analysed)",
+      "at least one other p036-bakeoff case producing an own-only OWN003 in the live run; not analysed (outside the 4 frozen families)"
+    ]
+  },
+  "reference_control_already_solved": {
+    "case": "corpus/real-world/ownership-handoff-consume",
+    "mechanism": "D5 / ConsumesParam inter-procedural CONSUME contract (unconditional, first-party consumer disposes its by-value IDisposable param) -- NOT guarded/conditional, NOT P-037",
+    "measured": "both engines fire OWN001 on Leak() and OWN002 on Run(), silent on RunOk() -- matches docs/notes/corpus-benchmark.md's '9/11' ratchet exactly",
+    "note": "corpus/real-world/ownership-handoff-consume/notes.md's own 'extractor status' paragraph (claiming the OWN002 arm is 'still extractor-future') is STALE relative to corpus-benchmark.md and to this measurement; flagged, not fixed (docs-only, out of scope for this benchmark)."
+  },
+  "tools_measured": {
+    "own_python_reference": {
+      "invocation": "scripts/benchmark.py --corpus corpus/p036-bakeoff --min-recall 0 --json ... (existing harness, --engine python is hardcoded inside it) AND scripts/own-check.sh --engine python --format sarif -- <file> per file (cross-check)",
+      "dotnet": "8.0.425", "python": "3.11.15",
+      "result": "0/4 caught, 4/4 clean, 0 false positives"
+    },
+    "own_rust_production": {
+      "invocation": "OWEN_RUST_CORE=<release build> scripts/own-check.sh --engine rust --format sarif -- <file> per file (own-cli built via cargo build -p own-cli --release, rustc 1.94.1)",
+      "result": "0/4 caught, 4/4 clean, 0 false positives",
+      "python_rust_agreement": "IDENTICAL on all 8 files (before+after x4) -- no Own.NET engine-parity problem on this corpus"
+    },
+    "codeql": {
+      "invocation": "LIVE run via .github/workflows/oracle.yml push-trigger dev-loop (workflow_dispatch returned 403 for this session's GitHub access; confirmed empirically, matches the workflow's own comment), repo=local:corpus/p036-bakeoff, queries: security-and-quality, build-mode: none",
+      "run": "https://github.com/PhysShell/Own.NET/actions/runs/36408630758 (job 108883233435), CodeQL CLI 2.27.1, CODEQL_ACTION_VERSION 4.37.0, commit 1efbdf1",
+      "result": "0/4 on the guarded-consume families. Its one leak-class finding in the p036-bakeoff scan was in the unrelated gv4-control-aliased-self-null case (cs/dispose-not-called-on-throw, an exceptional-path gap, same class as the historical Dapper oracle-only findings) -- not in any of the 4 measured families."
+    },
+    "infersharp": {
+      "invocation": "same live run; build step could not find a .csproj/.sln to build (p036-bakeoff has none -- these are loose reduction .cs files)",
+      "result": "UNAVAILABLE for this target (job step 'Run Infer#' concluded 'skipped'; BUILD_OK never set) -- recorded as untested, not as 0 findings"
+    },
+    "rlc_sharp": {
+      "invocation": "none -- no packaged/runnable implementation located; bounded (<30 min) literature check only (arXiv 2312.01912)",
+      "architecture_from_literature": "CodeQL-query-based must-call/typestate accumulation checked against method-boundary resource-management specifications (C# attributes) for interprocedural reasoning -- no documented call-site-argument-sensitive resolution",
+      "result": "NOT MEASURED. Documented architecture does not enter the benchmark score (task rule: only measured capability counts); recorded here only as an architectural prior."
+    },
+    "ownaudit_tier2": {
+      "invocation": "inspected PhysShell/OwnAudit @ 9c2f8fe553ce767e83798016233b282c1fa9b425, Run-Roslyn.ps1 (IDisposableAnalyzers + Microsoft.CodeAnalysis.NetAnalyzers + others)",
+      "result": "ROSYLN_BASELINES = NOT_ESTABLISHED_IN_GATE_A -- hard-wired to PowerShell 7 + VS2022 BuildTools + vswhere/MSBuild.exe (Windows-only) and a hardcoded proprietary target C:\\Repos\\STS_new\\Broker.sln; none of this exists in this Linux sandbox and porting it is out of scope (would be building a new harness)."
+    }
+  },
+  "harness_controls": {
+    "systemevents_console_local": {
+      "invocation": "scripts/own-check.sh --engine {python,rust} --format human -- corpus/fixtures/systemevents-console (no OWN_EXTRA_REF_DIRS materialized locally)",
+      "result": "Both engines identical: 3/3 dispose leaks (OWN001 at Program.cs:43,54,77) plus the documented OWN050 advisory on the unresolved SystemEvents subscription (degrades from OWN014 to OWN050 without the WindowsDesktop ref pack, exactly as the mechanism predicts) -- matches the documented historical shape; harness not qualified as broken.",
+      "caveat": "Full 3-tool systemevents-console reproduction (own+CodeQL+Infer#) and live Dapper/Polly precision-tripwire reruns were NOT repeated this session (time budget); relied on the committed record in docs/notes/oracle.md / docs/notes/precision-remeasure-2026-07-12.md for those, clearly as historical, not re-measured."
+    }
+  },
+  "real_world_materiality_existing_evidence": {
+    "issue": "https://github.com/PhysShell/Own.NET/issues/278",
+    "state": "CLOSED, fixed by merged PR #293",
+    "pattern": "boolean-parameter-guarded release, callers pass the constant that skips it -- structurally identical to guarded-consume-flag-branch/early-return, but on subscription release (-=) rather than IDisposable.Dispose()",
+    "materiality": "P1, heap-PROVEN via ClrMD retention-path walk on the project's own SectorTS reference codebase: 66.3% of a 223MB heap genuinely retained after 31 documents, traced to GTD.cs:5192's guarded -= (UnregisterEventHandlers(bool UnregOnlyGoodys), if (!UnregOnlyGoodys) {...}, real callers pass true)",
+    "shipped_fix_mechanism": "blanket/non-call-site-sensitive: 'a release guarded by a parameter of its enclosing method, outside a recognised teardown context, is NEVER credited as a release' (corpus/wpf/subscription-param-guarded-unregister). This is cheap but NOT context-sensitive -- it never had to prove itself against a safe call site that legitimately relies on the guard (the fixture's own after.cs sidesteps the guard entirely via an unconditional Dispose release rather than proving the guarded call safe).",
+    "analytical_consequence": "Mechanically porting that same blanket rule to the Dispose()-guarded corpus measured here would flip recall (0/4 -> 4/4) at the cost of specificity (4/4 clean -> 0/4 clean): Fine()/RunOk() call the SAME guarded method with the argument that DOES release, and the blanket rule cannot tell that call site apart from Leak()'s. This is a concrete, non-hypothetical instance of the 'traded one error class for another' failure the Dapper/Polly precision tripwires warn about -- derived from this project's own shipped code, not a synthetic argument.",
+    "counter_consideration": "The incident's actual shipped fix took a third path this analysis must name fairly: restructure the API so the guard disappears (move the release to an unconditional Dispose in a real teardown) rather than build a smarter checker. That is a legitimate general engineering answer to this pattern class and did not require any analyzer improvement at all."
+  }
+}
