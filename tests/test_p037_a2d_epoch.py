@@ -188,6 +188,25 @@ PHASE_B_PREFIXES = ("formal/p037-kernel/", "docs/evidence/p037-b-")
 ROCQ_CONSOLIDATION_NOTE_PATH = "docs/notes/p037-rocq-consolidation.md"
 ROCQ_CONSOLIDATION_PREFIXES = ("formal/p037-rocq/",)
 
+# Value benchmark (990734c/ae4f1c0, the R2-evidence research thread this branch
+# unifies with the Rocq consolidation above): the SAME gap, discovered the SAME
+# way -- unifying claude/p037-value-benchmark's head onto T_D's lineage via
+# cherry-pick (U0 = a400955) made this test fail again, this time on
+# docs/notes/p037-value-benchmark-2026-09-28.md and
+# docs/evidence/p037-value-benchmark/manifest.json, neither of which existed
+# before that branch's own two commits and so were never in any allowlist
+# either. Same reasoning as the Rocq entry immediately above: a single named
+# research note (not a `docs/` prefix) plus one prefix for a self-contained,
+# already-owned evidence directory (matching PHASE_B_PREFIXES' own
+# `docs/evidence/p037-b-` precedent) -- nothing wider. This branch's own
+# corrected note already says "STOP the benchmark branch after this", so no
+# further takes are expected under the evidence prefix, but a prefix (not a
+# per-file list) is still the proportionate match for an existing convention
+# rather than a bespoke exception for a single file that happens to be alone
+# today.
+VALUE_BENCHMARK_NOTE_PATH = "docs/notes/p037-value-benchmark-2026-09-28.md"
+VALUE_BENCHMARK_PREFIXES = ("docs/evidence/p037-value-benchmark/",)
+
 # 10.6.14b: order step 6 (D after) lands its evidence as exactly these six
 # files under docs/evidence/, and nothing about them is inferred or
 # regenerated -- each is pinned to the exact sha256 the accepted external
@@ -221,9 +240,9 @@ def classify_outside_paths(changed: list[str], t_paths: list[str],
     Factored out so the hostile controls below can probe it with synthetic
     `changed` lists instead of needing a real git commit per probe."""
     allowed_prefixes = (*tuple(t_paths), "tests/", *PHASE_B_PREFIXES,
-                        *ROCQ_CONSOLIDATION_PREFIXES)
+                        *ROCQ_CONSOLIDATION_PREFIXES, *VALUE_BENCHMARK_PREFIXES)
     governance = (EPOCH_RECORD_PATH, FORMAL_NOTE_PATH, *PHASE_B_GOVERNANCE_FILES,
-                 ROCQ_CONSOLIDATION_NOTE_PATH)
+                 ROCQ_CONSOLIDATION_NOTE_PATH, VALUE_BENCHMARK_NOTE_PATH)
     return [f for f in changed if f not in governance
            and not f.startswith(allowed_prefixes)
            and f not in DOCS_GENERATED_ADJUDICATED
@@ -531,6 +550,22 @@ def run() -> int:
                 ["formal/p037-kernel/src/lib.rs"], t_paths, r_d_files, d_after_ok)
             check("phase-b-formal-kernel-prefix-unaffected-by-rocq-carveout",
                   not unaffected_probe, f"{unaffected_probe}")
+
+            # Same two hostile shapes for the value-benchmark carve-out: it
+            # admits exactly its own two paths, and a second, unrelated file
+            # merely sharing the "docs/evidence/" ancestor (not the exact
+            # p037-value-benchmark/ prefix) still fails.
+            vb_admits_probe = classify_outside_paths(
+                ["docs/evidence/p037-value-benchmark/manifest.json",
+                 VALUE_BENCHMARK_NOTE_PATH],
+                t_paths, r_d_files, d_after_ok)
+            check("value-benchmark-carveout-admits-exactly-its-own-two-paths",
+                  not vb_admits_probe, f"{vb_admits_probe}")
+            vb_forbidden = ["docs/evidence/some-other-evidence-set/x.json"]
+            vb_forbidden_probe = classify_outside_paths(
+                vb_forbidden, t_paths, r_d_files, d_after_ok)
+            check("value-benchmark-carveout-does-not-broaden-to-docs-evidence-generally",
+                  sorted(vb_forbidden_probe) == sorted(vb_forbidden), f"{vb_forbidden_probe}")
 
             d_after_evidence = later.get("D_after_evidence")
             if d_after_evidence is not None:
