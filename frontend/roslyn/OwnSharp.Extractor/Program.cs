@@ -4161,7 +4161,18 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
     // modelled at the call site like pool Return). A later use of an argument is then a
     // use-after-handoff (OWN002). Do NOT return — other tracked arguments of the same call
     // (`Consume(s, t)`) still need their `use` below; a consumed arg is excluded from it.
+    //
+    // #382: when the call can be stated canonically (see CanonicalParamCall), it REPLACES the
+    // legacy guess for its bound parameters — never both: a `call` plus the synthetic `release`
+    // would charge the one resource twice.
+    var canonical = expr is InvocationExpressionSyntax cinv
+        ? CanonicalParamCall(cinv, tracked, model)
+        : null;
+    var bound = canonical?.Bound ?? new HashSet<string>(StringComparer.Ordinal);
+    if (canonical is { } canon)
+        nodes.Add(canon.Op);
     var consumed = ConsumeReleaseArgs(expr, model);
+    consumed.RemoveAll(bound.Contains);
     foreach (var c in consumed)
         if (tracked.Contains(c))
             nodes.Add(new { op = "release", var = c, line = LineOf(expr) });
@@ -4184,7 +4195,7 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
         var nm = idn.Identifier.Text;
         if (tracked.Contains(nm))
         {
-            if (!consumed.Contains(nm))
+            if (!consumed.Contains(nm) && !bound.Contains(nm))
                 used.Add(nm);
         }
         else if (ViewOwnerOf(idn, model) is { } owner
@@ -4899,6 +4910,72 @@ static bool IsInNamespace(INamedTypeSymbol? t, params string[] parts)
 // table and no dangling-callee crash — a callee with no body (interface / abstract / extern)
 // or that does not consume the param contributes nothing, and the argument stays an ordinary
 // escape. Arguments resolve to parameters by NAME when `name:` is used, else by position.
+// #382: a CANONICAL first-party call for owned-PARAMETER arguments. When a call hands the
+// current method's owned parameters to EVERY ownership slot of a first-party callee, keep the
+// call itself — `call {callee, sig, args}`, `args` aligned to the callee's `params[]` (the same
+// `IsOwnedParamSyntax` list its record carries, so `args[k]` binds `params[k]`) — and let the
+// core derive the transfer (INF-S2/S3: a forward to a `may` callee is `may`), instead of
+// pre-deciding `release`/`use` here. The guard, the callee's body and its name are never read.
+// Returns null — the legacy lowering stands — whenever the call cannot be stated honestly: an
+// unresolved or non-ordinary target, a reduced extension (the receiver has no slot), a callee
+// without a block body (it gets no record, so the core would have no summary to apply), an
+// ownership slot with no argument or with anything but an owned parameter, or a bound
+// parameter that the expression references again.
+// Tracked LOCALS never take this path: callee summaries carry no escape/adopt axis (INF-S5), so
+// a callee that stores its parameter summarizes `no`, and a canonical call would turn today's
+// escape into a false leak.
+static (object Op, HashSet<string> Bound)? CanonicalParamCall(
+    InvocationExpressionSyntax inv, HashSet<string> tracked, SemanticModel model)
+{
+    if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol sym
+        || sym.MethodKind != MethodKind.Ordinary || sym.ReducedFrom is not null)
+        return null;
+    var def = sym.OriginalDefinition;
+    var decl = def.DeclaringSyntaxReferences.Select(r => r.GetSyntax())
+        .OfType<MethodDeclarationSyntax>().FirstOrDefault(d => d.Body is not null);
+    if (decl is null)
+        return null;
+    var declModel = model.Compilation.GetSemanticModel(decl.SyntaxTree);
+    var slots = decl.ParameterList.Parameters
+        .Select((p, ordinal) => (p, ordinal))
+        .Where(t => IsOwnedParamSyntax(t.p, declModel))
+        .Select(t => t.ordinal)
+        .ToList();
+    if (slots.Count == 0)
+        return null;
+    // Argument -> declared ordinal: by name for `name: value`, else by position.
+    var byOrdinal = new Dictionary<int, ArgumentSyntax>();
+    var arguments = inv.ArgumentList.Arguments;
+    for (int i = 0; i < arguments.Count; i++)
+    {
+        var p = arguments[i].NameColon is { } nc
+            ? sym.Parameters.FirstOrDefault(q => q.Name == nc.Name.Identifier.Text)
+            : (i < sym.Parameters.Length ? sym.Parameters[i] : null);
+        if (p is not null && !p.IsParams)
+            byOrdinal[p.Ordinal] = arguments[i];
+    }
+    var args = new List<string>();
+    foreach (var ordinal in slots)
+    {
+        if (!byOrdinal.TryGetValue(ordinal, out var a)
+            || a.Expression is not IdentifierNameSyntax id
+            || !tracked.Contains(id.Identifier.Text)
+            || model.GetSymbolInfo(id).Symbol is not IParameterSymbol)
+            return null;
+        args.Add(id.Identifier.Text);
+    }
+    // One parameter in two slots (INF-S3 multi-target: `may`), or referenced again outside its
+    // slot: keep the legacy lowering rather than weaken or reorder what it says today.
+    var bound = new HashSet<string>(args, StringComparer.Ordinal);
+    if (bound.Count != args.Count
+        || inv.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>()
+               .Count(n => bound.Contains(n.Identifier.Text)) != args.Count)
+        return null;
+    var op = new { op = "call", callee = $"{def.ContainingType.ToDisplayString()}.{def.Name}",
+                   sig = CanonicalSig(sym), args, line = LineOf(inv) };
+    return (op, bound);
+}
+
 static List<string> ConsumeReleaseArgs(ExpressionSyntax e, SemanticModel model)
 {
     var consumed = new List<string>();
@@ -5142,6 +5219,17 @@ static bool IsNonDisposableReaderWriter(string t) =>
 // curated list needed. Only when the type does NOT resolve (an unreferenced external
 // assembly — WPF/DevExpress on the Linux runner) do we fall back to the syntactic name
 // heuristic, which is the whole reason that heuristic exists.
+// Is `psyn` one of its method's OWNERSHIP parameters — an entry of the method's `params[]`?
+// By-value only, like `ConsumesParam`: a `ref`/`out`/`in` parameter is not an ownership handoff.
+// Read off the SYNTAX so this agrees with itself when the symbol does not resolve. The ONE
+// predicate for both sides of a canonical call (#382): the record builder lists a method's
+// `params[]` with it, and `CanonicalParamCall` aligns a call's `args` to that same list.
+static bool IsOwnedParamSyntax(ParameterSyntax psyn, SemanticModel model) =>
+    !psyn.Modifiers.Any(SyntaxKind.RefKeyword)
+    && !psyn.Modifiers.Any(SyntaxKind.OutKeyword)
+    && !psyn.Modifiers.Any(SyntaxKind.InKeyword)
+    && psyn.Type is { } ptype && IsOwnedDisposableType(ptype, model);
+
 static bool IsOwnedDisposableType(TypeSyntax type, SemanticModel model)
 {
     var sym = model.GetTypeInfo(type).Type;
@@ -6929,20 +7017,11 @@ foreach (var (file, tree) in parsed)
                 var ownedParams = new List<object>();
                 var ownedParamNames = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var psyn in method.ParameterList.Parameters)
-                {
-                    // By-value only, like `ConsumesParam`: a `ref`/`out`/`in` parameter is not
-                    // an ownership handoff. Read off the SYNTAX so this agrees with itself when
-                    // the symbol does not resolve.
-                    if (psyn.Modifiers.Any(SyntaxKind.RefKeyword)
-                        || psyn.Modifiers.Any(SyntaxKind.OutKeyword)
-                        || psyn.Modifiers.Any(SyntaxKind.InKeyword))
-                        continue;
-                    if (psyn.Type is { } ptype && IsOwnedDisposableType(ptype, model))
+                    if (IsOwnedParamSyntax(psyn, model))
                     {
                         ownedParams.Add(new { name = psyn.Identifier.Text, line = LineOf(psyn) });
                         ownedParamNames.Add(psyn.Identifier.Text);
                     }
-                }
                 var candidates = new HashSet<string>();
                 var poolBuffers = new HashSet<string>();   // candidates that are ArrayPool<T> buffers
                 var usingMemoryOwners = new HashSet<string>();   // `using`-declared MemoryPool owners
