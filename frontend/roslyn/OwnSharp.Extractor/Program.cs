@@ -2973,7 +2973,10 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
     // One argument expression -> one raw fact, plus whether a HANDLE of this method flowed.
     (Dictionary<string, object?> fact, bool handle) ArgFact(ExpressionSyntax? raw)
     {
-        var e = StripParens(raw);
+        // P-037-X Stage 1: look through value-preserving wrappers (A2.2 G-C, mined from #371):
+        // `(Stream)p` and `p!` are the same object as `p`, so the slot is `param`/`var`, not
+        // `opaque`, and the call stays relevant.
+        var e = ValueUnwrap(raw, model);
         switch (e)
         {
             case LiteralExpressionSyntax lit when lit.IsKind(SyntaxKind.TrueLiteralExpression):
@@ -4161,7 +4164,13 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
     // modelled at the call site like pool Return). A later use of an argument is then a
     // use-after-handoff (OWN002). Do NOT return — other tracked arguments of the same call
     // (`Consume(s, t)`) still need their `use` below; a consumed arg is excluded from it.
+    // P-037-X Stage 1: a canonical first-party forward is ONE `call` op the core resolves
+    // through the callee's summary; the forwarded handles get neither the legacy handoff
+    // `release` nor a `use` for this expression. Everything the rule cannot carry keeps the
+    // legacy lowering below (counted by reason; see CanonicalForward).
+    var forwarded = CanonicalForward(expr, tracked, model, nodes);
     var consumed = ConsumeReleaseArgs(expr, model);
+    consumed.RemoveAll(forwarded.Contains);
     foreach (var c in consumed)
         if (tracked.Contains(c))
             nodes.Add(new { op = "release", var = c, line = LineOf(expr) });
@@ -4191,6 +4200,7 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
                  && tracked.Contains(owner) && !consumed.Contains(owner))
             used.Add(owner);
     }
+    used.ExceptWith(forwarded);
     foreach (var u in used)
         nodes.Add(new { op = "use", var = u, line = LineOf(expr) });
     // POOL005: a full-length view of a pooled buffer anywhere in this expression -> overspan/OWN025.
@@ -4919,6 +4929,270 @@ static List<string> ConsumeReleaseArgs(ExpressionSyntax e, SemanticModel model)
             consumed.Add(aid.Identifier.Text);
     }
     return consumed;
+}
+
+// ---- P-037-X Stage 1 (research/p037-max-v1): canonical first-party call transport ------------
+//
+// The legacy lowering decides a first-party call's ownership effect INSIDE the extractor:
+// `ConsumeReleaseArgs` folds a forwarding call into `release` (a definite consumer) or into a
+// `use` (anything else). The core's summary layer (spec/Inference.md, the MOS) never sees the
+// call, so a wrapper's transfer is decided by a syntactic walk instead of by the callee's
+// summary (#304 reopen condition 1; docs/notes/p037-fact-shape-baseline-transition-380.md).
+//
+// Stage 1 stops lying at the door: a statement-form invocation of a first-party method that
+// will carry a `functions[]` record gets the EXISTING OwnIR `call` op (spec/OwnIR.md §5 — the
+// D5.2 op the bridge already reads as a forward edge) for every tracked handle that binds to
+// one of the callee's owned-disposable parameters; those handles get neither `release` nor
+// `use` for the call. The extractor decides NOTHING about must/may/no: the MOS reads the
+// callee's summary and applies it (INF-S3, INF-A1, INF-A5). Everything the rule cannot carry
+// keeps the legacy lowering and is COUNTED by reason (the stderr `p037x:` line), so the
+// carrier's boundary is measured rather than assumed. Every rule below is generic over the
+// fact vocabulary: no callee name, type name or API is special-cased.
+
+// A VALUE-PRESERVING wrapper is the same object as its operand, so it is looked through before
+// an argument is classified: parentheses, the null-forgiving `!` (no runtime effect), and a
+// cast whose conversion is identity or a non-user-defined reference conversion. Any other cast
+// (boxing, unboxing, numeric, user-defined) yields a different value and stays in place. The
+// cast's OWN conversion is classified (operand -> cast type), never the contextual conversion
+// of the cast node: for `Sink((object)h)` that would be object -> object, identity, and a
+// boxing cast would pass as value-preserving. (P-037 A2.2 G-C, mined from #371 at 0ae8213.)
+static ExpressionSyntax? ValueUnwrap(ExpressionSyntax? e, SemanticModel model)
+{
+    while (true)
+    {
+        e = StripParens(e);
+        switch (e)
+        {
+            case PostfixUnaryExpressionSyntax bang
+                when bang.IsKind(SyntaxKind.SuppressNullableWarningExpression):
+                e = bang.Operand;
+                continue;
+            case CastExpressionSyntax cast
+                when model.GetTypeInfo(cast.Type).Type is { } castTo
+                     && model.ClassifyConversion(cast.Expression, castTo, isExplicitInSource: true)
+                         is var conv
+                     && (conv.IsIdentity || (conv.IsReference && !conv.IsUserDefined)):
+                e = cast.Expression;
+                continue;
+            default:
+                return e;
+        }
+    }
+}
+
+// The callee's owned-disposable by-value parameters in declaration order: exactly the predicate
+// the flow loop uses to build the callee's `params[]` list (by-value, `IsOwnedDisposableType`
+// on the declared type), so a canonical `call` op's positional `args` line up with that list by
+// construction — the MOS resolves `args[j]` against the callee's `params[j]`.
+static List<IParameterSymbol> OwnedDisposableParams(IMethodSymbol decl, SemanticModel model)
+{
+    var owned = new List<IParameterSymbol>();
+    foreach (var p in decl.Parameters)
+    {
+        if (p.RefKind != RefKind.None || p.IsParams)
+            continue;
+        if (p.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() is ParameterSyntax { Type: { } pt } ps
+            && IsOwnedDisposableType(pt, model.Compilation.GetSemanticModel(ps.SyntaxTree)))
+            owned.Add(p);
+    }
+    return owned;
+}
+
+// Will the callee carry a `functions[]` record in THIS run? The flow loop emits a record for a
+// block-bodied method that is a direct member of a class, has an owned-disposable parameter,
+// and whose body lowers to at least one op. The probe re-runs that gate on the callee's own
+// declaration with canonical emission OFF: whether a body is modelled never depends on which
+// ops a call lowers to, and a body that references an owned parameter lowers to at least that
+// op either way, so the answer is the same one the flow loop will reach. A callee with no
+// record is a call the MOS could not resolve (it would read as extern -> `unknown`, silencing
+// the caller), so such a call keeps the legacy lowering: record absence is never read as a
+// value, in either direction. Memoized per declaration; `why` names the reason on a `false`.
+static bool CalleeRecordPredicted(IMethodSymbol decl, SemanticModel model, out string why)
+{
+    if (P037xRecordMemo.TryGetValue(decl, out var known))
+    {
+        why = known;
+        return known.Length == 0;
+    }
+    var syntax = decl.DeclaringSyntaxReferences
+        .Select(r => r.GetSyntax())
+        .OfType<BaseMethodDeclarationSyntax>()
+        .FirstOrDefault(m => m.Body is not null);
+    if (syntax is null)
+        why = "callee_no_block_body";
+    else if (syntax.Parent is not ClassDeclarationSyntax)
+        why = "callee_not_class_member";
+    else
+    {
+        var calleeModel = model.Compilation.GetSemanticModel(syntax.SyntaxTree);
+        var ownedNames = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var psyn in syntax.ParameterList.Parameters)
+            if (!psyn.Modifiers.Any(SyntaxKind.RefKeyword)
+                && !psyn.Modifiers.Any(SyntaxKind.OutKeyword)
+                && !psyn.Modifiers.Any(SyntaxKind.InKeyword)
+                && psyn.Type is { } ptype && IsOwnedDisposableType(ptype, calleeModel))
+                ownedNames.Add(psyn.Identifier.Text);
+        if (ownedNames.Count == 0)
+            why = "callee_no_owned_param";
+        else
+        {
+            var wasProbing = P037xProbing;
+            P037xProbing = true;
+            List<object>? body;
+            try
+            {
+                body = LowerFlowBody(syntax.Body!, ownedNames, calleeModel);
+            }
+            finally
+            {
+                P037xProbing = wasProbing;
+            }
+            why = body is { Count: > 0 } ? "" : "callee_unmodelled";
+        }
+    }
+    P037xRecordMemo[decl] = why;
+    return why.Length == 0;
+}
+
+// Is `inv` in one of the statement forms EmitFlowExpr lowers — `Foo(s);`, `await Foo(s);`,
+// `await Foo(s).ConfigureAwait(false);`, or `return Foo(s);`? The escape scan and the lowering
+// must agree on this, so it is one predicate.
+static bool IsStatementFormInvocation(InvocationExpressionSyntax inv)
+{
+    SyntaxNode top = inv;
+    if (top.Parent is MemberAccessExpressionSyntax { Name.Identifier.Text: "ConfigureAwait" } cfg
+        && cfg.Parent is InvocationExpressionSyntax cfgInv)
+        top = cfgInv;
+    if (top.Parent is AwaitExpressionSyntax aw)
+        top = aw;
+    return top.Parent is ExpressionStatementSyntax or ReturnStatementSyntax;
+}
+
+// The canonical-forward slots of one invocation, or null with the reason it keeps the legacy
+// lowering (an empty reason: no handle flows into the call at all, so there is nothing to
+// carry). `handles` is the set of names a handle may be spelled with — the tracked locals plus
+// the owned parameters at lowering time; the disposable candidates plus the owned parameters in
+// the escape scan — so both callers see the same forwards. The result is the callee's
+// `functions[]` key, its §5.1 signature, and the positional slots over the callee's params[]
+// list (a gap-free prefix: a handle bound past an owned slot that carries no handle cannot be
+// expressed positionally without a filler the doors do not accept, so such a call stays legacy).
+static (string callee, string sig, string[] slots)? CanonicalForwardSlots(
+    InvocationExpressionSyntax inv, SemanticModel model, HashSet<string> handles, out string reason)
+{
+    reason = "";
+    var args = inv.ArgumentList.Arguments;
+    string? HandleName(ArgumentSyntax a) =>
+        ValueUnwrap(a.Expression, model) is IdentifierNameSyntax id
+        && handles.Contains(id.Identifier.Text)
+            ? id.Identifier.Text : null;
+    if (!args.Any(a => HandleName(a) is not null))
+        return null;
+    if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol sym)
+    {
+        reason = "unresolved_callee";
+        return null;
+    }
+    if (sym.ReducedFrom is not null)
+    {
+        reason = "reduced_extension";
+        return null;
+    }
+    if (sym.MethodKind != MethodKind.Ordinary)
+    {
+        reason = "not_ordinary_method";
+        return null;
+    }
+    var decl = sym.OriginalDefinition;
+    if (decl.DeclaringSyntaxReferences.Length == 0)
+    {
+        reason = "not_first_party";
+        return null;
+    }
+    if (!CalleeRecordPredicted(decl, model, out reason))
+        return null;
+    var owned = OwnedDisposableParams(decl, model);
+    var slots = new string?[owned.Count];
+    for (var i = 0; i < args.Count; i++)
+    {
+        var p = args[i].NameColon is { } nc
+            ? decl.Parameters.FirstOrDefault(q => q.Name == nc.Name.Identifier.Text)
+            : (i < decl.Parameters.Length ? decl.Parameters[i]
+               : decl.Parameters.LastOrDefault(q => q.IsParams));
+        var handle = HandleName(args[i]);
+        if (handle is null)
+            continue;
+        if (p is null)
+        {
+            reason = "named_unresolved";
+            return null;
+        }
+        if (!args[i].RefKindKeyword.IsKind(SyntaxKind.None))
+        {
+            reason = "ref_out";
+            return null;
+        }
+        if (p.IsParams)
+        {
+            reason = "params_slot";
+            return null;
+        }
+        var k = owned.FindIndex(q => SymbolEqualityComparer.Default.Equals(q, p));
+        if (k < 0)
+        {
+            reason = "non_owned_slot";
+            return null;
+        }
+        slots[k] = handle;
+    }
+    var last = Array.FindLastIndex(slots, s => s is not null);
+    if (last < 0)
+    {
+        reason = "non_owned_slot";
+        return null;
+    }
+    for (var j = 0; j < last; j++)
+        if (slots[j] is null)
+        {
+            reason = "gap_in_owned_slots";
+            return null;
+        }
+    return ($"{decl.ContainingType.ToDisplayString()}.{decl.Name}", CanonicalSig(sym),
+            slots.Take(last + 1).Select(s => s!).ToArray());
+}
+
+// Lowering-time entry (EmitFlowExpr): emit ONE `call` op for the invocation's canonical
+// forwards and return the forwarded names, which then get neither `release` nor `use` for this
+// expression. Counts every decision; a probe run (CalleeRecordPredicted) emits nothing.
+static List<string> CanonicalForward(ExpressionSyntax e, HashSet<string> tracked,
+                                     SemanticModel model, List<object> nodes)
+{
+    var forwarded = new List<string>();
+    if (P037xProbing || e is not InvocationExpressionSyntax inv)
+        return forwarded;
+    var found = CanonicalForwardSlots(inv, model, tracked, out var reason);
+    if (found is null)
+    {
+        if (reason.Length > 0)
+            P037xDegraded[reason] = P037xDegraded.GetValueOrDefault(reason) + 1;
+        return forwarded;
+    }
+    var (callee, sig, slots) = found.Value;
+    P037xCanonical++;
+    nodes.Add(new { op = "call", callee, sig, args = slots, line = LineOf(e) });
+    forwarded.AddRange(slots);
+    return forwarded;
+}
+
+// Escape-scan entry: is this bare identifier argument a canonical forward of a statement-form
+// invocation? Then the local is handed to a callee the core reads through its summary, and it
+// is not an escape (the exemption `consumedArg` grants a definite consumer's argument).
+static bool IsCanonicalForwardArg(IdentifierNameSyntax idn, SemanticModel model, HashSet<string> handles)
+{
+    if (idn.Parent is not ArgumentSyntax { Parent: ArgumentListSyntax { Parent: InvocationExpressionSyntax inv } }
+        || !IsStatementFormInvocation(inv))
+        return false;
+    var found = CanonicalForwardSlots(inv, model, handles, out _);
+    return found is not null && found.Value.slots.Contains(idn.Identifier.Text);
 }
 
 // The body of a first-party method or LOCAL FUNCTION (block or expression-bodied), scanning
@@ -7021,6 +7295,12 @@ foreach (var (file, tree) in parsed)
                 // is a borrow (a use), not an escape — else `pool.Return(buf)` and
                 // `Work(buf)` would untrack it and hide the double-return / use-after-return.
                 var escapedLocals = new HashSet<string>();
+                // P-037-X Stage 1: the names a canonical forward may be spelled with in this
+                // body — the disposable candidates plus the owned parameters (the lowering
+                // uses the post-escape tracked set plus the same parameters; see
+                // CanonicalForwardSlots for why the two agree).
+                var forwardHandles = new HashSet<string>(candidates, StringComparer.Ordinal);
+                forwardHandles.UnionWith(ownedParamNames);
                 foreach (var idn in mbody.DescendantNodes().OfType<IdentifierNameSyntax>())
                 {
                     var nm = idn.Identifier.Text;
@@ -7066,6 +7346,12 @@ foreach (var (file, tree) in parsed)
                         && idn.Parent.Parent.Parent is InvocationExpressionSyntax cinv
                         && cinv.Parent is ExpressionStatementSyntax
                         && ConsumeReleaseArgs(cinv, model).Contains(nm);
+                    // P-037-X Stage 1: a canonical forward hands the local to a callee whose
+                    // summary the core reads at the `call` op, so it is not an escape either —
+                    // the same exemption a definite consumer's argument gets above, decided by
+                    // the SAME predicate the lowering uses (CanonicalForwardSlots).
+                    bool canonicalArg = !consumedArg && idn.Parent is ArgumentSyntax
+                        && IsCanonicalForwardArg(idn, model, forwardHandles);
                     // A `using`-declared MemoryPool owner RETURNED bare (`using owner = …; return owner;`)
                     // is NOT a real ownership transfer: the implicit scope-exit dispose runs as the method
                     // returns, so the caller receives an already-disposed owner. Keep it TRACKED (do not
@@ -7098,6 +7384,7 @@ foreach (var (file, tree) in parsed)
                     // returns `new ArrayPoolRefCountedSegment(pool, array, prev)`).
                     else if ((idn.Parent is AssignmentExpressionSyntax asg && asg.Right == idn)
                         || (idn.Parent is ArgumentSyntax && !poolBuffers.Contains(nm) && !consumedArg
+                            && !canonicalArg
                             // P-005 D5.4: a disposable passed to an ADOPTING ctor arg of a
                             // method-bounded wrapper is not an escape — its obligation is
                             // adopted by the wrapper (modelled as an alias_join) and stays
@@ -7253,6 +7540,12 @@ if (reportStats)
         $"coverage: {statMethodsAnalysed}/{statMethodsWithLocal} methods with a "
         + $"disposable local flow-analysed; {statMethodsSkipped} skipped (unmodelled construct)");
 
+// P-037-X Stage 1: the carrier census of this run — how many first-party forwards the
+// facts carry canonically and how many kept the legacy lowering, by reason.
+if (flowLocals)
+    Console.Error.WriteLine("p037x: canonical=" + P037xCanonical + " degraded={"
+        + string.Join(", ", P037xDegraded.Select(kv => kv.Key + "=" + kv.Value)) + "}");
+
 if (outPath is null) Console.WriteLine(json);
 else File.WriteAllText(outPath, json);
 return 0;
@@ -7285,6 +7578,16 @@ partial class Program
         { "truth", "not_null", "is_null" };
     internal static readonly HashSet<string> CallForms = new(StringComparer.Ordinal)
         { "statement", "initializer", "expression" };
+
+    // P-037-X Stage 1 (research/p037-max-v1): canonical call transport bookkeeping. The
+    // probe flag disables canonical emission while CalleeRecordPredicted re-lowers a callee
+    // to learn whether it will carry a record; the memo keys that answer per declaration;
+    // the counters are the run's carrier census (the stderr `p037x:` line).
+    internal static bool P037xProbing;
+    internal static int P037xCanonical;
+    internal static readonly SortedDictionary<string, int> P037xDegraded = new(StringComparer.Ordinal);
+    internal static readonly Dictionary<IMethodSymbol, string> P037xRecordMemo =
+        new(SymbolEqualityComparer.Default);
 
     // #317: a 1-based source coordinate, carried as ONE value so a line and a column can
     // never drift onto different nodes. See RangeOf/PosOf/LineOf above — those are the only
