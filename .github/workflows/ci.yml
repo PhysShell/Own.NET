@@ -802,6 +802,14 @@ jobs:
         env:
           OWN_TIERB_REQUIRED: "1"
         run: python tests/test_extractor_columns.py
+      - name: Guarded release is not a call-site handoff (INF-S2, #380)
+        # A callee that releases its parameter only under a guard is a PARTIAL release, so
+        # its call must not be lowered as the caller's `release` (the fabricated `must`),
+        # while a definite consumer stays a handoff. Facts and verdicts on the real
+        # extractor; REQUIRED here, skips cleanly in the offline Tier-A job.
+        env:
+          OWN_TIERB_REQUIRED: "1"
+        run: python tests/test_guarded_consume.py
       - name: S2 step 10 analyzer-delta verifier (Tier B, full public CLI)
         env:
           OWN_TIERB_REQUIRED: "1"

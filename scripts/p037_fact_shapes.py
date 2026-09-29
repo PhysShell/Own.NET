@@ -145,6 +145,15 @@ def a2_problems(spec: dict[str, Any], facts: dict[str, Any]) -> list[str]:
     for exp in spec.get("a2_expect", []):
         fn = exp.get("function")
         rec = facts.get(fn) if isinstance(fn, str) else None
+        # Record ABSENCE as an asserted fact (#380 baseline transition): the record, and
+        # with it the sidecar, is gone on purpose. Asserting it keeps the loss visible — a
+        # record that comes back (e.g. once first-party calls reach the facts canonically)
+        # fails here by name instead of being silently re-pinned.
+        if exp.get("record") == "absent":
+            if rec is not None:
+                problems.append(f"{fn}: expected NO function record (see the shape's "
+                                f"baseline_transitions), got one")
+            continue
         if rec is None:
             problems.append(f"{fn}: no function record")
             continue

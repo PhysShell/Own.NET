@@ -12,24 +12,11 @@
     },
     {
       "function": "ShapeRefAliasGuard.Caller",
-      "call": {
-        "callee": "ShapeRefAliasGuard.Inner",
-        "args": [
-          {
-            "param": 0,
-            "kind": "var",
-            "name": "r"
-          },
-          {
-            "param": 1,
-            "kind": "bool_const",
-            "value": true
-          }
-        ]
-      }
+      "record": "absent",
+      "since": "#380"
     }
   ],
-  "measured_at": "464308b",
+  "measured_at": "f164dd3",
   "facts": {
     "ShapeRefAliasGuard.Inner": {
       "params": [
@@ -43,55 +30,106 @@
         "then:release:p@18"
       ],
       "guarded_facts": null
-    },
-    "ShapeRefAliasGuard.Caller": {
-      "params": null,
-      "body": [
-        "acquire:r@24",
-        "release:r@25",
-        "release:r@26"
-      ],
-      "guarded_facts": {
-        "version": 1,
-        "calls": [
-          {
-            "site": {
-              "line": 25,
-              "column": 9
-            },
-            "statement_line": 25,
-            "form": "statement",
-            "callee": "ShapeRefAliasGuard.Inner",
-            "sig": "System.IO.Stream,System.Boolean",
-            "first_party": true,
-            "args": [
-              {
-                "param": 0,
-                "kind": "var",
-                "name": "r"
-              },
-              {
-                "param": 1,
-                "kind": "bool_const",
-                "value": true
-              }
-            ]
-          }
-        ],
-        "guards": []
-      }
     }
   },
   "verdict": {
-    "rust": [
-      "OWN003:warning@24"
-    ],
-    "python": [
-      "OWN003:warning@24"
-    ]
+    "rust": [],
+    "python": []
   },
   "status_history": [
     "pending_a2 (recorded at 464308b)",
-    "anchored (A2.1 sidecar)"
+    "anchored (A2.1 sidecar)",
+    "anchored — baseline transition #380 at f164dd3 (caller record absent; A2 carrier lost, asserted as absent)"
+  ],
+  "baseline_transitions": [
+    {
+      "id": "380",
+      "on": "2026-09-29",
+      "from": {
+        "measured_at": "464308b",
+        "extractor": "23e3203"
+      },
+      "to": {
+        "measured_at": "f164dd3"
+      },
+      "cause": "PhysShell/Own.NET#380 — an independent INF-S2 correctness fix: ConsumesParam now counts a release (or a forward to another consumer) only when it is definite on every normal-return path of the callee, so a guarded one is no longer lowered as the caller's `release`",
+      "classification": "ACCEPTED BASELINE MOVEMENT CAUSED BY #380 — NOT a P-037 implementation, NOT a reopen of #304, NOT evidence that the A2 contract is satisfied",
+      "consequences": [
+        "ShapeRefAliasGuard.Caller: record no longer emitted — its only tracked local now escapes instead of being released at the guarded call, so the method has no tracked local and no owned parameter, and its guarded_facts sidecar goes with it",
+        "verdict {'rust': ['OWN003:warning@24'], 'python': ['OWN003:warning@24']} -> {'rust': [], 'python': []} (the fabricated release was the cause of that finding)",
+        "a2_expect entries for the vanished record(s) are superseded and replaced by asserted record absence; their promise is NOT met by this baseline"
+      ],
+      "superseded": {
+        "facts": {
+          "ShapeRefAliasGuard.Caller": {
+            "params": null,
+            "body": [
+              "acquire:r@24",
+              "release:r@25",
+              "release:r@26"
+            ],
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 25,
+                    "column": 9
+                  },
+                  "statement_line": 25,
+                  "form": "statement",
+                  "callee": "ShapeRefAliasGuard.Inner",
+                  "sig": "System.IO.Stream,System.Boolean",
+                  "first_party": true,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "var",
+                      "name": "r"
+                    },
+                    {
+                      "param": 1,
+                      "kind": "bool_const",
+                      "value": true
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        },
+        "verdict": {
+          "rust": [
+            "OWN003:warning@24"
+          ],
+          "python": [
+            "OWN003:warning@24"
+          ]
+        },
+        "a2_expect": [
+          {
+            "function": "ShapeRefAliasGuard.Caller",
+            "call": {
+              "callee": "ShapeRefAliasGuard.Inner",
+              "args": [
+                {
+                  "param": 0,
+                  "kind": "var",
+                  "name": "r"
+                },
+                {
+                  "param": 1,
+                  "kind": "bool_const",
+                  "value": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "known_limitation": "canonical first-party call transport remains absent: the honest call reaches the facts only through the sidecar of a record that ordinary relevance filtering may drop",
+      "note": "docs/notes/p037-fact-shape-baseline-transition-380.md"
+    }
   ]
 }

@@ -34,7 +34,7 @@
       }
     }
   ],
-  "measured_at": "464308b",
+  "measured_at": "f164dd3",
   "facts": {
     "ShapeForwardNegated.Inner": {
       "params": [
@@ -71,7 +71,7 @@
         }
       ],
       "body": [
-        "release:s@17"
+        "use:s@17"
       ],
       "guarded_facts": {
         "version": 1,
@@ -111,6 +111,72 @@
   },
   "status_history": [
     "pending_a2 (recorded at 464308b)",
-    "anchored (A2.1 sidecar)"
+    "anchored (A2.1 sidecar)",
+    "anchored — baseline transition #380 at f164dd3 (wrapper forward release -> use; sidecar unchanged)"
+  ],
+  "baseline_transitions": [
+    {
+      "id": "380",
+      "on": "2026-09-29",
+      "from": {
+        "measured_at": "464308b",
+        "extractor": "23e3203"
+      },
+      "to": {
+        "measured_at": "f164dd3"
+      },
+      "cause": "PhysShell/Own.NET#380 — an independent INF-S2 correctness fix: ConsumesParam now counts a release (or a forward to another consumer) only when it is definite on every normal-return path of the callee, so a guarded one is no longer lowered as the caller's `release`",
+      "classification": "ACCEPTED BASELINE MOVEMENT CAUSED BY #380 — NOT a P-037 implementation, NOT a reopen of #304, NOT evidence that the A2 contract is satisfied",
+      "consequences": [
+        "ShapeForwardNegated.Outer: body ['release:s@17'] -> ['use:s@17'] (a parameter forwarded to a guarded consumer is a use now, not a release; the sidecar is unchanged)"
+      ],
+      "superseded": {
+        "facts": {
+          "ShapeForwardNegated.Outer": {
+            "params": [
+              {
+                "name": "s",
+                "line": 15
+              }
+            ],
+            "body": [
+              "release:s@17"
+            ],
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 17,
+                    "column": 9
+                  },
+                  "statement_line": 17,
+                  "form": "statement",
+                  "callee": "ShapeForwardNegated.Inner",
+                  "sig": "System.IO.Stream,System.Boolean",
+                  "first_party": true,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "param",
+                      "source_param": 0
+                    },
+                    {
+                      "param": 1,
+                      "kind": "param",
+                      "source_param": 1,
+                      "negated": true
+                    }
+                  ]
+                }
+              ],
+              "guards": []
+            }
+          }
+        }
+      },
+      "known_limitation": "canonical first-party call transport remains absent: the honest call reaches the facts only through the sidecar of a record that ordinary relevance filtering may drop",
+      "note": "docs/notes/p037-fact-shape-baseline-transition-380.md"
+    }
   ]
 }
