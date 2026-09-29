@@ -1,0 +1,131 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "X2bC7.Merged",
+      "file": "corpus/p037x-controls/x2b-c7-merging-guard.cs",
+      "sig": "System.IO.Stream,System.Boolean,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 11,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 13,
+          "then": [],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 21,
+          "then": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 23
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 13,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": false
+          },
+          {
+            "site": {
+              "line": 21,
+              "column": 9
+            },
+            "param": 2,
+            "predicate": "truth",
+            "negated": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "X2bC7.Caller",
+      "file": "corpus/p037x-controls/x2b-c7-merging-guard.cs",
+      "sig": "System.String",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "r",
+          "line": 29,
+          "column": 13,
+          "kind": "disposable"
+        },
+        {
+          "op": "call",
+          "callee": "X2bC7.Merged",
+          "sig": "System.IO.Stream,System.Boolean,System.Boolean",
+          "args": [
+            "r"
+          ],
+          "line": 30
+        },
+        {
+          "op": "release",
+          "var": "r",
+          "line": 31
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 30,
+              "column": 9
+            },
+            "statement_line": 30,
+            "form": "statement",
+            "callee": "X2bC7.Merged",
+            "sig": "System.IO.Stream,System.Boolean,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              },
+              {
+                "param": 2,
+                "kind": "bool_const",
+                "value": false
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  ],
+  "stats": {
+    "methods_with_local": 2,
+    "methods_flow_analysed": 2,
+    "methods_skipped_unmodelled": 0
+  }
+}

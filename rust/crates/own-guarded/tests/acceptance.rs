@@ -70,7 +70,11 @@ fn a15_b0_probe_outcomes() {
     let r = run(&facts("B0"), &json!({}));
     let expected = [
         ("Probe.Branchy", None),
-        ("Probe.TwoIfs", Some("multi_guard")),
+        // P-037-X Stage 2b R4 (research/p037-max-v1): the election is seeded per coordinate,
+        // so each guard record is located by its own `if`; TwoIfs' two eligible ifs on one
+        // line answer `join_guard` (the guard join is ambiguous) where B1's per-function rule
+        // answered `multi_guard`. NO_GUARDED_EVIDENCE either way — B0 §E.6's outcome holds.
+        ("Probe.TwoIfs", Some("join_guard")),
         ("Probe.Early", None),
         ("Probe2.InBranch", None),
         ("Probe2.AfterIf", None),
@@ -138,8 +142,19 @@ fn a13_only_finalized_cells_cross_sccs() {
 fn record_absence_boundary() {
     let r = run(&facts("B1"), &json!({}));
     assert_eq!(row(&r, "Absence.ToBodied")["reason"], "callee_no_record");
-    assert_eq!(row(&r, "Absence.Leaf")["reason"], "missing_sidecar");
-    assert_eq!(row(&r, "Absence.ToLeaf")["reason"], "via:missing_sidecar");
+    // P-037-X Stage 2b R1 (research/p037-max-v1): a straight-line leaf carries a record but
+    // no sidecar because A2.1 emits one only for a relevant call or an eligible guard; its
+    // absence encodes the EMPTY sidecar, so `Absence.Leaf` is solved from its body ops and
+    // `Absence.ToLeaf` through the edge. B1 pinned both as `missing_sidecar`; the record
+    // absence of `ToBodied` (a callee with no record at all) stays the fail-closed answer.
+    assert_eq!(row(&r, "Absence.Leaf")["reason"], "legacy_missing");
+    assert_eq!(row(&r, "Absence.Leaf")["guarded"], "must");
+    // ToLeaf forwards under an early-return guard on `keep`: Split(keep, no, must) through
+    // the id edge into Leaf's Uncond(must); its collapse is the honest `may`.
+    assert_eq!(row(&r, "Absence.ToLeaf")["reason"], "legacy_missing");
+    assert_eq!(row(&r, "Absence.ToLeaf")["shape"], "split(1)");
+    assert_eq!(row(&r, "Absence.ToLeaf")["cells"], json!(["no", "must"]));
+    assert_eq!(row(&r, "Absence.ToLeaf")["guarded"], "may");
     assert_eq!(app(&r, "Absence.ToBodied")["reason"], "callee_no_record");
     let mut doc = facts("B1");
     edit_call(&mut doc, "Pass.KeepIt", |c| c["callee"] = Value::Null);

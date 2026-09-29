@@ -115,23 +115,86 @@ pub(crate) fn functions(ir: &OwnIr) -> Vec<Func<'_>> {
 fn func(f: &Function) -> Func<'_> {
     let params: Vec<&str> = f.params.iter().flatten().map(|p| p.name.as_str()).collect();
     let sig = f.sig.as_ref().and_then(Option::as_deref);
+    let body: &[Value] = f
+        .extra
+        .get("body")
+        .and_then(Value::as_array)
+        .map_or(&[], Vec::as_slice);
+    // P-037-X Stage 2b R1 (research/p037-max-v1): A2.1 emits `guarded_facts` only for a
+    // method with a relevant call or an eligible guard, so for a record whose body carries
+    // no `if`, `while` or `call` op the emitted sidecar would have been EMPTY and its
+    // absence encodes emptiness, not missing knowledge. Any structural or call op in a
+    // sidecar-less body keeps the fail-closed answer: a guard or a call the sidecar did not
+    // record is exactly what §0.9 refuses to guess.
     let sidecar = match f.extra.get("guarded_facts") {
+        None | Some(Value::Null) if straight_line(body) => Ok(Sidecar {
+            calls: Vec::new(),
+            guards: Vec::new(),
+        }),
         None | Some(Value::Null) => err("missing_sidecar"),
         Some(v) => sidecar(v).map_or_else(|| err("malformed_sidecar"), Ok),
     };
     Func {
         name: str_at(&f.extra, "name").unwrap_or_default(),
         file: str_at(&f.extra, "file").unwrap_or_default(),
-        ordinals: ordinal_map(sig, params.len()),
+        ordinals: ordinals_of(f, sig, params.len()),
         sig,
         params,
-        body: f
-            .extra
-            .get("body")
-            .and_then(Value::as_array)
-            .map_or(&[], Vec::as_slice),
+        body,
         sidecar,
     }
+}
+
+/// R1's test: no `if`, `while` or `call` op at any depth.
+fn straight_line(body: &[Value]) -> bool {
+    let mut ops = Vec::new();
+    collect(body, &mut ops);
+    ops.iter()
+        .all(|o| !matches!(kind_of(o), "if" | "while" | "call"))
+}
+
+/// P-037-X Stage 2b R3: the declared ordinal as a FACT (`params[].ordinal`, additive; the
+/// same integer the sidecar keys `args[].param` and `guards[].param` by). Used only when
+/// every param of the record carries it and the sequence is strictly increasing; when A17's
+/// allowlist derivation also yields a map, the two must agree — a disagreement refuses the
+/// map rather than trusting either side (control X2B-C6). Without the fact, A17 as before.
+fn ordinals_of(f: &Function, sig: Option<&str>, n: usize) -> Option<Vec<u64>> {
+    let derived = ordinal_map(sig, n);
+    let facts: Option<Vec<u64>> = f
+        .params
+        .iter()
+        .flatten()
+        .map(|p| p.extra.get("ordinal").and_then(Value::as_u64))
+        .collect();
+    match facts {
+        Some(facts) if !facts.is_empty() => {
+            let increasing = facts.windows(2).all(|w| w[0] < w[1]);
+            let arity_ok = sig.map_or(true, |s| {
+                let arity = s.split(',').filter(|t| !t.is_empty()).count();
+                facts.iter().all(|&o| usize::try_from(o).is_ok_and(|o| o < arity))
+            });
+            let agrees = derived.as_ref().map_or(true, |d| *d == facts);
+            (increasing && arity_ok && agrees).then_some(facts)
+        }
+        _ => derived,
+    }
+}
+
+/// P-037-X Stage 2b R2: the coordinate identity of a record — its name, or `name(sig)` when
+/// another record shares the name and this one carries a `sig` (the per-overload key the
+/// bridge's MOS uses). `None` for an overload without a `sig`: no identity, no coordinate.
+pub(crate) fn identity(fns: &[Func<'_>], fi: usize) -> Option<String> {
+    let f = fns.get(fi)?;
+    let same_name = fns.iter().filter(|g| g.name == f.name).count();
+    if same_name == 1 {
+        return Some(f.name.to_owned());
+    }
+    let sig = f.sig?;
+    let same_sig = fns
+        .iter()
+        .filter(|g| g.name == f.name && g.sig == Some(sig))
+        .count();
+    (same_sig == 1).then(|| format!("{}({})", f.name, sig))
 }
 
 /// A17: `params[i]` is the i-th declared parameter whose type is not in
@@ -220,18 +283,31 @@ pub(crate) fn callee_coord(
     let Some(name) = c.callee else {
         return err("callee_unresolved");
     };
-    let hits: Vec<usize> = (0..fns.len())
+    let by_name: Vec<usize> = (0..fns.len())
         .filter(|&i| fns.get(i).is_some_and(|f| f.name == name))
         .collect();
-    let (fi, f) = match hits.as_slice() {
-        [] if c.first_party => return err("callee_no_record"),
-        [] => return err("callee_external"),
-        [one] => (*one, fns.get(*one).ok_or("callee_no_record")?),
+    // P-037-X Stage 2b R2: among the records of that name, the one whose `sig` equals the
+    // call's `sig` (both present); a name-only fallback exists only when neither side
+    // carries a `sig`. A call whose `sig` matches no record of that name is unresolved,
+    // never resolved by name.
+    let hits: Vec<usize> = by_name
+        .iter()
+        .copied()
+        .filter(|&i| {
+            fns.get(i).is_some_and(|f| match (c.sig, f.sig) {
+                (Some(a), Some(b)) => a == b,
+                (None, None) => true,
+                _ => by_name.len() == 1,
+            })
+        })
+        .collect();
+    let (fi, f) = match (by_name.as_slice(), hits.as_slice()) {
+        ([], _) if c.first_party => return err("callee_no_record"),
+        ([], _) => return err("callee_external"),
+        (_, []) => return err("callee_sig"),
+        (_, [one]) => (*one, fns.get(*one).ok_or("callee_no_record")?),
         _ => return err("callee_overloaded"),
     };
-    if c.sig.is_some() && f.sig.is_some() && c.sig != f.sig {
-        return err("callee_sig");
-    }
     let Some(ords) = &f.ordinals else {
         return err("callee_ordinal_map");
     };
@@ -270,6 +346,9 @@ pub(crate) struct Local {
     pub(crate) paths: Vec<Path>,
     pub(crate) guard: Option<u8>,
     pub(crate) fwds: Vec<(usize, Result<(usize, usize), Nge>)>,
+    /// P-037-X Stage 2b R4: two DISTINCT eligible guard literals govern an action on this
+    /// parameter — G-S1's seed is `Conflict` (the honest join), never no evidence.
+    pub(crate) conflict: bool,
 }
 
 const MAX_PATHS: usize = 64;
@@ -320,7 +399,8 @@ struct Walk<'a> {
 /// none.
 pub(crate) fn local(fns: &[Func<'_>], fi: usize, index: usize) -> Result<Local, Nge> {
     let f = fns.get(fi).ok_or("malformed")?;
-    if fns.iter().filter(|g| g.name == f.name).count() > 1 {
+    // P-037-X Stage 2b R2: an overload has a coordinate iff it has an identity (its `sig`).
+    if identity(fns, fi).is_none() {
         return err("overloaded");
     }
     let sc = f.sidecar.as_ref().map_err(Clone::clone)?;
@@ -331,21 +411,62 @@ pub(crate) fn local(fns: &[Func<'_>], fi: usize, index: usize) -> Result<Local, 
         .ok_or("ordinal_map")?;
     let mut ops = Vec::new();
     collect(f.body, &mut ops);
-    let (guarded_if, guard) = match sc.guards.as_slice() {
-        [] => (None, None),
-        [g] => {
-            let mut ifs = ops
-                .iter()
-                .filter(|o| kind_of(o) == "if" && line_of(o) == Some(g.line));
-            let (Some(only), None) = (ifs.next(), ifs.next()) else {
-                return err("join_guard");
-            };
-            let h = u8::try_from(g.param).map_err(|_| "ordinal_range")?;
-            (Some((*only, g.then_is_pos)), Some(h))
-        }
-        _ => return err("multi_guard"),
-    };
     let p = f.params.get(index).copied().ok_or("ordinal_map")?;
+    // P-037-X Stage 2b R4 (G-S1, stage 1 verbatim): the election seed of `(M, i)` joins the
+    // eligible guard literals lexically governing an ownership action on parameter `i`;
+    // a guard governing no action on `i` contributes nothing (its `if` is walked unguarded);
+    // two distinct governing literals seed `Conflict`; the same literal governing twice, or
+    // two guard records on one line, stays the fail-closed `join_guard`/`multi_guard`.
+    // "Governs" is G-S1's stage-1 text, no more: the literal lexically encloses an
+    // ownership action on `i` (an `if`/`else` around a release or a forward), or a
+    // literal-guarded early `return` precedes such an action (the two shapes #305 pinned).
+    // A guard whose branches merge before the action governs nothing: it is walked
+    // unguarded and contributes no literal.
+    let action_on_p = |o: &Value| {
+        touches(o, p)
+            && (kind_of(o) == "release"
+                || sc.calls.iter().any(|c| {
+                    Some(c.statement_line) == line_of(o) && !c.slots_of(ordinal).is_empty()
+                }))
+    };
+    let mut governing: Vec<(&Value, &Guard)> = Vec::new();
+    for g in &sc.guards {
+        let mut ifs = ops
+            .iter()
+            .enumerate()
+            .filter(|(_, o)| kind_of(o) == "if" && line_of(o) == Some(g.line));
+        let (Some((at, only)), None) = (ifs.next(), ifs.next()) else {
+            return err("join_guard");
+        };
+        let mut inner = Vec::new();
+        collect(branch(only, "then"), &mut inner);
+        collect(branch(only, "else"), &mut inner);
+        let encloses = inner.iter().any(|o| action_on_p(o));
+        let returns = inner.iter().any(|o| kind_of(o) == "return");
+        let after = ops
+            .iter()
+            .skip(at.saturating_add(inner.len()).saturating_add(1))
+            .any(|o| action_on_p(o));
+        if encloses || (returns && after) {
+            governing.push((*only, g));
+        }
+    }
+    let (guarded_if, guard, conflict) = match governing.as_slice() {
+        [] => (None, None, false),
+        [(only, g)] => {
+            let h = u8::try_from(g.param).map_err(|_| "ordinal_range")?;
+            (Some((*only, g.then_is_pos)), Some(h), false)
+        }
+        many => {
+            let mut params: Vec<u64> = many.iter().map(|(_, g)| g.param).collect();
+            params.sort_unstable();
+            params.dedup();
+            if params.len() < many.len() {
+                return err("multi_guard");
+            }
+            (None, None, true)
+        }
+    };
     let w = Walk {
         calls: &sc.calls,
         p,
@@ -369,7 +490,12 @@ pub(crate) fn local(fns: &[Func<'_>], fi: usize, index: usize) -> Result<Local, 
         let slot = c.slots_of(ordinal).first().copied().ok_or("malformed")?;
         fwds.push((n, callee_coord(fns, c, slot)));
     }
-    Ok(Local { paths, guard, fwds })
+    Ok(Local {
+        paths,
+        guard,
+        fwds,
+        conflict,
+    })
 }
 
 impl<'a> Walk<'a> {

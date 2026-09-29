@@ -113,14 +113,11 @@ impl Doc<'_> {
         self.solved.get(*self.ids.get(&coord)?)
     }
 
-    /// The legacy MOS value; an overloaded name has no per-coordinate key here.
+    /// The legacy MOS value at the coordinate's identity (P-037-X Stage 2b R2: `name`, or
+    /// the bridge's per-overload key `name(sig)`); no identity, no legacy value.
     fn legacy(&self, (fi, i): (usize, usize)) -> Option<Transfer> {
-        let f = self.fns.get(fi)?;
-        let unique = self.fns.iter().filter(|g| g.name == f.name).count() == 1;
-        self.legacy
-            .get(&(f.name.to_owned(), i))
-            .copied()
-            .filter(|_| unique)
+        let key = facts::identity(&self.fns, fi)?;
+        self.legacy.get(&(key, i)).copied()
     }
 
     /// The summary row's class and its guarded columns.
@@ -204,7 +201,8 @@ pub fn report_with_height(ir: &OwnIr, legacy_dump: &Value, height: usize) -> Val
         let Some(f) = doc.fns.get(fi) else { continue };
         let (class, cols) = doc.summary((fi, i));
         let row = json!({
-            "method": f.name, "file": f.file, "index": i, "param": f.params.get(i),
+            "method": f.name, "identity": facts::identity(&doc.fns, fi), "file": f.file,
+            "index": i, "param": f.params.get(i),
             "ordinal": f.ordinals.as_ref().and_then(|o| o.get(i)), "class": class,
         });
         summary.push(merge(row, cols));
@@ -309,7 +307,10 @@ impl GuardedDoc {
         let (all, solved) = solve::solve(&fns, <Cells as Lattice>::HEIGHT);
         let mut coords = HashMap::new();
         for (&(fi, i), s) in all.iter().zip(&solved) {
-            let Some(f) = fns.get(fi) else { continue };
+            // P-037-X Stage 2b R2: coordinates are keyed by the record's identity — its name,
+            // or the bridge's per-overload key `name(sig)`; an overload without a `sig` has
+            // no identity and no coordinate (the solver answers `overloaded` for it).
+            let Some(key) = facts::identity(&fns, fi) else { continue };
             let coord = match s {
                 Solved::Guarded { shape, cells } => Coordinate::Guarded {
                     shape: *shape,
@@ -317,10 +318,7 @@ impl GuardedDoc {
                 },
                 Solved::NoEvidence(r) => Coordinate::NoEvidence(r.clone()),
             };
-            // A duplicated key (an overloaded name) has no per-coordinate identity here; the
-            // solver already answers `overloaded` for it, and the first record's answer stands
-            // only when it is that NO_GUARDED_EVIDENCE.
-            coords.entry((f.name.to_owned(), i)).or_insert(coord);
+            coords.insert((key, i), coord);
         }
         let mut sites: HashMap<String, Vec<Site>> = HashMap::new();
         for f in &fns {
@@ -349,10 +347,27 @@ impl GuardedDoc {
         Self { coords, sites }
     }
 
-    /// The coordinate of `(method, params index)`, if the document has one.
+    /// The coordinate of `(identity, params index)`, if the document has one. The identity
+    /// is the bridge's MOS key: the method name, or `name(sig)` for an overload.
     #[must_use]
     pub fn coordinate(&self, method: &str, index: usize) -> Option<&Coordinate> {
         self.coords.get(&(method.to_owned(), index))
+    }
+
+    /// The callee identity a call site names: `callee(sig)` when that overload key has a
+    /// coordinate, else the bare name (a unique record), else nothing.
+    #[must_use]
+    pub fn callee_key(&self, callee: &str, sig: Option<&str>) -> Option<String> {
+        if let Some(sig) = sig {
+            let key = format!("{callee}({sig})");
+            if self.coords.keys().any(|(k, _)| *k == key) {
+                return Some(key);
+            }
+        }
+        self.coords
+            .keys()
+            .any(|(k, _)| k == callee)
+            .then(|| callee.to_owned())
     }
 
     /// The finalized collapse `C(fin(cells))` of a guarded coordinate: the value INF-A1 lowers
@@ -374,8 +389,16 @@ impl GuardedDoc {
     // would obscure exactly the distinction this method exists for.
     #[allow(clippy::similar_names)]
     #[must_use]
-    pub fn apply_at(&self, caller: &str, line: i64, callee: &str, index: usize) -> Option<Lowered> {
-        let Coordinate::Guarded { shape, cells } = self.coordinate(callee, index)? else {
+    pub fn apply_at(
+        &self,
+        caller: &str,
+        line: i64,
+        callee: &str,
+        sig: Option<&str>,
+        index: usize,
+    ) -> Option<Lowered> {
+        let key = self.callee_key(callee, sig)?;
+        let Coordinate::Guarded { shape, cells } = self.coordinate(&key, index)? else {
             return None;
         };
         let sel = match shape {

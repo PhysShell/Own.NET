@@ -1,0 +1,80 @@
+{
+  "ownir_version": 0,
+  "module": "X2bC6",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "X2bC6.Decreasing",
+      "file": "corpus/p037x-controls/x2b-c6-hand-written.facts.json",
+      "sig": "System.IO.Stream,System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 3,
+          "ordinal": 1
+        },
+        {
+          "name": "t",
+          "line": 3,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 5
+        },
+        {
+          "op": "release",
+          "var": "t",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "X2bC6.Disagrees",
+      "file": "corpus/p037x-controls/x2b-c6-hand-written.facts.json",
+      "sig": "System.IO.Stream,System.Int32",
+      "params": [
+        {
+          "name": "s",
+          "line": 9,
+          "ordinal": 1
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 11
+        }
+      ]
+    },
+    {
+      "name": "X2bC6.Fine",
+      "file": "corpus/p037x-controls/x2b-c6-hand-written.facts.json",
+      "sig": "System.Int32,System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 14,
+          "ordinal": 1
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 16
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "methods_with_local": 3,
+    "methods_flow_analysed": 3,
+    "methods_skipped_unmodelled": 0
+  }
+}

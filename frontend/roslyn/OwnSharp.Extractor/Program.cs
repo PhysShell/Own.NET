@@ -7202,8 +7202,14 @@ foreach (var (file, tree) in parsed)
                 // inconsistent about one type for no reason a reader could defend.
                 var ownedParams = new List<object>();
                 var ownedParamNames = new HashSet<string>(StringComparer.Ordinal);
+                // P-037-X Stage 2b R3 (research/p037-max-v1): the declared ordinal rides on
+                // each owned parameter (`params[].ordinal`, additive; the same integer the
+                // sidecar keys `args[].param` and `guards[].param` by), so a reader never has
+                // to guess a params-list index -> declared position map from a type list.
+                var declaredOrdinal = -1;
                 foreach (var psyn in method.ParameterList.Parameters)
                 {
+                    declaredOrdinal++;
                     // By-value only, like `ConsumesParam`: a `ref`/`out`/`in` parameter is not
                     // an ownership handoff. Read off the SYNTAX so this agrees with itself when
                     // the symbol does not resolve.
@@ -7213,7 +7219,7 @@ foreach (var (file, tree) in parsed)
                         continue;
                     if (psyn.Type is { } ptype && IsOwnedDisposableType(ptype, model))
                     {
-                        ownedParams.Add(new { name = psyn.Identifier.Text, line = LineOf(psyn) });
+                        ownedParams.Add(new { name = psyn.Identifier.Text, line = LineOf(psyn), ordinal = declaredOrdinal });
                         ownedParamNames.Add(psyn.Identifier.Text);
                     }
                 }

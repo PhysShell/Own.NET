@@ -1,0 +1,188 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "X2bC5.Mixed",
+      "file": "corpus/p037x-controls/x2b-c5-irrelevant-guard.cs",
+      "sig": "System.IO.Stream,System.Boolean,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 10,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 12,
+          "then": [],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 16,
+          "then": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 18
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 12,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": false
+          },
+          {
+            "site": {
+              "line": 16,
+              "column": 9
+            },
+            "param": 2,
+            "predicate": "truth",
+            "negated": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "X2bC5.KeepsIt",
+      "file": "corpus/p037x-controls/x2b-c5-irrelevant-guard.cs",
+      "sig": "System.String",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "r",
+          "line": 24,
+          "column": 13,
+          "kind": "disposable"
+        },
+        {
+          "op": "call",
+          "callee": "X2bC5.Mixed",
+          "sig": "System.IO.Stream,System.Boolean,System.Boolean",
+          "args": [
+            "r"
+          ],
+          "line": 25
+        },
+        {
+          "op": "release",
+          "var": "r",
+          "line": 26
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 25,
+              "column": 9
+            },
+            "statement_line": 25,
+            "form": "statement",
+            "callee": "X2bC5.Mixed",
+            "sig": "System.IO.Stream,System.Boolean,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              },
+              {
+                "param": 2,
+                "kind": "bool_const",
+                "value": false
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "X2bC5.HandsItOff",
+      "file": "corpus/p037x-controls/x2b-c5-irrelevant-guard.cs",
+      "sig": "System.String",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "r",
+          "line": 31,
+          "column": 13,
+          "kind": "disposable"
+        },
+        {
+          "op": "call",
+          "callee": "X2bC5.Mixed",
+          "sig": "System.IO.Stream,System.Boolean,System.Boolean",
+          "args": [
+            "r"
+          ],
+          "line": 32
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 32,
+              "column": 9
+            },
+            "statement_line": 32,
+            "form": "statement",
+            "callee": "X2bC5.Mixed",
+            "sig": "System.IO.Stream,System.Boolean,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": false
+              },
+              {
+                "param": 2,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  ],
+  "stats": {
+    "methods_with_local": 3,
+    "methods_flow_analysed": 3,
+    "methods_skipped_unmodelled": 0
+  }
+}

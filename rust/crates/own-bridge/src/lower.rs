@@ -1532,7 +1532,7 @@ fn contract_at(site: Contract<'_>, n: &Obj, j: i64, callee: &str, summary: Trans
     let Ok(index) = usize::try_from(j) else {
         return summary;
     };
-    match g.apply_at(caller, as_line(n.get("line")), canonical(callee), index) {
+    match g.apply_at(caller, as_line(n.get("line")), canonical(callee), call_sig(n), index) {
         Some(Lowered::Consume) => Transfer::Must,
         Some(Lowered::Borrow) => Transfer::No,
         Some(Lowered::Plain) | None => summary,

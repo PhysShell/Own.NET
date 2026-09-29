@@ -85,6 +85,9 @@ fn transform(call: Option<&Call<'_>>, callee: Election, caller: Election) -> Tra
 
 /// Stage 1: the joined guard, when an action sits on a path through it.
 fn own_seed(l: &Local) -> Election {
+    if l.conflict {
+        return Election::Conflict;
+    }
     let governed = l
         .paths
         .iter()

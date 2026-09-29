@@ -18,13 +18,14 @@
       }
     }
   ],
-  "measured_at": "P-037 A2.1 relevance/opacity fix in BuildGuardedFacts (this commit)",
+  "measured_at": "p037x-stage2b (prereg bdae34e5, the commit that carries this record)",
   "facts": {
     "ShapeUnstableOwnedParam.Caller": {
       "params": [
         {
           "name": "p",
-          "line": 14
+          "line": 14,
+          "ordinal": 0
         }
       ],
       "body": [
@@ -69,5 +70,92 @@
   "verdict": {
     "rust": [],
     "python": []
-  }
+  },
+  "status_history": [
+    "p037x-stage2b exploratory record at p037x-stage2b (prereg bdae34e5, the commit that carries this record) (params[].ordinal fact)"
+  ],
+  "baseline_transitions": [
+    {
+      "id": "p037x-stage2b",
+      "on": "2026-09-29",
+      "from": {
+        "measured_at": "P-037 A2.1 relevance/opacity fix in BuildGuardedFacts (this commit)"
+      },
+      "to": {
+        "measured_at": "p037x-stage2b (prereg bdae34e5, the commit that carries this record)"
+      },
+      "cause": "P-037-X Stage 2b (research/p037-max-v1, EXPLORATORY; pre-registered in Own.NET-paperwork paper-eval/p037-max/stage2b-prereg-v1.json, R3): the declared parameter ordinal rides on every owned parameter as an ADDITIVE fact, `functions[].params[].ordinal` (the same integer the sidecar keys `args[].param` and `guards[].param` by). Both doors are open to it and both legacy engines ignore it: the body, the sidecar and every verdict are unchanged; only the params entries gained a field.",
+      "classification": "EXPLORATORY P-037-X STAGE-2b RECORD — a research-branch measurement, NOT a production baseline, NOT a reopen of #304; the production engines read no guard value and ignore the added field",
+      "consequences": [
+        "ShapeUnstableOwnedParam.Caller: ['if:None@16', 'use:p@20'] -> ['if:None@16', 'use:p@20']"
+      ],
+      "superseded": {
+        "facts": {
+          "ShapeUnstableOwnedParam.Caller": {
+            "params": [
+              {
+                "name": "p",
+                "line": 14
+              }
+            ],
+            "body": [
+              "if:None@16",
+              "use:p@20"
+            ],
+            "guarded_facts": {
+              "version": 1,
+              "calls": [
+                {
+                  "site": {
+                    "line": 20,
+                    "column": 9
+                  },
+                  "statement_line": 20,
+                  "form": "statement",
+                  "callee": "ShapeUnstableOwnedParam.Sink",
+                  "sig": "System.IO.Stream",
+                  "first_party": true,
+                  "args": [
+                    {
+                      "param": 0,
+                      "kind": "opaque"
+                    }
+                  ]
+                }
+              ],
+              "guards": [
+                {
+                  "site": {
+                    "line": 16,
+                    "column": 9
+                  },
+                  "param": 1,
+                  "predicate": "truth",
+                  "negated": false
+                }
+              ]
+            }
+          }
+        },
+        "verdict": {
+          "rust": [],
+          "python": []
+        },
+        "a2_expect": [
+          {
+            "function": "ShapeUnstableOwnedParam.Caller",
+            "call": {
+              "callee": "ShapeUnstableOwnedParam.Sink",
+              "args": [
+                {
+                  "param": 0,
+                  "kind": "opaque"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
 }

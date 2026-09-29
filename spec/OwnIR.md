@@ -318,6 +318,17 @@ behaviour) — degraded, never a wrong overload — and the `first_party` /
 Additive/optional per §2: no `OWNIR_VERSION` bump; a present-but-non-string
 `sig` on a function record is rejected at load, on a flow op it reads as absent.
 
+**`params[].ordinal` (P-037-X Stage 2b, research branch `research/p037-max-v1`
+only; EXPLORATORY).** A `functions[].params[]` entry may carry an optional
+non-negative integer `ordinal`: the parameter's declared position in the
+method's parameter list — the same integer the guarded-fact sidecar (§5.2) keys
+`args[].param` and `guards[].param` by. It is a coordinate-identity fact for a
+reader of the sidecar, so a params-list index never has to be mapped to a
+declared position by guessing from the type list. Additive/optional per §2: no
+`OWNIR_VERSION` bump; both doors carry it as an unknown field and neither
+production engine reads it. Pre-registered in Own.NET-paperwork
+`paper-eval/p037-max/stage2b-prereg-v1.json` (R3); not part of `main`'s contract.
+
 ### 5.2 The guarded-fact sidecar (`guarded_facts`, P-037 A2.1)
 
 A flow function may carry an **optional** `guarded_facts` object: the frontend's
