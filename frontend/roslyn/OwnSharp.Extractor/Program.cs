@@ -4975,6 +4975,10 @@ static bool ConsumesParam(IMethodSymbol method, IParameterSymbol param,
     var bodyModel = model.Compilation.GetSemanticModel(body.SyntaxTree);
     foreach (var inv in ImmediateInvocations(body))
     {
+        // INF-S2 (#380): only a DEFINITE forward transfers — a hand-off behind a guard is the
+        // same partial release as a guarded `Dispose`, one call further away.
+        if (!IsDefiniteInBody(inv, body))
+            continue;
         if (bodyModel.GetSymbolInfo(inv).Symbol is not IMethodSymbol callee)
             continue;
         var cargs = inv.ArgumentList.Arguments;
@@ -4995,15 +4999,59 @@ static bool ConsumesParam(IMethodSymbol method, IParameterSymbol param,
 // Does `body` dispose the local/parameter named `name` — a `name.Dispose()` / `.Close()` /
 // `.DisposeAsync()` call (the consume signal)? Only IMMEDIATE calls count (`ImmediateInvocations`
 // excludes nested lambda / local-function bodies): a `name.Dispose()` inside a stored callback
-// runs deferred, not at this call site, so it is not a discharge here.
+// runs deferred, not at this call site, so it is not a discharge here. Only a DEFINITE release
+// counts (INF-S2, #380): see IsDefiniteInBody.
 static bool DisposesLocal(SyntaxNode body, string name)
 {
     foreach (var i in ImmediateInvocations(body))
         if (i.Expression is MemberAccessExpressionSyntax m
             && m.Name.Identifier.Text is "Dispose" or "Close" or "DisposeAsync"
-            && m.Expression is IdentifierNameSyntax id && id.Identifier.Text == name)
+            && m.Expression is IdentifierNameSyntax id && id.Identifier.Text == name
+            && IsDefiniteInBody(i, body))
             return true;
     return false;
+}
+
+// INF-S2 (#380): does `site` run on EVERY normal-return path of `body`? The call-site handoff
+// models a consumer's release as a `release` of the caller's argument — an unconditional
+// `must`. That is only true when the callee's release is definite. A release under a
+// condition, inside a loop or a `catch`, or behind an earlier `return` is PARTIAL: the core
+// derives `may` for it (INF-S2), and flattening it to a call-site release is the fabricated
+// `must` the precision floor forbids — a false OWN002/OWN003/OWN009 at a caller that keeps the
+// resource (`Close(s, dispose: false)`), and a false `must` summary on a wrapper that forwards
+// its own parameter that way. Declining here never invents the opposite verdict: a declined
+// argument stays an ordinary escape (an untracked local, a used parameter), not a borrow the
+// caller is charged for. Purely syntactic and deliberately conservative — the guard's value
+// is never read, and an unrecognised shape is not definite (it costs a use-after-handoff
+// finding, never a false one).
+static bool IsDefiniteInBody(SyntaxNode site, SyntaxNode body)
+{
+    for (var n = site.Parent; n is not null && n != body; n = n.Parent)
+        if (n is IfStatementSyntax or ElseClauseSyntax or SwitchStatementSyntax
+                or SwitchExpressionSyntax or ConditionalExpressionSyntax
+                or ConditionalAccessExpressionSyntax
+                or WhileStatementSyntax or DoStatementSyntax or ForStatementSyntax
+                or ForEachStatementSyntax or CatchClauseSyntax
+            || n is BinaryExpressionSyntax b
+               && (b.IsKind(SyntaxKind.LogicalAndExpression)
+                   || b.IsKind(SyntaxKind.LogicalOrExpression)
+                   || b.IsKind(SyntaxKind.CoalesceExpression)))
+            return false;
+    // An earlier exit leaves without reaching `site` — unless `site` sits in a `finally` the
+    // exit runs through. Exits inside nested lambdas / local functions leave THEM, not `body`.
+    foreach (var exit in body.DescendantNodes(n => n is not (AnonymousFunctionExpressionSyntax
+                                                             or LocalFunctionStatementSyntax)))
+    {
+        if (exit is not (ReturnStatementSyntax or YieldStatementSyntax { RawKind: (int)SyntaxKind.YieldBreakStatement })
+            || exit.SpanStart >= site.SpanStart)
+            continue;
+        var coveredByFinally = site.Ancestors().OfType<FinallyClauseSyntax>().Any(f =>
+            f.Parent is TryStatementSyntax t
+            && (t.Block.Span.Contains(exit.Span) || t.Catches.Any(c => c.Span.Contains(exit.Span))));
+        if (!coveredByFinally)
+            return false;
+    }
+    return true;
 }
 
 // Does the call `recv.M(...)` RELEASE its receiver — i.e. is `M` a first-party
