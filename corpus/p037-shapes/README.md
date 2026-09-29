@@ -32,3 +32,18 @@ of aggregated into a number.
 
 Checked by `scripts/p037_fact_shapes.py`, which names its engine explicitly
 (#262 Stage 3) and runs one extractor invocation per case.
+
+## Baseline transitions
+
+A record that moves because a step *meant* to move it is re-recorded
+deliberately, with the move written into the record itself
+(`baseline_transitions[]`, which keeps the superseded facts, verdicts and
+`a2_expect` verbatim). An `a2_expect` entry of the form
+`{"function": …, "record": "absent"}` asserts that a record is gone on
+purpose; the checker fails by name if it comes back.
+
+- **#380** (`23e3203` → `f164dd3`): an independent INF-S2 fix stopped lowering
+  a guarded release as a call-site release. Seven caller records and their
+  sidecars disappear, and two wrappers move `release` → `use`. This is not a
+  P-037 implementation, not a #304 reopen, and not evidence that A2 holds.
+  See [`docs/notes/p037-fact-shape-baseline-transition-380.md`](../../docs/notes/p037-fact-shape-baseline-transition-380.md).

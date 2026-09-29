@@ -11,6 +11,12 @@ anchors, not authorization for a pre-cutover fix: ``expected.json`` records
 BOTH what Owen does today (``current``) and what A1 must make it do
 (``post_a1``), so the evidence lies about neither.
 
+Since #380 (an independent INF-S2 correctness fix, not P-037) ``ConsumesParam``
+no longer lowers a guarded release as a call-site release, and ``current`` was
+re-measured to what now happens — which equals ``post_a1``. The superseded
+record is kept in each control's ``remeasured[]``; see
+docs/notes/p037-fact-shape-baseline-transition-380.md.
+
 Two layers, because the emitted facts show the defect is decided in the
 extractor before either engine runs (docs/notes/p037-formal-kernel.md §8.2):
 
@@ -176,7 +182,7 @@ def main(argv: list[str]) -> int:
             file=sys.stderr,
         )
         return 2
-    layer = "post-A1 acceptance" if args.post_a1 else "current record (measured at 70189a3)"
+    layer = "post-A1 acceptance" if args.post_a1 else "current record (each control's measured_at)"
     print(f"P-037 controls — checking the {layer}, engine={args.engine}")
     all_ok = True
     for control in controls:
