@@ -393,6 +393,19 @@ struct Walk<'a> {
     ordinal: u64,
     guarded_if: Option<(&'a Value, bool)>,
     ops: Vec<&'a Value>,
+    /// P-037-X Stage 2d R6: the sidecar calls (by index) the parameter flows into whose
+    /// callee has NO coordinate for reasons of absence — external, unresolved, or a
+    /// first-party method that carries no record. The body op at such a call line is the
+    /// legacy op it is (XD-4: an unresolved forward is the legacy BORROW, never the kernel's
+    /// unknown): a `use` contributes the path's borrow, a `release` its release; neither is
+    /// a forward. An identity conflict (`callee_sig`, `callee_overloaded`) is not absence
+    /// and keeps B1's fail-closed answer.
+    absent: Vec<usize>,
+}
+
+/// R6's test: the reasons that mean "no coordinate exists", not "cannot tell which".
+fn is_absence(reason: &str) -> bool {
+    matches!(reason, "callee_external" | "callee_no_record" | "callee_unresolved")
 }
 
 /// The local facts of parameter `index` of function `fi`, or why there are
@@ -412,6 +425,16 @@ pub(crate) fn local(fns: &[Func<'_>], fi: usize, index: usize) -> Result<Local, 
     let mut ops = Vec::new();
     collect(f.body, &mut ops);
     let p = f.params.get(index).copied().ok_or("ordinal_map")?;
+    // P-037-X Stage 2d R6: which involved calls have no coordinate for reasons of absence.
+    let absent: Vec<usize> = (0..sc.calls.len())
+        .filter(|&n| {
+            sc.calls.get(n).is_some_and(|c| {
+                c.slots_of(ordinal)
+                    .first()
+                    .is_some_and(|&slot| matches!(callee_coord(fns, c, slot), Err(r) if is_absence(&r)))
+            })
+        })
+        .collect();
     // P-037-X Stage 2b R4 (G-S1, stage 1 verbatim): the election seed of `(M, i)` joins the
     // eligible guard literals lexically governing an ownership action on parameter `i`;
     // a guard governing no action on `i` contributes nothing (its `if` is walked unguarded);
@@ -473,6 +496,7 @@ pub(crate) fn local(fns: &[Func<'_>], fi: usize, index: usize) -> Result<Local, 
         ordinal,
         guarded_if,
         ops,
+        absent,
     };
     w.check_calls()?;
     let start = Path {
@@ -554,6 +578,14 @@ impl<'a> Walk<'a> {
             .into_iter()
             .filter(|&n| self.calls.get(n).is_some_and(|c| self.involved(c)));
         match (mine.next(), mine.next()) {
+            // R6: no coordinate behind this call — the op's own kind decides, as it does for
+            // the legacy engines; a `call` op (a canonical forward whose callee vanished) is
+            // still a forward and fails closed downstream.
+            (Some(n), None) if self.absent.contains(&n) && kind != "call" => match kind {
+                "release" => Ok(Some(Act::Release)),
+                "use" => Ok(None),
+                _ => err("unmatched_call"),
+            },
             (Some(n), None) => Ok(Some(Act::Forward(n))),
             _ => err("join_line"),
         }

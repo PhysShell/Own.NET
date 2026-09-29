@@ -1,0 +1,173 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "X2dC5.Take",
+      "file": "corpus/p037x-controls/x2d-c5-sig-conflict-forward.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 11,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 13,
+          "then": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 15
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 13,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "X2dC5.Take",
+      "file": "corpus/p037x-controls/x2d-c5-sig-conflict-forward.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 19,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 21
+        }
+      ]
+    },
+    {
+      "name": "X2dC5.Fwd",
+      "file": "corpus/p037x-controls/x2d-c5-sig-conflict-forward.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 26,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 28
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 28,
+              "column": 9
+            },
+            "statement_line": 28,
+            "form": "statement",
+            "callee": "X2dC5.Take",
+            "sig": "System.IO.Stream,System.Boolean,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              },
+              {
+                "param": 2,
+                "kind": "bool_const",
+                "value": false
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "X2dC5.Caller",
+      "file": "corpus/p037x-controls/x2d-c5-sig-conflict-forward.cs",
+      "sig": "System.String",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "r",
+          "line": 33,
+          "column": 13,
+          "kind": "disposable"
+        },
+        {
+          "op": "call",
+          "callee": "X2dC5.Fwd",
+          "sig": "System.IO.Stream",
+          "args": [
+            "r"
+          ],
+          "line": 34
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 34,
+              "column": 9
+            },
+            "statement_line": 34,
+            "form": "statement",
+            "callee": "X2dC5.Fwd",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  ],
+  "stats": {
+    "methods_with_local": 4,
+    "methods_flow_analysed": 4,
+    "methods_skipped_unmodelled": 0
+  }
+}

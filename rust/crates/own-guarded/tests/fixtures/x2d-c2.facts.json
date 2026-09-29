@@ -1,0 +1,197 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "X2dC2.N",
+      "file": "corpus/p037x-controls/x2d-c2-external-use-then-guarded-release.cs",
+      "sig": "System.IO.Stream,System.Func\u00602,System.Boolean",
+      "params": [
+        {
+          "name": "p",
+          "line": 11,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "use",
+          "var": "p",
+          "line": 13
+        },
+        {
+          "op": "if",
+          "line": 14,
+          "then": [
+            {
+              "op": "release",
+              "var": "p",
+              "line": 16
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 13,
+              "column": 17
+            },
+            "statement_line": 13,
+            "form": "initializer",
+            "callee": "System.Func\u003CSystem.IO.Stream, int\u003E.Invoke",
+            "sig": "T",
+            "first_party": false,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": [
+          {
+            "site": {
+              "line": 14,
+              "column": 9
+            },
+            "param": 2,
+            "predicate": "truth",
+            "negated": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "X2dC2.Keeps",
+      "file": "corpus/p037x-controls/x2d-c2-external-use-then-guarded-release.cs",
+      "sig": "System.String,System.Func\u00602",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "r",
+          "line": 23,
+          "column": 13,
+          "kind": "disposable"
+        },
+        {
+          "op": "call",
+          "callee": "X2dC2.N",
+          "sig": "System.IO.Stream,System.Func\u00602,System.Boolean",
+          "args": [
+            "r"
+          ],
+          "line": 24
+        },
+        {
+          "op": "release",
+          "var": "r",
+          "line": 25
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 24,
+              "column": 9
+            },
+            "statement_line": 24,
+            "form": "statement",
+            "callee": "X2dC2.N",
+            "sig": "System.IO.Stream,System.Func\u00602,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "param",
+                "source_param": 1
+              },
+              {
+                "param": 2,
+                "kind": "bool_const",
+                "value": false
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "X2dC2.Hands",
+      "file": "corpus/p037x-controls/x2d-c2-external-use-then-guarded-release.cs",
+      "sig": "System.String,System.Func\u00602",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "r",
+          "line": 30,
+          "column": 13,
+          "kind": "disposable"
+        },
+        {
+          "op": "call",
+          "callee": "X2dC2.N",
+          "sig": "System.IO.Stream,System.Func\u00602,System.Boolean",
+          "args": [
+            "r"
+          ],
+          "line": 31
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 31,
+              "column": 9
+            },
+            "statement_line": 31,
+            "form": "statement",
+            "callee": "X2dC2.N",
+            "sig": "System.IO.Stream,System.Func\u00602,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "param",
+                "source_param": 1
+              },
+              {
+                "param": 2,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  ],
+  "stats": {
+    "methods_with_local": 3,
+    "methods_flow_analysed": 3,
+    "methods_skipped_unmodelled": 0
+  }
+}

@@ -141,7 +141,14 @@ fn a13_only_finalized_cells_cross_sccs() {
 #[test]
 fn record_absence_boundary() {
     let r = run(&facts("B1"), &json!({}));
-    assert_eq!(row(&r, "Absence.ToBodied")["reason"], "callee_no_record");
+    // P-037-X Stage 2d R6 (research/p037-max-v1): `Absence.ToBodied` hands `s` to an
+    // expression-bodied callee that carries no record; the fixture's legacy op at that line
+    // (this B1-era extractor's `release`) is what the legacy engines read, so the reader
+    // reads it too — the coordinate is Uncond(must) — instead of B1's fail-closed
+    // `callee_no_record` (XD-4: an unresolved forward is the legacy value, never the
+    // kernel's unknown). The SITE keeps its `callee_no_record`: no coordinate is selected.
+    assert_eq!(row(&r, "Absence.ToBodied")["reason"], "legacy_missing");
+    assert_eq!(row(&r, "Absence.ToBodied")["guarded"], "must");
     // P-037-X Stage 2b R1 (research/p037-max-v1): a straight-line leaf carries a record but
     // no sidecar because A2.1 emits one only for a relevant call or an eligible guard; its
     // absence encodes the EMPTY sidecar, so `Absence.Leaf` is solved from its body ops and
@@ -158,10 +165,13 @@ fn record_absence_boundary() {
     assert_eq!(app(&r, "Absence.ToBodied")["reason"], "callee_no_record");
     let mut doc = facts("B1");
     edit_call(&mut doc, "Pass.KeepIt", |c| c["callee"] = Value::Null);
-    assert_eq!(
-        row(&run(&doc, &json!({})), "Pass.KeepIt")["reason"],
-        "callee_unresolved"
-    );
+    // P-037-X Stage 2d R6: with the callee unresolved, the op at that line is what the
+    // legacy engines read — this fixture's `release` — so the coordinate is Uncond(must),
+    // where B1 answered `callee_unresolved`; the site itself still resolves nothing.
+    let unresolved = run(&doc, &json!({}));
+    assert_eq!(row(&unresolved, "Pass.KeepIt")["reason"], "legacy_missing");
+    assert_eq!(row(&unresolved, "Pass.KeepIt")["guarded"], "must");
+    assert_eq!(app(&unresolved, "Pass.KeepIt")["reason"], "callee_unresolved");
 }
 
 /// WF/EWF: an edge into a slot that is no coordinate is never solved.

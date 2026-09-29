@@ -46,6 +46,14 @@ _RECORD: dict[str, tuple[list[str], list[str]]] = {
     "x2c-c2-init-use-before-dispose": ([], []),
     "x2c-c3-init-fresh-result-leaked": (["OWN001"], ["OWN001"]),  # the leaked fresh result only
     "x2c-c4-init-use-in-guarded-callee": ([], []),
+    # Stage 2d: the legacy borrow at a call line without a coordinate
+    # M = Split(g) [must, no]: true consumes, false borrows, an opaque guard -> plain + OWN051
+    "x2d-c1-guard-else-external-forward": (["OWN051", "OWN051", "OWN051"], ["OWN051"]),
+    "x2d-c2-external-use-then-guarded-release": (["OWN051", "OWN051"], []),
+    "x2d-c3-two-forwards-one-path": ([], []),                     # multi_action stays; legacy no
+    # the callee's own use after dispose, on both engines
+    "x2d-c4-release-then-external-use": (["OWN002"], ["OWN002"]),
+    "x2d-c5-sig-conflict-forward": ([], []),                      # callee_sig stays; legacy consume
 }
 
 

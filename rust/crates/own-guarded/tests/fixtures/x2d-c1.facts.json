@@ -1,0 +1,240 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "X2dC1.M",
+      "file": "corpus/p037x-controls/x2d-c1-guard-else-external-forward.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "p",
+          "line": 11,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 13,
+          "then": [
+            {
+              "op": "release",
+              "var": "p",
+              "line": 15
+            }
+          ],
+          "else": [
+            {
+              "op": "use",
+              "var": "p",
+              "line": 19
+            }
+          ]
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 19,
+              "column": 13
+            },
+            "statement_line": 19,
+            "form": "statement",
+            "callee": "System.Console.WriteLine",
+            "sig": "System.Object",
+            "first_party": false,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": [
+          {
+            "site": {
+              "line": 13,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "X2dC1.HandsOff",
+      "file": "corpus/p037x-controls/x2d-c1-guard-else-external-forward.cs",
+      "sig": "System.String",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "r",
+          "line": 25,
+          "column": 13,
+          "kind": "disposable"
+        },
+        {
+          "op": "call",
+          "callee": "X2dC1.M",
+          "sig": "System.IO.Stream,System.Boolean",
+          "args": [
+            "r"
+          ],
+          "line": 26
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 26,
+              "column": 9
+            },
+            "statement_line": 26,
+            "form": "statement",
+            "callee": "X2dC1.M",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "X2dC1.Keeps",
+      "file": "corpus/p037x-controls/x2d-c1-guard-else-external-forward.cs",
+      "sig": "System.String",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "r",
+          "line": 31,
+          "column": 13,
+          "kind": "disposable"
+        },
+        {
+          "op": "call",
+          "callee": "X2dC1.M",
+          "sig": "System.IO.Stream,System.Boolean",
+          "args": [
+            "r"
+          ],
+          "line": 32
+        },
+        {
+          "op": "release",
+          "var": "r",
+          "line": 33
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 32,
+              "column": 9
+            },
+            "statement_line": 32,
+            "form": "statement",
+            "callee": "X2dC1.M",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": false
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "X2dC1.Opaque",
+      "file": "corpus/p037x-controls/x2d-c1-guard-else-external-forward.cs",
+      "sig": "System.String,System.Boolean",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "r",
+          "line": 38,
+          "column": 13,
+          "kind": "disposable"
+        },
+        {
+          "op": "call",
+          "callee": "X2dC1.M",
+          "sig": "System.IO.Stream,System.Boolean",
+          "args": [
+            "r"
+          ],
+          "line": 39
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 39,
+              "column": 9
+            },
+            "statement_line": 39,
+            "form": "statement",
+            "callee": "X2dC1.M",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "param",
+                "source_param": 1
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  ],
+  "stats": {
+    "methods_with_local": 4,
+    "methods_flow_analysed": 4,
+    "methods_skipped_unmodelled": 0
+  }
+}

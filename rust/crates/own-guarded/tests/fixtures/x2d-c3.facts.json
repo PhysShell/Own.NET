@@ -1,0 +1,177 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "X2dC3.Peek",
+      "file": "corpus/p037x-controls/x2d-c3-two-forwards-one-path.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 10,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "use",
+          "var": "s",
+          "line": 12
+        }
+      ]
+    },
+    {
+      "name": "X2dC3.Peek2",
+      "file": "corpus/p037x-controls/x2d-c3-two-forwards-one-path.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 15,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "use",
+          "var": "s",
+          "line": 17
+        }
+      ]
+    },
+    {
+      "name": "X2dC3.Two",
+      "file": "corpus/p037x-controls/x2d-c3-two-forwards-one-path.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "p",
+          "line": 20,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "call",
+          "callee": "X2dC3.Peek",
+          "sig": "System.IO.Stream",
+          "args": [
+            "p"
+          ],
+          "line": 22
+        },
+        {
+          "op": "call",
+          "callee": "X2dC3.Peek2",
+          "sig": "System.IO.Stream",
+          "args": [
+            "p"
+          ],
+          "line": 23
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 22,
+              "column": 9
+            },
+            "statement_line": 22,
+            "form": "statement",
+            "callee": "X2dC3.Peek",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          },
+          {
+            "site": {
+              "line": 23,
+              "column": 9
+            },
+            "statement_line": 23,
+            "form": "statement",
+            "callee": "X2dC3.Peek2",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "X2dC3.Caller",
+      "file": "corpus/p037x-controls/x2d-c3-two-forwards-one-path.cs",
+      "sig": "System.String",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "r",
+          "line": 28,
+          "column": 13,
+          "kind": "disposable"
+        },
+        {
+          "op": "call",
+          "callee": "X2dC3.Two",
+          "sig": "System.IO.Stream",
+          "args": [
+            "r"
+          ],
+          "line": 29
+        },
+        {
+          "op": "release",
+          "var": "r",
+          "line": 30
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 29,
+              "column": 9
+            },
+            "statement_line": 29,
+            "form": "statement",
+            "callee": "X2dC3.Two",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  ],
+  "stats": {
+    "methods_with_local": 4,
+    "methods_flow_analysed": 4,
+    "methods_skipped_unmodelled": 0
+  }
+}

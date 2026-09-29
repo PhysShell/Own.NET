@@ -1,0 +1,108 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "X2dC4.RelThenUse",
+      "file": "corpus/p037x-controls/x2d-c4-release-then-external-use.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "p",
+          "line": 10,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "p",
+          "line": 12
+        },
+        {
+          "op": "use",
+          "var": "p",
+          "line": 13
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 13,
+              "column": 9
+            },
+            "statement_line": 13,
+            "form": "statement",
+            "callee": "System.Console.WriteLine",
+            "sig": "System.Object",
+            "first_party": false,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "X2dC4.Caller",
+      "file": "corpus/p037x-controls/x2d-c4-release-then-external-use.cs",
+      "sig": "System.String",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "r",
+          "line": 18,
+          "column": 13,
+          "kind": "disposable"
+        },
+        {
+          "op": "call",
+          "callee": "X2dC4.RelThenUse",
+          "sig": "System.IO.Stream",
+          "args": [
+            "r"
+          ],
+          "line": 19
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 19,
+              "column": 9
+            },
+            "statement_line": 19,
+            "form": "statement",
+            "callee": "X2dC4.RelThenUse",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  ],
+  "stats": {
+    "methods_with_local": 2,
+    "methods_flow_analysed": 2,
+    "methods_skipped_unmodelled": 0
+  }
+}
