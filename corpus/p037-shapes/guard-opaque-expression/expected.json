@@ -16,11 +16,16 @@
     },
     {
       "function": "ShapeOpaqueArg.Caller",
-      "record": "absent",
-      "since": "#380"
+      "record": "present",
+      "since": "p037x-stage1",
+      "superseded_absence": {
+        "function": "ShapeOpaqueArg.Caller",
+        "record": "absent",
+        "since": "#380"
+      }
     }
   ],
-  "measured_at": "f164dd3",
+  "measured_at": "702d25b",
   "facts": {
     "ShapeOpaqueArg.Inner": {
       "params": [
@@ -48,16 +53,56 @@
           }
         ]
       }
+    },
+    "ShapeOpaqueArg.Caller": {
+      "params": null,
+      "body": [
+        "acquire:r@19",
+        "call:ShapeOpaqueArg.Inner@20[args=['r']]"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 20,
+              "column": 9
+            },
+            "statement_line": 20,
+            "form": "statement",
+            "callee": "ShapeOpaqueArg.Inner",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "opaque"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
     }
   },
   "verdict": {
-    "rust": [],
-    "python": []
+    "rust": [
+      "OWN051:note@20"
+    ],
+    "python": [
+      "OWN051:note@20"
+    ]
   },
   "status_history": [
     "pending_a2 (recorded at 464308b)",
     "anchored (A2.1 sidecar)",
-    "anchored — baseline transition #380 at f164dd3 (caller record absent; A2 carrier lost, asserted as absent)"
+    "anchored — baseline transition #380 at f164dd3 (caller record absent; A2 carrier lost, asserted as absent)",
+    "p037x-stage1 exploratory record at 702d25b (canonical call transport)"
   ],
   "baseline_transitions": [
     {
@@ -136,6 +181,72 @@
       },
       "known_limitation": "canonical first-party call transport remains absent: the honest call reaches the facts only through the sidecar of a record that ordinary relevance filtering may drop",
       "note": "docs/notes/p037-fact-shape-baseline-transition-380.md"
+    },
+    {
+      "id": "p037x-stage1",
+      "on": "2026-09-29",
+      "from": {
+        "measured_at": "f164dd3"
+      },
+      "to": {
+        "measured_at": "702d25b"
+      },
+      "cause": "P-037-X Stage 1 (research/p037-max-v1, EXPLORATORY): canonical first-party call transport. A statement-form invocation of a first-party owned-parameter callee that carries a record is lowered as ONE OwnIR `call` op for its tracked handles (no `release`/`use` fold), and a canonically forwarded local is no longer an escape, so caller records that #380 dropped return.",
+      "classification": "EXPLORATORY P-037-X STAGE-1 RECORD — a research-branch measurement, NOT a production baseline, NOT a reopen of #304, NOT a P-037 implementation (no guard value is read by any engine at this stage)",
+      "consequences": [
+        "ShapeOpaqueArg.Caller: record absent -> ['acquire:r@19', \"call:ShapeOpaqueArg.Inner@20[args=['r']]\"]",
+        "verdict: {'rust': [], 'python': []} -> {'rust': ['OWN051:note@20'], 'python': ['OWN051:note@20']}"
+      ],
+      "superseded": {
+        "facts": {
+          "ShapeOpaqueArg.Inner": {
+            "params": [
+              {
+                "name": "s",
+                "line": 9
+              }
+            ],
+            "body": [
+              "if:None@11",
+              "then:release:s@13"
+            ],
+            "guarded_facts": {
+              "version": 1,
+              "calls": [],
+              "guards": [
+                {
+                  "site": {
+                    "line": 11,
+                    "column": 9
+                  },
+                  "param": 1,
+                  "predicate": "truth",
+                  "negated": true
+                }
+              ]
+            }
+          }
+        },
+        "verdict": {
+          "rust": [],
+          "python": []
+        },
+        "a2_expect": [
+          {
+            "function": "ShapeOpaqueArg.Inner",
+            "guard": {
+              "param": 1,
+              "predicate": "truth",
+              "negated": true
+            }
+          },
+          {
+            "function": "ShapeOpaqueArg.Caller",
+            "record": "absent",
+            "since": "#380"
+          }
+        ]
+      }
     }
   ]
 }

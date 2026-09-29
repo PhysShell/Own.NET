@@ -3,12 +3,14 @@
   "control": "gv4-control-mutated-guard",
   "p037": "§8 row 18a — G-V4, mutated guard (direct write)",
   "classification": "KNOWN_FALSE_POSITIVE",
-  "measured_at": "f164dd3",
+  "measured_at": "702d25b",
   "owner_ruling": "2026-09-18: accepted as pre-A1 regression anchors, not as authorization for a pre-cutover fix; no ConsumesParam change before P-022 Stage 3",
   "call_site_line": 39,
   "defensive_dispose_line": 40,
   "current": {
-    "findings": [],
+    "findings": [
+      "OWN051"
+    ],
     "fabricated_release_at_call_site": false
   },
   "post_a1": {
@@ -61,6 +63,34 @@
       },
       "result": "CHANGED — `current` re-recorded to the new measurement, which equals the `post_a1` record this file has carried since the controls landed on main (afeca38, 2026-09-18; the record was measured at 70189a3) and which is unchanged here: the new expectation was not chosen after the fix. P-037 is not implemented by this; `post_a1` being met is a consequence of removing the fabricated release, not of cell selection.",
       "classification": "ACCEPTED BASELINE MOVEMENT CAUSED BY #380 — NOT a P-037 implementation, NOT a reopen of #304, NOT evidence that the A2 contract is satisfied"
+    },
+    {
+      "at": "702d25b",
+      "on": "2026-09-29",
+      "why": "P-037-X Stage 1 (research/p037-max-v1, EXPLORATORY): canonical first-party call transport. A statement-form invocation of a first-party owned-parameter callee that carries a record is lowered as ONE OwnIR `call` op for its tracked handles (no `release`/`use` fold), and a canonically forwarded local is no longer an escape, so caller records that #380 dropped return.",
+      "engines": {
+        "python": {
+          "findings": [
+            "OWN051"
+          ],
+          "fabricated_release_at_call_site": false
+        },
+        "rust": {
+          "findings": [
+            "OWN051"
+          ],
+          "fabricated_release_at_call_site": false
+        }
+      },
+      "superseded_current": {
+        "measured_at": "f164dd3",
+        "current": {
+          "findings": [],
+          "fabricated_release_at_call_site": false
+        }
+      },
+      "result": "CHANGED — exploratory Stage-1 record; the honest call reaches the MOS, so the `may` callee yields the INF-A5 optimistic untrack plus its OWN051 advisory where the fold used to sit",
+      "classification": "EXPLORATORY P-037-X STAGE-1 RECORD — a research-branch measurement, NOT a production baseline, NOT a reopen of #304, NOT a P-037 implementation (no guard value is read by any engine at this stage)"
     }
   ],
   "note": "Today the extractor lowers Outer(r, true) to a release of r (may-as-must ConsumesParam), so the honest r.Dispose() is a false OWN003. After A1 the call must carry no release op and lower to plain + OWN051; the dispose is clean.",
