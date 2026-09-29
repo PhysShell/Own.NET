@@ -1,0 +1,861 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [
+    {
+      "name": "Client",
+      "file": "corpus/p037x-controls/x4-p2-finishsend-shape-twin.cs",
+      "subscriptions": [
+        {
+          "event": "_pendingRequestsCts",
+          "line": 25,
+          "column": 37,
+          "released": true,
+          "resource": "disposable",
+          "type": "CancellationTokenSource"
+        }
+      ]
+    }
+  ],
+  "services": [],
+  "functions": [
+    {
+      "name": "Client.GetStringAsyncCore",
+      "file": "corpus/p037x-controls/x4-p2-finishsend-shape-twin.cs",
+      "sig": "Request,System.Threading.CancellationToken",
+      "body": [
+        {
+          "op": "call",
+          "callee": "Client.PrepareCancellationTokenSource",
+          "sig": "System.Threading.CancellationToken",
+          "args": [],
+          "results": [
+            "cts",
+            "disposeCts",
+            "pendingRequestsCts"
+          ],
+          "line": 46,
+          "column": 9
+        },
+        {
+          "op": "if",
+          "line": 50,
+          "then": [
+            {
+              "op": "call",
+              "callee": "Client.FinishSend",
+              "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+              "args": [
+                "response",
+                "cts"
+              ],
+              "line": 64
+            },
+            {
+              "op": "return",
+              "var": null,
+              "line": 48
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "use",
+          "var": "cts",
+          "line": 50
+        },
+        {
+          "op": "if",
+          "line": 51,
+          "then": [],
+          "else": []
+        },
+        {
+          "op": "call",
+          "callee": "Client.FinishSend",
+          "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+          "args": [
+            "response",
+            "cts"
+          ],
+          "line": 64
+        },
+        {
+          "op": "return",
+          "var": null,
+          "line": 48
+        },
+        {
+          "op": "call",
+          "callee": "Client.FinishSend",
+          "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+          "args": [
+            "response",
+            "cts"
+          ],
+          "line": 64
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 59,
+              "column": 13
+            },
+            "statement_line": 59,
+            "form": "statement",
+            "callee": "Client.HandleFailure",
+            "sig": "System.Exception,System.Boolean,Response,System.Threading.CancellationTokenSource,System.Threading.CancellationToken,System.Threading.CancellationTokenSource",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "opaque"
+              },
+              {
+                "param": 1,
+                "kind": "flag_var",
+                "name": "telemetryStarted"
+              },
+              {
+                "param": 2,
+                "kind": "opaque"
+              },
+              {
+                "param": 3,
+                "kind": "var",
+                "name": "cts"
+              },
+              {
+                "param": 4,
+                "kind": "param",
+                "source_param": 1
+              },
+              {
+                "param": 5,
+                "kind": "var",
+                "name": "pendingRequestsCts"
+              }
+            ]
+          },
+          {
+            "site": {
+              "line": 64,
+              "column": 13
+            },
+            "statement_line": 64,
+            "form": "statement",
+            "callee": "Client.FinishSend",
+            "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "opaque"
+              },
+              {
+                "param": 1,
+                "kind": "var",
+                "name": "cts"
+              },
+              {
+                "param": 2,
+                "kind": "flag_var",
+                "name": "disposeCts"
+              },
+              {
+                "param": 3,
+                "kind": "flag_var",
+                "name": "telemetryStarted"
+              },
+              {
+                "param": 4,
+                "kind": "opaque"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "Client.GetByteArrayAsyncCore",
+      "file": "corpus/p037x-controls/x4-p2-finishsend-shape-twin.cs",
+      "sig": "Request,System.Threading.CancellationToken",
+      "body": [
+        {
+          "op": "call",
+          "callee": "Client.PrepareCancellationTokenSource",
+          "sig": "System.Threading.CancellationToken",
+          "args": [],
+          "results": [
+            "cts",
+            "disposeCts",
+            "pendingRequestsCts"
+          ],
+          "line": 73,
+          "column": 9
+        },
+        {
+          "op": "if",
+          "line": 77,
+          "then": [
+            {
+              "op": "call",
+              "callee": "Client.FinishSend",
+              "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+              "args": [
+                "response",
+                "cts"
+              ],
+              "line": 87
+            },
+            {
+              "op": "return",
+              "var": null,
+              "line": 75
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "use",
+          "var": "cts",
+          "line": 77
+        },
+        {
+          "op": "call",
+          "callee": "Client.FinishSend",
+          "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+          "args": [
+            "response",
+            "cts"
+          ],
+          "line": 87
+        },
+        {
+          "op": "return",
+          "var": null,
+          "line": 75
+        },
+        {
+          "op": "call",
+          "callee": "Client.FinishSend",
+          "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+          "args": [
+            "response",
+            "cts"
+          ],
+          "line": 87
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 82,
+              "column": 13
+            },
+            "statement_line": 82,
+            "form": "statement",
+            "callee": "Client.HandleFailure",
+            "sig": "System.Exception,System.Boolean,Response,System.Threading.CancellationTokenSource,System.Threading.CancellationToken,System.Threading.CancellationTokenSource",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "opaque"
+              },
+              {
+                "param": 1,
+                "kind": "flag_var",
+                "name": "telemetryStarted"
+              },
+              {
+                "param": 2,
+                "kind": "opaque"
+              },
+              {
+                "param": 3,
+                "kind": "var",
+                "name": "cts"
+              },
+              {
+                "param": 4,
+                "kind": "param",
+                "source_param": 1
+              },
+              {
+                "param": 5,
+                "kind": "var",
+                "name": "pendingRequestsCts"
+              }
+            ]
+          },
+          {
+            "site": {
+              "line": 87,
+              "column": 13
+            },
+            "statement_line": 87,
+            "form": "statement",
+            "callee": "Client.FinishSend",
+            "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "opaque"
+              },
+              {
+                "param": 1,
+                "kind": "var",
+                "name": "cts"
+              },
+              {
+                "param": 2,
+                "kind": "flag_var",
+                "name": "disposeCts"
+              },
+              {
+                "param": 3,
+                "kind": "flag_var",
+                "name": "telemetryStarted"
+              },
+              {
+                "param": 4,
+                "kind": "flag_var",
+                "name": "responseContentTelemetryStarted"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "Client.GetStreamAsyncCore",
+      "file": "corpus/p037x-controls/x4-p2-finishsend-shape-twin.cs",
+      "sig": "Request,System.Threading.CancellationToken",
+      "body": [
+        {
+          "op": "call",
+          "callee": "Client.PrepareCancellationTokenSource",
+          "sig": "System.Threading.CancellationToken",
+          "args": [],
+          "results": [
+            "cts",
+            "disposeCts",
+            "pendingRequestsCts"
+          ],
+          "line": 95,
+          "column": 9
+        },
+        {
+          "op": "if",
+          "line": 99,
+          "then": [
+            {
+              "op": "call",
+              "callee": "Client.FinishSend",
+              "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+              "args": [
+                "response",
+                "cts"
+              ],
+              "line": 109
+            },
+            {
+              "op": "return",
+              "var": null,
+              "line": 97
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "use",
+          "var": "cts",
+          "line": 99
+        },
+        {
+          "op": "call",
+          "callee": "Client.FinishSend",
+          "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+          "args": [
+            "response",
+            "cts"
+          ],
+          "line": 109
+        },
+        {
+          "op": "return",
+          "var": null,
+          "line": 97
+        },
+        {
+          "op": "call",
+          "callee": "Client.FinishSend",
+          "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+          "args": [
+            "response",
+            "cts"
+          ],
+          "line": 109
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 104,
+              "column": 13
+            },
+            "statement_line": 104,
+            "form": "statement",
+            "callee": "Client.HandleFailure",
+            "sig": "System.Exception,System.Boolean,Response,System.Threading.CancellationTokenSource,System.Threading.CancellationToken,System.Threading.CancellationTokenSource",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "opaque"
+              },
+              {
+                "param": 1,
+                "kind": "flag_var",
+                "name": "telemetryStarted"
+              },
+              {
+                "param": 2,
+                "kind": "opaque"
+              },
+              {
+                "param": 3,
+                "kind": "var",
+                "name": "cts"
+              },
+              {
+                "param": 4,
+                "kind": "param",
+                "source_param": 1
+              },
+              {
+                "param": 5,
+                "kind": "var",
+                "name": "pendingRequestsCts"
+              }
+            ]
+          },
+          {
+            "site": {
+              "line": 109,
+              "column": 13
+            },
+            "statement_line": 109,
+            "form": "statement",
+            "callee": "Client.FinishSend",
+            "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "opaque"
+              },
+              {
+                "param": 1,
+                "kind": "var",
+                "name": "cts"
+              },
+              {
+                "param": 2,
+                "kind": "flag_var",
+                "name": "disposeCts"
+              },
+              {
+                "param": 3,
+                "kind": "flag_var",
+                "name": "telemetryStarted"
+              },
+              {
+                "param": 4,
+                "kind": "bool_const",
+                "value": false
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "Client.Send",
+      "file": "corpus/p037x-controls/x4-p2-finishsend-shape-twin.cs",
+      "sig": "Request,System.Threading.CancellationToken",
+      "body": [
+        {
+          "op": "call",
+          "callee": "Client.PrepareCancellationTokenSource",
+          "sig": "System.Threading.CancellationToken",
+          "args": [],
+          "results": [
+            "cts",
+            "disposeCts",
+            "pendingRequestsCts"
+          ],
+          "line": 117,
+          "column": 9
+        },
+        {
+          "op": "if",
+          "line": 121,
+          "then": [
+            {
+              "op": "call",
+              "callee": "Client.FinishSend",
+              "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+              "args": [
+                "response",
+                "cts"
+              ],
+              "line": 131
+            },
+            {
+              "op": "return",
+              "var": null,
+              "line": 119
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "use",
+          "var": "cts",
+          "line": 121
+        },
+        {
+          "op": "call",
+          "callee": "Client.FinishSend",
+          "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+          "args": [
+            "response",
+            "cts"
+          ],
+          "line": 131
+        },
+        {
+          "op": "return",
+          "var": null,
+          "line": 119
+        },
+        {
+          "op": "call",
+          "callee": "Client.FinishSend",
+          "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+          "args": [
+            "response",
+            "cts"
+          ],
+          "line": 131
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 126,
+              "column": 13
+            },
+            "statement_line": 126,
+            "form": "statement",
+            "callee": "Client.HandleFailure",
+            "sig": "System.Exception,System.Boolean,Response,System.Threading.CancellationTokenSource,System.Threading.CancellationToken,System.Threading.CancellationTokenSource",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "opaque"
+              },
+              {
+                "param": 1,
+                "kind": "flag_var",
+                "name": "telemetryStarted"
+              },
+              {
+                "param": 2,
+                "kind": "opaque"
+              },
+              {
+                "param": 3,
+                "kind": "var",
+                "name": "cts"
+              },
+              {
+                "param": 4,
+                "kind": "param",
+                "source_param": 1
+              },
+              {
+                "param": 5,
+                "kind": "var",
+                "name": "pendingRequestsCts"
+              }
+            ]
+          },
+          {
+            "site": {
+              "line": 131,
+              "column": 13
+            },
+            "statement_line": 131,
+            "form": "statement",
+            "callee": "Client.FinishSend",
+            "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "opaque"
+              },
+              {
+                "param": 1,
+                "kind": "var",
+                "name": "cts"
+              },
+              {
+                "param": 2,
+                "kind": "flag_var",
+                "name": "disposeCts"
+              },
+              {
+                "param": 3,
+                "kind": "flag_var",
+                "name": "telemetryStarted"
+              },
+              {
+                "param": 4,
+                "kind": "bool_const",
+                "value": false
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "Client.HandleFailure",
+      "file": "corpus/p037x-controls/x4-p2-finishsend-shape-twin.cs",
+      "sig": "System.Exception,System.Boolean,Response,System.Threading.CancellationTokenSource,System.Threading.CancellationToken,System.Threading.CancellationTokenSource",
+      "params": [
+        {
+          "name": "response",
+          "line": 135,
+          "ordinal": 2
+        },
+        {
+          "name": "cts",
+          "line": 135,
+          "ordinal": 3
+        },
+        {
+          "name": "pendingRequestsCts",
+          "line": 135,
+          "ordinal": 5
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "response",
+          "line": 137
+        },
+        {
+          "op": "if",
+          "line": 138,
+          "then": [
+            {
+              "op": "if",
+              "line": 140,
+              "then": [
+                {
+                  "op": "return",
+                  "var": null,
+                  "line": 142
+                }
+              ],
+              "else": []
+            }
+          ],
+          "else": []
+        }
+      ]
+    },
+    {
+      "name": "Client.FinishSend",
+      "file": "corpus/p037x-controls/x4-p2-finishsend-shape-twin.cs",
+      "sig": "Response,System.Threading.CancellationTokenSource,System.Boolean,System.Boolean,System.Boolean",
+      "params": [
+        {
+          "name": "response",
+          "line": 147,
+          "ordinal": 0
+        },
+        {
+          "name": "cts",
+          "line": 147,
+          "ordinal": 1
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 149,
+          "then": [
+            {
+              "op": "if",
+              "line": 151,
+              "then": [
+                {
+                  "op": "use",
+                  "var": "response",
+                  "line": 153
+                }
+              ],
+              "else": []
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 157,
+          "then": [
+            {
+              "op": "release",
+              "var": "cts",
+              "line": 159
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 153,
+              "column": 17
+            },
+            "statement_line": 153,
+            "form": "statement",
+            "callee": "System.Console.WriteLine",
+            "sig": "System.Object",
+            "first_party": false,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": [
+          {
+            "site": {
+              "line": 151,
+              "column": 13
+            },
+            "param": 4,
+            "predicate": "truth",
+            "negated": false
+          },
+          {
+            "site": {
+              "line": 157,
+              "column": 9
+            },
+            "param": 2,
+            "predicate": "truth",
+            "negated": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "Client.PrepareCancellationTokenSource",
+      "file": "corpus/p037x-controls/x4-p2-finishsend-shape-twin.cs",
+      "sig": "System.Threading.CancellationToken",
+      "result_slots": [
+        "resource",
+        "flag",
+        "resource"
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 168,
+          "then": [
+            {
+              "op": "acquire",
+              "var": "cts",
+              "line": 170,
+              "column": 37,
+              "kind": "disposable"
+            },
+            {
+              "op": "if",
+              "line": 171,
+              "then": [
+                {
+                  "op": "use",
+                  "var": "cts",
+                  "line": 173
+                }
+              ],
+              "else": []
+            },
+            {
+              "op": "use",
+              "var": "cts",
+              "line": 176
+            },
+            {
+              "op": "return",
+              "var": "cts",
+              "values": [
+                "cts",
+                true,
+                null
+              ],
+              "line": 176
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "return",
+          "var": null,
+          "values": [
+            null,
+            false,
+            null
+          ],
+          "line": 179
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "methods_with_local": 7,
+    "methods_flow_analysed": 7,
+    "methods_skipped_unmodelled": 0
+  }
+}

@@ -3,10 +3,14 @@
 sub-stages 2b and 2c as executable evidence, on the real extractor.
 
 corpus/p037x-controls/*.cs are the controls frozen in Own.NET-paperwork
-`paper-eval/p037-max/stage2b-prereg-v1.json` and `stage2c-prereg-v1.json`. Each is extracted
-with `--flow-locals` and run through the Python reference (the legacy path, which the guarded
-opt-in never touches) and, when `OWEN_RUST_CORE` names an own-cli, through Rust with
-`OWEN_P037X_GUARDED=0` (must equal the reference's codes) and `=1` (the frozen guarded outcome).
+`paper-eval/p037-max/stage2b-prereg-v1.json`, `stage2c-prereg-v1.json`, `stage2d-prereg-v1.json`
+and `stage4-relational-prereg-v1.json`. Each is extracted with `--flow-locals` and run through the
+Python reference (the legacy path, which the guarded opt-in never touches) and, when
+`OWEN_RUST_CORE` names an own-cli, through Rust with `OWEN_P037X_GUARDED=0` (must equal the
+reference's codes) and `=1` (the frozen guarded outcome). A Stage 4 control (`x4-*`) is extracted
+a second time with the relational opt-in `OWEN_P037X_RELATIONAL=1`: those facts must be inert on
+the reference and on Rust with the guarded opt-in off (the same legacy codes), and yield the
+frozen relational outcome with it on.
 
 The table below is the RECORD of the sub-stage measurements; a row that moves is a change to
 classify, never one to repair here. Codes are compared as multisets at `--severity warning`.
@@ -54,6 +58,15 @@ _RECORD: dict[str, tuple[list[str], list[str]]] = {
     # the callee's own use after dispose, on both engines
     "x2d-c4-release-then-external-use": (["OWN002"], ["OWN002"]),
     "x2d-c5-sig-conflict-forward": ([], []),                      # callee_sig stays; legacy consume
+    # Stage 4: the relational (resource, ownsResource) pair (facts with OWEN_P037X_RELATIONAL=1)
+    # the owned path of a never-releasing consumer leaks; the matched sites discharge silently
+    "x4-p1-relational-shape": ([], ["OWN001"]),
+    "x4-p2-finishsend-shape-twin": ([], []),                     # the case-2 SHAPE TWIN
+    "x4-c1-unrelated-flag": ([], ["OWN051"]),                    # another flag is no witness
+    "x4-c2-reassigned-flag": ([], ["OWN051"]),                   # an unstable flag is opaque
+    "x4-c3-cross-association": ([], ["OWN051", "OWN051"]),       # Crossed degrades, Straight clean
+    "x4-c4-polarity": ([], ["OWN051"]),                          # (no, must) is not the match
+    "x4-c5-owned-slot-filler": ([], []),                         # the filler carries the handle
 }
 
 
@@ -80,26 +93,38 @@ def run() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         for name, (legacy, guarded) in sorted(_RECORD.items()):
             src = os.path.join(_CONTROLS, f"{name}.cs")
-            facts = os.path.join(tmp, f"{name}.json")
-            try:
-                subprocess.run(["dotnet", "run", "--project", _EXT, "--", "--flow-locals", src,
-                                "-o", facts], cwd=_REPO, check=True, capture_output=True, text=True)
-            except subprocess.CalledProcessError as exc:
-                fails.append(f"{name}: the extractor exited {exc.returncode}: {exc.stderr[-300:]}")
-                continue
-            py = _codes(_run([sys.executable, "-m", "ownlang", "ownir", facts,
-                              "--severity", "warning"], env))
-            if collections.Counter(py) != collections.Counter(legacy):
-                fails.append(f"{name}: python {py} != recorded legacy {legacy}")
-            if rust:
-                off = _codes(_run([rust, "ownir", facts, "--severity", "warning"],
-                                  {**env, "OWEN_P037X_GUARDED": "0"}))
-                on = _codes(_run([rust, "ownir", facts, "--severity", "warning"],
-                                 {**env, "OWEN_P037X_GUARDED": "1"}))
-                if collections.Counter(off) != collections.Counter(py):
-                    fails.append(f"{name}: rust flag-off {off} != python {py} (parity)")
-                if collections.Counter(on) != collections.Counter(guarded):
-                    fails.append(f"{name}: rust flag-on {on} != recorded guarded {guarded}")
+            relational = name.startswith("x4-")
+            # (facts file, extractor env, the arm's label); a Stage 4 control has two facts
+            arms = [(os.path.join(tmp, f"{name}.json"), {}, "")]
+            if relational:
+                arms.append((os.path.join(tmp, f"{name}.rel.json"),
+                             {"OWEN_P037X_RELATIONAL": "1"}, " (relational facts)"))
+            for facts, ext_env, label in arms:
+                try:
+                    subprocess.run(["dotnet", "run", "--project", _EXT, "--", "--flow-locals", src,
+                                    "-o", facts], cwd=_REPO, check=True, capture_output=True,
+                                   text=True, env={**os.environ, **ext_env})
+                except subprocess.CalledProcessError as exc:
+                    fails.append(f"{name}{label}: the extractor exited {exc.returncode}: "
+                                 f"{exc.stderr[-300:]}")
+                    continue
+                py = _codes(_run([sys.executable, "-m", "ownlang", "ownir", facts,
+                                  "--severity", "warning"], env))
+                if collections.Counter(py) != collections.Counter(legacy):
+                    fails.append(f"{name}{label}: python {py} != recorded legacy {legacy}")
+                if rust:
+                    off = _codes(_run([rust, "ownir", facts, "--severity", "warning"],
+                                      {**env, "OWEN_P037X_GUARDED": "0"}))
+                    on = _codes(_run([rust, "ownir", facts, "--severity", "warning"],
+                                     {**env, "OWEN_P037X_GUARDED": "1"}))
+                    if collections.Counter(off) != collections.Counter(py):
+                        fails.append(f"{name}{label}: rust flag-off {off} != python {py} (parity)")
+                    # the relational outcome needs the relational facts; the plain facts of a
+                    # Stage 4 control are the legacy document and must stay legacy with the
+                    # guarded opt-in on as well
+                    want = guarded if (label or not relational) else legacy
+                    if collections.Counter(on) != collections.Counter(want):
+                        fails.append(f"{name}{label}: rust flag-on {on} != recorded {want}")
     for f in fails:
         print(f"FAIL: {f}")
     print(f"p037x controls: {len(_RECORD)} control(s), {len(fails)} failed"

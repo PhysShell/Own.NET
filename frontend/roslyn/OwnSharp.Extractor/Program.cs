@@ -2907,7 +2907,7 @@ static bool IsNullLiteral(ExpressionSyntax? e) =>
 // with — no assignment (plain, compound, or deconstructing), no ++/--, no `ref`/`out`
 // argument, no `ref` alias, no address taken. A write inside a lambda counts: the closure
 // may run before the read.
-static bool ParameterIsStable(IParameterSymbol p, SyntaxNode body, SemanticModel model)
+static bool ParameterIsStable(ISymbol p, SyntaxNode body, SemanticModel model)
 {
     bool Refers(ExpressionSyntax? e) =>
         StripParens(e) is IdentifierNameSyntax id
@@ -3009,6 +3009,16 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
                 if (model.GetSymbolInfo(id).Symbol is ILocalSymbol
                     && handles.Contains(id.Identifier.Text))
                     return (new() { ["kind"] = "var", ["name"] = id.Identifier.Text }, true);
+                // P-037-X Stage 4 R4-3: a boolean LOCAL of this method that nothing assigns
+                // after its binding (the G-V4 stability walk, applied to the local) is carried by
+                // name; the driver reads it as opaque everywhere except the witness match.
+                if (P037xRelational
+                    && model.GetSymbolInfo(id).Symbol is ILocalSymbol { Type.SpecialType: SpecialType.System_Boolean } fl
+                    && ParameterIsStable(fl, mbody, model))
+                {
+                    P037xRelCount("flag_var");
+                    return (new() { ["kind"] = "flag_var", ["name"] = id.Identifier.Text }, false);
+                }
                 return (new() { ["kind"] = "opaque" }, false);
             case InvocationExpressionSyntax cinv:
                 if (model.GetSymbolInfo(cinv).Symbol is IMethodSymbol cm
@@ -3215,6 +3225,9 @@ static void ValidateGuardedFacts(List<Dictionary<string, object?>> calls,
                 Fail("param fact without a source_param ordinal");
             else if (kind == "var" && arg.GetValueOrDefault("name") is not string { Length: > 0 })
                 Fail("var fact without a name");
+            // P-037-X Stage 4 R4-3: a flag_var fact names the single-assignment boolean local.
+            else if (kind == "flag_var" && arg.GetValueOrDefault("name") is not string { Length: > 0 })
+                Fail("flag_var fact without a name");
             else if (kind == "call_result"
                      && (arg.GetValueOrDefault("callee") is not string { Length: > 0 }
                          || arg.GetValueOrDefault("sig") is not string))
@@ -3709,6 +3722,29 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
         }
         case ExpressionStatementSyntax es:
             InjectThrowEdge(es, nodes, onThrow, canEscape);
+            // P-037-X Stage 4 R4-2: `(T a, bool b, U c) = Producer(...)` / `var (a, b, c) =
+            // Producer(...)` is ONE `call` op whose `results` name the bound designations by
+            // slot (null for a discard); the core mints an obligation for a resource slot only
+            // through the producer's result relation (R4-4/R4-5). Tracked identifier arguments
+            // are kept positionally, exactly as D5.2 keeps a factory call's.
+            if (P037xRelational && DeconstructedCall(es.Expression, model) is { } dcall)
+            {
+                var dArgs = dcall.inv.ArgumentList.Arguments
+                    .Where(a => a.NameColon is null)
+                    .Select(a => a.Expression)
+                    .OfType<IdentifierNameSyntax>()
+                    .Select(id => id.Identifier.Text)
+                    .Where(tracked.Contains)
+                    .ToArray();
+                var dPos = PosOf(es);
+                nodes.Add(new { op = "call", callee = dcall.callee, sig = dcall.sig, args = dArgs,
+                                results = dcall.slots.Select(s => s.name).ToArray(),
+                                line = dPos.Line, column = dPos.Column });
+                P037xRelCount("deconstructions");
+                foreach (var u in dArgs)
+                    nodes.Add(new { op = "use", var = u, line = dPos.Line });
+                return true;
+            }
             EmitFlowExpr(es.Expression, tracked, model, nodes);
             return true;
         case IfStatementSyntax ifs:
@@ -3873,6 +3909,20 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                            && tracked.Contains(rid.Identifier.Text)
                            && model.GetSymbolInfo(rid).Symbol is not IParameterSymbol
                     ? rid.Identifier.Text : (string?)null;
+                // P-037-X Stage 4 R4-1: in a pair/tuple-returning method every `return` carries
+                // `values` aligned with the record's `result_slots`: a tracked local's name at
+                // a resource slot (the first such local is also the legacy `var`: the D5.2
+                // transfer out), a boolean literal at a flag slot, null elsewhere; a return
+                // whose expression is not a tuple literal is `"opaque"` (the relation then
+                // cannot form). Only the values-bearing returns take part in R4-4.
+                if (P037xRelational && ReturnValues(rs, tracked, model) is { } rvals)
+                {
+                    var tvar = rvals.values as object?[];
+                    nodes.Add(new { op = "return", var = rvals.var ?? rvar, values = rvals.values,
+                                    line = LineOf(rs) });
+                    P037xRelCount(tvar is null ? "return_opaque" : "return_values");
+                    return true;
+                }
                 nodes.Add(new { op = "return", var = rvar, line = LineOf(rs) });
             }
             return true;
@@ -5172,6 +5222,11 @@ static (string callee, string sig, string[] slots)? CanonicalForwardSlots(
         return null;
     var owned = OwnedDisposableParams(decl, model);
     var slots = new string?[owned.Count];
+    // P-037-X Stage 4 R4-6: an owned slot holding a bare identifier that is NO handle (an
+    // untracked local or parameter) may fill a gap by name, so a handle in a later slot is
+    // still carried; both engines apply the callee's contract per MAPPED argument and the
+    // filler contributes nothing.
+    var fillers = new string?[owned.Count];
     for (var i = 0; i < args.Count; i++)
     {
         var p = args[i].NameColon is { } nc
@@ -5204,6 +5259,19 @@ static (string callee, string sig, string[] slots)? CanonicalForwardSlots(
         }
         slots[k] = handle;
     }
+    if (P037xRelational)
+        for (var i = 0; i < args.Count; i++)
+        {
+            if (HandleName(args[i]) is not null || args[i].NameColon is not null
+                || !args[i].RefKindKeyword.IsKind(SyntaxKind.None)
+                || ValueUnwrap(args[i].Expression, model) is not IdentifierNameSyntax fid
+                || model.GetSymbolInfo(fid).Symbol is not (ILocalSymbol or IParameterSymbol)
+                || i >= decl.Parameters.Length || decl.Parameters[i].IsParams)
+                continue;
+            var fk = owned.FindIndex(q => SymbolEqualityComparer.Default.Equals(q, decl.Parameters[i]));
+            if (fk >= 0)
+                fillers[fk] = fid.Identifier.Text;
+        }
     var last = Array.FindLastIndex(slots, s => s is not null);
     if (last < 0)
     {
@@ -5213,6 +5281,13 @@ static (string callee, string sig, string[] slots)? CanonicalForwardSlots(
     for (var j = 0; j < last; j++)
         if (slots[j] is null)
         {
+            if (P037xRelational && fillers[j] is { } filler)
+            {
+                slots[j] = filler;
+                if (!P037xProbing)
+                    P037xRelCount("filler");
+                continue;
+            }
             reason = "gap_in_owned_slots";
             return null;
         }
@@ -5241,6 +5316,87 @@ static List<string> CanonicalForward(ExpressionSyntax e, HashSet<string> tracked
     nodes.Add(new { op = "call", callee, sig, args = slots, line = LineOf(e) });
     forwarded.AddRange(slots);
     return forwarded;
+}
+
+// P-037-X Stage 4 R4-1: the declared result slots of a pair/tuple return type — `resource` for an
+// owned-disposable element type, `flag` for a boolean, `other` otherwise — when the tuple has at
+// least one resource slot and one flag slot; null for every other return type. Language-neutral
+// content: positional slots of one result; nothing about how C# spells a tuple survives.
+static string[]? ResultSlots(ITypeSymbol? ret)
+{
+    if (ret is not INamedTypeSymbol { IsTupleType: true } tt)
+        return null;
+    var slots = tt.TupleElements.Select(e =>
+        e.Type.SpecialType == SpecialType.System_Boolean ? "flag"
+        : ImplementsIDisposable(e.Type) && !IsDisposeOptional(e.Type) ? "resource"
+        : "other").ToArray();
+    return slots.Contains("resource") && slots.Contains("flag") ? slots : null;
+}
+
+// P-037-X Stage 4 R4-2: `(T a, bool b, U c) = M(...)` or `var (a, b, c) = M(...)` where M is a
+// first-party method whose declared result has slots (ResultSlots): the invocation, its
+// `functions[]` key and §5.1 sig, and the bound designation names by slot (null for a discard).
+static (InvocationExpressionSyntax inv, string callee, string sig, List<(string? name, string slotKind)> slots)?
+    DeconstructedCall(ExpressionSyntax expr, SemanticModel model)
+{
+    if (expr is not AssignmentExpressionSyntax { Right: InvocationExpressionSyntax inv } asg
+        || !asg.IsKind(SyntaxKind.SimpleAssignmentExpression)
+        || model.GetSymbolInfo(inv).Symbol is not IMethodSymbol m
+        || m.DeclaringSyntaxReferences.Length == 0
+        || m.MethodKind != MethodKind.Ordinary
+        || ResultSlots(m.ReturnType) is not { } kinds)
+        return null;
+    List<VariableDesignationSyntax?> designations;
+    switch (asg.Left)
+    {
+        case TupleExpressionSyntax tup:
+            designations = tup.Arguments.Select(a =>
+                a.Expression is DeclarationExpressionSyntax { Designation: var d } ? d : null).ToList();
+            break;
+        case DeclarationExpressionSyntax { Designation: ParenthesizedVariableDesignationSyntax pv }:
+            designations = pv.Variables.Select(v => (VariableDesignationSyntax?)v).ToList();
+            break;
+        default:
+            return null;
+    }
+    if (designations.Count != kinds.Length)
+        return null;
+    var slots = new List<(string? name, string slotKind)>();
+    for (var i = 0; i < kinds.Length; i++)
+        slots.Add((designations[i] is SingleVariableDesignationSyntax sv ? sv.Identifier.Text : null, kinds[i]));
+    return (inv, $"{m.ContainingType.ToDisplayString()}.{m.Name}", CanonicalSig(m.OriginalDefinition), slots);
+}
+
+// P-037-X Stage 4 R4-1: the `values` of a `return` in a pair/tuple-returning method, or null when
+// the enclosing method's result has no slots. A tuple literal yields one value per element — a
+// tracked local's name (not a parameter) at a resource slot, the boolean literal at a flag slot,
+// null elsewhere — and its first resource-slot local is the return's legacy `var`; any other
+// expression yields `"opaque"`.
+static (string? var, object? values)? ReturnValues(ReturnStatementSyntax rs, HashSet<string> tracked,
+                                                   SemanticModel model)
+{
+    if (model.GetEnclosingSymbol(rs.SpanStart) is not IMethodSymbol em
+        || ResultSlots(em.ReturnType) is not { } kinds)
+        return null;
+    if (rs.Expression is not TupleExpressionSyntax tup || tup.Arguments.Count != kinds.Length)
+        return (null, "opaque");
+    var values = new object?[kinds.Length];
+    string? first = null;
+    for (var i = 0; i < kinds.Length; i++)
+    {
+        var e = ValueUnwrap(tup.Arguments[i].Expression, model);
+        if (kinds[i] == "resource" && e is IdentifierNameSyntax id
+            && tracked.Contains(id.Identifier.Text)
+            && model.GetSymbolInfo(id).Symbol is not IParameterSymbol)
+        {
+            values[i] = id.Identifier.Text;
+            first ??= id.Identifier.Text;
+        }
+        else if (kinds[i] == "flag" && e is LiteralExpressionSyntax lit
+                 && (lit.IsKind(SyntaxKind.TrueLiteralExpression) || lit.IsKind(SyntaxKind.FalseLiteralExpression)))
+            values[i] = lit.IsKind(SyntaxKind.TrueLiteralExpression);
+    }
+    return (first, values);
 }
 
 // Escape-scan entry: is this bare identifier argument a canonical forward of a statement-form
@@ -7342,6 +7498,17 @@ foreach (var (file, tree) in parsed)
                                 candidates.Add(v.Identifier.Text);
                                 usingMemoryOwners.Add(v.Identifier.Text);
                             }
+                // P-037-X Stage 4 R4-2: the designations at the RESOURCE slots of a statement
+                // deconstructing a first-party tuple-returning call are leak candidates, exactly
+                // as D5.2's `var r = Factory()` result is: the core mints an obligation only when
+                // the callee's result relation says so (R4-4/R4-5), so a designation is never
+                // falsely owned. Discards and non-designations bind nothing.
+                if (P037xRelational)
+                    foreach (var es in mbody.DescendantNodes().OfType<ExpressionStatementSyntax>())
+                        if (DeconstructedCall(es.Expression, model) is { } dc)
+                            foreach (var (name, slotKind) in dc.slots)
+                                if (name is not null && slotKind == "resource")
+                                    candidates.Add(name);
                 // Eligibility, NOT a deleted guard. This is the gate that drops a method
                 // whose only ownership-relevant thing is a PARAMETER — `Close(Stream s, bool
                 // keep)` never reached the second gate below, it exited here. Removing the test
@@ -7400,6 +7567,14 @@ foreach (var (file, tree) in parsed)
                         escapedLocals.Add(nm);
                         continue;
                     }
+                    // P-037-X Stage 4 R4-1: a `new`-created candidate returned INSIDE a tuple
+                    // literal of a `return` statement (outside any try) is the D5.2 fresh
+                    // transfer out, carried by the return's `var`/`values` — not an escape, so
+                    // the producer keeps its record and its result relation can be read.
+                    if (P037xRelational && newedDisposables.Contains(nm)
+                        && idn.Parent is ArgumentSyntax { Parent: TupleExpressionSyntax { Parent: ReturnStatementSyntax rtup } }
+                        && !rtup.Ancestors().TakeWhile(a => a != mbody).OfType<TryStatementSyntax>().Any())
+                        continue;
                     // ... unless it is handed to a CONSUMER (a first-party method that
                     // disposes a by-value IDisposable param) as a bare `Consume(s);`
                     // statement: that is a handoff RELEASED at the call site, not an escape
@@ -7524,6 +7699,15 @@ foreach (var (file, tree) in parsed)
                     record["sig"] = fsig;
                 if (ownedParams.Count > 0)
                     record["params"] = ownedParams;
+                // P-037-X Stage 4 R4-1: the declared result slots of a pair/tuple-returning
+                // method (`resource` | `flag` | `other`), when it has at least one of each; the
+                // per-return `values` align with this list and the core reads the relation.
+                if (P037xRelational && model.GetDeclaredSymbol(method) is IMethodSymbol rsym
+                    && ResultSlots(rsym.ReturnType) is { } rslots)
+                {
+                    record["result_slots"] = rslots;
+                    P037xRelCount("result_slots");
+                }
                 record["body"] = fbody;
                 if (guardedFacts is not null)
                     record["guarded_facts"] = guardedFacts;
@@ -7611,6 +7795,9 @@ if (reportStats)
 if (flowLocals)
     Console.Error.WriteLine("p037x: canonical=" + P037xCanonical + " degraded={"
         + string.Join(", ", P037xDegraded.Select(kv => kv.Key + "=" + kv.Value)) + "}");
+if (flowLocals && P037xRelational)
+    Console.Error.WriteLine("p037x-rel: {"
+        + string.Join(", ", P037xRelational_Census.Select(kv => kv.Key + "=" + kv.Value)) + "}");
 
 if (outPath is null) Console.WriteLine(json);
 else File.WriteAllText(outPath, json);
@@ -7639,7 +7826,7 @@ partial class Program
     // The sidecar's closed vocabularies (spec/ownir.schema.json $defs/guardedArg etc. mirror
     // these; tests/test_p037_sidecar.py pins the two against each other).
     internal static readonly HashSet<string> GuardedArgKinds = new(StringComparer.Ordinal)
-        { "var", "param", "bool_const", "null_literal", "object_creation", "call_result", "opaque" };
+        { "var", "param", "bool_const", "null_literal", "object_creation", "call_result", "opaque", "flag_var" };
     internal static readonly HashSet<string> GuardPredicates = new(StringComparer.Ordinal)
         { "truth", "not_null", "is_null" };
     internal static readonly HashSet<string> CallForms = new(StringComparer.Ordinal)
@@ -7651,6 +7838,19 @@ partial class Program
     // the counters are the run's carrier census (the stderr `p037x:` line).
     internal static bool P037xProbing;
     internal static int P037xCanonical;
+    // P-037-X Stage 4 (research/p037-max-v1, EXPLORATORY; pre-registered): the relational
+    // carrier opt-in, `OWEN_P037X_RELATIONAL=1`. Off, every fact is byte-identical to the
+    // Stage-2d extractor's. On, a method returning a pair/tuple with a resource slot and a
+    // boolean slot carries `result_slots` and per-return `values` (R4-1), a statement
+    // deconstructing a first-party call's result carries a `call` op with `results` (R4-2),
+    // a single-assignment boolean local argument is a `flag_var` sidecar fact (R4-3), and an
+    // owned slot of a canonical call holding an untracked identifier is carried by that name
+    // (R4-6). Nothing here reads an API name.
+    internal static readonly bool P037xRelational =
+        Environment.GetEnvironmentVariable("OWEN_P037X_RELATIONAL") == "1";
+    internal static readonly SortedDictionary<string, int> P037xRelational_Census = new(StringComparer.Ordinal);
+    static void P037xRelCount(string what) =>
+        P037xRelational_Census[what] = P037xRelational_Census.GetValueOrDefault(what) + 1;
     internal static readonly SortedDictionary<string, int> P037xDegraded = new(StringComparer.Ordinal);
     internal static readonly Dictionary<IMethodSymbol, string> P037xRecordMemo =
         new(SymbolEqualityComparer.Default);

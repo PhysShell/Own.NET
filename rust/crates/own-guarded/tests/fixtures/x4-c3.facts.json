@@ -1,0 +1,311 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "X4C3.Produce",
+      "file": "corpus/p037x-controls/x4-c3-cross-association.cs",
+      "sig": "",
+      "result_slots": [
+        "resource",
+        "flag",
+        "resource"
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 21,
+          "then": [
+            {
+              "op": "acquire",
+              "var": "r",
+              "line": 23,
+              "column": 17,
+              "kind": "disposable"
+            },
+            {
+              "op": "use",
+              "var": "r",
+              "line": 24
+            },
+            {
+              "op": "return",
+              "var": "r",
+              "values": [
+                "r",
+                true,
+                null
+              ],
+              "line": 24
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "return",
+          "var": null,
+          "values": [
+            null,
+            false,
+            null
+          ],
+          "line": 26
+        }
+      ]
+    },
+    {
+      "name": "X4C3.Consume",
+      "file": "corpus/p037x-controls/x4-c3-cross-association.cs",
+      "sig": "R,System.Boolean",
+      "params": [
+        {
+          "name": "r",
+          "line": 29,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 31,
+          "then": [
+            {
+              "op": "release",
+              "var": "r",
+              "line": 33
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 31,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "X4C3.Crossed",
+      "file": "corpus/p037x-controls/x4-c3-cross-association.cs",
+      "sig": "",
+      "body": [
+        {
+          "op": "call",
+          "callee": "X4C3.Produce",
+          "sig": "",
+          "args": [],
+          "results": [
+            "a",
+            "fa",
+            null
+          ],
+          "line": 39,
+          "column": 9
+        },
+        {
+          "op": "call",
+          "callee": "X4C3.Produce",
+          "sig": "",
+          "args": [],
+          "results": [
+            "b",
+            "fb",
+            null
+          ],
+          "line": 40,
+          "column": 9
+        },
+        {
+          "op": "call",
+          "callee": "X4C3.Consume",
+          "sig": "R,System.Boolean",
+          "args": [
+            "a"
+          ],
+          "line": 41
+        },
+        {
+          "op": "call",
+          "callee": "X4C3.Consume",
+          "sig": "R,System.Boolean",
+          "args": [
+            "b"
+          ],
+          "line": 42
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 41,
+              "column": 9
+            },
+            "statement_line": 41,
+            "form": "statement",
+            "callee": "X4C3.Consume",
+            "sig": "R,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "a"
+              },
+              {
+                "param": 1,
+                "kind": "flag_var",
+                "name": "fb"
+              }
+            ]
+          },
+          {
+            "site": {
+              "line": 42,
+              "column": 9
+            },
+            "statement_line": 42,
+            "form": "statement",
+            "callee": "X4C3.Consume",
+            "sig": "R,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "b"
+              },
+              {
+                "param": 1,
+                "kind": "flag_var",
+                "name": "fa"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "X4C3.Straight",
+      "file": "corpus/p037x-controls/x4-c3-cross-association.cs",
+      "sig": "",
+      "body": [
+        {
+          "op": "call",
+          "callee": "X4C3.Produce",
+          "sig": "",
+          "args": [],
+          "results": [
+            "a",
+            "fa",
+            null
+          ],
+          "line": 47,
+          "column": 9
+        },
+        {
+          "op": "call",
+          "callee": "X4C3.Produce",
+          "sig": "",
+          "args": [],
+          "results": [
+            "b",
+            "fb",
+            null
+          ],
+          "line": 48,
+          "column": 9
+        },
+        {
+          "op": "call",
+          "callee": "X4C3.Consume",
+          "sig": "R,System.Boolean",
+          "args": [
+            "a"
+          ],
+          "line": 49
+        },
+        {
+          "op": "call",
+          "callee": "X4C3.Consume",
+          "sig": "R,System.Boolean",
+          "args": [
+            "b"
+          ],
+          "line": 50
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 49,
+              "column": 9
+            },
+            "statement_line": 49,
+            "form": "statement",
+            "callee": "X4C3.Consume",
+            "sig": "R,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "a"
+              },
+              {
+                "param": 1,
+                "kind": "flag_var",
+                "name": "fa"
+              }
+            ]
+          },
+          {
+            "site": {
+              "line": 50,
+              "column": 9
+            },
+            "statement_line": 50,
+            "form": "statement",
+            "callee": "X4C3.Consume",
+            "sig": "R,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "b"
+              },
+              {
+                "param": 1,
+                "kind": "flag_var",
+                "name": "fb"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  ],
+  "stats": {
+    "methods_with_local": 4,
+    "methods_flow_analysed": 4,
+    "methods_skipped_unmodelled": 0
+  }
+}

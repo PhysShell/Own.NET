@@ -1,0 +1,162 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "X4C2.Produce",
+      "file": "corpus/p037x-controls/x4-c2-reassigned-flag.cs",
+      "sig": "",
+      "result_slots": [
+        "resource",
+        "flag",
+        "resource"
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 21,
+          "then": [
+            {
+              "op": "acquire",
+              "var": "r",
+              "line": 23,
+              "column": 17,
+              "kind": "disposable"
+            },
+            {
+              "op": "use",
+              "var": "r",
+              "line": 24
+            },
+            {
+              "op": "return",
+              "var": "r",
+              "values": [
+                "r",
+                true,
+                null
+              ],
+              "line": 24
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "return",
+          "var": null,
+          "values": [
+            null,
+            false,
+            null
+          ],
+          "line": 26
+        }
+      ]
+    },
+    {
+      "name": "X4C2.Consume",
+      "file": "corpus/p037x-controls/x4-c2-reassigned-flag.cs",
+      "sig": "R,System.Boolean",
+      "params": [
+        {
+          "name": "r",
+          "line": 29,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 31,
+          "then": [
+            {
+              "op": "release",
+              "var": "r",
+              "line": 33
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 31,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "X4C2.Reassigned",
+      "file": "corpus/p037x-controls/x4-c2-reassigned-flag.cs",
+      "sig": "",
+      "body": [
+        {
+          "op": "call",
+          "callee": "X4C2.Produce",
+          "sig": "",
+          "args": [],
+          "results": [
+            "r",
+            "owns",
+            null
+          ],
+          "line": 39,
+          "column": 9
+        },
+        {
+          "op": "call",
+          "callee": "X4C2.Consume",
+          "sig": "R,System.Boolean",
+          "args": [
+            "r"
+          ],
+          "line": 41
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 41,
+              "column": 9
+            },
+            "statement_line": 41,
+            "form": "statement",
+            "callee": "X4C2.Consume",
+            "sig": "R,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "opaque"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  ],
+  "stats": {
+    "methods_with_local": 3,
+    "methods_flow_analysed": 3,
+    "methods_skipped_unmodelled": 0
+  }
+}

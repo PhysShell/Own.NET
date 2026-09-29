@@ -1,0 +1,391 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "X4P1.Produce",
+      "file": "corpus/p037x-controls/x4-p1-relational-shape.cs",
+      "sig": "",
+      "result_slots": [
+        "resource",
+        "flag",
+        "resource"
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 23,
+          "then": [
+            {
+              "op": "acquire",
+              "var": "r",
+              "line": 25,
+              "column": 17,
+              "kind": "disposable"
+            },
+            {
+              "op": "use",
+              "var": "r",
+              "line": 26
+            },
+            {
+              "op": "return",
+              "var": "r",
+              "values": [
+                "r",
+                true,
+                null
+              ],
+              "line": 26
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "return",
+          "var": null,
+          "values": [
+            null,
+            false,
+            null
+          ],
+          "line": 28
+        }
+      ]
+    },
+    {
+      "name": "X4P1.Consume",
+      "file": "corpus/p037x-controls/x4-p1-relational-shape.cs",
+      "sig": "R,System.Boolean",
+      "params": [
+        {
+          "name": "r",
+          "line": 31,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 33,
+          "then": [
+            {
+              "op": "release",
+              "var": "r",
+              "line": 35
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 33,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "X4P1.Always",
+      "file": "corpus/p037x-controls/x4-p1-relational-shape.cs",
+      "sig": "R",
+      "params": [
+        {
+          "name": "r",
+          "line": 39,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "r",
+          "line": 41
+        }
+      ]
+    },
+    {
+      "name": "X4P1.Never",
+      "file": "corpus/p037x-controls/x4-p1-relational-shape.cs",
+      "sig": "R",
+      "params": [
+        {
+          "name": "r",
+          "line": 44,
+          "ordinal": 0
+        }
+      ],
+      "body": [
+        {
+          "op": "use",
+          "var": "r",
+          "line": 46
+        }
+      ]
+    },
+    {
+      "name": "X4P1.Matched",
+      "file": "corpus/p037x-controls/x4-p1-relational-shape.cs",
+      "sig": "",
+      "body": [
+        {
+          "op": "call",
+          "callee": "X4P1.Produce",
+          "sig": "",
+          "args": [],
+          "results": [
+            "r",
+            "owns",
+            "shared"
+          ],
+          "line": 51,
+          "column": 9
+        },
+        {
+          "op": "if",
+          "line": 54,
+          "then": [
+            {
+              "op": "call",
+              "callee": "X4P1.Consume",
+              "sig": "R,System.Boolean",
+              "args": [
+                "r"
+              ],
+              "line": 58
+            },
+            {
+              "op": "return",
+              "var": null,
+              "line": 52
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "use",
+          "var": "r",
+          "line": 54
+        },
+        {
+          "op": "call",
+          "callee": "X4P1.Consume",
+          "sig": "R,System.Boolean",
+          "args": [
+            "r"
+          ],
+          "line": 58
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 58,
+              "column": 13
+            },
+            "statement_line": 58,
+            "form": "statement",
+            "callee": "X4P1.Consume",
+            "sig": "R,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "flag_var",
+                "name": "owns"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "X4P1.MatchedPlain",
+      "file": "corpus/p037x-controls/x4-p1-relational-shape.cs",
+      "sig": "",
+      "body": [
+        {
+          "op": "call",
+          "callee": "X4P1.Produce",
+          "sig": "",
+          "args": [],
+          "results": [
+            "r",
+            "owns",
+            null
+          ],
+          "line": 64,
+          "column": 9
+        },
+        {
+          "op": "call",
+          "callee": "X4P1.Consume",
+          "sig": "R,System.Boolean",
+          "args": [
+            "r"
+          ],
+          "line": 65
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 65,
+              "column": 9
+            },
+            "statement_line": 65,
+            "form": "statement",
+            "callee": "X4P1.Consume",
+            "sig": "R,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "flag_var",
+                "name": "owns"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "X4P1.AlwaysCaller",
+      "file": "corpus/p037x-controls/x4-p1-relational-shape.cs",
+      "sig": "",
+      "body": [
+        {
+          "op": "call",
+          "callee": "X4P1.Produce",
+          "sig": "",
+          "args": [],
+          "results": [
+            "r",
+            "owns",
+            null
+          ],
+          "line": 70,
+          "column": 9
+        },
+        {
+          "op": "call",
+          "callee": "X4P1.Always",
+          "sig": "R",
+          "args": [
+            "r"
+          ],
+          "line": 71
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 71,
+              "column": 9
+            },
+            "statement_line": 71,
+            "form": "statement",
+            "callee": "X4P1.Always",
+            "sig": "R",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "X4P1.NeverCaller",
+      "file": "corpus/p037x-controls/x4-p1-relational-shape.cs",
+      "sig": "",
+      "body": [
+        {
+          "op": "call",
+          "callee": "X4P1.Produce",
+          "sig": "",
+          "args": [],
+          "results": [
+            "r",
+            "owns",
+            null
+          ],
+          "line": 76,
+          "column": 9
+        },
+        {
+          "op": "call",
+          "callee": "X4P1.Never",
+          "sig": "R",
+          "args": [
+            "r"
+          ],
+          "line": 77
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 77,
+              "column": 9
+            },
+            "statement_line": 77,
+            "form": "statement",
+            "callee": "X4P1.Never",
+            "sig": "R",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  ],
+  "stats": {
+    "methods_with_local": 8,
+    "methods_flow_analysed": 8,
+    "methods_skipped_unmodelled": 0
+  }
+}

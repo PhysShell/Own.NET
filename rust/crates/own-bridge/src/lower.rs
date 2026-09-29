@@ -952,7 +952,9 @@ fn unverified_transfer_calls(
                                 let ps = summ.params.iter().find(|q| q.index == j);
                                 if let Some(q) = ps {
                                     let t = contract_at(site, n, j, &callee, q.transfer);
-                                    if matches!(t, Transfer::May | Transfer::Unknown) {
+                                    if matches!(t, Transfer::May | Transfer::Unknown)
+                                        && !discharged_at(site, n, j, &callee, &py_str(a))
+                                    {
                                         out.push((
                                             py_str(a),
                                             callee.clone(),
@@ -987,7 +989,12 @@ fn kill_sites_for_unverified<'v>(
     site: Contract<'_>,
 ) -> HashMap<String, &'v Value> {
     let mut sites: HashMap<String, &'v Value> = HashMap::new();
-    let mut minted: HashSet<String> = HashSet::new();
+    // P-037-X Stage 4 R4-5: a local bound at a related resource slot is minted (an owned-iff
+    // acquire) for the kill-site rule exactly as a fresh factory result is.
+    let mut minted: HashSet<String> = relational_results(nodes, site)
+        .into_iter()
+        .map(|(local, _)| local)
+        .collect();
 
     fn collect_mints(n: &Value, minted: &mut HashSet<String>) {
         let Some(n) = n.as_object() else { return };
@@ -1037,6 +1044,7 @@ fn kill_sites_for_unverified<'v>(
                                 )
                             }) && minted.contains(&aname)
                                 && !sites.contains_key(&aname)
+                                && !discharged_at(site, n, j, &callee, &aname)
                             {
                                 sites.insert(aname, n_v);
                             }
@@ -1532,11 +1540,79 @@ fn contract_at(site: Contract<'_>, n: &Obj, j: i64, callee: &str, summary: Trans
     let Ok(index) = usize::try_from(j) else {
         return summary;
     };
-    match g.apply_at(caller, as_line(n.get("line")), canonical(callee), call_sig(n), index) {
+    match g.apply_at(
+        caller,
+        as_line(n.get("line")),
+        canonical(callee),
+        call_sig(n),
+        index,
+    ) {
         Some(Lowered::Consume) => Transfer::Must,
         Some(Lowered::Borrow) => Transfer::No,
         Some(Lowered::Plain) | None => summary,
     }
+}
+
+/// P-037-X Stage 4 R4-5: is the argument at position `j` of this call a handle the seam
+/// DISCHARGES by its witness — bound at a related resource slot of a deconstructing call in
+/// `caller`, handed to a `Split(h)` coordinate with finalized cells (must, no) together with
+/// its own flag at ordinal `h`? Off the opt-in, never.
+fn discharged_at(site: Contract<'_>, n: &Obj, j: i64, callee: &str, arg: &str) -> bool {
+    let Some((g, caller)) = site else {
+        return false;
+    };
+    let Ok(index) = usize::try_from(j) else {
+        return false;
+    };
+    let Some(witness) = g.witness_of(caller, arg) else {
+        return false;
+    };
+    g.witness_match(
+        caller,
+        as_line(n.get("line")),
+        canonical(callee),
+        call_sig(n),
+        index,
+        witness,
+    )
+}
+
+/// P-037-X Stage 4 R4-5: the locals a deconstructing `call` op binds at a RELATED resource
+/// slot (the callee's result relation says fresh_iff(k)), with their witnesses; only these
+/// mint an obligation. Off the opt-in, none.
+fn relational_results(nodes: &[Value], site: Contract<'_>) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    let Some((g, _)) = site else {
+        return out;
+    };
+    fn walk(nodes: &[Value], g: &own_guarded::GuardedDoc, out: &mut Vec<(String, String)>) {
+        for n in nodes {
+            let Some(n) = n.as_object() else { continue };
+            match get_str(n, "op") {
+                Some("call") => {
+                    let callee = str_or(n, "callee", "");
+                    let results = as_list(n.get("results"));
+                    for (i, r) in results.iter().enumerate() {
+                        let Some(local) = r.as_str() else { continue };
+                        let Some(k) = g.result_relation(canonical(&callee), call_sig(n), i) else {
+                            continue;
+                        };
+                        if let Some(w) = results.get(k).and_then(Value::as_str) {
+                            out.push((local.to_owned(), w.to_owned()));
+                        }
+                    }
+                }
+                Some("if") => {
+                    walk(as_list(n.get("then")), g, out);
+                    walk(as_list(n.get("else")), g, out);
+                }
+                Some("while") => walk(as_list(n.get("body")), g, out),
+                _ => {}
+            }
+        }
+    }
+    walk(nodes, g, &mut out);
+    out
 }
 
 // --- flow lowering (`_lower_flow`) --------------------------------------------
@@ -1557,6 +1633,11 @@ struct FnCtx<'v, 'a> {
     /// P-037-X Stage 2: the guarded document and this function's key, when the
     /// opt-in is on; `None` keeps the production lowering byte-identical.
     contract: Contract<'a>,
+    /// P-037-X Stage 4 R4-5: the nesting depth of the ops being lowered (0 at the function
+    /// body). A witness discharge unmaps the name only at depth 0 — the legacy kill-site rule
+    /// stops tracking at a TOP-LEVEL site for the same reason: the name map is shared by
+    /// every branch, so a nested unmap would silence the other path's copy of the call.
+    depth: u32,
 }
 
 fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stmt>, BridgeError> {
@@ -1662,8 +1743,10 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                 body.push(Stmt::Return { handle: h, line });
             }
             Some("if") => {
+                ctx.depth = ctx.depth.saturating_add(1);
                 let then_b = lower_flow(ctx, as_list(n.get("then")))?;
                 let else_b = lower_flow(ctx, as_list(n.get("else")))?;
+                ctx.depth = ctx.depth.saturating_sub(1);
                 body.push(Stmt::If {
                     cond: "?".to_owned(),
                     then: then_b,
@@ -1672,7 +1755,9 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                 });
             }
             Some("while") => {
+                ctx.depth = ctx.depth.saturating_add(1);
                 let body_b = lower_flow(ctx, as_list(n.get("body")))?;
+                ctx.depth = ctx.depth.saturating_sub(1);
                 body.push(Stmt::While {
                     cond: "?".to_owned(),
                     body: body_b,
@@ -1716,8 +1801,28 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                                 Transfer::May | Transfer::Unknown => None,
                             }
                         });
+                        let aname = py_str(a);
+                        // P-037-X Stage 4 R4-5: the handle's own witness at the callee's guard
+                        // ordinal of a (must, no) coordinate discharges the conditional
+                        // obligation: the core sees the handoff (the same statement a kill
+                        // site or a `must` channel emits) and the name is unmapped at once, so
+                        // no later op of the body is judged — no release, no use, no advisory.
+                        if discharged_at(ctx.contract, n, j, &callee, &aname) {
+                            let discharged = if ctx.depth == 0 {
+                                ctx.localmap.remove(&aname)
+                            } else {
+                                ctx.localmap.get(&aname).cloned()
+                            };
+                            if let Some(discharged) = discharged {
+                                body.push(Stmt::Call {
+                                    callee: "$consume".to_owned(),
+                                    args: vec![discharged],
+                                    line,
+                                });
+                            }
+                            continue;
+                        }
                         if let Some(channel) = channel {
-                            let aname = py_str(a);
                             // P-037-X Stage 1: an argument the core has no live handle for
                             // is an UNMAPPED reference and contributes nothing — exactly
                             // like an unmapped `use` — never a raw name the core would
@@ -1757,14 +1862,13 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                             for (j, m) in mapped.into_iter().enumerate() {
                                 let Some(m) = m else { continue };
                                 let j = i64::try_from(j).unwrap_or(i64::MAX);
-                                let channel = resolved
-                                    .params
-                                    .iter()
-                                    .find(|q| q.index == j)
-                                    .and_then(|q| match q.transfer {
-                                        Transfer::Must => Some("$consume"),
-                                        Transfer::No => Some("$borrow"),
-                                        Transfer::May | Transfer::Unknown => None,
+                                let channel =
+                                    resolved.params.iter().find(|q| q.index == j).and_then(|q| {
+                                        match q.transfer {
+                                            Transfer::Must => Some("$consume"),
+                                            Transfer::No => Some("$borrow"),
+                                            Transfer::May | Transfer::Unknown => None,
+                                        }
                                     });
                                 if let Some(channel) = channel {
                                     body.push(Stmt::Call {
@@ -1796,6 +1900,48 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                                 }
                             }
                         }
+                    }
+                }
+                // P-037-X Stage 4 R4-5: a deconstructing call re-binds every named result;
+                // a result at a RELATED resource slot (the callee's fresh_iff relation) is an
+                // owned-iff acquire, discharged later only by its witness (R4-5) or by the
+                // frozen readings (a must consume, a release, an INF-A5b untracking).
+                if ctx.contract.is_some() {
+                    let results = as_list(n.get("results"));
+                    let related: Vec<String> =
+                        relational_results(std::slice::from_ref(n_v), ctx.contract)
+                            .into_iter()
+                            .map(|(local, _)| local)
+                            .collect();
+                    for r in results {
+                        let Some(name) = r.as_str() else { continue };
+                        if ctx.hoisted.contains(name) {
+                            continue;
+                        }
+                        ctx.localmap.remove(name);
+                        if ctx.untracked.contains(name) || !related.iter().any(|x| x == name) {
+                            continue;
+                        }
+                        let handle = format!("loc_{}", ctx.loc);
+                        *ctx.loc = ctx.loc.saturating_add(1);
+                        ctx.localmap.insert(name.to_owned(), handle.clone());
+                        ctx.handles.push(
+                            &handle,
+                            flow_local_record(
+                                ctx.ffile,
+                                line,
+                                n.get("column"),
+                                name,
+                                ctx.fname,
+                                ctx.released.contains(name),
+                                Some(false),
+                            ),
+                        )?;
+                        body.push(Stmt::Acquire {
+                            handle,
+                            resource: "Disposable".to_owned(),
+                            line,
+                        });
                     }
                 }
                 // result rebind kills the old binding; a fresh-returning
@@ -2111,6 +2257,10 @@ pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
                     }
                 }
             }
+            // P-037-X Stage 4 R4-5: an owned-iff local carries an obligation here too.
+            for (local, _) in relational_results(nodes, contract) {
+                owned_here.insert(local);
+            }
             for (arg, callee, transfer, cline) in &unverified {
                 if !owned_here.contains(arg) {
                     continue;
@@ -2170,6 +2320,7 @@ pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
             untracked: &untracked,
             kill_sites: &kill_sites,
             contract,
+            depth: 0,
         };
         fbody.extend(lower_flow(&mut ctx, nodes)?);
         // a value-returning body gets an owned return type so `return s`

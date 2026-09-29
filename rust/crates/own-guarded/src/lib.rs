@@ -241,11 +241,82 @@ pub fn report_with_height(ir: &OwnIr, legacy_dump: &Value, height: usize) -> Val
             application.push(merge(row, cols));
         }
     }
+    // P-037-X Stage 4: the result relations (R4-4) and, per application row of a handle bound
+    // by such a relation, whether the site is a witness match (R4-5).
+    let g = GuardedDoc::solve(ir);
+    let mut relations = Vec::new();
+    for f in &doc.fns {
+        let Some(slots) = &f.result_slots else {
+            continue;
+        };
+        for (i, kind) in slots.iter().enumerate() {
+            if *kind != "resource" {
+                continue;
+            }
+            relations.push(json!({
+                "method": f.name, "file": f.file, "slot": i,
+                "relation": f.relation(i).map_or_else(|| "none".to_owned(), |k| format!("fresh_iff({k})")),
+            }));
+        }
+    }
+    for row in &mut application {
+        let (Some(caller), Some(handle)) = (
+            row.get("caller").and_then(Value::as_str).map(str::to_owned),
+            row.get("handle").and_then(Value::as_str).map(str::to_owned),
+        ) else {
+            continue;
+        };
+        let Some(local) = handle.strip_prefix("var:") else {
+            continue;
+        };
+        let Some(witness) = g.witness_of(&caller, local).map(str::to_owned) else {
+            continue;
+        };
+        let line = row
+            .get("statement_line")
+            .and_then(Value::as_i64)
+            .unwrap_or_default();
+        let callee = row
+            .get("callee")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_owned();
+        let slot = row
+            .get("slot")
+            .and_then(Value::as_u64)
+            .and_then(|s| usize::try_from(s).ok());
+        let sig = doc
+            .fns
+            .iter()
+            .find(|f| f.name == caller)
+            .and_then(|f| f.sidecar.as_ref().ok())
+            .and_then(|sc| {
+                sc.calls
+                    .iter()
+                    .find(|c| c.statement_line == line && c.callee == Some(callee.as_str()))
+            })
+            .and_then(|c| c.sig.map(str::to_owned));
+        let matched = slot.is_some_and(|slot| {
+            g.witness_match(&caller, line, &callee, sig.as_deref(), slot, &witness)
+        });
+        if let Some(r) = row.as_object_mut() {
+            r.insert("witness".to_owned(), Value::String(witness));
+            if matched {
+                r.insert(
+                    "class".to_owned(),
+                    Value::String("RELATIONAL_DISCHARGE".to_owned()),
+                );
+                r.insert("selection".to_owned(), Value::String("witness".to_owned()));
+                r.insert("guarded".to_owned(), Value::String("discharge".to_owned()));
+            }
+        }
+    }
     json!({
         "schema": SCHEMA,
         "static_dispatch_conditional": true,
         "summary": summary,
         "application": application,
+        "relations": relations,
     })
 }
 
@@ -283,11 +354,13 @@ struct Site {
     args: Vec<(u64, SiteArg)>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum SiteArg {
     Bool(bool),
     Null,
     New,
+    /// P-037-X Stage 4 R4-3: a single-assignment boolean local of the caller, by name.
+    Flag(String),
     Other,
 }
 
@@ -296,6 +369,12 @@ enum SiteArg {
 pub struct GuardedDoc {
     coords: HashMap<(String, usize), Coordinate>,
     sites: HashMap<String, Vec<Site>>,
+    /// P-037-X Stage 4 R4-4: `(record identity, resource slot) -> flag slot` for every
+    /// fresh_iff relation the document's producers carry.
+    relations: HashMap<(String, usize), usize>,
+    /// P-037-X Stage 4 R4-5: per function (by `functions[]` name), the locals bound by a
+    /// deconstructing `call` at a related resource slot -> the local bound at the flag slot.
+    bindings: HashMap<String, HashMap<String, String>>,
 }
 
 impl GuardedDoc {
@@ -310,7 +389,9 @@ impl GuardedDoc {
             // P-037-X Stage 2b R2: coordinates are keyed by the record's identity — its name,
             // or the bridge's per-overload key `name(sig)`; an overload without a `sig` has
             // no identity and no coordinate (the solver answers `overloaded` for it).
-            let Some(key) = facts::identity(&fns, fi) else { continue };
+            let Some(key) = facts::identity(&fns, fi) else {
+                continue;
+            };
             let coord = match s {
                 Solved::Guarded { shape, cells } => Coordinate::Guarded {
                     shape: *shape,
@@ -336,6 +417,7 @@ impl GuardedDoc {
                                 facts::Arg::Bool(b) => SiteArg::Bool(*b),
                                 facts::Arg::Null => SiteArg::Null,
                                 facts::Arg::New => SiteArg::New,
+                                facts::Arg::Flag(name) => SiteArg::Flag((*name).to_owned()),
                                 _ => SiteArg::Other,
                             };
                             (*o, a)
@@ -344,7 +426,136 @@ impl GuardedDoc {
                 });
             }
         }
-        Self { coords, sites }
+        // P-037-X Stage 4 R4-4: the producers' result relations, keyed like the coordinates.
+        let mut relations = HashMap::new();
+        for (fi, f) in fns.iter().enumerate() {
+            let Some(slots) = &f.result_slots else {
+                continue;
+            };
+            let Some(key) = facts::identity(&fns, fi) else {
+                continue;
+            };
+            for i in 0..slots.len() {
+                if let Some(k) = f.relation(i) {
+                    relations.insert((key.clone(), i), k);
+                }
+            }
+        }
+        let mut doc = Self {
+            coords,
+            sites,
+            relations,
+            bindings: HashMap::new(),
+        };
+        // P-037-X Stage 4 R4-5: the witness bindings, read off each function's deconstructing
+        // `call` ops through the callee's relation.
+        let mut bindings: HashMap<String, HashMap<String, String>> = HashMap::new();
+        for f in &fns {
+            for op in f.ops() {
+                if op.get("op").and_then(Value::as_str) != Some("call") {
+                    continue;
+                }
+                let (Some(callee), Some(results)) = (
+                    op.get("callee").and_then(Value::as_str),
+                    op.get("results").and_then(Value::as_array),
+                ) else {
+                    continue;
+                };
+                let sig = op.get("sig").and_then(Value::as_str);
+                for (i, r) in results.iter().enumerate() {
+                    let (Some(local), Some(k)) = (r.as_str(), doc.result_relation(callee, sig, i))
+                    else {
+                        continue;
+                    };
+                    if let Some(witness) = results.get(k).and_then(Value::as_str) {
+                        bindings
+                            .entry(f.name.to_owned())
+                            .or_default()
+                            .insert(local.to_owned(), witness.to_owned());
+                    }
+                }
+            }
+        }
+        doc.bindings = bindings;
+        doc
+    }
+
+    /// P-037-X Stage 4 R4-4: the flag slot `k` such that `callee`'s resource slot `slot` is
+    /// fresh exactly when slot `k` is `true`; `None` without such a relation.
+    #[must_use]
+    pub fn result_relation(&self, callee: &str, sig: Option<&str>, slot: usize) -> Option<usize> {
+        let key = self.callee_key_any(callee, sig)?;
+        self.relations.get(&(key, slot)).copied()
+    }
+
+    /// P-037-X Stage 4 R4-5: the witness (the flag local) a deconstruction bound `local` to in
+    /// `caller`, when `local` is bound at a related resource slot.
+    #[must_use]
+    pub fn witness_of(&self, caller: &str, local: &str) -> Option<&str> {
+        self.bindings.get(caller)?.get(local).map(String::as_str)
+    }
+
+    /// P-037-X Stage 4 R4-5: does the site discharge the handle at `index` of `callee` by its
+    /// witness? Yes exactly when the callee coordinate is `Split(h)` whose FINALIZED cells are
+    /// (must, no) — `apply` selects Consume positively and Borrow negatively (K7) — and the
+    /// site's argument at ordinal `h` is `flag_var{witness}`. Any other shape, polarity, guard
+    /// argument or an ambiguous site is no match: the frozen reading stands.
+    #[must_use]
+    pub fn witness_match(
+        &self,
+        caller: &str,
+        line: i64,
+        callee: &str,
+        sig: Option<&str>,
+        index: usize,
+        witness: &str,
+    ) -> bool {
+        let Some(key) = self.callee_key(callee, sig) else {
+            return false;
+        };
+        let Some(Coordinate::Guarded {
+            shape: Shape::Split(h),
+            cells,
+        }) = self.coordinate(&key, index)
+        else {
+            return false;
+        };
+        let cells = *cells;
+        let shape = Shape::Split(*h);
+        if apply(shape, cells, Selection::Pos) != Lowered::Consume
+            || apply(shape, cells, Selection::Neg) != Lowered::Borrow
+        {
+            return false;
+        }
+        let mut hits = self
+            .sites
+            .get(caller)
+            .into_iter()
+            .flatten()
+            .filter(|s| s.statement_line == line && s.callee.as_deref() == Some(callee));
+        match (hits.next(), hits.next()) {
+            (Some(site), None) => site
+                .args
+                .iter()
+                .any(|(o, a)| *o == u64::from(*h) && *a == SiteArg::Flag(witness.to_owned())),
+            _ => false,
+        }
+    }
+
+    /// Like `callee_key`, over the relation keys as well as the coordinate keys (a producer
+    /// with no owned parameter has relations but no coordinate).
+    fn callee_key_any(&self, callee: &str, sig: Option<&str>) -> Option<String> {
+        if let Some(sig) = sig {
+            let key = format!("{callee}({sig})");
+            if self.relations.keys().any(|(k, _)| *k == key)
+                || self.coords.keys().any(|(k, _)| *k == key)
+            {
+                return Some(key);
+            }
+        }
+        (self.relations.keys().any(|(k, _)| k == callee)
+            || self.coords.keys().any(|(k, _)| k == callee))
+        .then(|| callee.to_owned())
     }
 
     /// The coordinate of `(identity, params index)`, if the document has one. The identity
@@ -404,18 +615,16 @@ impl GuardedDoc {
         let sel = match shape {
             Shape::Uncond => Selection::Unselected,
             Shape::Split(h) => {
-                let mut hits = self
-                    .sites
-                    .get(caller)
-                    .into_iter()
-                    .flatten()
-                    .filter(|s| s.statement_line == line && s.callee.as_deref() == Some(callee));
+                let mut hits =
+                    self.sites.get(caller).into_iter().flatten().filter(|s| {
+                        s.statement_line == line && s.callee.as_deref() == Some(callee)
+                    });
                 match (hits.next(), hits.next()) {
                     (Some(site), None) => match site
                         .args
                         .iter()
                         .find(|(o, _)| *o == u64::from(*h))
-                        .map(|(_, a)| *a)
+                        .map(|(_, a)| a)
                     {
                         Some(SiteArg::Bool(true) | SiteArg::New) => Selection::Pos,
                         Some(SiteArg::Bool(false) | SiteArg::Null) => Selection::Neg,

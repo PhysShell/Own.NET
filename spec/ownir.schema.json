@@ -621,7 +621,8 @@
               "null_literal",
               "object_creation",
               "call_result",
-              "opaque"
+              "opaque",
+              "flag_var"
             ]
           }
         },
@@ -717,6 +718,23 @@
             ],
             "additionalProperties": false,
             "description": "The result of a resolved call. Freshness is a summary conclusion, never a frontend fact: there is no `fresh_owned` in this vocabulary (§10.2)."
+          },
+          {
+            "properties": {
+              "param": true,
+              "kind": {
+                "const": "flag_var"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "P-037-X Stage 4 (research branch research/p037-max-v1 only; EXPLORATORY; emitted only under OWEN_P037X_RELATIONAL=1): a boolean LOCAL of this method that nothing assigns after its binding (the G-V4 stability walk applied to a local), by name. The driver reads it as `opaque` everywhere except the relational witness match (R4-5)."
           },
           {
             "properties": {

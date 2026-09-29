@@ -329,6 +329,24 @@ declared position by guessing from the type list. Additive/optional per §2: no
 production engine reads it. Pre-registered in Own.NET-paperwork
 `paper-eval/p037-max/stage2b-prereg-v1.json` (R3); not part of `main`'s contract.
 
+**The relational (resource, ownsResource) facts (P-037-X Stage 4, research
+branch `research/p037-max-v1` only; EXPLORATORY; emitted only under
+`OWEN_P037X_RELATIONAL=1`).** Four additive, optional facts carry a producer's
+pair/tuple result and its consumption, all generic over positional slots:
+`functions[].result_slots[]` (`"resource"` | `"flag"` | `"other"`, one per
+declared result slot, present when the result has at least one of each);
+`return.values[]` aligned with those slots — a tracked local's name at a
+resource slot, a boolean literal at a flag slot, `null` elsewhere — or the
+string `"opaque"` for a tuple-typed return that is not a tuple literal;
+`call.results[]`, the designation names a deconstruction binds by slot (`null`
+for a discard); and the sidecar argument kind `flag_var{name}` (§5.2), a
+single-assignment boolean local. The relation a reader derives (resource slot
+`i` is fresh exactly when flag slot `k` is `true`) and the discharge it
+licenses at a guarded call live in the research seam only; neither production
+engine reads any of the four. Pre-registered in Own.NET-paperwork
+`paper-eval/p037-max/stage4-relational-prereg-v1.json` (R4-1..R4-6); not part
+of `main`'s contract.
+
 ### 5.2 The guarded-fact sidecar (`guarded_facts`, P-037 A2.1)
 
 A flow function may carry an **optional** `guarded_facts` object: the frontend's

@@ -56,7 +56,19 @@ pub(crate) enum Arg<'a> {
     New,
     /// A call result: a fresh value, never one of the caller's handles.
     CallResult,
+    /// P-037-X Stage 4 R4-3 (research/p037-max-v1): a boolean local of the caller that nothing
+    /// assigns after its binding, by name. Opaque to election, transport and A15; read only by
+    /// the witness match (R4-5).
+    Flag(&'a str),
     Opaque,
+}
+
+impl Arg<'_> {
+    /// A15's "opaque argument": a slot the driver cannot place — `opaque` itself and, for
+    /// everything but the witness match, a `flag_var` (R4-3).
+    pub(crate) fn is_opaque(self) -> bool {
+        matches!(self, Arg::Opaque | Arg::Flag(_))
+    }
 }
 
 /// One sidecar call record; `args` by declared ordinal.
@@ -106,6 +118,76 @@ pub(crate) struct Func<'a> {
     pub(crate) sidecar: Result<Sidecar<'a>, Nge>,
     /// params-list index -> declared ordinal (A17).
     pub(crate) ordinals: Option<Vec<u64>>,
+    /// P-037-X Stage 4 R4-1: the declared result slots (`resource` | `flag` | `other`) of a
+    /// pair/tuple-returning record; absent for every other record.
+    pub(crate) result_slots: Option<Vec<&'a str>>,
+}
+
+impl<'a> Func<'a> {
+    /// Every body op, nested ones included, in pre-order.
+    pub(crate) fn ops(&self) -> Vec<&'a Value> {
+        let mut out = Vec::new();
+        collect(self.body, &mut out);
+        out
+    }
+
+    /// P-037-X Stage 4 R4-4: the result relation of resource slot `slot` — `Some(k)` when the
+    /// slot is fresh exactly when flag slot `k` is the literal `true`: every `values`-bearing
+    /// `return` has (values[slot] names a local acquired in this body) <=> (values[k] is `true`),
+    /// both polarities occur, and no `return` is opaque. Always-fresh and never-fresh slots
+    /// are deliberately NOT a relation (the minimum abstraction is the conditional one).
+    pub(crate) fn relation(&self, slot: usize) -> Option<usize> {
+        let slots = self.result_slots.as_ref()?;
+        if slots.get(slot).copied() != Some("resource") {
+            return None;
+        }
+        let ops = self.ops();
+        let acquired: Vec<&str> = ops
+            .iter()
+            .filter(|o| kind_of(o) == "acquire")
+            .filter_map(|o| o.get("var").and_then(Value::as_str))
+            .collect();
+        let returns: Vec<&Value> = ops
+            .iter()
+            .copied()
+            .filter(|o| kind_of(o) == "return" && o.get("values").is_some())
+            .collect();
+        if returns.is_empty()
+            || returns
+                .iter()
+                .any(|r| r.get("values").and_then(Value::as_array).is_none())
+        {
+            return None;
+        }
+        let fresh = |r: &Value| -> bool {
+            r.get("values")
+                .and_then(Value::as_array)
+                .and_then(|v| v.get(slot))
+                .and_then(Value::as_str)
+                .is_some_and(|name| acquired.contains(&name))
+        };
+        let candidates = slots
+            .iter()
+            .enumerate()
+            .filter(|(_, k)| **k == "flag")
+            .map(|(i, _)| i);
+        let mut found = None;
+        for k in candidates {
+            let lit = |r: &Value| -> Option<bool> {
+                r.get("values")
+                    .and_then(Value::as_array)
+                    .and_then(|v| v.get(k))
+                    .and_then(Value::as_bool)
+            };
+            let agree = returns.iter().all(|r| lit(r) == Some(fresh(r)));
+            let both = returns.iter().any(|r| fresh(r)) && returns.iter().any(|r| !fresh(r));
+            if agree && both {
+                found = Some(k);
+                break;
+            }
+        }
+        found
+    }
 }
 
 pub(crate) fn functions(ir: &OwnIr) -> Vec<Func<'_>> {
@@ -134,7 +216,13 @@ fn func(f: &Function) -> Func<'_> {
         None | Some(Value::Null) => err("missing_sidecar"),
         Some(v) => sidecar(v).map_or_else(|| err("malformed_sidecar"), Ok),
     };
+    let result_slots = f
+        .extra
+        .get("result_slots")
+        .and_then(Value::as_array)
+        .map(|a| a.iter().filter_map(Value::as_str).collect());
     Func {
+        result_slots,
         name: str_at(&f.extra, "name").unwrap_or_default(),
         file: str_at(&f.extra, "file").unwrap_or_default(),
         ordinals: ordinals_of(f, sig, params.len()),
@@ -168,10 +256,12 @@ fn ordinals_of(f: &Function, sig: Option<&str>, n: usize) -> Option<Vec<u64>> {
         .collect();
     match facts {
         Some(facts) if !facts.is_empty() => {
-            let increasing = facts.windows(2).all(|w| w[0] < w[1]);
+            let increasing = facts.windows(2).all(|w| matches!(w, [a, b] if a < b));
             let arity_ok = sig.map_or(true, |s| {
                 let arity = s.split(',').filter(|t| !t.is_empty()).count();
-                facts.iter().all(|&o| usize::try_from(o).is_ok_and(|o| o < arity))
+                facts
+                    .iter()
+                    .all(|&o| usize::try_from(o).is_ok_and(|o| o < arity))
             });
             let agrees = derived.as_ref().map_or(true, |d| *d == facts);
             (increasing && arity_ok && agrees).then_some(facts)
@@ -257,6 +347,7 @@ fn call(c: &Map<String, Value>) -> Option<Call<'_>> {
             "null_literal" => Arg::Null,
             "object_creation" => Arg::New,
             "call_result" => Arg::CallResult,
+            "flag_var" => Arg::Flag(str_at(a, "name")?),
             "opaque" => Arg::Opaque,
             _ => return None,
         };
@@ -405,7 +496,10 @@ struct Walk<'a> {
 
 /// R6's test: the reasons that mean "no coordinate exists", not "cannot tell which".
 fn is_absence(reason: &str) -> bool {
-    matches!(reason, "callee_external" | "callee_no_record" | "callee_unresolved")
+    matches!(
+        reason,
+        "callee_external" | "callee_no_record" | "callee_unresolved"
+    )
 }
 
 /// The local facts of parameter `index` of function `fi`, or why there are
@@ -429,9 +523,9 @@ pub(crate) fn local(fns: &[Func<'_>], fi: usize, index: usize) -> Result<Local, 
     let absent: Vec<usize> = (0..sc.calls.len())
         .filter(|&n| {
             sc.calls.get(n).is_some_and(|c| {
-                c.slots_of(ordinal)
-                    .first()
-                    .is_some_and(|&slot| matches!(callee_coord(fns, c, slot), Err(r) if is_absence(&r)))
+                c.slots_of(ordinal).first().is_some_and(
+                    |&slot| matches!(callee_coord(fns, c, slot), Err(r) if is_absence(&r)),
+                )
             })
         })
         .collect();
@@ -541,7 +635,7 @@ impl<'a> Walk<'a> {
             if c.slots_of(self.ordinal).len() > 1 {
                 return err("multi_slot");
             }
-            if c.args.iter().any(|a| a.1 == Arg::Opaque) {
+            if c.args.iter().any(|a| a.1.is_opaque()) {
                 return err("opaque_slot");
             }
             if on_line().any(|o| matches!(kind_of(o), "if" | "while")) {
