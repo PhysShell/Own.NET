@@ -931,9 +931,15 @@ pub(crate) fn build_skeletons(raw_fns: &[Value]) -> Vec<MethodSkeleton> {
 fn unverified_transfer_calls(
     nodes: &[Value],
     mos: &Mos,
+    site: Contract<'_>,
 ) -> Vec<(String, String, &'static str, i64)> {
     let mut out = Vec::new();
-    fn walk(nodes: &[Value], mos: &Mos, out: &mut Vec<(String, String, &'static str, i64)>) {
+    fn walk(
+        nodes: &[Value],
+        mos: &Mos,
+        site: Contract<'_>,
+        out: &mut Vec<(String, String, &'static str, i64)>,
+    ) {
         for n in nodes {
             let Some(n) = n.as_object() else { continue };
             match get_str(n, "op") {
@@ -945,11 +951,12 @@ fn unverified_transfer_calls(
                                 let j = i64::try_from(j).unwrap_or(i64::MAX);
                                 let ps = summ.params.iter().find(|q| q.index == j);
                                 if let Some(q) = ps {
-                                    if matches!(q.transfer, Transfer::May | Transfer::Unknown) {
+                                    let t = contract_at(site, n, j, &callee, q.transfer);
+                                    if matches!(t, Transfer::May | Transfer::Unknown) {
                                         out.push((
                                             py_str(a),
                                             callee.clone(),
-                                            q.transfer.as_str(),
+                                            t.as_str(),
                                             as_line(n.get("line")),
                                         ));
                                     }
@@ -959,22 +966,26 @@ fn unverified_transfer_calls(
                     }
                 }
                 Some("if") => {
-                    walk(as_list(n.get("then")), mos, out);
-                    walk(as_list(n.get("else")), mos, out);
+                    walk(as_list(n.get("then")), mos, site, out);
+                    walk(as_list(n.get("else")), mos, site, out);
                 }
-                Some("while") => walk(as_list(n.get("body")), mos, out),
+                Some("while") => walk(as_list(n.get("body")), mos, site, out),
                 _ => {}
             }
         }
     }
-    walk(nodes, mos, &mut out);
+    walk(nodes, mos, site, &mut out);
     out
 }
 
 /// `_kill_sites_for_unverified`: local name → the TOP-LEVEL call node where
 /// its tracking stops (Python keys on `id(n)`; here the node's identity is
 /// its address in the facts value tree, stable for the whole lowering).
-fn kill_sites_for_unverified<'v>(nodes: &'v [Value], mos: &Mos) -> HashMap<String, &'v Value> {
+fn kill_sites_for_unverified<'v>(
+    nodes: &'v [Value],
+    mos: &Mos,
+    site: Contract<'_>,
+) -> HashMap<String, &'v Value> {
     let mut sites: HashMap<String, &'v Value> = HashMap::new();
     let mut minted: HashSet<String> = HashSet::new();
 
@@ -1020,7 +1031,10 @@ fn kill_sites_for_unverified<'v>(nodes: &'v [Value], mos: &Mos) -> HashMap<Strin
                             let ps = summ.params.iter().find(|q| q.index == j);
                             let aname = py_str(a);
                             if ps.is_some_and(|q| {
-                                matches!(q.transfer, Transfer::May | Transfer::Unknown)
+                                matches!(
+                                    contract_at(site, n, j, &callee, q.transfer),
+                                    Transfer::May | Transfer::Unknown
+                                )
                             }) && minted.contains(&aname)
                                 && !sites.contains_key(&aname)
                             {
@@ -1462,6 +1476,69 @@ fn lower_fn_params(
     Ok(out)
 }
 
+// --- P-037-X Stage 2: the guarded application seam ----------------------------
+
+/// The guarded document plus the current function's `functions[]` key, when the
+/// opt-in is on.
+type Contract<'a> = Option<(&'a own_guarded::GuardedDoc, &'a str)>;
+
+/// The opt-in: `OWEN_P037X_GUARDED=1`. Research-branch only; never a default.
+fn p037x_guarded_enabled() -> bool {
+    std::env::var_os("OWEN_P037X_GUARDED").is_some_and(|v| v == "1")
+}
+
+fn p037x_guarded_doc(facts: &OwnIr) -> Option<own_guarded::GuardedDoc> {
+    p037x_guarded_enabled().then(|| own_guarded::GuardedDoc::solve(facts))
+}
+
+/// The kernel's finalized transfer in the bridge's vocabulary (`⊥` never survives `fin`).
+const fn from_kernel(t: own_guarded::p037_kernel::Transfer) -> Option<Transfer> {
+    use own_guarded::p037_kernel::Transfer as K;
+    match t {
+        K::No => Some(Transfer::No),
+        K::Must => Some(Transfer::Must),
+        K::May => Some(Transfer::May),
+        K::Unknown => Some(Transfer::Unknown),
+        K::Bot => None,
+    }
+}
+
+/// Overlay every guarded coordinate's finalized collapse onto the legacy summaries
+/// (per-overload `name(sig)` keys and overloaded names have no guarded coordinate and
+/// keep their legacy value).
+fn overlay_guarded(mut mos: Mos, g: &own_guarded::GuardedDoc) -> Mos {
+    for (key, summary) in &mut mos {
+        for (i, p) in summary.params.iter_mut().enumerate() {
+            if let Some(t) = g.collapsed(key, i).and_then(from_kernel) {
+                p.transfer = t;
+            }
+        }
+    }
+    mos
+}
+
+/// The per-argument contract at one call site: G-A1's selection through the kernel's
+/// `apply` (which finalizes first, K7) when the callee coordinate has guarded evidence;
+/// otherwise the (overlaid) summary value. `Plain` at a selected-nothing site is the
+/// collapse the overlay already holds, so the summary value is returned unchanged there.
+// `caller`/`callee` are the seam's own vocabulary (G-A1 names both ends of the edge);
+// renaming either to dodge `similar_names` would make the edge harder to read.
+#[allow(clippy::similar_names)]
+fn contract_at(site: Contract<'_>, n: &Obj, j: i64, callee: &str, summary: Transfer) -> Transfer {
+    use own_guarded::p037_kernel::Lowered;
+    let Some((g, caller)) = site else {
+        return summary;
+    };
+    let Ok(index) = usize::try_from(j) else {
+        return summary;
+    };
+    match g.apply_at(caller, as_line(n.get("line")), canonical(callee), index) {
+        Some(Lowered::Consume) => Transfer::Must,
+        Some(Lowered::Borrow) => Transfer::No,
+        Some(Lowered::Plain) | None => summary,
+    }
+}
+
 // --- flow lowering (`_lower_flow`) --------------------------------------------
 
 struct FnCtx<'v, 'a> {
@@ -1477,6 +1554,9 @@ struct FnCtx<'v, 'a> {
     overloaded: &'a HashSet<String>,
     untracked: &'a HashSet<String>,
     kill_sites: &'a HashMap<String, &'v Value>,
+    /// P-037-X Stage 2: the guarded document and this function's key, when the
+    /// opt-in is on; `None` keeps the production lowering byte-identical.
+    contract: Contract<'a>,
 }
 
 fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stmt>, BridgeError> {
@@ -1614,9 +1694,13 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                 // stage-2 resolution for the channel: per-overload sig key
                 // first, then the name-merged fallback.
                 let resolved = mos_lookup(mos, &callee, call_sig(n));
+                // P-037-X Stage 2: with the guarded opt-in every summarized call routes
+                // through the channel, so a cell SELECTED at this site (G-A1) is applied
+                // per argument instead of the callee's own path-insensitive FnDecl effect.
                 let channel_case = resolved.is_some_and(|r| {
                     args.is_some()
                         && (ctx.overloaded.contains(identity)
+                            || ctx.contract.is_some()
                             || r.params
                                 .iter()
                                 .any(|q| matches!(q.transfer, Transfer::May | Transfer::Unknown)))
@@ -1626,7 +1710,7 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                     for (j, a) in args.expect("channel_case implies args").iter().enumerate() {
                         let j = i64::try_from(j).unwrap_or(i64::MAX);
                         let channel = resolved.params.iter().find(|q| q.index == j).and_then(|q| {
-                            match q.transfer {
+                            match contract_at(ctx.contract, n, j, &callee, q.transfer) {
                                 Transfer::Must => Some("$consume"),
                                 Transfer::No => Some("$borrow"),
                                 Transfer::May | Transfer::Unknown => None,
@@ -1955,6 +2039,19 @@ pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
             Mos::default()
         }
     };
+    // P-037-X Stage 2 (research/p037-max-v1): the FROZEN P-037 semantics, replayed by the
+    // formal kernel over the Stage-1 canonical carrier and applied ONLY behind an explicit
+    // opt-in. The kernel's solution is an OVERLAY on the legacy MOS: a coordinate with guarded
+    // evidence contributes its finalized collapse (the value INF-A1 lowers where no site
+    // selects: SUMMARY_REFINEMENT / LEGACY_HONESTY), every other coordinate keeps its legacy
+    // value (absence is never read as a value). Site selection (APPLICATION_REFINEMENT) is
+    // `contract_at`, consulted wherever a call's per-argument transfer is read. Off (the
+    // default) nothing here runs and the lowering is byte-identical to the production path.
+    let guarded = p037x_guarded_doc(facts);
+    let mos_map = match &guarded {
+        Some(g) => overlay_guarded(mos_map, g),
+        None => mos_map,
+    };
     let mut advisories: Vec<Own051> = Vec::new();
     let fp_names: Vec<String> = raw_fns
         .iter()
@@ -1994,8 +2091,9 @@ pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
         )?;
         // the optimistic default (d5 §5): a may/unknown-contract handoff
         // discharges at a TOP-LEVEL call (kill site) or untracks whole-body.
-        let unverified = unverified_transfer_calls(nodes, &mos_map);
-        let kill_sites = kill_sites_for_unverified(nodes, &mos_map);
+        let contract: Contract<'_> = guarded.as_ref().map(|g| (g, fname.as_str()));
+        let unverified = unverified_transfer_calls(nodes, &mos_map, contract);
+        let kill_sites = kill_sites_for_unverified(nodes, &mos_map, contract);
         let untracked: HashSet<String> = unverified
             .iter()
             .map(|(a, _, _, _)| a.clone())
@@ -2071,6 +2169,7 @@ pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
             overloaded: &overloaded,
             untracked: &untracked,
             kill_sites: &kill_sites,
+            contract,
         };
         fbody.extend(lower_flow(&mut ctx, nodes)?);
         // a value-returning body gets an owned return type so `return s`

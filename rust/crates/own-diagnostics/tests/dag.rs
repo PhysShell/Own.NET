@@ -48,6 +48,10 @@ fn allowed_edges() -> HashMap<&'static str, BTreeSet<&'static str>> {
     // arrow points from the bridge INTO the core — the constraint runs the
     // other way: no core crate may depend on own-bridge (none lists it), so
     // bridge inference can never leak into the solver or the verdict layer.
+    // P-037-X Stage 2 (research/p037-max-v1): the guarded replay reads the fact contract only
+    // (own-ir) plus the formal kernel outside the workspace; own-bridge applies it behind the
+    // OWEN_P037X_GUARDED opt-in. On production main this edge is phase C, NOT authorized.
+    m.insert("own-guarded", std::iter::once("own-ir").collect());
     m.insert(
         "own-bridge",
         [
@@ -57,6 +61,7 @@ fn allowed_edges() -> HashMap<&'static str, BTreeSet<&'static str>> {
             "own-cfg",
             "own-analysis",
             "own-diagnostics",
+            "own-guarded",
         ]
         .into_iter()
         .collect(),
@@ -73,7 +78,9 @@ fn allowed_edges() -> HashMap<&'static str, BTreeSet<&'static str>> {
     // constraint runs the other way and is asserted by name below.
     m.insert(
         "own-shadow",
-        ["own-ir", "own-lowered", "own-bridge"]
+        // P-037-X Stage 2 (research/p037-max-v1): + own-guarded, for the B1 shadow report
+        // bin `own-guarded-report` (R-1). Research branch only.
+        ["own-ir", "own-lowered", "own-bridge", "own-guarded"]
             .into_iter()
             .collect(),
     );
@@ -273,4 +280,100 @@ fn own_ir_is_a_leaf() {
         deps.is_empty(),
         "own-ir is the leaf — it must depend on no workspace crate, got {deps:?}"
     );
+}
+
+/// Every package's dependency names, of every kind and from anywhere (workspace, path or
+/// registry): the seam lock below needs to see the `p037-kernel` path dependency that
+/// `workspace_edges` filters out.
+fn all_deps() -> HashMap<String, BTreeSet<String>> {
+    let manifest = concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml");
+    let out = Command::new(env!("CARGO"))
+        .args([
+            "metadata",
+            "--no-deps",
+            "--format-version",
+            "1",
+            "--manifest-path",
+            manifest,
+        ])
+        .output()
+        .expect("cargo metadata runs");
+    let meta: Value = serde_json::from_slice(&out.stdout).expect("metadata JSON parses");
+    let mut all = HashMap::new();
+    for pkg in meta
+        .get("packages")
+        .and_then(Value::as_array)
+        .expect("packages")
+    {
+        let deps = pkg
+            .get("dependencies")
+            .and_then(Value::as_array)
+            .expect("dependencies array");
+        let names = deps
+            .iter()
+            .filter_map(|d| d.get("name").and_then(Value::as_str))
+            .map(str::to_owned);
+        all.insert(
+            pkg.get("name")
+                .and_then(Value::as_str)
+                .expect("pkg name")
+                .to_owned(),
+            names.collect(),
+        );
+    }
+    all
+}
+
+#[test]
+fn p037x_guarded_seam_is_the_only_kernel_path() {
+    // P-037-X Stage 2 (research/p037-max-v1, EXPLORATORY). On `main`, P-037 B1 locked the
+    // guarded shadow read away from the production path: `own-guarded` named the formal
+    // kernel, `own-shadow` alone named `own-guarded`, and `own-bridge -> own-guarded` was
+    // phase C, not authorized (#304, frozen 2026-09-28). This research branch deliberately
+    // carries that phase-C edge as the experiment, behind the `OWEN_P037X_GUARDED` opt-in
+    // (default off: byte-identical lowering). What stays locked here: the formal kernel is
+    // named by `own-guarded` ONLY, `own-guarded` is named by `own-bridge` and `own-shadow`
+    // ONLY, and every core crate (leaf, parser, cfg, solver, verdict, lowered surface) stays
+    // ignorant of both. This test is research-branch evidence; it is not a relaxation of
+    // the main lock and must not be merged as one.
+    let all = all_deps();
+    for (krate, deps) in &all {
+        if krate != "own-guarded" {
+            assert!(
+                !deps.contains("p037-kernel"),
+                "{krate} names p037-kernel (own-guarded only)"
+            );
+        }
+        if krate != "own-bridge" && krate != "own-shadow" {
+            assert!(
+                !deps.contains("own-guarded"),
+                "{krate} names own-guarded (own-bridge behind the opt-in, and own-shadow, only)"
+            );
+        }
+    }
+    let guarded = all.get("own-guarded").expect("own-guarded is a member");
+    let workspace_deps: BTreeSet<&str> = guarded
+        .iter()
+        .map(String::as_str)
+        .filter(|d| all.contains_key(*d))
+        .collect();
+    assert_eq!(
+        workspace_deps,
+        std::iter::once("own-ir").collect(),
+        "own-guarded reads the fact contract only"
+    );
+    for core in [
+        "own-ir",
+        "own-syntax",
+        "own-cfg",
+        "own-diagnostics",
+        "own-lowered",
+        "own-analysis",
+    ] {
+        let deps = all.get(core).expect("core crate is a member");
+        assert!(
+            !deps.contains("own-guarded") && !deps.contains("p037-kernel"),
+            "{core} reaches the guarded seam; the core must stay ignorant of it"
+        );
+    }
 }

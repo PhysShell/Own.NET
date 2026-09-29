@@ -24,6 +24,10 @@ own-syntax = { path = "../own-syntax" }
 own-cfg = { path = "../own-cfg" }
 own-analysis = { path = "../own-analysis" }
 own-diagnostics = { path = "../own-diagnostics" }
+# P-037-X Stage 2 (research/p037-max-v1): the guarded replay, applied ONLY behind the
+# OWEN_P037X_GUARDED opt-in. This is the phase-C edge #304 froze for production; it exists on
+# the research branch as the experiment, never as a default.
+own-guarded = { path = "../own-guarded" }
 serde_json.workspace = true
 # The BR-V9 SARIF log (#259 cp5.3) is typed structs whose FIELD ORDER is the
 # surface: the reference builds Python dicts and `json.dumps` writes them in

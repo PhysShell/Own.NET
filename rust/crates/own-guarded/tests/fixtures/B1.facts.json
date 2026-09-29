@@ -1,0 +1,481 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "K7.Rec",
+      "file": "B1.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 12
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 14,
+          "then": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 16
+            }
+          ],
+          "else": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 20
+            }
+          ]
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 20,
+              "column": 13
+            },
+            "statement_line": 20,
+            "form": "statement",
+            "callee": "K7.Rec",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "param",
+                "source_param": 1
+              }
+            ]
+          }
+        ],
+        "guards": [
+          {
+            "site": {
+              "line": 14,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "K7.Caller",
+      "file": "B1.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 25
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 27
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 27,
+              "column": 9
+            },
+            "statement_line": 27,
+            "form": "statement",
+            "callee": "K7.Rec",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "call_result",
+                "callee": "K7.Flag",
+                "sig": ""
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "Pass.Inner",
+      "file": "B1.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 33
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 35,
+          "then": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 37
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 35,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "Pass.Outer",
+      "file": "B1.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 42
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 44
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 44,
+              "column": 9
+            },
+            "statement_line": 44,
+            "form": "statement",
+            "callee": "Pass.Inner",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "param",
+                "source_param": 1
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "Pass.KeepIt",
+      "file": "B1.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 48
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 50
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 50,
+              "column": 9
+            },
+            "statement_line": 50,
+            "form": "statement",
+            "callee": "Pass.Inner",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "Pass.DropIt",
+      "file": "B1.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 53
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 55
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 55,
+              "column": 9
+            },
+            "statement_line": 55,
+            "form": "statement",
+            "callee": "Pass.Inner",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": false
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "Absence.Inner",
+      "file": "B1.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 61
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 63,
+          "then": [
+            {
+              "op": "release",
+              "var": "s",
+              "line": 65
+            }
+          ],
+          "else": []
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 63,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "Absence.ToBodied",
+      "file": "B1.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 72
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 74
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 74,
+              "column": 9
+            },
+            "statement_line": 74,
+            "form": "statement",
+            "callee": "Absence.Bodied",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    {
+      "name": "Absence.Leaf",
+      "file": "B1.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "s",
+          "line": 79
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 81
+        }
+      ]
+    },
+    {
+      "name": "Absence.ToLeaf",
+      "file": "B1.cs",
+      "sig": "System.IO.Stream,System.Boolean",
+      "params": [
+        {
+          "name": "s",
+          "line": 84
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 86,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 88
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "release",
+          "var": "s",
+          "line": 90
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 90,
+              "column": 9
+            },
+            "statement_line": 90,
+            "form": "statement",
+            "callee": "Absence.Leaf",
+            "sig": "System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": [
+          {
+            "site": {
+              "line": 86,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": false
+          }
+        ]
+      }
+    }
+  ],
+  "stats": {
+    "methods_with_local": 10,
+    "methods_flow_analysed": 10,
+    "methods_skipped_unmodelled": 0
+  }
+}

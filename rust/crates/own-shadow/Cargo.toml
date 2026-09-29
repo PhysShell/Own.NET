@@ -31,6 +31,13 @@ description = "Shadow-mode infrastructure layer 0: canonical OwnIR document iden
 name = "own-shadow-engine"
 path = "src/bin/own-shadow-engine.rs"
 
+# P-037-X Stage 2 (research/p037-max-v1): P-037 B1's shadow report entry point
+# (docs/notes/p037-phase-b1-shadow.md §F, R-1): stdin is the facts document, stdout the
+# guarded-vs-legacy report. Shadow only: no verdict reads it.
+[[bin]]
+name = "own-guarded-report"
+path = "src/bin/own-guarded-report.rs"
+
 [dependencies]
 serde = { workspace = true }
 # The artifact is JSON on the wire; this crate parses it into its OWN
@@ -46,6 +53,8 @@ sha2 = { workspace = true }
 own-ir = { path = "../own-ir" }
 own-lowered = { path = "../own-lowered" }
 own-bridge = { path = "../own-bridge" }
+# P-037-X Stage 2 (research/p037-max-v1): the guarded shadow read, for own-guarded-report.
+own-guarded = { path = "../own-guarded" }
 
 [lints]
 workspace = true

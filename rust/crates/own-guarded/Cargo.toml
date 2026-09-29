@@ -1,0 +1,19 @@
+[package]
+name = "own-guarded"
+description = "P-037-X Stage 2 (research/p037-max-v1, EXPLORATORY): P-037 B1's guarded shadow read (#304, docs/notes/p037-phase-b1-shadow.md) ported as a workspace crate, plus the application seam own-bridge consults ONLY behind the OWEN_P037X_GUARDED opt-in. Every lattice operation, election, edge transform, finalization and call-site application is the formal kernel's (formal/p037-kernel); this crate defines none. Not a production migration; #304 stays frozen."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+version = "0.1.0"
+
+[dependencies]
+serde_json = { workspace = true }
+# The fact contract only: own-guarded reads functions[], the A2 sidecar and the legacy body.
+own-ir = { path = "../own-ir" }
+# The A0 formal kernel, outside the workspace by design (its own workspace root). On main no
+# workspace crate names it (B1 lock); on the research branch this crate is its one consumer.
+p037-kernel = { path = "../../../formal/p037-kernel" }
+
+[lints]
+workspace = true
