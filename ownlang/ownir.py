@@ -2718,9 +2718,13 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 for j, a in enumerate(raw_args):
                     ps = next((q for q in resolved.params if q.index == j), None)
                     channel = _CHANNEL_FOR_TRANSFER.get(ps.transfer) if ps else None
-                    if channel is not None and str(a) not in untracked:
-                        body.append(Call(channel,
-                                         [VarRef(localmap.get(str(a), str(a)), line)], line))
+                    # P-037-X Stage 1: an argument the core has no live handle for is an
+                    # UNMAPPED reference and contributes nothing — exactly like an unmapped
+                    # `use` (a handle the core never minted: a non-fresh factory result, a
+                    # branch-scoped acquire). Never a raw name the core refuses as OWN030.
+                    mapped = localmap.get(str(a))
+                    if channel is not None and str(a) not in untracked and mapped is not None:
+                        body.append(Call(channel, [VarRef(mapped, line)], line))
             # Only emit the `Call` when the callee is RESOLVABLE — a first-party function
             # with a summary, or a fixed ownership-sink extern. A real extraction surfaces
             # calls to callees we did not lower as functions (BCL / extension methods like
@@ -2728,9 +2732,22 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             # OWN040. Drop them (no effect, no claim) — precision-safe, never a crash.
             elif (summ is not None or callee in _SINK_EXTERN_NAMES) \
                     and callee and isinstance(raw_args, list):
-                arg_refs: list[Expr] = [VarRef(localmap.get(str(a), str(a)), line)
-                                        for a in raw_args]
-                body.append(Call(callee, arg_refs, line))
+                mapped_args = [localmap.get(str(a)) for a in raw_args]
+                if all(m is not None for m in mapped_args):
+                    arg_refs: list[Expr] = [VarRef(m, line) for m in mapped_args
+                                            if m is not None]
+                    body.append(Call(callee, arg_refs, line))
+                elif resolved is not None:
+                    # P-037-X Stage 1: a direct `Call` needs every argument mapped (the
+                    # core checks it against the callee's signature), so a call with an
+                    # unmapped argument applies the callee's contract per MAPPED argument
+                    # through the channel instead — the unmapped one contributes nothing,
+                    # like an unmapped `use` — never a raw name the core refuses as OWN030.
+                    for j, m in enumerate(mapped_args):
+                        ps = next((q for q in resolved.params if q.index == j), None)
+                        channel = _CHANNEL_FOR_TRANSFER.get(ps.transfer) if ps else None
+                        if channel is not None and m is not None:
+                            body.append(Call(channel, [VarRef(m, line)], line))
             # The kill site of a tracked local (Codex P1): THIS top-level call hands
             # it to a may/unknown position, so discharge the obligation here — the
             # optimistic "ownership left the caller" as a real `$consume` on the

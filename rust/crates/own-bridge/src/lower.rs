@@ -1634,13 +1634,18 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                         });
                         if let Some(channel) = channel {
                             let aname = py_str(a);
+                            // P-037-X Stage 1: an argument the core has no live handle for
+                            // is an UNMAPPED reference and contributes nothing — exactly
+                            // like an unmapped `use` — never a raw name the core would
+                            // refuse as OWN030.
                             if !ctx.untracked.contains(&aname) {
-                                let arg = ctx.localmap.get(&aname).cloned().unwrap_or(aname);
-                                body.push(Stmt::Call {
-                                    callee: channel.to_owned(),
-                                    args: vec![arg],
-                                    line,
-                                });
+                                if let Some(arg) = ctx.localmap.get(&aname).cloned() {
+                                    body.push(Stmt::Call {
+                                        callee: channel.to_owned(),
+                                        args: vec![arg],
+                                        line,
+                                    });
+                                }
                             }
                         }
                     }
@@ -1648,18 +1653,44 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                     && !callee.is_empty()
                 {
                     if let Some(args) = args {
-                        let arg_refs = args
+                        let mapped: Vec<Option<String>> = args
                             .iter()
-                            .map(|a| {
-                                let s = py_str(a);
-                                ctx.localmap.get(&s).cloned().unwrap_or(s)
-                            })
+                            .map(|a| ctx.localmap.get(&py_str(a)).cloned())
                             .collect();
-                        body.push(Stmt::Call {
-                            callee: callee.clone(),
-                            args: arg_refs,
-                            line,
-                        });
+                        if mapped.iter().all(Option::is_some) {
+                            body.push(Stmt::Call {
+                                callee: callee.clone(),
+                                args: mapped.into_iter().flatten().collect(),
+                                line,
+                            });
+                        } else if let Some(resolved) = resolved {
+                            // P-037-X Stage 1: a direct `Call` needs every argument mapped
+                            // (the core checks it against the callee's signature), so a call
+                            // with an unmapped argument applies the callee's contract per
+                            // MAPPED argument through the channel instead — the unmapped one
+                            // contributes nothing, like an unmapped `use` — never a raw name
+                            // the core refuses as OWN030.
+                            for (j, m) in mapped.into_iter().enumerate() {
+                                let Some(m) = m else { continue };
+                                let j = i64::try_from(j).unwrap_or(i64::MAX);
+                                let channel = resolved
+                                    .params
+                                    .iter()
+                                    .find(|q| q.index == j)
+                                    .and_then(|q| match q.transfer {
+                                        Transfer::Must => Some("$consume"),
+                                        Transfer::No => Some("$borrow"),
+                                        Transfer::May | Transfer::Unknown => None,
+                                    });
+                                if let Some(channel) = channel {
+                                    body.push(Stmt::Call {
+                                        callee: channel.to_owned(),
+                                        args: vec![m],
+                                        line,
+                                    });
+                                }
+                            }
+                        }
                     }
                 }
                 // the kill site of a tracked local: discharge here, unmap after.
