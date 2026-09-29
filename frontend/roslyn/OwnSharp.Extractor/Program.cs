@@ -4935,6 +4935,13 @@ static (object Op, HashSet<string> Bound)? CanonicalParamCall(
         .OfType<MethodDeclarationSyntax>().FirstOrDefault(d => d.Body is not null);
     if (decl is null)
         return null;
+    // An OVERLOADED name is not claimed: a callee body the flow pass skips (an iterator, say)
+    // gets no record, its `sig` then matches nothing, and the core resolves the call against
+    // the name-merged summary of the OTHER overloads (spec §5.1 fallback) — a definite
+    // consumer there would fabricate `must` for an argument that is only borrowed. With a
+    // single method of that name the same miss has no summary to fall back to: `unknown`.
+    if (def.ContainingType.GetMembers(def.Name).OfType<IMethodSymbol>().Count() != 1)
+        return null;
     var declModel = model.Compilation.GetSemanticModel(decl.SyntaxTree);
     var slots = decl.ParameterList.Parameters
         .Select((p, ordinal) => (p, ordinal))
