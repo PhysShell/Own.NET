@@ -47,7 +47,7 @@ handling — inert on TypeScript spellings. Nothing semantic.
 
 ## 4. Cost and result
 
-Frontend-specific: the emitter (about 190 handwritten Python lines) and the pin test; core lines
+Frontend-specific: the emitter (241 handwritten Python lines (estimate +150..+260)) and the pin test; core lines
 changed: 0; core reused: the Python reference, own-cli (door, bridge + seam, driver, kernel,
 core) and the report, all unchanged. **KEEP**: the frozen §8 rows 1/7/8 guarded semantics
 reproduce on TypeScript through the unchanged core, and the one C#-specific assumption the core
