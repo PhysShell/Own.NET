@@ -5019,10 +5019,16 @@ static bool DisposesLocal(SyntaxNode body, string name)
 // derives `may` for it (INF-S2), and flattening it to a call-site release is the fabricated
 // `must` the precision floor forbids — a false OWN002/OWN003/OWN009 at a caller that keeps the
 // resource (`Close(s, dispose: false)`), and a false `must` summary on a wrapper that forwards
-// its own parameter that way. Declining here never invents the opposite verdict: a declined
-// argument stays an ordinary escape (an untracked local, a used parameter), not a borrow the
-// caller is charged for. Purely syntactic and deliberately conservative — the guard's value
-// is never read, and an unrecognised shape is not definite (it costs a use-after-handoff
+// its own parameter that way.
+//
+// Declining here avoids fabricating an unconditional `must`; it does NOT produce INF-S2's
+// `may`. For an owned LOCAL the declined argument is an ordinary escape: the local goes
+// untracked and the caller stays silent. For a forwarded PARAMETER the remaining `use` lets the
+// existing inference derive `no` — right when the guard is false, not when it is true or
+// forwarded (GuardedConsumeSample.ForwardDynamic pins that as a known limitation). A partial
+// forward is only representable as `may` through a canonical call fact, which is outside #380.
+// Purely syntactic and deliberately conservative: the guard's value is never read, and an
+// unrecognised shape is treated as not definite (for a local that costs a use-after-handoff
 // finding, never a false one).
 static bool IsDefiniteInBody(SyntaxNode site, SyntaxNode body)
 {

@@ -23,6 +23,14 @@ The fixture (frontend/roslyn/samples/GuardedConsumeSample.cs) pins three familie
 
 plus the wrapper case: a parameter forwarded with the guard false summarizes as `no`.
 
+And one PINNED KNOWN LIMITATION, which is not acceptance: `ForwardDynamic` forwards its own
+parameter AND the guard, so INF-S3 would summarize it `may`. Today the forward is folded
+into a `use`, so the summary is `no`. #380 guarantees no fabricated `must`; it does not
+guarantee `may`. The pin is there so that the move is loud: if a canonical first-party call
+fact ever carries this forward to the core, the pin turns red and should be re-recorded,
+and #304's reopen condition 1 is due for a re-check. A move to `must` would mean the
+fabricated consume is back.
+
 Line numbers are read off the fixture's text, not hard-coded, so an edit to the comments
 cannot silently shift what is being checked.
 
@@ -147,6 +155,21 @@ def run() -> int:
     if [p.get("transfer") for p in wrapper] != ["no"]:
         fails.append(f"BorrowingWrapper.borrowed: expected transfer 'no', got "
                      f"{[p.get('transfer') for p in wrapper]}")
+
+    # KNOWN LIMITATION pin (see the module docstring): `no` is today's value, not the right one.
+    dynamic_name = "GuardedConsumeSample.ForwardDynamic"
+    dynamic = [p.get("transfer") for d in docs if d.get("method", "").endswith(dynamic_name)
+               for p in d.get("params", []) if p.get("name") == "forwarded"]
+    if dynamic != ["no"]:
+        if dynamic == ["must"]:
+            why = "the fabricated consume is back (#380 regressed)"
+        elif dynamic == ["may"]:
+            why = ("the INF-S3 `may` arrived — canonical call facts likely landed: re-record this "
+                   "pin and re-check #304 reopen condition 1")
+        else:
+            why = "the representation moved; classify it before re-recording this pin"
+        fails.append(f"KNOWN-LIMITATION PIN MOVED: ForwardDynamic.forwarded is {dynamic}, "
+                     f"pinned ['no'] — {why}")
 
     for f in fails:
         print(f"FAIL: {f}")

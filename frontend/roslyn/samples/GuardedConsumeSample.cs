@@ -110,4 +110,14 @@ public static class GuardedConsumeSample
     {
         MaybeClose(borrowed, false);
     }
+
+    // KNOWN LIMITATION, pinned rather than accepted: the guard is forwarded, so whether the
+    // stream is consumed depends on the caller. INF-S3 would summarize this `may` (a forward to a
+    // `may` callee); today the forward is folded into a `use` and the summary is `no`. Reaching
+    // `may` needs a canonical first-party call fact, outside #380. When that representation
+    // lands this pin moves, and #304's reopen condition 1 is due for a re-check.
+    public static void ForwardDynamic(Stream forwarded, bool dispose)
+    {
+        MaybeClose(forwarded, dispose);
+    }
 }
