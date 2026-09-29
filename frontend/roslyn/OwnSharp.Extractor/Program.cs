@@ -3610,7 +3610,11 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
         case BlockSyntax b:
             return LowerFlowStatements(b.Statements, 0, tracked, model, nodes, canEscape, onThrow, onReturn, onThrowDefinite);
         case LocalDeclarationStatementSyntax ld:
+        {
             InjectThrowEdge(ld, nodes, onThrow, canEscape);
+            // P-037-X Stage 2c R5: the handles an op below already carries for this statement
+            // (an adopted alias source, a first-party factory call's args) get no extra `use`.
+            var carried = new HashSet<string>(StringComparer.Ordinal);
             if (ld.UsingKeyword == default)
                 foreach (var v in ld.Declaration.Variables)
                 {
@@ -3633,6 +3637,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                         nodes.Add(new { op = "alias_join", var = v.Identifier.Text,
                                         src = adoptedId.Identifier.Text,
                                         line = aliasPos.Line, column = aliasPos.Column });
+                        carried.Add(adoptedId.Identifier.Text);
                     }
                     else if (tracked.Contains(v.Identifier.Text)
                         && (v.Initializer?.Value is ObjectCreationExpressionSyntax
@@ -3683,6 +3688,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                                         args = fpArgs,
                                         result = v.Identifier.Text,
                                         line = callPos.Line, column = callPos.Column });
+                        carried.UnionWith(fpArgs);
                     }
                     // POOL005: a full-length view in the initializer — `var copy = buf.AsSpan().ToArray();`
                     // — over-reads the pooled tail just as `Emit(buf.AsSpan());` does. EmitFlowExpr is not
@@ -3690,7 +3696,17 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                     if (v.Initializer?.Value is { } vinit)
                         EmitOverspans(vinit, tracked, model, nodes);
                 }
+            // P-037-X Stage 2c R5 (research/p037-max-v1, EXPLORATORY; pre-registered): a tracked
+            // handle that is an argument of the invocation or object creation initializing a
+            // local — `var x = F(s)`, `using var x = F(s)` — is USED there exactly as the same
+            // call in statement form uses it. Until now the legacy body carried nothing for
+            // it, so a sidecar reader could not place the call (B1 A15) and a use after a
+            // handoff went unreported. Handles an op above already carries are excluded.
+            foreach (var v in ld.Declaration.Variables)
+                if (v.Initializer?.Value is { } init)
+                    EmitInitializerArgUses(init, tracked, model, nodes, carried, LineOf(ld));
             return true;
+        }
         case ExpressionStatementSyntax es:
             InjectThrowEdge(es, nodes, onThrow, canEscape);
             EmitFlowExpr(es.Expression, tracked, model, nodes);
@@ -3708,6 +3724,14 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
         }
         case UsingStatementSyntax us:
         {
+            // P-037-X Stage 2c R5: `using (var x = F(s)) { … }` — the initializer runs first and
+            // uses its tracked handle arguments exactly as `F(s);` would (see the local
+            // declaration case); nothing below carries them.
+            if (us.Declaration is { } usDecl)
+                foreach (var v in usDecl.Variables)
+                    if (v.Initializer?.Value is { } init)
+                        EmitInitializerArgUses(init, tracked, model, nodes,
+                                               new HashSet<string>(StringComparer.Ordinal), LineOf(us));
             // using (IMemoryOwner owner = MemoryPool.Rent(...)) { body }: the STATEMENT form of the same
             // scope-exit dispose as the `using` declaration — desugar a tracked MemoryPool owner the same
             // way (acquire; thread the dispose onto the body's returns/throws; release on completion) so a
@@ -4077,6 +4101,42 @@ static bool LowerSwitchSection(SwitchSectionSyntax section, HashSet<string> trac
             return false;
     }
     return true;
+}
+
+// P-037-X Stage 2c R5: the legacy `use` ops for the tracked handles that are DIRECT arguments of
+// the invocation / object creation `init` (looked at through `await` and `.ConfigureAwait`, each
+// argument through the A2.2 value-preserving unwrap), emitted once per handle at `line` — the
+// enclosing statement's line, the coordinate the guarded-fact sidecar keys the same call by.
+// `out` arguments are pure writes, not uses (IsPureWrite); `carried` handles are skipped.
+static void EmitInitializerArgUses(ExpressionSyntax init, HashSet<string> tracked, SemanticModel model,
+                                   List<object> nodes, HashSet<string> carried, int line)
+{
+    if (init is AwaitExpressionSyntax aw)
+        init = aw.Expression;
+    if (init is InvocationExpressionSyntax cfg
+        && cfg.Expression is MemberAccessExpressionSyntax { Name.Identifier.Text: "ConfigureAwait",
+                                                             Expression: InvocationExpressionSyntax inner })
+        init = inner;
+    var argList = init switch
+    {
+        InvocationExpressionSyntax i => i.ArgumentList,
+        BaseObjectCreationExpressionSyntax o => o.ArgumentList,
+        _ => null,
+    };
+    if (argList is null)
+        return;
+    var used = new SortedSet<string>(StringComparer.Ordinal);
+    foreach (var a in argList.Arguments)
+    {
+        if (a.RefKindKeyword.IsKind(SyntaxKind.OutKeyword))
+            continue;
+        if (ValueUnwrap(a.Expression, model) is IdentifierNameSyntax idn
+            && tracked.Contains(idn.Identifier.Text)
+            && !carried.Contains(idn.Identifier.Text))
+            used.Add(idn.Identifier.Text);
+    }
+    foreach (var u in used)
+        nodes.Add(new { op = "use", var = u, line });
 }
 
 static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, SemanticModel model, List<object> nodes)
