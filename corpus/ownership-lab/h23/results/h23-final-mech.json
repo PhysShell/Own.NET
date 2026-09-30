@@ -1,0 +1,1067 @@
+{
+ "schema": "own.net/h23/final-mech/v1",
+ "census": {
+  "consumers": 17,
+  "seconds_frozen": 4114,
+  "seconds_treatment": 3935,
+  "extractor_seconds_frozen": 2979.9999999999995,
+  "extractor_seconds_treatment": 2709.6000000000004,
+  "counters": {
+   "excluded_nested_write": 134,
+   "excluded_loop_write": 10
+  },
+  "per_consumer": {
+   "DuendeSoftware/products": {
+    "seconds_frozen": 269,
+    "seconds_treatment": 249,
+    "trusted_frozen": 0,
+    "trusted_treatment": 0,
+    "by_shape": {},
+    "h23_counters": {},
+    "sha_match": true
+   },
+   "JasperFx/marten": {
+    "seconds_frozen": 515,
+    "seconds_treatment": 492,
+    "trusted_frozen": 6,
+    "trusted_treatment": 6,
+    "by_shape": {
+     "declaration": 6
+    },
+    "h23_counters": {
+     "excluded_nested_write": 4
+    },
+    "sha_match": true
+   },
+   "JasperFx/weasel": {
+    "seconds_frozen": 127,
+    "seconds_treatment": 133,
+    "trusted_frozen": 20,
+    "trusted_treatment": 20,
+    "by_shape": {
+     "declaration": 20
+    },
+    "h23_counters": {},
+    "sha_match": true
+   },
+   "JasperFx/wolverine": {
+    "seconds_frozen": 651,
+    "seconds_treatment": 573,
+    "trusted_frozen": 4,
+    "trusted_treatment": 4,
+    "by_shape": {
+     "declaration": 4
+    },
+    "h23_counters": {
+     "excluded_nested_write": 12,
+     "excluded_loop_write": 2
+    },
+    "sha_match": true
+   },
+   "NpgsqlRest/NpgsqlRest": {
+    "seconds_frozen": 64,
+    "seconds_treatment": 62,
+    "trusted_frozen": 7,
+    "trusted_treatment": 9,
+    "by_shape": {
+     "assignment_nested": 2,
+     "declaration": 7
+    },
+    "h23_counters": {
+     "excluded_nested_write": 9,
+     "excluded_loop_write": 2
+    },
+    "sha_match": true
+   },
+   "WebVella/WebVella-ERP": {
+    "seconds_frozen": 67,
+    "seconds_treatment": 69,
+    "trusted_frozen": 0,
+    "trusted_treatment": 0,
+    "by_shape": {},
+    "h23_counters": {
+     "excluded_nested_write": 19
+    },
+    "sha_match": true
+   },
+   "dotnet-ad/SkiaSharp.Components": {
+    "seconds_frozen": 52,
+    "seconds_treatment": 24,
+    "trusted_frozen": 0,
+    "trusted_treatment": 0,
+    "by_shape": {},
+    "h23_counters": {
+     "excluded_nested_write": 1
+    },
+    "sha_match": true
+   },
+   "erikdarlingdata/PerformanceMonitor": {
+    "seconds_frozen": 4,
+    "seconds_treatment": 89,
+    "trusted_frozen": 0,
+    "trusted_treatment": 2,
+    "by_shape": {
+     "declaration": 2
+    },
+    "h23_counters": {
+     "excluded_loop_write": 2,
+     "excluded_nested_write": 6
+    },
+    "sha_match": true
+   },
+   "guitarrapc/FeatherQR": {
+    "seconds_frozen": 42,
+    "seconds_treatment": 96,
+    "trusted_frozen": 0,
+    "trusted_treatment": 0,
+    "by_shape": {},
+    "h23_counters": {},
+    "sha_match": true
+   },
+   "microsoft/aspire": {
+    "seconds_frozen": 9,
+    "seconds_treatment": 44,
+    "trusted_frozen": 0,
+    "trusted_treatment": 0,
+    "by_shape": {},
+    "h23_counters": {},
+    "sha_match": true
+   },
+   "mikependon/RepoDB": {
+    "seconds_frozen": 1446,
+    "seconds_treatment": 1265,
+    "trusted_frozen": 3,
+    "trusted_treatment": 3,
+    "by_shape": {
+     "declaration": 3
+    },
+    "h23_counters": {
+     "excluded_nested_write": 3
+    },
+    "sha_match": true
+   },
+   "npgsql/efcore.pg": {
+    "seconds_frozen": 6,
+    "seconds_treatment": 5,
+    "trusted_frozen": 0,
+    "trusted_treatment": 0,
+    "by_shape": {},
+    "h23_counters": {},
+    "sha_match": true
+   },
+   "potatobeanradio/circuitRF": {
+    "seconds_frozen": 197,
+    "seconds_treatment": 200,
+    "trusted_frozen": 0,
+    "trusted_treatment": 0,
+    "by_shape": {},
+    "h23_counters": {
+     "excluded_nested_write": 53,
+     "excluded_loop_write": 2
+    },
+    "sha_match": true
+   },
+   "quartznet/quartznet": {
+    "seconds_frozen": 122,
+    "seconds_treatment": 140,
+    "trusted_frozen": 1,
+    "trusted_treatment": 1,
+    "by_shape": {
+     "declaration": 1
+    },
+    "h23_counters": {
+     "excluded_nested_write": 1
+    },
+    "sha_match": true
+   },
+   "seiggy/lucia-dotnet": {
+    "seconds_frozen": 94,
+    "seconds_treatment": 94,
+    "trusted_frozen": 0,
+    "trusted_treatment": 0,
+    "by_shape": {},
+    "h23_counters": {
+     "excluded_nested_write": 16,
+     "excluded_loop_write": 1
+    },
+    "sha_match": true
+   },
+   "victor-wiki/DatabaseManager": {
+    "seconds_frozen": 70,
+    "seconds_treatment": 68,
+    "trusted_frozen": 2,
+    "trusted_treatment": 2,
+    "by_shape": {
+     "declaration": 2
+    },
+    "h23_counters": {
+     "excluded_nested_write": 4
+    },
+    "sha_match": true
+   },
+   "wieslawsoltes/ProGPU": {
+    "seconds_frozen": 379,
+    "seconds_treatment": 332,
+    "trusted_frozen": 0,
+    "trusted_treatment": 0,
+    "by_shape": {},
+    "h23_counters": {
+     "excluded_loop_write": 1,
+     "excluded_nested_write": 6
+    },
+    "sha_match": true
+   }
+  }
+ },
+ "scan": {
+  "consumers": [
+   {
+    "repo": "JasperFx/marten",
+    "sha": "7a6c9c3bb1",
+    "units": 104,
+    "new_raw": 0,
+    "lost_raw": 0,
+    "engine_internal_errors": 0,
+    "frozen_record": true
+   },
+   {
+    "repo": "JasperFx/weasel",
+    "sha": "73b158bf5a",
+    "units": 43,
+    "new_raw": 0,
+    "lost_raw": 0,
+    "engine_internal_errors": 0,
+    "frozen_record": true
+   },
+   {
+    "repo": "JasperFx/wolverine",
+    "sha": "7ee3df905e",
+    "units": 240,
+    "new_raw": 0,
+    "lost_raw": 0,
+    "engine_internal_errors": 0,
+    "frozen_record": true
+   },
+   {
+    "repo": "NpgsqlRest/NpgsqlRest",
+    "sha": "6cc6f55fa6",
+    "units": 11,
+    "new_raw": 0,
+    "lost_raw": 0,
+    "engine_internal_errors": 0,
+    "frozen_record": true
+   },
+   {
+    "repo": "erikdarlingdata/PerformanceMonitor",
+    "sha": "b342229e3c",
+    "units": 15,
+    "new_raw": 0,
+    "lost_raw": 0,
+    "engine_internal_errors": 0,
+    "frozen_record": false
+   },
+   {
+    "repo": "mikependon/RepoDB",
+    "sha": "edabfb2044",
+    "units": 301,
+    "new_raw": 0,
+    "lost_raw": 0,
+    "engine_internal_errors": 0,
+    "frozen_record": true
+   },
+   {
+    "repo": "quartznet/quartznet",
+    "sha": "15d90a9c26",
+    "units": 38,
+    "new_raw": 0,
+    "lost_raw": 0,
+    "engine_internal_errors": 0,
+    "frozen_record": true
+   },
+   {
+    "repo": "victor-wiki/DatabaseManager",
+    "sha": "032506d906",
+    "units": 14,
+    "new_raw": 0,
+    "lost_raw": 0,
+    "engine_internal_errors": 0,
+    "frozen_record": true
+   }
+  ],
+  "engine_error_audit": [],
+  "parity_failures": [],
+  "off_baseline": {
+   "units": 751,
+   "count_equal": 751,
+   "count_differs": [],
+   "facts_compared": 647,
+   "facts_identical": 638,
+   "facts_differ": [
+    {
+     "repo": "mikependon/RepoDB",
+     "unit": "src/Providers/RepoDb.Db2.BulkOperations/RepoDb.Db2.BulkOperations.IntegrationTests/RepoDb.Db2.BulkOperations.IntegrationTests.csproj|net10.0"
+    },
+    {
+     "repo": "mikependon/RepoDB",
+     "unit": "src/Providers/RepoDb.Db2.BulkOperations/RepoDb.Db2.BulkOperations.IntegrationTests/RepoDb.Db2.BulkOperations.IntegrationTests.csproj|net8.0"
+    },
+    {
+     "repo": "mikependon/RepoDB",
+     "unit": "src/Providers/RepoDb.Db2.BulkOperations/RepoDb.Db2.BulkOperations.IntegrationTests/RepoDb.Db2.BulkOperations.IntegrationTests.csproj|net9.0"
+    },
+    {
+     "repo": "mikependon/RepoDB",
+     "unit": "src/Providers/RepoDb.Db2.BulkOperations/RepoDb.Db2.BulkOperations/RepoDb.Db2.BulkOperations.csproj|net10.0"
+    },
+    {
+     "repo": "mikependon/RepoDB",
+     "unit": "src/Providers/RepoDb.Db2.BulkOperations/RepoDb.Db2.BulkOperations/RepoDb.Db2.BulkOperations.csproj|net8.0"
+    },
+    {
+     "repo": "mikependon/RepoDB",
+     "unit": "src/Providers/RepoDb.Db2.BulkOperations/RepoDb.Db2.BulkOperations/RepoDb.Db2.BulkOperations.csproj|net9.0"
+    },
+    {
+     "repo": "mikependon/RepoDB",
+     "unit": "src/Providers/RepoDb.Db2/RepoDb.Db2.IntegrationTests/RepoDb.Db2.IntegrationTests.csproj|net10.0"
+    },
+    {
+     "repo": "mikependon/RepoDB",
+     "unit": "src/Providers/RepoDb.Db2/RepoDb.Db2.IntegrationTests/RepoDb.Db2.IntegrationTests.csproj|net8.0"
+    },
+    {
+     "repo": "mikependon/RepoDB",
+     "unit": "src/Providers/RepoDb.Db2/RepoDb.Db2.IntegrationTests/RepoDb.Db2.IntegrationTests.csproj|net9.0"
+    }
+   ]
+  },
+  "new_raw": [],
+  "lost_raw": [],
+  "new_unique": [],
+  "lost_unique": [],
+  "summary": {
+   "consumers_scanned": 8,
+   "new_raw_project_tfm": 0,
+   "new_unique_source_sites": 0,
+   "lost_raw_project_tfm": 0,
+   "lost_unique_source_sites": 0,
+   "engine_error_units_on_only": 0,
+   "parity_failures": 0,
+   "off_baseline": {
+    "units": 751,
+    "count_equal": 751,
+    "count_differs": 0,
+    "facts_compared": 647,
+    "facts_identical": 638,
+    "facts_differ": 9
+   }
+  }
+ },
+ "attribution": {
+  "consumers_censused": 17,
+  "totals": {
+   "before_units": 43,
+   "after_units": 47,
+   "new_units": 2,
+   "lost_units": 0,
+   "before_spans_production": 8,
+   "after_spans_production": 10,
+   "new_spans_production": 2,
+   "new_spans_test": 0,
+   "new_spans_production_applied": 0,
+   "consumers_with_new_production_spans": 1
+  },
+  "production_families_after": [
+   "ICSharpCode.SharpZipLib",
+   "Npgsql"
+  ],
+  "gate_note": "after h23a-population-kill-1 the gate is evaluated on new_spans_production_applied (straight-line assignment units the narrowed seam applies); new_spans_production counts every assignment-shaped opportunity the oracle recognised",
+  "gate_frozen": {
+   "KEEP_FOR_PRODUCTION_EXPERIMENT": "after_spans_production >= 16 OR new_spans_production >= 20 (and zero suppressed real leaks and FALSE <= TRUE+BENIGN in the scan)",
+   "KEEP_AS_ANALYSIS_SUBSTRATE": "8 <= new_spans_production < 16",
+   "NARROW": "new_spans_production < 8"
+  },
+  "new_units": [
+   {
+    "repo": "NpgsqlRest/NpgsqlRest",
+    "project": "NpgsqlRest/NpgsqlRest.csproj",
+    "tfm": "net10.0",
+    "file": "NpgsqlRest/ConnectionHelper.cs",
+    "span": [
+     58,
+     30,
+     58,
+     67
+    ],
+    "callable": "Npgsql.NpgsqlDataSource.CreateConnection",
+    "effect": "return_fresh_owned",
+    "assembly": "Npgsql",
+    "shape": "assignment_nested",
+    "previously_reachable": false,
+    "kind": "production"
+   },
+   {
+    "repo": "NpgsqlRest/NpgsqlRest",
+    "project": "NpgsqlRest/NpgsqlRest.csproj",
+    "tfm": "net10.0",
+    "file": "NpgsqlRest/NpgsqlRestEndpoint.cs",
+    "span": [
+     154,
+     34,
+     154,
+     71
+    ],
+    "callable": "Npgsql.NpgsqlDataSource.CreateConnection",
+    "effect": "return_fresh_owned",
+    "assembly": "Npgsql",
+    "shape": "assignment_nested",
+    "previously_reachable": false,
+    "kind": "production"
+   }
+  ],
+  "per_consumer": [
+   {
+    "repo": "DuendeSoftware/products",
+    "sha": "100e14c801",
+    "before_units": 0,
+    "after_units": 0,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 111,
+     "treatment_restored_ok": 111,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": false,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {},
+    "after_by_shape": {},
+    "before_spans_production": 0,
+    "after_spans_production": 0,
+    "after_spans_production_raw_including_drift": 0,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {
+     "production:declaration_shape": 0,
+     "production:assignment_shape": 0,
+     "production:using_shape": 0,
+     "test:declaration_shape": 0,
+     "test:assignment_shape": 0,
+     "test:using_shape": 0
+    },
+    "h23_census": [
+     "h23a: ",
+     "h23a: ",
+     "h23a: "
+    ],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "JasperFx/marten",
+    "sha": "7a6c9c3bb1",
+    "before_units": 6,
+    "after_units": 6,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 55,
+     "treatment_restored_ok": 55,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": false,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {},
+    "after_by_shape": {
+     "declaration": 6
+    },
+    "before_spans_production": 0,
+    "after_spans_production": 0,
+    "after_spans_production_raw_including_drift": 0,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {
+     "production:declaration_shape": 110,
+     "production:assignment_shape": 46,
+     "production:using_shape": 20,
+     "test:declaration_shape": 128,
+     "test:assignment_shape": 12,
+     "test:using_shape": 44
+    },
+    "h23_census": [
+     "h23a: ",
+     "h23a: ",
+     "h23a: "
+    ],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "JasperFx/weasel",
+    "sha": "73b158bf5a",
+    "before_units": 20,
+    "after_units": 20,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 23,
+     "treatment_restored_ok": 23,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": false,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {},
+    "after_by_shape": {
+     "declaration": 20
+    },
+    "before_spans_production": 2,
+    "after_spans_production": 2,
+    "after_spans_production_raw_including_drift": 2,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {
+     "production:declaration_shape": 28,
+     "production:assignment_shape": 0,
+     "production:using_shape": 6,
+     "test:declaration_shape": 308,
+     "test:assignment_shape": 36,
+     "test:using_shape": 8
+    },
+    "h23_census": [
+     "h23a: ",
+     "h23a: ",
+     "h23a: "
+    ],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "JasperFx/wolverine",
+    "sha": "7ee3df905e",
+    "before_units": 4,
+    "after_units": 4,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 130,
+     "treatment_restored_ok": 130,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": false,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {},
+    "after_by_shape": {
+     "declaration": 4
+    },
+    "before_spans_production": 1,
+    "after_spans_production": 1,
+    "after_spans_production_raw_including_drift": 1,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {
+     "production:declaration_shape": 76,
+     "production:assignment_shape": 6,
+     "production:using_shape": 9,
+     "test:declaration_shape": 55,
+     "test:assignment_shape": 19,
+     "test:using_shape": 178
+    },
+    "h23_census": [
+     "h23a: ",
+     "h23a: ",
+     "h23a: "
+    ],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "NpgsqlRest/NpgsqlRest",
+    "sha": "6cc6f55fa6",
+    "before_units": 7,
+    "after_units": 9,
+    "new_units": 2,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 12,
+     "treatment_restored_ok": 12,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": false,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {
+     "assignment_nested": 2
+    },
+    "after_by_shape": {
+     "declaration": 7,
+     "assignment_nested": 2
+    },
+    "before_spans_production": 2,
+    "after_spans_production": 4,
+    "after_spans_production_raw_including_drift": 4,
+    "new_spans_production": 2,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {
+     "assignment_nested": 2
+    },
+    "textual_sites": {
+     "test:declaration_shape": 44,
+     "test:assignment_shape": 43,
+     "test:using_shape": 81,
+     "production:declaration_shape": 14,
+     "production:assignment_shape": 14,
+     "production:using_shape": 8
+    },
+    "h23_census": [
+     "h23a: ",
+     "h23a: excluded_nested_write=5",
+     "h23a: excluded_loop_write=1 excluded_nested_write=2"
+    ],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "WebVella/WebVella-ERP",
+    "sha": "389e4ff7de",
+    "before_units": 0,
+    "after_units": 0,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 20,
+     "treatment_restored_ok": 20,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": false,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {},
+    "after_by_shape": {},
+    "before_spans_production": 0,
+    "after_spans_production": 0,
+    "after_spans_production_raw_including_drift": 0,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {
+     "production:declaration_shape": 116,
+     "production:assignment_shape": 39,
+     "production:using_shape": 103
+    },
+    "h23_census": [
+     "h23a: ",
+     "h23a: ",
+     "h23a: "
+    ],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "dotnet-ad/SkiaSharp.Components",
+    "sha": "4d5d3fcbf0",
+    "before_units": 0,
+    "after_units": 0,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 12,
+     "treatment_restored_ok": 12,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": false,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {},
+    "after_by_shape": {},
+    "before_spans_production": 0,
+    "after_spans_production": 0,
+    "after_spans_production_raw_including_drift": 0,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {
+     "production:declaration_shape": 0,
+     "production:assignment_shape": 0,
+     "production:using_shape": 0,
+     "test:declaration_shape": 0,
+     "test:assignment_shape": 0,
+     "test:using_shape": 0
+    },
+    "h23_census": [
+     "h23a: ",
+     "h23a: ",
+     "h23a: "
+    ],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "erikdarlingdata/PerformanceMonitor",
+    "sha": "b342229e3c",
+    "before_units": 0,
+    "after_units": 2,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 0,
+     "treatment_restored_ok": 15,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": true,
+     "declaration_units_not_attributable": 2
+    },
+    "new_by_shape": {},
+    "after_by_shape": {
+     "declaration": 2
+    },
+    "before_spans_production": 0,
+    "after_spans_production": 0,
+    "after_spans_production_raw_including_drift": 2,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {
+     "production:declaration_shape": 31,
+     "production:assignment_shape": 5,
+     "production:using_shape": 16,
+     "test:declaration_shape": 0,
+     "test:assignment_shape": 0,
+     "test:using_shape": 0
+    },
+    "h23_census": [
+     "h23a: ",
+     "h23a: excluded_loop_write=2 excluded_nested_write=5",
+     "h23a: excluded_nested_write=1"
+    ],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "guitarrapc/FeatherQR",
+    "sha": "02e5112561",
+    "before_units": 0,
+    "after_units": 0,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 6,
+     "treatment_restored_ok": 6,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": false,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {},
+    "after_by_shape": {},
+    "before_spans_production": 0,
+    "after_spans_production": 0,
+    "after_spans_production_raw_including_drift": 0,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {
+     "test:declaration_shape": 9,
+     "test:assignment_shape": 6,
+     "test:using_shape": 5,
+     "production:declaration_shape": 65,
+     "production:assignment_shape": 5,
+     "production:using_shape": 31
+    },
+    "h23_census": [
+     "h23a: ",
+     "h23a: ",
+     "h23a: "
+    ],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "microsoft/aspire",
+    "sha": "4f442cdb5a",
+    "before_units": 0,
+    "after_units": 0,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 0,
+     "treatment_restored_ok": 0,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": false,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {},
+    "after_by_shape": {},
+    "before_spans_production": 0,
+    "after_spans_production": 0,
+    "after_spans_production_raw_including_drift": 0,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {},
+    "h23_census": [],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "mikependon/RepoDB",
+    "sha": "edabfb2044",
+    "before_units": 3,
+    "after_units": 3,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 104,
+     "treatment_restored_ok": 104,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": false,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {},
+    "after_by_shape": {
+     "declaration": 3
+    },
+    "before_spans_production": 1,
+    "after_spans_production": 1,
+    "after_spans_production_raw_including_drift": 1,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {
+     "production:declaration_shape": 366,
+     "production:assignment_shape": 18,
+     "production:using_shape": 36,
+     "test:declaration_shape": 0,
+     "test:assignment_shape": 0,
+     "test:using_shape": 198
+    },
+    "h23_census": [
+     "h23a: ",
+     "h23a: ",
+     "h23a: "
+    ],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "npgsql/efcore.pg",
+    "sha": "930bd291f7",
+    "before_units": 0,
+    "after_units": 0,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 0,
+     "treatment_restored_ok": 0,
+     "frozen_sdk_pin_set_aside": true,
+     "treatment_sdk_pin_set_aside": true,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {},
+    "after_by_shape": {},
+    "before_spans_production": 0,
+    "after_spans_production": 0,
+    "after_spans_production_raw_including_drift": 0,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {},
+    "h23_census": [],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "potatobeanradio/circuitRF",
+    "sha": "9761afe90b",
+    "before_units": 0,
+    "after_units": 0,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 23,
+     "treatment_restored_ok": 23,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": false,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {},
+    "after_by_shape": {},
+    "before_spans_production": 0,
+    "after_spans_production": 0,
+    "after_spans_production_raw_including_drift": 0,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {
+     "production:declaration_shape": 0,
+     "production:assignment_shape": 0,
+     "production:using_shape": 7,
+     "test:declaration_shape": 0,
+     "test:assignment_shape": 0,
+     "test:using_shape": 0
+    },
+    "h23_census": [
+     "h23a: ",
+     "h23a: excluded_nested_write=7",
+     "h23a: excluded_nested_write=2"
+    ],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "quartznet/quartznet",
+    "sha": "15d90a9c26",
+    "before_units": 1,
+    "after_units": 1,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 43,
+     "treatment_restored_ok": 43,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": false,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {},
+    "after_by_shape": {
+     "declaration": 1
+    },
+    "before_spans_production": 0,
+    "after_spans_production": 0,
+    "after_spans_production_raw_including_drift": 0,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {
+     "production:declaration_shape": 2,
+     "production:assignment_shape": 2,
+     "production:using_shape": 1,
+     "test:declaration_shape": 936,
+     "test:assignment_shape": 86,
+     "test:using_shape": 113
+    },
+    "h23_census": [
+     "h23a: ",
+     "h23a: ",
+     "h23a: "
+    ],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "seiggy/lucia-dotnet",
+    "sha": "8b27632738",
+    "before_units": 0,
+    "after_units": 0,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 18,
+     "treatment_restored_ok": 18,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": false,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {},
+    "after_by_shape": {},
+    "before_spans_production": 0,
+    "after_spans_production": 0,
+    "after_spans_production_raw_including_drift": 0,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {
+     "production:declaration_shape": 6,
+     "production:assignment_shape": 6,
+     "production:using_shape": 277,
+     "test:declaration_shape": 53,
+     "test:assignment_shape": 13,
+     "test:using_shape": 80
+    },
+    "h23_census": [
+     "h23a: ",
+     "h23a: ",
+     "h23a: excluded_nested_write=2"
+    ],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "victor-wiki/DatabaseManager",
+    "sha": "032506d906",
+    "before_units": 2,
+    "after_units": 2,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 14,
+     "treatment_restored_ok": 14,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": false,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {},
+    "after_by_shape": {
+     "declaration": 2
+    },
+    "before_spans_production": 2,
+    "after_spans_production": 2,
+    "after_spans_production_raw_including_drift": 2,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {
+     "production:declaration_shape": 29,
+     "production:assignment_shape": 3,
+     "production:using_shape": 34,
+     "test:declaration_shape": 0,
+     "test:assignment_shape": 0,
+     "test:using_shape": 0
+    },
+    "h23_census": [
+     "h23a: ",
+     "h23a: ",
+     "h23a: "
+    ],
+    "engine_or_extractor_failures": 0
+   },
+   {
+    "repo": "wieslawsoltes/ProGPU",
+    "sha": "7941cdec3e",
+    "before_units": 0,
+    "after_units": 0,
+    "new_units": 0,
+    "lost_units": 0,
+    "restore_drift": {
+     "frozen_restored_ok": 110,
+     "treatment_restored_ok": 110,
+     "frozen_sdk_pin_set_aside": null,
+     "treatment_sdk_pin_set_aside": false,
+     "declaration_units_not_attributable": 0
+    },
+    "new_by_shape": {},
+    "after_by_shape": {},
+    "before_spans_production": 0,
+    "after_spans_production": 0,
+    "after_spans_production_raw_including_drift": 0,
+    "new_spans_production": 0,
+    "new_spans_test": 0,
+    "new_spans_production_applied": 0,
+    "new_spans_production_not_applied_by_shape": {},
+    "textual_sites": {
+     "production:declaration_shape": 0,
+     "production:assignment_shape": 0,
+     "production:using_shape": 0,
+     "test:declaration_shape": 0,
+     "test:assignment_shape": 0,
+     "test:using_shape": 0
+    },
+    "h23_census": [
+     "h23a: ",
+     "h23a: ",
+     "h23a: "
+    ],
+    "engine_or_extractor_failures": 0
+   }
+  ]
+ }
+}

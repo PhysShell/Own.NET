@@ -1,0 +1,18 @@
+products             before 0 after 0 new 0 {} prod spans 0 -> 0 lost 0 textual {'production:assignment_shape': 0, 'test:assignment_shape': 0}
+marten               before 6 after 6 new 0 {} prod spans 0 -> 0 lost 0 textual {'production:assignment_shape': 46, 'test:assignment_shape': 12}
+weasel               before 20 after 20 new 0 {} prod spans 2 -> 2 lost 0 textual {'production:assignment_shape': 0, 'test:assignment_shape': 36}
+wolverine            before 4 after 4 new 0 {} prod spans 1 -> 1 lost 0 textual {'production:assignment_shape': 6, 'test:assignment_shape': 19}
+NpgsqlRest           before 7 after 9 new 2 {'assignment_nested': 2} prod spans 2 -> 4 lost 0 textual {'test:assignment_shape': 43, 'production:assignment_shape': 14}
+WebVella-ERP         before 0 after 0 new 0 {} prod spans 0 -> 0 lost 0 textual {'production:assignment_shape': 39}
+SkiaSharp.Components before 0 after 0 new 0 {} prod spans 0 -> 0 lost 0 textual {'production:assignment_shape': 0, 'test:assignment_shape': 0}
+PerformanceMonitor   before 0 after 2 new 0 {} prod spans 0 -> 0 lost 0 textual {'production:assignment_shape': 5, 'test:assignment_shape': 0}
+FeatherQR            before 0 after 0 new 0 {} prod spans 0 -> 0 lost 0 textual {'test:assignment_shape': 6, 'production:assignment_shape': 5}
+aspire               before 0 after 0 new 0 {} prod spans 0 -> 0 lost 0 textual {}
+RepoDB               before 3 after 3 new 0 {} prod spans 1 -> 1 lost 0 textual {'production:assignment_shape': 18, 'test:assignment_shape': 0}
+efcore.pg            before 0 after 0 new 0 {} prod spans 0 -> 0 lost 0 textual {}
+circuitRF            before 0 after 0 new 0 {} prod spans 0 -> 0 lost 0 textual {'production:assignment_shape': 0, 'test:assignment_shape': 0}
+quartznet            before 1 after 1 new 0 {} prod spans 0 -> 0 lost 0 textual {'production:assignment_shape': 2, 'test:assignment_shape': 86}
+lucia-dotnet         before 0 after 0 new 0 {} prod spans 0 -> 0 lost 0 textual {'production:assignment_shape': 6, 'test:assignment_shape': 13}
+DatabaseManager      before 2 after 2 new 0 {} prod spans 2 -> 2 lost 0 textual {'production:assignment_shape': 3, 'test:assignment_shape': 0}
+ProGPU               before 0 after 0 new 0 {} prod spans 0 -> 0 lost 0 textual {'production:assignment_shape': 0, 'test:assignment_shape': 0}
+TOTALS {'before_units': 43, 'after_units': 47, 'new_units': 2, 'lost_units': 0, 'before_spans_production': 8, 'after_spans_production': 10, 'new_spans_production': 2, 'new_spans_test': 0, 'new_spans_production_applied': 0, 'consumers_with_new_production_spans': 1} families ['ICSharpCode.SharpZipLib', 'Npgsql']

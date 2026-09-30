@@ -1,0 +1,7 @@
+{
+ "purpose": "counter-semantics check between the seam build (af92d7d9, repo bin) and the narrowed build (e552a533, ext8n) on locals mixing a loop / nested write with a later disqualifying write (compound ??=, ref argument)",
+ "fixture": "Cnt.cs: M1 loop only; M2 loop then ??=; M3 ??= then loop; M4 nested-if then ??=; M5 loop then ref argument",
+ "seam_build_h23a_census": "excluded_loop_write=3 (M1, M2, M5: the loop write was met before the disqualifier and counted at once)",
+ "narrowed_build_h23a_census": "excluded_loop_write=1 (M1 only: the narrowed H23AWrites scans every write first and a later disqualifying write returns without counting)",
+ "reading": "both builds EXCLUDE every one of these locals (identical facts); only the descriptive counters differ, which is why marten reports excluded_loop_write=8 under the seam build and excluded_nested_write=4 with no loop count under the narrowed build; the counters are therefore lower bounds of the loop / nested exclusion classes, never used as measurements of exposure"
+}

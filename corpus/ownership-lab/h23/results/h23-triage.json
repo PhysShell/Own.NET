@@ -1,0 +1,7 @@
+{
+ "schema": "own.net/h23/triage/v1",
+ "basis": "OFF (frozen rows, seam off) versus H23-ON (same rows + OWEN_H23A=1, narrowed build e552a533) on the 8 frozen consumers with >= 1 trusted opportunity: 751 project/TFM units, both engines, parity on every unit",
+ "new": [],
+ "lost": [],
+ "note": "no finding changed on any unit; the narrowed seam versioned zero locals in the population (no straight-line acquire-shaped reassignment of a disposable local survived the exclusions), so there is nothing to classify and no competitor check to run"
+}

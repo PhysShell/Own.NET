@@ -1,0 +1,22 @@
+{
+ "schema": "own.net/h23/reassignment-ledger/v1",
+ "counter_semantics": "excluded_loop_write / excluded_nested_write count LOCALS whose writes are all simple-assignment statements and at least one is loop- / block-nested; a local with a disqualifying write (compound, write inside an expression, deconstruction, ++/--, ref/out, lambda) is excluded silently in every build, so these counters are lower bounds (lab/h23/cnt/results.json); write_* counters are per WRITE on the locals the seam versions",
+ "from_facts": {},
+ "sites": [],
+ "from_extractor_counters_all_consumers": {
+  "excluded_nested_write": 134,
+  "excluded_loop_write": 10
+ },
+ "mapping": {
+  "overwrite_with_null": 0,
+  "overwrite_with_borrowed_or_other": 0,
+  "overwrite_with_first_party_factory_result": 0,
+  "acquire_shaped_straight_line_writes": 0,
+  "acquire_shaped_nested_writes_seen_before_narrowing": 0,
+  "branch_overwrite_locals_excluded": 134,
+  "loop_overwrite_locals_excluded": 10,
+  "candidates_minted_by_assignment": 0,
+  "declared_candidates_versioned": 0,
+  "dropped_untracked_refs": 0
+ }
+}

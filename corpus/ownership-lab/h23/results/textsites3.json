@@ -1,0 +1,1868 @@
+{
+ "JasperFx/marten": {
+  "count": 13,
+  "classes": {
+   "row_family_name|nested": 6,
+   "row_family_name|straight_or_unknown": 7
+  },
+  "sites": [
+   {
+    "file": "src/Marten/DocumentStore.CompiledQueryCollection.cs",
+    "line": 71,
+    "text": "descriptor = RuntimeCompiledQueryDescriptorFactory.Build(plan);",
+    "lhs": "descriptor",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "RuntimeCompiledQueryDescriptorFactory",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Marten/Events/BulkEventAppender.cs",
+    "line": 280,
+    "text": "writer = await conn.BeginBinaryImportAsync(copySql, cancellation).ConfigureAwait(false);",
+    "lhs": "writer",
+    "method": "BeginBinaryImportAsync",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.BeginBinaryImportAsync"
+    ],
+    "receiver": "conn",
+    "ado_name": false,
+    "brace_depth_from_method": 4
+   },
+   {
+    "file": "src/Marten/Events/BulkEventAppender.cs",
+    "line": 491,
+    "text": "writer = await conn.BeginBinaryImportAsync(copySql, cancellation).ConfigureAwait(false);",
+    "lhs": "writer",
+    "method": "BeginBinaryImportAsync",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.BeginBinaryImportAsync"
+    ],
+    "receiver": "conn",
+    "ado_name": false,
+    "brace_depth_from_method": 4
+   },
+   {
+    "file": "src/Marten/Events/BulkEventAppender.cs",
+    "line": 612,
+    "text": "writer = await conn.BeginBinaryImportAsync(copySql, cancellation).ConfigureAwait(false);",
+    "lhs": "writer",
+    "method": "BeginBinaryImportAsync",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.BeginBinaryImportAsync"
+    ],
+    "receiver": "conn",
+    "ado_name": false,
+    "brace_depth_from_method": 5
+   },
+   {
+    "file": "src/Marten/Events/Fetching/FetchAsyncPlan.ForReading.cs",
+    "line": 113,
+    "text": "rawJsonBuffer = SharedMemoryStreamManager.GetStream();",
+    "lhs": "rawJsonBuffer",
+    "method": "GetStream",
+    "row_callables_with_this_name": [
+     "Npgsql.Internal.PgWriter.GetStream"
+    ],
+    "receiver": "SharedMemoryStreamManager",
+    "ado_name": false,
+    "brace_depth_from_method": 3
+   },
+   {
+    "file": "src/Marten/Events/Projections/CompositeProjection.cs",
+    "line": 262,
+    "text": "source = ScopedAggregationWrapper.Build(projectionServices, typeof(TProjection), _aggregateType,",
+    "lhs": "source",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "ScopedAggregationWrapper",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Marten/Services/Json/SystemTextJsonExtensions.cs",
+    "line": 606,
+    "text": "jsonElement = document.RootElement.Clone();",
+    "lhs": "jsonElement",
+    "method": "Clone",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlCommand.Clone"
+    ],
+    "receiver": "document.RootElement",
+    "ado_name": false,
+    "brace_depth_from_method": 3
+   },
+   {
+    "file": "src/Marten/StoreOptions.cs",
+    "line": 215,
+    "text": "ResiliencePipeline = new ResiliencePipelineBuilder().AddMartenDefaults().Build();",
+    "lhs": "ResiliencePipeline",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "ResiliencePipelineBuilder().AddMartenDefaults()",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Marten/StoreOptions.cs",
+    "line": 216,
+    "text": "WriteResiliencePipeline = new ResiliencePipelineBuilder().AddMartenWriteDefaults().Build();",
+    "lhs": "WriteResiliencePipeline",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "ResiliencePipelineBuilder().AddMartenWriteDefaults()",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Marten/StoreOptions.cs",
+    "line": 253,
+    "text": "ResiliencePipeline = builder.Build();",
+    "lhs": "ResiliencePipeline",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "builder",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Marten/StoreOptions.cs",
+    "line": 269,
+    "text": "WriteResiliencePipeline = builder.Build();",
+    "lhs": "WriteResiliencePipeline",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "builder",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Marten/StoreOptions.cs",
+    "line": 285,
+    "text": "ResiliencePipeline = builder.AddMartenDefaults().Build();",
+    "lhs": "ResiliencePipeline",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "builder.AddMartenDefaults()",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Marten/StoreOptions.cs",
+    "line": 297,
+    "text": "WriteResiliencePipeline = builder.AddMartenWriteDefaults().Build();",
+    "lhs": "WriteResiliencePipeline",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "builder.AddMartenWriteDefaults()",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   }
+  ]
+ },
+ "JasperFx/weasel": {
+  "count": 0,
+  "classes": {},
+  "sites": []
+ },
+ "JasperFx/wolverine": {
+  "count": 14,
+  "classes": {
+   "row_family_name|nested": 7,
+   "row_family_name|straight_or_unknown": 4,
+   "ado_name|nested": 3
+  },
+  "sites": [
+   {
+    "file": "src/Http/Wolverine.Http/CodeGen/CurrentTimeParameterStrategy.cs",
+    "line": 53,
+    "text": "variable = source.Create(parameter.ParameterType);",
+    "lhs": "variable",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "source",
+    "ado_name": false,
+    "brace_depth_from_method": 3
+   },
+   {
+    "file": "src/Http/Wolverine.Http/HttpChain.EndpointBuilder.cs",
+    "line": 157,
+    "text": "Endpoint = (RouteEndpoint?)builder.Build();",
+    "lhs": "Endpoint",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+     "Org.BouncyCastle.Bcpg.ArmoredInputStream.Builder.Build"
+    ],
+    "receiver": "builder",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Persistence/Oracle/Wolverine.Oracle/OracleAdvisoryLock.cs",
+    "line": 208,
+    "text": "conn = await _source.OpenConnectionAsync(token);",
+    "lhs": "conn",
+    "method": "OpenConnectionAsync",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlMultiHostDataSource.OpenConnectionAsync"
+    ],
+    "receiver": "_source",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Persistence/Oracle/Wolverine.Oracle/OracleMessageStore.Incoming.cs",
+    "line": 108,
+    "text": "cmd = conn.CreateCommand(",
+    "lhs": "cmd",
+    "method": "CreateCommand",
+    "row_callables_with_this_name": [
+     "Microsoft.Data.Sqlite.SqliteFactory.CreateCommand",
+     "MySqlConnector.MySqlConnectorFactory.CreateCommand",
+     "Npgsql.Internal.NpgsqlConnector.CreateCommand"
+    ],
+    "receiver": "conn",
+    "ado_name": true,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Persistence/Oracle/Wolverine.Oracle/OracleMessageStore.Incoming.cs",
+    "line": 114,
+    "text": "cmd = conn.CreateCommand(",
+    "lhs": "cmd",
+    "method": "CreateCommand",
+    "row_callables_with_this_name": [
+     "Microsoft.Data.Sqlite.SqliteFactory.CreateCommand",
+     "MySqlConnector.MySqlConnectorFactory.CreateCommand",
+     "Npgsql.Internal.NpgsqlConnector.CreateCommand"
+    ],
+    "receiver": "conn",
+    "ado_name": true,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Persistence/Wolverine.EntityFrameworkCore/Internals/DbContextUsageSource.cs",
+    "line": 284,
+    "text": "Schema = entityType.GetSchema() ?? \"\",",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "entityType",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Persistence/Wolverine.Marten/WolverineOptionsMartenExtensions.cs",
+    "line": 316,
+    "text": "DataSource = masterDataSource ?? NpgsqlDataSource.Create(masterDatabaseConnectionString!)",
+    "lhs": "DataSource",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "NpgsqlDataSource",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Persistence/Wolverine.RDBMS/Durability/DeleteExpiredHandledEnvelopesCommand.cs",
+    "line": 54,
+    "text": "deleted = await conn.CreateCommand(sql)",
+    "lhs": "deleted",
+    "method": "CreateCommand",
+    "row_callables_with_this_name": [
+     "Microsoft.Data.Sqlite.SqliteFactory.CreateCommand",
+     "MySqlConnector.MySqlConnectorFactory.CreateCommand",
+     "Npgsql.Internal.NpgsqlConnector.CreateCommand"
+    ],
+    "receiver": "conn",
+    "ado_name": true,
+    "brace_depth_from_method": 3
+   },
+   {
+    "file": "src/Persistence/Wolverine.RDBMS/Sagas/DatabaseSagaStoreDiagnostics.cs",
+    "line": 233,
+    "text": "state = doc.RootElement.Clone();",
+    "lhs": "state",
+    "method": "Clone",
+    "row_callables_with_this_name": [
+     "MySqlConnector.MySqlConnection.Clone",
+     "Npgsql.NpgsqlCommand.Clone"
+    ],
+    "receiver": "doc.RootElement",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Persistence/Wolverine.Sqlite/Sagas/DatabaseSagaSchema.cs",
+    "line": 105,
+    "text": "ownedConnection = (SqliteConnection)await dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);",
+    "lhs": "ownedConnection",
+    "method": "OpenConnectionAsync",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlMultiHostDataSource.OpenConnectionAsync"
+    ],
+    "receiver": "dataSource",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Transports/Pulsar/Wolverine.Pulsar/PulsarTransport.cs",
+    "line": 164,
+    "text": "Client = Builder.Build();",
+    "lhs": "Client",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+     "Org.BouncyCastle.Bcpg.ArmoredInputStream.Builder.Build"
+    ],
+    "receiver": "Builder",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Transports/RabbitMQ/Wolverine.RabbitMQ/Internal/RabbitMqQueue.cs",
+    "line": 48,
+    "text": "DeadLetterQueue = _parent.DeadLetterQueue.Clone();",
+    "lhs": "DeadLetterQueue",
+    "method": "Clone",
+    "row_callables_with_this_name": [
+     "MySqlConnector.MySqlConnection.Clone",
+     "Npgsql.NpgsqlCommand.Clone"
+    ],
+    "receiver": "_parent.DeadLetterQueue",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Wolverine/Runtime/WolverineRuntime.cs",
+    "line": 95,
+    "text": "ExecutionPool = provider.Create(this);",
+    "lhs": "ExecutionPool",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "provider",
+    "ado_name": false,
+    "brace_depth_from_method": 0
+   },
+   {
+    "file": "src/Wolverine/Runtime/WolverineRuntime.cs",
+    "line": 103,
+    "text": "EnvelopePool = provider.Create(new EnvelopePoolPolicy());",
+    "lhs": "EnvelopePool",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "provider",
+    "ado_name": false,
+    "brace_depth_from_method": 0
+   }
+  ]
+ },
+ "NpgsqlRest/NpgsqlRest": {
+  "count": 10,
+  "classes": {
+   "ado_name|nested": 2,
+   "ado_name|straight_or_unknown": 3,
+   "row_family_name|straight_or_unknown": 1,
+   "row_family_name|nested": 4
+  },
+  "sites": [
+   {
+    "file": "NpgsqlRest/ConnectionHelper.cs",
+    "line": 40,
+    "text": "connection = namedDataSource.CreateConnection();",
+    "lhs": "connection",
+    "method": "CreateConnection",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.CreateConnection",
+     "Npgsql.NpgsqlFactory.CreateConnection",
+     "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+    ],
+    "receiver": "namedDataSource",
+    "ado_name": true,
+    "brace_depth_from_method": 3
+   },
+   {
+    "file": "NpgsqlRest/ConnectionHelper.cs",
+    "line": 58,
+    "text": "connection = options.DataSource.CreateConnection();",
+    "lhs": "connection",
+    "method": "CreateConnection",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.CreateConnection",
+     "Npgsql.NpgsqlFactory.CreateConnection",
+     "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+    ],
+    "receiver": "options.DataSource",
+    "ado_name": true,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "NpgsqlRest/ConnectionVerifier.cs",
+    "line": 106,
+    "text": "connection = dataSource.OpenConnection();",
+    "lhs": "connection",
+    "method": "OpenConnection",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlMultiHostDataSource.OpenConnection"
+    ],
+    "receiver": "dataSource",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "NpgsqlRest/Extensions.cs",
+    "line": 28,
+    "text": "connection = namedDataSource.OpenConnection();",
+    "lhs": "connection",
+    "method": "OpenConnection",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlMultiHostDataSource.OpenConnection"
+    ],
+    "receiver": "namedDataSource",
+    "ado_name": false,
+    "brace_depth_from_method": 3
+   },
+   {
+    "file": "NpgsqlRest/Extensions.cs",
+    "line": 102,
+    "text": "connection = dataSource.OpenConnection();",
+    "lhs": "connection",
+    "method": "OpenConnection",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlMultiHostDataSource.OpenConnection"
+    ],
+    "receiver": "dataSource",
+    "ado_name": false,
+    "brace_depth_from_method": 3
+   },
+   {
+    "file": "NpgsqlRest/Extensions.cs",
+    "line": 147,
+    "text": "connection = options.DataSource.CreateConnection();",
+    "lhs": "connection",
+    "method": "CreateConnection",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.CreateConnection",
+     "Npgsql.NpgsqlFactory.CreateConnection",
+     "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+    ],
+    "receiver": "options.DataSource",
+    "ado_name": true,
+    "brace_depth_from_method": 0
+   },
+   {
+    "file": "NpgsqlRest/NpgsqlRestEndpoint.cs",
+    "line": 120,
+    "text": "connection = namedDataSource.CreateConnection();",
+    "lhs": "connection",
+    "method": "CreateConnection",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.CreateConnection",
+     "Npgsql.NpgsqlFactory.CreateConnection",
+     "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+    ],
+    "receiver": "namedDataSource",
+    "ado_name": true,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "NpgsqlRest/NpgsqlRestEndpoint.cs",
+    "line": 154,
+    "text": "connection = Options.DataSource.CreateConnection();",
+    "lhs": "connection",
+    "method": "CreateConnection",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.CreateConnection",
+     "Npgsql.NpgsqlFactory.CreateConnection",
+     "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+    ],
+    "receiver": "Options.DataSource",
+    "ado_name": true,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "NpgsqlRestClient/Config.cs",
+    "line": 56,
+    "text": "tempCfg = tempBuilder.Build();",
+    "lhs": "tempCfg",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "tempBuilder",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "NpgsqlRestClient/Config.cs",
+    "line": 81,
+    "text": "Cfg = configBuilder.Build();",
+    "lhs": "Cfg",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "configBuilder",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   }
+  ]
+ },
+ "mikependon/RepoDB": {
+  "count": 46,
+  "classes": {
+   "row_family_name|nested": 21,
+   "row_family_name|straight_or_unknown": 24,
+   "ado_name|straight_or_unknown": 1
+  },
+  "sites": [
+   {
+    "file": "src/Providers/RepoDb.AuroraDb.PostgreSql/RepoDb.AuroraDb.PostgreSql/DbHelpers/AuroraDbDbHelper.cs",
+    "line": 216,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, m_dbSetting).AsUnquoted(m_dbSetting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.AuroraDb.PostgreSql/RepoDb.AuroraDb.PostgreSql/DbHelpers/AuroraDbDbHelper.cs",
+    "line": 259,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, m_dbSetting).AsUnquoted(m_dbSetting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.CockroachDb/RepoDb.CockroachDb/DbHelpers/CockroachDbDbHelper.cs",
+    "line": 216,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, m_dbSetting).AsUnquoted(m_dbSetting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.CockroachDb/RepoDb.CockroachDb/DbHelpers/CockroachDbDbHelper.cs",
+    "line": 259,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, m_dbSetting).AsUnquoted(m_dbSetting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/InsertAll.cs",
+    "line": 552,
+    "text": "context = InsertAllExecutionContextProvider.Create(entityType,",
+    "lhs": "context",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "InsertAllExecutionContextProvider",
+    "ado_name": false,
+    "brace_depth_from_method": 6
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/MergeAll.cs",
+    "line": 1388,
+    "text": "context = MergeAllExecutionContextProvider.Create(entityType,",
+    "lhs": "context",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "MergeAllExecutionContextProvider",
+    "ado_name": false,
+    "brace_depth_from_method": 6
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 9566,
+    "text": "result = Tuple.Create(item1, item2);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": null
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 10356,
+    "text": "result = Tuple.Create(item1, item2, item3);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": null
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 11341,
+    "text": "result = Tuple.Create(item1, item2, item3, item4);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": null
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 12514,
+    "text": "result = Tuple.Create(item1, item2, item3, item4, item5);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": null
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 13876,
+    "text": "result = Tuple.Create(item1, item2, item3, item4, item5, item6);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": null
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 15427,
+    "text": "result = Tuple.Create(item1, item2, item3, item4, item5, item6, item7);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": null
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 16082,
+    "text": "result = Tuple.Create(item1, item2);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 16682,
+    "text": "result = Tuple.Create(item1, item2, item3);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 17417,
+    "text": "result = Tuple.Create(item1, item2, item3, item4);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 18284,
+    "text": "result = Tuple.Create(item1, item2, item3, item4, item5);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 19282,
+    "text": "result = Tuple.Create(item1, item2, item3, item4, item5, item6);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": null
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 20411,
+    "text": "result = Tuple.Create(item1, item2, item3, item4, item5, item6, item7);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": null
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 21008,
+    "text": "result = Tuple.Create(item1, item2);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 21823,
+    "text": "result = Tuple.Create(item1, item2, item3);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 22836,
+    "text": "result = Tuple.Create(item1, item2, item3, item4);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 24041,
+    "text": "result = Tuple.Create(item1, item2, item3, item4, item5);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 25438,
+    "text": "result = Tuple.Create(item1, item2, item3, item4, item5, item6);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 27027,
+    "text": "result = Tuple.Create(item1, item2, item3, item4, item5, item6, item7);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 27708,
+    "text": "result = Tuple.Create(item1, item2);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 28328,
+    "text": "result = Tuple.Create(item1, item2, item3);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 29086,
+    "text": "result = Tuple.Create(item1, item2, item3, item4);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 29977,
+    "text": "result = Tuple.Create(item1, item2, item3, item4, item5);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 31001,
+    "text": "result = Tuple.Create(item1, item2, item3, item4, item5, item6);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs",
+    "line": 32158,
+    "text": "result = Tuple.Create(item1, item2, item3, item4, item5, item6, item7);",
+    "lhs": "result",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "Tuple",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/UpdateAll.cs",
+    "line": 1295,
+    "text": "context = UpdateAllExecutionContextProvider.Create(entityType,",
+    "lhs": "context",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlDataSource.Create"
+    ],
+    "receiver": "UpdateAllExecutionContextProvider",
+    "ado_name": false,
+    "brace_depth_from_method": 6
+   },
+   {
+    "file": "src/Providers/RepoDb.Db2/RepoDb.Db2/DbHelpers/Db2DbHelper.cs",
+    "line": 140,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, setting)?.AsUnquoted(setting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.Db2/RepoDb.Db2/DbHelpers/Db2DbHelper.cs",
+    "line": 177,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, setting)?.AsUnquoted(setting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.DuckDb/RepoDb.DuckDb/DbHelpers/DuckDbDbHelper.cs",
+    "line": 169,
+    "text": "TableSchema = DataEntityExtension.GetSchema(tableName, m_dbSetting).AsUnquoted(m_dbSetting),",
+    "lhs": "TableSchema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.DuckDb/RepoDb.DuckDb/DbHelpers/DuckDbDbHelper.cs",
+    "line": 207,
+    "text": "TableSchema = DataEntityExtension.GetSchema(tableName, m_dbSetting).AsUnquoted(m_dbSetting),",
+    "lhs": "TableSchema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.EnterpriseDb/RepoDb.EnterpriseDb/DbHelpers/EnterpriseDbDbHelper.cs",
+    "line": 216,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, m_dbSetting).AsUnquoted(m_dbSetting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.EnterpriseDb/RepoDb.EnterpriseDb/DbHelpers/EnterpriseDbDbHelper.cs",
+    "line": 259,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, m_dbSetting).AsUnquoted(m_dbSetting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.Oracle.BulkOperations/RepoDb.Oracle.BulkOperations/Helpers/OracleExecution.cs",
+    "line": 291,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, dbSetting)?.AsUnquoted(dbSetting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.Oracle.BulkOperations/RepoDb.Oracle.BulkOperations/Helpers/OracleExecution.cs",
+    "line": 324,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, dbSetting)?.AsUnquoted(dbSetting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.Oracle/RepoDb.Oracle/DbHelpers/OracleDbHelper.cs",
+    "line": 156,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, setting)?.AsUnquoted(setting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.Oracle/RepoDb.Oracle/DbHelpers/OracleDbHelper.cs",
+    "line": 193,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, setting)?.AsUnquoted(setting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.PostgreSql/RepoDb.PostgreSql/DbHelpers/PostgreSqlDbHelper.cs",
+    "line": 187,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, m_dbSetting).AsUnquoted(m_dbSetting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.PostgreSql/RepoDb.PostgreSql/DbHelpers/PostgreSqlDbHelper.cs",
+    "line": 230,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, m_dbSetting).AsUnquoted(m_dbSetting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.SqlServer.BulkOperations/RepoDb.SqlServer.BulkOperations/BulkDbConnector.cs",
+    "line": 35,
+    "text": "Connection = transaction?.Connection ?? repository.CreateConnection();",
+    "lhs": "Connection",
+    "method": "CreateConnection",
+    "row_callables_with_this_name": [
+     "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+     "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+     "Npgsql.NpgsqlDataSource.CreateConnection"
+    ],
+    "receiver": "repository",
+    "ado_name": true,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Providers/RepoDb.SqlServer/RepoDb.SqlServer/DbHelpers/SqlServerDbHelper.cs",
+    "line": 215,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, setting).AsUnquoted(setting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Providers/RepoDb.SqlServer/RepoDb.SqlServer/DbHelpers/SqlServerDbHelper.cs",
+    "line": 256,
+    "text": "Schema = DataEntityExtension.GetSchema(tableName, setting).AsUnquoted(setting),",
+    "lhs": "Schema",
+    "method": "GetSchema",
+    "row_callables_with_this_name": [
+     "Npgsql.NpgsqlConnection.GetSchema"
+    ],
+    "receiver": "DataEntityExtension",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   }
+  ]
+ },
+ "quartznet/quartznet": {
+  "count": 43,
+  "classes": {
+   "row_family_name|straight_or_unknown": 14,
+   "row_family_name|nested": 28,
+   "ado_name|nested": 1
+  },
+  "sites": [
+   {
+    "file": "src/Quartz.AspNetCore/AspNetCore/HttpApi/Util/ExceptionHandler.cs",
+    "line": 18,
+    "text": "logger = loggerFactory.CreateLogger(HttpApiLog.Category);",
+    "lhs": "logger",
+    "method": "CreateLogger",
+    "row_callables_with_this_name": [
+     "Serilog.LoggerConfiguration.CreateLogger"
+    ],
+    "receiver": "loggerFactory",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Quartz.AspNetCore/AspNetCore/HttpApi/Util/MutationAudit.cs",
+    "line": 53,
+    "text": "logger = loggerFactory.CreateLogger(HttpApiLog.Category);",
+    "lhs": "logger",
+    "method": "CreateLogger",
+    "row_callables_with_this_name": [
+     "Serilog.LoggerConfiguration.CreateLogger"
+    ],
+    "receiver": "loggerFactory",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Quartz.Plugins/Plugins/Json/JsonSchedulingDataProcessor.cs",
+    "line": 394,
+    "text": "builder = CronScheduleBuilder.Create(cron.Expression);",
+    "lhs": "builder",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "CronScheduleBuilder",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz.Plugins/Plugins/Json/JsonSchedulingDataProcessor.cs",
+    "line": 423,
+    "text": "builder = RecurrenceScheduleBuilder.Create(recurrence.Rule);",
+    "lhs": "builder",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "RecurrenceScheduleBuilder",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz.Weasel.MySQL/MySqlQuartzDatabase.cs",
+    "line": 85,
+    "text": "feature = new QuartzMySqlFeatureSchema([.. QuartzTables.Build(new QuartzTableNaming(Schema, context.TablePrefix))]);",
+    "lhs": "feature",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "MySqlConnector.MySqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "QuartzTables",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Quartz.Weasel.PostgreSQL/QuartzPostgresFeatureSchema.cs",
+    "line": 71,
+    "text": "objects = [.. QuartzTables.Build(new QuartzTableNaming(schema ?? PostgresQuartzDatabase.Dialect.DefaultSchema, prefix))];",
+    "lhs": "objects",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "MySqlConnector.MySqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "QuartzTables",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Quartz.Weasel.PostgreSQL/QuartzPostgresFeatureSchema.cs",
+    "line": 106,
+    "text": "objects = [.. QuartzTables.Build(naming)];",
+    "lhs": "objects",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "MySqlConnector.MySqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "QuartzTables",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Quartz.Weasel.SQLite/SqliteQuartzDatabase.cs",
+    "line": 84,
+    "text": "feature = new QuartzSqliteFeatureSchema([.. QuartzTables.Build(new QuartzTableNaming(context.Schema, context.TablePrefix))]);",
+    "lhs": "feature",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "MySqlConnector.MySqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "QuartzTables",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Quartz/Configuration/JsonSchedulingHelper.cs",
+    "line": 359,
+    "text": "builder = CronScheduleBuilder.Create(expression!);",
+    "lhs": "builder",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "CronScheduleBuilder",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Configuration/JsonSchedulingHelper.cs",
+    "line": 400,
+    "text": "builder = RecurrenceScheduleBuilder.Create(rule!);",
+    "lhs": "builder",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "RecurrenceScheduleBuilder",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Configuration/QuartzBuilderExtensions.cs",
+    "line": 338,
+    "text": "builtTrigger = triggerBuilder.Build();",
+    "lhs": "builtTrigger",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "MySqlConnector.MySqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "triggerBuilder",
+    "ado_name": false,
+    "brace_depth_from_method": 3
+   },
+   {
+    "file": "src/Quartz/Configuration/QuartzBuilderExtensions.cs",
+    "line": 435,
+    "text": "jobDetail = jobBuilder.WithDescription(DelegateJobDescription(jobDetail.Key)).Build();",
+    "lhs": "jobDetail",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "MySqlConnector.MySqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "jobBuilder.WithDescription(DelegateJobDescription(jobDetail.Key))",
+    "ado_name": false,
+    "brace_depth_from_method": 3
+   },
+   {
+    "file": "src/Quartz/Configuration/QuartzBuilderExtensions.cs",
+    "line": 521,
+    "text": "builtTrigger = triggerBuilder.ForJob(jobKey).Build();",
+    "lhs": "builtTrigger",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "MySqlConnector.MySqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "triggerBuilder.ForJob(jobKey)",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Configuration/SchedulerRuntime.cs",
+    "line": 128,
+    "text": "generation = SchedulerGeneration.Build(",
+    "lhs": "generation",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "MySqlConnector.MySqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "SchedulerGeneration",
+    "ado_name": false,
+    "brace_depth_from_method": 3
+   },
+   {
+    "file": "src/Quartz/Configuration/SchedulerRuntime.cs",
+    "line": 150,
+    "text": "scheduler = await generation.Create(cancellationToken).ConfigureAwait(false);",
+    "lhs": "scheduler",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "generation",
+    "ado_name": false,
+    "brace_depth_from_method": 3
+   },
+   {
+    "file": "src/Quartz/Configuration/SchedulerRuntime.cs",
+    "line": 333,
+    "text": "scheduler = await next.Create(cancellationToken).ConfigureAwait(false);",
+    "lhs": "scheduler",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "next",
+    "ado_name": false,
+    "brace_depth_from_method": 3
+   },
+   {
+    "file": "src/Quartz/HttpApiContract/SchedulerOperations.cs",
+    "line": 366,
+    "text": "limits = builder.Build();",
+    "lhs": "limits",
+    "method": "Build",
+    "row_callables_with_this_name": [
+     "MySqlConnector.MySqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+    ],
+    "receiver": "builder",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Impl/AdoJobStore/AdoJobStoreBase.cs",
+    "line": 98,
+    "text": "Logger = LoggerFactory.CreateLogger(GetType().FullName!);",
+    "lhs": "Logger",
+    "method": "CreateLogger",
+    "row_callables_with_this_name": [
+     "Serilog.LoggerConfiguration.CreateLogger"
+    ],
+    "receiver": "LoggerFactory",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Quartz/Impl/AdoJobStore/Common/DbMetadata.cs",
+    "line": 438,
+    "text": "BindByNameSetter = MethodInvoker.Create(bindByName.GetSetMethod()!);",
+    "lhs": "BindByNameSetter",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "MethodInvoker",
+    "ado_name": false,
+    "brace_depth_from_method": 3
+   },
+   {
+    "file": "src/Quartz/Impl/AdoJobStore/Common/DbMetadata.cs",
+    "line": 486,
+    "text": "ParameterDbTypeSetter = MethodInvoker.Create(property.SetMethod);",
+    "lhs": "ParameterDbTypeSetter",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "MethodInvoker",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Quartz/Impl/AdoJobStore/Common/DbProvider.cs",
+    "line": 99,
+    "text": "connectionConstructor = ConstructorInvoker.Create(TypeActivator.GetDefaultConstructor(metadata.ConnectionType));",
+    "lhs": "connectionConstructor",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "ConstructorInvoker",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Quartz/Impl/AdoJobStore/Common/DbProvider.cs",
+    "line": 100,
+    "text": "commandConstructor = ConstructorInvoker.Create(TypeActivator.GetDefaultConstructor(metadata.CommandType));",
+    "lhs": "commandConstructor",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "ConstructorInvoker",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Quartz/Impl/AdoJobStore/ExternalTransactionJobStore.cs",
+    "line": 119,
+    "text": "conn = DbProvider.CreateConnection();",
+    "lhs": "conn",
+    "method": "CreateConnection",
+    "row_callables_with_this_name": [
+     "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+     "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+     "Npgsql.NpgsqlDataSource.CreateConnection"
+    ],
+    "receiver": "DbProvider",
+    "ado_name": true,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Impl/RAMJobStore.cs",
+    "line": 1510,
+    "text": "calendar = calendar.Clone();",
+    "lhs": "calendar",
+    "method": "Clone",
+    "row_callables_with_this_name": [
+     "MySqlConnector.MySqlConnection.Clone",
+     "Npgsql.NpgsqlCommand.Clone"
+    ],
+    "receiver": "calendar",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Quartz/Impl/RAMJobStore.cs",
+    "line": 3678,
+    "text": "newData = newData.Clone();",
+    "lhs": "newData",
+    "method": "Clone",
+    "row_callables_with_this_name": [
+     "MySqlConnector.MySqlConnection.Clone",
+     "Npgsql.NpgsqlCommand.Clone"
+    ],
+    "receiver": "newData",
+    "ado_name": false,
+    "brace_depth_from_method": 4
+   },
+   {
+    "file": "src/Quartz/Impl/SchedulerEventPlugin.cs",
+    "line": 120,
+    "text": "JobKey = KeyDto.Create(context.JobDetail.Key),",
+    "lhs": "JobKey",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "KeyDto",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Impl/SchedulerEventPlugin.cs",
+    "line": 121,
+    "text": "TriggerKey = KeyDto.Create(context.Trigger.Key),",
+    "lhs": "TriggerKey",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "KeyDto",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Impl/SchedulerEventPlugin.cs",
+    "line": 164,
+    "text": "TriggerKey = KeyDto.Create(trigger.Key),",
+    "lhs": "TriggerKey",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "KeyDto",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Impl/SchedulerEventPlugin.cs",
+    "line": 165,
+    "text": "JobKey = KeyDto.Create(context.JobDetail.Key),",
+    "lhs": "JobKey",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "KeyDto",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Impl/SchedulerEventPlugin.cs",
+    "line": 195,
+    "text": "TriggerKey = KeyDto.Create(trigger.Key),",
+    "lhs": "TriggerKey",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "KeyDto",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Impl/SchedulerEventPlugin.cs",
+    "line": 196,
+    "text": "JobKey = trigger.JobKey is null ? null : KeyDto.Create(trigger.JobKey)",
+    "lhs": "JobKey",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "KeyDto",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Impl/SchedulerEventPlugin.cs",
+    "line": 220,
+    "text": "TriggerKey = KeyDto.Create(trigger.Key),",
+    "lhs": "TriggerKey",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "KeyDto",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Impl/SchedulerEventPlugin.cs",
+    "line": 221,
+    "text": "JobKey = KeyDto.Create(context.JobDetail.Key),",
+    "lhs": "JobKey",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "KeyDto",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Impl/SchedulerEventPlugin.cs",
+    "line": 282,
+    "text": "JobKey = KeyDto.Create(jobKey),",
+    "lhs": "JobKey",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "KeyDto",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Impl/SchedulerEventPlugin.cs",
+    "line": 316,
+    "text": "TriggerKey = errorContext.TriggerKey is null ? null : KeyDto.Create(errorContext.TriggerKey),",
+    "lhs": "TriggerKey",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "KeyDto",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Impl/SchedulerEventPlugin.cs",
+    "line": 317,
+    "text": "JobKey = errorContext.JobKey is null ? null : KeyDto.Create(errorContext.JobKey),",
+    "lhs": "JobKey",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "KeyDto",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Impl/SchedulerEventPlugin.cs",
+    "line": 382,
+    "text": "JobKey = KeyDto.Create(context.JobDetail.Key),",
+    "lhs": "JobKey",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "KeyDto",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Impl/SchedulerEventPlugin.cs",
+    "line": 383,
+    "text": "TriggerKey = KeyDto.Create(context.Trigger.Key),",
+    "lhs": "TriggerKey",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "KeyDto",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/RetryPolicy.cs",
+    "line": 605,
+    "text": "problem = string.Create(CultureInfo.InvariantCulture, $\"delay {i} is not a duration\");",
+    "lhs": "problem",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "string",
+    "ado_name": false,
+    "brace_depth_from_method": 3
+   },
+   {
+    "file": "src/Quartz/TriggerBuilder.cs",
+    "line": 169,
+    "text": "scheduleBuilder = SimpleScheduleBuilder.Create();",
+    "lhs": "scheduleBuilder",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "SimpleScheduleBuilder",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "src/Quartz/Xml/XmlSchedulingDataProcessor.cs",
+    "line": 427,
+    "text": "scheduleBuilder = SimpleScheduleBuilder.Create()",
+    "lhs": "scheduleBuilder",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "SimpleScheduleBuilder",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Quartz/Xml/XmlSchedulingDataProcessor.cs",
+    "line": 442,
+    "text": "scheduleBuilder = CronScheduleBuilder.Create(cronExpression!)",
+    "lhs": "scheduleBuilder",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "CronScheduleBuilder",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   },
+   {
+    "file": "src/Quartz/Xml/XmlSchedulingDataProcessor.cs",
+    "line": 457,
+    "text": "scheduleBuilder = CalendarIntervalScheduleBuilder.Create()",
+    "lhs": "scheduleBuilder",
+    "method": "Create",
+    "row_callables_with_this_name": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "Npgsql.NpgsqlDataSource.Create",
+     "Org.BouncyCastle.Asn1.Asn1OutputStream.Create"
+    ],
+    "receiver": "CalendarIntervalScheduleBuilder",
+    "ado_name": false,
+    "brace_depth_from_method": 1
+   }
+  ]
+ },
+ "victor-wiki/DatabaseManager": {
+  "count": 3,
+  "classes": {
+   "row_family_name|nested": 1,
+   "ado_name|nested": 2
+  },
+  "sites": [
+   {
+    "file": "DatabaseConverter/DatabaseConverter.Core/DbConverter.cs",
+    "line": 218,
+    "text": "targetSchemaInfo = SchemaInfoHelper.Clone(sourceSchemaInfo);",
+    "lhs": "targetSchemaInfo",
+    "method": "Clone",
+    "row_callables_with_this_name": [
+     "MySqlConnector.MySqlConnection.Clone",
+     "Npgsql.NpgsqlCommand.Clone"
+    ],
+    "receiver": "SchemaInfoHelper",
+    "ado_name": false,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "DatabaseInterpreter/DatabaseInterpreter.Core/Interpreter/DbInterpreter.cs",
+    "line": 1135,
+    "text": "connection = this.CreateConnection();",
+    "lhs": "connection",
+    "method": "CreateConnection",
+    "row_callables_with_this_name": [
+     "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+     "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+     "Npgsql.NpgsqlDataSource.CreateConnection"
+    ],
+    "receiver": "this",
+    "ado_name": true,
+    "brace_depth_from_method": 2
+   },
+   {
+    "file": "DatabaseInterpreter/DatabaseInterpreter.Core/Interpreter/SqliteInterpreter.cs",
+    "line": 452,
+    "text": "dbConnection = this.CreateConnection();",
+    "lhs": "dbConnection",
+    "method": "CreateConnection",
+    "row_callables_with_this_name": [
+     "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+     "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+     "Npgsql.NpgsqlDataSource.CreateConnection"
+    ],
+    "receiver": "this",
+    "ado_name": true,
+    "brace_depth_from_method": 2
+   }
+  ]
+ }
+}

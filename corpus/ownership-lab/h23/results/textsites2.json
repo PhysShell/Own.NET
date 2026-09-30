@@ -1,0 +1,228 @@
+{
+ "JasperFx/marten": {
+  "counts": {
+   "test|bare_identifier|row_family": 5,
+   "test|initializer_or_multiline|ado_name_collision": 1,
+   "production|member_or_indexer|row_family": 6,
+   "production|bare_identifier|row_family": 8,
+   "production|compound|row_family": 1,
+   "production|initializer_or_multiline|row_family": 1,
+   "production|member_or_indexer|ado_name_collision": 4
+  },
+  "examples": {
+   "test|bare_identifier|row_family": [
+    "src/Marten.Testing/RecordingLogger.cs:32: LastCommit = commit.Clone();",
+    "src/Marten.Testing/StubDocumentSessionListener.cs:32: LastCommit = commit.Clone();"
+   ],
+   "test|initializer_or_multiline|ado_name_collision": [
+    "src/DaemonTests.ManualOnly/Coordination/high_water_advances_past_dead_gaps_with_slow_transactions.cs:88: seq = (long)(await conn.CreateCommand($\"select nextval('{Schema}.mt_events_sequence')\")"
+   ],
+   "production|member_or_indexer|row_family": [
+    "src/Marten.Newtonsoft/Services/JsonNetSerializer.cs:83: _clean = new(() => JsonSerializer.Create(_cleanSettings));",
+    "src/Marten.Newtonsoft/Services/JsonNetSerializer.cs:84: _serializer = new(() => JsonSerializer.Create(_serializerSettings));"
+   ],
+   "production|bare_identifier|row_family": [
+    "src/Marten/DocumentStore.CompiledQueryCollection.cs:71: descriptor = RuntimeCompiledQueryDescriptorFactory.Build(plan);",
+    "src/Marten/StoreOptions.cs:253: ResiliencePipeline = builder.Build();"
+   ],
+   "production|compound|row_family": [
+    "src/Marten/Events/BulkEventAppender.cs:171: writer ??= await conn.BeginBinaryImportAsync(copySql, cancellation).ConfigureAwait(false);"
+   ],
+   "production|initializer_or_multiline|row_family": [
+    "src/Marten/Events/Projections/CompositeProjection.cs:262: source = ScopedAggregationWrapper.Build(projectionServices, typeof(TProjection), _aggregateType,"
+   ],
+   "production|member_or_indexer|ado_name_collision": [
+    "src/Marten/Internal/Sessions/TransactionalConnection.cs:215: _connection = _options.Tenant.Database.CreateConnection();",
+    "src/Marten/Internal/Sessions/TransactionalConnection.cs:231: _connection = _options.Tenant.Database.CreateConnection();"
+   ]
+  }
+ },
+ "JasperFx/weasel": {
+  "counts": {
+   "test|member_or_indexer|row_family": 5,
+   "test|bare_identifier|row_family": 2,
+   "test|bare_identifier|ado_name_collision": 8,
+   "test|member_or_indexer|ado_name_collision": 1,
+   "test|initializer_or_multiline|row_family": 2
+  },
+  "examples": {
+   "test|member_or_indexer|row_family": [
+    "src/Weasel.Postgresql.Tests/advisory_lock_usage.cs:150: _database = NpgsqlDataSource.Create(ConnectionSource.ConnectionString);",
+    "src/Weasel.Postgresql.Tests/finding_the_advisory_lock_holder.cs:37: _source = NpgsqlDataSource.Create(ConnectionSource.ConnectionString);"
+   ],
+   "test|bare_identifier|row_family": [
+    "src/Weasel.Postgresql.Tests/IntegrationContext.cs:17: get => (connection ??= theDataSource.CreateConnection());",
+    "src/Weasel.Postgresql.Tests/Migrations/releasing_connection_pools.cs:34: theDataSource = builder.Build();"
+   ],
+   "test|bare_identifier|ado_name_collision": [
+    "src/Weasel.Sqlite.Tests/TypeMappingIntegrationTests.cs:72: insertCmd = connection.CreateCommand();",
+    "src/Weasel.Sqlite.Tests/TypeMappingIntegrationTests.cs:78: selectCmd = connection.CreateCommand();"
+   ],
+   "test|member_or_indexer|ado_name_collision": [
+    "src/Weasel.Benchmarks/JsonReadBenchmarks.cs:87: _command = _connection.CreateCommand();"
+   ],
+   "test|initializer_or_multiline|row_family": [
+    "src/Weasel.Benchmarks/Support/BenchmarkDocument.cs:44: Shipping = Address.Create(random),",
+    "src/Weasel.Benchmarks/Support/BenchmarkDocument.cs:45: Billing = Address.Create(random)"
+   ]
+  }
+ },
+ "JasperFx/wolverine": {
+  "counts": {
+   "test|member_or_indexer|row_family": 27,
+   "production|member_or_indexer|row_family": 16,
+   "production|bare_identifier|row_family": 9,
+   "test|initializer_or_multiline|row_family": 1,
+   "production|member_or_indexer|ado_name_collision": 2,
+   "production|compound|ado_name_collision": 2,
+   "production|initializer_or_multiline|row_family": 2,
+   "production|initializer_or_multiline|ado_name_collision": 3
+  },
+  "examples": {
+   "test|member_or_indexer|row_family": [
+    "src/Testing/Wolverine.ComplianceTests/BaseContext.cs:24: _host = builder.Build();",
+    "src/Wolverine.Grpc.Tests/ancillary_storage_by_assembly_reaches_grpc_4477.cs:63: _app = builder.Build();"
+   ],
+   "production|member_or_indexer|row_family": [
+    "src/Extensions/Wolverine.Http.Newtonsoft/NewtonsoftHttpSerialization.cs:25: _serializer = JsonSerializer.Create(Settings);",
+    "src/Extensions/Wolverine.Newtonsoft/NewtonsoftSerializer.cs:19: _serializer = JsonSerializer.Create(settings);"
+   ],
+   "production|bare_identifier|row_family": [
+    "src/Wolverine/Runtime/WolverineRuntime.cs:95: ExecutionPool = provider.Create(this);",
+    "src/Wolverine/Runtime/WolverineRuntime.cs:103: EnvelopePool = provider.Create(new EnvelopePoolPolicy());"
+   ],
+   "test|initializer_or_multiline|row_family": [
+    "src/Http/Wolverine.Http.Tests/query_verb_support.cs:28: Content = JsonContent.Create(new SearchRequest(\"widget\", 3))"
+   ],
+   "production|member_or_indexer|ado_name_collision": [
+    "src/Persistence/Wolverine.Postgresql/PostgresqlNodePersistence.cs:686: _conn = _source.CreateConnection();",
+    "src/Persistence/MySql/Wolverine.MySql/MySqlAdvisoryLock.cs:178: _conn = _source.CreateConnection();"
+   ],
+   "production|compound|ado_name_collision": [
+    "src/Persistence/Wolverine.SqlServer/Transport/SqlServerQueue.cs:296: count += (int)(await conn.CreateCommand($\"select count(*) from {QueueTable.Identifier}\")",
+    "src/Persistence/Wolverine.SqlServer/Transport/SqlServerQueue.cs:318: count += (int)(await conn.CreateCommand($\"select count(*) from {ScheduledTable.Identifier}\")"
+   ],
+   "production|initializer_or_multiline|row_family": [
+    "src/Persistence/Wolverine.Marten/WolverineOptionsMartenExtensions.cs:316: DataSource = masterDataSource ?? NpgsqlDataSource.Create(masterDatabaseConnectionString!)",
+    "src/Persistence/Wolverine.EntityFrameworkCore/Internals/DbContextUsageSource.cs:284: Schema = entityType.GetSchema() ?? \"\","
+   ],
+   "production|initializer_or_multiline|ado_name_collision": [
+    "src/Persistence/Wolverine.RDBMS/Durability/DeleteExpiredHandledEnvelopesCommand.cs:54: deleted = await conn.CreateCommand(sql)",
+    "src/Persistence/Oracle/Wolverine.Oracle/OracleMessageStore.Incoming.cs:108: cmd = conn.CreateCommand("
+   ]
+  }
+ },
+ "NpgsqlRest/NpgsqlRest": {
+  "counts": {
+   "production|bare_identifier|row_family": 10,
+   "test|initializer_or_multiline|row_family": 3,
+   "production|initializer_or_multiline|row_family": 1,
+   "test|member_or_indexer|row_family": 42
+  },
+  "examples": {
+   "production|bare_identifier|row_family": [
+    "NpgsqlRestClient/Config.cs:56: tempCfg = tempBuilder.Build();",
+    "NpgsqlRestClient/Config.cs:81: Cfg = configBuilder.Build();"
+   ],
+   "test|initializer_or_multiline|row_family": [
+    "NpgsqlRestClient/Testing/TestRunner.cs:140: _sigInt = System.Runtime.InteropServices.PosixSignalRegistration.Create(",
+    "NpgsqlRestClient/Testing/TestRunner.cs:142: _sigTerm = System.Runtime.InteropServices.PosixSignalRegistration.Create("
+   ],
+   "production|initializer_or_multiline|row_family": [
+    "NpgsqlRest/Proxy/ProxyRequestHandler.cs:395: _ => JsonValue.Create(v.ToString())"
+   ],
+   "test|member_or_indexer|row_family": [
+    "NpgsqlRestTests/SqlFileSourceTests/AdvancedFeatureTests/SqlFileAdvancedFixture.cs:48: _app = builder.Build();",
+    "NpgsqlRestTests/SqlFileSourceTests/IntegrationTests/OnlyWithHttpTagSkipsInvalidTests.cs:43: _app = builder.Build();"
+   ]
+  }
+ },
+ "mikependon/RepoDB": {
+  "counts": {
+   "production|member_or_indexer|row_family": 1,
+   "production|initializer_or_multiline|row_family": 21,
+   "production|bare_identifier|row_family": 24,
+   "production|bare_identifier|ado_name_collision": 1
+  },
+  "examples": {
+   "production|member_or_indexer|row_family": [
+    "src/Telemetry/RepoDb.Telemetry.Core/RepoDb.Telemetry.Core/Traces/TelemetryTrace.cs:241: _beforeTraceLogs[log.SessionId] = Tuple.Create(log, item);"
+   ],
+   "production|initializer_or_multiline|row_family": [
+    "src/Providers/RepoDb.PostgreSql/RepoDb.PostgreSql/DbHelpers/PostgreSqlDbHelper.cs:187: Schema = DataEntityExtension.GetSchema(tableName, m_dbSetting).AsUnquoted(m_dbSetting),",
+    "src/Providers/RepoDb.PostgreSql/RepoDb.PostgreSql/DbHelpers/PostgreSqlDbHelper.cs:230: Schema = DataEntityExtension.GetSchema(tableName, m_dbSetting).AsUnquoted(m_dbSetting),"
+   ],
+   "production|bare_identifier|row_family": [
+    "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs:9566: result = Tuple.Create(item1, item2);",
+    "src/Providers/RepoDb.Core/RepoDb/Operations/DbConnection/QueryMultiple.cs:10356: result = Tuple.Create(item1, item2, item3);"
+   ],
+   "production|bare_identifier|ado_name_collision": [
+    "src/Providers/RepoDb.SqlServer.BulkOperations/RepoDb.SqlServer.BulkOperations/BulkDbConnector.cs:35: Connection = transaction?.Connection ?? repository.CreateConnection();"
+   ]
+  }
+ },
+ "quartznet/quartznet": {
+  "counts": {
+   "test|bare_identifier|row_family": 23,
+   "test|initializer_or_multiline|row_family": 62,
+   "test|member_or_indexer|row_family": 4,
+   "production|bare_identifier|row_family": 23,
+   "test|bare_identifier|ado_name_collision": 4,
+   "production|initializer_or_multiline|row_family": 17,
+   "production|member_or_indexer|row_family": 5,
+   "production|bare_identifier|ado_name_collision": 1,
+   "production|initializer_or_multiline|ado_name_collision": 1
+  },
+  "examples": {
+   "test|bare_identifier|row_family": [
+    "src/Quartz.Tests.Integration.MixedVersionNode/Program.cs:41: node = await Node.Create(options).ConfigureAwait(false);",
+    "src/Quartz.Tests.AspNetCore/HttpApi/QueryEndpointsTest.cs:48: scheduler = await QuartzSchedulerBuilder.Create().UseProperties(properties).BuildScheduler();"
+   ],
+   "test|initializer_or_multiline|row_family": [
+    "src/Quartz.Tests.Integration.MixedVersionNode/Node.cs:228: triggers[i] = TriggerBuilder.Create()",
+    "src/Quartz.Tests.Integration.MixedVersionNode/Node.cs:253: triggers[i] = TriggerBuilder.Create()"
+   ],
+   "test|member_or_indexer|row_family": [
+    "src/Quartz.Tests.AspNetCore/HttpApi/TraceContextOverHttpTest.cs:109: request.Content = JsonContent.Create(new { });",
+    "src/Quartz.Benchmark/RAMJobStoreBenchmark.cs:37: _triggerBuilder = TriggerBuilder.Create();"
+   ],
+   "production|bare_identifier|row_family": [
+    "src/Quartz.Plugins/Plugins/Json/JsonSchedulingDataProcessor.cs:394: builder = CronScheduleBuilder.Create(cron.Expression);",
+    "src/Quartz.Plugins/Plugins/Json/JsonSchedulingDataProcessor.cs:423: builder = RecurrenceScheduleBuilder.Create(recurrence.Rule);"
+   ],
+   "test|bare_identifier|ado_name_collision": [
+    "src/Quartz.Benchmark/AcquisitionIndexBenchmark.cs:205: database = await BenchmarkDatabase.Open(Dialect).ConfigureAwait(false);",
+    "src/Quartz.Benchmark/ExecutionCeilingBenchmark.cs:100: database = await BenchmarkDatabase.Open(Dialect).ConfigureAwait(false);"
+   ],
+   "production|initializer_or_multiline|row_family": [
+    "src/Quartz/Xml/XmlSchedulingDataProcessor.cs:427: scheduleBuilder = SimpleScheduleBuilder.Create()",
+    "src/Quartz/Xml/XmlSchedulingDataProcessor.cs:442: scheduleBuilder = CronScheduleBuilder.Create(cronExpression!)"
+   ],
+   "production|member_or_indexer|row_family": [
+    "src/Quartz/HttpApiContract/SchedulerOperations.cs:145: result[i] = ClusterNodeDto.Create(nodes[i]);",
+    "src/Quartz/HttpApiContract/SchedulerOperations.cs:196: items[i] = ExecutionHistoryEntryDto.Create(page.Items[i]);"
+   ],
+   "production|bare_identifier|ado_name_collision": [
+    "src/Quartz/Impl/AdoJobStore/ExternalTransactionJobStore.cs:119: conn = DbProvider.CreateConnection();"
+   ],
+   "production|initializer_or_multiline|ado_name_collision": [
+    "src/Quartz/Impl/AdoJobStore/AdoUtil.cs:551: _ => dbProvider.CreateCommand(),"
+   ]
+  }
+ },
+ "victor-wiki/DatabaseManager": {
+  "counts": {
+   "production|bare_identifier|ado_name_collision": 2,
+   "production|bare_identifier|row_family": 1
+  },
+  "examples": {
+   "production|bare_identifier|ado_name_collision": [
+    "DatabaseInterpreter/DatabaseInterpreter.Core/Interpreter/DbInterpreter.cs:1135: connection = this.CreateConnection();",
+    "DatabaseInterpreter/DatabaseInterpreter.Core/Interpreter/SqliteInterpreter.cs:452: dbConnection = this.CreateConnection();"
+   ],
+   "production|bare_identifier|row_family": [
+    "DatabaseConverter/DatabaseConverter.Core/DbConverter.cs:218: targetSchemaInfo = SchemaInfoHelper.Clone(sourceSchemaInfo);"
+   ]
+  }
+ }
+}
