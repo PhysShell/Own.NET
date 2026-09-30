@@ -1,0 +1,4 @@
+F1.cs:23: warning: [OWN001] IDisposable local 'x' is never disposed (leak) [resource: disposable]
+F1.cs:52: warning: [OWN001] IDisposable local 'x' is never disposed (leak) [resource: disposable]
+
+2 findings.

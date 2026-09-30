@@ -1,0 +1,9 @@
+F2.cs:13: warning: [OWN001] IDisposable local 'x' may not be disposed on every path (leak) [resource: disposable]
+F2.cs:14: warning: [OWN001] IDisposable local 'x' may not be disposed on every path (leak) [resource: disposable]
+F2.cs:15: warning: [OWN001] IDisposable local 'x' may not be disposed on every path (leak) [resource: disposable]
+F2.cs:15: warning: [OWN001] IDisposable local 'y' may not be disposed on every path (leak) [resource: disposable]
+F2.cs:16: warning: [OWN001] IDisposable local 'x' may not be disposed on every path (leak) [resource: disposable]
+F2.cs:17: warning: [OWN001] IDisposable local 'x' may not be disposed on every path (leak) [resource: disposable]
+F2.cs:18: warning: [OWN001] IDisposable local 'x' is never disposed (leak) [resource: disposable]
+
+7 findings.

@@ -1,0 +1,4 @@
+F0.cs:7: warning: [OWN001] IDisposable local 'x' may not be disposed on every path (leak) [resource: disposable]
+F0.cs:19: warning: [OWN001] IDisposable local 'x' may not be disposed on every path (leak) [resource: disposable]
+
+2 findings.

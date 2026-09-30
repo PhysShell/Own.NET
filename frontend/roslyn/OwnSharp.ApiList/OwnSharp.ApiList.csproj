@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- ownership-semantics-lab (research/ownership-semantics-lab-v1, EXPLORATORY): lists the public resource-bearing
+       API surface of a managed assembly — public types implementing IDisposable/IAsyncDisposable, public methods and
+       properties returning such types (factory candidates), and public instance methods of such types whose names
+       look like a release (release-name candidates) — as JSON, for the discovery experiment's candidate arm.
+       Symbol-based (a Roslyn compilation over the assembly and the running runtime's TPA). Research-only. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>ownsharp-apilist</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
+  </ItemGroup>
+</Project>

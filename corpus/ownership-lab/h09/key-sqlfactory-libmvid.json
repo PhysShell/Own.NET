@@ -1,0 +1,15 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "entries": [
+  {
+   "callable": "System.Data.SqlClient.SqlClientFactory.CreateConnection",
+   "effect": "return_fresh_owned",
+   "arity": 0,
+   "provenance": "DECLARED",
+   "assembly": {
+    "name": "System.Data.SqlClient",
+    "mvid": "43999d8a-2c98-426b-b693-464f220ce054"
+   }
+  }
+ ]
+}

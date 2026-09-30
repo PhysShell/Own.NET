@@ -102,6 +102,7 @@ the region check — from the registration graph.
 from __future__ import annotations
 
 import json
+import os
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, replace
@@ -1619,6 +1620,11 @@ def _collect_vars(nodes: Any, op_kind: str, field: str) -> set[str]:
     return out
 
 
+def _lab_throwexit_enabled() -> bool:
+    """ownership-semantics-lab H-20 research seam (research branch only)."""
+    return os.environ.get("OWEN_LAB_THROWEXIT") == "1"
+
+
 def _has_bare_return(nodes: Any) -> bool:
     """True if some `return` op carries NO `var` (a bare `return` / `return null` /
     a non-local expression) anywhere in the body. Such a path returns a non-owned
@@ -1631,6 +1637,10 @@ def _has_bare_return(nodes: Any) -> bool:
             continue
         op = n.get("op")
         if op == "return" and n.get("var") is None:
+            # ownership-semantics-lab H-20 (OWEN_LAB_THROWEXIT=1): an exit the extractor marked
+            # `exit: "throw"` is an exceptional exit, not a value return; it does not poison fresh.
+            if _lab_throwexit_enabled() and n.get("exit") == "throw":
+                continue
             return True
         if op == "if" and (_has_bare_return(n.get("then"))
                            or _has_bare_return(n.get("else"))):

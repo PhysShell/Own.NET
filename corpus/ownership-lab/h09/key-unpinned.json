@@ -1,0 +1,11 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "entries": [
+  {
+   "callable": "Lib.Factory.Make",
+   "effect": "return_fresh_owned",
+   "arity": 0,
+   "provenance": "DECLARED"
+  }
+ ]
+}

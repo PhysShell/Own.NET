@@ -1,0 +1,15 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "entries": [
+  {
+   "callable": "Lib.Factory.Make",
+   "effect": "return_fresh_owned",
+   "arity": 0,
+   "provenance": "DECLARED",
+   "assembly": {
+    "name": "Lib",
+    "mvid": "74ff7a62-17da-4556-8fd6-070920418737"
+   }
+  }
+ ]
+}

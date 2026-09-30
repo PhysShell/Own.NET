@@ -1,0 +1,3 @@
+F1.off.facts.json: ok — no subscription leaks found
+
+0 findings.

@@ -1,0 +1,3 @@
+F3.cs:37: warning: [OWN001] IDisposable local 'm' is never disposed (leak) [resource: disposable]
+
+1 finding.

@@ -1,0 +1,120 @@
+[
+ {
+  "id": "W1",
+  "callable": "Lib.Factory.Make",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "False",
+  "err": null,
+  "verdict": "fresh",
+  "asm": "74ff7a62-17da-4556-8fd6-070920418737",
+  "type": "Lib.Res"
+ },
+ {
+  "id": "W2",
+  "callable": "Lib.Factory.Make",
+  "expect": "cached",
+  "seconds": 1.4,
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "True",
+  "err": null,
+  "verdict": "cached",
+  "asm": "4b1b548f-0c78-477e-906d-8a4c85144e0f",
+  "type": "Lib.Res"
+ },
+ {
+  "id": "W3",
+  "callable": "System.Threading.CancellationTokenSource.CreateLinkedTokenSource",
+  "expect": "fresh",
+  "seconds": 1.5,
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "b_usable",
+  "err": null,
+  "verdict": "fresh",
+  "asm": "a4400f9d-228c-4086-94e1-588251b0132f",
+  "type": "System.Threading.CancellationTokenSource+Linked1CancellationTokenSource"
+ },
+ {
+  "id": "W4",
+  "callable": "System.Console.get_Out",
+  "expect": "cached",
+  "seconds": 1.6,
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "asm": "a4400f9d-228c-4086-94e1-588251b0132f",
+  "type": "System.IO.TextWriter+SyncTextWriter"
+ },
+ {
+  "id": "W5",
+  "callable": "System.Console.OpenStandardOutput",
+  "expect": "fresh",
+  "seconds": 1.5,
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "asm": "d7f9fea7-4865-43df-86e9-1fef8c75aa57",
+  "type": "System.ConsolePal+UnixConsoleStream"
+ },
+ {
+  "id": "W6",
+  "callable": "System.IO.FileStream.Close",
+  "expect": "terminal",
+  "seconds": 1.5,
+  "outcome": "ObjectDisposedException",
+  "err": null,
+  "verdict": "terminal"
+ },
+ {
+  "id": "W7",
+  "callable": "System.IO.MemoryStream.Dispose",
+  "expect": "not_observed (ToArray works after Dispose)",
+  "seconds": 1.4,
+  "outcome": "no_throw",
+  "err": null,
+  "verdict": "not_observed"
+ },
+ {
+  "id": "W8",
+  "callable": "System.Security.Cryptography.CngKey.Delete",
+  "expect": "environment-error on Linux",
+  "seconds": 1.8,
+  "outcome": "environment-error",
+  "err": "PlatformNotSupportedException",
+  "verdict": "environment-error"
+ },
+ {
+  "id": "W9",
+  "callable": "System.IO.Stream.Synchronized",
+  "expect": "fresh (the wrapper object; the adopt effect is a separate row kind)",
+  "seconds": 1.5,
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "asm": "a4400f9d-228c-4086-94e1-588251b0132f",
+  "type": "System.IO.Stream+SyncStream"
+ },
+ {
+  "id": "W10",
+  "callable": "System.Diagnostics.Process.GetCurrentProcess",
+  "expect": "fresh",
+  "seconds": 1.6,
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "b_usable",
+  "err": null,
+  "verdict": "fresh",
+  "asm": "ea8f757c-09e7-4544-a650-55010ab79931",
+  "type": "System.Diagnostics.Process"
+ }
+]

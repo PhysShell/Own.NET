@@ -2902,6 +2902,109 @@ static ExpressionSyntax? StripParens(ExpressionSyntax? e)
 static bool IsNullLiteral(ExpressionSyntax? e) =>
     StripParens(e) is LiteralExpressionSyntax l && l.IsKind(SyntaxKind.NullLiteralExpression);
 
+// ownership-semantics-lab H-19: the tracked LOCAL `x` when `cond` is exactly a not-null test of it, else null.
+// NARROWED after the first population run (the G-V4 control `ref Stream a = ref q; a = r; if (q != null)
+// q.Dispose();` moved): the name must bind to a local (never a parameter), and the local must have no write
+// and no `ref` alias anywhere in the enclosing body — except the single acquire assignment an H-01 candidate
+// carries by construction. A rebound or aliased handle keeps its guard.
+static string? LabNotNullGuardedLocal(ExpressionSyntax cond, HashSet<string> tracked, SemanticModel model)
+{
+    var c = StripParens(cond);
+    IdentifierNameSyntax? idn = c switch
+    {
+        BinaryExpressionSyntax b when b.IsKind(SyntaxKind.NotEqualsExpression) && IsNullLiteral(b.Right)
+            && StripParens(b.Left) is IdentifierNameSyntax l => l,
+        BinaryExpressionSyntax b when b.IsKind(SyntaxKind.NotEqualsExpression) && IsNullLiteral(b.Left)
+            && StripParens(b.Right) is IdentifierNameSyntax r => r,
+        IsPatternExpressionSyntax { Pattern: UnaryPatternSyntax { Pattern: ConstantPatternSyntax cp } up } ip
+            when up.IsKind(SyntaxKind.NotPattern) && IsNullLiteral(cp.Expression)
+            && StripParens(ip.Expression) is IdentifierNameSyntax pi => pi,
+        IsPatternExpressionSyntax { Pattern: RecursivePatternSyntax { PropertyPatternClause.Subpatterns.Count: 0, PositionalPatternClause: null, Type: null, Designation: null } } ip2
+            when StripParens(ip2.Expression) is IdentifierNameSyntax pi2 => pi2,
+        _ => null,
+    };
+    if (idn is null || !tracked.Contains(idn.Identifier.Text))
+        return null;
+    if (model.GetSymbolInfo(idn).Symbol is not ILocalSymbol sym)
+        return null;                                   // a parameter (or unresolved): keep the guard
+    SyntaxNode? body = idn.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>()?.Body
+                       ?? (SyntaxNode?)idn.FirstAncestorOrSelf<AccessorDeclarationSyntax>()?.Body;
+    if (body is null)
+        return null;
+    var allowedWrites = LabNullInit.Locals.Contains(idn.Identifier.Text) ? 1 : 0;
+    var writes = 0;
+    foreach (var id in body.DescendantNodes().OfType<IdentifierNameSyntax>())
+    {
+        if (!SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, sym))
+            continue;
+        if (id.Parent is AssignmentExpressionSyntax a && a.Left == id)
+        {
+            if (++writes > allowedWrites)
+                return null;
+        }
+        else if (id.Parent is RefExpressionSyntax
+                 || (id.Parent is ArgumentSyntax arg && arg.RefKindKeyword.RawKind != 0))
+            return null;                               // `ref x` alias or ref/out rebinding
+    }
+    return idn.Identifier.Text;
+}
+
+// ownership-semantics-lab H-19: every lowered op of the branch is a plain op (use/release/acquire/overspan…)
+// naming exactly `x` — no nested control op (if/while/return/call/alias_join) and no other handle.
+static bool LabBranchNamesOnly(List<object> ops, string x)
+{
+    foreach (var o in ops)
+    {
+        var t = o.GetType();
+        var op = t.GetProperty("op")?.GetValue(o) as string;
+        if (op is "if" or "while" or "return" or "call" or "alias_join" or null)
+            return false;
+        if (t.GetProperty("var")?.GetValue(o) as string != x)
+            return false;
+    }
+    return ops.Count > 0;
+}
+
+// ownership-semantics-lab H-01: the right side of the ONLY simple assignment `x = rhs;` (a statement) to the
+// declarator's local anywhere in the method body (nested lambdas / local functions excluded), when that rhs is
+// acquire-shaped: an object creation of an owned disposable type, a pool rent, a curated / answer-key owning
+// factory, or a first-party disposable factory. Null otherwise: zero or 2+ writes (the s11 family), a compound
+// or nested assignment, a `ref`/`out` rebinding, or a foreign rhs (a parameter, a field, a borrowed call).
+static ExpressionSyntax? LabNullInitSingleAssignment(VariableDeclaratorSyntax v, BlockSyntax mbody, SemanticModel model)
+{
+    if (model.GetDeclaredSymbol(v) is not ILocalSymbol local)
+        return null;
+    ExpressionSyntax? rhs = null;
+    var writes = 0;
+    foreach (var id in mbody.DescendantNodes(n => n is not (AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
+                            .OfType<IdentifierNameSyntax>())
+    {
+        if (!SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, local))
+            continue;
+        if (id.Parent is AssignmentExpressionSyntax asg && asg.Left == id)
+        {
+            writes++;
+            if (asg.IsKind(SyntaxKind.SimpleAssignmentExpression) && asg.Parent is ExpressionStatementSyntax)
+                rhs = asg.Right;
+            else
+                return null;
+        }
+        else if (id.Parent is ArgumentSyntax { RefKindKeyword.RawKind: not 0 })
+            return null;
+    }
+    if (writes != 1 || rhs is null)
+        return null;
+    var acquireShaped =
+        (rhs is ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax
+         && model.GetTypeInfo(rhs).Type is { } dt
+         && ImplementsIDisposable(dt) && !IsDisposeOptional(dt) && !HasEmptyDisposeBody(dt))
+        || IsPoolRent(rhs, model)
+        || IsOwningFactory(rhs, model)
+        || ReOracle.ReturnsFreshOwned(rhs, model)
+        || IsFirstPartyDisposableFactory(rhs, model, out _, out _);
+    return acquireShaped ? rhs : null;
+}
+
 // G-V4, whole-body write exposure (deliberately coarser than flow-sensitive, per P-037 §2):
 // a parameter is STABLE when nothing in the method body can change the value it entered
 // with — no assignment (plain, compound, or deconstructing), no ++/--, no `ref`/`out`
@@ -3493,7 +3596,7 @@ static void InjectThrowEdge(StatementSyntax st, List<object> nodes, List<object>
     // it and falsely flag a resource the outer finally/using disposes, so synthesize no edge there
     // (the symmetric guard the explicit-throw path already uses — Codex P2 on the may-throw tier).
     var cont = onThrow ?? (BodyThrowEdges && canEscape && !IsInsideFinally(st)
-        ? new List<object> { new { op = "return", var = (string?)null, line = LineOf(st) } }
+        ? new List<object> { LabThrowExit.Exit(LineOf(st)) }
         : null);
     if (cont is not null && StatementMayThrow(st))
         nodes.Add(new { op = "if", line = LineOf(st),
@@ -3567,7 +3670,7 @@ static bool LowerFlowStatements(IReadOnlyList<StatementSyntax> stmts, int start,
         {
             var uv = usingDecl.Declaration.Variables[0];
             var owner = uv.Identifier.Text;
-            var exit = new List<object> { new { op = "return", var = (string?)null, line = LineOf(usingDecl) } };
+            var exit = new List<object> { LabThrowExit.Exit(LineOf(usingDecl)) };
             InjectThrowEdge(usingDecl, nodes, onThrow, canEscape);   // a throw DURING Rent() runs the OUTER path (owner not yet acquired)
             // #317: the acquire is the handle-minting op the bridge anchors a flow-local
             // finding on, so it carries the column of the SAME declarator its line came
@@ -3746,6 +3849,52 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                     nodes.Add(new { op = "use", var = u, line = dPos.Line });
                 return true;
             }
+            // ownership-semantics-lab H-01 (OWEN_LAB_NULLINIT=1): `x = rhs;` for a null-initialised candidate
+            // lowers exactly as `var x = rhs;` does — an `acquire` (pool-tagged for a rent), or a first-party
+            // `call` with `result` for a first-party factory (the core decides fresh) — plus the rhs's
+            // tracked-argument uses. Off: unreachable.
+            if (LabNullInit.Enabled
+                && es.Expression is AssignmentExpressionSyntax nlAsg
+                && nlAsg.IsKind(SyntaxKind.SimpleAssignmentExpression)
+                && nlAsg.Left is IdentifierNameSyntax nlId
+                && LabNullInit.Locals.Contains(nlId.Identifier.Text)
+                && tracked.Contains(nlId.Identifier.Text))
+            {
+                var nlPos = PosOf(nlAsg.Left);
+                var nlCarried = new HashSet<string>(StringComparer.Ordinal);
+                if (nlAsg.Right is ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax
+                    || IsPoolRent(nlAsg.Right, model)
+                    || IsOwningFactory(nlAsg.Right, model)
+                    || ReOracle.ReturnsFreshOwned(nlAsg.Right, model))
+                {
+                    nodes.Add(new { op = "acquire", var = nlId.Identifier.Text,
+                                    line = nlPos.Line, column = nlPos.Column,
+                                    kind = IsPoolRent(nlAsg.Right, model) ? "pool" : "disposable" });
+                }
+                else if (IsFirstPartyDisposableFactory(nlAsg.Right, model, out var nlCallee, out var nlSig))
+                {
+                    var nlArgs = nlAsg.Right is InvocationExpressionSyntax nlInv
+                        ? nlInv.ArgumentList.Arguments
+                              .Where(a => a.NameColon is null)
+                              .Select(a => a.Expression)
+                              .OfType<IdentifierNameSyntax>()
+                              .Select(id => id.Identifier.Text)
+                              .Where(tracked.Contains)
+                              .ToArray()
+                        : Array.Empty<string>();
+                    nodes.Add(new { op = "call", callee = nlCallee, sig = nlSig, args = nlArgs,
+                                    result = nlId.Identifier.Text, line = nlPos.Line, column = nlPos.Column });
+                    nlCarried.UnionWith(nlArgs);
+                }
+                else
+                {
+                    EmitFlowExpr(es.Expression, tracked, model, nodes);   // not acquire-shaped after all: legacy
+                    return true;
+                }
+                EmitInitializerArgUses(nlAsg.Right, tracked, model, nodes, nlCarried, LineOf(es));
+                LabNullInit.Count("lowered");
+                return true;
+            }
             EmitFlowExpr(es.Expression, tracked, model, nodes);
             return true;
         case IfStatementSyntax ifs:
@@ -3756,6 +3905,16 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             var elseNodes = new List<object>();
             if (ifs.Else is { } e && !LowerFlowStmt(e.Statement, tracked, model, elseNodes, canEscape, onThrow, onReturn, onThrowDefinite))
                 return false;
+            // ownership-semantics-lab H-19 (OWEN_LAB_NULLGUARD=1): `if (x != null) S` with no else, S naming only
+            // the tracked x — the guard decides nothing about x's obligation (null carries none): lower S bare.
+            if (LabNullGuard.Enabled && ifs.Else is null
+                && LabNotNullGuardedLocal(ifs.Condition, tracked, model) is { } ngx
+                && LabBranchNamesOnly(thenNodes, ngx))
+            {
+                nodes.AddRange(thenNodes);
+                LabNullGuard.Count("guard_dropped");
+                return true;
+            }
             nodes.Add(new { op = "if", line = LineOf(ifs), then = thenNodes, @else = elseNodes });
             return true;
         }
@@ -3780,7 +3939,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             {
                 var uv = ud.Variables[0];
                 var owner = uv.Identifier.Text;
-                var exit = new List<object> { new { op = "return", var = (string?)null, line = LineOf(us) } };
+                var exit = new List<object> { LabThrowExit.Exit(LineOf(us)) };
                 // #317: same rule as the `using` DECLARATION form above — the acquire anchors,
                 // so it carries the declarator's column; the release keeps its line alone.
                 var uvPos = PosOf(uv);
@@ -3824,7 +3983,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                 && tracked.Contains(usingId.Identifier.Text))
             {
                 var owner = usingId.Identifier.Text;
-                var exit = new List<object> { new { op = "return", var = (string?)null, line = LineOf(us) } };
+                var exit = new List<object> { LabThrowExit.Exit(LineOf(us)) };
                 var release = new { op = "release", var = owner, line = LineOf(us) };
                 var bodyOnReturn = new List<object> { release };
                 bodyOnReturn.AddRange(onReturn ?? exit);
@@ -4017,7 +4176,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             {
                 bodyOnThrow = new List<object>(finallyNodes);
                 bodyOnThrow.AddRange(onThrow ?? new List<object>
-                    { new { op = "return", var = (string?)null, line = LineOf(trys) } });
+                    { LabThrowExit.Exit(LineOf(trys)) });
             }
             // Is a throw in the body DEFINITELY uncaught (so an explicit throw may route through
             // `bodyOnThrow` instead of bailing)? Only a finally-only try (no catches): the throw
@@ -4032,7 +4191,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             // disposes on the return path instead of being bailed.
             var bodyOnReturn = new List<object>(finallyNodes);
             bodyOnReturn.AddRange(onReturn ?? new List<object>
-                { new { op = "return", var = (string?)null, line = LineOf(trys) } });
+                { LabThrowExit.Exit(LineOf(trys)) });
             if (!LowerFlowStatements(trys.Block.Statements, 0, tracked, model, nodes, bodyCanEscape, bodyOnThrow, bodyOnReturn,
                                      onThrowDefinite: bodyOnThrowDefinite))
                 return false;
@@ -4118,7 +4277,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             {
                 if (onThrow is null)
                 {
-                    nodes.Add(new { op = "return", var = (string?)null, line = LineOf(thr) });
+                    nodes.Add(LabThrowExit.Exit(LineOf(thr)));
                     return true;
                 }
                 // A non-null onThrow that DEFINITELY reaches method exit uncaught (a `using` or a
@@ -7614,6 +7773,7 @@ foreach (var (file, tree) in parsed)
                         ownedParamNames.Add(psyn.Identifier.Text);
                     }
                 }
+                LabNullInit.Locals.Clear();   // ownership-semantics-lab H-01: per-body set
                 var candidates = new HashSet<string>();
                 var poolBuffers = new HashSet<string>();   // candidates that are ArrayPool<T> buffers
                 var usingMemoryOwners = new HashSet<string>();   // `using`-declared MemoryPool owners
@@ -7666,6 +7826,28 @@ foreach (var (file, tree) in parsed)
                             // op, not an `acquire`; the core decides). Checked last so `new` /
                             // pool / BCL-factory initializers keep their existing classification.
                             candidates.Add(v.Identifier.Text);
+                        // ownership-semantics-lab H-01 (OWEN_LAB_NULLINIT=1): `T x = null;` (or `default`, or no
+                        // initializer) assigned exactly once from an acquire-shaped rhs is a candidate; it joins
+                        // the same classification sets as the declaration form would.
+                        else if (LabNullInit.Enabled
+                                 && (v.Initializer is null || IsNullLiteral(v.Initializer.Value)
+                                     || v.Initializer.Value is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.DefaultLiteralExpression }
+                                     || v.Initializer.Value is DefaultExpressionSyntax)
+                                 && model.GetDeclaredSymbol(v) is ILocalSymbol nlLocal
+                                 && ImplementsIDisposable(nlLocal.Type) && !IsDisposeOptional(nlLocal.Type)
+                                 && !HasEmptyDisposeBody(nlLocal.Type)
+                                 && LabNullInitSingleAssignment(v, mbody, model) is { } nlRhs)
+                        {
+                            candidates.Add(v.Identifier.Text);
+                            LabNullInit.Locals.Add(v.Identifier.Text);
+                            if (nlRhs is ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax)
+                                newedDisposables.Add(v.Identifier.Text);
+                            else if (IsPoolRent(nlRhs, model))
+                                poolBuffers.Add(v.Identifier.Text);
+                            else if (IsOwningFactory(nlRhs, model) || ReOracle.ReturnsFreshOwned(nlRhs, model))
+                                mintedFactories.Add(v.Identifier.Text);
+                            LabNullInit.Count("candidate");
+                        }
                 }
                 // `using (IMemoryOwner owner = MemoryPool.Rent(...)) { … }` STATEMENT form: track the owner
                 // too, so its returned view dangles after the scope-exit dispose (the desugar mirrors the
@@ -7968,7 +8150,7 @@ if (GuardedFactsViolations.Count > 0)
         Console.Error.WriteLine($"extractor: guarded_facts self-check failed: {violation}");
     return 2;
 }
-var json = JsonSerializer.Serialize(facts, new JsonSerializerOptions { WriteIndented = true });
+var json = JsonSerializer.Serialize(facts, new JsonSerializerOptions { WriteIndented = true, MaxDepth = 4096 });
 
 if (reportStats)
     Console.Error.WriteLine(
@@ -8015,6 +8197,12 @@ if (flowLocals && ReBody.Enabled && Environment.GetEnvironmentVariable("OWEN_RE_
 }
 if (flowLocals && ReOracle.Enabled)
     Console.Error.WriteLine("re-oracle: " + string.Join(" ", ReOracle.Census.Select(kv => $"{kv.Key}={kv.Value}")));
+if (flowLocals && ReOracle.Enabled && ReOracle.Shadow.Count > 0)
+    Console.Error.WriteLine("re-oracle-shadow: " + string.Join(" ", ReOracle.Shadow.Select(kv => $"{kv.Key}={kv.Value}")));
+if (flowLocals && LabNullInit.Enabled)
+    Console.Error.WriteLine("lab-nullinit: " + string.Join(" ", LabNullInit.Census.Select(kv => $"{kv.Key}={kv.Value}")));
+if (flowLocals && LabNullGuard.Enabled)
+    Console.Error.WriteLine("lab-nullguard: " + string.Join(" ", LabNullGuard.Census.Select(kv => $"{kv.Key}={kv.Value}")));
 
 if (outPath is null) Console.WriteLine(json);
 else File.WriteAllText(outPath, json);
@@ -8081,7 +8269,7 @@ partial class Program
         static readonly bool s_trustAll =
             Environment.GetEnvironmentVariable("OWEN_RE_ORACLE_TRUST") == "all";
         internal static readonly SortedDictionary<string, int> Shadow = new(StringComparer.Ordinal);
-        static readonly Dictionary<string, List<(string effect, int? arity)>> s_entries = Load();
+        static readonly Dictionary<string, List<ReEntry>> s_entries = Load();
         internal static bool Enabled => s_entries.Count > 0;
         internal static readonly SortedDictionary<string, int> Census = new(StringComparer.Ordinal);
         // Sub-stage 1b (OWEN_RE_MINTED_RETURN=1; pre-registered): a candidate MINTED by a factory
@@ -8091,9 +8279,35 @@ partial class Program
         internal static readonly bool MintedReturn =
             Environment.GetEnvironmentVariable("OWEN_RE_MINTED_RETURN") == "1";
 
-        static Dictionary<string, List<(string effect, int? arity)>> Load()
+        // ownership-semantics-lab H-09 (registered before this code): an entry may pin the SOURCE assembly of the
+        // row — `assembly: { name, mvid }` — and then applies only when the resolved callable's assembly is a
+        // metadata reference whose file carries that MVID (the effective-identity key of depid-v1: name+version and
+        // the public-key token were killed as sufficient keys). A mismatch is counted under Shadow as
+        // `mvid_mismatch` and never applied; an unpinned entry behaves as before.
+        internal readonly record struct ReEntry(string effect, int? arity, string? asmName, string? mvid);
+        static readonly Dictionary<string, string?> s_mvidByPath = new(StringComparer.Ordinal);
+        static string? MvidOfReference(IAssemblySymbol asm, Compilation comp)
         {
-            var map = new Dictionary<string, List<(string effect, int? arity)>>(StringComparer.Ordinal);
+            if (comp.GetMetadataReference(asm) is not PortableExecutableReference { FilePath: { } path })
+                return null;   // a source assembly, or a reference without a file
+            if (s_mvidByPath.TryGetValue(path, out var known))
+                return known;
+            string? mvid = null;
+            try
+            {
+                using var fs = System.IO.File.OpenRead(path);
+                using var pe = new System.Reflection.PortableExecutable.PEReader(fs);
+                var md = System.Reflection.Metadata.PEReaderExtensions.GetMetadataReader(pe);
+                mvid = md.GetGuid(md.GetModuleDefinition().Mvid).ToString();
+            }
+            catch (Exception) { mvid = null; }
+            s_mvidByPath[path] = mvid;
+            return mvid;
+        }
+
+        static Dictionary<string, List<ReEntry>> Load()
+        {
+            var map = new Dictionary<string, List<ReEntry>>(StringComparer.Ordinal);
             var path = Environment.GetEnvironmentVariable("OWEN_RE_ORACLE");
             if (string.IsNullOrEmpty(path))
                 return map;
@@ -8108,19 +8322,27 @@ partial class Program
                     throw new InvalidOperationException($"OWEN_RE_ORACLE: unknown effect '{effect}' for {callable}");
                 int? arity = e.TryGetProperty("arity", out var a) ? a.GetInt32() : null;
                 var provenance = e.TryGetProperty("provenance", out var pv) ? pv.GetString() ?? "" : "MODELLED";
-                if (provenance is not ("DECLARED" or "BODY_PROVED" or "MODELLED") && !s_trustAll)
+                // ownership-semantics-lab H-10: WITNESSED (a row confirmed by the runtime-witness harness on the
+                // deployed assembly) is an applied provenance beside the three of Stage 4.
+                if (provenance is not ("DECLARED" or "BODY_PROVED" or "MODELLED" or "WITNESSED") && !s_trustAll)
                 {
                     Shadow[provenance] = Shadow.GetValueOrDefault(provenance) + 1;
                     continue;   // shadow: counted, never applied
                 }
+                string? asmName = null, mvid = null;
+                if (e.TryGetProperty("assembly", out var asmEl) && asmEl.ValueKind == System.Text.Json.JsonValueKind.Object)
+                {
+                    asmName = asmEl.TryGetProperty("name", out var an) ? an.GetString() : null;
+                    mvid = asmEl.TryGetProperty("mvid", out var mv) ? mv.GetString() : null;
+                }
                 if (!map.TryGetValue(callable, out var list))
-                    map[callable] = list = new List<(string effect, int? arity)>();
-                list.Add((effect, arity));
+                    map[callable] = list = new List<ReEntry>();
+                list.Add(new ReEntry(effect, arity, asmName, mvid));
             }
             return map;
         }
 
-        static bool Has(IMethodSymbol? m, string effect)
+        static bool Has(IMethodSymbol? m, string effect, Compilation comp)
         {
             if (!Enabled || m is null)
                 return false;
@@ -8128,9 +8350,19 @@ partial class Program
             var key = $"{def.ContainingType.ToDisplayString()}.{def.Name}";
             if (!s_entries.TryGetValue(key, out var list))
                 return false;
-            foreach (var (eff, arity) in list)
+            foreach (var (eff, arity, asmName, mvid) in list)
                 if (eff == effect && (arity is null || arity == def.Parameters.Length))
                 {
+                    if (mvid is not null)   // H-09: the pinned source identity must match the referenced file
+                    {
+                        var actual = def.ContainingAssembly is { } ca ? MvidOfReference(ca, comp) : null;
+                        var nameOk = asmName is null || string.Equals(asmName, def.ContainingAssembly?.Name, StringComparison.Ordinal);
+                        if (!nameOk || actual is null || !string.Equals(actual, mvid, StringComparison.OrdinalIgnoreCase))
+                        {
+                            Shadow["mvid_mismatch"] = Shadow.GetValueOrDefault("mvid_mismatch") + 1;
+                            continue;
+                        }
+                    }
                     Census[effect] = Census.GetValueOrDefault(effect) + 1;
                     return true;
                 }
@@ -8141,12 +8373,12 @@ partial class Program
         internal static bool ReturnsFreshOwned(ExpressionSyntax? e, SemanticModel model) =>
             Enabled && e is InvocationExpressionSyntax i
             && model.GetSymbolInfo(i).Symbol is IMethodSymbol m
-            && !m.ReturnsVoid && Has(m, "return_fresh_owned");
+            && !m.ReturnsVoid && Has(m, "return_fresh_owned", model.Compilation);
 
         // `x.M(...)` where the resolved INSTANCE M is a receiver_terminal_release entry.
         internal static bool ReleasesReceiver(InvocationExpressionSyntax i, SemanticModel model) =>
             Enabled && model.GetSymbolInfo(i).Symbol is IMethodSymbol m
-            && !m.IsStatic && Has(m, "receiver_terminal_release");
+            && !m.IsStatic && Has(m, "receiver_terminal_release", model.Compilation);
     }
 
     // ===== resource-effects Stage 2 (research/resource-effects-v1, EXPLORATORY; pre-registered in
@@ -8164,6 +8396,46 @@ partial class Program
     //      `x.M()` on a tracked local is a `release`, and the same predicate is a consume signal in
     //      DisposesLocal so wrappers compose. Decided by the resolved interface implementation, never by
     //      a name; a conditional body stays a `use`.
+    // ===== ownership-semantics-lab H-01 (research/ownership-semantics-lab-v1, EXPLORATORY; registered in
+    // Own.NET-paperwork paper-eval/ownership-lab/hypothesis-register-v1.json before this code): a local declared
+    // `null` / `default` (or without an initializer) and assigned EXACTLY ONCE, from an acquire-shaped expression,
+    // is a leak candidate; the acquire (or the first-party `call`) is lowered at the assignment statement, exactly
+    // as the declaration form lowers it. Behind `OWEN_LAB_NULLINIT=1`; off, every fact is byte-identical.
+    static class LabNullInit
+    {
+        internal static readonly bool Enabled =
+            Environment.GetEnvironmentVariable("OWEN_LAB_NULLINIT") == "1";
+        internal static readonly HashSet<string> Locals = new(StringComparer.Ordinal);   // per method body
+        internal static readonly SortedDictionary<string, int> Census = new(StringComparer.Ordinal);
+        internal static void Count(string what) => Census[what] = Census.GetValueOrDefault(what) + 1;
+    }
+
+    // ===== ownership-semantics-lab H-19 (registered before this code): a NOT-NULL guard on a tracked local
+    // (`if (x != null) S`, `if (null != x) S`, `if (x is not null) S`, `if (x is { }) S`, no else) whose lowered
+    // branch names only x is lowered as the branch itself: a null handle carries no obligation, so the guard
+    // decides nothing about x's release. Any other shape (a conjunction, another local, an else, a branch that
+    // touches another handle or contains control ops) keeps the `if`. Behind `OWEN_LAB_NULLGUARD=1`.
+    static class LabNullGuard
+    {
+        internal static readonly bool Enabled =
+            Environment.GetEnvironmentVariable("OWEN_LAB_NULLGUARD") == "1";
+        internal static readonly SortedDictionary<string, int> Census = new(StringComparer.Ordinal);
+        internal static void Count(string what) => Census[what] = Census.GetValueOrDefault(what) + 1;
+    }
+
+    // ===== ownership-semantics-lab H-20 (registered before this code): an exceptional exit (a lowered `throw`
+    // statement or an injected throw edge) carries `exit = "throw"` so an engine under OWEN_LAB_THROWEXIT=1 can
+    // tell it from a bare / null VALUE return when inferring the fresh return skeleton. Additive field; off, the
+    // ops are byte-identical (no field). Production engines ignore unknown fields.
+    static class LabThrowExit
+    {
+        internal static readonly bool Enabled =
+            Environment.GetEnvironmentVariable("OWEN_LAB_THROWEXIT") == "1";
+        internal static object Exit(int line) => Enabled
+            ? new { op = "return", var = (string?)null, line, exit = "throw" }
+            : new { op = "return", var = (string?)null, line };
+    }
+
     static class ReBody
     {
         internal static readonly bool Enabled =

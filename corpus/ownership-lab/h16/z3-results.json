@@ -1,0 +1,42 @@
+{
+ "case4_S1_S2_no_leak": {
+  "valid": true,
+  "counterexample": null
+ },
+ "case4_S1_S2_no_double": {
+  "valid": true,
+  "counterexample": null
+ },
+ "case4_S3_no_leak": {
+  "valid": true,
+  "counterexample": null
+ },
+ "case4_S3_no_double": {
+  "valid": true,
+  "counterexample": null
+ },
+ "case4_unknown_flag_no_leak": {
+  "valid": false,
+  "counterexample": "[flag = False]"
+ },
+ "laundered_twin_equivalent": {
+  "valid": true,
+  "counterexample": null
+ },
+ "multipleSinks_exactly_one_release": {
+  "valid": true,
+  "counterexample": null
+ },
+ "complementary_guards_no_leak": {
+  "valid": true,
+  "counterexample": null
+ },
+ "complementary_guards_no_double": {
+  "valid": true,
+  "counterexample": null
+ },
+ "gap_guards_no_leak": {
+  "valid": false,
+  "counterexample": "[count = 10]"
+ }
+}

@@ -430,13 +430,24 @@ fn collect_vars(nodes: &[Value], op_kind: &str, field: &str) -> HashSet<String> 
 }
 
 /// `_has_bare_return`.
+/// ownership-semantics-lab H-20 research seam (research branch only).
+fn lab_throwexit_enabled() -> bool {
+    std::env::var("OWEN_LAB_THROWEXIT").map(|v| v == "1").unwrap_or(false)
+}
+
 fn has_bare_return(nodes: &[Value]) -> bool {
     nodes
         .iter()
         .filter_map(Value::as_object)
         .any(|n| match get_str(n, "op") {
             // MSRV 1.74: `Option::is_none_or` is not available yet.
-            Some("return") => !n.get("var").is_some_and(|v| !v.is_null()),
+            // ownership-semantics-lab H-20 (OWEN_LAB_THROWEXIT=1): a marked exceptional exit is not a
+            // bare value return (twin of the Python predicate).
+            Some("return") => {
+                !n.get("var").is_some_and(|v| !v.is_null())
+                    && !(lab_throwexit_enabled()
+                        && n.get("exit").and_then(|e| e.as_str()) == Some("throw"))
+            }
             Some("if") => {
                 has_bare_return(as_list(n.get("then"))) || has_bare_return(as_list(n.get("else")))
             }
