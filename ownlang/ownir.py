@@ -1681,6 +1681,12 @@ def _call_result_callees(nodes: Any) -> dict[str, tuple[str, str | None] | None]
     return out
 
 
+
+def _re_mixed_return_enabled() -> bool:
+    """resource-effects Stage 3 E3 opt-in (EXPLORATORY; research branch only, never a default)."""
+    import os
+    return os.environ.get("OWEN_RE_MIXED_RETURN") == "1"
+
 def _infer_return_skeleton(nodes: Any, param_names: set[str],
                            first_party: frozenset[str] = frozenset(),
                            call_key: Callable[[str, str | None], str] | None = None,
@@ -1717,6 +1723,26 @@ def _infer_return_skeleton(nodes: Any, param_names: set[str],
     if all(v in acquired and v not in param_names and v not in call_results
            for v in returned):
         return ReturnSkeleton("fresh")
+    # resource-effects Stage 3 E3 (research/resource-effects-v1, EXPLORATORY; pre-registered in
+    # Own.NET-paperwork stage3-inference-prereg-v1.json; opt-in OWEN_RE_MIXED_RETURN=1):
+    # INF-R3prime — a MIXED skeleton whose every returned local is acquired here on some
+    # paths and bound to ONE first-party callee's result on the others (`if (b) return new R();
+    # return Make();`) is a forward to that callee: fresh iff the callee is fresh at the
+    # fixpoint. Two different callees stay ambiguous (none); a returned parameter is never
+    # fresh. Off the opt-in the R3/R4 separation above is unchanged.
+    if _re_mixed_return_enabled() and returned and all(
+            v not in param_names and (v in acquired or call_results.get(v) is not None)
+            for v in returned):
+        entries = {call_results[v] for v in returned if call_results.get(v) is not None}
+        if entries and len({e[0] for e in entries}) == 1:
+            callee = next(iter(entries))[0]
+            sigs = {e[1] for e in entries}
+            csig = next(iter(sigs)) if len(sigs) == 1 else None
+            if _canonical_callee_name(callee) not in first_party \
+                    and _is_bcl_fresh_factory(callee):
+                return ReturnSkeleton("fresh")
+            return ReturnSkeleton(
+                "forward", callee=call_key(callee, csig) if call_key else callee)
     if len(returned) == 1:
         (v,) = tuple(returned)
         entry = call_results.get(v)

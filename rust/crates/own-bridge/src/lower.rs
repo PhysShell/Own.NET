@@ -654,6 +654,40 @@ fn infer_return_skeleton(
     {
         return ReturnSkeleton::Fresh;
     }
+    // resource-effects Stage 3 E3 (EXPLORATORY; opt-in `OWEN_RE_MIXED_RETURN=1`; see the Python
+    // twin `_infer_return_skeleton`): a mixed skeleton — every returned local acquired here on
+    // some paths and bound to ONE first-party callee's result on the others — is a forward to
+    // that callee (fresh iff the callee is fresh at the fixpoint). Two callees stay ambiguous.
+    if re_mixed_return_enabled()
+        && returned.iter().all(|v| {
+            !param_names.contains(v)
+                && (acquired.contains(v) || matches!(call_results.get(v), Some(Some(_))))
+        })
+    {
+        let entries: Vec<&CallOrigin> = returned
+            .iter()
+            .filter_map(|v| call_results.get(v))
+            .filter(|e| e.is_some())
+            .collect();
+        let callees: HashSet<&str> = entries
+            .iter()
+            .filter_map(|e| e.as_ref().map(|(c, _)| c.as_str()))
+            .collect();
+        if callees.len() == 1 {
+            let callee = *callees.iter().next().expect("len == 1");
+            let sigs: HashSet<Option<&str>> = entries
+                .iter()
+                .filter_map(|e| e.as_ref().map(|(_, s)| s.as_deref()))
+                .collect();
+            let csig = if sigs.len() == 1 { *sigs.iter().next().expect("len == 1") } else { None };
+            if !first_party.contains(canonical(callee)) && is_bcl_fresh_factory(callee) {
+                return ReturnSkeleton::Fresh;
+            }
+            return ReturnSkeleton::Forward {
+                callee: call_key(callee, csig),
+            };
+        }
+    }
     if returned.len() == 1 {
         let v = returned.iter().next().expect("len == 1");
         if let Some(Some((callee, csig))) = call_results.get(v) {
@@ -1493,6 +1527,11 @@ type Contract<'a> = Option<(&'a own_guarded::GuardedDoc, &'a str)>;
 /// The opt-in: `OWEN_P037X_GUARDED=1`. Research-branch only; never a default.
 fn p037x_guarded_enabled() -> bool {
     std::env::var_os("OWEN_P037X_GUARDED").is_some_and(|v| v == "1")
+}
+
+/// resource-effects Stage 3 E3 opt-in: `OWEN_RE_MIXED_RETURN=1` (EXPLORATORY; never a default).
+fn re_mixed_return_enabled() -> bool {
+    std::env::var_os("OWEN_RE_MIXED_RETURN").is_some_and(|v| v == "1")
 }
 
 fn p037x_guarded_doc(facts: &OwnIr) -> Option<own_guarded::GuardedDoc> {
