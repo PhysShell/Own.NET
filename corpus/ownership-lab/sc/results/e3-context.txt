@@ -1,0 +1,221 @@
+=== new_findings JasperFx/weasel src/DocSamples/DocSamples.csproj net10.0 src/DocSamples/PostgresqlFunctionSamples.cs:42 OWN001 IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]
+   35          );
+   36          #endregion
+   37      }
+   38  
+   39      public async Task function_delta_detection()
+   40      {
+   41          #region sample_pg_function_delta_detection
+   42>         var dataSource = new NpgsqlDataSourceBuilder("Host=localhost;Database=mydb").Build();
+   43          var function = Function.ForSql(@"
+   44  CREATE OR REPLACE FUNCTION public.calculate_tax(amount decimal, rate decimal)
+   45  RETURNS decimal
+   46  LANGUAGE sql
+   47  AS $$
+   48      SELECT amount * rate;
+   49  $$;
+   50  ");
+=== new_findings JasperFx/weasel src/DocSamples/DocSamples.csproj net10.0 src/DocSamples/PostgresqlSequenceSamples.cs:49 OWN001 IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]
+   42              .DefaultValueFromSequence(sequence);
+   43          #endregion
+   44      }
+   45  
+   46      public async Task sequence_delta_detection()
+   47      {
+   48          #region sample_pg_sequence_delta_detection
+   49>         var dataSource = new NpgsqlDataSourceBuilder("Host=localhost;Database=mydb").Build();
+   50          var sequence = new Sequence("public.order_number_seq");
+   51  
+   52          await using var conn = dataSource.CreateConnection();
+   53          await conn.OpenAsync();
+   54  
+   55          var delta = await sequence.FindDeltaAsync(conn);
+   56          // delta.Difference: None or Create
+   57          #endregion
+=== new_findings JasperFx/weasel src/DocSamples/DocSamples.csproj net10.0 src/DocSamples/PostgresqlTableSamples.cs:144 OWN001 IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]
+  137              .DefaultValueByExpression("now()");
+  138          #endregion
+  139      }
+  140  
+  141      public async Task delta_detection()
+  142      {
+  143          #region sample_pg_table_delta_detection
+  144>         var dataSource = new NpgsqlDataSourceBuilder("Host=localhost;Database=mydb").Build();
+  145          var table = new Table("users");
+  146  
+  147          await using var conn = dataSource.CreateConnection();
+  148          await conn.OpenAsync();
+  149  
+  150          // Check if table exists
+  151          bool exists = await table.ExistsInDatabaseAsync(conn);
+  152  
+=== new_findings JasperFx/weasel src/DocSamples/DocSamples.csproj net10.0 src/DocSamples/PostgresqlViewSamples.cs:50 OWN001 IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]
+   43          matView.UseAccessMethod("columnar");
+   44          #endregion
+   45      }
+   46  
+   47      public async Task view_exists_check()
+   48      {
+   49          #region sample_pg_view_exists_check
+   50>         var dataSource = new NpgsqlDataSourceBuilder("Host=localhost;Database=mydb").Build();
+   51          var view = new View("active_users",
+   52              "SELECT id, name, email FROM users WHERE is_active = true");
+   53  
+   54          await using var conn = dataSource.CreateConnection();
+   55          await conn.OpenAsync();
+   56  
+   57          // Check existence
+   58          bool exists = await view.ExistsInDatabaseAsync(conn);
+=== new_findings JasperFx/weasel src/DocSamples/DocSamples.csproj net10.0 src/DocSamples/QuickStartSamples.cs:26 OWN001 IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]
+   19          table.AddColumn<string>("last_name").NotNull();
+   20          table.AddColumn<string>("email");
+   21  
+   22          // Add a unique index on email
+   23          table.ModifyColumn("email").AddIndex(i => i.IsUnique = true);
+   24  
+   25          // Connect and migrate
+   26>         var dataSource = NpgsqlDataSource.Create("Host=localhost;Database=mydb");
+   27          await using var conn = await dataSource.OpenConnectionAsync();
+   28          await table.MigrateAsync(conn);
+   29          #endregion
+   30      }
+   31  
+   32      public async Task sqlserver_quickstart()
+   33      {
+   34          #region sample_sqlserver_quickstart
+=== new_findings JasperFx/weasel src/DocSamples/DocSamples.csproj net9.0 src/DocSamples/PostgresqlFunctionSamples.cs:42 OWN001 IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]
+   35          );
+   36          #endregion
+   37      }
+   38  
+   39      public async Task function_delta_detection()
+   40      {
+   41          #region sample_pg_function_delta_detection
+   42>         var dataSource = new NpgsqlDataSourceBuilder("Host=localhost;Database=mydb").Build();
+   43          var function = Function.ForSql(@"
+   44  CREATE OR REPLACE FUNCTION public.calculate_tax(amount decimal, rate decimal)
+   45  RETURNS decimal
+   46  LANGUAGE sql
+   47  AS $$
+   48      SELECT amount * rate;
+   49  $$;
+   50  ");
+=== new_findings JasperFx/weasel src/DocSamples/DocSamples.csproj net9.0 src/DocSamples/PostgresqlSequenceSamples.cs:49 OWN001 IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]
+   42              .DefaultValueFromSequence(sequence);
+   43          #endregion
+   44      }
+   45  
+   46      public async Task sequence_delta_detection()
+   47      {
+   48          #region sample_pg_sequence_delta_detection
+   49>         var dataSource = new NpgsqlDataSourceBuilder("Host=localhost;Database=mydb").Build();
+   50          var sequence = new Sequence("public.order_number_seq");
+   51  
+   52          await using var conn = dataSource.CreateConnection();
+   53          await conn.OpenAsync();
+   54  
+   55          var delta = await sequence.FindDeltaAsync(conn);
+   56          // delta.Difference: None or Create
+   57          #endregion
+=== new_findings JasperFx/weasel src/DocSamples/DocSamples.csproj net9.0 src/DocSamples/PostgresqlTableSamples.cs:144 OWN001 IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]
+  137              .DefaultValueByExpression("now()");
+  138          #endregion
+  139      }
+  140  
+  141      public async Task delta_detection()
+  142      {
+  143          #region sample_pg_table_delta_detection
+  144>         var dataSource = new NpgsqlDataSourceBuilder("Host=localhost;Database=mydb").Build();
+  145          var table = new Table("users");
+  146  
+  147          await using var conn = dataSource.CreateConnection();
+  148          await conn.OpenAsync();
+  149  
+  150          // Check if table exists
+  151          bool exists = await table.ExistsInDatabaseAsync(conn);
+  152  
+=== new_findings JasperFx/weasel src/DocSamples/DocSamples.csproj net9.0 src/DocSamples/PostgresqlViewSamples.cs:50 OWN001 IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]
+   43          matView.UseAccessMethod("columnar");
+   44          #endregion
+   45      }
+   46  
+   47      public async Task view_exists_check()
+   48      {
+   49          #region sample_pg_view_exists_check
+   50>         var dataSource = new NpgsqlDataSourceBuilder("Host=localhost;Database=mydb").Build();
+   51          var view = new View("active_users",
+   52              "SELECT id, name, email FROM users WHERE is_active = true");
+   53  
+   54          await using var conn = dataSource.CreateConnection();
+   55          await conn.OpenAsync();
+   56  
+   57          // Check existence
+   58          bool exists = await view.ExistsInDatabaseAsync(conn);
+=== new_findings JasperFx/weasel src/DocSamples/DocSamples.csproj net9.0 src/DocSamples/QuickStartSamples.cs:26 OWN001 IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]
+   19          table.AddColumn<string>("last_name").NotNull();
+   20          table.AddColumn<string>("email");
+   21  
+   22          // Add a unique index on email
+   23          table.ModifyColumn("email").AddIndex(i => i.IsUnique = true);
+   24  
+   25          // Connect and migrate
+   26>         var dataSource = NpgsqlDataSource.Create("Host=localhost;Database=mydb");
+   27          await using var conn = await dataSource.OpenConnectionAsync();
+   28          await table.MigrateAsync(conn);
+   29          #endregion
+   30      }
+   31  
+   32      public async Task sqlserver_quickstart()
+   33      {
+   34          #region sample_sqlserver_quickstart
+=== new_findings NpgsqlRest/NpgsqlRest NpgsqlRestClient/NpgsqlRestClient.csproj net10.0 NpgsqlRestClient/Builder.cs:3250 OWN001 IDisposable local 'multiHost' is never disposed (leak) [resource: disposable]
+ 3243      /// Builds the main data source (handles both single-host and multi-host).
+ 3244      /// </summary>
+ 3245      public NpgsqlDataSource BuildMainDataSource(string connectionString)
+ 3246      {
+ 3247          if (IsMultiHostConnectionString(connectionString))
+ 3248          {
+ 3249              var target = GetTargetSessionAttribute(ConnectionName);
+ 3250>             var multiHost = new NpgsqlDataSourceBuilder(connectionString).BuildMultiHost();
+ 3251              ClientLogger?.LogDebug("Using multi-host data source with target session '{TargetSession}'", target);
+ 3252              return multiHost.WithTargetSession(target);
+ 3253          }
+ 3254          return new NpgsqlDataSourceBuilder(connectionString).Build();
+ 3255      }
+ 3256  
+ 3257      public ValidationOptions BuildValidationOptions()
+ 3258      {
+=== new_findings NpgsqlRest/NpgsqlRest NpgsqlRestClient/NpgsqlRestClient.csproj net10.0 NpgsqlRestClient/Builder.cs:3250 OWN001 IDisposable local 'multiHost' is never disposed (leak) [resource: disposable]
+ 3243      /// Builds the main data source (handles both single-host and multi-host).
+ 3244      /// </summary>
+ 3245      public NpgsqlDataSource BuildMainDataSource(string connectionString)
+ 3246      {
+ 3247          if (IsMultiHostConnectionString(connectionString))
+ 3248          {
+ 3249              var target = GetTargetSessionAttribute(ConnectionName);
+ 3250>             var multiHost = new NpgsqlDataSourceBuilder(connectionString).BuildMultiHost();
+ 3251              ClientLogger?.LogDebug("Using multi-host data source with target session '{TargetSession}'", target);
+ 3252              return multiHost.WithTargetSession(target);
+ 3253          }
+ 3254          return new NpgsqlDataSourceBuilder(connectionString).Build();
+ 3255      }
+ 3256  
+ 3257      public ValidationOptions BuildValidationOptions()
+ 3258      {
+=== new_findings victor-wiki/DatabaseManager DatabaseInterpreter/DatabaseInterpreter.Core/DatabaseInterpreter.Core.csproj net10.0 DatabaseInterpreter/DatabaseInterpreter.Core/Connection/DbConnector.cs:50 OWN001 IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]
+   43              }
+   44              else if (lowerProviderName.Contains("npgsql"))
+   45              {
+   46                  //factory = NpgsqlFactory.Instance;
+   47  
+   48                  var dataSourceBuilder = new NpgsqlDataSourceBuilder(this._connectionString);
+   49                  dataSourceBuilder.UseNetTopologySuite();
+   50>                 var dataSource = dataSourceBuilder.Build();
+   51  
+   52                  return dataSource.CreateConnection();
+   53              }
+   54              else if(lowerProviderName.Contains("sqlite"))
+   55              {
+   56                  factory = SqliteFactory.Instance;
+   57              }
+   58             

@@ -1,0 +1,608 @@
+{
+ "A": {
+  "at_10": {
+   "executions": 10,
+   "validated_fresh": 6,
+   "contradicted_cached": 0,
+   "inconclusive": 3,
+   "unwitnessable": 1
+  },
+  "at_25": {
+   "executions": 25,
+   "validated_fresh": 13,
+   "contradicted_cached": 1,
+   "inconclusive": 8,
+   "unwitnessable": 3
+  },
+  "order": [
+   [
+    "SkiaSharp.SKBitmap.Copy",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKImage.FromBitmap",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Npgsql.NpgsqlCommand.ExecuteReader",
+    "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)"
+   ],
+   [
+    "SkiaSharp.SKRuntimeShaderBuilder.Build",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKRuntimeColorFilterBuilder.Build",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKRuntimeBlenderBuilder.Build",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKTextBlobBuilder.Build",
+    "INCONCLUSIVE:inconclusive"
+   ],
+   [
+    "Npgsql.NpgsqlConnection.BeginTransactionAsync",
+    "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)"
+   ],
+   [
+    "SkiaSharp.SKSurface.Create",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "StackExchange.Redis.ConnectionMultiplexer.Connect",
+    "UNWITNESSABLE:UNWITNESSABLE_ARGS"
+   ],
+   [
+    "Npgsql.NpgsqlBatch.ExecuteReaderAsync",
+    "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)"
+   ],
+   [
+    "Npgsql.NpgsqlBatch.ExecuteReader",
+    "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)"
+   ],
+   [
+    "Npgsql.NpgsqlConnection.CreateCommand",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Npgsql.NpgsqlCommand.ExecuteReaderAsync",
+    "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)"
+   ],
+   [
+    "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Npgsql.NpgsqlMultiHostDataSource.OpenConnectionAsync",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "RabbitMQ.Client.ConnectionFactory.CreateConnectionAsync",
+    "UNWITNESSABLE:UNWITNESSABLE_ENV"
+   ],
+   [
+    "Renci.SshNet.SftpClient.Create",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKPaint.Clone",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKTypeface.Clone",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Npgsql.NpgsqlConnection.BeginTransaction",
+    "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)"
+   ],
+   [
+    "SkiaSharp.SKTypeface.FromFamilyName",
+    "VALIDATED_SHARED_OR_CACHED"
+   ],
+   [
+    "Renci.SshNet.SftpClient.Open",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "StackExchange.Redis.ConnectionMultiplexer.ConnectAsync",
+    "UNWITNESSABLE:UNWITNESSABLE_ARGS"
+   ],
+   [
+    "SkiaSharp.SKCodec.Create",
+    "INCONCLUSIVE:null-result"
+   ]
+  ]
+ },
+ "C": {
+  "at_10": {
+   "executions": 10,
+   "validated_fresh": 4,
+   "contradicted_cached": 2,
+   "inconclusive": 3,
+   "unwitnessable": 1
+  },
+  "at_25": {
+   "executions": 25,
+   "validated_fresh": 17,
+   "contradicted_cached": 2,
+   "inconclusive": 5,
+   "unwitnessable": 1
+  },
+  "order": [
+   [
+    "SkiaSharp.SKGraphiteRecorder.Snap",
+    "UNWITNESSABLE:UNWITNESSABLE_RECEIVER"
+   ],
+   [
+    "SkiaSharp.SKTypeface.FromFamilyName",
+    "VALIDATED_SHARED_OR_CACHED"
+   ],
+   [
+    "SkiaSharp.SKData.Create",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKDocument.CreatePdf",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKDocument.CreateXps",
+    "INCONCLUSIVE:null-result"
+   ],
+   [
+    "SkiaSharp.SKRuntimeEffect.CreateShader",
+    "INCONCLUSIVE:null-result"
+   ],
+   [
+    "SkiaSharp.SKImage.Create",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKColorSpaceIccProfile.Create",
+    "INCONCLUSIVE:null-result"
+   ],
+   [
+    "SkiaSharp.SKFontManager.MatchCharacter",
+    "VALIDATED_SHARED_OR_CACHED"
+   ],
+   [
+    "SkiaSharp.SKImage.FromPixels",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKSvgCanvas.Create",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKFontManager.CreateTypeface",
+    "INCONCLUSIVE:null-result"
+   ],
+   [
+    "SkiaSharp.SKPixmap.WithAlphaType",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKPicture.Deserialize",
+    "INCONCLUSIVE:null-result"
+   ],
+   [
+    "SkiaSharp.SKPixmap.WithColorType",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKPixmap.WithColorSpace",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKSurface.Create",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKShader.CreateLinearGradient",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKImage.FromEncodedData",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKPathEffect.CreateDash",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKColorFilter.CreateColorMatrix",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKShader.CreateRadialGradient",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKData.CreateCopy",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKShader.CreateColor",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKColorFilter.CreateBlendMode",
+    "VALIDATED_FRESH"
+   ]
+  ]
+ },
+ "D": {
+  "at_10": {
+   "executions": 10,
+   "validated_fresh": 7,
+   "contradicted_cached": 0,
+   "inconclusive": 1,
+   "unwitnessable": 2
+  },
+  "at_25": {
+   "executions": 25,
+   "validated_fresh": 18,
+   "contradicted_cached": 1,
+   "inconclusive": 2,
+   "unwitnessable": 4
+  },
+  "order": [
+   [
+    "SkiaSharp.SKWebpEncoder.EncodeAnimated",
+    "UNWITNESSABLE:UNWITNESSABLE_ARGS"
+   ],
+   [
+    "SkiaSharp.SKWebpEncoder.Encode",
+    "UNWITNESSABLE:UNWITNESSABLE_ARGS"
+   ],
+   [
+    "SkiaSharp.SKPixmap.Encode",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKRuntimeEffect.CreateShader",
+    "INCONCLUSIVE:null-result"
+   ],
+   [
+    "SkiaSharp.SKImageFilter.CreateSpotLitSpecular",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKImageFilter.CreateSpotLitDiffuse",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKBitmap.Encode",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKData.Create",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKDocument.CreatePdf",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKShader.CreateTwoPointConicalGradient",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKShader.CreatePerlinNoiseTurbulence",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKShader.CreatePerlinNoiseFractalNoise",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKCodec.Create",
+    "INCONCLUSIVE:null-result"
+   ],
+   [
+    "SkiaSharp.SKShader.CreateSweepGradient",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKImageFilter.CreateDropShadow",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKImageFilter.CreateDistantLitSpecular",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKImageFilter.CreatePointLitSpecular",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKImageFilter.CreateDropShadowOnly",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKSurface.Create",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKShader.CreateLinearGradient",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKTypeface.FromFamilyName",
+    "VALIDATED_SHARED_OR_CACHED"
+   ],
+   [
+    "SkiaSharp.SKSvgCanvas.Create",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKVertices.CreateCopy",
+    "UNWITNESSABLE:UNWITNESSABLE_ARGS"
+   ],
+   [
+    "SkiaSharp.SKShader.CreateRadialGradient",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKImageFilter.CreateMatrixConvolution",
+    "UNWITNESSABLE:UNWITNESSABLE_ARGS"
+   ]
+  ]
+ },
+ "U": {
+  "at_10": {
+   "executions": 10,
+   "validated_fresh": 9,
+   "contradicted_cached": 0,
+   "inconclusive": 1,
+   "unwitnessable": 0
+  },
+  "at_25": {
+   "executions": 25,
+   "validated_fresh": 18,
+   "contradicted_cached": 0,
+   "inconclusive": 6,
+   "unwitnessable": 1
+  },
+  "order": [
+   [
+    "SkiaSharp.SKTextBlob.CreatePathPositioned",
+    "INCONCLUSIVE:null-result"
+   ],
+   [
+    "Npgsql.NpgsqlConnection.BeginBinaryImportAsync",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKImageFilter.CreateCrop",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Renci.SshNet.SftpClient.OpenRead",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKDocument.CreatePdf",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Npgsql.NpgsqlConnection.BeginBinaryImport",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKData.CreateCopy",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Renci.SshNet.SftpClient.OpenWrite",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Npgsql.NpgsqlMultiHostDataSource.OpenConnectionAsync",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Npgsql.NpgsqlCommand.ExecuteReaderAsync",
+    "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)"
+   ],
+   [
+    "Npgsql.NpgsqlConnection.CreateCommand",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Npgsql.NpgsqlConnection.BeginBinaryExportAsync",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Npgsql.NpgsqlConnection.BeginTextExportAsync",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Npgsql.NpgsqlBatch.ExecuteReaderAsync",
+    "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)"
+   ],
+   [
+    "SkiaSharp.SKSurface.PeekPixels",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKSvgCanvas.Create",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKShader.CreateImage",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKBitmap.PeekPixels",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKCodec.Create",
+    "INCONCLUSIVE:null-result"
+   ],
+   [
+    "SkiaSharp.SKImage.PeekPixels",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKPathEffect.CreateDiscrete",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "StackExchange.Redis.ConnectionMultiplexer.ConnectGroupAsync",
+    "UNWITNESSABLE:UNWITNESSABLE_ARGS"
+   ],
+   [
+    "SkiaSharp.SKDocument.CreateXps",
+    "INCONCLUSIVE:null-result"
+   ],
+   [
+    "Npgsql.NpgsqlCommand.ExecuteReader",
+    "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)"
+   ]
+  ]
+ },
+ "B": {
+  "at_10": {
+   "executions": 10,
+   "validated_fresh": 8,
+   "contradicted_cached": 2,
+   "inconclusive": 0,
+   "unwitnessable": 0
+  },
+  "at_25": {
+   "executions": 25,
+   "validated_fresh": 15,
+   "contradicted_cached": 2,
+   "inconclusive": 8,
+   "unwitnessable": 0
+  },
+  "order": [
+   [
+    "SkiaSharp.SKImage.FromBitmap",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKBitmap.Copy",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKSurface.Create",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKImage.Encode",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKPixmap.Encode",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKBitmap.Encode",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKSurface.Snapshot",
+    "VALIDATED_SHARED_OR_CACHED"
+   ],
+   [
+    "SkiaSharp.SKBitmap.Resize",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKPaint.Clone",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKTypeface.FromFamilyName",
+    "VALIDATED_SHARED_OR_CACHED"
+   ],
+   [
+    "SkiaSharp.SKCodec.Create",
+    "INCONCLUSIVE:null-result"
+   ],
+   [
+    "SkiaSharp.SKShader.CreateLinearGradient",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKImage.FromEncodedData",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKPictureRecorder.EndRecording",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "SkiaSharp.SKTextBlobBuilder.Build",
+    "INCONCLUSIVE:inconclusive"
+   ],
+   [
+    "Npgsql.NpgsqlCommand.ExecuteReader",
+    "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)"
+   ],
+   [
+    "Npgsql.NpgsqlConnection.BeginTransactionAsync",
+    "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)"
+   ],
+   [
+    "Npgsql.NpgsqlBatch.ExecuteReader",
+    "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)"
+   ],
+   [
+    "Npgsql.NpgsqlBatch.ExecuteReaderAsync",
+    "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)"
+   ],
+   [
+    "Npgsql.NpgsqlConnection.CreateCommand",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Npgsql.NpgsqlCommand.ExecuteReaderAsync",
+    "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)"
+   ],
+   [
+    "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Npgsql.NpgsqlDataSource.OpenConnection",
+    "VALIDATED_FRESH"
+   ],
+   [
+    "Npgsql.NpgsqlConnection.BeginTransaction",
+    "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)"
+   ],
+   [
+    "Npgsql.NpgsqlConnection.BeginBinaryImport",
+    "VALIDATED_FRESH"
+   ]
+  ]
+ },
+ "_universe_totals": {
+  "candidates": 205,
+  "executed": 166,
+  "labels": {
+   "INCONCLUSIVE:environment-error": 5,
+   "INCONCLUSIVE:reused-instance(sequential mode: the same object handed out again after disposal is pooling/reuse, not sharing)": 10,
+   "VALIDATED_SHARED_OR_CACHED": 12,
+   "VALIDATED_FRESH": 122,
+   "INCONCLUSIVE:null-result": 14,
+   "UNWITNESSABLE:ABSENT_OR_INACCESSIBLE_IN_TESTED_BUILD": 2,
+   "INCONCLUSIVE:inconclusive": 1,
+   "UNWITNESSABLE:UNWITNESSABLE_RECEIVER": 12,
+   "UNWITNESSABLE:UNWITNESSABLE_ARGS": 19,
+   "UNWITNESSABLE:UNWITNESSABLE_ENV": 8
+  }
+ }
+}

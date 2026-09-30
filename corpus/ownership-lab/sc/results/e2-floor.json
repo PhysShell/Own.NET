@@ -1,0 +1,299 @@
+{
+ "per_consumer": [
+  {
+   "repo": "DuendeSoftware/products",
+   "sha": "100e14c801",
+   "production_projects": 111,
+   "restored_ok": 111,
+   "trusted_units": 0,
+   "unverified_units": 1,
+   "units_by_class": {
+    "version_drift": 1
+   },
+   "families_hit": [],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 0,
+   "textual_declaration_sites": 0,
+   "trusted_units_production": 0
+  },
+  {
+   "repo": "JasperFx/marten",
+   "sha": "7a6c9c3bb1",
+   "production_projects": 55,
+   "restored_ok": 55,
+   "trusted_units": 6,
+   "unverified_units": 0,
+   "units_by_class": {
+    "rederived_same_source": 6
+   },
+   "families_hit": [
+    "Npgsql"
+   ],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 58,
+   "textual_declaration_sites": 238,
+   "trusted_units_production": 0
+  },
+  {
+   "repo": "JasperFx/weasel",
+   "sha": "73b158bf5a",
+   "production_projects": 22,
+   "restored_ok": 23,
+   "trusted_units": 20,
+   "unverified_units": 0,
+   "units_by_class": {
+    "rederived_same_source": 20
+   },
+   "families_hit": [
+    "Npgsql"
+   ],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 36,
+   "textual_declaration_sites": 336,
+   "trusted_units_production": 4
+  },
+  {
+   "repo": "JasperFx/wolverine",
+   "sha": "7ee3df905e",
+   "production_projects": 128,
+   "restored_ok": 130,
+   "trusted_units": 4,
+   "unverified_units": 2,
+   "units_by_class": {
+    "rederived_same_source": 4,
+    "version_drift": 2
+   },
+   "families_hit": [
+    "Npgsql"
+   ],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 25,
+   "textual_declaration_sites": 131,
+   "trusted_units_production": 2
+  },
+  {
+   "repo": "NpgsqlRest/NpgsqlRest",
+   "sha": "6cc6f55fa6",
+   "production_projects": 11,
+   "restored_ok": 12,
+   "trusted_units": 7,
+   "unverified_units": 1,
+   "units_by_class": {
+    "version_drift": 1,
+    "rederived_same_source": 7
+   },
+   "families_hit": [
+    "Npgsql"
+   ],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 57,
+   "textual_declaration_sites": 58,
+   "trusted_units_production": 2
+  },
+  {
+   "repo": "WebVella/WebVella-ERP",
+   "sha": "389e4ff7de",
+   "production_projects": 19,
+   "restored_ok": 20,
+   "trusted_units": 0,
+   "unverified_units": 0,
+   "units_by_class": {},
+   "families_hit": [],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 39,
+   "textual_declaration_sites": 116,
+   "trusted_units_production": 0
+  },
+  {
+   "repo": "dotnet-ad/SkiaSharp.Components",
+   "sha": "4d5d3fcbf0",
+   "production_projects": 11,
+   "restored_ok": 12,
+   "trusted_units": 0,
+   "unverified_units": 1,
+   "units_by_class": {
+    "version_drift": 1
+   },
+   "families_hit": [],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 0,
+   "textual_declaration_sites": 0,
+   "trusted_units_production": 0
+  },
+  {
+   "repo": "erikdarlingdata/PerformanceMonitor",
+   "sha": "b342229e3c",
+   "production_projects": 22,
+   "restored_ok": 0,
+   "trusted_units": 0,
+   "unverified_units": 0,
+   "units_by_class": {},
+   "families_hit": [],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 0,
+   "textual_declaration_sites": 0,
+   "trusted_units_production": 0
+  },
+  {
+   "repo": "guitarrapc/FeatherQR",
+   "sha": "02e5112561",
+   "production_projects": 7,
+   "restored_ok": 6,
+   "trusted_units": 0,
+   "unverified_units": 0,
+   "units_by_class": {},
+   "families_hit": [],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 11,
+   "textual_declaration_sites": 74,
+   "trusted_units_production": 0
+  },
+  {
+   "repo": "microsoft/aspire",
+   "sha": "4f442cdb5a",
+   "production_projects": 379,
+   "restored_ok": 0,
+   "trusted_units": 0,
+   "unverified_units": 0,
+   "units_by_class": {},
+   "families_hit": [],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 0,
+   "textual_declaration_sites": 0,
+   "trusted_units_production": 0
+  },
+  {
+   "repo": "mikependon/RepoDB",
+   "sha": "edabfb2044",
+   "production_projects": 104,
+   "restored_ok": 104,
+   "trusted_units": 3,
+   "unverified_units": 0,
+   "units_by_class": {
+    "witnessed_exact_binary": 3
+   },
+   "families_hit": [
+    "Npgsql"
+   ],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 18,
+   "textual_declaration_sites": 366,
+   "trusted_units_production": 3
+  },
+  {
+   "repo": "npgsql/efcore.pg",
+   "sha": "930bd291f7",
+   "production_projects": 3,
+   "restored_ok": 0,
+   "trusted_units": 0,
+   "unverified_units": 0,
+   "units_by_class": {},
+   "families_hit": [],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 0,
+   "textual_declaration_sites": 0,
+   "trusted_units_production": 0
+  },
+  {
+   "repo": "potatobeanradio/circuitRF",
+   "sha": "9761afe90b",
+   "production_projects": 22,
+   "restored_ok": 23,
+   "trusted_units": 0,
+   "unverified_units": 0,
+   "units_by_class": {},
+   "families_hit": [],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 0,
+   "textual_declaration_sites": 0,
+   "trusted_units_production": 0
+  },
+  {
+   "repo": "quartznet/quartznet",
+   "sha": "15d90a9c26",
+   "production_projects": 42,
+   "restored_ok": 43,
+   "trusted_units": 1,
+   "unverified_units": 0,
+   "units_by_class": {
+    "rederived_same_source": 1
+   },
+   "families_hit": [
+    "Npgsql"
+   ],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 88,
+   "textual_declaration_sites": 938,
+   "trusted_units_production": 0
+  },
+  {
+   "repo": "seiggy/lucia-dotnet",
+   "sha": "8b27632738",
+   "production_projects": 17,
+   "restored_ok": 18,
+   "trusted_units": 0,
+   "unverified_units": 0,
+   "units_by_class": {},
+   "families_hit": [],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 19,
+   "textual_declaration_sites": 59,
+   "trusted_units_production": 0
+  },
+  {
+   "repo": "victor-wiki/DatabaseManager",
+   "sha": "032506d906",
+   "production_projects": 15,
+   "restored_ok": 14,
+   "trusted_units": 2,
+   "unverified_units": 0,
+   "units_by_class": {
+    "rederived_same_source": 2
+   },
+   "families_hit": [
+    "ICSharpCode.SharpZipLib",
+    "Npgsql"
+   ],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 3,
+   "textual_declaration_sites": 29,
+   "trusted_units_production": 2
+  },
+  {
+   "repo": "wieslawsoltes/ProGPU",
+   "sha": "7941cdec3e",
+   "production_projects": 129,
+   "restored_ok": 110,
+   "trusted_units": 0,
+   "unverified_units": 0,
+   "units_by_class": {},
+   "families_hit": [],
+   "extractor_failures": 0,
+   "textual_assignment_sites": 0,
+   "textual_declaration_sites": 0,
+   "trusted_units_production": 0
+  }
+ ],
+ "floor": {
+  "consumers": 17,
+  "unique_trusted_opportunities": 43,
+  "unique_trusted_opportunities_production": 13,
+  "unique_trusted_opportunities_test_projects": 30,
+  "consumers_with_at_least_one": 7,
+  "consumers_with_at_least_one_production": 5,
+  "dependency_families": [
+   "ICSharpCode.SharpZipLib",
+   "Npgsql"
+  ],
+  "dependency_families_production": [
+   "ICSharpCode.SharpZipLib",
+   "Npgsql"
+  ],
+  "unverified_units_total": 5,
+  "unique_source_spans_tfm_collapsed": 26,
+  "unique_source_spans_tfm_collapsed_production": 8,
+  "met_all_projects": false,
+  "met_production_only": false,
+  "rule": ">=10 consumers AND >=30 unique semantic opportunities AND >=5 consumers with >=1 AND >=3 dependency families; decided on the stricter production-only count (test-project opportunities reported separately)"
+ }
+}

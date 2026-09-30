@@ -1,0 +1,3098 @@
+{
+ "universe": [
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKBitmap.Copy",
+   "matches": 1000,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKBitmap",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImage.FromBitmap",
+   "matches": 1000,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImage",
+   "parameters": [
+    "SkiaSharp.SKBitmap"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKBitmap.Encode",
+   "matches": 999,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKData",
+   "parameters": [
+    "SkiaSharp.SKEncodedImageFormat",
+    "int"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKDrawable.Snapshot",
+   "matches": 999,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPicture",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImage.Encode",
+   "matches": 999,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKData",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPathBuilder.Snapshot",
+   "matches": 999,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPath",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPixmap.Encode",
+   "matches": 999,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKData?",
+   "parameters": [
+    "SkiaSharp.SKEncodedImageFormat",
+    "int"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKSurface.Snapshot",
+   "matches": 999,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImage",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlCommand.ExecuteReader",
+   "matches": 998,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlDataReader",
+   "parameters": [
+    "System.Data.CommandBehavior"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKRuntimeShaderBuilder.Build",
+   "matches": 997,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKRuntimeColorFilterBuilder.Build",
+   "matches": 997,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKColorFilter",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKRuntimeBlenderBuilder.Build",
+   "matches": 997,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKBlender",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKTextBlobBuilder.Build",
+   "matches": 997,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKTextBlob?",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.BeginTransactionAsync",
+   "matches": 997,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "Npgsql.NpgsqlTransaction",
+   "parameters": [
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKSurface.Create",
+   "matches": 996,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKSurface",
+   "parameters": [
+    "SkiaSharp.SKImageInfo"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "StackExchange.Redis",
+   "callable": "StackExchange.Redis.ConnectionMultiplexer.Connect",
+   "matches": 995,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "StackExchange.Redis.ConnectionMultiplexer",
+   "parameters": [
+    "string",
+    "System.IO.TextWriter?"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlBatch.ExecuteReaderAsync",
+   "matches": 991,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "Npgsql.NpgsqlDataReader",
+   "parameters": [
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlBatch.ExecuteReader",
+   "matches": 989,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlDataReader",
+   "parameters": [
+    "System.Data.CommandBehavior"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.CreateCommand",
+   "matches": 988,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlCommand",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlCommand.ExecuteReaderAsync",
+   "matches": 984,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "Npgsql.NpgsqlDataReader",
+   "parameters": [
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+   "matches": 979,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "Npgsql.NpgsqlConnection",
+   "parameters": [
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnectionAsync",
+   "matches": 978,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "Npgsql.NpgsqlConnection",
+   "parameters": [
+    "Npgsql.TargetSessionAttributes",
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKBitmap.Resize",
+   "matches": 895,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKBitmap",
+   "parameters": [
+    "SkiaSharp.SKImageInfo",
+    "SkiaSharp.SKFilterQuality"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "RabbitMQ.Client",
+   "callable": "RabbitMQ.Client.ConnectionFactory.CreateConnectionAsync",
+   "matches": 859,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "RabbitMQ.Client.IConnection",
+   "parameters": [
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SftpClient.Create",
+   "matches": 771,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Renci.SshNet.Sftp.SftpFileStream",
+   "parameters": [
+    "string"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPaint.Clone",
+   "matches": 758,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPaint",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKTypeface.Clone",
+   "matches": 758,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKTypeface",
+   "parameters": [
+    "System.ReadOnlySpan<SkiaSharp.SKFontVariationPositionCoordinate>"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.BeginTransaction",
+   "matches": 731,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlTransaction",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKTypeface.FromFamilyName",
+   "matches": 610,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKTypeface",
+   "parameters": [
+    "string",
+    "int",
+    "int",
+    "SkiaSharp.SKFontStyleSlant"
+   ],
+   "arity": 4
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SftpClient.Open",
+   "matches": 558,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Renci.SshNet.Sftp.SftpFileStream",
+   "parameters": [
+    "string",
+    "System.IO.FileMode"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKBitmap.PeekPixels",
+   "matches": 524,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPixmap",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImage.PeekPixels",
+   "matches": 524,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPixmap",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKSurface.PeekPixels",
+   "matches": 524,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPixmap",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKRoundRect.Transform",
+   "matches": 493,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKRoundRect",
+   "parameters": [
+    "SkiaSharp.SKMatrix"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "StackExchange.Redis",
+   "callable": "StackExchange.Redis.ConnectionMultiplexer.ConnectAsync",
+   "matches": 470,
+   "is_static": true,
+   "async_wrapped": true,
+   "returns": "StackExchange.Redis.ConnectionMultiplexer",
+   "parameters": [
+    "string",
+    "System.IO.TextWriter?"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPicture.Serialize",
+   "matches": 462,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKData",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKCodec.Create",
+   "matches": 354,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKCodec",
+   "parameters": [
+    "string"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKShader.CreateLinearGradient",
+   "matches": 342,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [
+    "SkiaSharp.SKPoint",
+    "SkiaSharp.SKPoint",
+    "SkiaSharp.SKColor[]",
+    "SkiaSharp.SKShaderTileMode"
+   ],
+   "arity": 4
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPathBuilder.Detach",
+   "matches": 334,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPath",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImage.FromEncodedData",
+   "matches": 286,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImage",
+   "parameters": [
+    "SkiaSharp.SKData",
+    "SkiaSharp.SKRectI"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPictureRecorder.BeginRecording",
+   "matches": 282,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKCanvas",
+   "parameters": [
+    "SkiaSharp.SKRect"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlDataSource.OpenConnection",
+   "matches": 281,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlConnection",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnection",
+   "matches": 281,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlConnection",
+   "parameters": [
+    "Npgsql.TargetSessionAttributes"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.BeginBinaryImport",
+   "matches": 278,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlBinaryImporter",
+   "parameters": [
+    "string"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.BeginBinaryExport",
+   "matches": 261,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlBinaryExporter",
+   "parameters": [
+    "string"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SftpClient.OpenRead",
+   "matches": 261,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Renci.SshNet.Sftp.SftpFileStream",
+   "parameters": [
+    "string"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPictureRecorder.EndRecording",
+   "matches": 260,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPicture",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPathEffect.CreateDash",
+   "matches": 255,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPathEffect",
+   "parameters": [
+    "float[]",
+    "float"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.GetSchema",
+   "matches": 245,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "System.Data.DataTable",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SshClient.RunCommand",
+   "matches": 208,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Renci.SshNet.SshCommand",
+   "parameters": [
+    "string"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKBitmap.ToShader",
+   "matches": 206,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImage.ToShader",
+   "matches": 206,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPicture.ToShader",
+   "matches": 206,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKRuntimeEffect.ToShader",
+   "matches": 206,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.BeginBinaryImportAsync",
+   "matches": 195,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "Npgsql.NpgsqlBinaryImporter",
+   "parameters": [
+    "string",
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKFontManager.MatchCharacter",
+   "matches": 192,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKTypeface",
+   "parameters": [
+    "char"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateBlur",
+   "matches": 177,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "float",
+    "float"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKColorFilter.CreateColorMatrix",
+   "matches": 163,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKColorFilter",
+   "parameters": [
+    "float[]"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKShader.CreateRadialGradient",
+   "matches": 163,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [
+    "SkiaSharp.SKPoint",
+    "float",
+    "SkiaSharp.SKColor[]",
+    "SkiaSharp.SKShaderTileMode"
+   ],
+   "arity": 4
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKTypeface.FromFile",
+   "matches": 155,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKTypeface",
+   "parameters": [
+    "string",
+    "int"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKColorSpace.CreateSrgbLinear",
+   "matches": 150,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKColorSpace",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SftpClient.OpenWrite",
+   "matches": 145,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Renci.SshNet.Sftp.SftpFileStream",
+   "parameters": [
+    "string"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKStream.GetData",
+   "matches": 144,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKData",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKData.Create",
+   "matches": 139,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKData",
+   "parameters": [
+    "int"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPath.Op",
+   "matches": 139,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPath",
+   "parameters": [
+    "SkiaSharp.SKPath",
+    "SkiaSharp.SKPathOp"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKData.CreateCopy",
+   "matches": 136,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKData",
+   "parameters": [
+    "nint",
+    "int"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKColorSpace.CreateSrgb",
+   "matches": 134,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKColorSpace",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKShader.CreateColor",
+   "matches": 127,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [
+    "SkiaSharp.SKColor"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SshClient.CreateShellStream",
+   "matches": 125,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Renci.SshNet.ShellStream",
+   "parameters": [
+    "string",
+    "uint",
+    "uint",
+    "uint",
+    "uint",
+    "int"
+   ],
+   "arity": 6
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPaint.GetFillPath",
+   "matches": 121,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPath",
+   "parameters": [
+    "SkiaSharp.SKPath"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKColorFilter.CreateBlendMode",
+   "matches": 117,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKColorFilter",
+   "parameters": [
+    "SkiaSharp.SKColor",
+    "SkiaSharp.SKBlendMode"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKMaskFilter.CreateBlur",
+   "matches": 112,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKMaskFilter",
+   "parameters": [
+    "SkiaSharp.SKBlurStyle",
+    "float"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKTypeface.FromStream",
+   "matches": 103,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKTypeface",
+   "parameters": [
+    "System.IO.Stream",
+    "int"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.GRContext.CreateGl",
+   "matches": 102,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.GRContext",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKFontManager.MatchFamily",
+   "matches": 102,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKTypeface",
+   "parameters": [
+    "string"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImage.FromPixels",
+   "matches": 101,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImage",
+   "parameters": [
+    "SkiaSharp.SKImageInfo",
+    "SkiaSharp.SKData"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKRuntimeEffect.CreateShader",
+   "matches": 95,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKRuntimeEffect",
+   "parameters": [
+    "string",
+    "string"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlDataReader.GetSchemaTable",
+   "matches": 94,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "System.Data.DataTable?",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPaint.ToFont",
+   "matches": 89,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKFont",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKDocument.BeginPage",
+   "matches": 85,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKCanvas",
+   "parameters": [
+    "float",
+    "float"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPixmap.ExtractSubset",
+   "matches": 85,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPixmap?",
+   "parameters": [
+    "SkiaSharp.SKRectI"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateColorFilter",
+   "matches": 84,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKColorFilter"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlDataReader.GetStream",
+   "matches": 82,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "System.IO.Stream",
+   "parameters": [
+    "int"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageReadPixelsResult.ToImage",
+   "matches": 77,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImage",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKTypeface.OpenStream",
+   "matches": 74,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKStreamAsset",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKShader.CreateBitmap",
+   "matches": 71,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [
+    "SkiaSharp.SKBitmap"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKData.Subset",
+   "matches": 68,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKData",
+   "parameters": [
+    "ulong",
+    "ulong"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImage.Subset",
+   "matches": 68,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImage",
+   "parameters": [
+    "SkiaSharp.SKRectI"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKDynamicMemoryWStream.DetachAsData",
+   "matches": 68,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKData",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKDocument.CreatePdf",
+   "matches": 66,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKDocument",
+   "parameters": [
+    "string"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImage.FromPixelCopy",
+   "matches": 57,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImage",
+   "parameters": [
+    "SkiaSharp.SKImageInfo",
+    "SkiaSharp.SKStream"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateDropShadow",
+   "matches": 57,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "float",
+    "float",
+    "float",
+    "float",
+    "SkiaSharp.SKColor"
+   ],
+   "arity": 5
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKTypeface.FromData",
+   "matches": 55,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKTypeface",
+   "parameters": [
+    "SkiaSharp.SKData",
+    "int"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SftpClient.OpenAsync",
+   "matches": 54,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "Renci.SshNet.Sftp.SftpFileStream",
+   "parameters": [
+    "string",
+    "System.IO.FileMode",
+    "System.IO.FileAccess",
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 4
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKSvgCanvas.Create",
+   "matches": 51,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKCanvas",
+   "parameters": [
+    "SkiaSharp.SKRect",
+    "System.IO.Stream"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlDataReader.GetData",
+   "matches": 51,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlNestedDataReader",
+   "parameters": [
+    "int"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlNestedDataReader.GetData",
+   "matches": 51,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlNestedDataReader",
+   "parameters": [
+    "int"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKFontManager.CreateTypeface",
+   "matches": 50,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKTypeface",
+   "parameters": [
+    "string",
+    "int"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKFontStyleSet.CreateTypeface",
+   "matches": 50,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKTypeface",
+   "parameters": [
+    "int"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.GRGlInterface.Create",
+   "matches": 49,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.GRGlInterface",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKColorSpace.CreateRgb",
+   "matches": 46,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKColorSpace",
+   "parameters": [
+    "SkiaSharp.SKColorSpaceTransferFn",
+    "SkiaSharp.SKColorSpaceXyz"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKShader.CreateSweepGradient",
+   "matches": 45,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [
+    "SkiaSharp.SKPoint",
+    "SkiaSharp.SKColor[]"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKShader.CreateTwoPointConicalGradient",
+   "matches": 45,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [
+    "SkiaSharp.SKPoint",
+    "float",
+    "SkiaSharp.SKPoint",
+    "float",
+    "SkiaSharp.SKColor[]",
+    "SkiaSharp.SKShaderTileMode"
+   ],
+   "arity": 6
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.CreateBatch",
+   "matches": 44,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlBatch",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKColorFilter.CreateTable",
+   "matches": 42,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKColorFilter",
+   "parameters": [
+    "byte[]"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlDataReader.GetTextReader",
+   "matches": 40,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "System.IO.TextReader",
+   "parameters": [
+    "int"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImage.ToRasterImage",
+   "matches": 39,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImage",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKTypeface.CreateDefault",
+   "matches": 38,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKTypeface",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "MailKit",
+   "callable": "MailKit.MailFolder.GetStream",
+   "matches": 38,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "System.IO.Stream",
+   "parameters": [
+    "MailKit.UniqueId",
+    "System.Threading.CancellationToken",
+    "MailKit.ITransferProgress?"
+   ],
+   "arity": 3
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKShader.CreateImage",
+   "matches": 37,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [
+    "SkiaSharp.SKImage"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "LibGit2Sharp",
+   "callable": "LibGit2Sharp.RemoteCollection.Rename",
+   "matches": 37,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "LibGit2Sharp.Remote",
+   "parameters": [
+    "string",
+    "string"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateBlendMode",
+   "matches": 36,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKBlendMode",
+    "SkiaSharp.SKImageFilter?"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateDilate",
+   "matches": 35,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "float",
+    "float"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKTextBlob.Create",
+   "matches": 35,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKTextBlob?",
+   "parameters": [
+    "string",
+    "SkiaSharp.SKFont",
+    "SkiaSharp.SKPoint"
+   ],
+   "arity": 3
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImage.Create",
+   "matches": 34,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImage",
+   "parameters": [
+    "SkiaSharp.SKImageInfo"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPixmap.WithAlphaType",
+   "matches": 34,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPixmap",
+   "parameters": [
+    "SkiaSharp.SKAlphaType"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateMatrixConvolution",
+   "matches": 32,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKSizeI",
+    "System.ReadOnlySpan<float>",
+    "float",
+    "float",
+    "SkiaSharp.SKPointI",
+    "SkiaSharp.SKShaderTileMode",
+    "bool"
+   ],
+   "arity": 7
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKShader.CreatePerlinNoiseTurbulence",
+   "matches": 32,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [
+    "float",
+    "float",
+    "int",
+    "float"
+   ],
+   "arity": 4
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKShader.CreateCompose",
+   "matches": 32,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [
+    "SkiaSharp.SKShader",
+    "SkiaSharp.SKShader"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.BeginTextImport",
+   "matches": 32,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlCopyTextWriter",
+   "parameters": [
+    "string"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlDataReader.GetStreamAsync",
+   "matches": 32,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "System.IO.Stream",
+   "parameters": [
+    "int",
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPathEffect.Create2DPath",
+   "matches": 31,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPathEffect",
+   "parameters": [
+    "SkiaSharp.SKMatrix",
+    "SkiaSharp.SKPath"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKColorFilter.CreateLumaColor",
+   "matches": 29,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKColorFilter",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPathMeasure.GetSegment",
+   "matches": 29,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPath",
+   "parameters": [
+    "float",
+    "float",
+    "bool"
+   ],
+   "arity": 3
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPicture.Deserialize",
+   "matches": 29,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPicture",
+   "parameters": [
+    "nint",
+    "int"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKFontManager.GetFontStyles",
+   "matches": 28,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKFontStyleSet",
+   "parameters": [
+    "int"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateOffset",
+   "matches": 28,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "float",
+    "float"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKShader.WithColorFilter",
+   "matches": 28,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [
+    "SkiaSharp.SKColorFilter"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKShader.WithLocalMatrix",
+   "matches": 28,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [
+    "SkiaSharp.SKMatrix"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPixmap.WithColorType",
+   "matches": 26,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPixmap",
+   "parameters": [
+    "SkiaSharp.SKColorType"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKTextBlob.CreatePositioned",
+   "matches": 26,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKTextBlob?",
+   "parameters": [
+    "string",
+    "SkiaSharp.SKFont",
+    "System.ReadOnlySpan<SkiaSharp.SKPoint>"
+   ],
+   "arity": 3
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateShader",
+   "matches": 25,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKShader?"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopy",
+   "matches": 25,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlRawCopyStream",
+   "parameters": [
+    "string"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateImage",
+   "matches": 24,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKImage"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImage.FromPicture",
+   "matches": 23,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImage",
+   "parameters": [
+    "SkiaSharp.SKPicture",
+    "SkiaSharp.SKSizeI"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "MailKit",
+   "callable": "MailKit.MailFolder.GetStreamAsync",
+   "matches": 23,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "System.IO.Stream",
+   "parameters": [
+    "MailKit.UniqueId",
+    "System.Threading.CancellationToken",
+    "MailKit.ITransferProgress?"
+   ],
+   "arity": 3
+  },
+  {
+   "package": "MailKit",
+   "callable": "MailKit.Net.Proxy.HttpProxyClient.ConnectAsync",
+   "matches": 23,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "System.IO.Stream",
+   "parameters": [
+    "string",
+    "int",
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 3
+  },
+  {
+   "package": "MailKit",
+   "callable": "MailKit.Net.Proxy.HttpsProxyClient.ConnectAsync",
+   "matches": 23,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "System.IO.Stream",
+   "parameters": [
+    "string",
+    "int",
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 3
+  },
+  {
+   "package": "MailKit",
+   "callable": "MailKit.Net.Proxy.ProxyClient.ConnectAsync",
+   "matches": 23,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "System.IO.Stream",
+   "parameters": [
+    "string",
+    "int",
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 3
+  },
+  {
+   "package": "MailKit",
+   "callable": "MailKit.Net.Proxy.Socks4Client.ConnectAsync",
+   "matches": 23,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "System.IO.Stream",
+   "parameters": [
+    "string",
+    "int",
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 3
+  },
+  {
+   "package": "MailKit",
+   "callable": "MailKit.Net.Proxy.Socks5Client.ConnectAsync",
+   "matches": 23,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "System.IO.Stream",
+   "parameters": [
+    "string",
+    "int",
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 3
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlMultiHostDataSource.WithTargetSession",
+   "matches": 23,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlDataSource",
+   "parameters": [
+    "Npgsql.TargetSessionAttributes"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKGraphiteRecorder.Snap",
+   "matches": 22,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKGraphiteRecording",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateMerge",
+   "matches": 22,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKImageFilter?",
+    "SkiaSharp.SKImageFilter?"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPath.Simplify",
+   "matches": 22,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPath",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKShader.CreatePerlinNoiseFractalNoise",
+   "matches": 22,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [
+    "float",
+    "float",
+    "int",
+    "float"
+   ],
+   "arity": 4
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKDocument.CreateXps",
+   "matches": 21,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKDocument",
+   "parameters": [
+    "string"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKVertices.CreateCopy",
+   "matches": 21,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKVertices",
+   "parameters": [
+    "SkiaSharp.SKVertexMode",
+    "SkiaSharp.SKPoint[]",
+    "SkiaSharp.SKColor[]"
+   ],
+   "arity": 3
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateErode",
+   "matches": 20,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "float",
+    "float"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreatePicture",
+   "matches": 20,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKPicture"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.GRContext.CreateVulkan",
+   "matches": 19,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.GRContext",
+   "parameters": [
+    "SkiaSharp.GRVkBackendContext"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKColorSpaceIccProfile.Create",
+   "matches": 19,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKColorSpaceIccProfile",
+   "parameters": [
+    "byte[]"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImage.ToTextureImage",
+   "matches": 19,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImage",
+   "parameters": [
+    "SkiaSharp.GRContext"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPixmap.WithColorSpace",
+   "matches": 19,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPixmap",
+   "parameters": [
+    "SkiaSharp.SKColorSpace"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlCommandBuilder.GetUpdateCommand",
+   "matches": 19,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlCommand",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.BeginBinaryExportAsync",
+   "matches": 19,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "Npgsql.NpgsqlBinaryExporter",
+   "parameters": [
+    "string",
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.Security.KeyExchange.CreateServerHash",
+   "matches": 19,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "System.Security.Cryptography.HashAlgorithm",
+   "parameters": [
+    "bool"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.Security.KeyExchange.CreateClientHash",
+   "matches": 19,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "System.Security.Cryptography.HashAlgorithm",
+   "parameters": [
+    "bool"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.Security.KeyExchange.CreateCompressor",
+   "matches": 19,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Renci.SshNet.Compression.Compressor",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.Security.KeyExchange.CreateDecompressor",
+   "matches": 19,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Renci.SshNet.Compression.Compressor",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKCanvas.DrawNamedDestinationAnnotation",
+   "matches": 18,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKData",
+   "parameters": [
+    "SkiaSharp.SKPoint",
+    "string"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKColorSpace.CreateIcc",
+   "matches": 18,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKColorSpace",
+   "parameters": [
+    "nint",
+    "long"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateArithmetic",
+   "matches": 18,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "float",
+    "float",
+    "float",
+    "float",
+    "bool",
+    "SkiaSharp.SKImageFilter?"
+   ],
+   "arity": 6
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKWebpEncoder.EncodeAnimated",
+   "matches": 18,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKData?",
+   "parameters": [
+    "System.ReadOnlySpan<SkiaSharp.SKWebpEncoderFrame>",
+    "SkiaSharp.SKWebpEncoderOptions"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateDisplacementMapEffect",
+   "matches": 17,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKColorChannel",
+    "SkiaSharp.SKColorChannel",
+    "float",
+    "SkiaSharp.SKImageFilter"
+   ],
+   "arity": 4
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateDistantLitDiffuse",
+   "matches": 17,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKPoint3",
+    "SkiaSharp.SKColor",
+    "float",
+    "float"
+   ],
+   "arity": 4
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateSpotLitSpecular",
+   "matches": 17,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKPoint3",
+    "SkiaSharp.SKPoint3",
+    "float",
+    "float",
+    "SkiaSharp.SKColor",
+    "float",
+    "float",
+    "float"
+   ],
+   "arity": 8
+  },
+  {
+   "package": "StackExchange.Redis",
+   "callable": "StackExchange.Redis.ConnectionMultiplexer.ConnectGroupAsync",
+   "matches": 17,
+   "is_static": true,
+   "async_wrapped": true,
+   "returns": "StackExchange.Redis.Availability.IConnectionGroup",
+   "parameters": [
+    "StackExchange.Redis.Availability.ConnectionGroupMember[]",
+    "StackExchange.Redis.Availability.MultiGroupOptions?",
+    "System.IO.TextWriter?"
+   ],
+   "arity": 3
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.BeginTextExport",
+   "matches": 17,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlCopyTextReader",
+   "parameters": [
+    "string"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKBlender.CreateBlendMode",
+   "matches": 16,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKBlender",
+   "parameters": [
+    "SkiaSharp.SKBlendMode"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImage.FromTexture",
+   "matches": 16,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImage",
+   "parameters": [
+    "SkiaSharp.SKGraphiteRecorder",
+    "SkiaSharp.SKGraphiteBackendTexture",
+    "SkiaSharp.SKColorType",
+    "SkiaSharp.SKAlphaType"
+   ],
+   "arity": 4
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.GetSchemaAsync",
+   "matches": 16,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "System.Data.DataTable",
+   "parameters": [
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlDataReader.GetTextReaderAsync",
+   "matches": 16,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "System.IO.TextReader",
+   "parameters": [
+    "int",
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKCanvas.DrawLinkDestinationAnnotation",
+   "matches": 15,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKData",
+   "parameters": [
+    "SkiaSharp.SKRect",
+    "string"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateCompose",
+   "matches": 15,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKImageFilter",
+    "SkiaSharp.SKImageFilter"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreatePointLitDiffuse",
+   "matches": 15,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKPoint3",
+    "SkiaSharp.SKColor",
+    "float",
+    "float"
+   ],
+   "arity": 4
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateSpotLitDiffuse",
+   "matches": 15,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKPoint3",
+    "SkiaSharp.SKPoint3",
+    "float",
+    "float",
+    "SkiaSharp.SKColor",
+    "float",
+    "float"
+   ],
+   "arity": 7
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateDistantLitSpecular",
+   "matches": 15,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKPoint3",
+    "SkiaSharp.SKColor",
+    "float",
+    "float",
+    "float"
+   ],
+   "arity": 5
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKShader.CreatePicture",
+   "matches": 15,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKShader",
+   "parameters": [
+    "SkiaSharp.SKPicture"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateCrop",
+   "matches": 14,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKRect"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreatePointLitSpecular",
+   "matches": 14,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKPoint3",
+    "SkiaSharp.SKColor",
+    "float",
+    "float",
+    "float"
+   ],
+   "arity": 5
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateTile",
+   "matches": 14,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKRect",
+    "SkiaSharp.SKRect"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreatePaint",
+   "matches": 14,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKPaint"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.BeginTextExportAsync",
+   "matches": 14,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "Npgsql.NpgsqlCopyTextReader",
+   "parameters": [
+    "string",
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopyAsync",
+   "matches": 14,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "Npgsql.NpgsqlRawCopyStream",
+   "parameters": [
+    "string",
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SshClient.CreateShellStreamNoTerminal",
+   "matches": 14,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Renci.SshNet.ShellStream",
+   "parameters": [
+    "int"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKColorSpace.CreateCicp",
+   "matches": 13,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKColorSpace",
+   "parameters": [
+    "SkiaSharp.SKColorspacePrimariesCicp",
+    "SkiaSharp.SKColorspaceTransferFnCicp"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateDropShadowOnly",
+   "matches": 13,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "float",
+    "float",
+    "float",
+    "float",
+    "SkiaSharp.SKColor"
+   ],
+   "arity": 5
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKImageFilter.CreateMagnifier",
+   "matches": 13,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKImageFilter",
+   "parameters": [
+    "SkiaSharp.SKRect",
+    "float",
+    "float",
+    "SkiaSharp.SKSamplingOptions"
+   ],
+   "arity": 4
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPathEffect.CreateDiscrete",
+   "matches": 13,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPathEffect",
+   "parameters": [
+    "float",
+    "float",
+    "uint"
+   ],
+   "arity": 3
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.GRContext.CreateDirect3D",
+   "matches": 12,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.GRContext",
+   "parameters": [
+    "SkiaSharp.GRD3DBackendContext"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.GRContext.CreateMetal",
+   "matches": 12,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.GRContext",
+   "parameters": [
+    "SkiaSharp.GRMtlBackendContext"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKColorFilter.CreateCompose",
+   "matches": 12,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKColorFilter",
+   "parameters": [
+    "SkiaSharp.SKColorFilter",
+    "SkiaSharp.SKColorFilter"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKSurface.CreateNull",
+   "matches": 12,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKSurface",
+   "parameters": [
+    "int",
+    "int"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.BeginTextImportAsync",
+   "matches": 12,
+   "is_static": false,
+   "async_wrapped": true,
+   "returns": "Npgsql.NpgsqlCopyTextWriter",
+   "parameters": [
+    "string",
+    "System.Threading.CancellationToken"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKColorFilter.CreateOverdraw",
+   "matches": 11,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKColorFilter",
+   "parameters": [
+    "System.ReadOnlySpan<SkiaSharp.SKColor>"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPath.ToWinding",
+   "matches": 11,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPath",
+   "parameters": [],
+   "arity": 0
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPathEffect.Create1DPath",
+   "matches": 11,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPathEffect",
+   "parameters": [
+    "SkiaSharp.SKPath",
+    "float",
+    "float",
+    "SkiaSharp.SKPath1DPathEffectStyle"
+   ],
+   "arity": 4
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKWebpEncoder.Encode",
+   "matches": 11,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKData?",
+   "parameters": [
+    "SkiaSharp.SKPixmap",
+    "SkiaSharp.SKWebpEncoderOptions"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKBlender.CreateArithmetic",
+   "matches": 10,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKBlender",
+   "parameters": [
+    "float",
+    "float",
+    "float",
+    "float",
+    "bool"
+   ],
+   "arity": 5
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKCanvas.DrawUrlAnnotation",
+   "matches": 10,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKData",
+   "parameters": [
+    "SkiaSharp.SKRect",
+    "string"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKColorFilter.CreateHighContrast",
+   "matches": 10,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKColorFilter",
+   "parameters": [
+    "SkiaSharp.SKHighContrastConfig"
+   ],
+   "arity": 1
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPathEffect.CreateTrim",
+   "matches": 10,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKPathEffect",
+   "parameters": [
+    "float",
+    "float"
+   ],
+   "arity": 2
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKTextBlob.CreatePathPositioned",
+   "matches": 10,
+   "is_static": true,
+   "async_wrapped": false,
+   "returns": "SkiaSharp.SKTextBlob?",
+   "parameters": [
+    "string",
+    "SkiaSharp.SKFont",
+    "SkiaSharp.SKPath",
+    "SkiaSharp.SKTextAlign",
+    "SkiaSharp.SKPoint"
+   ],
+   "arity": 5
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlCommandBuilder.GetInsertCommand",
+   "matches": 10,
+   "is_static": false,
+   "async_wrapped": false,
+   "returns": "Npgsql.NpgsqlCommand",
+   "parameters": [],
+   "arity": 0
+  }
+ ],
+ "removed_by_filter": {
+  "getter->ALIAS_OR_SHARED": 73,
+  "not_material_use(<10 matches)": 126,
+  "bodiless->NEEDS_IMPLEMENTATION_EVIDENCE": 34,
+  "no_reldump_record": 1,
+  "internal_namespace": 4
+ },
+ "routed_classes": {
+  "ALIAS_OR_SHARED": [
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKWebpEncoderFrame.get_Pixmap",
+    28
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.GRVkBackendContext.get_Extensions",
+    998
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKBitmap.get_ColorSpace",
+    316
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKCanvas.get_Surface",
+    1000
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKCanvas.get_Context",
+    966
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKCanvasSaveLayerRec.get_Paint",
+    1000
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKCanvasSaveLayerRec.get_Backdrop",
+    28
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKData.get_Empty",
+    977
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKFont.get_Typeface",
+    941
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKFontManager.get_Default",
+    965
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKFontStyle.get_Normal",
+    925
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKFontStyle.get_Bold",
+    950
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKFontStyle.get_Italic",
+    650
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKFontStyle.get_BoldItalic",
+    44
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKImage.get_ColorSpace",
+    316
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKImageInfo.get_ColorSpace",
+    316
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKPaint.get_Shader",
+    984
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKPaint.get_MaskFilter",
+    137
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKPaint.get_ColorFilter",
+    244
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKPaint.get_ImageFilter",
+    343
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKPaint.get_Blender",
+    20
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKPaint.get_Typeface",
+    941
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKPaint.get_PathEffect",
+    389
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKPictureRecorder.get_RecordingCanvas",
+    14
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKPixmap.get_ColorSpace",
+    316
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKRuntimeEffectChild.get_Value",
+    885
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKRuntimeEffectChild.get_Shader",
+    983
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKRuntimeEffectChild.get_ColorFilter",
+    244
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKRuntimeEffectChild.get_Blender",
+    20
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKRuntimeEffectBuilder.get_Effect",
+    982
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKRuntimeEffectBuilder.get_Uniforms",
+    234
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKRuntimeEffectBuilder.get_Children",
+    993
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKSurface.get_Canvas",
+    983
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKSurface.get_Context",
+    966
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKTypeface.get_Default",
+    970
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKTypeface.get_Empty",
+    983
+   ],
+   [
+    "SkiaSharp",
+    "SkiaSharp.SKTypeface.get_FontStyle",
+    271
+   ],
+   [
+    "RabbitMQ.Client",
+    "RabbitMQ.Client.AsyncDefaultBasicConsumer.get_Channel",
+    963
+   ],
+   [
+    "RabbitMQ.Client",
+    "RabbitMQ.Client.IAsyncBasicConsumer.get_Channel",
+    967
+   ],
+   [
+    "RabbitMQ.Client",
+    "RabbitMQ.Client.ITcpClient.get_Client",
+    995
+   ],
+   [
+    "RabbitMQ.Client",
+    "RabbitMQ.Client.TcpClientAdapter.get_Client",
+    995
+   ],
+   [
+    "MailKit",
+    "MailKit.MailService.get_ProtocolLogger",
+    29
+   ],
+   [
+    "MailKit",
+    "MailKit.ProtocolLogger.get_Stream",
+    233
+   ],
+   [
+    "MailKit",
+    "MailKit.Security.SslHandshakeException.get_ServerCertificate",
+    207
+   ],
+   [
+    "MailKit",
+    "MailKit.Security.SslHandshakeException.get_RootCertificateAuthority",
+    28
+   ],
+   [
+    "StackExchange.Redis",
+    "StackExchange.Redis.ConfigurationOptions.get_SocketManager",
+    21
+   ],
+   [
+    "StackExchange.Redis",
+    "StackExchange.Redis.IRedisAsync.get_Multiplexer",
+    385
+   ],
+   [
+    "StackExchange.Redis",
+    "StackExchange.Redis.Lease<T>.get_Empty",
+    985
+   ],
+   [
+    "StackExchange.Redis",
+    "StackExchange.Redis.SocketManager.get_Shared",
+    967
+   ],
+   [
+    "StackExchange.Redis",
+    "StackExchange.Redis.SocketManager.get_ThreadPool",
+    14
+   ],
+   [
+    "Npgsql",
+    "Npgsql.NpgsqlBatch.get_Connection",
+    952
+   ],
+   [
+    "Npgsql",
+    "Npgsql.NpgsqlBatch.get_Transaction",
+    877
+   ],
+   [
+    "Npgsql",
+    "Npgsql.NpgsqlCommand.get_Connection",
+    964
+   ],
+   [
+    "Npgsql",
+    "Npgsql.NpgsqlCommand.get_Transaction",
+    758
+   ],
+   [
+    "Npgsql",
+    "Npgsql.NpgsqlDataAdapter.get_SelectCommand",
+    107
+   ],
+   [
+    "Npgsql",
+    "Npgsql.NpgsqlDataAdapter.get_UpdateCommand",
+    52
+   ],
+   [
+    "Npgsql",
+    "Npgsql.NpgsqlDataAdapter.get_InsertCommand",
+    49
+   ],
+   [
+    "Npgsql",
+    "Npgsql.NpgsqlTransaction.get_Connection",
+    960
+   ],
+   [
+    "Npgsql",
+    "Npgsql.Replication.XLogDataMessage.get_Data",
+    92
+   ],
+   [
+    "Npgsql",
+    "Npgsql.Replication.PgOutput.Messages.LogicalDecodingMessage.get_Data",
+    34
+   ],
+   [
+    "MQTTnet",
+    "MQTTnet.MqttClientCertificateValidationEventArgs.get_Certificate",
+    219
+   ],
+   [
+    "MQTTnet",
+    "MQTTnet.MqttClientCertificateValidationEventArgs.get_Chain",
+    87
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.Session.get_SessionSemaphore",
+    97
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.SshCommand.get_OutputStream",
+    98
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.SshCommand.get_ExtendedOutputStream",
+    65
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.Common.AsyncResult.get_AsyncWaitHandle",
+    33
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.Security.EcdsaKey.get_Ecdsa",
+    42
+   ],
+   [
+    "LibGit2Sharp",
+    "LibGit2Sharp.CertificateX509.get_Certificate",
+    27
+   ],
+   [
+    "LibGit2Sharp",
+    "LibGit2Sharp.IBelongToARepository.get_Repository",
+    964
+   ],
+   [
+    "LibGit2Sharp",
+    "LibGit2Sharp.IRepository.get_Config",
+    856
+   ],
+   [
+    "LibGit2Sharp",
+    "LibGit2Sharp.Repository.get_Config",
+    856
+   ],
+   [
+    "LibGit2Sharp",
+    "LibGit2Sharp.SecureUsernamePasswordCredentials.get_Password",
+    77
+   ],
+   [
+    "LibGit2Sharp",
+    "LibGit2Sharp.Worktree.get_WorktreeRepository",
+    12
+   ]
+  ],
+  "NEEDS_IMPLEMENTATION_EVIDENCE": [
+   [
+    "RabbitMQ.Client",
+    "RabbitMQ.Client.IConnection.CreateChannelAsync",
+    1000
+   ],
+   [
+    "RabbitMQ.Client",
+    "RabbitMQ.Client.IConnectionFactory.CreateConnectionAsync",
+    859
+   ],
+   [
+    "RabbitMQ.Client",
+    "RabbitMQ.Client.ITcpClient.GetStream",
+    11
+   ],
+   [
+    "MailKit",
+    "MailKit.IMailFolder.GetStream",
+    38
+   ],
+   [
+    "MailKit",
+    "MailKit.IMailFolder.GetStreamAsync",
+    23
+   ],
+   [
+    "MailKit",
+    "MailKit.IMailSpool.GetStream",
+    38
+   ],
+   [
+    "MailKit",
+    "MailKit.IMailSpool.GetStreamAsync",
+    23
+   ],
+   [
+    "MailKit",
+    "MailKit.MailSpool.GetStream",
+    38
+   ],
+   [
+    "MailKit",
+    "MailKit.MailSpool.GetStreamAsync",
+    23
+   ],
+   [
+    "MailKit",
+    "MailKit.Net.Proxy.IProxyClient.ConnectAsync",
+    23
+   ],
+   [
+    "StackExchange.Redis",
+    "StackExchange.Redis.IDatabase.HashGetLease",
+    11
+   ],
+   [
+    "StackExchange.Redis",
+    "StackExchange.Redis.IDatabase.ExecuteResp",
+    13
+   ],
+   [
+    "StackExchange.Redis",
+    "StackExchange.Redis.IDatabase.ScriptEvaluateResp",
+    14
+   ],
+   [
+    "StackExchange.Redis",
+    "StackExchange.Redis.IDatabase.StringBitField",
+    12
+   ],
+   [
+    "StackExchange.Redis",
+    "StackExchange.Redis.IDatabase.VectorSetSimilaritySearch",
+    11
+   ],
+   [
+    "StackExchange.Redis",
+    "StackExchange.Redis.IDatabaseAsync.HashGetLeaseAsync",
+    11
+   ],
+   [
+    "StackExchange.Redis",
+    "StackExchange.Redis.IDatabaseAsync.StringGetLeaseAsync",
+    30
+   ],
+   [
+    "MQTTnet",
+    "MQTTnet.Channel.IMqttClientStreamProvider.ConnectAsync",
+    11
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.ISftpClient.AppendText",
+    51
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.ISftpClient.Create",
+    771
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.ISftpClient.CreateText",
+    43
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.ISftpClient.Open",
+    558
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.ISftpClient.OpenAsync",
+    54
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.ISftpClient.OpenRead",
+    261
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.ISftpClient.OpenWrite",
+    145
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.ISshClient.CreateCommand",
+    327
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.ISshClient.RunCommand",
+    208
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.ISshClient.CreateShell",
+    24
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.ISshClient.CreateShellStream",
+    125
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.ISshClient.CreateShellStreamNoTerminal",
+    14
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.Security.IKeyExchange.CreateServerHash",
+    19
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.Security.IKeyExchange.CreateClientHash",
+    19
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.Security.IKeyExchange.CreateCompressor",
+    19
+   ],
+   [
+    "SSH.NET",
+    "Renci.SshNet.Security.IKeyExchange.CreateDecompressor",
+    19
+   ]
+  ]
+ },
+ "size": 205
+}

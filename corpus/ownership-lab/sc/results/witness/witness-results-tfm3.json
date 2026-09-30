@@ -1,0 +1,4268 @@
+[
+ {
+  "id": "SCv904t80-gsqlCommandExecuteReader",
+  "callable": "Npgsql.NpgsqlCommand.ExecuteReader",
+  "expect": "fresh",
+  "seconds": 6.1,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "96312182becb"
+ },
+ {
+  "id": "SCv904t90-gsqlCommandExecuteReader",
+  "callable": "Npgsql.NpgsqlCommand.ExecuteReader",
+  "expect": "fresh",
+  "seconds": 4.9,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "96312182becb"
+ },
+ {
+  "id": "SCv904t100-gsqlCommandExecuteReader",
+  "callable": "Npgsql.NpgsqlCommand.ExecuteReader",
+  "expect": "fresh",
+  "seconds": 4.6,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "96312182becb"
+ },
+ {
+  "id": "SCv1000t80-gsqlCommandExecuteReader",
+  "callable": "Npgsql.NpgsqlCommand.ExecuteReader",
+  "expect": "fresh",
+  "seconds": 3.9,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "96312182becb"
+ },
+ {
+  "id": "SCv1000t90-gsqlCommandExecuteReader",
+  "callable": "Npgsql.NpgsqlCommand.ExecuteReader",
+  "expect": "fresh",
+  "seconds": 5.1,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "96312182becb"
+ },
+ {
+  "id": "SCv1000t100-gsqlCommandExecuteReader",
+  "callable": "Npgsql.NpgsqlCommand.ExecuteReader",
+  "expect": "fresh",
+  "seconds": 5.3,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "96312182becb"
+ },
+ {
+  "id": "SCv904t80-ionBeginTransactionAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTransactionAsync",
+  "expect": "fresh",
+  "seconds": 4.8,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlTransaction",
+  "src_sha": "cffcc622f54e"
+ },
+ {
+  "id": "SCv904t90-ionBeginTransactionAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTransactionAsync",
+  "expect": "fresh",
+  "seconds": 4.5,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlTransaction",
+  "src_sha": "cffcc622f54e"
+ },
+ {
+  "id": "SCv904t100-ionBeginTransactionAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTransactionAsync",
+  "expect": "fresh",
+  "seconds": 5.1,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlTransaction",
+  "src_sha": "cffcc622f54e"
+ },
+ {
+  "id": "SCv1000t80-ionBeginTransactionAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTransactionAsync",
+  "expect": "fresh",
+  "seconds": 4.1,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlTransaction",
+  "src_sha": "cffcc622f54e"
+ },
+ {
+  "id": "SCv1000t90-ionBeginTransactionAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTransactionAsync",
+  "expect": "fresh",
+  "seconds": 4.1,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlTransaction",
+  "src_sha": "cffcc622f54e"
+ },
+ {
+  "id": "SCv1000t100-ionBeginTransactionAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTransactionAsync",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlTransaction",
+  "src_sha": "cffcc622f54e"
+ },
+ {
+  "id": "SCv904t80-lBatchExecuteReaderAsync",
+  "callable": "Npgsql.NpgsqlBatch.ExecuteReaderAsync",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "1dba34bd0c96"
+ },
+ {
+  "id": "SCv904t90-lBatchExecuteReaderAsync",
+  "callable": "Npgsql.NpgsqlBatch.ExecuteReaderAsync",
+  "expect": "fresh",
+  "seconds": 4.1,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "1dba34bd0c96"
+ },
+ {
+  "id": "SCv904t100-lBatchExecuteReaderAsync",
+  "callable": "Npgsql.NpgsqlBatch.ExecuteReaderAsync",
+  "expect": "fresh",
+  "seconds": 4.0,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "1dba34bd0c96"
+ },
+ {
+  "id": "SCv1000t80-lBatchExecuteReaderAsync",
+  "callable": "Npgsql.NpgsqlBatch.ExecuteReaderAsync",
+  "expect": "fresh",
+  "seconds": 4.1,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "1dba34bd0c96"
+ },
+ {
+  "id": "SCv1000t90-lBatchExecuteReaderAsync",
+  "callable": "Npgsql.NpgsqlBatch.ExecuteReaderAsync",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "1dba34bd0c96"
+ },
+ {
+  "id": "SCv1000t100-lBatchExecuteReaderAsync",
+  "callable": "Npgsql.NpgsqlBatch.ExecuteReaderAsync",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "1dba34bd0c96"
+ },
+ {
+  "id": "SCv904t80-NpgsqlBatchExecuteReader",
+  "callable": "Npgsql.NpgsqlBatch.ExecuteReader",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "1649295297bb"
+ },
+ {
+  "id": "SCv904t90-NpgsqlBatchExecuteReader",
+  "callable": "Npgsql.NpgsqlBatch.ExecuteReader",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "1649295297bb"
+ },
+ {
+  "id": "SCv904t100-NpgsqlBatchExecuteReader",
+  "callable": "Npgsql.NpgsqlBatch.ExecuteReader",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "1649295297bb"
+ },
+ {
+  "id": "SCv1000t80-NpgsqlBatchExecuteReader",
+  "callable": "Npgsql.NpgsqlBatch.ExecuteReader",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "1649295297bb"
+ },
+ {
+  "id": "SCv1000t90-NpgsqlBatchExecuteReader",
+  "callable": "Npgsql.NpgsqlBatch.ExecuteReader",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "1649295297bb"
+ },
+ {
+  "id": "SCv1000t100-NpgsqlBatchExecuteReader",
+  "callable": "Npgsql.NpgsqlBatch.ExecuteReader",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "1649295297bb"
+ },
+ {
+  "id": "SCv904t80-lConnectionCreateCommand",
+  "callable": "Npgsql.NpgsqlConnection.CreateCommand",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlCommand",
+  "src_sha": "12ea267c80f6"
+ },
+ {
+  "id": "SCv904t90-lConnectionCreateCommand",
+  "callable": "Npgsql.NpgsqlConnection.CreateCommand",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlCommand",
+  "src_sha": "12ea267c80f6"
+ },
+ {
+  "id": "SCv904t100-lConnectionCreateCommand",
+  "callable": "Npgsql.NpgsqlConnection.CreateCommand",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlCommand",
+  "src_sha": "12ea267c80f6"
+ },
+ {
+  "id": "SCv1000t80-lConnectionCreateCommand",
+  "callable": "Npgsql.NpgsqlConnection.CreateCommand",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlCommand",
+  "src_sha": "12ea267c80f6"
+ },
+ {
+  "id": "SCv1000t90-lConnectionCreateCommand",
+  "callable": "Npgsql.NpgsqlConnection.CreateCommand",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlCommand",
+  "src_sha": "12ea267c80f6"
+ },
+ {
+  "id": "SCv1000t100-lConnectionCreateCommand",
+  "callable": "Npgsql.NpgsqlConnection.CreateCommand",
+  "expect": "fresh",
+  "seconds": 3.9,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlCommand",
+  "src_sha": "12ea267c80f6"
+ },
+ {
+  "id": "SCv904t80-ommandExecuteReaderAsync",
+  "callable": "Npgsql.NpgsqlCommand.ExecuteReaderAsync",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "5c7ec3de3e75"
+ },
+ {
+  "id": "SCv904t90-ommandExecuteReaderAsync",
+  "callable": "Npgsql.NpgsqlCommand.ExecuteReaderAsync",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "5c7ec3de3e75"
+ },
+ {
+  "id": "SCv904t100-ommandExecuteReaderAsync",
+  "callable": "Npgsql.NpgsqlCommand.ExecuteReaderAsync",
+  "expect": "fresh",
+  "seconds": 4.3,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "5c7ec3de3e75"
+ },
+ {
+  "id": "SCv1000t80-ommandExecuteReaderAsync",
+  "callable": "Npgsql.NpgsqlCommand.ExecuteReaderAsync",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "5c7ec3de3e75"
+ },
+ {
+  "id": "SCv1000t90-ommandExecuteReaderAsync",
+  "callable": "Npgsql.NpgsqlCommand.ExecuteReaderAsync",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "5c7ec3de3e75"
+ },
+ {
+  "id": "SCv1000t100-ommandExecuteReaderAsync",
+  "callable": "Npgsql.NpgsqlCommand.ExecuteReaderAsync",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlDataReader",
+  "src_sha": "5c7ec3de3e75"
+ },
+ {
+  "id": "SCv904t80-ourceOpenConnectionAsync",
+  "callable": "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "43cbd3dec562"
+ },
+ {
+  "id": "SCv904t90-ourceOpenConnectionAsync",
+  "callable": "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+  "expect": "fresh",
+  "seconds": 3.9,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "43cbd3dec562"
+ },
+ {
+  "id": "SCv904t100-ourceOpenConnectionAsync",
+  "callable": "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "43cbd3dec562"
+ },
+ {
+  "id": "SCv1000t80-ourceOpenConnectionAsync",
+  "callable": "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "43cbd3dec562"
+ },
+ {
+  "id": "SCv1000t90-ourceOpenConnectionAsync",
+  "callable": "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "43cbd3dec562"
+ },
+ {
+  "id": "SCv1000t100-ourceOpenConnectionAsync",
+  "callable": "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "43cbd3dec562"
+ },
+ {
+  "id": "SCv904t80-ourceOpenConnectionAsync",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnectionAsync",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "09f84334f9c3"
+ },
+ {
+  "id": "SCv904t90-ourceOpenConnectionAsync",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnectionAsync",
+  "expect": "fresh",
+  "seconds": 3.8,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "09f84334f9c3"
+ },
+ {
+  "id": "SCv904t100-ourceOpenConnectionAsync",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnectionAsync",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "09f84334f9c3"
+ },
+ {
+  "id": "SCv1000t80-ourceOpenConnectionAsync",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnectionAsync",
+  "expect": "fresh",
+  "seconds": 3.9,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "09f84334f9c3"
+ },
+ {
+  "id": "SCv1000t90-ourceOpenConnectionAsync",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnectionAsync",
+  "expect": "fresh",
+  "seconds": 4.1,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "09f84334f9c3"
+ },
+ {
+  "id": "SCv1000t100-ourceOpenConnectionAsync",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnectionAsync",
+  "expect": "fresh",
+  "seconds": 4.1,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "09f84334f9c3"
+ },
+ {
+  "id": "SCv904t80-nnectionBeginTransaction",
+  "callable": "Npgsql.NpgsqlConnection.BeginTransaction",
+  "expect": "fresh",
+  "seconds": 3.8,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlTransaction",
+  "src_sha": "abbc7d84c2ae"
+ },
+ {
+  "id": "SCv904t90-nnectionBeginTransaction",
+  "callable": "Npgsql.NpgsqlConnection.BeginTransaction",
+  "expect": "fresh",
+  "seconds": 4.1,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlTransaction",
+  "src_sha": "abbc7d84c2ae"
+ },
+ {
+  "id": "SCv904t100-nnectionBeginTransaction",
+  "callable": "Npgsql.NpgsqlConnection.BeginTransaction",
+  "expect": "fresh",
+  "seconds": 3.8,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlTransaction",
+  "src_sha": "abbc7d84c2ae"
+ },
+ {
+  "id": "SCv1000t80-nnectionBeginTransaction",
+  "callable": "Npgsql.NpgsqlConnection.BeginTransaction",
+  "expect": "fresh",
+  "seconds": 4.1,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlTransaction",
+  "src_sha": "abbc7d84c2ae"
+ },
+ {
+  "id": "SCv1000t90-nnectionBeginTransaction",
+  "callable": "Npgsql.NpgsqlConnection.BeginTransaction",
+  "expect": "fresh",
+  "seconds": 3.9,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlTransaction",
+  "src_sha": "abbc7d84c2ae"
+ },
+ {
+  "id": "SCv1000t100-nnectionBeginTransaction",
+  "callable": "Npgsql.NpgsqlConnection.BeginTransaction",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlTransaction",
+  "src_sha": "abbc7d84c2ae"
+ },
+ {
+  "id": "SCv904t80-DataSourceOpenConnection",
+  "callable": "Npgsql.NpgsqlDataSource.OpenConnection",
+  "expect": "fresh",
+  "seconds": 3.8,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "d49f7ca4b724"
+ },
+ {
+  "id": "SCv904t90-DataSourceOpenConnection",
+  "callable": "Npgsql.NpgsqlDataSource.OpenConnection",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "d49f7ca4b724"
+ },
+ {
+  "id": "SCv904t100-DataSourceOpenConnection",
+  "callable": "Npgsql.NpgsqlDataSource.OpenConnection",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "d49f7ca4b724"
+ },
+ {
+  "id": "SCv1000t80-DataSourceOpenConnection",
+  "callable": "Npgsql.NpgsqlDataSource.OpenConnection",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "d49f7ca4b724"
+ },
+ {
+  "id": "SCv1000t90-DataSourceOpenConnection",
+  "callable": "Npgsql.NpgsqlDataSource.OpenConnection",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "d49f7ca4b724"
+ },
+ {
+  "id": "SCv1000t100-DataSourceOpenConnection",
+  "callable": "Npgsql.NpgsqlDataSource.OpenConnection",
+  "expect": "fresh",
+  "seconds": 3.8,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "d49f7ca4b724"
+ },
+ {
+  "id": "SCv904t80-DataSourceOpenConnection",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnection",
+  "expect": "fresh",
+  "seconds": 3.8,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "d3600d99aa5a"
+ },
+ {
+  "id": "SCv904t90-DataSourceOpenConnection",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnection",
+  "expect": "fresh",
+  "seconds": 3.9,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "d3600d99aa5a"
+ },
+ {
+  "id": "SCv904t100-DataSourceOpenConnection",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnection",
+  "expect": "fresh",
+  "seconds": 4.1,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "d3600d99aa5a"
+ },
+ {
+  "id": "SCv1000t80-DataSourceOpenConnection",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnection",
+  "expect": "fresh",
+  "seconds": 4.1,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "d3600d99aa5a"
+ },
+ {
+  "id": "SCv1000t90-DataSourceOpenConnection",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnection",
+  "expect": "fresh",
+  "seconds": 4.3,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "d3600d99aa5a"
+ },
+ {
+  "id": "SCv1000t100-DataSourceOpenConnection",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnection",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "parallel",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlConnection",
+  "src_sha": "d3600d99aa5a"
+ },
+ {
+  "id": "SCv904t80-nectionBeginBinaryImport",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryImport",
+  "expect": "fresh",
+  "seconds": 3.9,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlBinaryImporter",
+  "src_sha": "012469bbc7dd"
+ },
+ {
+  "id": "SCv904t90-nectionBeginBinaryImport",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryImport",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlBinaryImporter",
+  "src_sha": "012469bbc7dd"
+ },
+ {
+  "id": "SCv904t100-nectionBeginBinaryImport",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryImport",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlBinaryImporter",
+  "src_sha": "012469bbc7dd"
+ },
+ {
+  "id": "SCv1000t80-nectionBeginBinaryImport",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryImport",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlBinaryImporter",
+  "src_sha": "012469bbc7dd"
+ },
+ {
+  "id": "SCv1000t90-nectionBeginBinaryImport",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryImport",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlBinaryImporter",
+  "src_sha": "012469bbc7dd"
+ },
+ {
+  "id": "SCv1000t100-nectionBeginBinaryImport",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryImport",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlBinaryImporter",
+  "src_sha": "012469bbc7dd"
+ },
+ {
+  "id": "SCv904t80-nectionBeginBinaryExport",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryExport",
+  "expect": "fresh",
+  "seconds": 4.4,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlBinaryExporter",
+  "src_sha": "581aaa9dc85e"
+ },
+ {
+  "id": "SCv904t90-nectionBeginBinaryExport",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryExport",
+  "expect": "fresh",
+  "seconds": 3.8,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlBinaryExporter",
+  "src_sha": "581aaa9dc85e"
+ },
+ {
+  "id": "SCv904t100-nectionBeginBinaryExport",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryExport",
+  "expect": "fresh",
+  "seconds": 4.1,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlBinaryExporter",
+  "src_sha": "581aaa9dc85e"
+ },
+ {
+  "id": "SCv1000t80-nectionBeginBinaryExport",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryExport",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlBinaryExporter",
+  "src_sha": "581aaa9dc85e"
+ },
+ {
+  "id": "SCv1000t90-nectionBeginBinaryExport",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryExport",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlBinaryExporter",
+  "src_sha": "581aaa9dc85e"
+ },
+ {
+  "id": "SCv1000t100-nectionBeginBinaryExport",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryExport",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlBinaryExporter",
+  "src_sha": "581aaa9dc85e"
+ },
+ {
+  "id": "SCv904t80-pgsqlConnectionGetSchema",
+  "callable": "Npgsql.NpgsqlConnection.GetSchema",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d46fcf43-5c72-4dcb-b180-2eb3155945fe",
+  "type": "System.Data.DataTable",
+  "src_sha": "1561b4775be7"
+ },
+ {
+  "id": "SCv904t90-pgsqlConnectionGetSchema",
+  "callable": "Npgsql.NpgsqlConnection.GetSchema",
+  "expect": "fresh",
+  "seconds": 3.9,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "9c4bfd69-3aec-45a8-ac9c-dc4af8840354",
+  "type": "System.Data.DataTable",
+  "src_sha": "1561b4775be7"
+ },
+ {
+  "id": "SCv904t100-pgsqlConnectionGetSchema",
+  "callable": "Npgsql.NpgsqlConnection.GetSchema",
+  "expect": "fresh",
+  "seconds": 4.1,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "9c4bfd69-3aec-45a8-ac9c-dc4af8840354",
+  "type": "System.Data.DataTable",
+  "src_sha": "1561b4775be7"
+ },
+ {
+  "id": "SCv1000t80-pgsqlConnectionGetSchema",
+  "callable": "Npgsql.NpgsqlConnection.GetSchema",
+  "expect": "fresh",
+  "seconds": 3.8,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d46fcf43-5c72-4dcb-b180-2eb3155945fe",
+  "type": "System.Data.DataTable",
+  "src_sha": "1561b4775be7"
+ },
+ {
+  "id": "SCv1000t90-pgsqlConnectionGetSchema",
+  "callable": "Npgsql.NpgsqlConnection.GetSchema",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "9c4bfd69-3aec-45a8-ac9c-dc4af8840354",
+  "type": "System.Data.DataTable",
+  "src_sha": "1561b4775be7"
+ },
+ {
+  "id": "SCv1000t100-pgsqlConnectionGetSchema",
+  "callable": "Npgsql.NpgsqlConnection.GetSchema",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "9c4bfd69-3aec-45a8-ac9c-dc4af8840354",
+  "type": "System.Data.DataTable",
+  "src_sha": "1561b4775be7"
+ },
+ {
+  "id": "SCv904t80-onBeginBinaryImportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryImportAsync",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlBinaryImporter",
+  "src_sha": "69f2b710552a"
+ },
+ {
+  "id": "SCv904t90-onBeginBinaryImportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryImportAsync",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlBinaryImporter",
+  "src_sha": "69f2b710552a"
+ },
+ {
+  "id": "SCv904t100-onBeginBinaryImportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryImportAsync",
+  "expect": "fresh",
+  "seconds": 3.0,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlBinaryImporter",
+  "src_sha": "69f2b710552a"
+ },
+ {
+  "id": "SCv1000t80-onBeginBinaryImportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryImportAsync",
+  "expect": "fresh",
+  "seconds": 3.1,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlBinaryImporter",
+  "src_sha": "69f2b710552a"
+ },
+ {
+  "id": "SCv1000t90-onBeginBinaryImportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryImportAsync",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlBinaryImporter",
+  "src_sha": "69f2b710552a"
+ },
+ {
+  "id": "SCv1000t100-onBeginBinaryImportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryImportAsync",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlBinaryImporter",
+  "src_sha": "69f2b710552a"
+ },
+ {
+  "id": "SCv904t80-DataReaderGetSchemaTable",
+  "callable": "Npgsql.NpgsqlDataReader.GetSchemaTable",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d46fcf43-5c72-4dcb-b180-2eb3155945fe",
+  "type": "System.Data.DataTable",
+  "src_sha": "3262df536e1a"
+ },
+ {
+  "id": "SCv904t90-DataReaderGetSchemaTable",
+  "callable": "Npgsql.NpgsqlDataReader.GetSchemaTable",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "9c4bfd69-3aec-45a8-ac9c-dc4af8840354",
+  "type": "System.Data.DataTable",
+  "src_sha": "3262df536e1a"
+ },
+ {
+  "id": "SCv904t100-DataReaderGetSchemaTable",
+  "callable": "Npgsql.NpgsqlDataReader.GetSchemaTable",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "9c4bfd69-3aec-45a8-ac9c-dc4af8840354",
+  "type": "System.Data.DataTable",
+  "src_sha": "3262df536e1a"
+ },
+ {
+  "id": "SCv1000t80-DataReaderGetSchemaTable",
+  "callable": "Npgsql.NpgsqlDataReader.GetSchemaTable",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d46fcf43-5c72-4dcb-b180-2eb3155945fe",
+  "type": "System.Data.DataTable",
+  "src_sha": "3262df536e1a"
+ },
+ {
+  "id": "SCv1000t90-DataReaderGetSchemaTable",
+  "callable": "Npgsql.NpgsqlDataReader.GetSchemaTable",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "9c4bfd69-3aec-45a8-ac9c-dc4af8840354",
+  "type": "System.Data.DataTable",
+  "src_sha": "3262df536e1a"
+ },
+ {
+  "id": "SCv1000t100-DataReaderGetSchemaTable",
+  "callable": "Npgsql.NpgsqlDataReader.GetSchemaTable",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "9c4bfd69-3aec-45a8-ac9c-dc4af8840354",
+  "type": "System.Data.DataTable",
+  "src_sha": "3262df536e1a"
+ },
+ {
+  "id": "SCv904t80-pgsqlDataReaderGetStream",
+  "callable": "Npgsql.NpgsqlDataReader.GetStream",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.Internal.NpgsqlReadBuffer+ColumnStream",
+  "src_sha": "0219905c61dd"
+ },
+ {
+  "id": "SCv904t90-pgsqlDataReaderGetStream",
+  "callable": "Npgsql.NpgsqlDataReader.GetStream",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.Internal.NpgsqlReadBuffer+ColumnStream",
+  "src_sha": "0219905c61dd"
+ },
+ {
+  "id": "SCv904t100-pgsqlDataReaderGetStream",
+  "callable": "Npgsql.NpgsqlDataReader.GetStream",
+  "expect": "fresh",
+  "seconds": 3.8,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.Internal.NpgsqlReadBuffer+ColumnStream",
+  "src_sha": "0219905c61dd"
+ },
+ {
+  "id": "SCv1000t80-pgsqlDataReaderGetStream",
+  "callable": "Npgsql.NpgsqlDataReader.GetStream",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.Internal.NpgsqlReadBuffer+ColumnStream",
+  "src_sha": "0219905c61dd"
+ },
+ {
+  "id": "SCv1000t90-pgsqlDataReaderGetStream",
+  "callable": "Npgsql.NpgsqlDataReader.GetStream",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.Internal.NpgsqlReadBuffer+ColumnStream",
+  "src_sha": "0219905c61dd"
+ },
+ {
+  "id": "SCv1000t100-pgsqlDataReaderGetStream",
+  "callable": "Npgsql.NpgsqlDataReader.GetStream",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.Internal.NpgsqlReadBuffer+ColumnStream",
+  "src_sha": "0219905c61dd"
+ },
+ {
+  "id": "SCv904t80-lNpgsqlDataReaderGetData",
+  "callable": "Npgsql.NpgsqlDataReader.GetData",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "InvalidCastException",
+  "msg": "GetData() not supported for type text",
+  "src_sha": "252d27bfaef3"
+ },
+ {
+  "id": "SCv904t90-lNpgsqlDataReaderGetData",
+  "callable": "Npgsql.NpgsqlDataReader.GetData",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "InvalidCastException",
+  "msg": "GetData() not supported for type text",
+  "src_sha": "252d27bfaef3"
+ },
+ {
+  "id": "SCv904t100-lNpgsqlDataReaderGetData",
+  "callable": "Npgsql.NpgsqlDataReader.GetData",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "InvalidCastException",
+  "msg": "GetData() not supported for type text",
+  "src_sha": "252d27bfaef3"
+ },
+ {
+  "id": "SCv1000t80-lNpgsqlDataReaderGetData",
+  "callable": "Npgsql.NpgsqlDataReader.GetData",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "InvalidCastException",
+  "msg": "GetData() not supported for type text",
+  "src_sha": "252d27bfaef3"
+ },
+ {
+  "id": "SCv1000t90-lNpgsqlDataReaderGetData",
+  "callable": "Npgsql.NpgsqlDataReader.GetData",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "InvalidCastException",
+  "msg": "GetData() not supported for type text",
+  "src_sha": "252d27bfaef3"
+ },
+ {
+  "id": "SCv1000t100-lNpgsqlDataReaderGetData",
+  "callable": "Npgsql.NpgsqlDataReader.GetData",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "InvalidCastException",
+  "msg": "GetData() not supported for type text",
+  "src_sha": "252d27bfaef3"
+ },
+ {
+  "id": "SCv904t80-sqlConnectionCreateBatch",
+  "callable": "Npgsql.NpgsqlConnection.CreateBatch",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlBatch",
+  "src_sha": "655de45c48e9"
+ },
+ {
+  "id": "SCv904t90-sqlConnectionCreateBatch",
+  "callable": "Npgsql.NpgsqlConnection.CreateBatch",
+  "expect": "fresh",
+  "seconds": 3.1,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlBatch",
+  "src_sha": "655de45c48e9"
+ },
+ {
+  "id": "SCv904t100-sqlConnectionCreateBatch",
+  "callable": "Npgsql.NpgsqlConnection.CreateBatch",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlBatch",
+  "src_sha": "655de45c48e9"
+ },
+ {
+  "id": "SCv1000t80-sqlConnectionCreateBatch",
+  "callable": "Npgsql.NpgsqlConnection.CreateBatch",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlBatch",
+  "src_sha": "655de45c48e9"
+ },
+ {
+  "id": "SCv1000t90-sqlConnectionCreateBatch",
+  "callable": "Npgsql.NpgsqlConnection.CreateBatch",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlBatch",
+  "src_sha": "655de45c48e9"
+ },
+ {
+  "id": "SCv1000t100-sqlConnectionCreateBatch",
+  "callable": "Npgsql.NpgsqlConnection.CreateBatch",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlBatch",
+  "src_sha": "655de45c48e9"
+ },
+ {
+  "id": "SCv904t80-lDataReaderGetTextReader",
+  "callable": "Npgsql.NpgsqlDataReader.GetTextReader",
+  "expect": "fresh",
+  "seconds": 3.9,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.PreparedTextReader",
+  "src_sha": "95e44840ec96"
+ },
+ {
+  "id": "SCv904t90-lDataReaderGetTextReader",
+  "callable": "Npgsql.NpgsqlDataReader.GetTextReader",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.PreparedTextReader",
+  "src_sha": "95e44840ec96"
+ },
+ {
+  "id": "SCv904t100-lDataReaderGetTextReader",
+  "callable": "Npgsql.NpgsqlDataReader.GetTextReader",
+  "expect": "fresh",
+  "seconds": 3.9,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.PreparedTextReader",
+  "src_sha": "95e44840ec96"
+ },
+ {
+  "id": "SCv1000t80-lDataReaderGetTextReader",
+  "callable": "Npgsql.NpgsqlDataReader.GetTextReader",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.PreparedTextReader",
+  "src_sha": "95e44840ec96"
+ },
+ {
+  "id": "SCv1000t90-lDataReaderGetTextReader",
+  "callable": "Npgsql.NpgsqlDataReader.GetTextReader",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.PreparedTextReader",
+  "src_sha": "95e44840ec96"
+ },
+ {
+  "id": "SCv1000t100-lDataReaderGetTextReader",
+  "callable": "Npgsql.NpgsqlDataReader.GetTextReader",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.PreparedTextReader",
+  "src_sha": "95e44840ec96"
+ },
+ {
+  "id": "SCv904t80-onnectionBeginTextImport",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextImport",
+  "expect": "fresh",
+  "seconds": 3.1,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlCopyTextWriter",
+  "src_sha": "9e8ac87dd2c3"
+ },
+ {
+  "id": "SCv904t90-onnectionBeginTextImport",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextImport",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlCopyTextWriter",
+  "src_sha": "9e8ac87dd2c3"
+ },
+ {
+  "id": "SCv904t100-onnectionBeginTextImport",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextImport",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlCopyTextWriter",
+  "src_sha": "9e8ac87dd2c3"
+ },
+ {
+  "id": "SCv1000t80-onnectionBeginTextImport",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextImport",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlCopyTextWriter",
+  "src_sha": "9e8ac87dd2c3"
+ },
+ {
+  "id": "SCv1000t90-onnectionBeginTextImport",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextImport",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlCopyTextWriter",
+  "src_sha": "9e8ac87dd2c3"
+ },
+ {
+  "id": "SCv1000t100-onnectionBeginTextImport",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextImport",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlCopyTextWriter",
+  "src_sha": "9e8ac87dd2c3"
+ },
+ {
+  "id": "SCv904t80-DataReaderGetStreamAsync",
+  "callable": "Npgsql.NpgsqlDataReader.GetStreamAsync",
+  "expect": "fresh",
+  "seconds": 3.9,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.Internal.NpgsqlReadBuffer+ColumnStream",
+  "src_sha": "a1ef6105e508"
+ },
+ {
+  "id": "SCv904t90-DataReaderGetStreamAsync",
+  "callable": "Npgsql.NpgsqlDataReader.GetStreamAsync",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.Internal.NpgsqlReadBuffer+ColumnStream",
+  "src_sha": "a1ef6105e508"
+ },
+ {
+  "id": "SCv904t100-DataReaderGetStreamAsync",
+  "callable": "Npgsql.NpgsqlDataReader.GetStreamAsync",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.Internal.NpgsqlReadBuffer+ColumnStream",
+  "src_sha": "a1ef6105e508"
+ },
+ {
+  "id": "SCv1000t80-DataReaderGetStreamAsync",
+  "callable": "Npgsql.NpgsqlDataReader.GetStreamAsync",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.Internal.NpgsqlReadBuffer+ColumnStream",
+  "src_sha": "a1ef6105e508"
+ },
+ {
+  "id": "SCv1000t90-DataReaderGetStreamAsync",
+  "callable": "Npgsql.NpgsqlDataReader.GetStreamAsync",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.Internal.NpgsqlReadBuffer+ColumnStream",
+  "src_sha": "a1ef6105e508"
+ },
+ {
+  "id": "SCv1000t100-DataReaderGetStreamAsync",
+  "callable": "Npgsql.NpgsqlDataReader.GetStreamAsync",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.Internal.NpgsqlReadBuffer+ColumnStream",
+  "src_sha": "a1ef6105e508"
+ },
+ {
+  "id": "SCv904t80-ectionBeginRawBinaryCopy",
+  "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopy",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlRawCopyStream",
+  "src_sha": "0c1e95ebe49b"
+ },
+ {
+  "id": "SCv904t90-ectionBeginRawBinaryCopy",
+  "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopy",
+  "expect": "fresh",
+  "seconds": 3.8,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlRawCopyStream",
+  "src_sha": "0c1e95ebe49b"
+ },
+ {
+  "id": "SCv904t100-ectionBeginRawBinaryCopy",
+  "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopy",
+  "expect": "fresh",
+  "seconds": 3.8,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlRawCopyStream",
+  "src_sha": "0c1e95ebe49b"
+ },
+ {
+  "id": "SCv1000t80-ectionBeginRawBinaryCopy",
+  "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopy",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlRawCopyStream",
+  "src_sha": "0c1e95ebe49b"
+ },
+ {
+  "id": "SCv1000t90-ectionBeginRawBinaryCopy",
+  "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopy",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlRawCopyStream",
+  "src_sha": "0c1e95ebe49b"
+ },
+ {
+  "id": "SCv1000t100-ectionBeginRawBinaryCopy",
+  "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopy",
+  "expect": "fresh",
+  "seconds": 3.9,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlRawCopyStream",
+  "src_sha": "0c1e95ebe49b"
+ },
+ {
+  "id": "SCv904t80-aSourceWithTargetSession",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.WithTargetSession",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "parallel",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.MultiHostDataSourceWrapper",
+  "src_sha": "5656aba501e7"
+ },
+ {
+  "id": "SCv904t90-aSourceWithTargetSession",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.WithTargetSession",
+  "expect": "fresh",
+  "seconds": 4.0,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "parallel",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.MultiHostDataSourceWrapper",
+  "src_sha": "5656aba501e7"
+ },
+ {
+  "id": "SCv904t100-aSourceWithTargetSession",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.WithTargetSession",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "parallel",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.MultiHostDataSourceWrapper",
+  "src_sha": "5656aba501e7"
+ },
+ {
+  "id": "SCv1000t80-aSourceWithTargetSession",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.WithTargetSession",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "parallel",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.MultiHostDataSourceWrapper",
+  "src_sha": "5656aba501e7"
+ },
+ {
+  "id": "SCv1000t90-aSourceWithTargetSession",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.WithTargetSession",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "parallel",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.MultiHostDataSourceWrapper",
+  "src_sha": "5656aba501e7"
+ },
+ {
+  "id": "SCv1000t100-aSourceWithTargetSession",
+  "callable": "Npgsql.NpgsqlMultiHostDataSource.WithTargetSession",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "parallel",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.MultiHostDataSourceWrapper",
+  "src_sha": "5656aba501e7"
+ },
+ {
+  "id": "SCv904t80-dBuilderGetUpdateCommand",
+  "callable": "Npgsql.NpgsqlCommandBuilder.GetUpdateCommand",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "InvalidOperationException",
+  "msg": "An open data reader exists for this command.",
+  "src_sha": "21e90ff95aa9"
+ },
+ {
+  "id": "SCv904t90-dBuilderGetUpdateCommand",
+  "callable": "Npgsql.NpgsqlCommandBuilder.GetUpdateCommand",
+  "expect": "fresh",
+  "seconds": 4.0,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "InvalidOperationException",
+  "msg": "An open data reader exists for this command.",
+  "src_sha": "21e90ff95aa9"
+ },
+ {
+  "id": "SCv904t100-dBuilderGetUpdateCommand",
+  "callable": "Npgsql.NpgsqlCommandBuilder.GetUpdateCommand",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "InvalidOperationException",
+  "msg": "An open data reader exists for this command.",
+  "src_sha": "21e90ff95aa9"
+ },
+ {
+  "id": "SCv1000t80-dBuilderGetUpdateCommand",
+  "callable": "Npgsql.NpgsqlCommandBuilder.GetUpdateCommand",
+  "expect": "fresh",
+  "seconds": 3.8,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "ObjectDisposedException",
+  "msg": "Cannot access a disposed object.\nObject name: 'Npgsql.NpgsqlCommand'.",
+  "src_sha": "21e90ff95aa9"
+ },
+ {
+  "id": "SCv1000t90-dBuilderGetUpdateCommand",
+  "callable": "Npgsql.NpgsqlCommandBuilder.GetUpdateCommand",
+  "expect": "fresh",
+  "seconds": 4.1,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "ObjectDisposedException",
+  "msg": "Cannot access a disposed object.\nObject name: 'Npgsql.NpgsqlCommand'.",
+  "src_sha": "21e90ff95aa9"
+ },
+ {
+  "id": "SCv1000t100-dBuilderGetUpdateCommand",
+  "callable": "Npgsql.NpgsqlCommandBuilder.GetUpdateCommand",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "ObjectDisposedException",
+  "msg": "Cannot access a disposed object.\nObject name: 'Npgsql.NpgsqlCommand'.",
+  "src_sha": "21e90ff95aa9"
+ },
+ {
+  "id": "SCv904t80-onBeginBinaryExportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryExportAsync",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlBinaryExporter",
+  "src_sha": "0c85132c7b1a"
+ },
+ {
+  "id": "SCv904t90-onBeginBinaryExportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryExportAsync",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlBinaryExporter",
+  "src_sha": "0c85132c7b1a"
+ },
+ {
+  "id": "SCv904t100-onBeginBinaryExportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryExportAsync",
+  "expect": "fresh",
+  "seconds": 4.2,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlBinaryExporter",
+  "src_sha": "0c85132c7b1a"
+ },
+ {
+  "id": "SCv1000t80-onBeginBinaryExportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryExportAsync",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlBinaryExporter",
+  "src_sha": "0c85132c7b1a"
+ },
+ {
+  "id": "SCv1000t90-onBeginBinaryExportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryExportAsync",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlBinaryExporter",
+  "src_sha": "0c85132c7b1a"
+ },
+ {
+  "id": "SCv1000t100-onBeginBinaryExportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginBinaryExportAsync",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlBinaryExporter",
+  "src_sha": "0c85132c7b1a"
+ },
+ {
+  "id": "SCv904t80-onnectionBeginTextExport",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextExport",
+  "expect": "fresh",
+  "seconds": 3.9,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlCopyTextReader",
+  "src_sha": "4909a0ef4e9f"
+ },
+ {
+  "id": "SCv904t90-onnectionBeginTextExport",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextExport",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlCopyTextReader",
+  "src_sha": "4909a0ef4e9f"
+ },
+ {
+  "id": "SCv904t100-onnectionBeginTextExport",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextExport",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlCopyTextReader",
+  "src_sha": "4909a0ef4e9f"
+ },
+ {
+  "id": "SCv1000t80-onnectionBeginTextExport",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextExport",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlCopyTextReader",
+  "src_sha": "4909a0ef4e9f"
+ },
+ {
+  "id": "SCv1000t90-onnectionBeginTextExport",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextExport",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlCopyTextReader",
+  "src_sha": "4909a0ef4e9f"
+ },
+ {
+  "id": "SCv1000t100-onnectionBeginTextExport",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextExport",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlCopyTextReader",
+  "src_sha": "4909a0ef4e9f"
+ },
+ {
+  "id": "SCv904t80-ConnectionGetSchemaAsync",
+  "callable": "Npgsql.NpgsqlConnection.GetSchemaAsync",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d46fcf43-5c72-4dcb-b180-2eb3155945fe",
+  "type": "System.Data.DataTable",
+  "src_sha": "7b64bf3998fd"
+ },
+ {
+  "id": "SCv904t90-ConnectionGetSchemaAsync",
+  "callable": "Npgsql.NpgsqlConnection.GetSchemaAsync",
+  "expect": "fresh",
+  "seconds": 3.1,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "9c4bfd69-3aec-45a8-ac9c-dc4af8840354",
+  "type": "System.Data.DataTable",
+  "src_sha": "7b64bf3998fd"
+ },
+ {
+  "id": "SCv904t100-ConnectionGetSchemaAsync",
+  "callable": "Npgsql.NpgsqlConnection.GetSchemaAsync",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "9c4bfd69-3aec-45a8-ac9c-dc4af8840354",
+  "type": "System.Data.DataTable",
+  "src_sha": "7b64bf3998fd"
+ },
+ {
+  "id": "SCv1000t80-ConnectionGetSchemaAsync",
+  "callable": "Npgsql.NpgsqlConnection.GetSchemaAsync",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d46fcf43-5c72-4dcb-b180-2eb3155945fe",
+  "type": "System.Data.DataTable",
+  "src_sha": "7b64bf3998fd"
+ },
+ {
+  "id": "SCv1000t90-ConnectionGetSchemaAsync",
+  "callable": "Npgsql.NpgsqlConnection.GetSchemaAsync",
+  "expect": "fresh",
+  "seconds": 3.8,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "9c4bfd69-3aec-45a8-ac9c-dc4af8840354",
+  "type": "System.Data.DataTable",
+  "src_sha": "7b64bf3998fd"
+ },
+ {
+  "id": "SCv1000t100-ConnectionGetSchemaAsync",
+  "callable": "Npgsql.NpgsqlConnection.GetSchemaAsync",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "9c4bfd69-3aec-45a8-ac9c-dc4af8840354",
+  "type": "System.Data.DataTable",
+  "src_sha": "7b64bf3998fd"
+ },
+ {
+  "id": "SCv904t80-ReaderGetTextReaderAsync",
+  "callable": "Npgsql.NpgsqlDataReader.GetTextReaderAsync",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.PreparedTextReader",
+  "src_sha": "78de08f1450c"
+ },
+ {
+  "id": "SCv904t90-ReaderGetTextReaderAsync",
+  "callable": "Npgsql.NpgsqlDataReader.GetTextReaderAsync",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.PreparedTextReader",
+  "src_sha": "78de08f1450c"
+ },
+ {
+  "id": "SCv904t100-ReaderGetTextReaderAsync",
+  "callable": "Npgsql.NpgsqlDataReader.GetTextReaderAsync",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.PreparedTextReader",
+  "src_sha": "78de08f1450c"
+ },
+ {
+  "id": "SCv1000t80-ReaderGetTextReaderAsync",
+  "callable": "Npgsql.NpgsqlDataReader.GetTextReaderAsync",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.PreparedTextReader",
+  "src_sha": "78de08f1450c"
+ },
+ {
+  "id": "SCv1000t90-ReaderGetTextReaderAsync",
+  "callable": "Npgsql.NpgsqlDataReader.GetTextReaderAsync",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.PreparedTextReader",
+  "src_sha": "78de08f1450c"
+ },
+ {
+  "id": "SCv1000t100-ReaderGetTextReaderAsync",
+  "callable": "Npgsql.NpgsqlDataReader.GetTextReaderAsync",
+  "expect": "fresh",
+  "seconds": 3.8,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.PreparedTextReader",
+  "src_sha": "78de08f1450c"
+ },
+ {
+  "id": "SCv904t80-tionBeginTextExportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextExportAsync",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlCopyTextReader",
+  "src_sha": "4856db74ad69"
+ },
+ {
+  "id": "SCv904t90-tionBeginTextExportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextExportAsync",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlCopyTextReader",
+  "src_sha": "4856db74ad69"
+ },
+ {
+  "id": "SCv904t100-tionBeginTextExportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextExportAsync",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlCopyTextReader",
+  "src_sha": "4856db74ad69"
+ },
+ {
+  "id": "SCv1000t80-tionBeginTextExportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextExportAsync",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlCopyTextReader",
+  "src_sha": "4856db74ad69"
+ },
+ {
+  "id": "SCv1000t90-tionBeginTextExportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextExportAsync",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlCopyTextReader",
+  "src_sha": "4856db74ad69"
+ },
+ {
+  "id": "SCv1000t100-tionBeginTextExportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextExportAsync",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlCopyTextReader",
+  "src_sha": "4856db74ad69"
+ },
+ {
+  "id": "SCv904t80-nBeginRawBinaryCopyAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopyAsync",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlRawCopyStream",
+  "src_sha": "c61008ae48f7"
+ },
+ {
+  "id": "SCv904t90-nBeginRawBinaryCopyAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopyAsync",
+  "expect": "fresh",
+  "seconds": 3.1,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlRawCopyStream",
+  "src_sha": "c61008ae48f7"
+ },
+ {
+  "id": "SCv904t100-nBeginRawBinaryCopyAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopyAsync",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlRawCopyStream",
+  "src_sha": "c61008ae48f7"
+ },
+ {
+  "id": "SCv1000t80-nBeginRawBinaryCopyAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopyAsync",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlRawCopyStream",
+  "src_sha": "c61008ae48f7"
+ },
+ {
+  "id": "SCv1000t90-nBeginRawBinaryCopyAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopyAsync",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlRawCopyStream",
+  "src_sha": "c61008ae48f7"
+ },
+ {
+  "id": "SCv1000t100-nBeginRawBinaryCopyAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopyAsync",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlRawCopyStream",
+  "src_sha": "c61008ae48f7"
+ },
+ {
+  "id": "SCv904t80-tionBeginTextImportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextImportAsync",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlCopyTextWriter",
+  "src_sha": "58996e2def61"
+ },
+ {
+  "id": "SCv904t90-tionBeginTextImportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextImportAsync",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlCopyTextWriter",
+  "src_sha": "58996e2def61"
+ },
+ {
+  "id": "SCv904t100-tionBeginTextImportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextImportAsync",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "type": "Npgsql.NpgsqlCopyTextWriter",
+  "src_sha": "58996e2def61"
+ },
+ {
+  "id": "SCv1000t80-tionBeginTextImportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextImportAsync",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "319fbf4d-37e7-455a-a7f4-363ba8d84d48",
+  "type": "Npgsql.NpgsqlCopyTextWriter",
+  "src_sha": "58996e2def61"
+ },
+ {
+  "id": "SCv1000t90-tionBeginTextImportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextImportAsync",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "type": "Npgsql.NpgsqlCopyTextWriter",
+  "src_sha": "58996e2def61"
+ },
+ {
+  "id": "SCv1000t100-tionBeginTextImportAsync",
+  "callable": "Npgsql.NpgsqlConnection.BeginTextImportAsync",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "mode": "sequential",
+  "asm": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "type": "Npgsql.NpgsqlCopyTextWriter",
+  "src_sha": "58996e2def61"
+ },
+ {
+  "id": "SCv904t80-dBuilderGetInsertCommand",
+  "callable": "Npgsql.NpgsqlCommandBuilder.GetInsertCommand",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "InvalidOperationException",
+  "msg": "An open data reader exists for this command.",
+  "src_sha": "cdb31c948e94"
+ },
+ {
+  "id": "SCv904t90-dBuilderGetInsertCommand",
+  "callable": "Npgsql.NpgsqlCommandBuilder.GetInsertCommand",
+  "expect": "fresh",
+  "seconds": 3.4,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "InvalidOperationException",
+  "msg": "An open data reader exists for this command.",
+  "src_sha": "cdb31c948e94"
+ },
+ {
+  "id": "SCv904t100-dBuilderGetInsertCommand",
+  "callable": "Npgsql.NpgsqlCommandBuilder.GetInsertCommand",
+  "expect": "fresh",
+  "seconds": 3.5,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "9.0.4"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "InvalidOperationException",
+  "msg": "An open data reader exists for this command.",
+  "src_sha": "cdb31c948e94"
+ },
+ {
+  "id": "SCv1000t80-dBuilderGetInsertCommand",
+  "callable": "Npgsql.NpgsqlCommandBuilder.GetInsertCommand",
+  "expect": "fresh",
+  "seconds": 3.8,
+  "tfm": "net8.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "ObjectDisposedException",
+  "msg": "Cannot access a disposed object.\nObject name: 'Npgsql.NpgsqlCommand'.",
+  "src_sha": "cdb31c948e94"
+ },
+ {
+  "id": "SCv1000t90-dBuilderGetInsertCommand",
+  "callable": "Npgsql.NpgsqlCommandBuilder.GetInsertCommand",
+  "expect": "fresh",
+  "seconds": 3.6,
+  "tfm": "net9.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "ObjectDisposedException",
+  "msg": "Cannot access a disposed object.\nObject name: 'Npgsql.NpgsqlCommand'.",
+  "src_sha": "cdb31c948e94"
+ },
+ {
+  "id": "SCv1000t100-dBuilderGetInsertCommand",
+  "callable": "Npgsql.NpgsqlCommandBuilder.GetInsertCommand",
+  "expect": "fresh",
+  "seconds": 3.2,
+  "tfm": "net10.0",
+  "packages": [
+   [
+    "Npgsql",
+    "10.0.0"
+   ]
+  ],
+  "verdict": "environment-error",
+  "err": "ObjectDisposedException",
+  "msg": "Cannot access a disposed object.\nObject name: 'Npgsql.NpgsqlCommand'.",
+  "src_sha": "cdb31c948e94"
+ }
+]

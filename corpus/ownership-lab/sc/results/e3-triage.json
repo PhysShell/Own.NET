@@ -1,0 +1,158 @@
+{
+ "rule": {
+  "TRUE_PRODUCTION": "production code; the object is created, caller-owned (row), never disposed on some path, and the leak is real for the program",
+  "TRUE_TEST_SAMPLE": "the same in test, sample or documentation code",
+  "BENIGN": "the object is caller-owned but its lifetime is the process lifetime by design (a singleton created once at startup) or it is disposed by a convention the code follows elsewhere",
+  "FALSE": "the object is disposed, escapes into a field/return/collection, or the row does not apply on that path (analysis error)",
+  "UNDECIDABLE": "cannot be decided from the source"
+ },
+ "overlap_rule": {
+  "OWN_NET_ONLY": "no other tool flags the line",
+  "EXISTING_TOOL_WITHOUT_MODEL": "IDisposableAnalyzers / CA2000 flags the line from the return type alone",
+  "EXISTING_TOOL_WITH_MANUAL_MODEL": "another tool would need a hand-written model of the callable",
+  "UNKNOWN": "the tool could not be run on the project"
+ },
+ "findings": [
+  {
+   "repo": "JasperFx/weasel",
+   "sha": "73b158bf5a708059ebc543e93e9b45e40f12d8c4",
+   "project": "src/DocSamples/DocSamples.csproj",
+   "tfms": [
+    "net10.0",
+    "net9.0"
+   ],
+   "file": "src/DocSamples/PostgresqlFunctionSamples.cs",
+   "line": 42,
+   "rule": "OWN001",
+   "message": "IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]",
+   "callable": "Npgsql.NpgsqlDataSourceBuilder.Build",
+   "row_class": "rederived_same_source (Npgsql 9.0.4 / 10.0.0 source derivation, E1)",
+   "class": "TRUE_TEST_SAMPLE",
+   "reason": "documentation sample method (DocSamples project, #region sample_*): a per-call NpgsqlDataSource is created and never disposed; the sample shows the pattern readers copy; not production code",
+   "overlap": "EXISTING_TOOL_WITHOUT_MODEL",
+   "overlap_evidence": "IDisposableAnalyzers IDISP001 at the same line (QuickStartSamples.cs:26 also CA2000); flagged from the IDisposable return type alone"
+  },
+  {
+   "repo": "JasperFx/weasel",
+   "sha": "73b158bf5a708059ebc543e93e9b45e40f12d8c4",
+   "project": "src/DocSamples/DocSamples.csproj",
+   "tfms": [
+    "net10.0",
+    "net9.0"
+   ],
+   "file": "src/DocSamples/PostgresqlSequenceSamples.cs",
+   "line": 49,
+   "rule": "OWN001",
+   "message": "IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]",
+   "callable": "Npgsql.NpgsqlDataSourceBuilder.Build",
+   "row_class": "rederived_same_source (Npgsql 9.0.4 / 10.0.0 source derivation, E1)",
+   "class": "TRUE_TEST_SAMPLE",
+   "reason": "documentation sample method (DocSamples project, #region sample_*): a per-call NpgsqlDataSource is created and never disposed; the sample shows the pattern readers copy; not production code",
+   "overlap": "EXISTING_TOOL_WITHOUT_MODEL",
+   "overlap_evidence": "IDisposableAnalyzers IDISP001 at the same line (QuickStartSamples.cs:26 also CA2000); flagged from the IDisposable return type alone"
+  },
+  {
+   "repo": "JasperFx/weasel",
+   "sha": "73b158bf5a708059ebc543e93e9b45e40f12d8c4",
+   "project": "src/DocSamples/DocSamples.csproj",
+   "tfms": [
+    "net10.0",
+    "net9.0"
+   ],
+   "file": "src/DocSamples/PostgresqlTableSamples.cs",
+   "line": 144,
+   "rule": "OWN001",
+   "message": "IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]",
+   "callable": "Npgsql.NpgsqlDataSourceBuilder.Build",
+   "row_class": "rederived_same_source (Npgsql 9.0.4 / 10.0.0 source derivation, E1)",
+   "class": "TRUE_TEST_SAMPLE",
+   "reason": "documentation sample method (DocSamples project, #region sample_*): a per-call NpgsqlDataSource is created and never disposed; the sample shows the pattern readers copy; not production code",
+   "overlap": "EXISTING_TOOL_WITHOUT_MODEL",
+   "overlap_evidence": "IDisposableAnalyzers IDISP001 at the same line (QuickStartSamples.cs:26 also CA2000); flagged from the IDisposable return type alone"
+  },
+  {
+   "repo": "JasperFx/weasel",
+   "sha": "73b158bf5a708059ebc543e93e9b45e40f12d8c4",
+   "project": "src/DocSamples/DocSamples.csproj",
+   "tfms": [
+    "net10.0",
+    "net9.0"
+   ],
+   "file": "src/DocSamples/PostgresqlViewSamples.cs",
+   "line": 50,
+   "rule": "OWN001",
+   "message": "IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]",
+   "callable": "Npgsql.NpgsqlDataSourceBuilder.Build",
+   "row_class": "rederived_same_source (Npgsql 9.0.4 / 10.0.0 source derivation, E1)",
+   "class": "TRUE_TEST_SAMPLE",
+   "reason": "documentation sample method (DocSamples project, #region sample_*): a per-call NpgsqlDataSource is created and never disposed; the sample shows the pattern readers copy; not production code",
+   "overlap": "EXISTING_TOOL_WITHOUT_MODEL",
+   "overlap_evidence": "IDisposableAnalyzers IDISP001 at the same line (QuickStartSamples.cs:26 also CA2000); flagged from the IDisposable return type alone"
+  },
+  {
+   "repo": "JasperFx/weasel",
+   "sha": "73b158bf5a708059ebc543e93e9b45e40f12d8c4",
+   "project": "src/DocSamples/DocSamples.csproj",
+   "tfms": [
+    "net10.0",
+    "net9.0"
+   ],
+   "file": "src/DocSamples/QuickStartSamples.cs",
+   "line": 26,
+   "rule": "OWN001",
+   "message": "IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]",
+   "callable": "Npgsql.NpgsqlDataSource.Create",
+   "row_class": "rederived_same_source (Npgsql 9.0.4 / 10.0.0 source derivation, E1)",
+   "class": "TRUE_TEST_SAMPLE",
+   "reason": "documentation sample method (DocSamples project, #region sample_*): a per-call NpgsqlDataSource is created and never disposed; the sample shows the pattern readers copy; not production code",
+   "overlap": "EXISTING_TOOL_WITHOUT_MODEL",
+   "overlap_evidence": "IDisposableAnalyzers IDISP001 at the same line (QuickStartSamples.cs:26 also CA2000); flagged from the IDisposable return type alone"
+  },
+  {
+   "repo": "victor-wiki/DatabaseManager",
+   "sha": "032506d9068adb8e52902b7065f10775593872a8",
+   "project": "DatabaseInterpreter/DatabaseInterpreter.Core/DatabaseInterpreter.Core.csproj",
+   "tfms": [
+    "net10.0"
+   ],
+   "file": "DatabaseInterpreter/DatabaseInterpreter.Core/Connection/DbConnector.cs",
+   "line": 50,
+   "rule": "OWN001",
+   "message": "IDisposable local 'dataSource' is never disposed (leak) [resource: disposable]",
+   "callable": "Npgsql.NpgsqlDataSourceBuilder.Build",
+   "row_class": "rederived_same_source (Npgsql 10.0.3 source derivation, E1; net10.0 asset re-pin)",
+   "class": "TRUE_PRODUCTION",
+   "reason": "DbConnector.GetDbConnection (library code, DatabaseInterpreter.Core): for every connection request a NEW NpgsqlDataSourceBuilder(...).Build() data source is created, a connection is taken from it and returned, and the data source itself is dropped; each NpgsqlDataSource owns its own connection pool, so pools (and their open connections) accumulate for the process lifetime; Npgsql documents the data source as a create-once object. Real resource leak in production code; severity: unbounded pool growth under repeated use",
+   "overlap": "OWN_NET_ONLY",
+   "overlap_evidence": "IDisposableAnalyzers (54 warnings in the project) flags DbConnector.cs:59 (factory.CreateConnection()) but not line 50 (dataSourceBuilder.Build() whose result is only used as the receiver of the returned CreateConnection()); CA2000 silent"
+  },
+  {
+   "repo": "NpgsqlRest/NpgsqlRest",
+   "sha": "6cc6f55fa65b14e394fa1a71233db6be8674688e",
+   "project": "NpgsqlRestClient/NpgsqlRestClient.csproj",
+   "tfms": [
+    "net10.0"
+   ],
+   "file": "NpgsqlRestClient/Builder.cs",
+   "line": 3250,
+   "rule": "OWN001",
+   "message": "IDisposable local 'multiHost' is never disposed (leak) [resource: disposable]",
+   "callable": "Npgsql.NpgsqlDataSourceBuilder.BuildMultiHost",
+   "row_class": "rederived_same_source (Npgsql 10.0.3 source derivation, E1; net10.0 asset re-pin)",
+   "class": "BENIGN",
+   "reason": "Builder.BuildMainDataSource: var multiHost = new NpgsqlDataSourceBuilder(cs).BuildMultiHost(); return multiHost.WithTargetSession(target); -- the returned object is Npgsql's MultiHostDataSourceWrapper (cached per target inside the multi-host source; OwnsConnectors => false, no Dispose override), so the caller's 'await using var dataSource = builder.BuildMainDataSource(...)' (Program.cs:496) disposes the wrapper and never the wrapped multi-host pool: the verdict is semantically correct (nothing ever disposes multiHost), but BuildMainDataSource runs once at startup and the pool lives for the process; would become a real leak only if the method were called repeatedly",
+   "overlap": "OWN_NET_ONLY",
+   "overlap_evidence": "IDisposableAnalyzers flags Builder.cs:3088 (another BuildMultiHost site) and 318/319 (Serilog), not 3250; CA2000 silent at 3250"
+  }
+ ],
+ "decisions": {
+  "dense-consumer selection (E1/E2)": "NARROW: the textual pool ranks consumers by shapes the oracle does not apply to (assignment sites, using-declarations, test code) and by versions the rows do not cover; the semantic census must be the ranking, and re-derivation per resolved version is the cheap fix for drift (three derivations for Npgsql, one for SkiaSharp, minutes each)",
+  "exposure floor": "INCONCLUSIVE_EXPOSURE: 17 consumers censused, 43 trusted opportunities (13 in production code, 30 in test/sample projects), 7 consumers with at least one, 2 dependency families; the floor (>=30 production-relevant opportunities AND >=3 families) is not met; the OFF/ON gate below is reported as UNDEREXPOSED and must not narrow the semantic line",
+  "production bug-yield gate (E3)": "MEASURED, UNDEREXPOSED: 7 consumers scanned OFF vs ON with the frozen rows; ON-only findings 7 unique sites: 1 TRUE_PRODUCTION (DatabaseManager: a new NpgsqlDataSource and its pool per connection request, never disposed; OWN_NET_ONLY), 5 TRUE_TEST_SAMPLE (weasel documentation samples; also flagged by IDisposableAnalyzers from the return type), 1 BENIGN (NpgsqlRest startup wrapper; OWN_NET_ONLY); 0 FALSE, 0 lost findings, engine parity on every unit"
+ },
+ "observations": [
+  "NpgsqlRest Builder.cs:3088 has the same shape as the flagged 3250 (var multiHost = ...BuildMultiHost(); result[key] = multiHost.WithTargetSession(target);) but Own.NET reports nothing there while IDisposableAnalyzers reports IDISP001 at 3088 and nothing at 3250: an indexer store of a value derived from the local is treated as an escape of the local by Own.NET; the two tools flag disjoint sites of one identical pattern",
+  "every ON-only finding is on the NpgsqlDataSource family (Build / BuildMultiHost / Create), the one family whose rows both derive from source and are heavily used; no witnessed-only row produced a finding (their sites are using-declarations, test code, or reused-instance protocols)",
+  "the OFF baseline already reported 76 (marten), 9-10 (NpgsqlRestClient) etc. findings on these consumers: those are convention/BCL findings unaffected by the rows and were not triaged (out of scope: the gate measures the DELTA)"
+ ]
+}

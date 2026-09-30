@@ -1,0 +1,1234 @@
+{
+ "rows": [
+  {
+   "callable": "SkiaSharp.SKBitmap.Copy",
+   "lines": 194,
+   "using_lines": 4,
+   "using_share": 0.021
+  },
+  {
+   "callable": "SkiaSharp.SKImage.FromBitmap",
+   "lines": 300,
+   "using_lines": 210,
+   "using_share": 0.7
+  },
+  {
+   "callable": "SkiaSharp.SKBitmap.Encode",
+   "lines": 167,
+   "using_lines": 68,
+   "using_share": 0.407
+  },
+  {
+   "callable": "SkiaSharp.SKDrawable.Snapshot",
+   "lines": 163,
+   "using_lines": 88,
+   "using_share": 0.54
+  },
+  {
+   "callable": "SkiaSharp.SKImage.Encode",
+   "lines": 161,
+   "using_lines": 66,
+   "using_share": 0.41
+  },
+  {
+   "callable": "SkiaSharp.SKPathBuilder.Snapshot",
+   "lines": 163,
+   "using_lines": 88,
+   "using_share": 0.54
+  },
+  {
+   "callable": "SkiaSharp.SKPixmap.Encode",
+   "lines": 161,
+   "using_lines": 66,
+   "using_share": 0.41
+  },
+  {
+   "callable": "SkiaSharp.SKSurface.Snapshot",
+   "lines": 163,
+   "using_lines": 88,
+   "using_share": 0.54
+  },
+  {
+   "callable": "Npgsql.NpgsqlCommand.ExecuteReader",
+   "lines": 150,
+   "using_lines": 114,
+   "using_share": 0.76
+  },
+  {
+   "callable": "SkiaSharp.SKRuntimeShaderBuilder.Build",
+   "lines": 143,
+   "using_lines": 10,
+   "using_share": 0.07
+  },
+  {
+   "callable": "SkiaSharp.SKRuntimeColorFilterBuilder.Build",
+   "lines": 143,
+   "using_lines": 10,
+   "using_share": 0.07
+  },
+  {
+   "callable": "SkiaSharp.SKRuntimeBlenderBuilder.Build",
+   "lines": 143,
+   "using_lines": 11,
+   "using_share": 0.077
+  },
+  {
+   "callable": "SkiaSharp.SKTextBlobBuilder.Build",
+   "lines": 143,
+   "using_lines": 11,
+   "using_share": 0.077
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginTransactionAsync",
+   "lines": 161,
+   "using_lines": 85,
+   "using_share": 0.528
+  },
+  {
+   "callable": "SkiaSharp.SKSurface.Create",
+   "lines": 299,
+   "using_lines": 174,
+   "using_share": 0.582
+  },
+  {
+   "callable": "StackExchange.Redis.ConnectionMultiplexer.Connect",
+   "lines": 300,
+   "using_lines": 24,
+   "using_share": 0.08
+  },
+  {
+   "callable": "Npgsql.NpgsqlBatch.ExecuteReaderAsync",
+   "lines": 139,
+   "using_lines": 111,
+   "using_share": 0.799
+  },
+  {
+   "callable": "Npgsql.NpgsqlBatch.ExecuteReader",
+   "lines": 150,
+   "using_lines": 114,
+   "using_share": 0.76
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.CreateCommand",
+   "lines": 187,
+   "using_lines": 151,
+   "using_share": 0.807
+  },
+  {
+   "callable": "Npgsql.NpgsqlCommand.ExecuteReaderAsync",
+   "lines": 145,
+   "using_lines": 118,
+   "using_share": 0.814
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+   "lines": 180,
+   "using_lines": 148,
+   "using_share": 0.822
+  },
+  {
+   "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnectionAsync",
+   "lines": 180,
+   "using_lines": 148,
+   "using_share": 0.822
+  },
+  {
+   "callable": "SkiaSharp.SKBitmap.Resize",
+   "lines": 167,
+   "using_lines": 49,
+   "using_share": 0.293
+  },
+  {
+   "callable": "RabbitMQ.Client.ConnectionFactory.CreateConnectionAsync",
+   "lines": 147,
+   "using_lines": 70,
+   "using_share": 0.476
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.Create",
+   "lines": 162,
+   "using_lines": 23,
+   "using_share": 0.142
+  },
+  {
+   "callable": "SkiaSharp.SKPaint.Clone",
+   "lines": 189,
+   "using_lines": 26,
+   "using_share": 0.138
+  },
+  {
+   "callable": "SkiaSharp.SKTypeface.Clone",
+   "lines": 188,
+   "using_lines": 27,
+   "using_share": 0.144
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginTransaction",
+   "lines": 160,
+   "using_lines": 56,
+   "using_share": 0.35
+  },
+  {
+   "callable": "SkiaSharp.SKTypeface.FromFamilyName",
+   "lines": 300,
+   "using_lines": 62,
+   "using_share": 0.207
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.Open",
+   "lines": 95,
+   "using_lines": 4,
+   "using_share": 0.042
+  },
+  {
+   "callable": "SkiaSharp.SKBitmap.PeekPixels",
+   "lines": 182,
+   "using_lines": 141,
+   "using_share": 0.775
+  },
+  {
+   "callable": "SkiaSharp.SKImage.PeekPixels",
+   "lines": 179,
+   "using_lines": 138,
+   "using_share": 0.771
+  },
+  {
+   "callable": "SkiaSharp.SKSurface.PeekPixels",
+   "lines": 185,
+   "using_lines": 145,
+   "using_share": 0.784
+  },
+  {
+   "callable": "SkiaSharp.SKRoundRect.Transform",
+   "lines": 194,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "StackExchange.Redis.ConnectionMultiplexer.ConnectAsync",
+   "lines": 300,
+   "using_lines": 139,
+   "using_share": 0.463
+  },
+  {
+   "callable": "SkiaSharp.SKPicture.Serialize",
+   "lines": 188,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "SkiaSharp.SKCodec.Create",
+   "lines": 300,
+   "using_lines": 232,
+   "using_share": 0.773
+  },
+  {
+   "callable": "SkiaSharp.SKShader.CreateLinearGradient",
+   "lines": 300,
+   "using_lines": 91,
+   "using_share": 0.303
+  },
+  {
+   "callable": "SkiaSharp.SKPathBuilder.Detach",
+   "lines": 164,
+   "using_lines": 81,
+   "using_share": 0.494
+  },
+  {
+   "callable": "SkiaSharp.SKImage.FromEncodedData",
+   "lines": 286,
+   "using_lines": 157,
+   "using_share": 0.549
+  },
+  {
+   "callable": "SkiaSharp.SKPictureRecorder.BeginRecording",
+   "lines": 173,
+   "using_lines": 20,
+   "using_share": 0.116
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataSource.OpenConnection",
+   "lines": 148,
+   "using_lines": 97,
+   "using_share": 0.655
+  },
+  {
+   "callable": "Npgsql.NpgsqlMultiHostDataSource.OpenConnection",
+   "lines": 148,
+   "using_lines": 97,
+   "using_share": 0.655
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginBinaryImport",
+   "lines": 143,
+   "using_lines": 121,
+   "using_share": 0.846
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginBinaryExport",
+   "lines": 215,
+   "using_lines": 14,
+   "using_share": 0.065
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.OpenRead",
+   "lines": 154,
+   "using_lines": 131,
+   "using_share": 0.851
+  },
+  {
+   "callable": "SkiaSharp.SKPictureRecorder.EndRecording",
+   "lines": 156,
+   "using_lines": 76,
+   "using_share": 0.487
+  },
+  {
+   "callable": "SkiaSharp.SKPathEffect.CreateDash",
+   "lines": 255,
+   "using_lines": 40,
+   "using_share": 0.157
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.GetSchema",
+   "lines": 169,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "Renci.SshNet.SshClient.RunCommand",
+   "lines": 147,
+   "using_lines": 9,
+   "using_share": 0.061
+  },
+  {
+   "callable": "SkiaSharp.SKBitmap.ToShader",
+   "lines": 132,
+   "using_lines": 67,
+   "using_share": 0.508
+  },
+  {
+   "callable": "SkiaSharp.SKImage.ToShader",
+   "lines": 132,
+   "using_lines": 67,
+   "using_share": 0.508
+  },
+  {
+   "callable": "SkiaSharp.SKPicture.ToShader",
+   "lines": 132,
+   "using_lines": 67,
+   "using_share": 0.508
+  },
+  {
+   "callable": "SkiaSharp.SKRuntimeEffect.ToShader",
+   "lines": 132,
+   "using_lines": 67,
+   "using_share": 0.508
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginBinaryImportAsync",
+   "lines": 104,
+   "using_lines": 92,
+   "using_share": 0.885
+  },
+  {
+   "callable": "SkiaSharp.SKFontManager.MatchCharacter",
+   "lines": 108,
+   "using_lines": 29,
+   "using_share": 0.269
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateBlur",
+   "lines": 177,
+   "using_lines": 89,
+   "using_share": 0.503
+  },
+  {
+   "callable": "SkiaSharp.SKColorFilter.CreateColorMatrix",
+   "lines": 163,
+   "using_lines": 31,
+   "using_share": 0.19
+  },
+  {
+   "callable": "SkiaSharp.SKShader.CreateRadialGradient",
+   "lines": 163,
+   "using_lines": 42,
+   "using_share": 0.258
+  },
+  {
+   "callable": "SkiaSharp.SKTypeface.FromFile",
+   "lines": 154,
+   "using_lines": 62,
+   "using_share": 0.403
+  },
+  {
+   "callable": "SkiaSharp.SKColorSpace.CreateSrgbLinear",
+   "lines": 150,
+   "using_lines": 17,
+   "using_share": 0.113
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.OpenWrite",
+   "lines": 92,
+   "using_lines": 76,
+   "using_share": 0.826
+  },
+  {
+   "callable": "SkiaSharp.SKStream.GetData",
+   "lines": 95,
+   "using_lines": 7,
+   "using_share": 0.074
+  },
+  {
+   "callable": "SkiaSharp.SKData.Create",
+   "lines": 139,
+   "using_lines": 90,
+   "using_share": 0.647
+  },
+  {
+   "callable": "SkiaSharp.SKPath.Op",
+   "lines": 97,
+   "using_lines": 13,
+   "using_share": 0.134
+  },
+  {
+   "callable": "SkiaSharp.SKData.CreateCopy",
+   "lines": 136,
+   "using_lines": 113,
+   "using_share": 0.831
+  },
+  {
+   "callable": "SkiaSharp.SKColorSpace.CreateSrgb",
+   "lines": 134,
+   "using_lines": 23,
+   "using_share": 0.172
+  },
+  {
+   "callable": "SkiaSharp.SKShader.CreateColor",
+   "lines": 127,
+   "using_lines": 26,
+   "using_share": 0.205
+  },
+  {
+   "callable": "Renci.SshNet.SshClient.CreateShellStream",
+   "lines": 53,
+   "using_lines": 11,
+   "using_share": 0.208
+  },
+  {
+   "callable": "SkiaSharp.SKPaint.GetFillPath",
+   "lines": 75,
+   "using_lines": 34,
+   "using_share": 0.453
+  },
+  {
+   "callable": "SkiaSharp.SKColorFilter.CreateBlendMode",
+   "lines": 117,
+   "using_lines": 28,
+   "using_share": 0.239
+  },
+  {
+   "callable": "SkiaSharp.SKMaskFilter.CreateBlur",
+   "lines": 112,
+   "using_lines": 24,
+   "using_share": 0.214
+  },
+  {
+   "callable": "SkiaSharp.SKTypeface.FromStream",
+   "lines": 103,
+   "using_lines": 25,
+   "using_share": 0.243
+  },
+  {
+   "callable": "SkiaSharp.GRContext.CreateGl",
+   "lines": 102,
+   "using_lines": 39,
+   "using_share": 0.382
+  },
+  {
+   "callable": "SkiaSharp.SKFontManager.MatchFamily",
+   "lines": 55,
+   "using_lines": 13,
+   "using_share": 0.236
+  },
+  {
+   "callable": "SkiaSharp.SKImage.FromPixels",
+   "lines": 101,
+   "using_lines": 76,
+   "using_share": 0.752
+  },
+  {
+   "callable": "SkiaSharp.SKRuntimeEffect.CreateShader",
+   "lines": 95,
+   "using_lines": 33,
+   "using_share": 0.347
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataReader.GetSchemaTable",
+   "lines": 45,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "SkiaSharp.SKPaint.ToFont",
+   "lines": 51,
+   "using_lines": 27,
+   "using_share": 0.529
+  },
+  {
+   "callable": "SkiaSharp.SKDocument.BeginPage",
+   "lines": 47,
+   "using_lines": 22,
+   "using_share": 0.468
+  },
+  {
+   "callable": "SkiaSharp.SKPixmap.ExtractSubset",
+   "lines": 43,
+   "using_lines": 1,
+   "using_share": 0.023
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateColorFilter",
+   "lines": 84,
+   "using_lines": 9,
+   "using_share": 0.107
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataReader.GetStream",
+   "lines": 41,
+   "using_lines": 12,
+   "using_share": 0.293
+  },
+  {
+   "callable": "SkiaSharp.SKImageReadPixelsResult.ToImage",
+   "lines": 48,
+   "using_lines": 19,
+   "using_share": 0.396
+  },
+  {
+   "callable": "SkiaSharp.SKTypeface.OpenStream",
+   "lines": 37,
+   "using_lines": 21,
+   "using_share": 0.568
+  },
+  {
+   "callable": "SkiaSharp.SKShader.CreateBitmap",
+   "lines": 71,
+   "using_lines": 21,
+   "using_share": 0.296
+  },
+  {
+   "callable": "SkiaSharp.SKData.Subset",
+   "lines": 41,
+   "using_lines": 27,
+   "using_share": 0.659
+  },
+  {
+   "callable": "SkiaSharp.SKImage.Subset",
+   "lines": 41,
+   "using_lines": 27,
+   "using_share": 0.659
+  },
+  {
+   "callable": "SkiaSharp.SKDynamicMemoryWStream.DetachAsData",
+   "lines": 38,
+   "using_lines": 11,
+   "using_share": 0.289
+  },
+  {
+   "callable": "SkiaSharp.SKDocument.CreatePdf",
+   "lines": 66,
+   "using_lines": 56,
+   "using_share": 0.848
+  },
+  {
+   "callable": "SkiaSharp.SKImage.FromPixelCopy",
+   "lines": 57,
+   "using_lines": 24,
+   "using_share": 0.421
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateDropShadow",
+   "lines": 57,
+   "using_lines": 4,
+   "using_share": 0.07
+  },
+  {
+   "callable": "SkiaSharp.SKTypeface.FromData",
+   "lines": 55,
+   "using_lines": 21,
+   "using_share": 0.382
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.OpenAsync",
+   "lines": 22,
+   "using_lines": 6,
+   "using_share": 0.273
+  },
+  {
+   "callable": "SkiaSharp.SKSvgCanvas.Create",
+   "lines": 51,
+   "using_lines": 40,
+   "using_share": 0.784
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataReader.GetData",
+   "lines": 14,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "Npgsql.NpgsqlNestedDataReader.GetData",
+   "lines": 14,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "SkiaSharp.SKFontManager.CreateTypeface",
+   "lines": 28,
+   "using_lines": 10,
+   "using_share": 0.357
+  },
+  {
+   "callable": "SkiaSharp.SKFontStyleSet.CreateTypeface",
+   "lines": 28,
+   "using_lines": 10,
+   "using_share": 0.357
+  },
+  {
+   "callable": "SkiaSharp.GRGlInterface.Create",
+   "lines": 49,
+   "using_lines": 4,
+   "using_share": 0.082
+  },
+  {
+   "callable": "SkiaSharp.SKColorSpace.CreateRgb",
+   "lines": 46,
+   "using_lines": 8,
+   "using_share": 0.174
+  },
+  {
+   "callable": "SkiaSharp.SKShader.CreateSweepGradient",
+   "lines": 45,
+   "using_lines": 13,
+   "using_share": 0.289
+  },
+  {
+   "callable": "SkiaSharp.SKShader.CreateTwoPointConicalGradient",
+   "lines": 45,
+   "using_lines": 9,
+   "using_share": 0.2
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.CreateBatch",
+   "lines": 22,
+   "using_lines": 16,
+   "using_share": 0.727
+  },
+  {
+   "callable": "SkiaSharp.SKColorFilter.CreateTable",
+   "lines": 42,
+   "using_lines": 12,
+   "using_share": 0.286
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataReader.GetTextReader",
+   "lines": 18,
+   "using_lines": 9,
+   "using_share": 0.5
+  },
+  {
+   "callable": "SkiaSharp.SKImage.ToRasterImage",
+   "lines": 24,
+   "using_lines": 10,
+   "using_share": 0.417
+  },
+  {
+   "callable": "SkiaSharp.SKTypeface.CreateDefault",
+   "lines": 36,
+   "using_lines": 11,
+   "using_share": 0.306
+  },
+  {
+   "callable": "MailKit.MailFolder.GetStream",
+   "lines": 24,
+   "using_lines": 11,
+   "using_share": 0.458
+  },
+  {
+   "callable": "SkiaSharp.SKShader.CreateImage",
+   "lines": 37,
+   "using_lines": 29,
+   "using_share": 0.784
+  },
+  {
+   "callable": "LibGit2Sharp.RemoteCollection.Rename",
+   "lines": 27,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateBlendMode",
+   "lines": 36,
+   "using_lines": 2,
+   "using_share": 0.056
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateDilate",
+   "lines": 35,
+   "using_lines": 7,
+   "using_share": 0.2
+  },
+  {
+   "callable": "SkiaSharp.SKTextBlob.Create",
+   "lines": 34,
+   "using_lines": 16,
+   "using_share": 0.471
+  },
+  {
+   "callable": "SkiaSharp.SKImage.Create",
+   "lines": 34,
+   "using_lines": 10,
+   "using_share": 0.294
+  },
+  {
+   "callable": "SkiaSharp.SKPixmap.WithAlphaType",
+   "lines": 18,
+   "using_lines": 5,
+   "using_share": 0.278
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateMatrixConvolution",
+   "lines": 32,
+   "using_lines": 7,
+   "using_share": 0.219
+  },
+  {
+   "callable": "SkiaSharp.SKShader.CreatePerlinNoiseTurbulence",
+   "lines": 32,
+   "using_lines": 12,
+   "using_share": 0.375
+  },
+  {
+   "callable": "SkiaSharp.SKShader.CreateCompose",
+   "lines": 32,
+   "using_lines": 18,
+   "using_share": 0.562
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginTextImport",
+   "lines": 17,
+   "using_lines": 9,
+   "using_share": 0.529
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataReader.GetStreamAsync",
+   "lines": 14,
+   "using_lines": 6,
+   "using_share": 0.429
+  },
+  {
+   "callable": "SkiaSharp.SKPathEffect.Create2DPath",
+   "lines": 31,
+   "using_lines": 3,
+   "using_share": 0.097
+  },
+  {
+   "callable": "SkiaSharp.SKColorFilter.CreateLumaColor",
+   "lines": 29,
+   "using_lines": 10,
+   "using_share": 0.345
+  },
+  {
+   "callable": "SkiaSharp.SKPathMeasure.GetSegment",
+   "lines": 22,
+   "using_lines": 3,
+   "using_share": 0.136
+  },
+  {
+   "callable": "SkiaSharp.SKPicture.Deserialize",
+   "lines": 29,
+   "using_lines": 17,
+   "using_share": 0.586
+  },
+  {
+   "callable": "SkiaSharp.SKFontManager.GetFontStyles",
+   "lines": 16,
+   "using_lines": 11,
+   "using_share": 0.688
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateOffset",
+   "lines": 28,
+   "using_lines": 8,
+   "using_share": 0.286
+  },
+  {
+   "callable": "SkiaSharp.SKShader.WithColorFilter",
+   "lines": 15,
+   "using_lines": 5,
+   "using_share": 0.333
+  },
+  {
+   "callable": "SkiaSharp.SKShader.WithLocalMatrix",
+   "lines": 17,
+   "using_lines": 7,
+   "using_share": 0.412
+  },
+  {
+   "callable": "SkiaSharp.SKPixmap.WithColorType",
+   "lines": 13,
+   "using_lines": 3,
+   "using_share": 0.231
+  },
+  {
+   "callable": "SkiaSharp.SKTextBlob.CreatePositioned",
+   "lines": 25,
+   "using_lines": 8,
+   "using_share": 0.32
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateShader",
+   "lines": 25,
+   "using_lines": 7,
+   "using_share": 0.28
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopy",
+   "lines": 19,
+   "using_lines": 7,
+   "using_share": 0.368
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateImage",
+   "lines": 24,
+   "using_lines": 1,
+   "using_share": 0.042
+  },
+  {
+   "callable": "SkiaSharp.SKImage.FromPicture",
+   "lines": 23,
+   "using_lines": 13,
+   "using_share": 0.565
+  },
+  {
+   "callable": "MailKit.MailFolder.GetStreamAsync",
+   "lines": 16,
+   "using_lines": 2,
+   "using_share": 0.125
+  },
+  {
+   "callable": "MailKit.Net.Proxy.HttpProxyClient.ConnectAsync",
+   "lines": 14,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "MailKit.Net.Proxy.HttpsProxyClient.ConnectAsync",
+   "lines": 14,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "MailKit.Net.Proxy.ProxyClient.ConnectAsync",
+   "lines": 14,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "MailKit.Net.Proxy.Socks4Client.ConnectAsync",
+   "lines": 14,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "MailKit.Net.Proxy.Socks5Client.ConnectAsync",
+   "lines": 14,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "Npgsql.NpgsqlMultiHostDataSource.WithTargetSession",
+   "lines": 11,
+   "using_lines": 4,
+   "using_share": 0.364
+  },
+  {
+   "callable": "SkiaSharp.SKGraphiteRecorder.Snap",
+   "lines": 15,
+   "using_lines": 1,
+   "using_share": 0.067
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateMerge",
+   "lines": 22,
+   "using_lines": 2,
+   "using_share": 0.091
+  },
+  {
+   "callable": "SkiaSharp.SKPath.Simplify",
+   "lines": 13,
+   "using_lines": 4,
+   "using_share": 0.308
+  },
+  {
+   "callable": "SkiaSharp.SKShader.CreatePerlinNoiseFractalNoise",
+   "lines": 22,
+   "using_lines": 6,
+   "using_share": 0.273
+  },
+  {
+   "callable": "SkiaSharp.SKDocument.CreateXps",
+   "lines": 21,
+   "using_lines": 16,
+   "using_share": 0.762
+  },
+  {
+   "callable": "SkiaSharp.SKVertices.CreateCopy",
+   "lines": 21,
+   "using_lines": 13,
+   "using_share": 0.619
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateErode",
+   "lines": 20,
+   "using_lines": 4,
+   "using_share": 0.2
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreatePicture",
+   "lines": 20,
+   "using_lines": 4,
+   "using_share": 0.2
+  },
+  {
+   "callable": "SkiaSharp.GRContext.CreateVulkan",
+   "lines": 19,
+   "using_lines": 6,
+   "using_share": 0.316
+  },
+  {
+   "callable": "SkiaSharp.SKColorSpaceIccProfile.Create",
+   "lines": 19,
+   "using_lines": 10,
+   "using_share": 0.526
+  },
+  {
+   "callable": "SkiaSharp.SKImage.ToTextureImage",
+   "lines": 11,
+   "using_lines": 3,
+   "using_share": 0.273
+  },
+  {
+   "callable": "SkiaSharp.SKPixmap.WithColorSpace",
+   "lines": 10,
+   "using_lines": 2,
+   "using_share": 0.2
+  },
+  {
+   "callable": "Npgsql.NpgsqlCommandBuilder.GetUpdateCommand",
+   "lines": 8,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginBinaryExportAsync",
+   "lines": 10,
+   "using_lines": 8,
+   "using_share": 0.8
+  },
+  {
+   "callable": "Renci.SshNet.Security.KeyExchange.CreateServerHash",
+   "lines": 6,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "Renci.SshNet.Security.KeyExchange.CreateClientHash",
+   "lines": 6,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "Renci.SshNet.Security.KeyExchange.CreateCompressor",
+   "lines": 6,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "Renci.SshNet.Security.KeyExchange.CreateDecompressor",
+   "lines": 6,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "SkiaSharp.SKCanvas.DrawNamedDestinationAnnotation",
+   "lines": 11,
+   "using_lines": 1,
+   "using_share": 0.091
+  },
+  {
+   "callable": "SkiaSharp.SKColorSpace.CreateIcc",
+   "lines": 18,
+   "using_lines": 7,
+   "using_share": 0.389
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateArithmetic",
+   "lines": 18,
+   "using_lines": 2,
+   "using_share": 0.111
+  },
+  {
+   "callable": "SkiaSharp.SKWebpEncoder.EncodeAnimated",
+   "lines": 18,
+   "using_lines": 1,
+   "using_share": 0.056
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateDisplacementMapEffect",
+   "lines": 17,
+   "using_lines": 4,
+   "using_share": 0.235
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateDistantLitDiffuse",
+   "lines": 17,
+   "using_lines": 2,
+   "using_share": 0.118
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateSpotLitSpecular",
+   "lines": 17,
+   "using_lines": 1,
+   "using_share": 0.059
+  },
+  {
+   "callable": "StackExchange.Redis.ConnectionMultiplexer.ConnectGroupAsync",
+   "lines": 17,
+   "using_lines": 13,
+   "using_share": 0.765
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginTextExport",
+   "lines": 9,
+   "using_lines": 1,
+   "using_share": 0.111
+  },
+  {
+   "callable": "SkiaSharp.SKBlender.CreateBlendMode",
+   "lines": 16,
+   "using_lines": 3,
+   "using_share": 0.188
+  },
+  {
+   "callable": "SkiaSharp.SKImage.FromTexture",
+   "lines": 14,
+   "using_lines": 4,
+   "using_share": 0.286
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.GetSchemaAsync",
+   "lines": 8,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataReader.GetTextReaderAsync",
+   "lines": 4,
+   "using_lines": 1,
+   "using_share": 0.25
+  },
+  {
+   "callable": "SkiaSharp.SKCanvas.DrawLinkDestinationAnnotation",
+   "lines": 8,
+   "using_lines": 1,
+   "using_share": 0.125
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateCompose",
+   "lines": 15,
+   "using_lines": 5,
+   "using_share": 0.333
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreatePointLitDiffuse",
+   "lines": 15,
+   "using_lines": 2,
+   "using_share": 0.133
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateSpotLitDiffuse",
+   "lines": 15,
+   "using_lines": 2,
+   "using_share": 0.133
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateDistantLitSpecular",
+   "lines": 15,
+   "using_lines": 2,
+   "using_share": 0.133
+  },
+  {
+   "callable": "SkiaSharp.SKShader.CreatePicture",
+   "lines": 15,
+   "using_lines": 1,
+   "using_share": 0.067
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateCrop",
+   "lines": 14,
+   "using_lines": 12,
+   "using_share": 0.857
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreatePointLitSpecular",
+   "lines": 14,
+   "using_lines": 1,
+   "using_share": 0.071
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateTile",
+   "lines": 14,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreatePaint",
+   "lines": 14,
+   "using_lines": 0,
+   "using_share": 0.0
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginTextExportAsync",
+   "lines": 5,
+   "using_lines": 4,
+   "using_share": 0.8
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopyAsync",
+   "lines": 9,
+   "using_lines": 4,
+   "using_share": 0.444
+  },
+  {
+   "callable": "Renci.SshNet.SshClient.CreateShellStreamNoTerminal",
+   "lines": 5,
+   "using_lines": 2,
+   "using_share": 0.4
+  },
+  {
+   "callable": "SkiaSharp.SKColorSpace.CreateCicp",
+   "lines": 13,
+   "using_lines": 5,
+   "using_share": 0.385
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateDropShadowOnly",
+   "lines": 13,
+   "using_lines": 1,
+   "using_share": 0.077
+  },
+  {
+   "callable": "SkiaSharp.SKImageFilter.CreateMagnifier",
+   "lines": 13,
+   "using_lines": 6,
+   "using_share": 0.462
+  },
+  {
+   "callable": "SkiaSharp.SKPathEffect.CreateDiscrete",
+   "lines": 13,
+   "using_lines": 10,
+   "using_share": 0.769
+  },
+  {
+   "callable": "SkiaSharp.GRContext.CreateDirect3D",
+   "lines": 12,
+   "using_lines": 4,
+   "using_share": 0.333
+  },
+  {
+   "callable": "SkiaSharp.GRContext.CreateMetal",
+   "lines": 12,
+   "using_lines": 2,
+   "using_share": 0.167
+  },
+  {
+   "callable": "SkiaSharp.SKColorFilter.CreateCompose",
+   "lines": 12,
+   "using_lines": 3,
+   "using_share": 0.25
+  },
+  {
+   "callable": "SkiaSharp.SKSurface.CreateNull",
+   "lines": 12,
+   "using_lines": 1,
+   "using_share": 0.083
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginTextImportAsync",
+   "lines": 4,
+   "using_lines": 2,
+   "using_share": 0.5
+  },
+  {
+   "callable": "SkiaSharp.SKColorFilter.CreateOverdraw",
+   "lines": 11,
+   "using_lines": 7,
+   "using_share": 0.636
+  },
+  {
+   "callable": "SkiaSharp.SKPath.ToWinding",
+   "lines": 7,
+   "using_lines": 3,
+   "using_share": 0.429
+  },
+  {
+   "callable": "SkiaSharp.SKPathEffect.Create1DPath",
+   "lines": 11,
+   "using_lines": 3,
+   "using_share": 0.273
+  },
+  {
+   "callable": "SkiaSharp.SKWebpEncoder.Encode",
+   "lines": 11,
+   "using_lines": 2,
+   "using_share": 0.182
+  },
+  {
+   "callable": "SkiaSharp.SKBlender.CreateArithmetic",
+   "lines": 10,
+   "using_lines": 5,
+   "using_share": 0.5
+  },
+  {
+   "callable": "SkiaSharp.SKCanvas.DrawUrlAnnotation",
+   "lines": 5,
+   "using_lines": 1,
+   "using_share": 0.2
+  },
+  {
+   "callable": "SkiaSharp.SKColorFilter.CreateHighContrast",
+   "lines": 10,
+   "using_lines": 5,
+   "using_share": 0.5
+  },
+  {
+   "callable": "SkiaSharp.SKPathEffect.CreateTrim",
+   "lines": 10,
+   "using_lines": 5,
+   "using_share": 0.5
+  },
+  {
+   "callable": "SkiaSharp.SKTextBlob.CreatePathPositioned",
+   "lines": 10,
+   "using_lines": 10,
+   "using_share": 1.0
+  },
+  {
+   "callable": "Npgsql.NpgsqlCommandBuilder.GetInsertCommand",
+   "lines": 5,
+   "using_lines": 0,
+   "using_share": 0.0
+  }
+ ]
+}

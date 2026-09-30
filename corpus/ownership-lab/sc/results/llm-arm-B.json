@@ -1,0 +1,142 @@
+{
+ "arm": "B",
+ "prompt": "from this API listing (no bodies), list at most 15 callables per library that return a fresh, caller-owned disposable; one line of rationale each",
+ "written_at_utc": "2026-09-30T11:13:58Z",
+ "source": "the frozen Stage C universe listing only (callable names, public-use counts); no body read for this task",
+ "prior_exposure": "the session model read SKBitmap.cs and parts of Sqlite/Serilog/NLog sources in earlier tracks; procedural, not organisational, blinding",
+ "candidates": [
+  "SkiaSharp.SKImage.FromBitmap",
+  "SkiaSharp.SKBitmap.Copy",
+  "SkiaSharp.SKSurface.Create",
+  "SkiaSharp.SKImage.Encode",
+  "SkiaSharp.SKPixmap.Encode",
+  "SkiaSharp.SKBitmap.Encode",
+  "SkiaSharp.SKSurface.Snapshot",
+  "SkiaSharp.SKBitmap.Resize",
+  "SkiaSharp.SKPaint.Clone",
+  "SkiaSharp.SKTypeface.FromFamilyName",
+  "SkiaSharp.SKCodec.Create",
+  "SkiaSharp.SKShader.CreateLinearGradient",
+  "SkiaSharp.SKImage.FromEncodedData",
+  "SkiaSharp.SKPictureRecorder.EndRecording",
+  "SkiaSharp.SKTextBlobBuilder.Build",
+  "Npgsql.NpgsqlCommand.ExecuteReader",
+  "Npgsql.NpgsqlConnection.BeginTransactionAsync",
+  "Npgsql.NpgsqlBatch.ExecuteReader",
+  "Npgsql.NpgsqlBatch.ExecuteReaderAsync",
+  "Npgsql.NpgsqlConnection.CreateCommand",
+  "Npgsql.NpgsqlCommand.ExecuteReaderAsync",
+  "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+  "Npgsql.NpgsqlDataSource.OpenConnection",
+  "Npgsql.NpgsqlConnection.BeginTransaction",
+  "Npgsql.NpgsqlConnection.BeginBinaryImport",
+  "Npgsql.NpgsqlConnection.BeginBinaryExport",
+  "Npgsql.NpgsqlDataReader.GetStream",
+  "Npgsql.NpgsqlDataReader.GetTextReader",
+  "Npgsql.NpgsqlConnection.CreateBatch",
+  "Npgsql.NpgsqlConnection.BeginTextImport",
+  "Renci.SshNet.SftpClient.Create",
+  "Renci.SshNet.SftpClient.Open",
+  "Renci.SshNet.SftpClient.OpenRead",
+  "Renci.SshNet.SftpClient.OpenWrite",
+  "Renci.SshNet.SftpClient.OpenAsync",
+  "Renci.SshNet.SshClient.RunCommand",
+  "Renci.SshNet.SshClient.CreateShellStream",
+  "Renci.SshNet.SshClient.CreateShellStreamNoTerminal",
+  "MailKit.MailFolder.GetStream",
+  "MailKit.MailFolder.GetStreamAsync",
+  "MailKit.Net.Proxy.ProxyClient.ConnectAsync",
+  "MailKit.Net.Proxy.HttpProxyClient.ConnectAsync",
+  "MailKit.Net.Proxy.HttpsProxyClient.ConnectAsync",
+  "MailKit.Net.Proxy.Socks4Client.ConnectAsync",
+  "MailKit.Net.Proxy.Socks5Client.ConnectAsync",
+  "StackExchange.Redis.ConnectionMultiplexer.Connect",
+  "StackExchange.Redis.ConnectionMultiplexer.ConnectAsync",
+  "StackExchange.Redis.ConnectionMultiplexer.ConnectGroupAsync",
+  "RabbitMQ.Client.ConnectionFactory.CreateConnectionAsync",
+  "LibGit2Sharp.RemoteCollection.Rename"
+ ],
+ "per_library": {
+  "SkiaSharp": [
+   "SkiaSharp.SKImage.FromBitmap",
+   "SkiaSharp.SKBitmap.Copy",
+   "SkiaSharp.SKSurface.Create",
+   "SkiaSharp.SKImage.Encode",
+   "SkiaSharp.SKPixmap.Encode",
+   "SkiaSharp.SKBitmap.Encode",
+   "SkiaSharp.SKSurface.Snapshot",
+   "SkiaSharp.SKBitmap.Resize",
+   "SkiaSharp.SKPaint.Clone",
+   "SkiaSharp.SKTypeface.FromFamilyName",
+   "SkiaSharp.SKCodec.Create",
+   "SkiaSharp.SKShader.CreateLinearGradient",
+   "SkiaSharp.SKImage.FromEncodedData",
+   "SkiaSharp.SKPictureRecorder.EndRecording",
+   "SkiaSharp.SKTextBlobBuilder.Build"
+  ],
+  "Npgsql": [
+   "Npgsql.NpgsqlCommand.ExecuteReader",
+   "Npgsql.NpgsqlConnection.BeginTransactionAsync",
+   "Npgsql.NpgsqlBatch.ExecuteReader",
+   "Npgsql.NpgsqlBatch.ExecuteReaderAsync",
+   "Npgsql.NpgsqlConnection.CreateCommand",
+   "Npgsql.NpgsqlCommand.ExecuteReaderAsync",
+   "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+   "Npgsql.NpgsqlDataSource.OpenConnection",
+   "Npgsql.NpgsqlConnection.BeginTransaction",
+   "Npgsql.NpgsqlConnection.BeginBinaryImport",
+   "Npgsql.NpgsqlConnection.BeginBinaryExport",
+   "Npgsql.NpgsqlDataReader.GetStream",
+   "Npgsql.NpgsqlDataReader.GetTextReader",
+   "Npgsql.NpgsqlConnection.CreateBatch",
+   "Npgsql.NpgsqlConnection.BeginTextImport"
+  ],
+  "SSH.NET": [
+   "Renci.SshNet.SftpClient.Create",
+   "Renci.SshNet.SftpClient.Open",
+   "Renci.SshNet.SftpClient.OpenRead",
+   "Renci.SshNet.SftpClient.OpenWrite",
+   "Renci.SshNet.SftpClient.OpenAsync",
+   "Renci.SshNet.SshClient.RunCommand",
+   "Renci.SshNet.SshClient.CreateShellStream",
+   "Renci.SshNet.SshClient.CreateShellStreamNoTerminal"
+  ],
+  "MailKit": [
+   "MailKit.MailFolder.GetStream",
+   "MailKit.MailFolder.GetStreamAsync",
+   "MailKit.Net.Proxy.ProxyClient.ConnectAsync",
+   "MailKit.Net.Proxy.HttpProxyClient.ConnectAsync",
+   "MailKit.Net.Proxy.HttpsProxyClient.ConnectAsync",
+   "MailKit.Net.Proxy.Socks4Client.ConnectAsync",
+   "MailKit.Net.Proxy.Socks5Client.ConnectAsync"
+  ],
+  "StackExchange.Redis": [
+   "StackExchange.Redis.ConnectionMultiplexer.Connect",
+   "StackExchange.Redis.ConnectionMultiplexer.ConnectAsync",
+   "StackExchange.Redis.ConnectionMultiplexer.ConnectGroupAsync"
+  ],
+  "RabbitMQ.Client": [
+   "RabbitMQ.Client.ConnectionFactory.CreateConnectionAsync"
+  ],
+  "LibGit2Sharp": [
+   "LibGit2Sharp.RemoteCollection.Rename"
+  ]
+ },
+ "negatives": {
+  "SkiaSharp": [
+   "SkiaSharp.SKBitmap.PeekPixels (a pixmap view over the same pixels)",
+   "SkiaSharp.SKImage.PeekPixels",
+   "SkiaSharp.SKSurface.PeekPixels",
+   "SkiaSharp.SKRoundRect.Transform (unclear whether it returns this or a copy)",
+   "SkiaSharp.SKStream.GetData (may return a shared data object)"
+  ],
+  "Npgsql": [
+   "Npgsql.NpgsqlMultiHostDataSource.WithTargetSession (a wrapper over the same data source)",
+   "Npgsql.NpgsqlConnection.GetSchema (DataTable, inert disposal)"
+  ],
+  "SSH.NET": [
+   "Renci.SshNet.Security.KeyExchange.Create* (internal protocol objects)"
+  ]
+ },
+ "rationale": "factories and encoders/snapshots that mint a new native-backed object per call (Skia), ADO readers/transactions/copy streams (Npgsql), SFTP file streams and shell streams over a session (SSH.NET), IMAP message streams and proxy sockets (MailKit), multiplexer connections (Redis/RabbitMQ), a renamed remote wrapper (LibGit2Sharp)"
+}
