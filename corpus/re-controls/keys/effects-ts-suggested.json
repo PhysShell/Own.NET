@@ -1,0 +1,16 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "Stage 7 gate twin: the same rows as SUGGESTED (shadow)",
+ "entries": [
+  {
+   "callable": "createKey",
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED"
+  },
+  {
+   "callable": "Key.destroy",
+   "effect": "receiver_terminal_release",
+   "provenance": "SUGGESTED"
+  }
+ ]
+}

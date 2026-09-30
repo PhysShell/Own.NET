@@ -32,6 +32,7 @@ _REL_STMT = re.compile(r"^\s*(\w+)\s*\.\s*(close|dispose)\s*\(\s*\)\s*;\s*$")
 _IF = re.compile(r"^\s*if\s*\((.*)\)\s*\{\s*$")
 _RET = re.compile(r"^\s*return\b(.*);\s*$")
 _ELSE = re.compile(r"^\s*\}?\s*else\s*\{\s*$")
+_EFFECT_CALL = re.compile(r"^\s*(\w+)\s*\.\s*(\w+)\s*\(\s*\)\s*;\s*$")
 
 
 def _line_of(text: str, pos: int) -> int:
@@ -75,12 +76,41 @@ def _block_end(lines: list[str], start: int) -> int:
     return len(lines) - 1
 
 
+# resource-effects Stage 7 (research/resource-effects-v1, EXPLORATORY; pre-registered in
+# Own.NET-paperwork paper-eval/resource-effects/stage7-seam-prereg-v1.json): the EFFECT MODEL seam.
+# `--effects <key.json>` reads the same key file the C# extractor reads (entries {callable, effect,
+# provenance}); only DECLARED / BODY_PROVED / MODELLED entries apply, MINED / SUGGESTED are shadow
+# (counted, never applied) unless `--trust-all` (the M6 twin). The ops emitted are the ordinary
+# `acquire` / `release`; the core is untouched. A seam proof for one shape, never TypeScript
+# support.
+_APPLIED = {"DECLARED", "BODY_PROVED", "MODELLED"}
+
+
+def _load_effects(path: str | None, trust_all: bool) -> tuple[dict[str, str], dict[str, int]]:
+    applied: dict[str, str] = {}
+    shadow: dict[str, int] = {}
+    if not path:
+        return applied, shadow
+    with open(path, encoding="utf-8") as fh:
+        doc = json.load(fh)
+    for e in doc.get("entries", []):
+        prov = e.get("provenance", "MODELLED")
+        if prov in _APPLIED or trust_all:
+            applied[e["callable"]] = e["effect"]
+        else:
+            shadow[prov] = shadow.get(prov, 0) + 1
+    return applied, shadow
+
+
 class Emitter:
-    def __init__(self, text: str, module: str, file: str, ordinals: bool) -> None:
+    def __init__(self, text: str, module: str, file: str, ordinals: bool,
+                 effects: dict[str, str] | None = None) -> None:
         self.text = text
         self.module = module
         self.file = file
         self.ordinals = ordinals
+        self.effects = effects or {}
+        self.minted: dict[str, set[str]] = {}
         self.resource_types = {m.group(1) for m in _IFACE.finditer(text)
                                if re.search(r"\b(close|dispose)\s*\(\s*\)\s*:\s*void", m.group(2))}
         self.ambient = {m.group(1): m.group(3) for m in _AMBIENT.finditer(text)}
@@ -91,6 +121,15 @@ class Emitter:
                                 "start": m.end(), "line": _line_of(text, m.start())}
 
     # --- one function -----------------------------------------------------------------------
+    def _handle_types(self, var: str, fn: dict) -> set[str]:
+        """The declared type(s) a tracked handle may have: the ambient factory's return type that
+        minted it (recorded at the acquire), or the parameter's type."""
+        types = set(self.minted.get(var, ()))
+        for n, ty in fn["params"]:
+            if n == var:
+                types.add(ty)
+        return types
+
     def _sig(self, name: str) -> str:
         return ",".join(ty for _, ty in self.funcs[name]["params"])
 
@@ -153,14 +192,23 @@ class Emitter:
                 continue
             m = _ACQ_STMT.match(ln)
             if (m and m.group(2) in self.ambient
-                    and self.ambient[m.group(2)] in self.resource_types):
+                    and (self.ambient[m.group(2)] in self.resource_types
+                         or self.effects.get(m.group(2)) == "return_fresh_owned")):
                 tracked.add(m.group(1))
+                self.minted.setdefault(m.group(1), set()).add(self.ambient[m.group(2)])
                 nodes.append({"op": "acquire", "var": m.group(1), "line": line_no,
                               "column": ln.index(m.group(1)) + 1, "kind": "disposable"})
                 i += 1
                 continue
             m = _REL_STMT.match(ln)
             if m and (m.group(1) in tracked or m.group(1) in pnames):
+                nodes.append({"op": "release", "var": m.group(1), "line": line_no})
+                i += 1
+                continue
+            m = _EFFECT_CALL.match(ln)
+            if (m and m.group(1) in tracked and self.effects
+                    and any(self.effects.get(f"{ty}.{m.group(2)}") == "receiver_terminal_release"
+                            for ty in self._handle_types(m.group(1), fn))):
                 nodes.append({"op": "release", "var": m.group(1), "line": line_no})
                 i += 1
                 continue
@@ -251,14 +299,23 @@ def main(argv: list[str]) -> int:
     out = argv[argv.index("-o") + 1] if "-o" in argv else None
     if out in args:
         args.remove(out)
+    effects_path = argv[argv.index("--effects") + 1] if "--effects" in argv else None
+    if effects_path in args:
+        args.remove(effects_path)
     if not args:
-        print("usage: ownts_p037x.py FILE.ts [-o facts.json] [--no-ordinal]", file=sys.stderr)
+        print("usage: ownts_p037x.py FILE.ts [-o facts.json] [--no-ordinal] "
+              "[--effects key.json] [--trust-all]", file=sys.stderr)
         return 2
+    effects, shadow = _load_effects(effects_path, "--trust-all" in argv)
+    if shadow:
+        print("re-effects shadow: " + " ".join(f"{k}={v}" for k, v in sorted(shadow.items())),
+              file=sys.stderr)
     path = args[0]
     text = open(path, encoding="utf-8").read()
     stripped = re.sub(r"//[^\n]*", "", text)
     module = re.sub(r"\.[jt]sx?$", "", path.rsplit("/", 1)[-1]).replace("-", "_")
-    facts = Emitter(stripped, module, path, ordinals="--no-ordinal" not in argv).facts()
+    facts = Emitter(stripped, module, path, ordinals="--no-ordinal" not in argv,
+                    effects=effects).facts()
     payload = json.dumps(facts, indent=2)
     if out:
         open(out, "w", encoding="utf-8").write(payload + "\n")

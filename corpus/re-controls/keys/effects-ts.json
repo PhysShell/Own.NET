@@ -1,0 +1,16 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "Stage 7 seam key for the OwnTS twins (MODELLED)",
+ "entries": [
+  {
+   "callable": "createKey",
+   "effect": "return_fresh_owned",
+   "provenance": "MODELLED"
+  },
+  {
+   "callable": "Key.destroy",
+   "effect": "receiver_terminal_release",
+   "provenance": "MODELLED"
+  }
+ ]
+}
