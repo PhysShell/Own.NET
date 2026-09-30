@@ -91,6 +91,16 @@ _RECORD_3: dict[str, list[str]] = {
     "body+E3": ["OWN001", "OWN001", "OWN002"],
 }
 _SUITE = os.path.join("corpus", "re-inference")
+# Stage 4: the provenance gate. keys/combined-provenance.json holds the 4A rows derived from the
+# dependency source (BODY_PROVED), the 4B rows (MODELLED) and six SUGGESTED name-rule rows, four of
+# them the hostile false candidates. With the gate on the hostile controls stay clean; with
+# OWEN_RE_ORACLE_TRUST=all (the M6 mutant) H1/H2/H4 move — recorded failures.
+_RECORD_4: dict[str, dict[str, list[str]]] = {
+    "h1-shared-createlinked": {"gate": [], "m6": ["OWN001"]},
+    "h2-bucket-delete": {"gate": ["OWN001"], "m6": ["OWN002"]},
+    "h3-createfrom-alias": {"gate": [], "m6": []},
+    "h4-conditional-release": {"gate": [], "m6": ["OWN002", "OWN003"]},
+}
 
 
 def _codes(text: str) -> list[str]:
@@ -136,7 +146,8 @@ def run() -> int:
     if rust and not os.path.isfile(rust):
         rust = None
     env = {**os.environ, "PYTHONPATH": _REPO}
-    for k in ("OWEN_RE_ORACLE", "OWEN_RE_MINTED_RETURN", "OWEN_RE_BODY", "OWEN_RE_MIXED_RETURN"):
+    for k in ("OWEN_RE_ORACLE", "OWEN_RE_MINTED_RETURN", "OWEN_RE_BODY", "OWEN_RE_MIXED_RETURN",
+              "OWEN_RE_ORACLE_TRUST"):
         env.pop(k, None)
         os.environ.pop(k, None)
     key = os.path.join(_REPO, _KEYS, "answer-key.json")
@@ -161,6 +172,13 @@ def run() -> int:
         for name, want in sorted(_RECORD_2.items()):
             _check(name, "body", want, {"OWEN_RE_MINTED_RETURN": "1", "OWEN_RE_BODY": "1"}, tmp,
                    rust, env, fails, folder=_SHAPES)
+        combined = os.path.join(_REPO, _KEYS, "combined-provenance.json")
+        for name, arms in sorted(_RECORD_4.items()):
+            for arm, want in arms.items():
+                ext_env = {"OWEN_RE_ORACLE": combined}
+                if arm == "m6":
+                    ext_env["OWEN_RE_ORACLE_TRUST"] = "all"
+                _check(name, f"prov-{arm}", want, ext_env, tmp, rust, env, fails)
         for arm, want in sorted(_RECORD_3.items()):
             _check("t-suite", arm, want, {"OWEN_RE_MINTED_RETURN": "1", "OWEN_RE_BODY": "1"}, tmp,
                    rust, env, fails, folder=_SUITE,
@@ -168,7 +186,8 @@ def run() -> int:
     for f in fails:
         print(f"FAIL: {f}")
     n = (sum(len(a) for a in _RECORD.values()) + len(_OBSERVATION)
-         + sum(len(a) for a in _RECORD_1B.values()) + len(_RECORD_2) + len(_RECORD_3))
+         + sum(len(a) for a in _RECORD_1B.values()) + len(_RECORD_2) + len(_RECORD_3)
+         + sum(len(a) for a in _RECORD_4.values()))
     print(f"re controls: {n} row(s), {len(fails)} failed"
           + ("" if rust else " (Rust parity not checked: OWEN_RUST_CORE unset)"))
     return 1 if fails else 0

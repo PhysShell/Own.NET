@@ -7986,6 +7986,33 @@ if (flowLocals && P037xRelational)
 // resource-effects Stage 1: which effects of the answer key fired in this document (hits).
 if (flowLocals && ReBody.Enabled)
     Console.Error.WriteLine("re-body: " + string.Join(" ", ReBody.Census.Select(kv => $"{kv.Key}={kv.Value}")));
+// resource-effects Stage 4A (research-only): dump the receiver-release effects E2 proved from bodies in
+// this run (method identity -> true/false) so a dependency-source derivation can be exported as key rows.
+if (flowLocals && ReBody.Enabled && Environment.GetEnvironmentVariable("OWEN_RE_DUMP_EFFECTS") is { Length: > 0 } dumpPath)
+{
+    // Declaration-side derivation: evaluate E2 for EVERY instance method declared in the inputs (a
+    // dependency source has no caller in the run to query it), then dump identity -> proved.
+    var evaluated = 0;
+    foreach (var dtree in compilation.SyntaxTrees)
+    {
+        var dmodel = compilation.GetSemanticModel(dtree);
+        foreach (var md in dtree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>())
+            if (dmodel.GetDeclaredSymbol(md) is IMethodSymbol dms && !dms.IsStatic)
+            {
+                evaluated++;
+                ReBodyReleasesThis(dms.OriginalDefinition, dmodel, new HashSet<ISymbol>(SymbolEqualityComparer.Default));
+            }
+    }
+    File.WriteAllText(dumpPath, JsonSerializer.Serialize(new
+    {
+        schema = "own.net/re-effects-dump/v1",
+        instance_methods_evaluated = evaluated,
+        receiver_release = ReBody.Releases.OrderBy(kv => kv.Key.ToDisplayString(), StringComparer.Ordinal)
+            .Select(kv => new { callable = $"{kv.Key.ContainingType.ToDisplayString()}.{kv.Key.Name}", arity = kv.Key.Parameters.Length, releases = kv.Value })
+            .ToList(),
+        shadow = ReOracle.Shadow,
+    }, new JsonSerializerOptions { WriteIndented = true }));
+}
 if (flowLocals && ReOracle.Enabled)
     Console.Error.WriteLine("re-oracle: " + string.Join(" ", ReOracle.Census.Select(kv => $"{kv.Key}={kv.Value}")));
 
@@ -8045,6 +8072,15 @@ partial class Program
     // stderr so the population measurement can tell which documents the key touched.
     static class ReOracle
     {
+        // (declared BEFORE s_entries: static initializers run in textual order and Load() reads them)
+        // resource-effects Stage 4 (pre-registered, stage4-external-prereg-v1.json): the PROVENANCE
+        // gate. An entry may carry `provenance` (DECLARED | BODY_PROVED | MODELLED | MINED |
+        // SUGGESTED); only the first three are applied. MINED and SUGGESTED entries are counted as
+        // shadow and never change a fact — unless `OWEN_RE_ORACLE_TRUST=all`, the M6 mutant arm,
+        // which applies everything (it exists to show that the gate is load-bearing).
+        static readonly bool s_trustAll =
+            Environment.GetEnvironmentVariable("OWEN_RE_ORACLE_TRUST") == "all";
+        internal static readonly SortedDictionary<string, int> Shadow = new(StringComparer.Ordinal);
         static readonly Dictionary<string, List<(string effect, int? arity)>> s_entries = Load();
         internal static bool Enabled => s_entries.Count > 0;
         internal static readonly SortedDictionary<string, int> Census = new(StringComparer.Ordinal);
@@ -8071,6 +8107,12 @@ partial class Program
                 if (effect is not ("return_fresh_owned" or "receiver_terminal_release"))
                     throw new InvalidOperationException($"OWEN_RE_ORACLE: unknown effect '{effect}' for {callable}");
                 int? arity = e.TryGetProperty("arity", out var a) ? a.GetInt32() : null;
+                var provenance = e.TryGetProperty("provenance", out var pv) ? pv.GetString() ?? "" : "MODELLED";
+                if (provenance is not ("DECLARED" or "BODY_PROVED" or "MODELLED") && !s_trustAll)
+                {
+                    Shadow[provenance] = Shadow.GetValueOrDefault(provenance) + 1;
+                    continue;   // shadow: counted, never applied
+                }
                 if (!map.TryGetValue(callable, out var list))
                     map[callable] = list = new List<(string effect, int? arity)>();
                 list.Add((effect, arity));

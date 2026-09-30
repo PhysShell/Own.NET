@@ -1,0 +1,17 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "Stage 4B EXPLICIT MODEL PACK: the two Stage 1 answer-key rows re-labelled MODELLED; cost: 2 rows, 0 code lines, reading of the two API sources/docs",
+ "entries": [
+  {
+   "callable": "System.Threading.CancellationTokenSource.CreateLinkedTokenSource",
+   "effect": "return_fresh_owned",
+   "provenance": "MODELLED"
+  },
+  {
+   "callable": "System.Security.Cryptography.CngKey.Delete",
+   "effect": "receiver_terminal_release",
+   "arity": 0,
+   "provenance": "MODELLED"
+  }
+ ]
+}

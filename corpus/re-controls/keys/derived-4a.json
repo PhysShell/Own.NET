@@ -1,0 +1,27 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "Stage 4A DERIVED key (dependency source through E1/E2/E3; provenance BODY_PROVED); nothing typed by hand",
+ "entries": [
+  {
+   "callable": "System.Threading.CancellationTokenSource.CreateLinkedTokenSource",
+   "effect": "return_fresh_owned",
+   "arity": 1,
+   "provenance": "BODY_PROVED",
+   "derived_from": "dotnet/runtime@49e04fa src/libraries/System.Private.CoreLib/src/System/Threading/CancellationTokenSource.cs via E1/E3"
+  },
+  {
+   "callable": "System.Threading.CancellationTokenSource.CreateLinkedTokenSource",
+   "effect": "return_fresh_owned",
+   "arity": 2,
+   "provenance": "BODY_PROVED",
+   "derived_from": "dotnet/runtime@49e04fa src/libraries/System.Private.CoreLib/src/System/Threading/CancellationTokenSource.cs via E1/E3"
+  },
+  {
+   "callable": "System.Security.Cryptography.CngKey.Delete",
+   "effect": "receiver_terminal_release",
+   "arity": 0,
+   "provenance": "BODY_PROVED",
+   "derived_from": "dotnet/runtime@49e04fa CngKey.Delete.cs + CngKey.cs via E2"
+  }
+ ]
+}

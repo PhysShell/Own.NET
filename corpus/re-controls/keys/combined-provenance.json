@@ -1,0 +1,74 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "Stage 4 PROVENANCE EXPERIMENT key: 4A BODY_PROVED + 4B MODELLED + 4E SUGGESTED (name-rule candidates incl. the hostile false ones); the gate applies only the first two",
+ "entries": [
+  {
+   "callable": "System.Threading.CancellationTokenSource.CreateLinkedTokenSource",
+   "effect": "return_fresh_owned",
+   "arity": 1,
+   "provenance": "BODY_PROVED",
+   "derived_from": "dotnet/runtime@49e04fa src/libraries/System.Private.CoreLib/src/System/Threading/CancellationTokenSource.cs via E1/E3"
+  },
+  {
+   "callable": "System.Threading.CancellationTokenSource.CreateLinkedTokenSource",
+   "effect": "return_fresh_owned",
+   "arity": 2,
+   "provenance": "BODY_PROVED",
+   "derived_from": "dotnet/runtime@49e04fa src/libraries/System.Private.CoreLib/src/System/Threading/CancellationTokenSource.cs via E1/E3"
+  },
+  {
+   "callable": "System.Security.Cryptography.CngKey.Delete",
+   "effect": "receiver_terminal_release",
+   "arity": 0,
+   "provenance": "BODY_PROVED",
+   "derived_from": "dotnet/runtime@49e04fa CngKey.Delete.cs + CngKey.cs via E2"
+  },
+  {
+   "callable": "System.Threading.CancellationTokenSource.CreateLinkedTokenSource",
+   "effect": "return_fresh_owned",
+   "provenance": "MODELLED"
+  },
+  {
+   "callable": "System.Security.Cryptography.CngKey.Delete",
+   "effect": "receiver_terminal_release",
+   "arity": 0,
+   "provenance": "MODELLED"
+  },
+  {
+   "callable": "Linked.CreateLinkedTokenSource",
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "source": "name rule M1 (Create*)"
+  },
+  {
+   "callable": "H3.CreateFrom",
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "source": "name rule M1 (Create*)"
+  },
+  {
+   "callable": "System.Threading.CancellationTokenSource.CreateLinkedTokenSource",
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "source": "name rule M1 (Create*)"
+  },
+  {
+   "callable": "Bucket.Delete",
+   "effect": "receiver_terminal_release",
+   "provenance": "SUGGESTED",
+   "source": "name rule M2 (Delete/Close/Release)"
+  },
+  {
+   "callable": "Handle.Release",
+   "effect": "receiver_terminal_release",
+   "provenance": "SUGGESTED",
+   "source": "name rule M2 (Delete/Close/Release)"
+  },
+  {
+   "callable": "System.Security.Cryptography.CngKey.Delete",
+   "effect": "receiver_terminal_release",
+   "provenance": "SUGGESTED",
+   "source": "name rule M2 (Delete/Close/Release)"
+  }
+ ]
+}
