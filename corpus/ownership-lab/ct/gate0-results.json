@@ -1,0 +1,1204 @@
+{
+ "libraries_evaluated": 21,
+ "per_library": {
+  "BouncyCastle.Cryptography": {
+   "surface_callables": 78,
+   "positives": 5,
+   "positives_on_surface": 5,
+   "A": {
+    "recall@10": 0.21,
+    "prec@10": 0.105,
+    "recall@25": 0.51,
+    "prec@25": 0.102
+   },
+   "B": {
+    "recall@10": 0.61,
+    "prec@10": 0.305,
+    "recall@25": 0.69,
+    "prec@25": 0.138
+   },
+   "C_rules": {
+    "recall@10": 0.35,
+    "prec@10": 0.175,
+    "recall@25": 1.0,
+    "prec@25": 0.2
+   },
+   "C_lr": {
+    "recall@10": 0.6,
+    "prec@10": 0.3,
+    "recall@25": 0.8,
+    "prec@25": 0.16
+   }
+  },
+  "CsvHelper": {
+   "surface_callables": 13,
+   "positives": 3,
+   "positives_on_surface": 3,
+   "A": {
+    "recall@10": 1.0,
+    "prec@10": 0.3,
+    "recall@25": 1.0,
+    "prec@25": 0.12
+   },
+   "B": {
+    "recall@10": 1.0,
+    "prec@10": 0.3,
+    "recall@25": 1.0,
+    "prec@25": 0.12
+   },
+   "C_rules": {
+    "recall@10": 1.0,
+    "prec@10": 0.3,
+    "recall@25": 1.0,
+    "prec@25": 0.12
+   },
+   "C_lr": {
+    "recall@10": 1.0,
+    "prec@10": 0.3,
+    "recall@25": 1.0,
+    "prec@25": 0.12
+   }
+  },
+  "Google.Protobuf": {
+   "surface_callables": 2,
+   "positives": 2,
+   "positives_on_surface": 2,
+   "A": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "B": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "C_rules": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "C_lr": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   }
+  },
+  "K4os.Compression.LZ4.Streams": {
+   "surface_callables": 5,
+   "positives": 5,
+   "positives_on_surface": 5,
+   "A": {
+    "recall@10": 1.0,
+    "prec@10": 0.5,
+    "recall@25": 1.0,
+    "prec@25": 0.2
+   },
+   "B": {
+    "recall@10": 1.0,
+    "prec@10": 0.5,
+    "recall@25": 1.0,
+    "prec@25": 0.2
+   },
+   "C_rules": {
+    "recall@10": 1.0,
+    "prec@10": 0.5,
+    "recall@25": 1.0,
+    "prec@25": 0.2
+   },
+   "C_lr": {
+    "recall@10": 1.0,
+    "prec@10": 0.5,
+    "recall@25": 1.0,
+    "prec@25": 0.2
+   }
+  },
+  "LibGit2Sharp": {
+   "surface_callables": 14,
+   "positives": 2,
+   "positives_on_surface": 2,
+   "A": {
+    "recall@10": 0.85,
+    "prec@10": 0.17,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "B": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "C_rules": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "C_lr": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   }
+  },
+  "MQTTnet": {
+   "surface_callables": 20,
+   "positives": 2,
+   "positives_on_surface": 2,
+   "A": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "B": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "C_rules": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "C_lr": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   }
+  },
+  "MailKit": {
+   "surface_callables": 28,
+   "positives": 2,
+   "positives_on_surface": 2,
+   "A": {
+    "recall@10": 0.45,
+    "prec@10": 0.09,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "B": {
+    "recall@10": 0.625,
+    "prec@10": 0.125,
+    "recall@25": 0.925,
+    "prec@25": 0.074
+   },
+   "C_rules": {
+    "recall@10": 0.6,
+    "prec@10": 0.12,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "C_lr": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   }
+  },
+  "Microsoft.Data.Sqlite.Core": {
+   "surface_callables": 15,
+   "positives": 3,
+   "positives_on_surface": 3,
+   "A": {
+    "recall@10": 1.0,
+    "prec@10": 0.3,
+    "recall@25": 1.0,
+    "prec@25": 0.12
+   },
+   "B": {
+    "recall@10": 1.0,
+    "prec@10": 0.3,
+    "recall@25": 1.0,
+    "prec@25": 0.12
+   },
+   "C_rules": {
+    "recall@10": 1.0,
+    "prec@10": 0.3,
+    "recall@25": 1.0,
+    "prec@25": 0.12
+   },
+   "C_lr": {
+    "recall@10": 1.0,
+    "prec@10": 0.3,
+    "recall@25": 1.0,
+    "prec@25": 0.12
+   }
+  },
+  "MySqlConnector": {
+   "surface_callables": 45,
+   "positives": 10,
+   "positives_on_surface": 10,
+   "A": {
+    "recall@10": 0.355,
+    "prec@10": 0.355,
+    "recall@25": 0.845,
+    "prec@25": 0.338
+   },
+   "B": {
+    "recall@10": 0.475,
+    "prec@10": 0.475,
+    "recall@25": 0.76,
+    "prec@25": 0.304
+   },
+   "C_rules": {
+    "recall@10": 0.8,
+    "prec@10": 0.8,
+    "recall@25": 0.945,
+    "prec@25": 0.378
+   },
+   "C_lr": {
+    "recall@10": 0.6,
+    "prec@10": 0.6,
+    "recall@25": 1.0,
+    "prec@25": 0.4
+   }
+  },
+  "NLog": {
+   "surface_callables": 36,
+   "positives": 6,
+   "positives_on_surface": 6,
+   "A": {
+    "recall@10": 0.583,
+    "prec@10": 0.35,
+    "recall@25": 0.808,
+    "prec@25": 0.194
+   },
+   "B": {
+    "recall@10": 0.683,
+    "prec@10": 0.41,
+    "recall@25": 1.0,
+    "prec@25": 0.24
+   },
+   "C_rules": {
+    "recall@10": 0.783,
+    "prec@10": 0.47,
+    "recall@25": 1.0,
+    "prec@25": 0.24
+   },
+   "C_lr": {
+    "recall@10": 0.667,
+    "prec@10": 0.4,
+    "recall@25": 1.0,
+    "prec@25": 0.24
+   }
+  },
+  "NSec.Cryptography": {
+   "surface_callables": 7,
+   "positives": 6,
+   "positives_on_surface": 6,
+   "A": {
+    "recall@10": 1.0,
+    "prec@10": 0.6,
+    "recall@25": 1.0,
+    "prec@25": 0.24
+   },
+   "B": {
+    "recall@10": 1.0,
+    "prec@10": 0.6,
+    "recall@25": 1.0,
+    "prec@25": 0.24
+   },
+   "C_rules": {
+    "recall@10": 1.0,
+    "prec@10": 0.6,
+    "recall@25": 1.0,
+    "prec@25": 0.24
+   },
+   "C_lr": {
+    "recall@10": 1.0,
+    "prec@10": 0.6,
+    "recall@25": 1.0,
+    "prec@25": 0.24
+   }
+  },
+  "Newtonsoft.Json": {
+   "surface_callables": 3,
+   "positives": 2,
+   "positives_on_surface": 2,
+   "A": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "B": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "C_rules": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "C_lr": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   }
+  },
+  "Npgsql": {
+   "surface_callables": 82,
+   "positives": 21,
+   "positives_on_surface": 21,
+   "A": {
+    "recall@10": 0.133,
+    "prec@10": 0.28,
+    "recall@25": 0.31,
+    "prec@25": 0.26
+   },
+   "B": {
+    "recall@10": 0.19,
+    "prec@10": 0.4,
+    "recall@25": 0.402,
+    "prec@25": 0.338
+   },
+   "C_rules": {
+    "recall@10": 0.338,
+    "prec@10": 0.71,
+    "recall@25": 0.681,
+    "prec@25": 0.572
+   },
+   "C_lr": {
+    "recall@10": 0.238,
+    "prec@10": 0.5,
+    "recall@25": 0.667,
+    "prec@25": 0.56
+   }
+  },
+  "RabbitMQ.Client": {
+   "surface_callables": 10,
+   "positives": 2,
+   "positives_on_surface": 2,
+   "A": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "B": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "C_rules": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   },
+   "C_lr": {
+    "recall@10": 1.0,
+    "prec@10": 0.2,
+    "recall@25": 1.0,
+    "prec@25": 0.08
+   }
+  },
+  "SSH.NET": {
+   "surface_callables": 42,
+   "positives": 10,
+   "positives_on_surface": 10,
+   "A": {
+    "recall@10": 0.235,
+    "prec@10": 0.235,
+    "recall@25": 0.66,
+    "prec@25": 0.264
+   },
+   "B": {
+    "recall@10": 0.665,
+    "prec@10": 0.665,
+    "recall@25": 0.94,
+    "prec@25": 0.376
+   },
+   "C_rules": {
+    "recall@10": 0.76,
+    "prec@10": 0.76,
+    "recall@25": 1.0,
+    "prec@25": 0.4
+   },
+   "C_lr": {
+    "recall@10": 0.9,
+    "prec@10": 0.9,
+    "recall@25": 1.0,
+    "prec@25": 0.4
+   }
+  },
+  "Serilog": {
+   "surface_callables": 4,
+   "positives": 4,
+   "positives_on_surface": 4,
+   "A": {
+    "recall@10": 1.0,
+    "prec@10": 0.4,
+    "recall@25": 1.0,
+    "prec@25": 0.16
+   },
+   "B": {
+    "recall@10": 1.0,
+    "prec@10": 0.4,
+    "recall@25": 1.0,
+    "prec@25": 0.16
+   },
+   "C_rules": {
+    "recall@10": 1.0,
+    "prec@10": 0.4,
+    "recall@25": 1.0,
+    "prec@25": 0.16
+   },
+   "C_lr": {
+    "recall@10": 1.0,
+    "prec@10": 0.4,
+    "recall@25": 1.0,
+    "prec@25": 0.16
+   }
+  },
+  "SharpCompress": {
+   "surface_callables": 85,
+   "positives": 16,
+   "positives_on_surface": 16,
+   "A": {
+    "recall@10": 0.156,
+    "prec@10": 0.25,
+    "recall@25": 0.384,
+    "prec@25": 0.246
+   },
+   "B": {
+    "recall@10": 0.403,
+    "prec@10": 0.645,
+    "recall@25": 0.566,
+    "prec@25": 0.362
+   },
+   "C_rules": {
+    "recall@10": 0.416,
+    "prec@10": 0.665,
+    "recall@25": 0.812,
+    "prec@25": 0.52
+   },
+   "C_lr": {
+    "recall@10": 0.438,
+    "prec@10": 0.7,
+    "recall@25": 0.75,
+    "prec@25": 0.48
+   }
+  },
+  "SharpZipLib": {
+   "surface_callables": 29,
+   "positives": 5,
+   "positives_on_surface": 5,
+   "A": {
+    "recall@10": 0.52,
+    "prec@10": 0.26,
+    "recall@25": 1.0,
+    "prec@25": 0.2
+   },
+   "B": {
+    "recall@10": 1.0,
+    "prec@10": 0.5,
+    "recall@25": 1.0,
+    "prec@25": 0.2
+   },
+   "C_rules": {
+    "recall@10": 1.0,
+    "prec@10": 0.5,
+    "recall@25": 1.0,
+    "prec@25": 0.2
+   },
+   "C_lr": {
+    "recall@10": 1.0,
+    "prec@10": 0.5,
+    "recall@25": 1.0,
+    "prec@25": 0.2
+   }
+  },
+  "SixLabors.ImageSharp": {
+   "surface_callables": 89,
+   "positives": 8,
+   "positives_on_surface": 8,
+   "A": {
+    "recall@10": 0.081,
+    "prec@10": 0.065,
+    "recall@25": 0.188,
+    "prec@25": 0.06
+   },
+   "B": {
+    "recall@10": 0.381,
+    "prec@10": 0.305,
+    "recall@25": 0.494,
+    "prec@25": 0.158
+   },
+   "C_rules": {
+    "recall@10": 0.188,
+    "prec@10": 0.15,
+    "recall@25": 0.287,
+    "prec@25": 0.092
+   },
+   "C_lr": {
+    "recall@10": 0.125,
+    "prec@10": 0.1,
+    "recall@25": 0.5,
+    "prec@25": 0.16
+   }
+  },
+  "SkiaSharp": {
+   "surface_callables": 264,
+   "positives": 16,
+   "positives_on_surface": 16,
+   "A": {
+    "recall@10": 0.059,
+    "prec@10": 0.095,
+    "recall@25": 0.147,
+    "prec@25": 0.094
+   },
+   "B": {
+    "recall@10": 0.131,
+    "prec@10": 0.21,
+    "recall@25": 0.184,
+    "prec@25": 0.118
+   },
+   "C_rules": {
+    "recall@10": 0.094,
+    "prec@10": 0.15,
+    "recall@25": 0.463,
+    "prec@25": 0.296
+   },
+   "C_lr": {
+    "recall@10": 0.188,
+    "prec@10": 0.3,
+    "recall@25": 0.188,
+    "prec@25": 0.12
+   }
+  },
+  "StackExchange.Redis": {
+   "surface_callables": 47,
+   "positives": 1,
+   "positives_on_surface": 1,
+   "A": {
+    "recall@10": 0.95,
+    "prec@10": 0.095,
+    "recall@25": 1.0,
+    "prec@25": 0.04
+   },
+   "B": {
+    "recall@10": 1.0,
+    "prec@10": 0.1,
+    "recall@25": 1.0,
+    "prec@25": 0.04
+   },
+   "C_rules": {
+    "recall@10": 1.0,
+    "prec@10": 0.1,
+    "recall@25": 1.0,
+    "prec@25": 0.04
+   },
+   "C_lr": {
+    "recall@10": 1.0,
+    "prec@10": 0.1,
+    "recall@25": 1.0,
+    "prec@25": 0.04
+   }
+  }
+ },
+ "mean_over_libraries": {
+  "A": {
+   "recall@10": 0.647,
+   "recall@25": 0.802,
+   "prec@10": 0.25,
+   "prec@25": 0.148
+  },
+  "B": {
+   "recall@10": 0.77,
+   "recall@25": 0.855,
+   "prec@10": 0.345,
+   "prec@25": 0.171
+  },
+  "C_rules": {
+   "recall@10": 0.778,
+   "recall@25": 0.914,
+   "prec@10": 0.367,
+   "prec@25": 0.203
+  },
+  "C_lr": {
+   "recall@10": 0.798,
+   "recall@25": 0.9,
+   "prec@10": 0.367,
+   "prec@25": 0.194
+  }
+ },
+ "pooled": {
+  "A": {
+   "pooled_recall@10": 0.401,
+   "pooled_recall@25": 0.595
+  },
+  "B": {
+   "pooled_recall@10": 0.553,
+   "pooled_recall@25": 0.685
+  },
+  "C_rules": {
+   "pooled_recall@10": 0.588,
+   "pooled_recall@25": 0.813
+  },
+  "C_lr": {
+   "pooled_recall@10": 0.588,
+   "pooled_recall@25": 0.779
+  }
+ },
+ "lr_top_weights_all_data": [
+  [
+   "bias",
+   -1.606
+  ],
+  [
+   "dispparam",
+   -0.865
+  ],
+  [
+   "tok_Wrap",
+   0.819
+  ],
+  [
+   "ret<-newobj",
+   0.762
+  ],
+  [
+   "has_body",
+   0.749
+  ],
+  [
+   "tok_Decode",
+   0.676
+  ],
+  [
+   "calls_pinvoke",
+   -0.51
+  ],
+  [
+   "ret_decl",
+   -0.471
+  ],
+  [
+   "ret_abstract",
+   -0.416
+  ],
+  [
+   "newobj_d",
+   0.411
+  ],
+  [
+   "ret<-call",
+   0.399
+  ],
+  [
+   "string",
+   0.398
+  ],
+  [
+   "decl_final",
+   0.391
+  ],
+  [
+   "tok_Open",
+   0.385
+  ]
+ ],
+ "novelty_queues": {
+  "BouncyCastle.Cryptography": {
+   "A": [
+    "Org.BouncyCastle.Asn1.Asn1BitStringParser.GetBitStream",
+    "Org.BouncyCastle.Asn1.Asn1BitStringParser.GetOctetStream",
+    "Org.BouncyCastle.Asn1.Asn1Generator.GetRawOutputStream",
+    "Org.BouncyCastle.Asn1.Asn1OctetString.GetOctetStream",
+    "Org.BouncyCastle.Asn1.Asn1OctetStringParser.GetOctetStream"
+   ],
+   "C_rules": [
+    "Org.BouncyCastle.Asn1.Asn1OctetString.GetOctetStream",
+    "Org.BouncyCastle.Asn1.BerOctetStringGenerator.GetOctetOutputStream",
+    "Org.BouncyCastle.Asn1.BerOctetStringParser.GetOctetStream",
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedData.GetDataStream",
+    "Org.BouncyCastle.Cms.CmsCompressedData.GetContentStream"
+   ],
+   "C_lr": [
+    "Org.BouncyCastle.Cms.CmsCompressedDataStreamGenerator.Open",
+    "Org.BouncyCastle.Cms.CmsCompressedData.GetContentStream",
+    "Org.BouncyCastle.Cms.CmsSignedDataStreamGenerator.Open",
+    "Org.BouncyCastle.Cms.CmsSignedDataParser.GetSignedContent",
+    "Org.BouncyCastle.Cms.CmsProcessableFile.GetInputStream"
+   ],
+   "B_unvalidated": [
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpEncryptedDataGenerator.Open",
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyEncryptedData.GetDataStream",
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities.GetDecoderStream"
+   ]
+  },
+  "CsvHelper": {
+   "A": [
+    "CsvHelper.CsvDataReader.GetData",
+    "CsvHelper.IFactory.CreateParser",
+    "CsvHelper.IFactory.CreateReader",
+    "CsvHelper.IFactory.CreateWriter",
+    "CsvHelper.CsvContext.get_Parser"
+   ],
+   "C_rules": [
+    "CsvHelper.CsvDataReader.GetData",
+    "CsvHelper.IFactory.CreateParser",
+    "CsvHelper.IFactory.CreateReader",
+    "CsvHelper.IFactory.CreateWriter",
+    "CsvHelper.IReaderRow.get_Parser"
+   ],
+   "C_lr": [
+    "CsvHelper.CsvDataReader.GetData",
+    "CsvHelper.CsvReader.get_Parser",
+    "CsvHelper.CsvContext.get_Parser",
+    "CsvHelper.CsvContext.get_Reader",
+    "CsvHelper.CsvContext.get_Writer"
+   ],
+   "B_unvalidated": []
+  },
+  "Google.Protobuf": {
+   "A": [],
+   "C_rules": [],
+   "C_lr": [],
+   "B_unvalidated": []
+  },
+  "K4os.Compression.LZ4.Streams": {
+   "A": [],
+   "C_rules": [],
+   "C_lr": [],
+   "B_unvalidated": []
+  },
+  "LibGit2Sharp": {
+   "A": [
+    "LibGit2Sharp.CertificateX509.get_Certificate",
+    "LibGit2Sharp.IBelongToARepository.get_Repository",
+    "LibGit2Sharp.IRepository.get_Config",
+    "LibGit2Sharp.ObjectDatabase.CherryPickCommitIntoIndex",
+    "LibGit2Sharp.RemoteCollection.get_Item"
+   ],
+   "C_rules": [
+    "LibGit2Sharp.Worktree.get_WorktreeRepository",
+    "LibGit2Sharp.ObjectDatabase.CherryPickCommitIntoIndex",
+    "LibGit2Sharp.RemoteCollection.get_Item",
+    "LibGit2Sharp.RemoteCollection.Rename",
+    "LibGit2Sharp.IBelongToARepository.get_Repository"
+   ],
+   "C_lr": [
+    "LibGit2Sharp.ObjectDatabase.CherryPickCommitIntoIndex",
+    "LibGit2Sharp.Worktree.get_WorktreeRepository",
+    "LibGit2Sharp.RemoteCollection.Rename",
+    "LibGit2Sharp.RemoteCollection.get_Item",
+    "LibGit2Sharp.RemoteCollection.get_this[]"
+   ],
+   "B_unvalidated": [
+    "LibGit2Sharp.Blob.GetContentStream",
+    "LibGit2Sharp.ObjectDatabase.MergeCommitsIntoIndex"
+   ]
+  },
+  "MQTTnet": {
+   "A": [
+    "MQTTnet.Adapter.IMqttClientAdapterFactory.CreateClientAdapter",
+    "MQTTnet.Certificates.BlobCertificateProvider.GetCertificate",
+    "MQTTnet.Certificates.ICertificateProvider.GetCertificate",
+    "MQTTnet.Certificates.X509CertificateProvider.GetCertificate",
+    "MQTTnet.Channel.IMqttClientStreamProvider.ConnectAsync"
+   ],
+   "C_rules": [
+    "MQTTnet.Certificates.BlobCertificateProvider.GetCertificate",
+    "MQTTnet.PacketDispatcher.MqttPacketDispatcher.AddAwaitable",
+    "MQTTnet.Adapter.IMqttChannelAdapter.get_ClientCertificate",
+    "MQTTnet.Adapter.IMqttClientAdapterFactory.CreateClientAdapter",
+    "MQTTnet.Adapter.MqttChannelAdapter.get_ClientCertificate"
+   ],
+   "C_lr": [
+    "MQTTnet.Certificates.BlobCertificateProvider.GetCertificate",
+    "MQTTnet.PacketDispatcher.MqttPacketDispatcher.AddAwaitable",
+    "MQTTnet.Adapter.MqttChannelAdapter.get_ClientCertificate",
+    "MQTTnet.Certificates.X509CertificateProvider.GetCertificate",
+    "MQTTnet.Implementations.CrossPlatformSocket.AcceptAsync"
+   ],
+   "B_unvalidated": [
+    "MQTTnet.Implementations.CrossPlatformSocket.GetStream",
+    "MQTTnet.Implementations.MqttClientAdapterFactory.CreateClientAdapter",
+    "MQTTnet.Internal.AsyncLock.EnterAsync"
+   ]
+  },
+  "MailKit": {
+   "A": [
+    "MailKit.IMailFolder.GetStream",
+    "MailKit.IMailFolder.GetStreamAsync",
+    "MailKit.IMailSpool.GetStream",
+    "MailKit.IMailSpool.GetStreamAsync",
+    "MailKit.MailFolder.GetStream"
+   ],
+   "C_rules": [
+    "MailKit.Net.Proxy.HttpProxyClient.Connect",
+    "MailKit.Net.Proxy.HttpsProxyClient.Connect",
+    "MailKit.Net.Proxy.Socks4Client.Connect",
+    "MailKit.MailFolder.GetStream",
+    "MailKit.IMailFolder.GetStream"
+   ],
+   "C_lr": [
+    "MailKit.MailService.get_ProtocolLogger",
+    "MailKit.ProtocolLogger.get_Stream",
+    "MailKit.MailFolder.GetStream",
+    "MailKit.IMailFolder.GetStream",
+    "MailKit.Net.Pop3.Pop3Client.GetStreamAsync"
+   ],
+   "B_unvalidated": [
+    "MailKit.Net.Pop3.Pop3Client.GetStream",
+    "MailKit.Net.Proxy.ProxyClient.Connect",
+    "MailKit.Net.Proxy.Socks5Client.Connect"
+   ]
+  },
+  "Microsoft.Data.Sqlite.Core": {
+   "A": [
+    "Microsoft.Data.Sqlite.SqliteConnection.get_Handle",
+    "Microsoft.Data.Sqlite.SqliteDataReader.get_Handle"
+   ],
+   "C_rules": [
+    "Microsoft.Data.Sqlite.SqliteConnection.get_Handle",
+    "Microsoft.Data.Sqlite.SqliteDataReader.get_Handle"
+   ],
+   "C_lr": [
+    "Microsoft.Data.Sqlite.SqliteConnection.get_Handle",
+    "Microsoft.Data.Sqlite.SqliteDataReader.get_Handle"
+   ],
+   "B_unvalidated": [
+    "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader",
+    "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync",
+    "Microsoft.Data.Sqlite.SqliteConnection.BeginTransaction",
+    "Microsoft.Data.Sqlite.SqliteDataReader.GetStream",
+    "Microsoft.Data.Sqlite.SqliteDataReader.GetTextReader"
+   ]
+  },
+  "MySqlConnector": {
+   "A": [
+    "MySqlConnector.MySqlBatch.ExecuteReader",
+    "MySqlConnector.MySqlBatch.ExecuteReaderAsync",
+    "MySqlConnector.MySqlCommand.ExecuteReaderAsync",
+    "MySqlConnector.MySqlCommandBuilder.GetDeleteCommand",
+    "MySqlConnector.MySqlCommandBuilder.GetInsertCommand"
+   ],
+   "C_rules": [
+    "MySqlConnector.MySqlDataReader.GetTextReader",
+    "MySqlConnector.MySqlDataReader.GetSchemaTableAsync",
+    "MySqlConnector.MySqlBatch.ExecuteReader",
+    "MySqlConnector.MySqlBatch.ExecuteReaderAsync",
+    "MySqlConnector.MySqlBulkLoader.get_SourceStream"
+   ],
+   "C_lr": [
+    "MySqlConnector.MySqlDataReader.GetTextReader",
+    "MySqlConnector.MySqlConnection.GetSchemaAsync",
+    "MySqlConnector.MySqlDataSource.OpenConnectionAsync",
+    "MySqlConnector.MySqlDataReader.GetSchemaTableAsync",
+    "MySqlConnector.MySqlCommandBuilder.GetDeleteCommand"
+   ],
+   "B_unvalidated": [
+    "MySqlConnector.MySqlCommand.Clone",
+    "MySqlConnector.MySqlCommand.ExecuteReader",
+    "MySqlConnector.MySqlConnection.BeginTransaction",
+    "MySqlConnector.MySqlConnection.CloneWith",
+    "MySqlConnector.MySqlDataReader.GetStream"
+   ]
+  },
+  "NLog": {
+   "A": [
+    "NLog.Config.ISetupConfigurationTargetBuilder.get_LogFactory",
+    "NLog.Config.ISetupExtensionsBuilder.get_LogFactory",
+    "NLog.Config.ISetupInternalLoggerBuilder.get_LogFactory",
+    "NLog.Config.ISetupLoadConfigurationBuilder.get_LogFactory",
+    "NLog.Config.ISetupLogFactoryBuilder.get_LogFactory"
+   ],
+   "C_rules": [
+    "NLog.Config.ISetupConfigurationTargetBuilder.get_LogFactory",
+    "NLog.Config.ISetupExtensionsBuilder.get_LogFactory",
+    "NLog.Config.ISetupInternalLoggerBuilder.get_LogFactory",
+    "NLog.Config.ISetupLoadConfigurationBuilder.get_LogFactory",
+    "NLog.Config.ISetupLogFactoryBuilder.get_LogFactory"
+   ],
+   "C_lr": [
+    "NLog.Config.ISetupConfigurationTargetBuilder.get_LogFactory",
+    "NLog.Config.ISetupExtensionsBuilder.get_LogFactory",
+    "NLog.Config.ISetupInternalLoggerBuilder.get_LogFactory",
+    "NLog.Config.ISetupLoadConfigurationBuilder.get_LogFactory",
+    "NLog.Config.ISetupLogFactoryBuilder.get_LogFactory"
+   ],
+   "B_unvalidated": [
+    "NLog.LogManager.DisableLogging",
+    "NLog.Logger.PushScopeNested",
+    "NLog.Logger.PushScopeProperties",
+    "NLog.MappedDiagnosticsContext.SetScoped",
+    "NLog.MappedDiagnosticsLogicalContext.SetScoped"
+   ]
+  },
+  "NSec.Cryptography": {
+   "A": [],
+   "C_rules": [],
+   "C_lr": [],
+   "B_unvalidated": [
+    "NSec.Cryptography.KeyAgreementAlgorithm.Agree"
+   ]
+  },
+  "Newtonsoft.Json": {
+   "A": [
+    "Newtonsoft.Json.JsonValidatingReader.get_Reader"
+   ],
+   "C_rules": [
+    "Newtonsoft.Json.JsonValidatingReader.get_Reader"
+   ],
+   "C_lr": [
+    "Newtonsoft.Json.JsonValidatingReader.get_Reader"
+   ],
+   "B_unvalidated": []
+  },
+  "Npgsql": {
+   "A": [
+    "Npgsql.NpgsqlBatch.ExecuteReader",
+    "Npgsql.NpgsqlBatch.ExecuteReaderAsync",
+    "Npgsql.NpgsqlCommand.ExecuteReaderAsync",
+    "Npgsql.NpgsqlCommandBuilder.GetInsertCommand",
+    "Npgsql.NpgsqlCommandBuilder.GetUpdateCommand"
+   ],
+   "C_rules": [
+    "Npgsql.Internal.NpgsqlConnector.CreateCommand",
+    "Npgsql.Internal.NpgsqlConnector.CreateBatch",
+    "Npgsql.Internal.PgWriter.GetStream",
+    "Npgsql.NpgsqlBatch.get_Connection",
+    "Npgsql.NpgsqlBatch.get_Transaction"
+   ],
+   "C_lr": [
+    "Npgsql.Internal.NpgsqlConnector.CreateCommand",
+    "Npgsql.Internal.PgWriter.GetStream",
+    "Npgsql.Internal.NpgsqlConnector.CreateBatch",
+    "Npgsql.NpgsqlConnection.GetSchemaAsync",
+    "Npgsql.NpgsqlCommandBuilder.GetInsertCommand"
+   ],
+   "B_unvalidated": [
+    "Npgsql.NpgsqlCommand.ExecuteReader",
+    "Npgsql.NpgsqlConnection.BeginBinaryExport",
+    "Npgsql.NpgsqlConnection.BeginBinaryImport",
+    "Npgsql.NpgsqlConnection.BeginRawBinaryCopy",
+    "Npgsql.NpgsqlConnection.BeginTextExport"
+   ]
+  },
+  "RabbitMQ.Client": {
+   "A": [
+    "RabbitMQ.Client.IConnectionFactory.CreateConnectionAsync",
+    "RabbitMQ.Client.ITcpClient.GetStream",
+    "RabbitMQ.Client.AsyncDefaultBasicConsumer.get_Channel",
+    "RabbitMQ.Client.IAsyncBasicConsumer.get_Channel",
+    "RabbitMQ.Client.ITcpClient.get_Client"
+   ],
+   "C_rules": [
+    "RabbitMQ.Client.IAsyncBasicConsumer.get_Channel",
+    "RabbitMQ.Client.IConnectionFactory.CreateConnectionAsync",
+    "RabbitMQ.Client.ITcpClient.get_Client",
+    "RabbitMQ.Client.ITcpClient.GetStream",
+    "RabbitMQ.Client.AsyncDefaultBasicConsumer.get_Channel"
+   ],
+   "C_lr": [
+    "RabbitMQ.Client.ITcpClient.GetStream",
+    "RabbitMQ.Client.TcpClientAdapter.get_Client",
+    "RabbitMQ.Client.IConnectionFactory.CreateConnectionAsync",
+    "RabbitMQ.Client.ITcpClient.get_Client",
+    "RabbitMQ.Client.AsyncDefaultBasicConsumer.get_Channel"
+   ],
+   "B_unvalidated": [
+    "RabbitMQ.Client.ConnectionFactory.CreateConnectionAsync",
+    "RabbitMQ.Client.IConnection.CreateChannelAsync"
+   ]
+  },
+  "SSH.NET": {
+   "A": [
+    "Renci.SshNet.ISftpClient.Create",
+    "Renci.SshNet.ISftpClient.CreateText",
+    "Renci.SshNet.ISftpClient.Open",
+    "Renci.SshNet.ISftpClient.OpenAsync",
+    "Renci.SshNet.ISftpClient.OpenRead"
+   ],
+   "C_rules": [
+    "Renci.SshNet.Security.KeyExchange.CreateServerHash",
+    "Renci.SshNet.Security.KeyExchange.CreateClientHash",
+    "Renci.SshNet.Security.KeyExchange.CreateCompressor",
+    "Renci.SshNet.Security.KeyExchange.CreateDecompressor",
+    "Renci.SshNet.ISftpClient.AppendText"
+   ],
+   "C_lr": [
+    "Renci.SshNet.SftpClient.OpenAsync",
+    "Renci.SshNet.Security.KeyExchange.CreateServerHash",
+    "Renci.SshNet.Security.KeyExchange.CreateClientHash",
+    "Renci.SshNet.Security.KeyExchange.CreateCompressor",
+    "Renci.SshNet.Security.KeyExchange.CreateDecompressor"
+   ],
+   "B_unvalidated": [
+    "Renci.SshNet.SshClient.CreateShellStream",
+    "Renci.SshNet.SshClient.CreateShellStreamNoTerminal",
+    "Renci.SshNet.SshClient.RunCommand",
+    "Renci.SshNet.SshCommand.CreateInputStream"
+   ]
+  },
+  "Serilog": {
+   "A": [],
+   "C_rules": [],
+   "C_lr": [],
+   "B_unvalidated": []
+  },
+  "SharpCompress": {
+   "A": [
+    "SharpCompress.Archives.ArchiveFactory.Create",
+    "SharpCompress.Archives.IArchiveEntry.OpenEntryStreamAsync",
+    "SharpCompress.Archives.IArchiveFactory.Open",
+    "SharpCompress.Archives.IMultiArchiveFactory.Open",
+    "SharpCompress.Archives.IWriteableArchiveFactory.CreateWriteableArchive"
+   ],
+   "C_rules": [
+    "SharpCompress.IO.SharpCompressStream.Create",
+    "SharpCompress.Readers.Ace.AceReader.Open",
+    "SharpCompress.Readers.Arc.ArcReader.Open",
+    "SharpCompress.Readers.Arj.ArjReader.Open",
+    "SharpCompress.Readers.GZip.GZipReader.Open"
+   ],
+   "C_lr": [
+    "SharpCompress.Readers.Arc.ArcReader.Open",
+    "SharpCompress.Readers.GZip.GZipReader.Open",
+    "SharpCompress.Compressors.Arj.RingBuffer.IterFromOffset",
+    "SharpCompress.IO.SharpCompressStream.Create",
+    "SharpCompress.Readers.Ace.AceReader.Open"
+   ],
+   "B_unvalidated": [
+    "SharpCompress.Archives.ArchiveFactory.Open",
+    "SharpCompress.Archives.IArchive.ExtractAllEntries",
+    "SharpCompress.Archives.IArchiveEntry.OpenEntryStream",
+    "SharpCompress.Readers.ReaderFactory.Open"
+   ]
+  },
+  "SharpZipLib": {
+   "A": [
+    "ICSharpCode.SharpZipLib.Zip.ZipExtraData.GetStreamForTag",
+    "ICSharpCode.SharpZipLib.Zip.IStaticDataSource.GetSource",
+    "ICSharpCode.SharpZipLib.Zip.IDynamicDataSource.GetSource",
+    "ICSharpCode.SharpZipLib.Zip.StaticDiskDataSource.GetSource",
+    "ICSharpCode.SharpZipLib.Zip.DynamicDiskDataSource.GetSource"
+   ],
+   "C_rules": [
+    "ICSharpCode.SharpZipLib.Zip.ZipExtraData.GetStreamForTag",
+    "ICSharpCode.SharpZipLib.Zip.DiskArchiveStorage.OpenForDirectUpdate",
+    "ICSharpCode.SharpZipLib.Zip.MemoryArchiveStorage.OpenForDirectUpdate",
+    "ICSharpCode.SharpZipLib.Zip.StaticDiskDataSource.GetSource",
+    "ICSharpCode.SharpZipLib.Zip.IStaticDataSource.GetSource"
+   ],
+   "C_lr": [
+    "ICSharpCode.SharpZipLib.Zip.MemoryArchiveStorage.OpenForDirectUpdate",
+    "ICSharpCode.SharpZipLib.Zip.DiskArchiveStorage.OpenForDirectUpdate",
+    "ICSharpCode.SharpZipLib.Zip.ZipExtraData.GetStreamForTag",
+    "ICSharpCode.SharpZipLib.Zip.DynamicDiskDataSource.GetSource",
+    "ICSharpCode.SharpZipLib.Zip.StaticDiskDataSource.GetSource"
+   ],
+   "B_unvalidated": [
+    "ICSharpCode.SharpZipLib.Zip.DiskArchiveStorage.GetTemporaryOutput",
+    "ICSharpCode.SharpZipLib.Zip.ZipFile.GetInputStream"
+   ]
+  },
+  "SixLabors.ImageSharp": {
+   "A": [
+    "SixLabors.ImageSharp.Image.LoadAsync",
+    "SixLabors.ImageSharp.ImageFrameCollection.CloneFrame",
+    "SixLabors.ImageSharp.ImageFrameCollection<TPixel>.CreateFrame",
+    "SixLabors.ImageSharp.Formats.IImageDecoder.Decode",
+    "SixLabors.ImageSharp.Formats.IImageDecoder.DecodeAsync"
+   ],
+   "C_rules": [
+    "SixLabors.ImageSharp.Processing.Processors.Binarization.AdaptiveThresholdProcessor.CreatePixelSpecificProcessor",
+    "SixLabors.ImageSharp.Processing.Processors.Binarization.BinaryThresholdProcessor.CreatePixelSpecificProcessor",
+    "SixLabors.ImageSharp.Processing.Processors.Convolution.BokehBlurProcessor.CreatePixelSpecificProcessor",
+    "SixLabors.ImageSharp.Processing.Processors.Convolution.BoxBlurProcessor.CreatePixelSpecificProcessor",
+    "SixLabors.ImageSharp.Processing.Processors.Convolution.ConvolutionProcessor.CreatePixelSpecificProcessor"
+   ],
+   "C_lr": [
+    "SixLabors.ImageSharp.Formats.ImageDecoder.DecodeAsync",
+    "SixLabors.ImageSharp.Formats.SpecializedImageDecoder<T>.DecodeAsync",
+    "SixLabors.ImageSharp.Formats.SpecializedImageDecoder<T>.Decode",
+    "SixLabors.ImageSharp.Formats.IImageDecoder.Decode",
+    "SixLabors.ImageSharp.Formats.ISpecializedImageDecoder<T>.Decode"
+   ],
+   "B_unvalidated": [
+    "SixLabors.ImageSharp.Formats.ImageDecoder.Decode",
+    "SixLabors.ImageSharp.Image.CloneAs",
+    "SixLabors.ImageSharp.Image.Load",
+    "SixLabors.ImageSharp.ImageFrameCollection.ExportFrame",
+    "SixLabors.ImageSharp.Memory.MemoryAllocator.Allocate"
+   ]
+  },
+  "SkiaSharp": {
+   "A": [
+    "SkiaSharp.SKGraphiteBackendTexture.CreateVulkan",
+    "SkiaSharp.SKGraphiteBackendTexture.CreateMetal",
+    "SkiaSharp.SKGraphiteBackendTexture.CreateDawn",
+    "SkiaSharp.SKGraphiteContext.CreateVulkan",
+    "SkiaSharp.SKGraphiteContext.CreateMetal"
+   ],
+   "C_rules": [
+    "SkiaSharp.SKGraphiteBackendTexture.CreateVulkan",
+    "SkiaSharp.SKGraphiteBackendTexture.CreateMetal",
+    "SkiaSharp.SKGraphiteBackendTexture.CreateDawn",
+    "SkiaSharp.SKGraphiteContext.CreateMetal",
+    "SkiaSharp.SKGraphiteTextureInfo.CreateVulkan"
+   ],
+   "C_lr": [
+    "SkiaSharp.SKWebpEncoder.EncodeAnimated",
+    "SkiaSharp.SKGraphiteBackendTexture.CreateVulkan",
+    "SkiaSharp.SKPixmap.Encode",
+    "SkiaSharp.SKRuntimeEffect.CreateShader",
+    "SkiaSharp.SKRuntimeEffect.CreateColorFilter"
+   ],
+   "B_unvalidated": [
+    "SkiaSharp.SKBitmap.Copy",
+    "SkiaSharp.SKCodec.Create",
+    "SkiaSharp.SKColorFilter.CreateBlendMode",
+    "SkiaSharp.SKColorSpace.CreateSrgb",
+    "SkiaSharp.SKData.Create"
+   ]
+  },
+  "StackExchange.Redis": {
+   "A": [
+    "StackExchange.Redis.HashImport.Create",
+    "StackExchange.Redis.ConnectionMultiplexer.ConnectGroupAsync",
+    "StackExchange.Redis.ConnectionMultiplexer.ConnectAsync",
+    "StackExchange.Redis.ConnectionMultiplexer.GetSentinelMasterConnection",
+    "StackExchange.Redis.ExtensionMethods.AsStream"
+   ],
+   "C_rules": [
+    "StackExchange.Redis.HashImport.Create",
+    "StackExchange.Redis.ExtensionMethods.AsStream",
+    "StackExchange.Redis.SocketManager.get_Shared",
+    "StackExchange.Redis.ConnectionMultiplexer.ConnectAsync",
+    "StackExchange.Redis.ConnectionMultiplexer.SentinelConnectAsync"
+   ],
+   "C_lr": [
+    "StackExchange.Redis.ExtensionMethods.AsStream",
+    "StackExchange.Redis.ExtensionMethods.DecodeLease",
+    "StackExchange.Redis.HashImport.Create",
+    "StackExchange.Redis.ConnectionMultiplexer.GetSentinelMasterConnection",
+    "StackExchange.Redis.ConnectionMultiplexer.SentinelConnectAsync"
+   ],
+   "B_unvalidated": [
+    "StackExchange.Redis.ConnectionMultiplexer.Connect",
+    "StackExchange.Redis.ConnectionMultiplexer.SentinelConnect",
+    "StackExchange.Redis.IDatabase.StringGetLease"
+   ]
+  }
+ },
+ "surface_total": 1867,
+ "positives_total": 131
+}

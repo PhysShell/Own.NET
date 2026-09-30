@@ -1,0 +1,489 @@
+{
+ "plan": [
+  {
+   "arm": "A",
+   "package": "BouncyCastle.Cryptography",
+   "callable": "Org.BouncyCastle.Asn1.Asn1BitStringParser.GetBitStream"
+  },
+  {
+   "arm": "A",
+   "package": "CsvHelper",
+   "callable": "CsvHelper.CsvDataReader.GetData"
+  },
+  {
+   "arm": "A",
+   "package": "LibGit2Sharp",
+   "callable": "LibGit2Sharp.CertificateX509.get_Certificate"
+  },
+  {
+   "arm": "A",
+   "package": "MQTTnet",
+   "callable": "MQTTnet.Adapter.IMqttClientAdapterFactory.CreateClientAdapter"
+  },
+  {
+   "arm": "A",
+   "package": "MailKit",
+   "callable": "MailKit.IMailFolder.GetStream"
+  },
+  {
+   "arm": "A",
+   "package": "Microsoft.Data.Sqlite.Core",
+   "callable": "Microsoft.Data.Sqlite.SqliteConnection.get_Handle"
+  },
+  {
+   "arm": "A",
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlBatch.ExecuteReader"
+  },
+  {
+   "arm": "A",
+   "package": "NLog",
+   "callable": "NLog.Config.ISetupConfigurationTargetBuilder.get_LogFactory"
+  },
+  {
+   "arm": "A",
+   "package": "Newtonsoft.Json",
+   "callable": "Newtonsoft.Json.JsonValidatingReader.get_Reader"
+  },
+  {
+   "arm": "A",
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlBatch.ExecuteReader"
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "BouncyCastle.Cryptography",
+   "callable": "Org.BouncyCastle.Bcpg.OpenPgp.PgpEncryptedDataGenerator.Open"
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "LibGit2Sharp",
+   "callable": "LibGit2Sharp.Blob.GetContentStream"
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "MQTTnet",
+   "callable": "MQTTnet.Implementations.CrossPlatformSocket.GetStream"
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "MailKit",
+   "callable": "MailKit.Net.Pop3.Pop3Client.GetStream"
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "Microsoft.Data.Sqlite.Core",
+   "callable": "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader"
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlCommand.Clone"
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "NLog",
+   "callable": "NLog.LogManager.DisableLogging"
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "NSec.Cryptography",
+   "callable": "NSec.Cryptography.KeyAgreementAlgorithm.Agree"
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlCommand.ExecuteReader"
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "RabbitMQ.Client",
+   "callable": "RabbitMQ.Client.ConnectionFactory.CreateConnectionAsync"
+  },
+  {
+   "arm": "C_lr",
+   "package": "BouncyCastle.Cryptography",
+   "callable": "Org.BouncyCastle.Cms.CmsCompressedDataStreamGenerator.Open"
+  },
+  {
+   "arm": "C_lr",
+   "package": "CsvHelper",
+   "callable": "CsvHelper.CsvDataReader.GetData"
+  },
+  {
+   "arm": "C_lr",
+   "package": "LibGit2Sharp",
+   "callable": "LibGit2Sharp.ObjectDatabase.CherryPickCommitIntoIndex"
+  },
+  {
+   "arm": "C_lr",
+   "package": "MQTTnet",
+   "callable": "MQTTnet.Certificates.BlobCertificateProvider.GetCertificate"
+  },
+  {
+   "arm": "C_lr",
+   "package": "MailKit",
+   "callable": "MailKit.MailService.get_ProtocolLogger"
+  },
+  {
+   "arm": "C_lr",
+   "package": "Microsoft.Data.Sqlite.Core",
+   "callable": "Microsoft.Data.Sqlite.SqliteConnection.get_Handle"
+  },
+  {
+   "arm": "C_lr",
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlDataReader.GetTextReader"
+  },
+  {
+   "arm": "C_lr",
+   "package": "NLog",
+   "callable": "NLog.Config.ISetupConfigurationTargetBuilder.get_LogFactory"
+  },
+  {
+   "arm": "C_lr",
+   "package": "Newtonsoft.Json",
+   "callable": "Newtonsoft.Json.JsonValidatingReader.get_Reader"
+  },
+  {
+   "arm": "C_lr",
+   "package": "Npgsql",
+   "callable": "Npgsql.Internal.NpgsqlConnector.CreateCommand"
+  }
+ ],
+ "results": [
+  {
+   "arm": "A",
+   "package": "BouncyCastle.Cryptography",
+   "callable": "Org.BouncyCastle.Asn1.Asn1BitStringParser.GetBitStream",
+   "type": "Org.BouncyCastle.Asn1.Asn1BitStringParser",
+   "source": "crypto/src/asn1/Asn1BitStringParser.cs",
+   "source_sha256": "a015c759a2eba308",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "A",
+   "package": "CsvHelper",
+   "callable": "CsvHelper.CsvDataReader.GetData",
+   "type": "CsvHelper.CsvDataReader",
+   "source": "src/CsvHelper/CsvDataReader.cs",
+   "source_sha256": "966a953606b2368f",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "A",
+   "package": "LibGit2Sharp",
+   "callable": "LibGit2Sharp.CertificateX509.get_Certificate",
+   "type": "LibGit2Sharp.CertificateX509",
+   "source": "LibGit2Sharp/CertificateX509.cs",
+   "source_sha256": "7c601ac98ad3e39f",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "A",
+   "package": "MQTTnet",
+   "callable": "MQTTnet.Adapter.IMqttClientAdapterFactory.CreateClientAdapter",
+   "type": "MQTTnet.Adapter.IMqttClientAdapterFactory",
+   "source": "Source/MQTTnet/Adapter/IMqttClientAdapterFactory.cs",
+   "source_sha256": "b38115764e532b82",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "A",
+   "package": "MailKit",
+   "callable": "MailKit.IMailFolder.GetStream",
+   "type": "MailKit.IMailFolder",
+   "outcome": "NO_SOURCE",
+   "why": "no repository pin"
+  },
+  {
+   "arm": "A",
+   "package": "Microsoft.Data.Sqlite.Core",
+   "callable": "Microsoft.Data.Sqlite.SqliteConnection.get_Handle",
+   "type": "Microsoft.Data.Sqlite.SqliteConnection",
+   "source": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteConnection.cs",
+   "source_sha256": "0fd8dd0cd1ca7e6f",
+   "re_body_census": "re-body: fresh_return=6 fresh_return_expression_body=6",
+   "outcome": "REFUSED",
+   "fresh_in_file": [
+    "Microsoft.Data.Sqlite.SqliteConnection.CreateCommand",
+    "Microsoft.Data.Sqlite.SqliteConnection.CreateDbCommand"
+   ]
+  },
+  {
+   "arm": "A",
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlBatch.ExecuteReader",
+   "type": "MySqlConnector.MySqlBatch",
+   "source": "src/MySqlConnector/MySqlBatch.cs",
+   "source_sha256": "44bbcf03eb883d04",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "A",
+   "package": "NLog",
+   "callable": "NLog.Config.ISetupConfigurationTargetBuilder.get_LogFactory",
+   "type": "NLog.Config.ISetupConfigurationTargetBuilder",
+   "source": "src/NLog/Config/ISetupConfigurationTargetBuilder.cs",
+   "source_sha256": "d00c7eb091b69e49",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "A",
+   "package": "Newtonsoft.Json",
+   "callable": "Newtonsoft.Json.JsonValidatingReader.get_Reader",
+   "type": "Newtonsoft.Json.JsonValidatingReader",
+   "source": "Src/Newtonsoft.Json/JsonValidatingReader.cs",
+   "source_sha256": "bfe9c4a0f7d683f1",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "A",
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlBatch.ExecuteReader",
+   "type": "Npgsql.NpgsqlBatch",
+   "source": "src/Npgsql/NpgsqlBatch.cs",
+   "source_sha256": "5285cdfb6affc678",
+   "re_body_census": "re-body: fresh_return=1 fresh_return_expression_body=1",
+   "outcome": "REFUSED",
+   "fresh_in_file": [
+    "Npgsql.NpgsqlBatch.CreateCachedBatch"
+   ]
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "BouncyCastle.Cryptography",
+   "callable": "Org.BouncyCastle.Bcpg.OpenPgp.PgpEncryptedDataGenerator.Open",
+   "type": "Org.BouncyCastle.Bcpg.OpenPgp.PgpEncryptedDataGenerator",
+   "source": "crypto/src/openpgp/PgpEncryptedDataGenerator.cs",
+   "source_sha256": "2420aa8cea93c13b",
+   "re_body_census": "re-body: fresh_return=2 fresh_return_expression_body=2",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "LibGit2Sharp",
+   "callable": "LibGit2Sharp.Blob.GetContentStream",
+   "type": "LibGit2Sharp.Blob",
+   "source": "LibGit2Sharp/Blob.cs",
+   "source_sha256": "d0c82e04263d128e",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "MQTTnet",
+   "callable": "MQTTnet.Implementations.CrossPlatformSocket.GetStream",
+   "type": "MQTTnet.Implementations.CrossPlatformSocket",
+   "source": "Source/MQTTnet/Implementations/CrossPlatformSocket.cs",
+   "source_sha256": "d773591c7b18d955",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "MailKit",
+   "callable": "MailKit.Net.Pop3.Pop3Client.GetStream",
+   "type": "MailKit.Net.Pop3.Pop3Client",
+   "outcome": "NO_SOURCE",
+   "why": "no repository pin"
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "Microsoft.Data.Sqlite.Core",
+   "callable": "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader",
+   "type": "Microsoft.Data.Sqlite.SqliteCommand",
+   "source": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteCommand.cs",
+   "source_sha256": "c5d427a5d7016152",
+   "re_body_census": "re-body: fresh_return=2 fresh_return_expression_body=2",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlCommand.Clone",
+   "type": "MySqlConnector.MySqlCommand",
+   "source": "src/MySqlConnector/MySqlCommand.cs",
+   "source_sha256": "864321747c045d8c",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "NLog",
+   "callable": "NLog.LogManager.DisableLogging",
+   "type": "NLog.LogManager",
+   "source": "src/NLog/LogManager.cs",
+   "source_sha256": "cee502171fa7e694",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "NSec.Cryptography",
+   "callable": "NSec.Cryptography.KeyAgreementAlgorithm.Agree",
+   "type": "NSec.Cryptography.KeyAgreementAlgorithm",
+   "source": "src/Cryptography/KeyAgreementAlgorithm.cs",
+   "source_sha256": "38c3d96093d4936e",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlCommand.ExecuteReader",
+   "type": "Npgsql.NpgsqlCommand",
+   "source": "src/Npgsql/NpgsqlCommand.cs",
+   "source_sha256": "6bdde5901d32a633",
+   "re_body_census": "re-body: fresh_return=3 fresh_return_expression_body=3",
+   "outcome": "REFUSED",
+   "fresh_in_file": [
+    "Npgsql.NpgsqlCommand.Clone",
+    "Npgsql.NpgsqlCommand.CreateCachedCommand",
+    "Npgsql.NpgsqlCommand.System.ICloneable.Clone"
+   ]
+  },
+  {
+   "arm": "B_unvalidated",
+   "package": "RabbitMQ.Client",
+   "callable": "RabbitMQ.Client.ConnectionFactory.CreateConnectionAsync",
+   "type": "RabbitMQ.Client.ConnectionFactory",
+   "source": "projects/RabbitMQ.Client/ConnectionFactory.cs",
+   "source_sha256": "bbfa19a96cbb0bfa",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "C_lr",
+   "package": "BouncyCastle.Cryptography",
+   "callable": "Org.BouncyCastle.Cms.CmsCompressedDataStreamGenerator.Open",
+   "type": "Org.BouncyCastle.Cms.CmsCompressedDataStreamGenerator",
+   "source": "crypto/src/cms/CMSCompressedDataStreamGenerator.cs",
+   "source_sha256": "f5ea1eaa1c08aab4",
+   "re_body_census": "re-body: fresh_return=4",
+   "outcome": "PROVED",
+   "provenance": "BODY_PROVED"
+  },
+  {
+   "arm": "C_lr",
+   "package": "CsvHelper",
+   "callable": "CsvHelper.CsvDataReader.GetData",
+   "type": "CsvHelper.CsvDataReader",
+   "source": "src/CsvHelper/CsvDataReader.cs",
+   "source_sha256": "966a953606b2368f",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "C_lr",
+   "package": "LibGit2Sharp",
+   "callable": "LibGit2Sharp.ObjectDatabase.CherryPickCommitIntoIndex",
+   "type": "LibGit2Sharp.ObjectDatabase",
+   "source": "LibGit2Sharp/ObjectDatabase.cs",
+   "source_sha256": "9560167eafd5709a",
+   "re_body_census": "re-body: fresh_return=1",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "C_lr",
+   "package": "MQTTnet",
+   "callable": "MQTTnet.Certificates.BlobCertificateProvider.GetCertificate",
+   "type": "MQTTnet.Certificates.BlobCertificateProvider",
+   "source": "Source/MQTTnet/Certificates/BlobCertificateProvider.cs",
+   "source_sha256": "17437d5707704e85",
+   "re_body_census": "re-body: fresh_return=2",
+   "outcome": "PROVED",
+   "provenance": "BODY_PROVED"
+  },
+  {
+   "arm": "C_lr",
+   "package": "MailKit",
+   "callable": "MailKit.MailService.get_ProtocolLogger",
+   "type": "MailKit.MailService",
+   "outcome": "NO_SOURCE",
+   "why": "no repository pin"
+  },
+  {
+   "arm": "C_lr",
+   "package": "Microsoft.Data.Sqlite.Core",
+   "callable": "Microsoft.Data.Sqlite.SqliteConnection.get_Handle",
+   "type": "Microsoft.Data.Sqlite.SqliteConnection",
+   "source": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteConnection.cs",
+   "source_sha256": "0fd8dd0cd1ca7e6f",
+   "re_body_census": "re-body: fresh_return=6 fresh_return_expression_body=6",
+   "outcome": "REFUSED",
+   "fresh_in_file": [
+    "Microsoft.Data.Sqlite.SqliteConnection.CreateCommand",
+    "Microsoft.Data.Sqlite.SqliteConnection.CreateDbCommand"
+   ]
+  },
+  {
+   "arm": "C_lr",
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlDataReader.GetTextReader",
+   "type": "MySqlConnector.MySqlDataReader",
+   "source": "src/MySqlConnector/MySqlDataReader.cs",
+   "source_sha256": "d5d9f842597b08c3",
+   "re_body_census": "re-body: fresh_return=3 fresh_return_expression_body=1",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "C_lr",
+   "package": "NLog",
+   "callable": "NLog.Config.ISetupConfigurationTargetBuilder.get_LogFactory",
+   "type": "NLog.Config.ISetupConfigurationTargetBuilder",
+   "source": "src/NLog/Config/ISetupConfigurationTargetBuilder.cs",
+   "source_sha256": "d00c7eb091b69e49",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "C_lr",
+   "package": "Newtonsoft.Json",
+   "callable": "Newtonsoft.Json.JsonValidatingReader.get_Reader",
+   "type": "Newtonsoft.Json.JsonValidatingReader",
+   "source": "Src/Newtonsoft.Json/JsonValidatingReader.cs",
+   "source_sha256": "bfe9c4a0f7d683f1",
+   "re_body_census": "re-body: ",
+   "outcome": "REFUSED",
+   "fresh_in_file": []
+  },
+  {
+   "arm": "C_lr",
+   "package": "Npgsql",
+   "callable": "Npgsql.Internal.NpgsqlConnector.CreateCommand",
+   "type": "Npgsql.Internal.NpgsqlConnector",
+   "source": "src/Npgsql/Internal/NpgsqlConnector.cs",
+   "source_sha256": "7a13d79578e0a087",
+   "re_body_census": "re-body: fresh_return=6 fresh_return_expression_body=4",
+   "outcome": "PROVED",
+   "provenance": "BODY_PROVED"
+  }
+ ]
+}

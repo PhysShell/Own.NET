@@ -33,9 +33,11 @@ results=[]
 for r in rows:
     d=f'{W}/{r["id"]}'; os.makedirs(d, exist_ok=True)
     import os as _o
-    if r.get('package'): refs=f'<ItemGroup><PackageReference Include="{r["package"]}" Version="{r["version"]}" /></ItemGroup>'
+    if r.get('packages'): refs='<ItemGroup>'+''.join(f'<PackageReference Include="{pid}" Version="{ver}" />' for pid,ver in r['packages'])+'</ItemGroup>'
+    elif r.get('package'): refs=f'<ItemGroup><PackageReference Include="{r["package"]}" Version="{r["version"]}" /></ItemGroup>'
     elif r.get('ref'): refs=f'<ItemGroup><Reference Include="{_o.path.splitext(_o.path.basename(r["ref"]))[0]}"><HintPath>{r["ref"]}</HintPath></Reference></ItemGroup>'
     else: refs=''
+    if r.get('native'): refs+=f'<ItemGroup><None Include="{r["native"]}" Link="{_o.path.basename(r["native"])}" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>'
     open(f'{d}/w.csproj','w').write(CSPROJ.format(refs=refs))
     if r['kind']=='fresh':
         src=FRESH.format(setup=r.get('setup',''), expr=r['expr'], dispose='true' if r.get('dispose') else 'false', probe=r.get('probe',''))

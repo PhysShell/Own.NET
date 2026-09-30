@@ -1,0 +1,6608 @@
+{
+ "generated_utc": "2026-09-30T09:18:37Z",
+ "rows": [
+  {
+   "package": "BouncyCastle.Cryptography",
+   "callable": "Org.BouncyCastle.Asn1.Asn1OutputStream.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Create",
+   "type": "Asn1OutputStream",
+   "namespace": "Org.BouncyCastle.Asn1",
+   "is_static": true,
+   "query": "\"Asn1OutputStream.Create(\" lang:C# patterntype:keyword",
+   "match_count": 30,
+   "limit_hit": false,
+   "repositories": 10,
+   "error": null,
+   "stream_files": 20,
+   "stream_repos": 10,
+   "top_repos": [
+    [
+     "github.com/bcgit/bc-csharp",
+     6
+    ],
+    [
+     "github.com/GitHubProUser67/PSHome-MultiServer",
+     4
+    ],
+    [
+     "github.com/killop/UnityResourceSolution",
+     3
+    ],
+    [
+     "github.com/moom825/Discord-RAT-2.0",
+     3
+    ],
+    [
+     "github.com/VahidN/iTextSharp.LGPLv2.Core",
+     3
+    ],
+    [
+     "github.com/itext/itextsharp",
+     3
+    ],
+    [
+     "github.com/PhongFeng/FFramework",
+     3
+    ],
+    [
+     "github.com/ccxt/ccxt",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "BouncyCastle.Cryptography",
+   "callable": "Org.BouncyCastle.Bcpg.ArmoredInputStream.Builder.Build",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Build",
+   "type": "Builder",
+   "namespace": "Org.BouncyCastle.Bcpg.ArmoredInputStream",
+   "is_static": false,
+   "query": "\".Build(\" \"using Org.BouncyCastle.Bcpg.ArmoredInputStream\" lang:C# patterntype:keyword",
+   "match_count": 0,
+   "limit_hit": false,
+   "repositories": 0,
+   "error": null,
+   "stream_files": 0,
+   "stream_repos": 0,
+   "top_repos": []
+  },
+  {
+   "package": "BouncyCastle.Cryptography",
+   "callable": "Org.BouncyCastle.Bcpg.ArmoredOutputStream.Builder.Build",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Build",
+   "type": "Builder",
+   "namespace": "Org.BouncyCastle.Bcpg.ArmoredOutputStream",
+   "is_static": false,
+   "query": "\".Build(\" \"using Org.BouncyCastle.Bcpg.ArmoredOutputStream\" lang:C# patterntype:keyword",
+   "match_count": 0,
+   "limit_hit": false,
+   "repositories": 0,
+   "error": null,
+   "stream_files": 0,
+   "stream_repos": 0,
+   "top_repos": []
+  },
+  {
+   "package": "BouncyCastle.Cryptography",
+   "callable": "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedDataGenerator.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Open",
+   "type": "PgpCompressedDataGenerator",
+   "namespace": "Org.BouncyCastle.Bcpg.OpenPgp",
+   "is_static": false,
+   "query": "\".Open(\" \"using Org.BouncyCastle.Bcpg.OpenPgp\" lang:C# patterntype:keyword",
+   "match_count": 101,
+   "limit_hit": false,
+   "repositories": 11,
+   "error": null,
+   "stream_files": 24,
+   "stream_repos": 11,
+   "top_repos": [
+    [
+     "github.com/mattosaurus/PgpCore",
+     23
+    ],
+    [
+     "github.com/Cinchoo/ChoPGP",
+     14
+    ],
+    [
+     "github.com/bcgit/bc-csharp",
+     14
+    ],
+    [
+     "github.com/neoeinstein/bouncycastle",
+     14
+    ],
+    [
+     "github.com/Meddington/OutlookPrivacyPlugin",
+     9
+    ],
+    [
+     "github.com/BeyondDimension/SteamTools",
+     6
+    ],
+    [
+     "github.com/dhaven/ProtonDriveSync",
+     5
+    ],
+    [
+     "github.com/quamotion/dotnet-packaging",
+     5
+    ]
+   ]
+  },
+  {
+   "package": "BouncyCastle.Cryptography",
+   "callable": "Org.BouncyCastle.Bcpg.OpenPgp.PgpLiteralDataGenerator.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Open",
+   "type": "PgpLiteralDataGenerator",
+   "namespace": "Org.BouncyCastle.Bcpg.OpenPgp",
+   "is_static": false,
+   "query": "\".Open(\" \"using Org.BouncyCastle.Bcpg.OpenPgp\" lang:C# patterntype:keyword",
+   "match_count": 101,
+   "limit_hit": false,
+   "repositories": 11,
+   "error": null,
+   "stream_files": 24,
+   "stream_repos": 11,
+   "top_repos": [
+    [
+     "github.com/mattosaurus/PgpCore",
+     23
+    ],
+    [
+     "github.com/Cinchoo/ChoPGP",
+     14
+    ],
+    [
+     "github.com/bcgit/bc-csharp",
+     14
+    ],
+    [
+     "github.com/neoeinstein/bouncycastle",
+     14
+    ],
+    [
+     "github.com/Meddington/OutlookPrivacyPlugin",
+     9
+    ],
+    [
+     "github.com/BeyondDimension/SteamTools",
+     6
+    ],
+    [
+     "github.com/quamotion/dotnet-packaging",
+     5
+    ],
+    [
+     "github.com/dhaven/ProtonDriveSync",
+     5
+    ]
+   ]
+  },
+  {
+   "package": "CsvHelper",
+   "callable": "CsvHelper.Factory.CreateParser",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateParser",
+   "type": "Factory",
+   "namespace": "CsvHelper",
+   "is_static": false,
+   "query": "\".CreateParser(\" \"using CsvHelper\" lang:C# patterntype:keyword",
+   "match_count": 0,
+   "limit_hit": false,
+   "repositories": 0,
+   "error": null,
+   "stream_files": 0,
+   "stream_repos": 0,
+   "top_repos": []
+  },
+  {
+   "package": "CsvHelper",
+   "callable": "CsvHelper.Factory.CreateReader",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateReader",
+   "type": "Factory",
+   "namespace": "CsvHelper",
+   "is_static": false,
+   "query": "\".CreateReader(\" \"using CsvHelper\" lang:C# patterntype:keyword",
+   "match_count": 45,
+   "limit_hit": false,
+   "repositories": 2,
+   "error": null,
+   "stream_files": 4,
+   "stream_repos": 2,
+   "top_repos": [
+    [
+     "github.com/nietras/Sep",
+     40
+    ],
+    [
+     "github.com/HTBox/allReady",
+     5
+    ]
+   ]
+  },
+  {
+   "package": "CsvHelper",
+   "callable": "CsvHelper.Factory.CreateWriter",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateWriter",
+   "type": "Factory",
+   "namespace": "CsvHelper",
+   "is_static": false,
+   "query": "\".CreateWriter(\" \"using CsvHelper\" lang:C# patterntype:keyword",
+   "match_count": 0,
+   "limit_hit": false,
+   "repositories": 0,
+   "error": null,
+   "stream_files": 0,
+   "stream_repos": 0,
+   "top_repos": []
+  },
+  {
+   "package": "CsvHelper",
+   "callable": "CsvHelper.CsvDataReader.Close",
+   "effect": "receiver_terminal_release",
+   "provenance": "BODY_PROVED",
+   "method": "Close",
+   "type": "CsvDataReader",
+   "namespace": "CsvHelper",
+   "is_static": false,
+   "query": "\".Close(\" \"using CsvHelper\" lang:C# patterntype:keyword",
+   "match_count": 160,
+   "limit_hit": false,
+   "repositories": 37,
+   "error": null,
+   "stream_files": 46,
+   "stream_repos": 37,
+   "top_repos": [
+    [
+     "github.com/chuongmep/RevitAddInManager",
+     11
+    ],
+    [
+     "github.com/EricZimmerman/MFTECmd",
+     10
+    ],
+    [
+     "github.com/sql-bi/Contoso-Data-Generator-V2",
+     9
+    ],
+    [
+     "github.com/PHOENIXCONTACT/MORYX-Framework",
+     8
+    ],
+    [
+     "github.com/yaobus/IPAM-NOTE",
+     7
+    ],
+    [
+     "github.com/SlashGames/slash-framework",
+     7
+    ],
+    [
+     "github.com/EricZimmerman/evtx",
+     7
+    ],
+    [
+     "github.com/damienhaynes/TraktRater",
+     6
+    ]
+   ]
+  },
+  {
+   "package": "Google.Protobuf",
+   "callable": "Google.Protobuf.ByteString.CreateCodedInput",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateCodedInput",
+   "type": "ByteString",
+   "namespace": "Google.Protobuf",
+   "is_static": false,
+   "query": "\".CreateCodedInput(\" \"using Google.Protobuf\" lang:C# patterntype:keyword",
+   "match_count": 101,
+   "limit_hit": false,
+   "repositories": 36,
+   "error": null,
+   "stream_files": 46,
+   "stream_repos": 36,
+   "top_repos": [
+    [
+     "github.com/kitkat-multiverse/Starlight",
+     22
+    ],
+    [
+     "github.com/SnapHutaoRemasteringProject/Snap.Hutao.Remastered",
+     7
+    ],
+    [
+     "github.com/wangdage12/Snap.Hutao",
+     4
+    ],
+    [
+     "github.com/ProteoWizard/pwiz",
+     4
+    ],
+    [
+     "github.com/protocolbuffers/protobuf",
+     2
+    ],
+    [
+     "github.com/mysql/mysql-server",
+     2
+    ],
+    [
+     "github.com/LonelyFool/lpunpack_and_lpmake",
+     2
+    ],
+    [
+     "github.com/alibaba/AliSQL",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "Google.Protobuf",
+   "callable": "Google.Protobuf.CodedInputStream.CreateWithLimits",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateWithLimits",
+   "type": "CodedInputStream",
+   "namespace": "Google.Protobuf",
+   "is_static": true,
+   "query": "\"CodedInputStream.CreateWithLimits(\" lang:C# patterntype:keyword",
+   "match_count": 396,
+   "limit_hit": false,
+   "repositories": 54,
+   "error": null,
+   "stream_files": 102,
+   "stream_repos": 54,
+   "top_repos": [
+    [
+     "github.com/alibaba/x-deeplearning",
+     24
+    ],
+    [
+     "github.com/saaras-io/yastack",
+     24
+    ],
+    [
+     "github.com/alibaba/nann",
+     16
+    ],
+    [
+     "github.com/protocolbuffers/protobuf",
+     8
+    ],
+    [
+     "github.com/mysql/mysql-server",
+     8
+    ],
+    [
+     "github.com/alibaba/AliSQL",
+     8
+    ],
+    [
+     "github.com/Qiuzhongyuan/pointpillars_pytorch_trt",
+     8
+    ],
+    [
+     "github.com/yyzybb537/posix_quic",
+     8
+    ]
+   ]
+  },
+  {
+   "package": "K4os.Compression.LZ4.Streams",
+   "callable": "K4os.Compression.LZ4.Streams.Extensions.AsStream",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "AsStream",
+   "type": "Extensions",
+   "namespace": "K4os.Compression.LZ4.Streams",
+   "is_static": true,
+   "query": "\"Extensions.AsStream(\" lang:C# patterntype:keyword",
+   "match_count": 17,
+   "limit_hit": false,
+   "repositories": 12,
+   "error": null,
+   "stream_files": 15,
+   "stream_repos": 12,
+   "top_repos": [
+    [
+     "github.com/unoplatform/uno",
+     3
+    ],
+    [
+     "github.com/micjahn/ZXing.Net",
+     2
+    ],
+    [
+     "github.com/emgucv/emgucv",
+     2
+    ],
+    [
+     "github.com/j6mes/httplib",
+     1
+    ],
+    [
+     "github.com/Redth/ZXing.Net.Maui",
+     1
+    ],
+    [
+     "github.com/evgeny-nadymov/telegram-wp",
+     1
+    ],
+    [
+     "github.com/hcq0618/Unity-ImageLoader",
+     1
+    ],
+    [
+     "github.com/Redth/ZXing.Net.Mobile",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "K4os.Compression.LZ4.Streams",
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Decode",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Decode",
+   "type": "LZ4Frame",
+   "namespace": "K4os.Compression.LZ4.Streams",
+   "is_static": true,
+   "query": "\"LZ4Frame.Decode(\" lang:C# patterntype:keyword",
+   "match_count": 5,
+   "limit_hit": false,
+   "repositories": 4,
+   "error": null,
+   "stream_files": 5,
+   "stream_repos": 4,
+   "top_repos": [
+    [
+     "github.com/Cysharp/NativeCompressions",
+     2
+    ],
+    [
+     "github.com/MiloszKrajewski/K4os.Compression.LZ4",
+     1
+    ],
+    [
+     "github.com/thomhurst/Dekaf",
+     1
+    ],
+    [
+     "github.com/mjebrahimi/EasyCompressor",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "K4os.Compression.LZ4.Streams",
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Encode",
+   "type": "LZ4Frame",
+   "namespace": "K4os.Compression.LZ4.Streams",
+   "is_static": true,
+   "query": "\"LZ4Frame.Encode(\" lang:C# patterntype:keyword",
+   "match_count": 16,
+   "limit_hit": false,
+   "repositories": 4,
+   "error": null,
+   "stream_files": 11,
+   "stream_repos": 4,
+   "top_repos": [
+    [
+     "github.com/MiloszKrajewski/K4os.Compression.LZ4",
+     11
+    ],
+    [
+     "github.com/Cysharp/NativeCompressions",
+     2
+    ],
+    [
+     "github.com/mjebrahimi/EasyCompressor",
+     2
+    ],
+    [
+     "github.com/thomhurst/Dekaf",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "K4os.Compression.LZ4.Streams",
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Stream.Decode",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Decode",
+   "type": "LZ4Stream",
+   "namespace": "K4os.Compression.LZ4.Streams",
+   "is_static": true,
+   "query": "\"LZ4Stream.Decode(\" lang:C# patterntype:keyword",
+   "match_count": 65,
+   "limit_hit": false,
+   "repositories": 30,
+   "error": null,
+   "stream_files": 47,
+   "stream_repos": 30,
+   "top_repos": [
+    [
+     "github.com/MiloszKrajewski/K4os.Compression.LZ4",
+     23
+    ],
+    [
+     "github.com/HexaEngine/HexaEngine",
+     4
+    ],
+    [
+     "github.com/Alephgsm/SharpOdinClient",
+     3
+    ],
+    [
+     "github.com/KillzXGaming/Switch-Toolbox",
+     3
+    ],
+    [
+     "github.com/DataDog/dd-trace-dotnet",
+     3
+    ],
+    [
+     "github.com/Samsung-Loki/Thor",
+     2
+    ],
+    [
+     "github.com/mjebrahimi/EasyCompressor",
+     2
+    ],
+    [
+     "github.com/Sewer56/Riders.Tweakbox",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "K4os.Compression.LZ4.Streams",
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Stream.Encode",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Encode",
+   "type": "LZ4Stream",
+   "namespace": "K4os.Compression.LZ4.Streams",
+   "is_static": true,
+   "query": "\"LZ4Stream.Encode(\" lang:C# patterntype:keyword",
+   "match_count": 47,
+   "limit_hit": false,
+   "repositories": 25,
+   "error": null,
+   "stream_files": 37,
+   "stream_repos": 25,
+   "top_repos": [
+    [
+     "github.com/MiloszKrajewski/K4os.Compression.LZ4",
+     15
+    ],
+    [
+     "github.com/HexaEngine/HexaEngine",
+     4
+    ],
+    [
+     "github.com/Cysharp/MemoryPack",
+     3
+    ],
+    [
+     "github.com/UlyssesWu/FreeMote",
+     2
+    ],
+    [
+     "github.com/IridiumIO/CompactGUI",
+     2
+    ],
+    [
+     "github.com/mjebrahimi/EasyCompressor",
+     2
+    ],
+    [
+     "github.com/PopGameTool/PopStudio",
+     1
+    ],
+    [
+     "github.com/katboi01/UmaViewer",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "LibGit2Sharp",
+   "callable": "LibGit2Sharp.Configuration.BuildFrom",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "BuildFrom",
+   "type": "Configuration",
+   "namespace": "LibGit2Sharp",
+   "is_static": true,
+   "query": "\"Configuration.BuildFrom(\" lang:C# patterntype:keyword",
+   "match_count": 8,
+   "limit_hit": false,
+   "repositories": 3,
+   "error": null,
+   "stream_files": 4,
+   "stream_repos": 3,
+   "top_repos": [
+    [
+     "github.com/libgit2/libgit2sharp",
+     5
+    ],
+    [
+     "github.com/simeonradivoev/UniGit",
+     2
+    ],
+    [
+     "github.com/one-ware/OneWare",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "LibGit2Sharp",
+   "callable": "LibGit2Sharp.RemoteCollection.Add",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Add",
+   "type": "RemoteCollection",
+   "namespace": "LibGit2Sharp",
+   "is_static": false,
+   "query": "\".Add(\" \"using LibGit2Sharp\" lang:C# patterntype:keyword",
+   "match_count": 1000,
+   "limit_hit": true,
+   "repositories": 66,
+   "error": null,
+   "stream_files": 195,
+   "stream_repos": 73,
+   "top_repos": [
+    [
+     "github.com/libgit2/libgit2sharp",
+     364
+    ],
+    [
+     "github.com/simeonradivoev/UniGit",
+     77
+    ],
+    [
+     "github.com/nightroman/FarNet",
+     30
+    ],
+    [
+     "github.com/GitTools/GitVersion",
+     28
+    ],
+    [
+     "github.com/AIDotNet/OpenDeepWiki",
+     28
+    ],
+    [
+     "github.com/xoofx/git-rocket-filter",
+     24
+    ],
+    [
+     "github.com/git-tfs/git-tfs",
+     23
+    ],
+    [
+     "github.com/microsoft/WindowsAdvancedSettings",
+     20
+    ]
+   ]
+  },
+  {
+   "package": "MQTTnet",
+   "callable": "MQTTnet.MqttClientFactory.CreateLowLevelMqttClient",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateLowLevelMqttClient",
+   "type": "MqttClientFactory",
+   "namespace": "MQTTnet",
+   "is_static": false,
+   "query": "\".CreateLowLevelMqttClient(\" \"using MQTTnet\" lang:C# patterntype:keyword",
+   "match_count": 20,
+   "limit_hit": false,
+   "repositories": 1,
+   "error": null,
+   "stream_files": 3,
+   "stream_repos": 1,
+   "top_repos": [
+    [
+     "github.com/dotnet/MQTTnet",
+     20
+    ]
+   ]
+  },
+  {
+   "package": "MQTTnet",
+   "callable": "MQTTnet.MqttClientFactory.CreateMqttClient",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateMqttClient",
+   "type": "MqttClientFactory",
+   "namespace": "MQTTnet",
+   "is_static": false,
+   "query": "\".CreateMqttClient(\" \"using MQTTnet\" lang:C# patterntype:keyword",
+   "match_count": 659,
+   "limit_hit": false,
+   "repositories": 67,
+   "error": null,
+   "stream_files": 159,
+   "stream_repos": 67,
+   "top_repos": [
+    [
+     "github.com/dotnet/MQTTnet",
+     158
+    ],
+    [
+     "github.com/OPCFoundation/UA-IIoT-StarterKit",
+     36
+    ],
+    [
+     "github.com/TrakHound/MTConnect.NET",
+     31
+    ],
+    [
+     "github.com/Azure/Industrial-IoT",
+     28
+    ],
+    [
+     "github.com/IoTSharp/SonnetDB",
+     21
+    ],
+    [
+     "github.com/corvus-dotnet/Corvus.JsonSchema",
+     21
+    ],
+    [
+     "github.com/BEagle1984/silverback",
+     20
+    ],
+    [
+     "github.com/emqx/MQTT-Client-Examples",
+     20
+    ]
+   ]
+  },
+  {
+   "package": "MQTTnet",
+   "callable": "MQTTnet.Implementations.MqttTcpChannel.DisconnectAsync",
+   "effect": "receiver_terminal_release",
+   "provenance": "BODY_PROVED",
+   "method": "DisconnectAsync",
+   "type": "MqttTcpChannel",
+   "namespace": "MQTTnet.Implementations",
+   "is_static": false,
+   "query": "\".DisconnectAsync(\" \"using MQTTnet.Implementations\" lang:C# patterntype:keyword",
+   "match_count": 0,
+   "limit_hit": false,
+   "repositories": 0,
+   "error": null,
+   "stream_files": 0,
+   "stream_repos": 0,
+   "top_repos": []
+  },
+  {
+   "package": "MailKit",
+   "callable": "MailKit.Net.Imap.ImapFolder.GetStream",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "GetStream",
+   "type": "ImapFolder",
+   "namespace": "MailKit.Net.Imap",
+   "is_static": false,
+   "query": "\".GetStream(\" \"using MailKit.Net.Imap\" lang:C# patterntype:keyword",
+   "match_count": 2,
+   "limit_hit": false,
+   "repositories": 1,
+   "error": null,
+   "stream_files": 1,
+   "stream_repos": 1,
+   "top_repos": [
+    [
+     "github.com/eneam/mboxviewer",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "MailKit",
+   "callable": "MailKit.Net.Imap.ImapFolder.GetStreamAsync",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "GetStreamAsync",
+   "type": "ImapFolder",
+   "namespace": "MailKit.Net.Imap",
+   "is_static": false,
+   "query": "\".GetStreamAsync(\" \"using MailKit.Net.Imap\" lang:C# patterntype:keyword",
+   "match_count": 2,
+   "limit_hit": false,
+   "repositories": 1,
+   "error": null,
+   "stream_files": 1,
+   "stream_repos": 1,
+   "top_repos": [
+    [
+     "github.com/s1t5/mail-archiver",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "Microsoft.Data.Sqlite.Core",
+   "callable": "Microsoft.Data.Sqlite.SqliteConnection.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateCommand",
+   "type": "SqliteConnection",
+   "namespace": "Microsoft.Data.Sqlite",
+   "is_static": false,
+   "query": "\".CreateCommand(\" \"using Microsoft.Data.Sqlite\" lang:C# patterntype:keyword",
+   "match_count": 1000,
+   "limit_hit": true,
+   "repositories": 102,
+   "error": null,
+   "stream_files": 235,
+   "stream_repos": 100,
+   "top_repos": [
+    [
+     "github.com/Ivy-Interactive/Ivy-Tendril",
+     89
+    ],
+    [
+     "github.com/Nethereum/Nethereum",
+     55
+    ],
+    [
+     "github.com/Maxwolf/OregonTrail",
+     44
+    ],
+    [
+     "github.com/BrighterCommand/Brighter",
+     44
+    ],
+    [
+     "github.com/AneiangSoft/Aneiang.Yarp",
+     42
+    ],
+    [
+     "github.com/dotnet/docs",
+     38
+    ],
+    [
+     "github.com/Unity-Technologies/UnityDataTools",
+     36
+    ],
+    [
+     "github.com/davidortinau/telepathy",
+     35
+    ]
+   ]
+  },
+  {
+   "package": "Microsoft.Data.Sqlite.Core",
+   "callable": "Microsoft.Data.Sqlite.SqliteFactory.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateCommand",
+   "type": "SqliteFactory",
+   "namespace": "Microsoft.Data.Sqlite",
+   "is_static": false,
+   "query": "\".CreateCommand(\" \"using Microsoft.Data.Sqlite\" lang:C# patterntype:keyword",
+   "match_count": 1000,
+   "limit_hit": true,
+   "repositories": 103,
+   "error": null,
+   "stream_files": 237,
+   "stream_repos": 102,
+   "top_repos": [
+    [
+     "github.com/Ivy-Interactive/Ivy-Tendril",
+     87
+    ],
+    [
+     "github.com/Nethereum/Nethereum",
+     55
+    ],
+    [
+     "github.com/Maxwolf/OregonTrail",
+     44
+    ],
+    [
+     "github.com/BrighterCommand/Brighter",
+     44
+    ],
+    [
+     "github.com/Unity-Technologies/UnityDataTools",
+     36
+    ],
+    [
+     "github.com/rampaa/JL",
+     34
+    ],
+    [
+     "github.com/dotnet/docs",
+     33
+    ],
+    [
+     "github.com/ZethRise/SpoofGUI",
+     32
+    ]
+   ]
+  },
+  {
+   "package": "Microsoft.Data.Sqlite.Core",
+   "callable": "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateConnection",
+   "type": "SqliteFactory",
+   "namespace": "Microsoft.Data.Sqlite",
+   "is_static": false,
+   "query": "\".CreateConnection(\" \"using Microsoft.Data.Sqlite\" lang:C# patterntype:keyword",
+   "match_count": 360,
+   "limit_hit": false,
+   "repositories": 28,
+   "error": null,
+   "stream_files": 77,
+   "stream_repos": 28,
+   "top_repos": [
+    [
+     "github.com/seiggy/lucia-dotnet",
+     147
+    ],
+    [
+     "github.com/AneiangSoft/Aneiang.Yarp",
+     74
+    ],
+    [
+     "github.com/jflieben/assortedFunctionsV2",
+     24
+    ],
+    [
+     "github.com/quartznet/quartznet",
+     18
+    ],
+    [
+     "github.com/TheSkymuTeam/Skymu",
+     15
+    ],
+    [
+     "github.com/AAEmu/AAEmu",
+     9
+    ],
+    [
+     "github.com/Hona/dotnet-opencode",
+     8
+    ],
+    [
+     "github.com/Mimetis/Dotmim.Sync",
+     7
+    ]
+   ]
+  },
+  {
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlConnection.CreateBatch",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateBatch",
+   "type": "MySqlConnection",
+   "namespace": "MySqlConnector",
+   "is_static": false,
+   "query": "\".CreateBatch(\" \"using MySqlConnector\" lang:C# patterntype:keyword",
+   "match_count": 3,
+   "limit_hit": false,
+   "repositories": 1,
+   "error": null,
+   "stream_files": 1,
+   "stream_repos": 1,
+   "top_repos": [
+    [
+     "github.com/stidsborg/Cleipnir.ResilientFunctions",
+     3
+    ]
+   ]
+  },
+  {
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlConnectorFactory.CreateBatch",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateBatch",
+   "type": "MySqlConnectorFactory",
+   "namespace": "MySqlConnector",
+   "is_static": false,
+   "query": "\".CreateBatch(\" \"using MySqlConnector\" lang:C# patterntype:keyword",
+   "match_count": 3,
+   "limit_hit": false,
+   "repositories": 1,
+   "error": null,
+   "stream_files": 1,
+   "stream_repos": 1,
+   "top_repos": [
+    [
+     "github.com/stidsborg/Cleipnir.ResilientFunctions",
+     3
+    ]
+   ]
+  },
+  {
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlConnectorFactory.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateCommand",
+   "type": "MySqlConnectorFactory",
+   "namespace": "MySqlConnector",
+   "is_static": false,
+   "query": "\".CreateCommand(\" \"using MySqlConnector\" lang:C# patterntype:keyword",
+   "match_count": 1000,
+   "limit_hit": true,
+   "repositories": 60,
+   "error": null,
+   "stream_files": 156,
+   "stream_repos": 56,
+   "top_repos": [
+    [
+     "github.com/DaredevilOSS/sqlc-gen-csharp",
+     194
+    ],
+    [
+     "github.com/BrighterCommand/Brighter",
+     169
+    ],
+    [
+     "github.com/JasperFx/wolverine",
+     114
+    ],
+    [
+     "github.com/adospace/CoreSync",
+     56
+    ],
+    [
+     "github.com/AdKats/AdKats",
+     56
+    ],
+    [
+     "github.com/Mimetis/Dotmim.Sync",
+     47
+    ],
+    [
+     "github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql",
+     33
+    ],
+    [
+     "github.com/mirbeta/OpenMir2",
+     26
+    ]
+   ]
+  },
+  {
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlConnectorFactory.CreateCommandBuilder",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateCommandBuilder",
+   "type": "MySqlConnectorFactory",
+   "namespace": "MySqlConnector",
+   "is_static": false,
+   "query": "\".CreateCommandBuilder(\" \"using MySqlConnector\" lang:C# patterntype:keyword",
+   "match_count": 4,
+   "limit_hit": false,
+   "repositories": 1,
+   "error": null,
+   "stream_files": 2,
+   "stream_repos": 1,
+   "top_repos": [
+    [
+     "github.com/mysql-net/MySqlConnector",
+     4
+    ]
+   ]
+  },
+  {
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateConnection",
+   "type": "MySqlConnectorFactory",
+   "namespace": "MySqlConnector",
+   "is_static": false,
+   "query": "\".CreateConnection(\" \"using MySqlConnector\" lang:C# patterntype:keyword",
+   "match_count": 138,
+   "limit_hit": false,
+   "repositories": 21,
+   "error": null,
+   "stream_files": 41,
+   "stream_repos": 21,
+   "top_repos": [
+    [
+     "github.com/victor-wiki/DatabaseManager",
+     31
+    ],
+    [
+     "github.com/mikependon/RepoDB",
+     15
+    ],
+    [
+     "github.com/mysql-net/MySqlConnector",
+     11
+    ],
+    [
+     "github.com/quartznet/quartznet",
+     11
+    ],
+    [
+     "github.com/arnoldasgudas/Hangfire.MySqlStorage",
+     11
+    ],
+    [
+     "github.com/sebastienros/yessql",
+     9
+    ],
+    [
+     "github.com/Mimetis/Dotmim.Sync",
+     7
+    ],
+    [
+     "github.com/peachpiecompiler/peachpie",
+     6
+    ]
+   ]
+  },
+  {
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlConnectorFactory.CreateDataAdapter",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateDataAdapter",
+   "type": "MySqlConnectorFactory",
+   "namespace": "MySqlConnector",
+   "is_static": false,
+   "query": "\".CreateDataAdapter(\" \"using MySqlConnector\" lang:C# patterntype:keyword",
+   "match_count": 6,
+   "limit_hit": false,
+   "repositories": 2,
+   "error": null,
+   "stream_files": 3,
+   "stream_repos": 2,
+   "top_repos": [
+    [
+     "github.com/mysql-net/MySqlConnector",
+     4
+    ],
+    [
+     "github.com/Coldairarrow/Colder.Admin.AntdVue",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlConnectorFactory.CreateDataSource",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateDataSource",
+   "type": "MySqlConnectorFactory",
+   "namespace": "MySqlConnector",
+   "is_static": false,
+   "query": "\".CreateDataSource(\" \"using MySqlConnector\" lang:C# patterntype:keyword",
+   "match_count": 0,
+   "limit_hit": false,
+   "repositories": 0,
+   "error": null,
+   "stream_files": 0,
+   "stream_repos": 0,
+   "top_repos": []
+  },
+  {
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlDataSourceBuilder.Build",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Build",
+   "type": "MySqlDataSourceBuilder",
+   "namespace": "MySqlConnector",
+   "is_static": false,
+   "query": "\".Build(\" \"using MySqlConnector\" lang:C# patterntype:keyword",
+   "match_count": 327,
+   "limit_hit": false,
+   "repositories": 45,
+   "error": null,
+   "stream_files": 81,
+   "stream_repos": 45,
+   "top_repos": [
+    [
+     "github.com/microsoft/aspire",
+     60
+    ],
+    [
+     "github.com/quartznet/quartznet",
+     33
+    ],
+    [
+     "github.com/mysql-net/MySqlConnector",
+     26
+    ],
+    [
+     "github.com/adospace/CoreSync",
+     25
+    ],
+    [
+     "github.com/Deffiss/testenvironment-docker",
+     17
+    ],
+    [
+     "github.com/netcorepal/netcorepal-cloud-framework",
+     14
+    ],
+    [
+     "github.com/SteeltoeOSS/Steeltoe",
+     13
+    ],
+    [
+     "github.com/DaredevilOSS/sqlc-gen-csharp",
+     12
+    ]
+   ]
+  },
+  {
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlConnection.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "method": "CreateCommand",
+   "type": "MySqlConnection",
+   "namespace": "MySqlConnector",
+   "is_static": false,
+   "query": "\".CreateCommand(\" \"using MySqlConnector\" lang:C# patterntype:keyword",
+   "match_count": 1000,
+   "limit_hit": true,
+   "repositories": 68,
+   "error": null,
+   "stream_files": 195,
+   "stream_repos": 68,
+   "top_repos": [
+    [
+     "github.com/BrighterCommand/Brighter",
+     160
+    ],
+    [
+     "github.com/JasperFx/wolverine",
+     114
+    ],
+    [
+     "github.com/MySqlBackupNET/MySqlBackup.Net",
+     104
+    ],
+    [
+     "github.com/adospace/CoreSync",
+     56
+    ],
+    [
+     "github.com/DaredevilOSS/sqlc-gen-csharp",
+     52
+    ],
+    [
+     "github.com/Mimetis/Dotmim.Sync",
+     47
+    ],
+    [
+     "github.com/JasperFx/weasel",
+     39
+    ],
+    [
+     "github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql",
+     30
+    ]
+   ]
+  },
+  {
+   "package": "MySqlConnector",
+   "callable": "MySqlConnector.MySqlConnection.Clone",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "method": "Clone",
+   "type": "MySqlConnection",
+   "namespace": "MySqlConnector",
+   "is_static": false,
+   "query": "\".Clone(\" \"using MySqlConnector\" lang:C# patterntype:keyword",
+   "match_count": 56,
+   "limit_hit": false,
+   "repositories": 14,
+   "error": null,
+   "stream_files": 19,
+   "stream_repos": 14,
+   "top_repos": [
+    [
+     "github.com/mysql-net/MySqlConnector",
+     19
+    ],
+    [
+     "github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql",
+     6
+    ],
+    [
+     "github.com/ariacom/Seal-Report",
+     6
+    ],
+    [
+     "github.com/ragemp-pro/redage_v3",
+     4
+    ],
+    [
+     "github.com/netnr/np",
+     3
+    ],
+    [
+     "github.com/DigitalPlatform/dp2",
+     2
+    ],
+    [
+     "github.com/Implem/Implem.Pleasanter",
+     2
+    ],
+    [
+     "github.com/mirbeta/OpenMir2",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "NLog",
+   "callable": "NLog.LogFactory.SuspendLogging",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "method": "SuspendLogging",
+   "type": "LogFactory",
+   "namespace": "NLog",
+   "is_static": false,
+   "query": "\".SuspendLogging(\" \"using NLog\" lang:C# patterntype:keyword",
+   "match_count": 37,
+   "limit_hit": false,
+   "repositories": 8,
+   "error": null,
+   "stream_files": 10,
+   "stream_repos": 8,
+   "top_repos": [
+    [
+     "github.com/NLog/NLog",
+     14
+    ],
+    [
+     "github.com/alttester/AltTester-Unity-SDK",
+     5
+    ],
+    [
+     "github.com/2dust/v2rayN",
+     4
+    ],
+    [
+     "github.com/mcodersir/dicodePing",
+     4
+    ],
+    [
+     "github.com/yastorovsky/MehrON",
+     4
+    ],
+    [
+     "github.com/gerardo-lijs/CrystalReportsRunner",
+     2
+    ],
+    [
+     "github.com/LykosAI/StabilityMatrix",
+     2
+    ],
+    [
+     "github.com/chummer5a/chummer5a",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "NLog",
+   "callable": "NLog.LogManager.SuspendLogging",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "method": "SuspendLogging",
+   "type": "LogManager",
+   "namespace": "NLog",
+   "is_static": true,
+   "query": "\"LogManager.SuspendLogging(\" lang:C# patterntype:keyword",
+   "match_count": 11,
+   "limit_hit": false,
+   "repositories": 9,
+   "error": null,
+   "stream_files": 10,
+   "stream_repos": 9,
+   "top_repos": [
+    [
+     "github.com/elgarf/vMixUTC",
+     2
+    ],
+    [
+     "github.com/NLog/NLog",
+     2
+    ],
+    [
+     "github.com/2dust/v2rayN",
+     1
+    ],
+    [
+     "github.com/mcodersir/dicodePing",
+     1
+    ],
+    [
+     "github.com/gerardo-lijs/CrystalReportsRunner",
+     1
+    ],
+    [
+     "github.com/LykosAI/StabilityMatrix",
+     1
+    ],
+    [
+     "github.com/terrymacdonald/DisplayMagician",
+     1
+    ],
+    [
+     "github.com/chummer5a/chummer5a",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "NLog",
+   "callable": "NLog.ScopeContext.PushProperty",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "method": "PushProperty",
+   "type": "ScopeContext",
+   "namespace": "NLog",
+   "is_static": true,
+   "query": "\"ScopeContext.PushProperty(\" lang:C# patterntype:keyword",
+   "match_count": 71,
+   "limit_hit": false,
+   "repositories": 6,
+   "error": null,
+   "stream_files": 25,
+   "stream_repos": 6,
+   "top_repos": [
+    [
+     "github.com/NLog/NLog",
+     60
+    ],
+    [
+     "github.com/olsh/resharper-structured-logging",
+     5
+    ],
+    [
+     "github.com/NLog/NLog.Extensions.Logging",
+     2
+    ],
+    [
+     "github.com/DataDog/dd-trace-dotnet",
+     2
+    ],
+    [
+     "github.com/getsentry/sentry-dotnet",
+     1
+    ],
+    [
+     "github.com/elastic/ecs-dotnet",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "NLog",
+   "callable": "NLog.ScopeContext.PushNestedState",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "method": "PushNestedState",
+   "type": "ScopeContext",
+   "namespace": "NLog",
+   "is_static": true,
+   "query": "\"ScopeContext.PushNestedState(\" lang:C# patterntype:keyword",
+   "match_count": 33,
+   "limit_hit": false,
+   "repositories": 4,
+   "error": null,
+   "stream_files": 10,
+   "stream_repos": 4,
+   "top_repos": [
+    [
+     "github.com/NLog/NLog",
+     28
+    ],
+    [
+     "github.com/NLog/NLog.Extensions.Logging",
+     3
+    ],
+    [
+     "github.com/TV-Rename/tvrename",
+     1
+    ],
+    [
+     "github.com/NLog/NLog.Web",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "NLog",
+   "callable": "NLog.Logger.PushScopeProperty",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "method": "PushScopeProperty",
+   "type": "Logger",
+   "namespace": "NLog",
+   "is_static": false,
+   "query": "\".PushScopeProperty(\" \"using NLog\" lang:C# patterntype:keyword",
+   "match_count": 14,
+   "limit_hit": false,
+   "repositories": 2,
+   "error": null,
+   "stream_files": 5,
+   "stream_repos": 2,
+   "top_repos": [
+    [
+     "github.com/NLog/NLog",
+     10
+    ],
+    [
+     "github.com/olsh/resharper-structured-logging",
+     4
+    ]
+   ]
+  },
+  {
+   "package": "NLog",
+   "callable": "NLog.ScopeContext.PushProperties",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "method": "PushProperties",
+   "type": "ScopeContext",
+   "namespace": "NLog",
+   "is_static": true,
+   "query": "\"ScopeContext.PushProperties(\" lang:C# patterntype:keyword",
+   "match_count": 9,
+   "limit_hit": false,
+   "repositories": 3,
+   "error": null,
+   "stream_files": 5,
+   "stream_repos": 3,
+   "top_repos": [
+    [
+     "github.com/NLog/NLog",
+     7
+    ],
+    [
+     "github.com/DataDog/dd-trace-dotnet",
+     1
+    ],
+    [
+     "github.com/getsentry/sentry-dotnet",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "NSec.Cryptography",
+   "callable": "NSec.Cryptography.Key.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Create",
+   "type": "Key",
+   "namespace": "NSec.Cryptography",
+   "is_static": true,
+   "query": "\"Key.Create(\" lang:C# patterntype:keyword",
+   "match_count": 1000,
+   "limit_hit": true,
+   "repositories": 137,
+   "error": null,
+   "stream_files": 387,
+   "stream_repos": 140,
+   "top_repos": [
+    [
+     "github.com/EntglDb/BLite",
+     87
+    ],
+    [
+     "github.com/OpenFireSource/AlarmWorkflow",
+     78
+    ],
+    [
+     "github.com/microsoft/Trill",
+     75
+    ],
+    [
+     "github.com/AerialX/rawksd",
+     67
+    ],
+    [
+     "github.com/dotnet/roslynator",
+     57
+    ],
+    [
+     "github.com/neo-project/neo",
+     46
+    ],
+    [
+     "github.com/maraf/Money",
+     34
+    ],
+    [
+     "github.com/dotnet/runtime",
+     32
+    ]
+   ]
+  },
+  {
+   "package": "NSec.Cryptography",
+   "callable": "NSec.Cryptography.Key.Import",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Import",
+   "type": "Key",
+   "namespace": "NSec.Cryptography",
+   "is_static": true,
+   "query": "\"Key.Import(\" lang:C# patterntype:keyword",
+   "match_count": 395,
+   "limit_hit": false,
+   "repositories": 83,
+   "error": null,
+   "stream_files": 223,
+   "stream_repos": 83,
+   "top_repos": [
+    [
+     "github.com/ektrah/nsec",
+     52
+    ],
+    [
+     "github.com/dotnet/dotnet",
+     41
+    ],
+    [
+     "github.com/KrisTHL181/Break-This-Repo",
+     41
+    ],
+    [
+     "github.com/dotnet/runtime",
+     39
+    ],
+    [
+     "github.com/VSadov/Satori",
+     38
+    ],
+    [
+     "github.com/TripleView/HomeKit.Net",
+     22
+    ],
+    [
+     "github.com/microsoft/referencesource",
+     8
+    ],
+    [
+     "github.com/mono/mono",
+     7
+    ]
+   ]
+  },
+  {
+   "package": "NSec.Cryptography",
+   "callable": "NSec.Cryptography.KeyDerivationAlgorithm.DeriveKey",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "DeriveKey",
+   "type": "KeyDerivationAlgorithm",
+   "namespace": "NSec.Cryptography",
+   "is_static": false,
+   "query": "\".DeriveKey(\" \"using NSec.Cryptography\" lang:C# patterntype:keyword",
+   "match_count": 58,
+   "limit_hit": false,
+   "repositories": 5,
+   "error": null,
+   "stream_files": 10,
+   "stream_repos": 5,
+   "top_repos": [
+    [
+     "github.com/ektrah/nsec",
+     38
+    ],
+    [
+     "github.com/TripleView/HomeKit.Net",
+     13
+    ],
+    [
+     "github.com/damian-krychowski/plikshare",
+     3
+    ],
+    [
+     "github.com/Nicoo01x/SyncBeam",
+     2
+    ],
+    [
+     "github.com/bitwarden/passwordless-server",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "NSec.Cryptography",
+   "callable": "NSec.Cryptography.KeyDerivationAlgorithm2.ExpandKey",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "ExpandKey",
+   "type": "KeyDerivationAlgorithm2",
+   "namespace": "NSec.Cryptography",
+   "is_static": false,
+   "query": "\".ExpandKey(\" \"using NSec.Cryptography\" lang:C# patterntype:keyword",
+   "match_count": 4,
+   "limit_hit": false,
+   "repositories": 1,
+   "error": null,
+   "stream_files": 1,
+   "stream_repos": 1,
+   "top_repos": [
+    [
+     "github.com/ektrah/nsec",
+     4
+    ]
+   ]
+  },
+  {
+   "package": "NSec.Cryptography",
+   "callable": "NSec.Cryptography.PasswordBasedKeyDerivationAlgorithm.DeriveKey",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "DeriveKey",
+   "type": "PasswordBasedKeyDerivationAlgorithm",
+   "namespace": "NSec.Cryptography",
+   "is_static": false,
+   "query": "\".DeriveKey(\" \"using NSec.Cryptography\" lang:C# patterntype:keyword",
+   "match_count": 58,
+   "limit_hit": false,
+   "repositories": 5,
+   "error": null,
+   "stream_files": 10,
+   "stream_repos": 5,
+   "top_repos": [
+    [
+     "github.com/ektrah/nsec",
+     38
+    ],
+    [
+     "github.com/TripleView/HomeKit.Net",
+     13
+    ],
+    [
+     "github.com/damian-krychowski/plikshare",
+     3
+    ],
+    [
+     "github.com/Nicoo01x/SyncBeam",
+     2
+    ],
+    [
+     "github.com/bitwarden/passwordless-server",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "NSec.Cryptography",
+   "callable": "NSec.Cryptography.SharedSecret.Import",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Import",
+   "type": "SharedSecret",
+   "namespace": "NSec.Cryptography",
+   "is_static": true,
+   "query": "\"SharedSecret.Import(\" lang:C# patterntype:keyword",
+   "match_count": 28,
+   "limit_hit": false,
+   "repositories": 1,
+   "error": null,
+   "stream_files": 6,
+   "stream_repos": 1,
+   "top_repos": [
+    [
+     "github.com/ektrah/nsec",
+     28
+    ]
+   ]
+  },
+  {
+   "package": "Newtonsoft.Json",
+   "callable": "Newtonsoft.Json.Linq.JContainer.CreateWriter",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateWriter",
+   "type": "JContainer",
+   "namespace": "Newtonsoft.Json.Linq",
+   "is_static": false,
+   "query": "\".CreateWriter(\" \"using Newtonsoft.Json.Linq\" lang:C# patterntype:keyword",
+   "match_count": 81,
+   "limit_hit": false,
+   "repositories": 13,
+   "error": null,
+   "stream_files": 26,
+   "stream_repos": 13,
+   "top_repos": [
+    [
+     "github.com/KrisTHL181/Break-This-Repo",
+     13
+    ],
+    [
+     "github.com/OliverEGreen/Regular",
+     13
+    ],
+    [
+     "github.com/JamesNK/Newtonsoft.Json",
+     13
+    ],
+    [
+     "github.com/dotnet/dotnet",
+     13
+    ],
+    [
+     "github.com/prozolic/CsToml",
+     6
+    ],
+    [
+     "github.com/FirelyTeam/firely-net-sdk",
+     5
+    ],
+    [
+     "github.com/Meddington/OutlookPrivacyPlugin",
+     4
+    ],
+    [
+     "github.com/HOBOBO/AbilityKit",
+     4
+    ]
+   ]
+  },
+  {
+   "package": "Newtonsoft.Json",
+   "callable": "Newtonsoft.Json.Linq.JToken.CreateReader",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateReader",
+   "type": "JToken",
+   "namespace": "Newtonsoft.Json.Linq",
+   "is_static": false,
+   "query": "\".CreateReader(\" \"using Newtonsoft.Json.Linq\" lang:C# patterntype:keyword",
+   "match_count": 1000,
+   "limit_hit": true,
+   "repositories": 204,
+   "error": null,
+   "stream_files": 417,
+   "stream_repos": 218,
+   "top_repos": [
+    [
+     "github.com/microsoft/service-fabric",
+     38
+    ],
+    [
+     "github.com/bilibili/UnityBVA",
+     33
+    ],
+    [
+     "github.com/factset/enterprise-sdk",
+     30
+    ],
+    [
+     "github.com/KrisTHL181/Break-This-Repo",
+     29
+    ],
+    [
+     "github.com/actions/runner",
+     25
+    ],
+    [
+     "github.com/KhronosGroup/UnityGLTF",
+     25
+    ],
+    [
+     "github.com/picoe/Eto",
+     21
+    ],
+    [
+     "github.com/OliverEGreen/Regular",
+     21
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlCommand.Clone",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Clone",
+   "type": "NpgsqlCommand",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".Clone(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 219,
+   "limit_hit": false,
+   "repositories": 27,
+   "error": null,
+   "stream_files": 63,
+   "stream_repos": 27,
+   "top_repos": [
+    [
+     "github.com/npgsql/npgsql",
+     72
+    ],
+    [
+     "github.com/roozbehid/WasmWinforms",
+     20
+    ],
+    [
+     "github.com/erikdarlingdata/PerformanceMonitor",
+     19
+    ],
+    [
+     "github.com/npgsql/efcore.pg",
+     15
+    ],
+    [
+     "github.com/JasperFx/marten",
+     10
+    ],
+    [
+     "github.com/ariacom/Seal-Report",
+     9
+    ],
+    [
+     "github.com/nightscout/nocturne",
+     8
+    ],
+    [
+     "github.com/Implem/Implem.Pleasanter",
+     6
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.CloneWith",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CloneWith",
+   "type": "NpgsqlConnection",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".CloneWith(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 27,
+   "limit_hit": false,
+   "repositories": 4,
+   "error": null,
+   "stream_files": 6,
+   "stream_repos": 4,
+   "top_repos": [
+    [
+     "github.com/npgsql/efcore.pg",
+     11
+    ],
+    [
+     "github.com/npgsql/npgsql",
+     11
+    ],
+    [
+     "github.com/hangfire-postgres/Hangfire.PostgreSql",
+     3
+    ],
+    [
+     "github.com/npgsql/EntityFramework6.Npgsql",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.CloneWithAsync",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CloneWithAsync",
+   "type": "NpgsqlConnection",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".CloneWithAsync(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 11,
+   "limit_hit": false,
+   "repositories": 2,
+   "error": null,
+   "stream_files": 2,
+   "stream_repos": 2,
+   "top_repos": [
+    [
+     "github.com/npgsql/npgsql",
+     9
+    ],
+    [
+     "github.com/npgsql/efcore.pg",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlDataSource.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Create",
+   "type": "NpgsqlDataSource",
+   "namespace": "Npgsql",
+   "is_static": true,
+   "query": "\"NpgsqlDataSource.Create(\" lang:C# patterntype:keyword",
+   "match_count": 566,
+   "limit_hit": false,
+   "repositories": 49,
+   "error": null,
+   "stream_files": 308,
+   "stream_repos": 49,
+   "top_repos": [
+    [
+     "github.com/erikdarlingdata/PerformanceMonitor",
+     234
+    ],
+    [
+     "github.com/JasperFx/weasel",
+     38
+    ],
+    [
+     "github.com/Altinn/altinn-studio",
+     35
+    ],
+    [
+     "github.com/JasperFx/wolverine",
+     34
+    ],
+    [
+     "github.com/litenova/LiteBus",
+     30
+    ],
+    [
+     "github.com/hargata/lubelog",
+     25
+    ],
+    [
+     "github.com/npgsql/npgsql",
+     21
+    ],
+    [
+     "github.com/votrongdao/FlowX",
+     20
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlDataSource.CreateBatch",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateBatch",
+   "type": "NpgsqlDataSource",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".CreateBatch(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 44,
+   "limit_hit": false,
+   "repositories": 9,
+   "error": null,
+   "stream_files": 20,
+   "stream_repos": 9,
+   "top_repos": [
+    [
+     "github.com/ozontech/pg_doorman",
+     16
+    ],
+    [
+     "github.com/GoogleCloudPlatform/pgadapter",
+     6
+    ],
+    [
+     "github.com/JasperFx/weasel",
+     6
+    ],
+    [
+     "github.com/stidsborg/Cleipnir.ResilientFunctions",
+     4
+    ],
+    [
+     "github.com/microsoft/tyger",
+     4
+    ],
+    [
+     "github.com/andr3marra/rinha-de-backend-2023-q3-csharp",
+     2
+    ],
+    [
+     "github.com/DapperLib/DapperAOT",
+     2
+    ],
+    [
+     "github.com/JasperFx/marten",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlDataSource.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateCommand",
+   "type": "NpgsqlDataSource",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".CreateCommand(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 1000,
+   "limit_hit": true,
+   "repositories": 102,
+   "error": null,
+   "stream_files": 212,
+   "stream_repos": 102,
+   "top_repos": [
+    [
+     "github.com/seiggy/lucia-dotnet",
+     129
+    ],
+    [
+     "github.com/liuweichaox/Ingot",
+     48
+    ],
+    [
+     "github.com/JasperFx/marten",
+     46
+    ],
+    [
+     "github.com/Advance-Technologies-Foundation/clio",
+     45
+    ],
+    [
+     "github.com/BrighterCommand/Brighter",
+     45
+    ],
+    [
+     "github.com/votrongdao/FlowX",
+     35
+    ],
+    [
+     "github.com/WebVella/WebVella-ERP",
+     26
+    ],
+    [
+     "github.com/JasperFx/weasel",
+     25
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlDataSource.CreateConnection",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateConnection",
+   "type": "NpgsqlDataSource",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".CreateConnection(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 858,
+   "limit_hit": false,
+   "repositories": 62,
+   "error": null,
+   "stream_files": 221,
+   "stream_repos": 62,
+   "top_repos": [
+    [
+     "github.com/JasperFx/marten",
+     137
+    ],
+    [
+     "github.com/NpgsqlRest/NpgsqlRest",
+     92
+    ],
+    [
+     "github.com/WebVella/WebVella-ERP",
+     89
+    ],
+    [
+     "github.com/mikependon/RepoDB",
+     73
+    ],
+    [
+     "github.com/npgsql/npgsql",
+     65
+    ],
+    [
+     "github.com/JasperFx/weasel",
+     28
+    ],
+    [
+     "github.com/dotnetcore/CAP",
+     23
+    ],
+    [
+     "github.com/victor-wiki/DatabaseManager",
+     22
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlDataSourceBuilder.Build",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Build",
+   "type": "NpgsqlDataSourceBuilder",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".Build(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 1000,
+   "limit_hit": true,
+   "repositories": 164,
+   "error": null,
+   "stream_files": 354,
+   "stream_repos": 170,
+   "top_repos": [
+    [
+     "github.com/NpgsqlRest/NpgsqlRest",
+     81
+    ],
+    [
+     "github.com/TwentyFourMinutes/Venflow",
+     40
+    ],
+    [
+     "github.com/JasperFx/wolverine",
+     29
+    ],
+    [
+     "github.com/npgsql/npgsql",
+     28
+    ],
+    [
+     "github.com/JasperFx/weasel",
+     24
+    ],
+    [
+     "github.com/npgsql/efcore.pg",
+     21
+    ],
+    [
+     "github.com/event-driven-io/Blumchen",
+     21
+    ],
+    [
+     "github.com/adospace/CoreSync",
+     21
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlDataSourceBuilder.BuildMultiHost",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "BuildMultiHost",
+   "type": "NpgsqlDataSourceBuilder",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".BuildMultiHost(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 47,
+   "limit_hit": false,
+   "repositories": 4,
+   "error": null,
+   "stream_files": 7,
+   "stream_repos": 4,
+   "top_repos": [
+    [
+     "github.com/npgsql/npgsql",
+     37
+    ],
+    [
+     "github.com/NpgsqlRest/NpgsqlRest",
+     6
+    ],
+    [
+     "github.com/JasperFx/marten",
+     2
+    ],
+    [
+     "github.com/JasperFx/weasel",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlFactory.CreateBatch",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateBatch",
+   "type": "NpgsqlFactory",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".CreateBatch(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 44,
+   "limit_hit": false,
+   "repositories": 9,
+   "error": null,
+   "stream_files": 20,
+   "stream_repos": 9,
+   "top_repos": [
+    [
+     "github.com/ozontech/pg_doorman",
+     16
+    ],
+    [
+     "github.com/GoogleCloudPlatform/pgadapter",
+     6
+    ],
+    [
+     "github.com/JasperFx/weasel",
+     6
+    ],
+    [
+     "github.com/stidsborg/Cleipnir.ResilientFunctions",
+     4
+    ],
+    [
+     "github.com/microsoft/tyger",
+     4
+    ],
+    [
+     "github.com/andr3marra/rinha-de-backend-2023-q3-csharp",
+     2
+    ],
+    [
+     "github.com/DapperLib/DapperAOT",
+     2
+    ],
+    [
+     "github.com/JasperFx/marten",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlFactory.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateCommand",
+   "type": "NpgsqlFactory",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".CreateCommand(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 1000,
+   "limit_hit": true,
+   "repositories": 102,
+   "error": null,
+   "stream_files": 212,
+   "stream_repos": 102,
+   "top_repos": [
+    [
+     "github.com/seiggy/lucia-dotnet",
+     129
+    ],
+    [
+     "github.com/liuweichaox/Ingot",
+     48
+    ],
+    [
+     "github.com/JasperFx/marten",
+     46
+    ],
+    [
+     "github.com/Advance-Technologies-Foundation/clio",
+     45
+    ],
+    [
+     "github.com/BrighterCommand/Brighter",
+     45
+    ],
+    [
+     "github.com/votrongdao/FlowX",
+     35
+    ],
+    [
+     "github.com/WebVella/WebVella-ERP",
+     26
+    ],
+    [
+     "github.com/JasperFx/weasel",
+     25
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlFactory.CreateCommandBuilder",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateCommandBuilder",
+   "type": "NpgsqlFactory",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".CreateCommandBuilder(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 0,
+   "limit_hit": false,
+   "repositories": 0,
+   "error": null,
+   "stream_files": 0,
+   "stream_repos": 0,
+   "top_repos": []
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlFactory.CreateConnection",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateConnection",
+   "type": "NpgsqlFactory",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".CreateConnection(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 858,
+   "limit_hit": false,
+   "repositories": 62,
+   "error": null,
+   "stream_files": 221,
+   "stream_repos": 62,
+   "top_repos": [
+    [
+     "github.com/JasperFx/marten",
+     137
+    ],
+    [
+     "github.com/NpgsqlRest/NpgsqlRest",
+     92
+    ],
+    [
+     "github.com/WebVella/WebVella-ERP",
+     89
+    ],
+    [
+     "github.com/mikependon/RepoDB",
+     73
+    ],
+    [
+     "github.com/npgsql/npgsql",
+     65
+    ],
+    [
+     "github.com/JasperFx/weasel",
+     28
+    ],
+    [
+     "github.com/dotnetcore/CAP",
+     23
+    ],
+    [
+     "github.com/victor-wiki/DatabaseManager",
+     22
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlFactory.CreateDataAdapter",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateDataAdapter",
+   "type": "NpgsqlFactory",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".CreateDataAdapter(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 6,
+   "limit_hit": false,
+   "repositories": 3,
+   "error": null,
+   "stream_files": 3,
+   "stream_repos": 3,
+   "top_repos": [
+    [
+     "github.com/VientoDigital/codegenerator",
+     2
+    ],
+    [
+     "github.com/Coldairarrow/Colder.Admin.AntdVue",
+     2
+    ],
+    [
+     "github.com/awesomedotnetcore/WMS",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlFactory.CreateDataSource",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateDataSource",
+   "type": "NpgsqlFactory",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".CreateDataSource(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 10,
+   "limit_hit": false,
+   "repositories": 1,
+   "error": null,
+   "stream_files": 1,
+   "stream_repos": 1,
+   "top_repos": [
+    [
+     "github.com/npgsql/npgsql",
+     10
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlLargeObjectManager.OpenRead",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "OpenRead",
+   "type": "NpgsqlLargeObjectManager",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".OpenRead(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 34,
+   "limit_hit": false,
+   "repositories": 9,
+   "error": null,
+   "stream_files": 11,
+   "stream_repos": 9,
+   "top_repos": [
+    [
+     "github.com/Advance-Technologies-Foundation/clio",
+     8
+    ],
+    [
+     "github.com/erikdarlingdata/PerformanceMonitor",
+     6
+    ],
+    [
+     "github.com/WolvenKit/WolvenKit-7",
+     5
+    ],
+    [
+     "github.com/WebVella/WebVella-ERP",
+     3
+    ],
+    [
+     "github.com/Sirush/Jiten",
+     3
+    ],
+    [
+     "github.com/npgsql/npgsql",
+     3
+    ],
+    [
+     "github.com/Sportarr/Sportarr",
+     2
+    ],
+    [
+     "github.com/foxminchan/BookWorm",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlLargeObjectManager.OpenReadWrite",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "OpenReadWrite",
+   "type": "NpgsqlLargeObjectManager",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".OpenReadWrite(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 5,
+   "limit_hit": false,
+   "repositories": 1,
+   "error": null,
+   "stream_files": 2,
+   "stream_repos": 1,
+   "top_repos": [
+    [
+     "github.com/WebVella/WebVella-ERP",
+     5
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateConnection",
+   "type": "NpgsqlMultiHostDataSource",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".CreateConnection(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 858,
+   "limit_hit": false,
+   "repositories": 62,
+   "error": null,
+   "stream_files": 221,
+   "stream_repos": 62,
+   "top_repos": [
+    [
+     "github.com/JasperFx/marten",
+     137
+    ],
+    [
+     "github.com/NpgsqlRest/NpgsqlRest",
+     92
+    ],
+    [
+     "github.com/WebVella/WebVella-ERP",
+     89
+    ],
+    [
+     "github.com/mikependon/RepoDB",
+     73
+    ],
+    [
+     "github.com/npgsql/npgsql",
+     65
+    ],
+    [
+     "github.com/JasperFx/weasel",
+     28
+    ],
+    [
+     "github.com/dotnetcore/CAP",
+     23
+    ],
+    [
+     "github.com/victor-wiki/DatabaseManager",
+     22
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Build",
+   "type": "NpgsqlSlimDataSourceBuilder",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".Build(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 1000,
+   "limit_hit": true,
+   "repositories": 170,
+   "error": null,
+   "stream_files": 349,
+   "stream_repos": 166,
+   "top_repos": [
+    [
+     "github.com/NpgsqlRest/NpgsqlRest",
+     81
+    ],
+    [
+     "github.com/TwentyFourMinutes/Venflow",
+     40
+    ],
+    [
+     "github.com/npgsql/efcore.pg",
+     37
+    ],
+    [
+     "github.com/npgsql/npgsql",
+     32
+    ],
+    [
+     "github.com/JasperFx/wolverine",
+     29
+    ],
+    [
+     "github.com/JasperFx/weasel",
+     24
+    ],
+    [
+     "github.com/event-driven-io/Blumchen",
+     21
+    ],
+    [
+     "github.com/adospace/CoreSync",
+     21
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlSlimDataSourceBuilder.BuildMultiHost",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "BuildMultiHost",
+   "type": "NpgsqlSlimDataSourceBuilder",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".BuildMultiHost(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 47,
+   "limit_hit": false,
+   "repositories": 4,
+   "error": null,
+   "stream_files": 7,
+   "stream_repos": 4,
+   "top_repos": [
+    [
+     "github.com/npgsql/npgsql",
+     37
+    ],
+    [
+     "github.com/NpgsqlRest/NpgsqlRest",
+     6
+    ],
+    [
+     "github.com/JasperFx/marten",
+     2
+    ],
+    [
+     "github.com/JasperFx/weasel",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "Npgsql",
+   "callable": "Npgsql.NpgsqlConnection.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "method": "CreateCommand",
+   "type": "NpgsqlConnection",
+   "namespace": "Npgsql",
+   "is_static": false,
+   "query": "\".CreateCommand(\" \"using Npgsql\" lang:C# patterntype:keyword",
+   "match_count": 1000,
+   "limit_hit": true,
+   "repositories": 110,
+   "error": null,
+   "stream_files": 241,
+   "stream_repos": 108,
+   "top_repos": [
+    [
+     "github.com/BrighterCommand/Brighter",
+     82
+    ],
+    [
+     "github.com/JasperFx/marten",
+     68
+    ],
+    [
+     "github.com/votrongdao/FlowX",
+     62
+    ],
+    [
+     "github.com/liuweichaox/Ingot",
+     59
+    ],
+    [
+     "github.com/JasperFx/wolverine",
+     39
+    ],
+    [
+     "github.com/WebVella/WebVella-ERP",
+     34
+    ],
+    [
+     "github.com/NpgsqlRest/NpgsqlRest",
+     27
+    ],
+    [
+     "github.com/TechnitiumSoftware/DnsServer",
+     23
+    ]
+   ]
+  },
+  {
+   "package": "RabbitMQ.Client",
+   "callable": "RabbitMQ.Client.ConnectionFactoryBase.DefaultSocketFactory",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "DefaultSocketFactory",
+   "type": "ConnectionFactoryBase",
+   "namespace": "RabbitMQ.Client",
+   "is_static": true,
+   "query": "\"ConnectionFactoryBase.DefaultSocketFactory(\" lang:C# patterntype:keyword",
+   "match_count": 0,
+   "limit_hit": false,
+   "repositories": 0,
+   "error": null,
+   "stream_files": 0,
+   "stream_repos": 0,
+   "top_repos": []
+  },
+  {
+   "package": "RabbitMQ.Client",
+   "callable": "RabbitMQ.Client.TcpClientAdapter.GetStream",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "GetStream",
+   "type": "TcpClientAdapter",
+   "namespace": "RabbitMQ.Client",
+   "is_static": false,
+   "query": "\".GetStream(\" \"using RabbitMQ.Client\" lang:C# patterntype:keyword",
+   "match_count": 11,
+   "limit_hit": false,
+   "repositories": 4,
+   "error": null,
+   "stream_files": 5,
+   "stream_repos": 4,
+   "top_repos": [
+    [
+     "github.com/meverett/Unity3D.Amqp",
+     4
+    ],
+    [
+     "github.com/ServiceStack/ServiceStack",
+     3
+    ],
+    [
+     "github.com/rabbitmq/rabbitmq-dotnet-client",
+     2
+    ],
+    [
+     "github.com/ArieGato/serilog-sinks-rabbitmq",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SftpClient.AppendText",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "AppendText",
+   "type": "SftpClient",
+   "namespace": "Renci.SshNet",
+   "is_static": false,
+   "query": "\".AppendText(\" \"using Renci.SshNet\" lang:C# patterntype:keyword",
+   "match_count": 51,
+   "limit_hit": false,
+   "repositories": 5,
+   "error": null,
+   "stream_files": 6,
+   "stream_repos": 5,
+   "top_repos": [
+    [
+     "github.com/ArduPilot/MissionPlanner",
+     18
+    ],
+    [
+     "github.com/sshnet/SSH.NET",
+     15
+    ],
+    [
+     "github.com/spodskubka/RemoteTerminal",
+     7
+    ],
+    [
+     "github.com/apaka/win-sshfs",
+     7
+    ],
+    [
+     "github.com/cppshane/Background-Terminal",
+     4
+    ]
+   ]
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SftpClient.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Create",
+   "type": "SftpClient",
+   "namespace": "Renci.SshNet",
+   "is_static": false,
+   "query": "\".Create(\" \"using Renci.SshNet\" lang:C# patterntype:keyword",
+   "match_count": 771,
+   "limit_hit": false,
+   "repositories": 39,
+   "error": null,
+   "stream_files": 112,
+   "stream_repos": 39,
+   "top_repos": [
+    [
+     "github.com/sshnet/SSH.NET",
+     633
+    ],
+    [
+     "github.com/spektor56/OpenpilotToolkit",
+     12
+    ],
+    [
+     "github.com/Warewolf-ESB/Warewolf",
+     9
+    ],
+    [
+     "github.com/ariacom/Seal-Report",
+     8
+    ],
+    [
+     "github.com/FuseCP/FuseCP",
+     7
+    ],
+    [
+     "github.com/ispysoftware/iSpy",
+     5
+    ],
+    [
+     "github.com/Telecominfraproject/OpenCellular",
+     4
+    ],
+    [
+     "github.com/aelassas/wexflow",
+     4
+    ]
+   ]
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SftpClient.CreateText",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateText",
+   "type": "SftpClient",
+   "namespace": "Renci.SshNet",
+   "is_static": false,
+   "query": "\".CreateText(\" \"using Renci.SshNet\" lang:C# patterntype:keyword",
+   "match_count": 43,
+   "limit_hit": false,
+   "repositories": 6,
+   "error": null,
+   "stream_files": 8,
+   "stream_repos": 6,
+   "top_repos": [
+    [
+     "github.com/sshnet/SSH.NET",
+     15
+    ],
+    [
+     "github.com/yuzd/AntDeploy",
+     12
+    ],
+    [
+     "github.com/spodskubka/RemoteTerminal",
+     6
+    ],
+    [
+     "github.com/apaka/win-sshfs",
+     6
+    ],
+    [
+     "github.com/orlikoski/CyLR",
+     2
+    ],
+    [
+     "github.com/sganis/golddrive",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SftpClient.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Open",
+   "type": "SftpClient",
+   "namespace": "Renci.SshNet",
+   "is_static": false,
+   "query": "\".Open(\" \"using Renci.SshNet\" lang:C# patterntype:keyword",
+   "match_count": 562,
+   "limit_hit": false,
+   "repositories": 25,
+   "error": null,
+   "stream_files": 135,
+   "stream_repos": 25,
+   "top_repos": [
+    [
+     "github.com/sshnet/SSH.NET",
+     413
+    ],
+    [
+     "github.com/spodskubka/RemoteTerminal",
+     46
+    ],
+    [
+     "github.com/apaka/win-sshfs",
+     30
+    ],
+    [
+     "github.com/spektor56/OpenpilotToolkit",
+     6
+    ],
+    [
+     "github.com/Telecominfraproject/OpenCellular",
+     4
+    ],
+    [
+     "github.com/shrimqy/Sefirah",
+     4
+    ],
+    [
+     "github.com/frequency403/OpenSSH-GUI",
+     4
+    ],
+    [
+     "github.com/duplicati/duplicati",
+     4
+    ]
+   ]
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SftpClient.OpenRead",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "OpenRead",
+   "type": "SftpClient",
+   "namespace": "Renci.SshNet",
+   "is_static": false,
+   "query": "\".OpenRead(\" \"using Renci.SshNet\" lang:C# patterntype:keyword",
+   "match_count": 261,
+   "limit_hit": false,
+   "repositories": 43,
+   "error": null,
+   "stream_files": 61,
+   "stream_repos": 43,
+   "top_repos": [
+    [
+     "github.com/sshnet/SSH.NET",
+     80
+    ],
+    [
+     "github.com/spektor56/OpenpilotToolkit",
+     11
+    ],
+    [
+     "github.com/spodskubka/RemoteTerminal",
+     10
+    ],
+    [
+     "github.com/Ginger-Automation/Ginger",
+     9
+    ],
+    [
+     "github.com/darkoperator/Posh-SSH",
+     8
+    ],
+    [
+     "github.com/UiPath/Community.Activities",
+     7
+    ],
+    [
+     "github.com/NMillard/SimpleWebApps",
+     6
+    ],
+    [
+     "github.com/LogExperts/LogExpert",
+     6
+    ]
+   ]
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SftpClient.OpenText",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "OpenText",
+   "type": "SftpClient",
+   "namespace": "Renci.SshNet",
+   "is_static": false,
+   "query": "\".OpenText(\" \"using Renci.SshNet\" lang:C# patterntype:keyword",
+   "match_count": 0,
+   "limit_hit": false,
+   "repositories": 0,
+   "error": null,
+   "stream_files": 0,
+   "stream_repos": 0,
+   "top_repos": []
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SftpClient.OpenWrite",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "OpenWrite",
+   "type": "SftpClient",
+   "namespace": "Renci.SshNet",
+   "is_static": false,
+   "query": "\".OpenWrite(\" \"using Renci.SshNet\" lang:C# patterntype:keyword",
+   "match_count": 145,
+   "limit_hit": false,
+   "repositories": 20,
+   "error": null,
+   "stream_files": 28,
+   "stream_repos": 20,
+   "top_repos": [
+    [
+     "github.com/sshnet/SSH.NET",
+     61
+    ],
+    [
+     "github.com/SharpGrip/FileSystem",
+     11
+    ],
+    [
+     "github.com/spodskubka/RemoteTerminal",
+     9
+    ],
+    [
+     "github.com/UiPath/Community.Activities",
+     7
+    ],
+    [
+     "github.com/cmu-sei/GHOSTS",
+     6
+    ],
+    [
+     "github.com/wyfish/RPAStudio",
+     6
+    ],
+    [
+     "github.com/FreeDemon2020/RPAStudio",
+     6
+    ],
+    [
+     "github.com/apaka/win-sshfs",
+     5
+    ]
+   ]
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SshClient.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateCommand",
+   "type": "SshClient",
+   "namespace": "Renci.SshNet",
+   "is_static": false,
+   "query": "\".CreateCommand(\" \"using Renci.SshNet\" lang:C# patterntype:keyword",
+   "match_count": 327,
+   "limit_hit": false,
+   "repositories": 34,
+   "error": null,
+   "stream_files": 50,
+   "stream_repos": 34,
+   "top_repos": [
+    [
+     "github.com/sshnet/SSH.NET",
+     100
+    ],
+    [
+     "github.com/Thelittlechicken/oc34n-r2",
+     77
+    ],
+    [
+     "github.com/fiddyschmitt/File-Tunnel",
+     27
+    ],
+    [
+     "github.com/spektor56/OpenpilotToolkit",
+     17
+    ],
+    [
+     "github.com/frequency403/OpenSSH-GUI",
+     12
+    ],
+    [
+     "github.com/stride3d/stride",
+     7
+    ],
+    [
+     "github.com/yuzd/AntDeploy",
+     7
+    ],
+    [
+     "github.com/Alachisoft/NCache",
+     5
+    ]
+   ]
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SshClient.CreateShell",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateShell",
+   "type": "SshClient",
+   "namespace": "Renci.SshNet",
+   "is_static": false,
+   "query": "\".CreateShell(\" \"using Renci.SshNet\" lang:C# patterntype:keyword",
+   "match_count": 24,
+   "limit_hit": false,
+   "repositories": 3,
+   "error": null,
+   "stream_files": 5,
+   "stream_repos": 3,
+   "top_repos": [
+    [
+     "github.com/sshnet/SSH.NET",
+     16
+    ],
+    [
+     "github.com/spodskubka/RemoteTerminal",
+     6
+    ],
+    [
+     "github.com/lindexi/lindexi_gd",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SSH.NET",
+   "callable": "Renci.SshNet.SshClient.CreateShellNoTerminal",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateShellNoTerminal",
+   "type": "SshClient",
+   "namespace": "Renci.SshNet",
+   "is_static": false,
+   "query": "\".CreateShellNoTerminal(\" \"using Renci.SshNet\" lang:C# patterntype:keyword",
+   "match_count": 7,
+   "limit_hit": false,
+   "repositories": 1,
+   "error": null,
+   "stream_files": 2,
+   "stream_repos": 1,
+   "top_repos": [
+    [
+     "github.com/sshnet/SSH.NET",
+     7
+    ]
+   ]
+  },
+  {
+   "package": "Serilog",
+   "callable": "Serilog.Context.LogContext.Push",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Push",
+   "type": "LogContext",
+   "namespace": "Serilog.Context",
+   "is_static": true,
+   "query": "\"LogContext.Push(\" lang:C# patterntype:keyword",
+   "match_count": 73,
+   "limit_hit": false,
+   "repositories": 19,
+   "error": null,
+   "stream_files": 50,
+   "stream_repos": 19,
+   "top_repos": [
+    [
+     "github.com/kgrzybek/modular-monolith-with-ddd",
+     15
+    ],
+    [
+     "github.com/nimbleways/dotnet-subset",
+     12
+    ],
+    [
+     "github.com/serilog/serilog",
+     11
+    ],
+    [
+     "github.com/SubnauticaNitrox/Nitrox",
+     5
+    ],
+    [
+     "github.com/Papela/Nitrox-Cracked-Mod",
+     5
+    ],
+    [
+     "github.com/umbraco/Umbraco-CMS",
+     4
+    ],
+    [
+     "github.com/josephnhtam/vsp-youtube-clone-microservices",
+     4
+    ],
+    [
+     "github.com/kgrzybek/sample-dotnet-core-cqrs-api",
+     3
+    ]
+   ]
+  },
+  {
+   "package": "Serilog",
+   "callable": "Serilog.Context.LogContext.Suspend",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Suspend",
+   "type": "LogContext",
+   "namespace": "Serilog.Context",
+   "is_static": true,
+   "query": "\"LogContext.Suspend(\" lang:C# patterntype:keyword",
+   "match_count": 1,
+   "limit_hit": false,
+   "repositories": 1,
+   "error": null,
+   "stream_files": 1,
+   "stream_repos": 1,
+   "top_repos": [
+    [
+     "github.com/serilog/serilog",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "Serilog",
+   "callable": "Serilog.LoggerConfiguration.CreateLogger",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "method": "CreateLogger",
+   "type": "LoggerConfiguration",
+   "namespace": "Serilog",
+   "is_static": false,
+   "query": "\".CreateLogger(\" \"using Serilog\" lang:C# patterntype:keyword",
+   "match_count": 1000,
+   "limit_hit": true,
+   "repositories": 163,
+   "error": null,
+   "stream_files": 254,
+   "stream_repos": 164,
+   "top_repos": [
+    [
+     "github.com/PacktPublishing/Mastering-ABP-Framework",
+     42
+    ],
+    [
+     "github.com/serilog-contrib/Serilog.Enrichers.Sensitive",
+     36
+    ],
+    [
+     "github.com/Plac3hold3r/MvxScaffolding",
+     36
+    ],
+    [
+     "github.com/PacktPublishing/Clean-Architecture-with-.NET",
+     30
+    ],
+    [
+     "github.com/MvvmCross/MvvmCross-Samples",
+     21
+    ],
+    [
+     "github.com/serilog-tracing/serilog-tracing",
+     20
+    ],
+    [
+     "github.com/karenpayneoregon/ef-code-8-samples",
+     20
+    ],
+    [
+     "github.com/karenpayneoregon/csharp-11-ef-core-7-features",
+     20
+    ]
+   ]
+  },
+  {
+   "package": "Serilog",
+   "callable": "Serilog.Context.LogContext.PushProperty",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "method": "PushProperty",
+   "type": "LogContext",
+   "namespace": "Serilog.Context",
+   "is_static": true,
+   "query": "\"LogContext.PushProperty(\" lang:C# patterntype:keyword",
+   "match_count": 633,
+   "limit_hit": false,
+   "repositories": 95,
+   "error": null,
+   "stream_files": 196,
+   "stream_repos": 95,
+   "top_repos": [
+    [
+     "github.com/isaacrlevin/presencelight",
+     92
+    ],
+    [
+     "github.com/Vocaluxe/Vocaluxe",
+     66
+    ],
+    [
+     "github.com/RaidMax/IW4M-Admin",
+     58
+    ],
+    [
+     "github.com/skimedic/presentations",
+     48
+    ],
+    [
+     "github.com/datalust/seqcli",
+     25
+    ],
+    [
+     "github.com/Apress/pro-c-sharp-10",
+     24
+    ],
+    [
+     "github.com/olsh/resharper-structured-logging",
+     15
+    ],
+    [
+     "github.com/PepperDash/Essentials",
+     15
+    ]
+   ]
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Archives.AbstractWritableArchive<TEntry, TVolume>.PauseEntryRebuilding",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "PauseEntryRebuilding",
+   "type": "AbstractWritableArchive<TEntry, TVolume>",
+   "namespace": "SharpCompress.Archives",
+   "is_static": false,
+   "query": "\".PauseEntryRebuilding(\" \"using SharpCompress.Archives\" lang:C# patterntype:keyword",
+   "match_count": 6,
+   "limit_hit": false,
+   "repositories": 2,
+   "error": null,
+   "stream_files": 2,
+   "stream_repos": 2,
+   "top_repos": [
+    [
+     "github.com/microsoft/OSSGadget",
+     3
+    ],
+    [
+     "github.com/fgsfds/BuildLauncher",
+     3
+    ]
+   ]
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Archives.GZip.GZipArchive.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Create",
+   "type": "GZipArchive",
+   "namespace": "SharpCompress.Archives.GZip",
+   "is_static": true,
+   "query": "\"GZipArchive.Create(\" lang:C# patterntype:keyword",
+   "match_count": 4,
+   "limit_hit": false,
+   "repositories": 4,
+   "error": null,
+   "stream_files": 4,
+   "stream_repos": 4,
+   "top_repos": [
+    [
+     "github.com/ste-phil/Win10-Explorer",
+     1
+    ],
+    [
+     "github.com/x3bits/MikuMikuXR",
+     1
+    ],
+    [
+     "github.com/kaby76/Antlr4BuildTasks",
+     1
+    ],
+    [
+     "github.com/Piotrekol/CollectionManager",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Archives.GZip.GZipArchive.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Open",
+   "type": "GZipArchive",
+   "namespace": "SharpCompress.Archives.GZip",
+   "is_static": true,
+   "query": "\"GZipArchive.Open(\" lang:C# patterntype:keyword",
+   "match_count": 31,
+   "limit_hit": false,
+   "repositories": 15,
+   "error": null,
+   "stream_files": 18,
+   "stream_repos": 15,
+   "top_repos": [
+    [
+     "github.com/lemutec/MicaSetup",
+     6
+    ],
+    [
+     "github.com/kaby76/Antlr4BuildTasks",
+     4
+    ],
+    [
+     "github.com/K12f/BlueCatKoKo",
+     2
+    ],
+    [
+     "github.com/x0rz4/BetterYYSLS",
+     2
+    ],
+    [
+     "github.com/GenshinMatrix/Fischless",
+     2
+    ],
+    [
+     "github.com/ste-phil/Win10-Explorer",
+     2
+    ],
+    [
+     "github.com/babalae/better-wuthering-waves",
+     2
+    ],
+    [
+     "github.com/x3bits/MikuMikuXR",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Archives.Rar.RarArchive.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Open",
+   "type": "RarArchive",
+   "namespace": "SharpCompress.Archives.Rar",
+   "is_static": true,
+   "query": "\"RarArchive.Open(\" lang:C# patterntype:keyword",
+   "match_count": 54,
+   "limit_hit": false,
+   "repositories": 28,
+   "error": null,
+   "stream_files": 36,
+   "stream_repos": 28,
+   "top_repos": [
+    [
+     "github.com/FenPhoenix/AngelLoader",
+     7
+    ],
+    [
+     "github.com/lemutec/MicaSetup",
+     6
+    ],
+    [
+     "github.com/kaby76/Antlr4BuildTasks",
+     4
+    ],
+    [
+     "github.com/cwensley/pablodraw",
+     2
+    ],
+    [
+     "github.com/rogerfar/rdt-client",
+     2
+    ],
+    [
+     "github.com/K12f/BlueCatKoKo",
+     2
+    ],
+    [
+     "github.com/x0rz4/BetterYYSLS",
+     2
+    ],
+    [
+     "github.com/GenshinMatrix/Fischless",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Archives.SevenZip.SevenZipArchive.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Open",
+   "type": "SevenZipArchive",
+   "namespace": "SharpCompress.Archives.SevenZip",
+   "is_static": true,
+   "query": "\"SevenZipArchive.Open(\" lang:C# patterntype:keyword",
+   "match_count": 72,
+   "limit_hit": false,
+   "repositories": 39,
+   "error": null,
+   "stream_files": 51,
+   "stream_repos": 39,
+   "top_repos": [
+    [
+     "github.com/lemutec/MicaSetup",
+     6
+    ],
+    [
+     "github.com/GesthosNetwork/Sophon-Downloader",
+     5
+    ],
+    [
+     "github.com/TekkaGB/DivaModManager",
+     5
+    ],
+    [
+     "github.com/carextwo/Unverum-Mod-Manager-For-Anime-Games",
+     4
+    ],
+    [
+     "github.com/TekkaGB/Unverum",
+     4
+    ],
+    [
+     "github.com/kaby76/Antlr4BuildTasks",
+     4
+    ],
+    [
+     "github.com/nicehash/NiceHashMiner",
+     2
+    ],
+    [
+     "github.com/K12f/BlueCatKoKo",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Archives.Tar.TarArchive.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Create",
+   "type": "TarArchive",
+   "namespace": "SharpCompress.Archives.Tar",
+   "is_static": true,
+   "query": "\"TarArchive.Create(\" lang:C# patterntype:keyword",
+   "match_count": 5,
+   "limit_hit": false,
+   "repositories": 5,
+   "error": null,
+   "stream_files": 5,
+   "stream_repos": 5,
+   "top_repos": [
+    [
+     "github.com/Azure/acr",
+     1
+    ],
+    [
+     "github.com/ste-phil/Win10-Explorer",
+     1
+    ],
+    [
+     "github.com/x3bits/MikuMikuXR",
+     1
+    ],
+    [
+     "github.com/kaby76/Antlr4BuildTasks",
+     1
+    ],
+    [
+     "github.com/roozbehid/WasmWinforms",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Archives.Tar.TarArchive.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Open",
+   "type": "TarArchive",
+   "namespace": "SharpCompress.Archives.Tar",
+   "is_static": true,
+   "query": "\"TarArchive.Open(\" lang:C# patterntype:keyword",
+   "match_count": 35,
+   "limit_hit": false,
+   "repositories": 15,
+   "error": null,
+   "stream_files": 18,
+   "stream_repos": 15,
+   "top_repos": [
+    [
+     "github.com/drakewill-CRL/ROMSorter",
+     7
+    ],
+    [
+     "github.com/kaby76/Antlr4BuildTasks",
+     4
+    ],
+    [
+     "github.com/MaaXYZ/MFAAvalonia",
+     3
+    ],
+    [
+     "github.com/SweetSmellFox/MFAToolsPlus",
+     3
+    ],
+    [
+     "github.com/NotZoruak/MATR",
+     3
+    ],
+    [
+     "github.com/ste-phil/Win10-Explorer",
+     2
+    ],
+    [
+     "github.com/x3bits/MikuMikuXR",
+     2
+    ],
+    [
+     "github.com/linuxartifactparser/LAP",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Archives.Zip.ZipArchive.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Create",
+   "type": "ZipArchive",
+   "namespace": "SharpCompress.Archives.Zip",
+   "is_static": true,
+   "query": "\"ZipArchive.Create(\" lang:C# patterntype:keyword",
+   "match_count": 76,
+   "limit_hit": false,
+   "repositories": 24,
+   "error": null,
+   "stream_files": 33,
+   "stream_repos": 24,
+   "top_repos": [
+    [
+     "github.com/dotnet/msbuild",
+     12
+    ],
+    [
+     "github.com/dotnet/dotnet",
+     12
+    ],
+    [
+     "github.com/KrisTHL181/Break-This-Repo",
+     12
+    ],
+    [
+     "github.com/hornyyy/Osu-Toy",
+     8
+    ],
+    [
+     "github.com/DSPaul/COMPASS",
+     3
+    ],
+    [
+     "github.com/Quaver/Quaver",
+     3
+    ],
+    [
+     "github.com/telerik/xaml-sdk",
+     2
+    ],
+    [
+     "github.com/ixre/cms",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Archives.Zip.ZipArchive.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Open",
+   "type": "ZipArchive",
+   "namespace": "SharpCompress.Archives.Zip",
+   "is_static": true,
+   "query": "\"ZipArchive.Open(\" lang:C# patterntype:keyword",
+   "match_count": 195,
+   "limit_hit": false,
+   "repositories": 63,
+   "error": null,
+   "stream_files": 99,
+   "stream_repos": 63,
+   "top_repos": [
+    [
+     "github.com/lemutec/MicaSetup",
+     18
+    ],
+    [
+     "github.com/kaby76/Antlr4BuildTasks",
+     12
+    ],
+    [
+     "github.com/hornyyy/Osu-Toy",
+     10
+    ],
+    [
+     "github.com/ste-phil/Win10-Explorer",
+     7
+    ],
+    [
+     "github.com/QL-Win/QuickLook",
+     7
+    ],
+    [
+     "github.com/roozbehid/WasmWinforms",
+     7
+    ],
+    [
+     "github.com/K12f/BlueCatKoKo",
+     6
+    ],
+    [
+     "github.com/x0rz4/BetterYYSLS",
+     6
+    ]
+   ]
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Factories.ZipFactory.CreateWriteableArchive",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateWriteableArchive",
+   "type": "ZipFactory",
+   "namespace": "SharpCompress.Factories",
+   "is_static": false,
+   "query": "\".CreateWriteableArchive(\" \"using SharpCompress.Factories\" lang:C# patterntype:keyword",
+   "match_count": 0,
+   "limit_hit": false,
+   "repositories": 0,
+   "error": null,
+   "stream_files": 0,
+   "stream_repos": 0,
+   "top_repos": []
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Factories.ZipFactory.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Open",
+   "type": "ZipFactory",
+   "namespace": "SharpCompress.Factories",
+   "is_static": false,
+   "query": "\".Open(\" \"using SharpCompress.Factories\" lang:C# patterntype:keyword",
+   "match_count": 3,
+   "limit_hit": false,
+   "repositories": 1,
+   "error": null,
+   "stream_files": 1,
+   "stream_repos": 1,
+   "top_repos": [
+    [
+     "github.com/ZhiQiu-Kinsey/AppleLivePhotoConvert",
+     3
+    ]
+   ]
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Factories.ZipFactory.OpenReader",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "OpenReader",
+   "type": "ZipFactory",
+   "namespace": "SharpCompress.Factories",
+   "is_static": false,
+   "query": "\".OpenReader(\" \"using SharpCompress.Factories\" lang:C# patterntype:keyword",
+   "match_count": 52,
+   "limit_hit": false,
+   "repositories": 2,
+   "error": null,
+   "stream_files": 7,
+   "stream_repos": 2,
+   "top_repos": [
+    [
+     "github.com/infinidysk/infinidysk",
+     27
+    ],
+    [
+     "github.com/adamhathcock/sharpcompress",
+     25
+    ]
+   ]
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Readers.Tar.TarReader.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Open",
+   "type": "TarReader",
+   "namespace": "SharpCompress.Readers.Tar",
+   "is_static": true,
+   "query": "\"TarReader.Open(\" lang:C# patterntype:keyword",
+   "match_count": 13,
+   "limit_hit": false,
+   "repositories": 8,
+   "error": null,
+   "stream_files": 11,
+   "stream_repos": 8,
+   "top_repos": [
+    [
+     "github.com/kaby76/Antlr4BuildTasks",
+     2
+    ],
+    [
+     "github.com/x3bits/MikuMikuXR",
+     2
+    ],
+    [
+     "github.com/ste-phil/Win10-Explorer",
+     2
+    ],
+    [
+     "github.com/Artentus/ModMyFactory2",
+     2
+    ],
+    [
+     "github.com/HakuSystems/EasyExtractUnitypackage",
+     2
+    ],
+    [
+     "github.com/joelverhagen/TorSharp",
+     1
+    ],
+    [
+     "github.com/Ombi-app/Ombi",
+     1
+    ],
+    [
+     "github.com/roozbehid/WasmWinforms",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Readers.Zip.ZipReader.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Open",
+   "type": "ZipReader",
+   "namespace": "SharpCompress.Readers.Zip",
+   "is_static": true,
+   "query": "\"ZipReader.Open(\" lang:C# patterntype:keyword",
+   "match_count": 29,
+   "limit_hit": false,
+   "repositories": 9,
+   "error": null,
+   "stream_files": 20,
+   "stream_repos": 9,
+   "top_repos": [
+    [
+     "github.com/sk-zk/Extractor",
+     6
+    ],
+    [
+     "github.com/kaby76/Antlr4BuildTasks",
+     4
+    ],
+    [
+     "github.com/x3bits/MikuMikuXR",
+     4
+    ],
+    [
+     "github.com/ste-phil/Win10-Explorer",
+     4
+    ],
+    [
+     "github.com/MediaBrowser/Emby",
+     3
+    ],
+    [
+     "github.com/roozbehid/WasmWinforms",
+     3
+    ],
+    [
+     "github.com/ETS2LA/ETS2LA",
+     2
+    ],
+    [
+     "github.com/Artentus/ModMyFactory2",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Writers.Zip.ZipWriter.WriteToStream",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "WriteToStream",
+   "type": "ZipWriter",
+   "namespace": "SharpCompress.Writers.Zip",
+   "is_static": false,
+   "query": "\".WriteToStream(\" \"using SharpCompress.Writers.Zip\" lang:C# patterntype:keyword",
+   "match_count": 39,
+   "limit_hit": false,
+   "repositories": 7,
+   "error": null,
+   "stream_files": 11,
+   "stream_repos": 7,
+   "top_repos": [
+    [
+     "github.com/RomanPavelko/SwiftExcel",
+     11
+    ],
+    [
+     "github.com/adamhathcock/sharpcompress",
+     9
+    ],
+    [
+     "github.com/infinidysk/infinidysk",
+     9
+    ],
+    [
+     "github.com/mantis3d/MantisZip",
+     4
+    ],
+    [
+     "github.com/salvois/LargeXlsx",
+     2
+    ],
+    [
+     "github.com/duplicati/duplicati",
+     2
+    ],
+    [
+     "github.com/momentum-mod/lumper",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SharpCompress",
+   "callable": "SharpCompress.Writers.WriterFactory.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "method": "Open",
+   "type": "WriterFactory",
+   "namespace": "SharpCompress.Writers",
+   "is_static": true,
+   "query": "\"WriterFactory.Open(\" lang:C# patterntype:keyword",
+   "match_count": 28,
+   "limit_hit": false,
+   "repositories": 14,
+   "error": null,
+   "stream_files": 21,
+   "stream_repos": 14,
+   "top_repos": [
+    [
+     "github.com/gro-ove/actools",
+     11
+    ],
+    [
+     "github.com/ixre/cms",
+     2
+    ],
+    [
+     "github.com/Sharp-Pulsar/SharpPulsar",
+     2
+    ],
+    [
+     "github.com/ste-phil/Win10-Explorer",
+     2
+    ],
+    [
+     "github.com/drakewill-CRL/ROMSorter",
+     2
+    ],
+    [
+     "github.com/IngvarX/Camelot",
+     1
+    ],
+    [
+     "github.com/Deffiss/testenvironment-docker",
+     1
+    ],
+    [
+     "github.com/WELL-E/AutoUpdater",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "SharpZipLib",
+   "callable": "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateDecryptor",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateDecryptor",
+   "type": "PkzipClassicManaged",
+   "namespace": "ICSharpCode.SharpZipLib.Encryption",
+   "is_static": false,
+   "query": "\".CreateDecryptor(\" \"using ICSharpCode.SharpZipLib.Encryption\" lang:C# patterntype:keyword",
+   "match_count": 149,
+   "limit_hit": false,
+   "repositories": 32,
+   "error": null,
+   "stream_files": 74,
+   "stream_repos": 32,
+   "top_repos": [
+    [
+     "github.com/yukuyoulei/ILRuntime_HotGames",
+     20
+    ],
+    [
+     "github.com/fdorg/flashdevelop",
+     8
+    ],
+    [
+     "github.com/dolkensp/unp4k",
+     5
+    ],
+    [
+     "github.com/anydream/il2cpp",
+     4
+    ],
+    [
+     "github.com/SinlessDevil/ZumaClone",
+     4
+    ],
+    [
+     "github.com/mono/mono",
+     4
+    ],
+    [
+     "github.com/exmex/UnityMoba",
+     4
+    ],
+    [
+     "github.com/WCell/WCell",
+     4
+    ]
+   ]
+  },
+  {
+   "package": "SharpZipLib",
+   "callable": "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateEncryptor",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateEncryptor",
+   "type": "PkzipClassicManaged",
+   "namespace": "ICSharpCode.SharpZipLib.Encryption",
+   "is_static": false,
+   "query": "\".CreateEncryptor(\" \"using ICSharpCode.SharpZipLib.Encryption\" lang:C# patterntype:keyword",
+   "match_count": 152,
+   "limit_hit": false,
+   "repositories": 34,
+   "error": null,
+   "stream_files": 76,
+   "stream_repos": 34,
+   "top_repos": [
+    [
+     "github.com/yukuyoulei/ILRuntime_HotGames",
+     20
+    ],
+    [
+     "github.com/fdorg/flashdevelop",
+     8
+    ],
+    [
+     "github.com/zijan/Tatala-RPC",
+     6
+    ],
+    [
+     "github.com/ArduPilot/MissionPlanner",
+     4
+    ],
+    [
+     "github.com/anydream/il2cpp",
+     4
+    ],
+    [
+     "github.com/SinlessDevil/ZumaClone",
+     4
+    ],
+    [
+     "github.com/techmania-team/techmania",
+     4
+    ],
+    [
+     "github.com/PaintLab/PixelFarm",
+     4
+    ]
+   ]
+  },
+  {
+   "package": "SharpZipLib",
+   "callable": "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateInputTarArchive",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateInputTarArchive",
+   "type": "TarArchive",
+   "namespace": "ICSharpCode.SharpZipLib.Tar",
+   "is_static": true,
+   "query": "\"TarArchive.CreateInputTarArchive(\" lang:C# patterntype:keyword",
+   "match_count": 95,
+   "limit_hit": false,
+   "repositories": 67,
+   "error": null,
+   "stream_files": 82,
+   "stream_repos": 67,
+   "top_repos": [
+    [
+     "github.com/icsharpcode/SharpZipLib",
+     6
+    ],
+    [
+     "github.com/dotnet/TorchSharp",
+     3
+    ],
+    [
+     "github.com/feiyun0112/machinelearning-samples.zh-cn",
+     3
+    ],
+    [
+     "github.com/dotnet/machinelearning-samples",
+     3
+    ],
+    [
+     "github.com/OpenTabletDriver/OpenTabletDriver",
+     3
+    ],
+    [
+     "github.com/testcontainers/testcontainers-dotnet",
+     3
+    ],
+    [
+     "github.com/aelassas/wexflow",
+     2
+    ],
+    [
+     "github.com/liushiyangFrsan/GitHub_WattToolkit",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SharpZipLib",
+   "callable": "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateOutputTarArchive",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateOutputTarArchive",
+   "type": "TarArchive",
+   "namespace": "ICSharpCode.SharpZipLib.Tar",
+   "is_static": true,
+   "query": "\"TarArchive.CreateOutputTarArchive(\" lang:C# patterntype:keyword",
+   "match_count": 39,
+   "limit_hit": false,
+   "repositories": 25,
+   "error": null,
+   "stream_files": 30,
+   "stream_repos": 25,
+   "top_repos": [
+    [
+     "github.com/liushiyangFrsan/GitHub_WattToolkit",
+     6
+    ],
+    [
+     "github.com/BeyondDimension/SteamTools",
+     5
+    ],
+    [
+     "github.com/icsharpcode/SharpZipLib",
+     5
+    ],
+    [
+     "github.com/Pyrdacor/Ambermoon",
+     2
+    ],
+    [
+     "github.com/Splamy/TS3AudioBot",
+     1
+    ],
+    [
+     "github.com/InfinyTech3D/SofaUnity",
+     1
+    ],
+    [
+     "github.com/lippertmarkus/konet",
+     1
+    ],
+    [
+     "github.com/Neelarghya/tesseract-unity",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "SharpZipLib",
+   "callable": "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Create",
+   "type": "ZipFile",
+   "namespace": "ICSharpCode.SharpZipLib.Zip",
+   "is_static": true,
+   "query": "\"ZipFile.Create(\" lang:C# patterntype:keyword",
+   "match_count": 125,
+   "limit_hit": false,
+   "repositories": 75,
+   "error": null,
+   "stream_files": 105,
+   "stream_repos": 75,
+   "top_repos": [
+    [
+     "github.com/icsharpcode/SharpZipLib",
+     16
+    ],
+    [
+     "github.com/yukuyoulei/ILRuntime_HotGames",
+     10
+    ],
+    [
+     "github.com/danielcrenna/vault",
+     8
+    ],
+    [
+     "github.com/fdorg/flashdevelop",
+     5
+    ],
+    [
+     "github.com/KSP-CKAN/CKAN",
+     4
+    ],
+    [
+     "github.com/axzxs2001/Asp.NetCoreExperiment",
+     3
+    ],
+    [
+     "github.com/SharpKit/SharpKit",
+     2
+    ],
+    [
+     "github.com/maforget/ComicRackCE",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SixLabors.ImageSharp",
+   "callable": "SixLabors.ImageSharp.Image.WrapMemory",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "WrapMemory",
+   "type": "Image",
+   "namespace": "SixLabors.ImageSharp",
+   "is_static": true,
+   "query": "\"Image.WrapMemory(\" lang:C# patterntype:keyword",
+   "match_count": 19,
+   "limit_hit": false,
+   "repositories": 5,
+   "error": null,
+   "stream_files": 9,
+   "stream_repos": 5,
+   "top_repos": [
+    [
+     "github.com/SixLabors/ImageSharp",
+     13
+    ],
+    [
+     "github.com/Sergio0694/ComputeSharp",
+     2
+    ],
+    [
+     "github.com/SixLabors/ImageSharp.Drawing",
+     2
+    ],
+    [
+     "github.com/servicetitan/Stl.Fusion.Samples",
+     1
+    ],
+    [
+     "github.com/studio-minus/madness-interactive-reloaded",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "SixLabors.ImageSharp",
+   "callable": "SixLabors.ImageSharp.Image<TPixel>.Clone",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Clone",
+   "type": "Image<TPixel>",
+   "namespace": "SixLabors.ImageSharp",
+   "is_static": false,
+   "query": "\".Clone(\" \"using SixLabors.ImageSharp\" lang:C# patterntype:keyword",
+   "match_count": 1000,
+   "limit_hit": true,
+   "repositories": 88,
+   "error": null,
+   "stream_files": 183,
+   "stream_repos": 99,
+   "top_repos": [
+    [
+     "github.com/FanTranslatorsInternational/Kuriimu2",
+     67
+    ],
+    [
+     "github.com/SixLabors/ImageSharp.Drawing",
+     62
+    ],
+    [
+     "github.com/ConcreteMC/Alex",
+     51
+    ],
+    [
+     "github.com/SixLabors/ImageSharp",
+     39
+    ],
+    [
+     "github.com/parzivail/ReMarkable.NET",
+     35
+    ],
+    [
+     "github.com/QutEcoacoustics/audio-analysis",
+     34
+    ],
+    [
+     "github.com/Gml-Launcher/Gml.Launcher",
+     31
+    ],
+    [
+     "github.com/nullpainter/sanchez",
+     30
+    ]
+   ]
+  },
+  {
+   "package": "SixLabors.ImageSharp",
+   "callable": "SixLabors.ImageSharp.Image<TPixel>.CloneAs",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CloneAs",
+   "type": "Image<TPixel>",
+   "namespace": "SixLabors.ImageSharp",
+   "is_static": false,
+   "query": "\".CloneAs(\" \"using SixLabors.ImageSharp\" lang:C# patterntype:keyword",
+   "match_count": 0,
+   "limit_hit": false,
+   "repositories": 0,
+   "error": null,
+   "stream_files": 0,
+   "stream_repos": 0,
+   "top_repos": []
+  },
+  {
+   "package": "SixLabors.ImageSharp",
+   "callable": "SixLabors.ImageSharp.ImageFrameCollection<TPixel>.CloneFrame",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CloneFrame",
+   "type": "ImageFrameCollection<TPixel>",
+   "namespace": "SixLabors.ImageSharp",
+   "is_static": false,
+   "query": "\".CloneFrame(\" \"using SixLabors.ImageSharp\" lang:C# patterntype:keyword",
+   "match_count": 106,
+   "limit_hit": false,
+   "repositories": 15,
+   "error": null,
+   "stream_files": 20,
+   "stream_repos": 15,
+   "top_repos": [
+    [
+     "github.com/SixLabors/ImageSharp",
+     17
+    ],
+    [
+     "github.com/KloBraticc/Voidstrap",
+     16
+    ],
+    [
+     "github.com/iron-software/IronSoftware.System.Drawing",
+     13
+    ],
+    [
+     "github.com/ErsatzTV/legacy",
+     9
+    ],
+    [
+     "github.com/nadeko-bot/nadekobot",
+     7
+    ],
+    [
+     "github.com/eumario/godot-manager",
+     6
+    ],
+    [
+     "github.com/Wakamu/VRCEmoji",
+     6
+    ],
+    [
+     "github.com/Macro-Deck-App/Macro-Deck",
+     5
+    ]
+   ]
+  },
+  {
+   "package": "SixLabors.ImageSharp",
+   "callable": "SixLabors.ImageSharp.ImageFrameCollection<TPixel>.ExportFrame",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "ExportFrame",
+   "type": "ImageFrameCollection<TPixel>",
+   "namespace": "SixLabors.ImageSharp",
+   "is_static": false,
+   "query": "\".ExportFrame(\" \"using SixLabors.ImageSharp\" lang:C# patterntype:keyword",
+   "match_count": 31,
+   "limit_hit": false,
+   "repositories": 3,
+   "error": null,
+   "stream_files": 5,
+   "stream_repos": 3,
+   "top_repos": [
+    [
+     "github.com/SixLabors/ImageSharp",
+     13
+    ],
+    [
+     "github.com/MeltyPlayer/MeltyTool",
+     10
+    ],
+    [
+     "github.com/Valour-Software/Valour",
+     8
+    ]
+   ]
+  },
+  {
+   "package": "SixLabors.ImageSharp",
+   "callable": "SixLabors.ImageSharp.Memory.Buffer2D<T>.WrapMemory",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "WrapMemory",
+   "type": "Buffer2D<T>",
+   "namespace": "SixLabors.ImageSharp.Memory",
+   "is_static": true,
+   "query": "\"Buffer2D<T>.WrapMemory(\" lang:C# patterntype:keyword",
+   "match_count": 0,
+   "limit_hit": false,
+   "repositories": 0,
+   "error": null,
+   "stream_files": 0,
+   "stream_repos": 0,
+   "top_repos": []
+  },
+  {
+   "package": "SixLabors.ImageSharp",
+   "callable": "SixLabors.ImageSharp.Memory.MemoryAllocatorExtensions.Allocate2D",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Allocate2D",
+   "type": "MemoryAllocatorExtensions",
+   "namespace": "SixLabors.ImageSharp.Memory",
+   "is_static": true,
+   "query": "\"MemoryAllocatorExtensions.Allocate2D(\" lang:C# patterntype:keyword",
+   "match_count": 0,
+   "limit_hit": false,
+   "repositories": 0,
+   "error": null,
+   "stream_files": 0,
+   "stream_repos": 0,
+   "top_repos": []
+  },
+  {
+   "package": "SixLabors.ImageSharp",
+   "callable": "SixLabors.ImageSharp.Image.LoadPixelData",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "LoadPixelData",
+   "type": "Image",
+   "namespace": "SixLabors.ImageSharp",
+   "is_static": true,
+   "query": "\"Image.LoadPixelData(\" lang:C# patterntype:keyword",
+   "match_count": 32,
+   "limit_hit": false,
+   "repositories": 10,
+   "error": null,
+   "stream_files": 21,
+   "stream_repos": 10,
+   "top_repos": [
+    [
+     "github.com/wieslawsoltes/ProGPU",
+     7
+    ],
+    [
+     "github.com/Markemp/Cryengine-Converter",
+     6
+    ],
+    [
+     "github.com/ppy/osu-framework",
+     5
+    ],
+    [
+     "github.com/ppy/osu",
+     4
+    ],
+    [
+     "github.com/ImpromptuNinjas/UltralightSharp",
+     3
+    ],
+    [
+     "github.com/Kermalis/PokemonGameEngine",
+     2
+    ],
+    [
+     "github.com/Nenkai/PDTools",
+     2
+    ],
+    [
+     "github.com/mellinoe/veldrid-samples",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKBitmap.Decode",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Decode",
+   "type": "SKBitmap",
+   "namespace": "SkiaSharp",
+   "is_static": true,
+   "query": "\"SKBitmap.Decode(\" lang:C# patterntype:keyword",
+   "match_count": 1000,
+   "limit_hit": true,
+   "repositories": 260,
+   "error": null,
+   "stream_files": 657,
+   "stream_repos": 259,
+   "top_repos": [
+    [
+     "github.com/ShareX/XerahS",
+     63
+    ],
+    [
+     "github.com/NickSwardh/YoloDotNet",
+     56
+    ],
+    [
+     "github.com/SubtitleEdit/subtitleedit",
+     32
+    ],
+    [
+     "github.com/Pangamma/PixelStacker",
+     29
+    ],
+    [
+     "github.com/DrawnUi/DrawnUi.Net",
+     25
+    ],
+    [
+     "github.com/Redth/ResizetizerNT",
+     23
+    ],
+    [
+     "github.com/ShareX/ShareX",
+     23
+    ],
+    [
+     "github.com/dotnet/maui-samples",
+     20
+    ]
+   ]
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKBitmap.FromImage",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "FromImage",
+   "type": "SKBitmap",
+   "namespace": "SkiaSharp",
+   "is_static": true,
+   "query": "\"SKBitmap.FromImage(\" lang:C# patterntype:keyword",
+   "match_count": 365,
+   "limit_hit": false,
+   "repositories": 80,
+   "error": null,
+   "stream_files": 235,
+   "stream_repos": 80,
+   "top_repos": [
+    [
+     "github.com/potatobeanradio/circuitRF",
+     137
+    ],
+    [
+     "github.com/vchelaru/Gum",
+     19
+    ],
+    [
+     "github.com/DrawnUi/DrawnUi.Net",
+     18
+    ],
+    [
+     "github.com/usercode/ImageWizard",
+     11
+    ],
+    [
+     "github.com/microsoft/WindowsProtocolTestSuites",
+     10
+    ],
+    [
+     "github.com/mono/SkiaSharp",
+     8
+    ],
+    [
+     "github.com/ArduPilot/MissionPlanner",
+     7
+    ],
+    [
+     "github.com/UglyToad/PdfPig",
+     7
+    ]
+   ]
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKColorSpace.ToProfile",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "ToProfile",
+   "type": "SKColorSpace",
+   "namespace": "SkiaSharp",
+   "is_static": false,
+   "query": "\".ToProfile(\" \"using SkiaSharp\" lang:C# patterntype:keyword",
+   "match_count": 7,
+   "limit_hit": false,
+   "repositories": 3,
+   "error": null,
+   "stream_files": 3,
+   "stream_repos": 3,
+   "top_repos": [
+    [
+     "github.com/mono/SkiaSharp",
+     3
+    ],
+    [
+     "github.com/d2phap/ImageGlass",
+     2
+    ],
+    [
+     "github.com/wieslawsoltes/ProGPU",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKData.AsStream",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "AsStream",
+   "type": "SKData",
+   "namespace": "SkiaSharp",
+   "is_static": false,
+   "query": "\".AsStream(\" \"using SkiaSharp\" lang:C# patterntype:keyword",
+   "match_count": 212,
+   "limit_hit": false,
+   "repositories": 61,
+   "error": null,
+   "stream_files": 85,
+   "stream_repos": 61,
+   "top_repos": [
+    [
+     "github.com/fmbot-discord/fmbot",
+     31
+    ],
+    [
+     "github.com/ArduPilot/MissionPlanner",
+     6
+    ],
+    [
+     "github.com/santacrab2/PKHeXMAUI",
+     6
+    ],
+    [
+     "github.com/ErsatzTV/legacy",
+     6
+    ],
+    [
+     "github.com/LykosAI/StabilityMatrix",
+     6
+    ],
+    [
+     "github.com/aedenthorn/StardewValleyMods",
+     6
+    ],
+    [
+     "github.com/FluxpointDev/CloudFrost-Dev",
+     6
+    ],
+    [
+     "github.com/SylveonDeko/Mewdeko",
+     6
+    ]
+   ]
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKFileStream.OpenStream",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "OpenStream",
+   "type": "SKFileStream",
+   "namespace": "SkiaSharp",
+   "is_static": true,
+   "query": "\"SKFileStream.OpenStream(\" lang:C# patterntype:keyword",
+   "match_count": 7,
+   "limit_hit": false,
+   "repositories": 3,
+   "error": null,
+   "stream_files": 4,
+   "stream_repos": 3,
+   "top_repos": [
+    [
+     "github.com/mono/SkiaSharp",
+     3
+    ],
+    [
+     "github.com/wieslawsoltes/ProGPU",
+     3
+    ],
+    [
+     "github.com/nhmkdev/cardmaker",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKFileWStream.OpenStream",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "OpenStream",
+   "type": "SKFileWStream",
+   "namespace": "SkiaSharp",
+   "is_static": true,
+   "query": "\"SKFileWStream.OpenStream(\" lang:C# patterntype:keyword",
+   "match_count": 14,
+   "limit_hit": false,
+   "repositories": 3,
+   "error": null,
+   "stream_files": 5,
+   "stream_repos": 3,
+   "top_repos": [
+    [
+     "github.com/wieslawsoltes/ProGPU",
+     6
+    ],
+    [
+     "github.com/mono/SkiaSharp",
+     5
+    ],
+    [
+     "github.com/enjoycode/PixUI",
+     3
+    ]
+   ]
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKFont.GetGlyphPath",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "GetGlyphPath",
+   "type": "SKFont",
+   "namespace": "SkiaSharp",
+   "is_static": false,
+   "query": "\".GetGlyphPath(\" \"using SkiaSharp\" lang:C# patterntype:keyword",
+   "match_count": 40,
+   "limit_hit": false,
+   "repositories": 11,
+   "error": null,
+   "stream_files": 14,
+   "stream_repos": 11,
+   "top_repos": [
+    [
+     "github.com/wieslawsoltes/ProGPU",
+     10
+    ],
+    [
+     "github.com/b-editor/beutl",
+     4
+    ],
+    [
+     "github.com/SubtitleEdit/subtitleedit",
+     4
+    ],
+    [
+     "github.com/Facepunch/sbox-public",
+     4
+    ],
+    [
+     "github.com/SceneTech/WebScene",
+     4
+    ],
+    [
+     "github.com/lay295/TwitchDownloader",
+     3
+    ],
+    [
+     "github.com/BobLd/PdfPig.Rendering.Skia",
+     3
+    ],
+    [
+     "github.com/raroche/NetPdf",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKFont.GetTextPath",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "GetTextPath",
+   "type": "SKFont",
+   "namespace": "SkiaSharp",
+   "is_static": false,
+   "query": "\".GetTextPath(\" \"using SkiaSharp\" lang:C# patterntype:keyword",
+   "match_count": 130,
+   "limit_hit": false,
+   "repositories": 24,
+   "error": null,
+   "stream_files": 40,
+   "stream_repos": 24,
+   "top_repos": [
+    [
+     "github.com/koszeggy/KGySoft.Drawing",
+     29
+    ],
+    [
+     "github.com/dotnet/maui-samples",
+     16
+    ],
+    [
+     "github.com/wieslawsoltes/ProGPU",
+     13
+    ],
+    [
+     "github.com/wsxhm/CPF",
+     9
+    ],
+    [
+     "github.com/mgierlasinski/MagicGradients",
+     6
+    ],
+    [
+     "github.com/vexx32/PSWordCloud",
+     6
+    ],
+    [
+     "github.com/potatobeanradio/circuitRF",
+     6
+    ],
+    [
+     "github.com/ArduPilot/MissionPlanner",
+     4
+    ]
+   ]
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPaint.GetTextPath",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "GetTextPath",
+   "type": "SKPaint",
+   "namespace": "SkiaSharp",
+   "is_static": false,
+   "query": "\".GetTextPath(\" \"using SkiaSharp\" lang:C# patterntype:keyword",
+   "match_count": 130,
+   "limit_hit": false,
+   "repositories": 24,
+   "error": null,
+   "stream_files": 40,
+   "stream_repos": 24,
+   "top_repos": [
+    [
+     "github.com/koszeggy/KGySoft.Drawing",
+     29
+    ],
+    [
+     "github.com/dotnet/maui-samples",
+     16
+    ],
+    [
+     "github.com/wieslawsoltes/ProGPU",
+     13
+    ],
+    [
+     "github.com/wsxhm/CPF",
+     9
+    ],
+    [
+     "github.com/mgierlasinski/MagicGradients",
+     6
+    ],
+    [
+     "github.com/vexx32/PSWordCloud",
+     6
+    ],
+    [
+     "github.com/potatobeanradio/circuitRF",
+     6
+    ],
+    [
+     "github.com/ArduPilot/MissionPlanner",
+     4
+    ]
+   ]
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPath.CreateIterator",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateIterator",
+   "type": "SKPath",
+   "namespace": "SkiaSharp",
+   "is_static": false,
+   "query": "\".CreateIterator(\" \"using SkiaSharp\" lang:C# patterntype:keyword",
+   "match_count": 29,
+   "limit_hit": false,
+   "repositories": 8,
+   "error": null,
+   "stream_files": 11,
+   "stream_repos": 8,
+   "top_repos": [
+    [
+     "github.com/wieslawsoltes/ProGPU",
+     8
+    ],
+    [
+     "github.com/unoplatform/uno",
+     7
+    ],
+    [
+     "github.com/ArduPilot/MissionPlanner",
+     3
+    ],
+    [
+     "github.com/PeterWaher/IoTGateway",
+     3
+    ],
+    [
+     "github.com/AvaloniaUI/Avalonia",
+     2
+    ],
+    [
+     "github.com/PixiEditor/Drawie",
+     2
+    ],
+    [
+     "github.com/Facepunch/sbox-public",
+     2
+    ],
+    [
+     "github.com/potatobeanradio/circuitRF",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPath.CreateRawIterator",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "CreateRawIterator",
+   "type": "SKPath",
+   "namespace": "SkiaSharp",
+   "is_static": false,
+   "query": "\".CreateRawIterator(\" \"using SkiaSharp\" lang:C# patterntype:keyword",
+   "match_count": 60,
+   "limit_hit": false,
+   "repositories": 12,
+   "error": null,
+   "stream_files": 23,
+   "stream_repos": 12,
+   "top_repos": [
+    [
+     "github.com/wieslawsoltes/ProGPU",
+     26
+    ],
+    [
+     "github.com/b-editor/beutl",
+     6
+    ],
+    [
+     "github.com/raroche/NetPdf",
+     6
+    ],
+    [
+     "github.com/wieslawsoltes/Core2D",
+     4
+    ],
+    [
+     "github.com/issus/AltiumSharp",
+     4
+    ],
+    [
+     "github.com/dotnet/maui-samples",
+     2
+    ],
+    [
+     "github.com/PixiEditor/Drawie",
+     2
+    ],
+    [
+     "github.com/koszeggy/KGySoft.Drawing",
+     2
+    ]
+   ]
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKPath.ParseSvgPathData",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "ParseSvgPathData",
+   "type": "SKPath",
+   "namespace": "SkiaSharp",
+   "is_static": true,
+   "query": "\"SKPath.ParseSvgPathData(\" lang:C# patterntype:keyword",
+   "match_count": 304,
+   "limit_hit": false,
+   "repositories": 49,
+   "error": null,
+   "stream_files": 93,
+   "stream_repos": 49,
+   "top_repos": [
+    [
+     "github.com/dotnet-ad/SkiaSharp.Components",
+     168
+    ],
+    [
+     "github.com/dotnet/maui-samples",
+     15
+    ],
+    [
+     "github.com/Live-Charts/LiveCharts2",
+     15
+    ],
+    [
+     "github.com/clowd/Clowd",
+     12
+    ],
+    [
+     "github.com/mariusmuntean/Particle.Forms",
+     10
+    ],
+    [
+     "github.com/Alex4SSB/ADB-Explorer",
+     6
+    ],
+    [
+     "github.com/trimble-oss/dba-dash",
+     6
+    ],
+    [
+     "github.com/lindexi/lindexi_gd",
+     5
+    ]
+   ]
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKRuntimeEffect.BuildBlender",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "BuildBlender",
+   "type": "SKRuntimeEffect",
+   "namespace": "SkiaSharp",
+   "is_static": true,
+   "query": "\"SKRuntimeEffect.BuildBlender(\" lang:C# patterntype:keyword",
+   "match_count": 1,
+   "limit_hit": false,
+   "repositories": 1,
+   "error": null,
+   "stream_files": 1,
+   "stream_repos": 1,
+   "top_repos": [
+    [
+     "github.com/mono/SkiaSharp",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKRuntimeEffect.BuildColorFilter",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "BuildColorFilter",
+   "type": "SKRuntimeEffect",
+   "namespace": "SkiaSharp",
+   "is_static": true,
+   "query": "\"SKRuntimeEffect.BuildColorFilter(\" lang:C# patterntype:keyword",
+   "match_count": 0,
+   "limit_hit": false,
+   "repositories": 0,
+   "error": null,
+   "stream_files": 0,
+   "stream_repos": 0,
+   "top_repos": []
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKRuntimeEffect.BuildShader",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "BuildShader",
+   "type": "SKRuntimeEffect",
+   "namespace": "SkiaSharp",
+   "is_static": true,
+   "query": "\"SKRuntimeEffect.BuildShader(\" lang:C# patterntype:keyword",
+   "match_count": 22,
+   "limit_hit": false,
+   "repositories": 3,
+   "error": null,
+   "stream_files": 18,
+   "stream_repos": 3,
+   "top_repos": [
+    [
+     "github.com/mono/SkiaSharp",
+     19
+    ],
+    [
+     "github.com/wieslawsoltes/ProGPU",
+     2
+    ],
+    [
+     "github.com/jonathanpeppers/Android-NativeAOT",
+     1
+    ]
+   ]
+  },
+  {
+   "package": "SkiaSharp",
+   "callable": "SkiaSharp.SKTypeface.ToFont",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "ToFont",
+   "type": "SKTypeface",
+   "namespace": "SkiaSharp",
+   "is_static": false,
+   "query": "\".ToFont(\" \"using SkiaSharp\" lang:C# patterntype:keyword",
+   "match_count": 89,
+   "limit_hit": false,
+   "repositories": 14,
+   "error": null,
+   "stream_files": 28,
+   "stream_repos": 14,
+   "top_repos": [
+    [
+     "github.com/SceneTech/WebScene",
+     21
+    ],
+    [
+     "github.com/lindexi/lindexi_gd",
+     14
+    ],
+    [
+     "github.com/axzxs2001/Asp.NetCoreExperiment",
+     12
+    ],
+    [
+     "github.com/CalyPdf/CalyPdf",
+     7
+    ],
+    [
+     "github.com/BobLd/PdfPig.Rendering.Skia",
+     7
+    ],
+    [
+     "github.com/ValveResourceFormat/ValveResourceFormat",
+     6
+    ],
+    [
+     "github.com/wieslawsoltes/ProGPU",
+     5
+    ],
+    [
+     "github.com/zmaplab/zserver",
+     4
+    ]
+   ]
+  },
+  {
+   "package": "StackExchange.Redis",
+   "callable": "StackExchange.Redis.Lease<T>.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "method": "Create",
+   "type": "Lease<T>",
+   "namespace": "StackExchange.Redis",
+   "is_static": true,
+   "query": "\"Lease<T>.Create(\" lang:C# patterntype:keyword",
+   "match_count": 2,
+   "limit_hit": false,
+   "repositories": 1,
+   "error": null,
+   "stream_files": 1,
+   "stream_repos": 1,
+   "top_repos": [
+    [
+     "github.com/StackExchange/StackExchange.Redis",
+     2
+    ]
+   ]
+  }
+ ],
+ "own_repos": {
+  "BouncyCastle.Cryptography": "bcgit/bc-csharp",
+  "CsvHelper": "joshclose/csvhelper",
+  "Google.Protobuf": "protocolbuffers/protobuf",
+  "K4os.Compression.LZ4.Streams": "",
+  "LibGit2Sharp": "libgit2/libgit2sharp",
+  "MQTTnet": "dotnet/mqttnet",
+  "MailKit": "",
+  "Microsoft.Data.Sqlite.Core": "dotnet/dotnet",
+  "MySqlConnector": "mysql-net/mysqlconnector",
+  "NLog": "nlog/nlog",
+  "NSec.Cryptography": "ektrah/nsec",
+  "Newtonsoft.Json": "jamesnk/newtonsoft.json",
+  "Npgsql": "npgsql/npgsql",
+  "RabbitMQ.Client": "rabbitmq/rabbitmq-dotnet-client",
+  "SSH.NET": "sshnet/ssh.net",
+  "Serilog": "serilog/serilog",
+  "SharpCompress": "adamhathcock/sharpcompress",
+  "SharpZipLib": "icsharpcode/sharpziplib",
+  "SixLabors.ImageSharp": "sixlabors/imagesharp",
+  "SkiaSharp": "https://go.microsoft.com/fwlink/?linkid=868515",
+  "StackExchange.Redis": "stackexchange/stackexchange.redis/",
+  "ZstdSharp.Port": "oleg-st/zstdsharp"
+ },
+ "repositories": [
+  {
+   "repo": "github.com/sshnet/SSH.NET",
+   "opportunities": 1341,
+   "distinct_rows": 10,
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/BrighterCommand/Brighter",
+   "opportunities": 641,
+   "distinct_rows": 14,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/JasperFx/marten",
+   "opportunities": 624,
+   "distinct_rows": 14,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/NpgsqlRest/NpgsqlRest",
+   "opportunities": 513,
+   "distinct_rows": 10,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/JasperFx/wolverine",
+   "opportunities": 468,
+   "distinct_rows": 16,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/npgsql/npgsql",
+   "opportunities": 465,
+   "distinct_rows": 18,
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/seiggy/lucia-dotnet",
+   "opportunities": 415,
+   "distinct_rows": 8,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/WebVella/WebVella-ERP",
+   "opportunities": 373,
+   "distinct_rows": 11,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/libgit2/libgit2sharp",
+   "opportunities": 369,
+   "distinct_rows": 2,
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/erikdarlingdata/PerformanceMonitor",
+   "opportunities": 327,
+   "distinct_rows": 11,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/JasperFx/weasel",
+   "opportunities": 277,
+   "distinct_rows": 14,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/mikependon/RepoDB",
+   "opportunities": 276,
+   "distinct_rows": 9,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/DaredevilOSS/sqlc-gen-csharp",
+   "opportunities": 265,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/quartznet/quartznet",
+   "opportunities": 193,
+   "distinct_rows": 16,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/liuweichaox/Ingot",
+   "opportunities": 185,
+   "distinct_rows": 9,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/adospace/CoreSync",
+   "opportunities": 179,
+   "distinct_rows": 5,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/MQTTnet",
+   "opportunities": 178,
+   "distinct_rows": 2,
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/Ivy-Interactive/Ivy-Tendril",
+   "opportunities": 176,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ektrah/nsec",
+   "opportunities": 169,
+   "distinct_rows": 6,
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/dotnet-ad/SkiaSharp.Components",
+   "opportunities": 169,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/votrongdao/FlowX",
+   "opportunities": 166,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Nethereum/Nethereum",
+   "opportunities": 156,
+   "distinct_rows": 7,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/TechnitiumSoftware/DnsServer",
+   "opportunities": 154,
+   "distinct_rows": 8,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/potatobeanradio/circuitRF",
+   "opportunities": 154,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/AneiangSoft/Aneiang.Yarp",
+   "opportunities": 148,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Advance-Technologies-Foundation/clio",
+   "opportunities": 123,
+   "distinct_rows": 5,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/NLog/NLog",
+   "opportunities": 121,
+   "distinct_rows": 6,
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/Particular/docs.particular.net",
+   "opportunities": 114,
+   "distinct_rows": 7,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Mimetis/Dotmim.Sync",
+   "opportunities": 110,
+   "distinct_rows": 5,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/dotnet",
+   "opportunities": 109,
+   "distinct_rows": 9,
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/microsoft/aspire",
+   "opportunities": 109,
+   "distinct_rows": 13,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/victor-wiki/DatabaseManager",
+   "opportunities": 107,
+   "distinct_rows": 8,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/KrisTHL181/Break-This-Repo",
+   "opportunities": 107,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/MySqlBackupNET/MySqlBackup.Net",
+   "opportunities": 104,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/wieslawsoltes/ProGPU",
+   "opportunities": 100,
+   "distinct_rows": 14,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/mysql-net/MySqlConnector",
+   "opportunities": 96,
+   "distinct_rows": 7,
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/npgsql/efcore.pg",
+   "opportunities": 96,
+   "distinct_rows": 9,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/maui-samples",
+   "opportunities": 94,
+   "distinct_rows": 7,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/isaacrlevin/presencelight",
+   "opportunities": 92,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Maxwolf/OregonTrail",
+   "opportunities": 88,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/nightscout/nocturne",
+   "opportunities": 88,
+   "distinct_rows": 10,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/EntglDb/BLite",
+   "opportunities": 87,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/spodskubka/RemoteTerminal",
+   "opportunities": 87,
+   "distinct_rows": 7,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/SixLabors/ImageSharp",
+   "opportunities": 86,
+   "distinct_rows": 5,
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/ChilliCream/graphql-platform",
+   "opportunities": 83,
+   "distinct_rows": 9,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql",
+   "opportunities": 83,
+   "distinct_rows": 5,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Thelittlechicken/oc34n-r2",
+   "opportunities": 83,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/TwentyFourMinutes/Venflow",
+   "opportunities": 80,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/simeonradivoev/UniGit",
+   "opportunities": 79,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/lofcz/LlmTornado",
+   "opportunities": 79,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/OpenFireSource/AlarmWorkflow",
+   "opportunities": 78,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/btcpayserver/NBXplorer",
+   "opportunities": 77,
+   "distinct_rows": 5,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ArduPilot/MissionPlanner",
+   "opportunities": 75,
+   "distinct_rows": 17,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/microsoft/Trill",
+   "opportunities": 75,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnetcore/FreeSql",
+   "opportunities": 74,
+   "distinct_rows": 9,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Unity-Technologies/UnityDataTools",
+   "opportunities": 72,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/docs",
+   "opportunities": 71,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/runtime",
+   "opportunities": 71,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnetcore/CAP",
+   "opportunities": 69,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Vocaluxe/Vocaluxe",
+   "opportunities": 68,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ShareX/XerahS",
+   "opportunities": 68,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/SixLabors/ImageSharp.Drawing",
+   "opportunities": 68,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/koszeggy/KGySoft.Drawing",
+   "opportunities": 68,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ravendb/ravendb",
+   "opportunities": 67,
+   "distinct_rows": 8,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/AerialX/rawksd",
+   "opportunities": 67,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/FanTranslatorsInternational/Kuriimu2",
+   "opportunities": 67,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/linq2db/linq2db",
+   "opportunities": 66,
+   "distinct_rows": 5,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/hangfire-postgres/Hangfire.PostgreSql",
+   "opportunities": 66,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ZethRise/SpoofGUI",
+   "opportunities": 64,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/aspnet/Benchmarks",
+   "opportunities": 63,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/jflieben/assortedFunctionsV2",
+   "opportunities": 61,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/NickSwardh/YoloDotNet",
+   "opportunities": 61,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/BEagle1984/silverback",
+   "opportunities": 60,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/adospace/reactorui-maui",
+   "opportunities": 60,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/litenova/LiteBus",
+   "opportunities": 60,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/MDA2AV/HttpArena",
+   "opportunities": 60,
+   "distinct_rows": 5,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/davidortinau/telepathy",
+   "opportunities": 59,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/mono/SkiaSharp",
+   "opportunities": 59,
+   "distinct_rows": 11,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/GoogleCloudPlatform/pgadapter",
+   "opportunities": 58,
+   "distinct_rows": 7,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/RaidMax/IW4M-Admin",
+   "opportunities": 58,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/mirbeta/OpenMir2",
+   "opportunities": 57,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/madelson/DistributedLock",
+   "opportunities": 57,
+   "distinct_rows": 8,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/roslynator",
+   "opportunities": 57,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/J-Tech-Japan/Sekiban",
+   "opportunities": 56,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/AdKats/AdKats",
+   "opportunities": 56,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/thomhurst/TUnit",
+   "opportunities": 55,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ariacom/Seal-Report",
+   "opportunities": 54,
+   "distinct_rows": 8,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ConcreteMC/Alex",
+   "opportunities": 54,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/event-driven-io/Blumchen",
+   "opportunities": 54,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/apaka/win-sshfs",
+   "opportunities": 54,
+   "distinct_rows": 5,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Altinn/altinn-studio",
+   "opportunities": 53,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/surveysolutions/surveysolutions",
+   "opportunities": 53,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/MiloszKrajewski/K4os.Compression.LZ4",
+   "opportunities": 50,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/SubtitleEdit/subtitleedit",
+   "opportunities": 50,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/TripleView/HomeKit.Net",
+   "opportunities": 50,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/yukuyoulei/ILRuntime_HotGames",
+   "opportunities": 50,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/OPCFoundation/UA-IIoT-StarterKit",
+   "opportunities": 48,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Trion-Control-Panel/TrionControlPanel",
+   "opportunities": 48,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/roozbehid/WasmWinforms",
+   "opportunities": 48,
+   "distinct_rows": 12,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/indiff/DBCHM",
+   "opportunities": 48,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/oskardudycz/EventSourcing.NetCore",
+   "opportunities": 48,
+   "distinct_rows": 8,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Warewolf-ESB/Warewolf",
+   "opportunities": 48,
+   "distinct_rows": 7,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/skimedic/presentations",
+   "opportunities": 48,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/DuendeSoftware/products",
+   "opportunities": 47,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/mattosaurus/PgpCore",
+   "opportunities": 46,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/s1t5/mail-archiver",
+   "opportunities": 46,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/neo-project/neo",
+   "opportunities": 46,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/zmaplab/zserver",
+   "opportunities": 46,
+   "distinct_rows": 12,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/spektor56/OpenpilotToolkit",
+   "opportunities": 46,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/LucidDB/luciddb",
+   "opportunities": 45,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/TortugaResearch/Tortuga.Chain",
+   "opportunities": 44,
+   "distinct_rows": 7,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/DrawnUi/DrawnUi.Net",
+   "opportunities": 44,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ShareX/ShareX",
+   "opportunities": 43,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ooples/AiDotNet",
+   "opportunities": 42,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/PacktPublishing/Mastering-ABP-Framework",
+   "opportunities": 42,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ozontech/pg_doorman",
+   "opportunities": 41,
+   "distinct_rows": 5,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/SceneTech/WebScene",
+   "opportunities": 41,
+   "distinct_rows": 7,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/nietras/Sep",
+   "opportunities": 40,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/mnbuhl/efcore-locking",
+   "opportunities": 39,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/f-shake/RemoteFFmpegGUI",
+   "opportunities": 38,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/duplicati/duplicati",
+   "opportunities": 38,
+   "distinct_rows": 5,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/heartached/Noctis",
+   "opportunities": 38,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/AhmadRafiee/DevOps_Certification",
+   "opportunities": 38,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/VSadov/Satori",
+   "opportunities": 38,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/microsoft/service-fabric",
+   "opportunities": 38,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/infinidysk/infinidysk",
+   "opportunities": 38,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/kaby76/Antlr4BuildTasks",
+   "opportunities": 38,
+   "distinct_rows": 10,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/fornit1917/jobby",
+   "opportunities": 37,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Farfetch/kafkaflow-retry-extensions",
+   "opportunities": 37,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/asfarley/vtc_opensource",
+   "opportunities": 36,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Pangamma/PixelStacker",
+   "opportunities": 36,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/serilog-contrib/Serilog.Enrichers.Sensitive",
+   "opportunities": 36,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Plac3hold3r/MvxScaffolding",
+   "opportunities": 36,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/lemutec/MicaSetup",
+   "opportunities": 36,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/fmbot-discord/fmbot",
+   "opportunities": 36,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/IoTSharp/SonnetDB",
+   "opportunities": 35,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/signumsoftware/framework",
+   "opportunities": 35,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/nullpainter/sanchez",
+   "opportunities": 35,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/icsharpcode/SharpZipLib",
+   "opportunities": 35,
+   "distinct_rows": 5,
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/parzivail/ReMarkable.NET",
+   "opportunities": 35,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/bcgit/bc-csharp",
+   "opportunities": 34,
+   "distinct_rows": 3,
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/Macro-Deck-App/Macro-Deck",
+   "opportunities": 34,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/rampaa/JL",
+   "opportunities": 34,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/maraf/Money",
+   "opportunities": 34,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/OliverEGreen/Regular",
+   "opportunities": 34,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/aloneguid/parquet-dotnet",
+   "opportunities": 34,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ThingEngineering/wowthing-again",
+   "opportunities": 34,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Resgrid/Core",
+   "opportunities": 34,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/antonputra/tutorials",
+   "opportunities": 34,
+   "distinct_rows": 5,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dashiell-zhang/NetEngine",
+   "opportunities": 34,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/adamhathcock/sharpcompress",
+   "opportunities": 34,
+   "distinct_rows": 2,
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/QutEcoacoustics/audio-analysis",
+   "opportunities": 34,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/yuzd/AntDeploy",
+   "opportunities": 33,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/bilibili/UnityBVA",
+   "opportunities": 33,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/tumtumtum/Shaolinq",
+   "opportunities": 33,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Whisparr/Whisparr",
+   "opportunities": 33,
+   "distinct_rows": 10,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/0auBSQ/OpenTaiko",
+   "opportunities": 32,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ZoneTree/ZoneTree",
+   "opportunities": 32,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/microsoft/tyger",
+   "opportunities": 32,
+   "distinct_rows": 8,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/TrakHound/MTConnect.NET",
+   "opportunities": 31,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/daniel3303/Equibles",
+   "opportunities": 31,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Prowlarr/Prowlarr",
+   "opportunities": 31,
+   "distinct_rows": 10,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Radarr/Radarr",
+   "opportunities": 31,
+   "distinct_rows": 10,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Gml-Launcher/Gml.Launcher",
+   "opportunities": 31,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/BeyondDimension/SteamTools",
+   "opportunities": 30,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/fiddyschmitt/File-Tunnel",
+   "opportunities": 30,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/nightroman/FarNet",
+   "opportunities": 30,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Ginger-Automation/Ginger",
+   "opportunities": 30,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/factset/enterprise-sdk",
+   "opportunities": 30,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/x3bits/MikuMikuXR",
+   "opportunities": 30,
+   "distinct_rows": 11,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Whisparr/Whisparr-Eros",
+   "opportunities": 30,
+   "distinct_rows": 9,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/zhichkin/dajet",
+   "opportunities": 30,
+   "distinct_rows": 5,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/lindexi/lindexi_gd",
+   "opportunities": 30,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/PacktPublishing/Clean-Architecture-with-.NET",
+   "opportunities": 30,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/AIDotNet/OpenDeepWiki",
+   "opportunities": 29,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Azure/Industrial-IoT",
+   "opportunities": 29,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/AscensionGameDev/Intersect-Engine",
+   "opportunities": 29,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Yafrovon/MangosSuperUI",
+   "opportunities": 29,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/yaochangyu/sample.dotblog",
+   "opportunities": 29,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Cinchoo/ChoPGP",
+   "opportunities": 28,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/neoeinstein/bouncycastle",
+   "opportunities": 28,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/axzxs2001/Asp.NetCoreExperiment",
+   "opportunities": 28,
+   "distinct_rows": 8,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/GitTools/GitVersion",
+   "opportunities": 28,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/samples",
+   "opportunities": 28,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/angularsen/UnitsNet",
+   "opportunities": 28,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/cmdscale/CmdScale.EntityFrameworkCore.TimescaleDB",
+   "opportunities": 28,
+   "distinct_rows": 5,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/idaholab/DeepLynx",
+   "opportunities": 28,
+   "distinct_rows": 4,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Universalis-FFXIV/Universalis",
+   "opportunities": 27,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/KhronosGroup/UnityGLTF",
+   "opportunities": 27,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/b00ted/serilog-sinks-postgresql",
+   "opportunities": 27,
+   "distinct_rows": 3,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ste-phil/Win10-Explorer",
+   "opportunities": 27,
+   "distinct_rows": 11,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Deijin27/RanseiLink",
+   "opportunities": 27,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Pryaxis/TShock",
+   "opportunities": 26,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/huynhsontung/Screenbox",
+   "opportunities": 26,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/damian-krychowski/plikshare",
+   "opportunities": 26,
+   "distinct_rows": 7,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/RedWoodOG/Hermes-Desktop",
+   "opportunities": 26,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Deffiss/testenvironment-docker",
+   "opportunities": 26,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/azist/azos",
+   "opportunities": 26,
+   "distinct_rows": 2,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/microsoft/kernel-memory",
+   "opportunities": 26,
+   "distinct_rows": 1,
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Azure/Microsoft.Extensions.Caching.Postgres",
+   "opportunities": 26,
+   "distinct_rows": 6,
+   "is_row_library_repo": false
+  }
+ ],
+ "decision_inputs": {
+  "repos_ge100_excluding_own": 28,
+  "repos_ge30_excluding_own": 162,
+  "rows_with_zero_matches": 14,
+  "rows_with_lt10_matches": 36,
+  "stream_cap_per_row": 1000,
+  "graphql_count_cap": 1000
+ }
+}

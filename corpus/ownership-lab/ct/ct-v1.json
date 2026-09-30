@@ -1,0 +1,1522 @@
+{
+ "schema": "own.net/ownership-lab/ct/v1",
+ "track": "ownership-semantics-lab (EXPLORATORY): H-21 relational candidate discovery under ct-prereg-v1.json (frozen 2026-09-30T09:10:55Z)",
+ "written_at_utc": "2026-09-30T09:38:27Z",
+ "CT0_census": {
+  "rows_queried": 133,
+  "query_form": "static: \"Type.Method(\" ; instance: \".Method(\" AND \"using Namespace\"; lang:C#; patterntype:keyword; GraphQL count:1000 (limit_hit recorded); stream count:1000 per row for the per-repository aggregation",
+  "rows_with_zero_matches": 14,
+  "rows_with_lt10_matches": 36,
+  "rows_with_ge100_matches": 46,
+  "rows_limit_hit_at_1000": 15,
+  "median_matches_per_row": 44,
+  "top_rows_by_matches": [
+   [
+    "LibGit2Sharp.RemoteCollection.Add",
+    1000,
+    66
+   ],
+   [
+    "Microsoft.Data.Sqlite.SqliteConnection.CreateCommand",
+    1000,
+    102
+   ],
+   [
+    "Microsoft.Data.Sqlite.SqliteFactory.CreateCommand",
+    1000,
+    103
+   ],
+   [
+    "MySqlConnector.MySqlConnectorFactory.CreateCommand",
+    1000,
+    60
+   ],
+   [
+    "MySqlConnector.MySqlConnection.CreateCommand",
+    1000,
+    68
+   ],
+   [
+    "NSec.Cryptography.Key.Create",
+    1000,
+    137
+   ],
+   [
+    "Newtonsoft.Json.Linq.JToken.CreateReader",
+    1000,
+    204
+   ],
+   [
+    "Npgsql.NpgsqlDataSource.CreateCommand",
+    1000,
+    102
+   ],
+   [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    1000,
+    164
+   ],
+   [
+    "Npgsql.NpgsqlFactory.CreateCommand",
+    1000,
+    102
+   ],
+   [
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+    1000,
+    170
+   ],
+   [
+    "Npgsql.NpgsqlConnection.CreateCommand",
+    1000,
+    110
+   ],
+   [
+    "Serilog.LoggerConfiguration.CreateLogger",
+    1000,
+    163
+   ],
+   [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone",
+    1000,
+    88
+   ],
+   [
+    "SkiaSharp.SKBitmap.Decode",
+    1000,
+    260
+   ]
+  ],
+  "repositories_seen": 200,
+  "repos_ge100_excluding_own": 28,
+  "repos_ge30_excluding_own": 162,
+  "top_repositories_excluding_own": [
+   [
+    "github.com/BrighterCommand/Brighter",
+    641,
+    14
+   ],
+   [
+    "github.com/JasperFx/marten",
+    624,
+    14
+   ],
+   [
+    "github.com/NpgsqlRest/NpgsqlRest",
+    513,
+    10
+   ],
+   [
+    "github.com/JasperFx/wolverine",
+    468,
+    16
+   ],
+   [
+    "github.com/seiggy/lucia-dotnet",
+    415,
+    8
+   ],
+   [
+    "github.com/WebVella/WebVella-ERP",
+    373,
+    11
+   ],
+   [
+    "github.com/erikdarlingdata/PerformanceMonitor",
+    327,
+    11
+   ],
+   [
+    "github.com/JasperFx/weasel",
+    277,
+    14
+   ],
+   [
+    "github.com/mikependon/RepoDB",
+    276,
+    9
+   ],
+   [
+    "github.com/DaredevilOSS/sqlc-gen-csharp",
+    265,
+    4
+   ],
+   [
+    "github.com/quartznet/quartznet",
+    193,
+    16
+   ],
+   [
+    "github.com/liuweichaox/Ingot",
+    185,
+    9
+   ],
+   [
+    "github.com/adospace/CoreSync",
+    179,
+    5
+   ],
+   [
+    "github.com/Ivy-Interactive/Ivy-Tendril",
+    176,
+    2
+   ],
+   [
+    "github.com/dotnet-ad/SkiaSharp.Components",
+    169,
+    2
+   ],
+   [
+    "github.com/votrongdao/FlowX",
+    166,
+    6
+   ],
+   [
+    "github.com/Nethereum/Nethereum",
+    156,
+    7
+   ],
+   [
+    "github.com/TechnitiumSoftware/DnsServer",
+    154,
+    8
+   ],
+   [
+    "github.com/potatobeanradio/circuitRF",
+    154,
+    6
+   ],
+   [
+    "github.com/AneiangSoft/Aneiang.Yarp",
+    148,
+    3
+   ],
+   [
+    "github.com/Advance-Technologies-Foundation/clio",
+    123,
+    5
+   ],
+   [
+    "github.com/Particular/docs.particular.net",
+    114,
+    7
+   ],
+   [
+    "github.com/Mimetis/Dotmim.Sync",
+    110,
+    5
+   ],
+   [
+    "github.com/microsoft/aspire",
+    109,
+    13
+   ],
+   [
+    "github.com/victor-wiki/DatabaseManager",
+    107,
+    8
+   ]
+  ],
+  "caveats": "text search over-counts (other types' same-named methods, tests, forks, vendored copies, samples) and the per-row stream cap of 1000 matches under-counts the densest rows; instance-row queries require the namespace using directive in the same file",
+  "supplement_rows_beyond_production_conventions": {
+   "rows_considered": 126,
+   "rows_excluded_as_production_covered": [
+    "Microsoft.Data.Sqlite.SqliteConnection.CreateCommand",
+    "Microsoft.Data.Sqlite.SqliteFactory.CreateCommand",
+    "MySqlConnector.MySqlConnectorFactory.CreateCommand",
+    "MySqlConnector.MySqlConnection.CreateCommand",
+    "Npgsql.NpgsqlDataSource.CreateCommand",
+    "Npgsql.NpgsqlFactory.CreateCommand",
+    "Npgsql.NpgsqlConnection.CreateCommand"
+   ],
+   "repos_ge100_excluding_own": 17,
+   "repos_ge30_excluding_own": 108,
+   "top_repositories_excluding_own": [
+    [
+     "github.com/JasperFx/marten",
+     464,
+     11
+    ],
+    [
+     "github.com/NpgsqlRest/NpgsqlRest",
+     450,
+     7
+    ],
+    [
+     "github.com/erikdarlingdata/PerformanceMonitor",
+     309,
+     8
+    ],
+    [
+     "github.com/WebVella/WebVella-ERP",
+     287,
+     8
+    ],
+    [
+     "github.com/mikependon/RepoDB",
+     234,
+     4
+    ],
+    [
+     "github.com/JasperFx/weasel",
+     188,
+     11
+    ],
+    [
+     "github.com/dotnet-ad/SkiaSharp.Components",
+     169,
+     2
+    ],
+    [
+     "github.com/DuendeSoftware/products",
+     158,
+     2
+    ],
+    [
+     "github.com/seiggy/lucia-dotnet",
+     157,
+     6
+    ],
+    [
+     "github.com/JasperFx/wolverine",
+     155,
+     9
+    ],
+    [
+     "github.com/potatobeanradio/circuitRF",
+     154,
+     6
+    ],
+    [
+     "github.com/quartznet/quartznet",
+     145,
+     9
+    ],
+    [
+     "github.com/KrisTHL181/Break-This-Repo",
+     137,
+     7
+    ],
+    [
+     "github.com/wieslawsoltes/ProGPU",
+     118,
+     15
+    ],
+    [
+     "github.com/SixLabors/ImageSharp.Drawing",
+     109,
+     4
+    ],
+    [
+     "github.com/victor-wiki/DatabaseManager",
+     107,
+     8
+    ],
+    [
+     "github.com/Particular/docs.particular.net",
+     102,
+     6
+    ],
+    [
+     "github.com/Altinn/altinn-studio",
+     93,
+     4
+    ],
+    [
+     "github.com/microsoft/aspire",
+     93,
+     8
+    ],
+    [
+     "github.com/isaacrlevin/presencelight",
+     92,
+     1
+    ],
+    [
+     "github.com/spodskubka/RemoteTerminal",
+     87,
+     7
+    ],
+    [
+     "github.com/mono/SkiaSharp",
+     85,
+     11
+    ],
+    [
+     "github.com/Thelittlechicken/oc34n-r2",
+     83,
+     3
+    ],
+    [
+     "github.com/npgsql/efcore.pg",
+     80,
+     9
+    ],
+    [
+     "github.com/TwentyFourMinutes/Venflow",
+     80,
+     2
+    ]
+   ],
+   "note": "mono/SkiaSharp appears in this list because its acquire record carries no nuspec repository URL; treat it as a row-library repository"
+  },
+  "decision": {
+   "rule": "ct-prereg-v1 CT-0",
+   "consumer_selection": "HOLDS: excluding the row libraries' own repositories, 28 public repositories carry >= 100 textual opportunities over the 133 rows (17 over the 126 rows beyond the production ADO convention) and 162 (108) carry >= 30; the v2 consumer set (Duplicati, Sonarr, Svg.Skia, QuestPDF, Mapsui, ScottPlot, CAP, btcpayserver, ...) was sparse for this row set; marten, the one v2 consumer with hits, is the densest repository in the census (464 opportunities beyond the convention)",
+   "row_breadth": "ALSO HOLDS: 14 of 133 rows have zero public matches and 36 fewer than 10; three packages' rows are practically unused (RabbitMQ.Client 11 matches over 2 rows, MailKit 4, StackExchange.Redis 2) because the proved rows are obscure callables while the heavily used factories of those libraries (ConnectionFactory.CreateConnectionAsync, IConnection.CreateChannelAsync, ConnectionMultiplexer.Connect, Pop3Client.GetStream) were not proved; breadth on the USED surface is the bottleneck, not the row count",
+   "consequence": "the next consumer run must be chosen by density (census top list) and must count exposure on the same base as opportunity (erratum-3 item 4); H-21 keeps a demanding instance only for the non-provable remainder and binary-only surfaces"
+  }
+ },
+ "gate0": {
+  "libraries_evaluated": 21,
+  "surface_callables": 1867,
+  "positives": 131,
+  "mean_over_libraries": {
+   "A": {
+    "recall@10": 0.647,
+    "recall@25": 0.802,
+    "prec@10": 0.25,
+    "prec@25": 0.148
+   },
+   "B": {
+    "recall@10": 0.77,
+    "recall@25": 0.855,
+    "prec@10": 0.345,
+    "prec@25": 0.171
+   },
+   "C_rules": {
+    "recall@10": 0.778,
+    "recall@25": 0.914,
+    "prec@10": 0.367,
+    "prec@25": 0.203
+   },
+   "C_lr": {
+    "recall@10": 0.798,
+    "recall@25": 0.9,
+    "prec@10": 0.367,
+    "prec@25": 0.194
+   }
+  },
+  "pooled": {
+   "A": {
+    "pooled_recall@10": 0.401,
+    "pooled_recall@25": 0.595
+   },
+   "B": {
+    "pooled_recall@10": 0.553,
+    "pooled_recall@25": 0.685
+   },
+   "C_rules": {
+    "pooled_recall@10": 0.588,
+    "pooled_recall@25": 0.813
+   },
+   "C_lr": {
+    "pooled_recall@10": 0.588,
+    "pooled_recall@25": 0.779
+   }
+  },
+  "lr_top_weights": [
+   [
+    "bias",
+    -1.606
+   ],
+   [
+    "dispparam",
+    -0.865
+   ],
+   [
+    "tok_Wrap",
+    0.819
+   ],
+   [
+    "ret<-newobj",
+    0.762
+   ],
+   [
+    "has_body",
+    0.749
+   ],
+   [
+    "tok_Decode",
+    0.676
+   ],
+   [
+    "calls_pinvoke",
+    -0.51
+   ],
+   [
+    "ret_decl",
+    -0.471
+   ],
+   [
+    "ret_abstract",
+    -0.416
+   ],
+   [
+    "newobj_d",
+    0.411
+   ],
+   [
+    "ret<-call",
+    0.399
+   ],
+   [
+    "string",
+    0.398
+   ],
+   [
+    "decl_final",
+    0.391
+   ],
+   [
+    "tok_Open",
+    0.385
+   ]
+  ],
+  "per_library": {
+   "BouncyCastle.Cryptography": {
+    "surface_callables": 78,
+    "positives": 5,
+    "positives_on_surface": 5,
+    "A": {
+     "recall@10": 0.21,
+     "prec@10": 0.105,
+     "recall@25": 0.51,
+     "prec@25": 0.102
+    },
+    "B": {
+     "recall@10": 0.61,
+     "prec@10": 0.305,
+     "recall@25": 0.69,
+     "prec@25": 0.138
+    },
+    "C_rules": {
+     "recall@10": 0.35,
+     "prec@10": 0.175,
+     "recall@25": 1.0,
+     "prec@25": 0.2
+    },
+    "C_lr": {
+     "recall@10": 0.6,
+     "prec@10": 0.3,
+     "recall@25": 0.8,
+     "prec@25": 0.16
+    }
+   },
+   "CsvHelper": {
+    "surface_callables": 13,
+    "positives": 3,
+    "positives_on_surface": 3,
+    "A": {
+     "recall@10": 1.0,
+     "prec@10": 0.3,
+     "recall@25": 1.0,
+     "prec@25": 0.12
+    },
+    "B": {
+     "recall@10": 1.0,
+     "prec@10": 0.3,
+     "recall@25": 1.0,
+     "prec@25": 0.12
+    },
+    "C_rules": {
+     "recall@10": 1.0,
+     "prec@10": 0.3,
+     "recall@25": 1.0,
+     "prec@25": 0.12
+    },
+    "C_lr": {
+     "recall@10": 1.0,
+     "prec@10": 0.3,
+     "recall@25": 1.0,
+     "prec@25": 0.12
+    }
+   },
+   "Google.Protobuf": {
+    "surface_callables": 2,
+    "positives": 2,
+    "positives_on_surface": 2,
+    "A": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "B": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "C_rules": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "C_lr": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    }
+   },
+   "K4os.Compression.LZ4.Streams": {
+    "surface_callables": 5,
+    "positives": 5,
+    "positives_on_surface": 5,
+    "A": {
+     "recall@10": 1.0,
+     "prec@10": 0.5,
+     "recall@25": 1.0,
+     "prec@25": 0.2
+    },
+    "B": {
+     "recall@10": 1.0,
+     "prec@10": 0.5,
+     "recall@25": 1.0,
+     "prec@25": 0.2
+    },
+    "C_rules": {
+     "recall@10": 1.0,
+     "prec@10": 0.5,
+     "recall@25": 1.0,
+     "prec@25": 0.2
+    },
+    "C_lr": {
+     "recall@10": 1.0,
+     "prec@10": 0.5,
+     "recall@25": 1.0,
+     "prec@25": 0.2
+    }
+   },
+   "LibGit2Sharp": {
+    "surface_callables": 14,
+    "positives": 2,
+    "positives_on_surface": 2,
+    "A": {
+     "recall@10": 0.85,
+     "prec@10": 0.17,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "B": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "C_rules": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "C_lr": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    }
+   },
+   "MQTTnet": {
+    "surface_callables": 20,
+    "positives": 2,
+    "positives_on_surface": 2,
+    "A": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "B": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "C_rules": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "C_lr": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    }
+   },
+   "MailKit": {
+    "surface_callables": 28,
+    "positives": 2,
+    "positives_on_surface": 2,
+    "A": {
+     "recall@10": 0.45,
+     "prec@10": 0.09,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "B": {
+     "recall@10": 0.625,
+     "prec@10": 0.125,
+     "recall@25": 0.925,
+     "prec@25": 0.074
+    },
+    "C_rules": {
+     "recall@10": 0.6,
+     "prec@10": 0.12,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "C_lr": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    }
+   },
+   "Microsoft.Data.Sqlite.Core": {
+    "surface_callables": 15,
+    "positives": 3,
+    "positives_on_surface": 3,
+    "A": {
+     "recall@10": 1.0,
+     "prec@10": 0.3,
+     "recall@25": 1.0,
+     "prec@25": 0.12
+    },
+    "B": {
+     "recall@10": 1.0,
+     "prec@10": 0.3,
+     "recall@25": 1.0,
+     "prec@25": 0.12
+    },
+    "C_rules": {
+     "recall@10": 1.0,
+     "prec@10": 0.3,
+     "recall@25": 1.0,
+     "prec@25": 0.12
+    },
+    "C_lr": {
+     "recall@10": 1.0,
+     "prec@10": 0.3,
+     "recall@25": 1.0,
+     "prec@25": 0.12
+    }
+   },
+   "MySqlConnector": {
+    "surface_callables": 45,
+    "positives": 10,
+    "positives_on_surface": 10,
+    "A": {
+     "recall@10": 0.355,
+     "prec@10": 0.355,
+     "recall@25": 0.845,
+     "prec@25": 0.338
+    },
+    "B": {
+     "recall@10": 0.475,
+     "prec@10": 0.475,
+     "recall@25": 0.76,
+     "prec@25": 0.304
+    },
+    "C_rules": {
+     "recall@10": 0.8,
+     "prec@10": 0.8,
+     "recall@25": 0.945,
+     "prec@25": 0.378
+    },
+    "C_lr": {
+     "recall@10": 0.6,
+     "prec@10": 0.6,
+     "recall@25": 1.0,
+     "prec@25": 0.4
+    }
+   },
+   "NLog": {
+    "surface_callables": 36,
+    "positives": 6,
+    "positives_on_surface": 6,
+    "A": {
+     "recall@10": 0.583,
+     "prec@10": 0.35,
+     "recall@25": 0.808,
+     "prec@25": 0.194
+    },
+    "B": {
+     "recall@10": 0.683,
+     "prec@10": 0.41,
+     "recall@25": 1.0,
+     "prec@25": 0.24
+    },
+    "C_rules": {
+     "recall@10": 0.783,
+     "prec@10": 0.47,
+     "recall@25": 1.0,
+     "prec@25": 0.24
+    },
+    "C_lr": {
+     "recall@10": 0.667,
+     "prec@10": 0.4,
+     "recall@25": 1.0,
+     "prec@25": 0.24
+    }
+   },
+   "NSec.Cryptography": {
+    "surface_callables": 7,
+    "positives": 6,
+    "positives_on_surface": 6,
+    "A": {
+     "recall@10": 1.0,
+     "prec@10": 0.6,
+     "recall@25": 1.0,
+     "prec@25": 0.24
+    },
+    "B": {
+     "recall@10": 1.0,
+     "prec@10": 0.6,
+     "recall@25": 1.0,
+     "prec@25": 0.24
+    },
+    "C_rules": {
+     "recall@10": 1.0,
+     "prec@10": 0.6,
+     "recall@25": 1.0,
+     "prec@25": 0.24
+    },
+    "C_lr": {
+     "recall@10": 1.0,
+     "prec@10": 0.6,
+     "recall@25": 1.0,
+     "prec@25": 0.24
+    }
+   },
+   "Newtonsoft.Json": {
+    "surface_callables": 3,
+    "positives": 2,
+    "positives_on_surface": 2,
+    "A": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "B": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "C_rules": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "C_lr": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    }
+   },
+   "Npgsql": {
+    "surface_callables": 82,
+    "positives": 21,
+    "positives_on_surface": 21,
+    "A": {
+     "recall@10": 0.133,
+     "prec@10": 0.28,
+     "recall@25": 0.31,
+     "prec@25": 0.26
+    },
+    "B": {
+     "recall@10": 0.19,
+     "prec@10": 0.4,
+     "recall@25": 0.402,
+     "prec@25": 0.338
+    },
+    "C_rules": {
+     "recall@10": 0.338,
+     "prec@10": 0.71,
+     "recall@25": 0.681,
+     "prec@25": 0.572
+    },
+    "C_lr": {
+     "recall@10": 0.238,
+     "prec@10": 0.5,
+     "recall@25": 0.667,
+     "prec@25": 0.56
+    }
+   },
+   "RabbitMQ.Client": {
+    "surface_callables": 10,
+    "positives": 2,
+    "positives_on_surface": 2,
+    "A": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "B": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "C_rules": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    },
+    "C_lr": {
+     "recall@10": 1.0,
+     "prec@10": 0.2,
+     "recall@25": 1.0,
+     "prec@25": 0.08
+    }
+   },
+   "SSH.NET": {
+    "surface_callables": 42,
+    "positives": 10,
+    "positives_on_surface": 10,
+    "A": {
+     "recall@10": 0.235,
+     "prec@10": 0.235,
+     "recall@25": 0.66,
+     "prec@25": 0.264
+    },
+    "B": {
+     "recall@10": 0.665,
+     "prec@10": 0.665,
+     "recall@25": 0.94,
+     "prec@25": 0.376
+    },
+    "C_rules": {
+     "recall@10": 0.76,
+     "prec@10": 0.76,
+     "recall@25": 1.0,
+     "prec@25": 0.4
+    },
+    "C_lr": {
+     "recall@10": 0.9,
+     "prec@10": 0.9,
+     "recall@25": 1.0,
+     "prec@25": 0.4
+    }
+   },
+   "Serilog": {
+    "surface_callables": 4,
+    "positives": 4,
+    "positives_on_surface": 4,
+    "A": {
+     "recall@10": 1.0,
+     "prec@10": 0.4,
+     "recall@25": 1.0,
+     "prec@25": 0.16
+    },
+    "B": {
+     "recall@10": 1.0,
+     "prec@10": 0.4,
+     "recall@25": 1.0,
+     "prec@25": 0.16
+    },
+    "C_rules": {
+     "recall@10": 1.0,
+     "prec@10": 0.4,
+     "recall@25": 1.0,
+     "prec@25": 0.16
+    },
+    "C_lr": {
+     "recall@10": 1.0,
+     "prec@10": 0.4,
+     "recall@25": 1.0,
+     "prec@25": 0.16
+    }
+   },
+   "SharpCompress": {
+    "surface_callables": 85,
+    "positives": 16,
+    "positives_on_surface": 16,
+    "A": {
+     "recall@10": 0.156,
+     "prec@10": 0.25,
+     "recall@25": 0.384,
+     "prec@25": 0.246
+    },
+    "B": {
+     "recall@10": 0.403,
+     "prec@10": 0.645,
+     "recall@25": 0.566,
+     "prec@25": 0.362
+    },
+    "C_rules": {
+     "recall@10": 0.416,
+     "prec@10": 0.665,
+     "recall@25": 0.812,
+     "prec@25": 0.52
+    },
+    "C_lr": {
+     "recall@10": 0.438,
+     "prec@10": 0.7,
+     "recall@25": 0.75,
+     "prec@25": 0.48
+    }
+   },
+   "SharpZipLib": {
+    "surface_callables": 29,
+    "positives": 5,
+    "positives_on_surface": 5,
+    "A": {
+     "recall@10": 0.52,
+     "prec@10": 0.26,
+     "recall@25": 1.0,
+     "prec@25": 0.2
+    },
+    "B": {
+     "recall@10": 1.0,
+     "prec@10": 0.5,
+     "recall@25": 1.0,
+     "prec@25": 0.2
+    },
+    "C_rules": {
+     "recall@10": 1.0,
+     "prec@10": 0.5,
+     "recall@25": 1.0,
+     "prec@25": 0.2
+    },
+    "C_lr": {
+     "recall@10": 1.0,
+     "prec@10": 0.5,
+     "recall@25": 1.0,
+     "prec@25": 0.2
+    }
+   },
+   "SixLabors.ImageSharp": {
+    "surface_callables": 89,
+    "positives": 8,
+    "positives_on_surface": 8,
+    "A": {
+     "recall@10": 0.081,
+     "prec@10": 0.065,
+     "recall@25": 0.188,
+     "prec@25": 0.06
+    },
+    "B": {
+     "recall@10": 0.381,
+     "prec@10": 0.305,
+     "recall@25": 0.494,
+     "prec@25": 0.158
+    },
+    "C_rules": {
+     "recall@10": 0.188,
+     "prec@10": 0.15,
+     "recall@25": 0.287,
+     "prec@25": 0.092
+    },
+    "C_lr": {
+     "recall@10": 0.125,
+     "prec@10": 0.1,
+     "recall@25": 0.5,
+     "prec@25": 0.16
+    }
+   },
+   "SkiaSharp": {
+    "surface_callables": 264,
+    "positives": 16,
+    "positives_on_surface": 16,
+    "A": {
+     "recall@10": 0.059,
+     "prec@10": 0.095,
+     "recall@25": 0.147,
+     "prec@25": 0.094
+    },
+    "B": {
+     "recall@10": 0.131,
+     "prec@10": 0.21,
+     "recall@25": 0.184,
+     "prec@25": 0.118
+    },
+    "C_rules": {
+     "recall@10": 0.094,
+     "prec@10": 0.15,
+     "recall@25": 0.463,
+     "prec@25": 0.296
+    },
+    "C_lr": {
+     "recall@10": 0.188,
+     "prec@10": 0.3,
+     "recall@25": 0.188,
+     "prec@25": 0.12
+    }
+   },
+   "StackExchange.Redis": {
+    "surface_callables": 47,
+    "positives": 1,
+    "positives_on_surface": 1,
+    "A": {
+     "recall@10": 0.95,
+     "prec@10": 0.095,
+     "recall@25": 1.0,
+     "prec@25": 0.04
+    },
+    "B": {
+     "recall@10": 1.0,
+     "prec@10": 0.1,
+     "recall@25": 1.0,
+     "prec@25": 0.04
+    },
+    "C_rules": {
+     "recall@10": 1.0,
+     "prec@10": 0.1,
+     "recall@25": 1.0,
+     "prec@25": 0.04
+    },
+    "C_lr": {
+     "recall@10": 1.0,
+     "prec@10": 0.1,
+     "recall@25": 1.0,
+     "prec@25": 0.04
+    }
+   }
+  },
+  "caveats": [
+   "circularity: the positives are E1's outputs on the fetched subsets and C_rules encodes E1's minted-return shape at IL level (ret preceded by newobj), so recall@k partly measures agreement with E1's criterion; the logistic model's top weights say the same (ret<-newobj +0.76, has_body +0.75, tok_Decode +0.68; has_disposable_param -0.87, calls_pinvoke -0.51)",
+   "B (LLM) lists were capped at 15 per library by the discovery protocol, so B's recall@25 is bounded by list length; the fair comparison with B is at k = 10",
+   "the arms' queues admit interface members and property getters; E1 cannot prove bodiless members and getters are aliases, so A's and C's queues wasted executions there (A: 5 of 10, C: 4 of 10); an 'exclude getters and bodiless members' rule is the obvious refinement and was NOT applied post hoc"
+  ]
+ },
+ "novelty_validation": {
+  "rule": "first candidate of each arm's queue for the first 10 libraries (alphabetical) with a non-empty queue; body proof (E1/E3 + H-20) over the candidate type's source file at the pinned commit (path resolved by Sourcegraph type:path at that commit); PROVED = a NOVEL BODY_PROVED row (not among the applied rows)",
+  "tallies": {
+   "A": {
+    "executions": 10,
+    "PROVED": 0,
+    "REFUSED": 9,
+    "NO_SOURCE": 1,
+    "ERROR": 0
+   },
+   "B_unvalidated": {
+    "executions": 10,
+    "PROVED": 0,
+    "REFUSED": 9,
+    "NO_SOURCE": 1,
+    "ERROR": 0
+   },
+   "C_lr": {
+    "executions": 10,
+    "PROVED": 3,
+    "REFUSED": 6,
+    "NO_SOURCE": 1,
+    "ERROR": 0
+   }
+  },
+  "results": [
+   {
+    "arm": "A",
+    "package": "BouncyCastle.Cryptography",
+    "callable": "Org.BouncyCastle.Asn1.Asn1BitStringParser.GetBitStream",
+    "outcome": "REFUSED",
+    "source": "crypto/src/asn1/Asn1BitStringParser.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "A",
+    "package": "CsvHelper",
+    "callable": "CsvHelper.CsvDataReader.GetData",
+    "outcome": "REFUSED",
+    "source": "src/CsvHelper/CsvDataReader.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "A",
+    "package": "LibGit2Sharp",
+    "callable": "LibGit2Sharp.CertificateX509.get_Certificate",
+    "outcome": "REFUSED",
+    "source": "LibGit2Sharp/CertificateX509.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "A",
+    "package": "MQTTnet",
+    "callable": "MQTTnet.Adapter.IMqttClientAdapterFactory.CreateClientAdapter",
+    "outcome": "REFUSED",
+    "source": "Source/MQTTnet/Adapter/IMqttClientAdapterFactory.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "A",
+    "package": "MailKit",
+    "callable": "MailKit.IMailFolder.GetStream",
+    "outcome": "NO_SOURCE",
+    "source": null,
+    "why": "no repository pin",
+    "fresh_in_file": null
+   },
+   {
+    "arm": "A",
+    "package": "Microsoft.Data.Sqlite.Core",
+    "callable": "Microsoft.Data.Sqlite.SqliteConnection.get_Handle",
+    "outcome": "REFUSED",
+    "source": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteConnection.cs",
+    "why": null,
+    "fresh_in_file": [
+     "Microsoft.Data.Sqlite.SqliteConnection.CreateCommand",
+     "Microsoft.Data.Sqlite.SqliteConnection.CreateDbCommand"
+    ]
+   },
+   {
+    "arm": "A",
+    "package": "MySqlConnector",
+    "callable": "MySqlConnector.MySqlBatch.ExecuteReader",
+    "outcome": "REFUSED",
+    "source": "src/MySqlConnector/MySqlBatch.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "A",
+    "package": "NLog",
+    "callable": "NLog.Config.ISetupConfigurationTargetBuilder.get_LogFactory",
+    "outcome": "REFUSED",
+    "source": "src/NLog/Config/ISetupConfigurationTargetBuilder.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "A",
+    "package": "Newtonsoft.Json",
+    "callable": "Newtonsoft.Json.JsonValidatingReader.get_Reader",
+    "outcome": "REFUSED",
+    "source": "Src/Newtonsoft.Json/JsonValidatingReader.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "A",
+    "package": "Npgsql",
+    "callable": "Npgsql.NpgsqlBatch.ExecuteReader",
+    "outcome": "REFUSED",
+    "source": "src/Npgsql/NpgsqlBatch.cs",
+    "why": null,
+    "fresh_in_file": [
+     "Npgsql.NpgsqlBatch.CreateCachedBatch"
+    ]
+   },
+   {
+    "arm": "B_unvalidated",
+    "package": "BouncyCastle.Cryptography",
+    "callable": "Org.BouncyCastle.Bcpg.OpenPgp.PgpEncryptedDataGenerator.Open",
+    "outcome": "REFUSED",
+    "source": "crypto/src/openpgp/PgpEncryptedDataGenerator.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "B_unvalidated",
+    "package": "LibGit2Sharp",
+    "callable": "LibGit2Sharp.Blob.GetContentStream",
+    "outcome": "REFUSED",
+    "source": "LibGit2Sharp/Blob.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "B_unvalidated",
+    "package": "MQTTnet",
+    "callable": "MQTTnet.Implementations.CrossPlatformSocket.GetStream",
+    "outcome": "REFUSED",
+    "source": "Source/MQTTnet/Implementations/CrossPlatformSocket.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "B_unvalidated",
+    "package": "MailKit",
+    "callable": "MailKit.Net.Pop3.Pop3Client.GetStream",
+    "outcome": "NO_SOURCE",
+    "source": null,
+    "why": "no repository pin",
+    "fresh_in_file": null
+   },
+   {
+    "arm": "B_unvalidated",
+    "package": "Microsoft.Data.Sqlite.Core",
+    "callable": "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader",
+    "outcome": "REFUSED",
+    "source": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteCommand.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "B_unvalidated",
+    "package": "MySqlConnector",
+    "callable": "MySqlConnector.MySqlCommand.Clone",
+    "outcome": "REFUSED",
+    "source": "src/MySqlConnector/MySqlCommand.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "B_unvalidated",
+    "package": "NLog",
+    "callable": "NLog.LogManager.DisableLogging",
+    "outcome": "REFUSED",
+    "source": "src/NLog/LogManager.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "B_unvalidated",
+    "package": "NSec.Cryptography",
+    "callable": "NSec.Cryptography.KeyAgreementAlgorithm.Agree",
+    "outcome": "REFUSED",
+    "source": "src/Cryptography/KeyAgreementAlgorithm.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "B_unvalidated",
+    "package": "Npgsql",
+    "callable": "Npgsql.NpgsqlCommand.ExecuteReader",
+    "outcome": "REFUSED",
+    "source": "src/Npgsql/NpgsqlCommand.cs",
+    "why": null,
+    "fresh_in_file": [
+     "Npgsql.NpgsqlCommand.Clone",
+     "Npgsql.NpgsqlCommand.CreateCachedCommand",
+     "Npgsql.NpgsqlCommand.System.ICloneable.Clone"
+    ]
+   },
+   {
+    "arm": "B_unvalidated",
+    "package": "RabbitMQ.Client",
+    "callable": "RabbitMQ.Client.ConnectionFactory.CreateConnectionAsync",
+    "outcome": "REFUSED",
+    "source": "projects/RabbitMQ.Client/ConnectionFactory.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "C_lr",
+    "package": "BouncyCastle.Cryptography",
+    "callable": "Org.BouncyCastle.Cms.CmsCompressedDataStreamGenerator.Open",
+    "outcome": "PROVED",
+    "source": "crypto/src/cms/CMSCompressedDataStreamGenerator.cs",
+    "why": null,
+    "fresh_in_file": null
+   },
+   {
+    "arm": "C_lr",
+    "package": "CsvHelper",
+    "callable": "CsvHelper.CsvDataReader.GetData",
+    "outcome": "REFUSED",
+    "source": "src/CsvHelper/CsvDataReader.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "C_lr",
+    "package": "LibGit2Sharp",
+    "callable": "LibGit2Sharp.ObjectDatabase.CherryPickCommitIntoIndex",
+    "outcome": "REFUSED",
+    "source": "LibGit2Sharp/ObjectDatabase.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "C_lr",
+    "package": "MQTTnet",
+    "callable": "MQTTnet.Certificates.BlobCertificateProvider.GetCertificate",
+    "outcome": "PROVED",
+    "source": "Source/MQTTnet/Certificates/BlobCertificateProvider.cs",
+    "why": null,
+    "fresh_in_file": null
+   },
+   {
+    "arm": "C_lr",
+    "package": "MailKit",
+    "callable": "MailKit.MailService.get_ProtocolLogger",
+    "outcome": "NO_SOURCE",
+    "source": null,
+    "why": "no repository pin",
+    "fresh_in_file": null
+   },
+   {
+    "arm": "C_lr",
+    "package": "Microsoft.Data.Sqlite.Core",
+    "callable": "Microsoft.Data.Sqlite.SqliteConnection.get_Handle",
+    "outcome": "REFUSED",
+    "source": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteConnection.cs",
+    "why": null,
+    "fresh_in_file": [
+     "Microsoft.Data.Sqlite.SqliteConnection.CreateCommand",
+     "Microsoft.Data.Sqlite.SqliteConnection.CreateDbCommand"
+    ]
+   },
+   {
+    "arm": "C_lr",
+    "package": "MySqlConnector",
+    "callable": "MySqlConnector.MySqlDataReader.GetTextReader",
+    "outcome": "REFUSED",
+    "source": "src/MySqlConnector/MySqlDataReader.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "C_lr",
+    "package": "NLog",
+    "callable": "NLog.Config.ISetupConfigurationTargetBuilder.get_LogFactory",
+    "outcome": "REFUSED",
+    "source": "src/NLog/Config/ISetupConfigurationTargetBuilder.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "C_lr",
+    "package": "Newtonsoft.Json",
+    "callable": "Newtonsoft.Json.JsonValidatingReader.get_Reader",
+    "outcome": "REFUSED",
+    "source": "Src/Newtonsoft.Json/JsonValidatingReader.cs",
+    "why": null,
+    "fresh_in_file": []
+   },
+   {
+    "arm": "C_lr",
+    "package": "Npgsql",
+    "callable": "Npgsql.Internal.NpgsqlConnector.CreateCommand",
+    "outcome": "PROVED",
+    "source": "src/Npgsql/Internal/NpgsqlConnector.cs",
+    "why": null,
+    "fresh_in_file": null
+   }
+  ]
+ },
+ "CT3_skia_challenge": {
+  "witnesses": 32,
+  "verdicts": {
+   "fresh": 32
+  },
+  "by_version_asset": [
+   {
+    "version": "3.119.4",
+    "asset": "net6",
+    "verdict": "fresh",
+    "n": 4
+   },
+   {
+    "version": "3.119.4",
+    "asset": "ns20",
+    "verdict": "fresh",
+    "n": 4
+   },
+   {
+    "version": "4.148.0",
+    "asset": "net6",
+    "verdict": "fresh",
+    "n": 4
+   },
+   {
+    "version": "4.148.0",
+    "asset": "ns20",
+    "verdict": "fresh",
+    "n": 4
+   },
+   {
+    "version": "4.152.0",
+    "asset": "net6",
+    "verdict": "fresh",
+    "n": 4
+   },
+   {
+    "version": "4.152.0",
+    "asset": "ns20",
+    "verdict": "fresh",
+    "n": 4
+   },
+   {
+    "version": "4.153.1",
+    "asset": "net6",
+    "verdict": "fresh",
+    "n": 4
+   },
+   {
+    "version": "4.153.1",
+    "asset": "ns20",
+    "verdict": "fresh",
+    "n": 4
+   }
+  ],
+  "mvids_witnessed": [
+   "6213e9e4-504c-4fc5-9f4c-1badbe3080cf",
+   "6cf311fc-364f-4210-bf5a-eec7f65cd269",
+   "9bb8a674-0492-4f44-9907-7b0bfdb9b4eb",
+   "a37281df-7e99-4053-a4a8-91ab1207209e",
+   "af765800-5cf3-4f7d-96a7-aca8cb6efb8a",
+   "d1923223-e988-453b-96b2-39b62b27a55b",
+   "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522",
+   "f5e7b45f-4c51-4e9f-a559-705d50e9cf81"
+  ],
+  "refutations": 0
+ },
+ "identity_il_body_hash": {
+  "definition": "SHA-256 over the sequence of (opcode, resolved operand name for method/field/type tokens) of the method body; tokens themselves are not hashed, so the hash is stable across assemblies that compile the same source",
+  "row_callables_overloads_with_one_hash_across_8_assets": 28,
+  "row_callables_overloads_with_differing_hashes": 0,
+  "3.119.4_vs_4.153.1_net6": {
+   "common": 1752,
+   "same": 1323,
+   "different": 429
+  },
+  "4.153.1_net6_vs_netstandard2.0": {
+   "common": 1926,
+   "same": 1911,
+   "different": 15
+  },
+  "4.152.0_vs_4.153.1_net6": {
+   "common": 1926,
+   "same": 1926,
+   "different": 0
+  }
+ },
+ "gates": {
+  "KILL CT-1 (C not better than A and B on validated novel rows per validator execution)": "NOT TRIGGERED: C_lr 3 PROVED of 10 executions; A 0 of 10; B (LLM unproven candidates) 0 of 10; on the recall proxy C_rules/C_lr pooled recall@10 0.588 vs B 0.553 vs A 0.401 and recall@25 0.813/0.779 vs 0.685 vs 0.595",
+  "KILL CT-2 (C only re-discovers what E1/E2/E3 derive)": "NOT TRIGGERED on the letter: 3 NOVEL BODY_PROVED rows (Org.BouncyCastle.Cms.CmsCompressedDataStreamGenerator.Open, MQTTnet.Certificates.BlobCertificateProvider.GetCertificate, Npgsql.Internal.NpgsqlConnector.CreateCommand). CAVEAT that narrows the hypothesis: all three were proved by E1 itself once pointed at their source file; 'novel' means beyond the 25-file subset E1 had seen, not a shape E1 cannot derive; a whole-repository derivation would find them without any ranker",
+  "KILL CT-3 (cross-version predictions systematically refuted)": "NOT TRIGGERED: 32 of 32 exact-binary witnesses fresh (SKBitmap.Decode, SKBitmap.FromImage, SKData.AsStream, SKFont.GetTextPath on 3.119.4, 4.148.0, 4.152.0, 4.153.1; net6.0 and netstandard2.0 assets); moreover version portability is settled by identity, not prediction: the normalised IL-body hash of all 28 overloads is identical across the 8 assets while it discriminates 429 changed methods between 3.119.4 and 4.153.1",
+  "KILL CT-4 (signal only with hundreds/thousands of labels)": "NOT TRIGGERED: Gate 0 used the 131 existing positives and the LLM negatives; no labelling campaign",
+  "pass_shape (C beats A and B per 100 candidates; >= 3 NOVEL rows; >= 1 portability recovery)": "MET ON THE LETTER (30 vs 0 vs 0 per 100; 3 novel; 12 portability recoveries by witness) but NOT in spirit: the recoveries came from the witness and the IL-hash identity, and the novel rows from E1 over files it had not been given; nothing here requires a learned model"
+ },
+ "decisions": {
+  "H-21 relational candidate discovery": "NARROW + KEEP_AS_CANDIDATE_GENERATOR: the cheap relational ranker (C) is kept as the queue for the runtime witness on binary-only surfaces and for the non-provable remainder (lock bodies, target-typed new, ambient tokens); learned walks (CodeTrek-like) NOT ADVANCED: no demanding instance remains once (a) the body proof runs over the whole source tree instead of a 25-file subset and (b) rows are pinned by the IL-body hash; CT-4 also forbids the labels a learned model would need",
+  "H-09 identity granularity": "KEEP_AS_VALIDATOR, sharpened: row identity = (assembly simple name, callable signature, normalised IL-body hash); the MVID stays the per-file identity for the load-chain check; the ref/lib NARROW and the v2 'MVID per TFM' multiplicity are resolved by the per-row hash (0 of 28 row overloads differ across 8 assets; 15 of 1926 methods differ between the net6.0 and netstandard2.0 assets of one version, all TFM-conditional code)",
+  "H-20": "confirmed as the cause of the v2 portability gap: the v2 re-derivation ran without the throw-exit seam and lost exactly the guarded factories",
+  "H-04 / H-11": "unchanged; the census shows the LLM arm's 'undecidable' candidates include the most used factories of three libraries, so the witness queue for them is worth more than any further proof effort"
+ },
+ "recommended_next_experiment": {
+  "title": "CT-breadth then density: whole-source-tree derivation pinned by IL-body hash, then a consumer run on the census-dense repositories with one exposure base",
+  "steps": [
+   "derive BODY_PROVED rows over the ENTIRE source tree of each of the 22 libraries at the pinned commit (not 25 files); expected: the 3 novel rows and their kind become ordinary output; measure rows per library and minutes",
+   "pin every row by (assembly name, signature, IL-body hash) and apply it to any asset whose hash matches; re-validate only rows whose hash changed",
+   "witness queue = C-ranked unlabelled candidates that the body proof refused and that are constructible; RabbitMQ.Client / MailKit / StackExchange.Redis first (their used factories are unproved)",
+   "consumer run on the census top list (marten, NpgsqlRest, PerformanceMonitor, WebVella-ERP, RepoDB, weasel, wolverine, quartznet, DatabaseManager, aspire ...) with exposure and opportunity counted on the same base (rows beyond production conventions) and the yield bar frozen before any file is fetched"
+  ],
+  "kill_gate": "0 TRUE findings outside test code over 10 density-selected consumers narrows the whole line to precision and architecture; >1 FALSE among the first 20 reviewed rows kills the breadth step",
+  "what_not_to_build": "a learned-walk model, a GPU, a labelling campaign"
+ },
+ "erratum_for_production_consumers_v2": "ct/erratum-3-production-consumers-v2.json (items 1-4: the unsupported 'perfect matcher' clause; the portability gap explained by H-20 with identical bodies and 32 fresh witnesses; MVID-per-TFM resolved by the IL-body hash; the exposure unit blind to production-covered sites)",
+ "limits": [
+  "census: public GitHub code as indexed by Sourcegraph, text matches capped at 1000 per row, forks/samples/tests included, instance rows matched by method name plus the namespace using directive",
+  "Gate 0: 21 libraries, 131 positives, no true negatives; the novelty validation is 10 executions per arm under the frozen rule, 30 in total; the body proof was the only validator used (no witness in the validation, so REFUSED does not mean false)",
+  "the SkiaSharp challenge covers the net6.0 and netstandard2.0 assets; the net9.0/net10.0 assets the v2 consumers resolved cannot be loaded by the .NET 8 SDK of this container; the IL-body hash shows their bodies are identical where the source is identical but that is not a witness",
+  "the relation dump is a linear opcode walk without data flow; 'before ret' is the preceding instruction only"
+ ],
+ "research_code": "Own.NET research/ownership-semantics-lab-v1: frontend/roslyn/OwnSharp.RelDump (signature + IL relations, IL-body hash), corpus/ownership-lab/ct/{census.py, census2.py, gate0.py, validate.py, reldump_all.sh, write_ct.py, skia-witness-rows.json, skia-witness-results.json, census.json, census2.json, gate0-results.json, ct-validation.json, relh-SkiaSharp@*.json}; witness generator extended for multi-package references and native assets"
+}

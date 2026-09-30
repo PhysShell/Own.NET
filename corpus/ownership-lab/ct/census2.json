@@ -1,0 +1,3577 @@
+{
+ "rows_considered": 126,
+ "rows_excluded_as_production_covered": [
+  "Microsoft.Data.Sqlite.SqliteConnection.CreateCommand",
+  "Microsoft.Data.Sqlite.SqliteFactory.CreateCommand",
+  "MySqlConnector.MySqlConnectorFactory.CreateCommand",
+  "MySqlConnector.MySqlConnection.CreateCommand",
+  "Npgsql.NpgsqlDataSource.CreateCommand",
+  "Npgsql.NpgsqlFactory.CreateCommand",
+  "Npgsql.NpgsqlConnection.CreateCommand"
+ ],
+ "repositories": [
+  {
+   "repo": "github.com/sshnet/SSH.NET",
+   "opportunities": 1341,
+   "distinct_rows": 10,
+   "rows": [
+    "NSec.Cryptography.Key.Import",
+    "Renci.SshNet.SftpClient.AppendText",
+    "Renci.SshNet.SftpClient.Create",
+    "Renci.SshNet.SftpClient.CreateText",
+    "Renci.SshNet.SftpClient.Open",
+    "Renci.SshNet.SftpClient.OpenRead",
+    "Renci.SshNet.SftpClient.OpenWrite",
+    "Renci.SshNet.SshClient.CreateCommand",
+    "Renci.SshNet.SshClient.CreateShell",
+    "Renci.SshNet.SshClient.CreateShellNoTerminal"
+   ],
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/JasperFx/marten",
+   "opportunities": 464,
+   "distinct_rows": 11,
+   "rows": [
+    "Npgsql.NpgsqlCommand.Clone",
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSource.CreateBatch",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlDataSourceBuilder.BuildMultiHost",
+    "Npgsql.NpgsqlFactory.CreateBatch",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.BuildMultiHost"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/npgsql/npgsql",
+   "opportunities": 455,
+   "distinct_rows": 15,
+   "rows": [
+    "Npgsql.NpgsqlCommand.Clone",
+    "Npgsql.NpgsqlConnection.CloneWith",
+    "Npgsql.NpgsqlConnection.CloneWithAsync",
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSource.CreateBatch",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlDataSourceBuilder.BuildMultiHost",
+    "Npgsql.NpgsqlFactory.CreateBatch",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateDataSource",
+    "Npgsql.NpgsqlLargeObjectManager.OpenRead"
+   ],
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/NpgsqlRest/NpgsqlRest",
+   "opportunities": 450,
+   "distinct_rows": 7,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlDataSourceBuilder.BuildMultiHost",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.BuildMultiHost"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/libgit2/libgit2sharp",
+   "opportunities": 351,
+   "distinct_rows": 2,
+   "rows": [
+    "LibGit2Sharp.Configuration.BuildFrom",
+    "LibGit2Sharp.RemoteCollection.Add"
+   ],
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/erikdarlingdata/PerformanceMonitor",
+   "opportunities": 309,
+   "distinct_rows": 8,
+   "rows": [
+    "Npgsql.NpgsqlCommand.Clone",
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlLargeObjectManager.OpenRead",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/WebVella/WebVella-ERP",
+   "opportunities": 287,
+   "distinct_rows": 8,
+   "rows": [
+    "CsvHelper.CsvDataReader.Close",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlLargeObjectManager.OpenRead",
+    "Npgsql.NpgsqlLargeObjectManager.OpenReadWrite",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/mikependon/RepoDB",
+   "opportunities": 234,
+   "distinct_rows": 4,
+   "rows": [
+    "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/JasperFx/weasel",
+   "opportunities": 188,
+   "distinct_rows": 11,
+   "rows": [
+    "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSource.CreateBatch",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlDataSourceBuilder.BuildMultiHost",
+    "Npgsql.NpgsqlFactory.CreateBatch",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.BuildMultiHost"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/MQTTnet",
+   "opportunities": 178,
+   "distinct_rows": 2,
+   "rows": [
+    "MQTTnet.MqttClientFactory.CreateLowLevelMqttClient",
+    "MQTTnet.MqttClientFactory.CreateMqttClient"
+   ],
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/dotnet-ad/SkiaSharp.Components",
+   "opportunities": 169,
+   "distinct_rows": 2,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKPath.ParseSvgPathData"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ektrah/nsec",
+   "opportunities": 164,
+   "distinct_rows": 6,
+   "rows": [
+    "NSec.Cryptography.Key.Create",
+    "NSec.Cryptography.Key.Import",
+    "NSec.Cryptography.KeyDerivationAlgorithm.DeriveKey",
+    "NSec.Cryptography.KeyDerivationAlgorithm2.ExpandKey",
+    "NSec.Cryptography.PasswordBasedKeyDerivationAlgorithm.DeriveKey",
+    "NSec.Cryptography.SharedSecret.Import"
+   ],
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/dotnet/dotnet",
+   "opportunities": 160,
+   "distinct_rows": 8,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add",
+    "NSec.Cryptography.Key.Create",
+    "NSec.Cryptography.Key.Import",
+    "Newtonsoft.Json.Linq.JContainer.CreateWriter",
+    "Newtonsoft.Json.Linq.JToken.CreateReader",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+    "SharpCompress.Archives.Zip.ZipArchive.Create"
+   ],
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/DuendeSoftware/products",
+   "opportunities": 158,
+   "distinct_rows": 2,
+   "rows": [
+    "NSec.Cryptography.Key.Create",
+    "Npgsql.NpgsqlDataSource.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/seiggy/lucia-dotnet",
+   "opportunities": 157,
+   "distinct_rows": 6,
+   "rows": [
+    "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/JasperFx/wolverine",
+   "opportunities": 155,
+   "distinct_rows": 9,
+   "rows": [
+    "MQTTnet.MqttClientFactory.CreateMqttClient",
+    "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "MySqlConnector.MySqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/potatobeanradio/circuitRF",
+   "opportunities": 154,
+   "distinct_rows": 6,
+   "rows": [
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKFont.GetTextPath",
+    "SkiaSharp.SKPaint.GetTextPath",
+    "SkiaSharp.SKPath.CreateIterator",
+    "SkiaSharp.SKPath.CreateRawIterator",
+    "SkiaSharp.SKPath.ParseSvgPathData"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/quartznet/quartznet",
+   "opportunities": 145,
+   "distinct_rows": 9,
+   "rows": [
+    "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+    "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "MySqlConnector.MySqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/KrisTHL181/Break-This-Repo",
+   "opportunities": 137,
+   "distinct_rows": 7,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add",
+    "NSec.Cryptography.Key.Create",
+    "NSec.Cryptography.Key.Import",
+    "Newtonsoft.Json.Linq.JContainer.CreateWriter",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+    "SharpCompress.Archives.Zip.ZipArchive.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/NLog/NLog",
+   "opportunities": 121,
+   "distinct_rows": 6,
+   "rows": [
+    "NLog.LogFactory.SuspendLogging",
+    "NLog.LogManager.SuspendLogging",
+    "NLog.Logger.PushScopeProperty",
+    "NLog.ScopeContext.PushNestedState",
+    "NLog.ScopeContext.PushProperties",
+    "NLog.ScopeContext.PushProperty"
+   ],
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/wieslawsoltes/ProGPU",
+   "opportunities": 118,
+   "distinct_rows": 15,
+   "rows": [
+    "NSec.Cryptography.Key.Create",
+    "SixLabors.ImageSharp.Image.LoadPixelData",
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKColorSpace.ToProfile",
+    "SkiaSharp.SKData.AsStream",
+    "SkiaSharp.SKFileStream.OpenStream",
+    "SkiaSharp.SKFileWStream.OpenStream",
+    "SkiaSharp.SKFont.GetGlyphPath",
+    "SkiaSharp.SKFont.GetTextPath",
+    "SkiaSharp.SKPaint.GetTextPath",
+    "SkiaSharp.SKPath.CreateIterator",
+    "SkiaSharp.SKPath.CreateRawIterator"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/SixLabors/ImageSharp.Drawing",
+   "opportunities": 109,
+   "distinct_rows": 4,
+   "rows": [
+    "SixLabors.ImageSharp.Image.WrapMemory",
+    "SixLabors.ImageSharp.Image<TPixel>.Clone",
+    "SixLabors.ImageSharp.ImageFrameCollection<TPixel>.CloneFrame",
+    "SkiaSharp.SKPath.ParseSvgPathData"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/victor-wiki/DatabaseManager",
+   "opportunities": 107,
+   "distinct_rows": 8,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+    "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+    "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Particular/docs.particular.net",
+   "opportunities": 102,
+   "distinct_rows": 6,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Altinn/altinn-studio",
+   "opportunities": 93,
+   "distinct_rows": 4,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add",
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/microsoft/aspire",
+   "opportunities": 93,
+   "distinct_rows": 8,
+   "rows": [
+    "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "MySqlConnector.MySqlDataSourceBuilder.Build",
+    "NSec.Cryptography.Key.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/isaacrlevin/presencelight",
+   "opportunities": 92,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/spodskubka/RemoteTerminal",
+   "opportunities": 87,
+   "distinct_rows": 7,
+   "rows": [
+    "Renci.SshNet.SftpClient.AppendText",
+    "Renci.SshNet.SftpClient.CreateText",
+    "Renci.SshNet.SftpClient.Open",
+    "Renci.SshNet.SftpClient.OpenRead",
+    "Renci.SshNet.SftpClient.OpenWrite",
+    "Renci.SshNet.SshClient.CreateCommand",
+    "Renci.SshNet.SshClient.CreateShell"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/mono/SkiaSharp",
+   "opportunities": 85,
+   "distinct_rows": 11,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKColorSpace.ToProfile",
+    "SkiaSharp.SKData.AsStream",
+    "SkiaSharp.SKFileStream.OpenStream",
+    "SkiaSharp.SKFileWStream.OpenStream",
+    "SkiaSharp.SKFont.GetTextPath",
+    "SkiaSharp.SKPaint.GetTextPath",
+    "SkiaSharp.SKPath.ParseSvgPathData",
+    "SkiaSharp.SKRuntimeEffect.BuildBlender",
+    "SkiaSharp.SKRuntimeEffect.BuildShader"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Thelittlechicken/oc34n-r2",
+   "opportunities": 83,
+   "distinct_rows": 3,
+   "rows": [
+    "Renci.SshNet.SftpClient.Create",
+    "Renci.SshNet.SftpClient.OpenRead",
+    "Renci.SshNet.SshClient.CreateCommand"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/npgsql/efcore.pg",
+   "opportunities": 80,
+   "distinct_rows": 9,
+   "rows": [
+    "Npgsql.NpgsqlCommand.Clone",
+    "Npgsql.NpgsqlConnection.CloneWith",
+    "Npgsql.NpgsqlConnection.CloneWithAsync",
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/TwentyFourMinutes/Venflow",
+   "opportunities": 80,
+   "distinct_rows": 2,
+   "rows": [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/simeonradivoev/UniGit",
+   "opportunities": 79,
+   "distinct_rows": 2,
+   "rows": [
+    "LibGit2Sharp.Configuration.BuildFrom",
+    "LibGit2Sharp.RemoteCollection.Add"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/lofcz/LlmTornado",
+   "opportunities": 79,
+   "distinct_rows": 4,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/OpenFireSource/AlarmWorkflow",
+   "opportunities": 77,
+   "distinct_rows": 1,
+   "rows": [
+    "NSec.Cryptography.Key.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/btcpayserver/NBXplorer",
+   "opportunities": 77,
+   "distinct_rows": 5,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ArduPilot/MissionPlanner",
+   "opportunities": 75,
+   "distinct_rows": 17,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateDecryptor",
+    "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateEncryptor",
+    "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+    "MQTTnet.MqttClientFactory.CreateMqttClient",
+    "Newtonsoft.Json.Linq.JToken.CreateReader",
+    "Renci.SshNet.SftpClient.AppendText",
+    "Renci.SshNet.SftpClient.Create",
+    "Renci.SshNet.SftpClient.Open",
+    "Renci.SshNet.SftpClient.OpenRead",
+    "Renci.SshNet.SshClient.CreateCommand",
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/FanTranslatorsInternational/Kuriimu2",
+   "opportunities": 75,
+   "distinct_rows": 1,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/AneiangSoft/Aneiang.Yarp",
+   "opportunities": 74,
+   "distinct_rows": 1,
+   "rows": [
+    "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/QutEcoacoustics/audio-analysis",
+   "opportunities": 73,
+   "distinct_rows": 1,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnetcore/CAP",
+   "opportunities": 69,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/maui-samples",
+   "opportunities": 69,
+   "distinct_rows": 5,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKFont.GetTextPath",
+    "SkiaSharp.SKPaint.GetTextPath",
+    "SkiaSharp.SKPath.CreateRawIterator",
+    "SkiaSharp.SKPath.ParseSvgPathData"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/koszeggy/KGySoft.Drawing",
+   "opportunities": 68,
+   "distinct_rows": 4,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKFont.GetTextPath",
+    "SkiaSharp.SKPaint.GetTextPath",
+    "SkiaSharp.SKPath.CreateRawIterator"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/adospace/CoreSync",
+   "opportunities": 67,
+   "distinct_rows": 3,
+   "rows": [
+    "MySqlConnector.MySqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/runtime",
+   "opportunities": 67,
+   "distinct_rows": 2,
+   "rows": [
+    "NSec.Cryptography.Key.Create",
+    "NSec.Cryptography.Key.Import"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/linq2db/linq2db",
+   "opportunities": 66,
+   "distinct_rows": 5,
+   "rows": [
+    "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "MySqlConnector.MySqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ConcreteMC/Alex",
+   "opportunities": 66,
+   "distinct_rows": 3,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader",
+    "SixLabors.ImageSharp.Image.LoadPixelData",
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/hangfire-postgres/Hangfire.PostgreSql",
+   "opportunities": 66,
+   "distinct_rows": 4,
+   "rows": [
+    "Npgsql.NpgsqlConnection.CloneWith",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Vocaluxe/Vocaluxe",
+   "opportunities": 66,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/AerialX/rawksd",
+   "opportunities": 65,
+   "distinct_rows": 1,
+   "rows": [
+    "NSec.Cryptography.Key.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/mysql-net/MySqlConnector",
+   "opportunities": 64,
+   "distinct_rows": 5,
+   "rows": [
+    "MySqlConnector.MySqlConnection.Clone",
+    "MySqlConnector.MySqlConnectorFactory.CreateCommandBuilder",
+    "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "MySqlConnector.MySqlConnectorFactory.CreateDataAdapter",
+    "MySqlConnector.MySqlDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/VSadov/Satori",
+   "opportunities": 64,
+   "distinct_rows": 2,
+   "rows": [
+    "NSec.Cryptography.Key.Create",
+    "NSec.Cryptography.Key.Import"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/aspnet/Benchmarks",
+   "opportunities": 63,
+   "distinct_rows": 6,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/NickSwardh/YoloDotNet",
+   "opportunities": 61,
+   "distinct_rows": 2,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/DuendeSoftware/Samples",
+   "opportunities": 60,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/microsoft/Trill",
+   "opportunities": 59,
+   "distinct_rows": 1,
+   "rows": [
+    "NSec.Cryptography.Key.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/SubtitleEdit/subtitleedit",
+   "opportunities": 59,
+   "distinct_rows": 5,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKFont.GetGlyphPath",
+    "SkiaSharp.SKFont.GetTextPath",
+    "SkiaSharp.SKPaint.GetTextPath"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/RaidMax/IW4M-Admin",
+   "opportunities": 58,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/OliverEGreen/Regular",
+   "opportunities": 54,
+   "distinct_rows": 2,
+   "rows": [
+    "Newtonsoft.Json.Linq.JContainer.CreateWriter",
+    "Newtonsoft.Json.Linq.JToken.CreateReader"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/JamesNK/Newtonsoft.Json",
+   "opportunities": 54,
+   "distinct_rows": 2,
+   "rows": [
+    "Newtonsoft.Json.Linq.JContainer.CreateWriter",
+    "Newtonsoft.Json.Linq.JToken.CreateReader"
+   ],
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/apaka/win-sshfs",
+   "opportunities": 54,
+   "distinct_rows": 5,
+   "rows": [
+    "Renci.SshNet.SftpClient.AppendText",
+    "Renci.SshNet.SftpClient.CreateText",
+    "Renci.SshNet.SftpClient.Open",
+    "Renci.SshNet.SftpClient.OpenRead",
+    "Renci.SshNet.SftpClient.OpenWrite"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/BrighterCommand/Brighter",
+   "opportunities": 52,
+   "distinct_rows": 7,
+   "rows": [
+    "MQTTnet.MqttClientFactory.CreateMqttClient",
+    "MySqlConnector.MySqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/MiloszKrajewski/K4os.Compression.LZ4",
+   "opportunities": 50,
+   "distinct_rows": 4,
+   "rows": [
+    "K4os.Compression.LZ4.Streams.LZ4Frame.Decode",
+    "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+    "K4os.Compression.LZ4.Streams.LZ4Stream.Decode",
+    "K4os.Compression.LZ4.Streams.LZ4Stream.Encode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnetcore/FreeSql",
+   "opportunities": 50,
+   "distinct_rows": 4,
+   "rows": [
+    "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+    "MySqlConnector.MySqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/yukuyoulei/ILRuntime_HotGames",
+   "opportunities": 50,
+   "distinct_rows": 3,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateDecryptor",
+    "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateEncryptor",
+    "ICSharpCode.SharpZipLib.Zip.ZipFile.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/OPCFoundation/UA-IIoT-StarterKit",
+   "opportunities": 48,
+   "distinct_rows": 2,
+   "rows": [
+    "MQTTnet.MqttClientFactory.CreateMqttClient",
+    "Newtonsoft.Json.Linq.JToken.CreateReader"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/TripleView/HomeKit.Net",
+   "opportunities": 48,
+   "distinct_rows": 3,
+   "rows": [
+    "NSec.Cryptography.Key.Import",
+    "NSec.Cryptography.KeyDerivationAlgorithm.DeriveKey",
+    "NSec.Cryptography.PasswordBasedKeyDerivationAlgorithm.DeriveKey"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/roozbehid/WasmWinforms",
+   "opportunities": 48,
+   "distinct_rows": 12,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateDecryptor",
+    "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateEncryptor",
+    "Npgsql.NpgsqlCommand.Clone",
+    "SharpCompress.Archives.GZip.GZipArchive.Open",
+    "SharpCompress.Archives.Rar.RarArchive.Open",
+    "SharpCompress.Archives.SevenZip.SevenZipArchive.Open",
+    "SharpCompress.Archives.Tar.TarArchive.Create",
+    "SharpCompress.Archives.Tar.TarArchive.Open",
+    "SharpCompress.Archives.Zip.ZipArchive.Create",
+    "SharpCompress.Archives.Zip.ZipArchive.Open",
+    "SharpCompress.Readers.Tar.TarReader.Open",
+    "SharpCompress.Readers.Zip.ZipReader.Open"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/skimedic/presentations",
+   "opportunities": 48,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/SixLabors/ImageSharp",
+   "opportunities": 47,
+   "distinct_rows": 4,
+   "rows": [
+    "SixLabors.ImageSharp.Image.WrapMemory",
+    "SixLabors.ImageSharp.ImageFrameCollection<TPixel>.CloneFrame",
+    "SixLabors.ImageSharp.ImageFrameCollection<TPixel>.ExportFrame",
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/mattosaurus/PgpCore",
+   "opportunities": 46,
+   "distinct_rows": 2,
+   "rows": [
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedDataGenerator.Open",
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpLiteralDataGenerator.Open"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/litenova/LiteBus",
+   "opportunities": 46,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/zmaplab/zserver",
+   "opportunities": 46,
+   "distinct_rows": 12,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+    "Serilog.Context.LogContext.PushProperty",
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKData.AsStream",
+    "SkiaSharp.SKFont.GetTextPath",
+    "SkiaSharp.SKPaint.GetTextPath",
+    "SkiaSharp.SKTypeface.ToFont"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/spektor56/OpenpilotToolkit",
+   "opportunities": 46,
+   "distinct_rows": 4,
+   "rows": [
+    "Renci.SshNet.SftpClient.Create",
+    "Renci.SshNet.SftpClient.Open",
+    "Renci.SshNet.SftpClient.OpenRead",
+    "Renci.SshNet.SshClient.CreateCommand"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/event-driven-io/Blumchen",
+   "opportunities": 45,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/PacktPublishing/Mastering-ABP-Framework",
+   "opportunities": 45,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/TortugaResearch/Tortuga.Chain",
+   "opportunities": 44,
+   "distinct_rows": 7,
+   "rows": [
+    "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "MySqlConnector.MySqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/nightscout/nocturne",
+   "opportunities": 43,
+   "distinct_rows": 7,
+   "rows": [
+    "Npgsql.NpgsqlCommand.Clone",
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Advance-Technologies-Foundation/clio",
+   "opportunities": 43,
+   "distinct_rows": 4,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlLargeObjectManager.OpenRead",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Meddington/OutlookPrivacyPlugin",
+   "opportunities": 41,
+   "distinct_rows": 4,
+   "rows": [
+    "Newtonsoft.Json.Linq.JContainer.CreateWriter",
+    "Newtonsoft.Json.Linq.JToken.CreateReader",
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedDataGenerator.Open",
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpLiteralDataGenerator.Open"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/SceneTech/WebScene",
+   "opportunities": 41,
+   "distinct_rows": 7,
+   "rows": [
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKFont.GetGlyphPath",
+    "SkiaSharp.SKFont.GetTextPath",
+    "SkiaSharp.SKPaint.GetTextPath",
+    "SkiaSharp.SKPath.CreateRawIterator",
+    "SkiaSharp.SKPath.ParseSvgPathData",
+    "SkiaSharp.SKTypeface.ToFont"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/nietras/Sep",
+   "opportunities": 40,
+   "distinct_rows": 1,
+   "rows": [
+    "CsvHelper.Factory.CreateReader"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Nethereum/Nethereum",
+   "opportunities": 40,
+   "distinct_rows": 2,
+   "rows": [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/microsoft/service-fabric",
+   "opportunities": 38,
+   "distinct_rows": 1,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/infinidysk/infinidysk",
+   "opportunities": 38,
+   "distinct_rows": 3,
+   "rows": [
+    "Serilog.Context.LogContext.PushProperty",
+    "SharpCompress.Factories.ZipFactory.OpenReader",
+    "SharpCompress.Writers.Zip.ZipWriter.WriteToStream"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/kaby76/Antlr4BuildTasks",
+   "opportunities": 38,
+   "distinct_rows": 10,
+   "rows": [
+    "SharpCompress.Archives.GZip.GZipArchive.Create",
+    "SharpCompress.Archives.GZip.GZipArchive.Open",
+    "SharpCompress.Archives.Rar.RarArchive.Open",
+    "SharpCompress.Archives.SevenZip.SevenZipArchive.Open",
+    "SharpCompress.Archives.Tar.TarArchive.Create",
+    "SharpCompress.Archives.Tar.TarArchive.Open",
+    "SharpCompress.Archives.Zip.ZipArchive.Create",
+    "SharpCompress.Archives.Zip.ZipArchive.Open",
+    "SharpCompress.Readers.Tar.TarReader.Open",
+    "SharpCompress.Readers.Zip.ZipReader.Open"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ravendb/ravendb",
+   "opportunities": 37,
+   "distinct_rows": 6,
+   "rows": [
+    "NSec.Cryptography.Key.Create",
+    "Newtonsoft.Json.Linq.JToken.CreateReader",
+    "Npgsql.NpgsqlCommand.Clone",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/BEagle1984/silverback",
+   "opportunities": 36,
+   "distinct_rows": 3,
+   "rows": [
+    "MQTTnet.MqttClientFactory.CreateMqttClient",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/aykutalparslan/Telegram-Server",
+   "opportunities": 36,
+   "distinct_rows": 1,
+   "rows": [
+    "NSec.Cryptography.Key.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/MDA2AV/HttpArena",
+   "opportunities": 36,
+   "distinct_rows": 2,
+   "rows": [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Pangamma/PixelStacker",
+   "opportunities": 36,
+   "distinct_rows": 3,
+   "rows": [
+    "Renci.SshNet.SshClient.CreateCommand",
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/serilog-contrib/Serilog.Enrichers.Sensitive",
+   "opportunities": 36,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Plac3hold3r/MvxScaffolding",
+   "opportunities": 36,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/lemutec/MicaSetup",
+   "opportunities": 36,
+   "distinct_rows": 4,
+   "rows": [
+    "SharpCompress.Archives.GZip.GZipArchive.Open",
+    "SharpCompress.Archives.Rar.RarArchive.Open",
+    "SharpCompress.Archives.SevenZip.SevenZipArchive.Open",
+    "SharpCompress.Archives.Zip.ZipArchive.Open"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/fmbot-discord/fmbot",
+   "opportunities": 36,
+   "distinct_rows": 2,
+   "rows": [
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKData.AsStream"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/maui",
+   "opportunities": 35,
+   "distinct_rows": 4,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader",
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKData.AsStream"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/signumsoftware/framework",
+   "opportunities": 35,
+   "distinct_rows": 6,
+   "rows": [
+    "Npgsql.NpgsqlCommand.Clone",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/icsharpcode/SharpZipLib",
+   "opportunities": 35,
+   "distinct_rows": 5,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateDecryptor",
+    "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateEncryptor",
+    "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateInputTarArchive",
+    "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateOutputTarArchive",
+    "ICSharpCode.SharpZipLib.Zip.ZipFile.Create"
+   ],
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/parzivail/ReMarkable.NET",
+   "opportunities": 35,
+   "distinct_rows": 1,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/bcgit/bc-csharp",
+   "opportunities": 34,
+   "distinct_rows": 3,
+   "rows": [
+    "Org.BouncyCastle.Asn1.Asn1OutputStream.Create",
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedDataGenerator.Open",
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpLiteralDataGenerator.Open"
+   ],
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/BeyondDimension/SteamTools",
+   "opportunities": 34,
+   "distinct_rows": 6,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateInputTarArchive",
+    "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateOutputTarArchive",
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedDataGenerator.Open",
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpLiteralDataGenerator.Open",
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKData.AsStream"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/lindexi/lindexi_gd",
+   "opportunities": 34,
+   "distinct_rows": 7,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add",
+    "Renci.SshNet.SshClient.CreateShell",
+    "SharpCompress.Archives.Zip.ZipArchive.Open",
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKFont.GetGlyphPath",
+    "SkiaSharp.SKPath.ParseSvgPathData",
+    "SkiaSharp.SKTypeface.ToFont"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/neo-project/neo",
+   "opportunities": 34,
+   "distinct_rows": 1,
+   "rows": [
+    "NSec.Cryptography.Key.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/votrongdao/FlowX",
+   "opportunities": 34,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dashiell-zhang/NetEngine",
+   "opportunities": 34,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/adamhathcock/sharpcompress",
+   "opportunities": 34,
+   "distinct_rows": 2,
+   "rows": [
+    "SharpCompress.Factories.ZipFactory.OpenReader",
+    "SharpCompress.Writers.Zip.ZipWriter.WriteToStream"
+   ],
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/yuzd/AntDeploy",
+   "opportunities": 33,
+   "distinct_rows": 3,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add",
+    "Renci.SshNet.SftpClient.CreateText",
+    "Renci.SshNet.SshClient.CreateCommand"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/bilibili/UnityBVA",
+   "opportunities": 33,
+   "distinct_rows": 1,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/oskardudycz/EventSourcing.NetCore",
+   "opportunities": 33,
+   "distinct_rows": 5,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ozontech/pg_doorman",
+   "opportunities": 32,
+   "distinct_rows": 2,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.CreateBatch",
+    "Npgsql.NpgsqlFactory.CreateBatch"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Deijin27/RanseiLink",
+   "opportunities": 32,
+   "distinct_rows": 1,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/TrakHound/MTConnect.NET",
+   "opportunities": 31,
+   "distinct_rows": 1,
+   "rows": [
+    "MQTTnet.MqttClientFactory.CreateMqttClient"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/daniel3303/Equibles",
+   "opportunities": 31,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlCommand.Clone",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Gml-Launcher/Gml.Launcher",
+   "opportunities": 31,
+   "distinct_rows": 1,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ShareX/ShareX",
+   "opportunities": 31,
+   "distinct_rows": 4,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKFont.GetTextPath",
+    "SkiaSharp.SKPaint.GetTextPath"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/b-editor/beutl",
+   "opportunities": 31,
+   "distinct_rows": 5,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKFont.GetGlyphPath",
+    "SkiaSharp.SKPath.CreateRawIterator",
+    "SkiaSharp.SKPath.ParseSvgPathData"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/fiddyschmitt/File-Tunnel",
+   "opportunities": 30,
+   "distinct_rows": 2,
+   "rows": [
+    "CsvHelper.CsvDataReader.Close",
+    "Renci.SshNet.SshClient.CreateCommand"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/nightroman/FarNet",
+   "opportunities": 30,
+   "distinct_rows": 1,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/x3bits/MikuMikuXR",
+   "opportunities": 30,
+   "distinct_rows": 11,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader",
+    "SharpCompress.Archives.GZip.GZipArchive.Create",
+    "SharpCompress.Archives.GZip.GZipArchive.Open",
+    "SharpCompress.Archives.Rar.RarArchive.Open",
+    "SharpCompress.Archives.SevenZip.SevenZipArchive.Open",
+    "SharpCompress.Archives.Tar.TarArchive.Create",
+    "SharpCompress.Archives.Tar.TarArchive.Open",
+    "SharpCompress.Archives.Zip.ZipArchive.Create",
+    "SharpCompress.Archives.Zip.ZipArchive.Open",
+    "SharpCompress.Readers.Tar.TarReader.Open",
+    "SharpCompress.Readers.Zip.ZipReader.Open"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/zhichkin/dajet",
+   "opportunities": 30,
+   "distinct_rows": 5,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/PacktPublishing/Clean-Architecture-with-.NET",
+   "opportunities": 30,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Azure/Industrial-IoT",
+   "opportunities": 29,
+   "distinct_rows": 2,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+    "MQTTnet.MqttClientFactory.CreateMqttClient"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/maraf/Money",
+   "opportunities": 29,
+   "distinct_rows": 1,
+   "rows": [
+    "NSec.Cryptography.Key.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/yaochangyu/sample.dotblog",
+   "opportunities": 29,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Cinchoo/ChoPGP",
+   "opportunities": 28,
+   "distinct_rows": 2,
+   "rows": [
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedDataGenerator.Open",
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpLiteralDataGenerator.Open"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/neoeinstein/bouncycastle",
+   "opportunities": 28,
+   "distinct_rows": 2,
+   "rows": [
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedDataGenerator.Open",
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpLiteralDataGenerator.Open"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/LykosAI/StabilityMatrix",
+   "opportunities": 28,
+   "distinct_rows": 6,
+   "rows": [
+    "NLog.LogFactory.SuspendLogging",
+    "NLog.LogManager.SuspendLogging",
+    "NSec.Cryptography.Key.Import",
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKData.AsStream"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/georg-jung/FaceAiSharp",
+   "opportunities": 28,
+   "distinct_rows": 1,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/KhronosGroup/UnityGLTF",
+   "opportunities": 27,
+   "distinct_rows": 2,
+   "rows": [
+    "Newtonsoft.Json.Linq.JContainer.CreateWriter",
+    "Newtonsoft.Json.Linq.JToken.CreateReader"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ste-phil/Win10-Explorer",
+   "opportunities": 27,
+   "distinct_rows": 11,
+   "rows": [
+    "SharpCompress.Archives.GZip.GZipArchive.Create",
+    "SharpCompress.Archives.GZip.GZipArchive.Open",
+    "SharpCompress.Archives.Rar.RarArchive.Open",
+    "SharpCompress.Archives.SevenZip.SevenZipArchive.Open",
+    "SharpCompress.Archives.Tar.TarArchive.Create",
+    "SharpCompress.Archives.Tar.TarArchive.Open",
+    "SharpCompress.Archives.Zip.ZipArchive.Create",
+    "SharpCompress.Archives.Zip.ZipArchive.Open",
+    "SharpCompress.Readers.Tar.TarReader.Open",
+    "SharpCompress.Readers.Zip.ZipReader.Open",
+    "SharpCompress.Writers.WriterFactory.Open"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/FiendsOfTheElements/FF1Randomizer",
+   "opportunities": 27,
+   "distinct_rows": 1,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/SnapXL/SnapX",
+   "opportunities": 27,
+   "distinct_rows": 1,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Deffiss/testenvironment-docker",
+   "opportunities": 26,
+   "distinct_rows": 6,
+   "rows": [
+    "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "MySqlConnector.MySqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "SharpCompress.Writers.WriterFactory.Open"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/J-Tech-Japan/Sekiban",
+   "opportunities": 26,
+   "distinct_rows": 3,
+   "rows": [
+    "MySqlConnector.MySqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Azure/Microsoft.Extensions.Caching.Postgres",
+   "opportunities": 26,
+   "distinct_rows": 6,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/actions/runner",
+   "opportunities": 25,
+   "distinct_rows": 1,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/hargata/lubelog",
+   "opportunities": 25,
+   "distinct_rows": 1,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/serilog/serilog",
+   "opportunities": 25,
+   "distinct_rows": 3,
+   "rows": [
+    "Serilog.Context.LogContext.Push",
+    "Serilog.Context.LogContext.PushProperty",
+    "Serilog.Context.LogContext.Suspend"
+   ],
+   "is_row_library_repo": true
+  },
+  {
+   "repo": "github.com/datalust/seqcli",
+   "opportunities": 25,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/wsxhm/CPF",
+   "opportunities": 25,
+   "distinct_rows": 4,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKData.AsStream",
+    "SkiaSharp.SKFont.GetTextPath",
+    "SkiaSharp.SKPaint.GetTextPath"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/axzxs2001/Asp.NetCoreExperiment",
+   "opportunities": 24,
+   "distinct_rows": 6,
+   "rows": [
+    "CsvHelper.CsvDataReader.Close",
+    "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+    "SkiaSharp.SKPath.ParseSvgPathData",
+    "SkiaSharp.SKTypeface.ToFont"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/alibaba/x-deeplearning",
+   "opportunities": 24,
+   "distinct_rows": 1,
+   "rows": [
+    "Google.Protobuf.CodedInputStream.CreateWithLimits"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/saaras-io/yastack",
+   "opportunities": 24,
+   "distinct_rows": 1,
+   "rows": [
+    "Google.Protobuf.CodedInputStream.CreateWithLimits"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/xoofx/git-rocket-filter",
+   "opportunities": 24,
+   "distinct_rows": 1,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/jflieben/assortedFunctionsV2",
+   "opportunities": 24,
+   "distinct_rows": 1,
+   "rows": [
+    "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/olsh/resharper-structured-logging",
+   "opportunities": 24,
+   "distinct_rows": 3,
+   "rows": [
+    "NLog.Logger.PushScopeProperty",
+    "NLog.ScopeContext.PushProperty",
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/indiff/DBCHM",
+   "opportunities": 24,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Whisparr/Whisparr",
+   "opportunities": 24,
+   "distinct_rows": 7,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateInputTarArchive",
+    "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Whisparr/Whisparr-Eros",
+   "opportunities": 24,
+   "distinct_rows": 7,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateInputTarArchive",
+    "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/2881099/dotnetGen_postgresql",
+   "opportunities": 24,
+   "distinct_rows": 2,
+   "rows": [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Apress/pro-c-sharp-10",
+   "opportunities": 24,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/unoplatform/Uno.Samples",
+   "opportunities": 24,
+   "distinct_rows": 4,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKData.AsStream",
+    "SkiaSharp.SKPath.ParseSvgPathData"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/wieslawsoltes/CDP",
+   "opportunities": 24,
+   "distinct_rows": 1,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/git-tfs/git-tfs",
+   "opportunities": 23,
+   "distinct_rows": 1,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/WalletWasabi/WalletWasabi",
+   "opportunities": 23,
+   "distinct_rows": 4,
+   "rows": [
+    "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+    "NSec.Cryptography.Key.Create",
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKData.AsStream"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/sebastienros/yessql",
+   "opportunities": 23,
+   "distinct_rows": 5,
+   "rows": [
+    "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+    "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ariacom/Seal-Report",
+   "opportunities": 23,
+   "distinct_rows": 3,
+   "rows": [
+    "MySqlConnector.MySqlConnection.Clone",
+    "Npgsql.NpgsqlCommand.Clone",
+    "Renci.SshNet.SftpClient.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Redth/ResizetizerNT",
+   "opportunities": 23,
+   "distinct_rows": 1,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/kitkat-multiverse/Starlight",
+   "opportunities": 22,
+   "distinct_rows": 1,
+   "rows": [
+    "Google.Protobuf.ByteString.CreateCodedInput"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/GitTools/GitVersion",
+   "opportunities": 22,
+   "distinct_rows": 1,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/MassTransit/MassTransit",
+   "opportunities": 22,
+   "distinct_rows": 6,
+   "rows": [
+    "NSec.Cryptography.Key.Create",
+    "Newtonsoft.Json.Linq.JToken.CreateReader",
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/fornit1917/jobby",
+   "opportunities": 22,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/GoogleCloudPlatform/pgadapter",
+   "opportunities": 22,
+   "distinct_rows": 4,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.CreateBatch",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateBatch",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Prowlarr/Prowlarr",
+   "opportunities": 22,
+   "distinct_rows": 7,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateInputTarArchive",
+    "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Radarr/Radarr",
+   "opportunities": 22,
+   "distinct_rows": 7,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateInputTarArchive",
+    "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ThingEngineering/wowthing-again",
+   "opportunities": 22,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/IoTSharp/SonnetDB",
+   "opportunities": 21,
+   "distinct_rows": 1,
+   "rows": [
+    "MQTTnet.MqttClientFactory.CreateMqttClient"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/corvus-dotnet/Corvus.JsonSchema",
+   "opportunities": 21,
+   "distinct_rows": 1,
+   "rows": [
+    "MQTTnet.MqttClientFactory.CreateMqttClient"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/fuse-open/fuse-studio",
+   "opportunities": 21,
+   "distinct_rows": 1,
+   "rows": [
+    "NSec.Cryptography.Key.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/roslynator",
+   "opportunities": 21,
+   "distinct_rows": 1,
+   "rows": [
+    "NSec.Cryptography.Key.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/picoe/Eto",
+   "opportunities": 21,
+   "distinct_rows": 1,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/hornyyy/Osu-Toy",
+   "opportunities": 21,
+   "distinct_rows": 3,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader",
+    "SharpCompress.Archives.Zip.ZipArchive.Create",
+    "SharpCompress.Archives.Zip.ZipArchive.Open"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Warewolf-ESB/Warewolf",
+   "opportunities": 21,
+   "distinct_rows": 4,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Renci.SshNet.SftpClient.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/MvvmCross/MvvmCross-Samples",
+   "opportunities": 21,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/fdorg/flashdevelop",
+   "opportunities": 21,
+   "distinct_rows": 3,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateDecryptor",
+    "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateEncryptor",
+    "ICSharpCode.SharpZipLib.Zip.ZipFile.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Particle1904/DatasetHelpers",
+   "opportunities": 21,
+   "distinct_rows": 1,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/microsoft/WindowsAdvancedSettings",
+   "opportunities": 20,
+   "distinct_rows": 1,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/IoTSharp/GitCandy",
+   "opportunities": 20,
+   "distinct_rows": 1,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/emqx/MQTT-Client-Examples",
+   "opportunities": 20,
+   "distinct_rows": 1,
+   "rows": [
+    "MQTTnet.MqttClientFactory.CreateMqttClient"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/liuweichaox/Ingot",
+   "opportunities": 20,
+   "distinct_rows": 4,
+   "rows": [
+    "MQTTnet.MqttClientFactory.CreateMqttClient",
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/UiPath/Community.Activities",
+   "opportunities": 20,
+   "distinct_rows": 4,
+   "rows": [
+    "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+    "Renci.SshNet.SftpClient.Open",
+    "Renci.SshNet.SftpClient.OpenRead",
+    "Renci.SshNet.SftpClient.OpenWrite"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql",
+   "opportunities": 20,
+   "distinct_rows": 3,
+   "rows": [
+    "MySqlConnector.MySqlConnection.Clone",
+    "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "MySqlConnector.MySqlDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/todbot/blink1",
+   "opportunities": 20,
+   "distinct_rows": 2,
+   "rows": [
+    "Newtonsoft.Json.Linq.JContainer.CreateWriter",
+    "Newtonsoft.Json.Linq.JToken.CreateReader"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Letterbook/Letterbook",
+   "opportunities": 20,
+   "distinct_rows": 2,
+   "rows": [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/serilog-tracing/serilog-tracing",
+   "opportunities": 20,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/karenpayneoregon/ef-code-8-samples",
+   "opportunities": 20,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/karenpayneoregon/csharp-11-ef-core-7-features",
+   "opportunities": 20,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ErsatzTV/legacy",
+   "opportunities": 20,
+   "distinct_rows": 4,
+   "rows": [
+    "Serilog.Context.LogContext.PushProperty",
+    "SixLabors.ImageSharp.ImageFrameCollection<TPixel>.CloneFrame",
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKData.AsStream"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ViewFaceCore/ViewFaceCore",
+   "opportunities": 20,
+   "distinct_rows": 1,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/liushiyangFrsan/GitHub_WattToolkit",
+   "opportunities": 19,
+   "distinct_rows": 6,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateInputTarArchive",
+    "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateOutputTarArchive",
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedDataGenerator.Open",
+    "Org.BouncyCastle.Bcpg.OpenPgp.PgpLiteralDataGenerator.Open",
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKData.AsStream"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/unoplatform/uno",
+   "opportunities": 19,
+   "distinct_rows": 5,
+   "rows": [
+    "K4os.Compression.LZ4.Streams.Extensions.AsStream",
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKFont.GetGlyphPath",
+    "SkiaSharp.SKPath.CreateIterator"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/AIDotNet/OpenDeepWiki",
+   "opportunities": 19,
+   "distinct_rows": 2,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add",
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/DaredevilOSS/sqlc-gen-csharp",
+   "opportunities": 19,
+   "distinct_rows": 2,
+   "rows": [
+    "MySqlConnector.MySqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlDataSource.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/X-Sharp/XSharpPublic",
+   "opportunities": 19,
+   "distinct_rows": 1,
+   "rows": [
+    "NSec.Cryptography.Key.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/HOBOBO/AbilityKit",
+   "opportunities": 19,
+   "distinct_rows": 2,
+   "rows": [
+    "NSec.Cryptography.Key.Create",
+    "Newtonsoft.Json.Linq.JContainer.CreateWriter"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Quahu/Disqord",
+   "opportunities": 19,
+   "distinct_rows": 2,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader",
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/gro-ove/actools",
+   "opportunities": 19,
+   "distinct_rows": 4,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader",
+    "SharpCompress.Archives.Rar.RarArchive.Open",
+    "SharpCompress.Archives.Zip.ZipArchive.Open",
+    "SharpCompress.Writers.WriterFactory.Open"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/frequency403/OpenSSH-GUI",
+   "opportunities": 19,
+   "distinct_rows": 3,
+   "rows": [
+    "Renci.SshNet.SftpClient.Create",
+    "Renci.SshNet.SftpClient.Open",
+    "Renci.SshNet.SshClient.CreateCommand"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/RockSolidKnowledge/Open.IdentityServer",
+   "opportunities": 19,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/drakewill-CRL/ROMSorter",
+   "opportunities": 19,
+   "distinct_rows": 6,
+   "rows": [
+    "SharpCompress.Archives.GZip.GZipArchive.Open",
+    "SharpCompress.Archives.Rar.RarArchive.Open",
+    "SharpCompress.Archives.SevenZip.SevenZipArchive.Open",
+    "SharpCompress.Archives.Tar.TarArchive.Open",
+    "SharpCompress.Archives.Zip.ZipArchive.Open",
+    "SharpCompress.Writers.WriterFactory.Open"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/guojin-yan/DeploySharp",
+   "opportunities": 19,
+   "distinct_rows": 1,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/lay295/TwitchDownloader",
+   "opportunities": 19,
+   "distinct_rows": 5,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKFont.GetGlyphPath",
+    "SkiaSharp.SKFont.GetTextPath",
+    "SkiaSharp.SKPaint.GetTextPath",
+    "SkiaSharp.SKPath.ParseSvgPathData"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Live-Charts/LiveCharts2",
+   "opportunities": 19,
+   "distinct_rows": 3,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKPath.ParseSvgPathData"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/vchelaru/Gum",
+   "opportunities": 19,
+   "distinct_rows": 1,
+   "rows": [
+    "SkiaSharp.SKBitmap.FromImage"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/DrawnUi/DrawnUi.Net",
+   "opportunities": 19,
+   "distinct_rows": 2,
+   "rows": [
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKPath.ParseSvgPathData"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/alibaba/nann",
+   "opportunities": 18,
+   "distinct_rows": 2,
+   "rows": [
+    "Google.Protobuf.ByteString.CreateCodedInput",
+    "Google.Protobuf.CodedInputStream.CreateWithLimits"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/aspnetcore",
+   "opportunities": 18,
+   "distinct_rows": 3,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/stripe/stripe-dotnet",
+   "opportunities": 18,
+   "distinct_rows": 1,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Ginger-Automation/Ginger",
+   "opportunities": 18,
+   "distinct_rows": 6,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Renci.SshNet.SftpClient.OpenRead",
+    "Renci.SshNet.SftpClient.OpenWrite",
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/idaholab/DeepLynx",
+   "opportunities": 18,
+   "distinct_rows": 2,
+   "rows": [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/aelassas/wexflow",
+   "opportunities": 18,
+   "distinct_rows": 8,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateInputTarArchive",
+    "Renci.SshNet.SftpClient.Create",
+    "Renci.SshNet.SftpClient.OpenRead",
+    "SharpCompress.Archives.Rar.RarArchive.Open",
+    "SharpCompress.Archives.SevenZip.SevenZipArchive.Open",
+    "SharpCompress.Archives.Zip.ZipArchive.Open",
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/EvotecIT/Transferetto",
+   "opportunities": 18,
+   "distinct_rows": 5,
+   "rows": [
+    "Renci.SshNet.SftpClient.Create",
+    "Renci.SshNet.SftpClient.Open",
+    "Renci.SshNet.SftpClient.OpenRead",
+    "Renci.SshNet.SftpClient.OpenWrite",
+    "Renci.SshNet.SshClient.CreateCommand"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/openrails/openrails",
+   "opportunities": 17,
+   "distinct_rows": 1,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/microsoft/tyger",
+   "opportunities": 17,
+   "distinct_rows": 5,
+   "rows": [
+    "Npgsql.NpgsqlCommand.Clone",
+    "Npgsql.NpgsqlDataSource.CreateBatch",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateBatch",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/FuseCP/FuseCP",
+   "opportunities": 17,
+   "distinct_rows": 6,
+   "rows": [
+    "Renci.SshNet.SftpClient.Create",
+    "Renci.SshNet.SftpClient.Open",
+    "Renci.SshNet.SshClient.CreateCommand",
+    "SharpCompress.Archives.SevenZip.SevenZipArchive.Open",
+    "SharpCompress.Archives.Zip.ZipArchive.Open",
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/iron-software/IronSoftware.System.Drawing",
+   "opportunities": 17,
+   "distinct_rows": 2,
+   "rows": [
+    "SixLabors.ImageSharp.ImageFrameCollection<TPixel>.CloneFrame",
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/clowd/Clowd",
+   "opportunities": 17,
+   "distinct_rows": 3,
+   "rows": [
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKData.AsStream",
+    "SkiaSharp.SKPath.ParseSvgPathData"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/PHOENIXCONTACT/MORYX-Framework",
+   "opportunities": 16,
+   "distinct_rows": 2,
+   "rows": [
+    "CsvHelper.CsvDataReader.Close",
+    "MQTTnet.MqttClientFactory.CreateMqttClient"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/agentthink/twin-data-collector",
+   "opportunities": 16,
+   "distinct_rows": 1,
+   "rows": [
+    "MQTTnet.MqttClientFactory.CreateMqttClient"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Mimetis/Dotmim.Sync",
+   "opportunities": 16,
+   "distinct_rows": 3,
+   "rows": [
+    "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+    "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "MySqlConnector.MySqlDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/SteeltoeOSS/Steeltoe",
+   "opportunities": 16,
+   "distinct_rows": 2,
+   "rows": [
+    "MySqlConnector.MySqlDataSourceBuilder.Build",
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/damian-krychowski/plikshare",
+   "opportunities": 16,
+   "distinct_rows": 4,
+   "rows": [
+    "NSec.Cryptography.Key.Import",
+    "NSec.Cryptography.KeyDerivationAlgorithm.DeriveKey",
+    "NSec.Cryptography.PasswordBasedKeyDerivationAlgorithm.DeriveKey",
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/discord-net/Discord.Net",
+   "opportunities": 16,
+   "distinct_rows": 2,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader",
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/brianpursley/Npgmq",
+   "opportunities": 16,
+   "distinct_rows": 6,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/DapperLib/DapperAOT",
+   "opportunities": 16,
+   "distinct_rows": 4,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.CreateBatch",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateBatch",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/PluralKit/PluralKit",
+   "opportunities": 16,
+   "distinct_rows": 7,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+    "Serilog.Context.LogContext.Push",
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/BibleBot/BibleBot",
+   "opportunities": 16,
+   "distinct_rows": 2,
+   "rows": [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/antonputra/tutorials",
+   "opportunities": 16,
+   "distinct_rows": 2,
+   "rows": [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/tnc1997/samples",
+   "opportunities": 16,
+   "distinct_rows": 2,
+   "rows": [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/microsoft/onnxruntime-inference-examples",
+   "opportunities": 16,
+   "distinct_rows": 3,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone",
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/0x0ade/CelesteNet",
+   "opportunities": 16,
+   "distinct_rows": 1,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/arklumpus/VectSharp",
+   "opportunities": 16,
+   "distinct_rows": 4,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone",
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKFont.GetTextPath",
+    "SkiaSharp.SKPaint.GetTextPath"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/KloBraticc/Voidstrap",
+   "opportunities": 16,
+   "distinct_rows": 1,
+   "rows": [
+    "SixLabors.ImageSharp.ImageFrameCollection<TPixel>.CloneFrame"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/OrchardCMS/OrchardCore",
+   "opportunities": 15,
+   "distinct_rows": 6,
+   "rows": [
+    "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+    "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/TheSkymuTeam/Skymu",
+   "opportunities": 15,
+   "distinct_rows": 1,
+   "rows": [
+    "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Coldairarrow/Colder.Admin.AntdVue",
+   "opportunities": 15,
+   "distinct_rows": 6,
+   "rows": [
+    "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "MySqlConnector.MySqlConnectorFactory.CreateDataAdapter",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateDataAdapter",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/opentween/OpenTween",
+   "opportunities": 15,
+   "distinct_rows": 1,
+   "rows": [
+    "NSec.Cryptography.Key.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/angularsen/UnitsNet",
+   "opportunities": 15,
+   "distinct_rows": 1,
+   "rows": [
+    "NSec.Cryptography.Key.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/timheuer/alexa-skills-dotnet",
+   "opportunities": 15,
+   "distinct_rows": 1,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/exmex/UnityMoba",
+   "opportunities": 15,
+   "distinct_rows": 4,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateDecryptor",
+    "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateEncryptor",
+    "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+    "Newtonsoft.Json.Linq.JToken.CreateReader"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/pauljoda/Prismedia",
+   "opportunities": 15,
+   "distinct_rows": 2,
+   "rows": [
+    "Npgsql.NpgsqlCommand.Clone",
+    "Npgsql.NpgsqlDataSource.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/featbit/featbit",
+   "opportunities": 15,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/SapiensAnatis/Dawnshard",
+   "opportunities": 15,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ServiceStack/ServiceStack",
+   "opportunities": 15,
+   "distinct_rows": 3,
+   "rows": [
+    "RabbitMQ.Client.TcpClientAdapter.GetStream",
+    "Serilog.LoggerConfiguration.CreateLogger",
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/wyfish/RPAStudio",
+   "opportunities": 15,
+   "distinct_rows": 3,
+   "rows": [
+    "Renci.SshNet.SftpClient.Open",
+    "Renci.SshNet.SftpClient.OpenRead",
+    "Renci.SshNet.SftpClient.OpenWrite"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/FreeDemon2020/RPAStudio",
+   "opportunities": 15,
+   "distinct_rows": 3,
+   "rows": [
+    "Renci.SshNet.SftpClient.Open",
+    "Renci.SshNet.SftpClient.OpenRead",
+    "Renci.SshNet.SftpClient.OpenWrite"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/kgrzybek/modular-monolith-with-ddd",
+   "opportunities": 15,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.Context.LogContext.Push"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/XiHanFun/XiHan.Framework",
+   "opportunities": 15,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/PepperDash/Essentials",
+   "opportunities": 15,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.Context.LogContext.PushProperty"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Dr-hydra/Arknights-Painter",
+   "opportunities": 15,
+   "distinct_rows": 1,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/vexx32/PSWordCloud",
+   "opportunities": 15,
+   "distinct_rows": 4,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKData.AsStream",
+    "SkiaSharp.SKFont.GetTextPath",
+    "SkiaSharp.SKPaint.GetTextPath"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/mgierlasinski/MagicGradients",
+   "opportunities": 15,
+   "distinct_rows": 3,
+   "rows": [
+    "SkiaSharp.SKFont.GetTextPath",
+    "SkiaSharp.SKPaint.GetTextPath",
+    "SkiaSharp.SKPath.ParseSvgPathData"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/GeorgRottensteiner/C64Studio",
+   "opportunities": 14,
+   "distinct_rows": 1,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/RumstiBumsti/TcLibraryVersions",
+   "opportunities": 14,
+   "distinct_rows": 1,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/dotnet-docker",
+   "opportunities": 14,
+   "distinct_rows": 1,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/OPCFoundation/UA-.NETStandard",
+   "opportunities": 14,
+   "distinct_rows": 3,
+   "rows": [
+    "MQTTnet.MqttClientFactory.CreateMqttClient",
+    "NSec.Cryptography.Key.Create",
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/stidsborg/Cleipnir.ResilientFunctions",
+   "opportunities": 14,
+   "distinct_rows": 4,
+   "rows": [
+    "MySqlConnector.MySqlConnection.CreateBatch",
+    "MySqlConnector.MySqlConnectorFactory.CreateBatch",
+    "Npgsql.NpgsqlDataSource.CreateBatch",
+    "Npgsql.NpgsqlFactory.CreateBatch"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/netcorepal/netcorepal-cloud-framework",
+   "opportunities": 14,
+   "distinct_rows": 1,
+   "rows": [
+    "MySqlConnector.MySqlDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/netnr/np",
+   "opportunities": 14,
+   "distinct_rows": 4,
+   "rows": [
+    "MySqlConnector.MySqlConnection.Clone",
+    "Npgsql.NpgsqlCommand.Clone",
+    "Npgsql.NpgsqlLargeObjectManager.OpenRead",
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Macro-Deck-App/Macro-Deck",
+   "opportunities": 14,
+   "distinct_rows": 3,
+   "rows": [
+    "NSec.Cryptography.Key.Import",
+    "SixLabors.ImageSharp.ImageFrameCollection<TPixel>.CloneFrame",
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ChilliCream/graphql-platform",
+   "opportunities": 14,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.Create",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Lidarr/Lidarr",
+   "opportunities": 14,
+   "distinct_rows": 5,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateInputTarArchive",
+    "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Sonarr/Sonarr",
+   "opportunities": 14,
+   "distinct_rows": 5,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateInputTarArchive",
+    "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Eventuous/eventuous",
+   "opportunities": 14,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/baking-bad/tzkt",
+   "opportunities": 14,
+   "distinct_rows": 2,
+   "rows": [
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/darkoperator/Posh-SSH",
+   "opportunities": 14,
+   "distinct_rows": 3,
+   "rows": [
+    "Renci.SshNet.SftpClient.Create",
+    "Renci.SshNet.SftpClient.Open",
+    "Renci.SshNet.SftpClient.OpenRead"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/cmu-sei/GHOSTS",
+   "opportunities": 14,
+   "distinct_rows": 3,
+   "rows": [
+    "Renci.SshNet.SftpClient.Create",
+    "Renci.SshNet.SftpClient.OpenRead",
+    "Renci.SshNet.SftpClient.OpenWrite"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/SharpGrip/FileSystem",
+   "opportunities": 14,
+   "distinct_rows": 2,
+   "rows": [
+    "Renci.SshNet.SftpClient.OpenRead",
+    "Renci.SshNet.SftpClient.OpenWrite"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/stride3d/stride",
+   "opportunities": 14,
+   "distinct_rows": 2,
+   "rows": [
+    "Renci.SshNet.SshClient.CreateCommand",
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/serilog/serilog-sinks-async",
+   "opportunities": 14,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Cleanuparr/Cleanuparr",
+   "opportunities": 14,
+   "distinct_rows": 2,
+   "rows": [
+    "Serilog.Context.LogContext.PushProperty",
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/Stability-AI/StableSwarmUI",
+   "opportunities": 14,
+   "distinct_rows": 1,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/pwitvoet/wadmaker",
+   "opportunities": 14,
+   "distinct_rows": 1,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/BobLd/PdfPig.Rendering.Skia",
+   "opportunities": 14,
+   "distinct_rows": 3,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKFont.GetGlyphPath",
+    "SkiaSharp.SKTypeface.ToFont"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/PopGameTool/PopStudio",
+   "opportunities": 13,
+   "distinct_rows": 4,
+   "rows": [
+    "K4os.Compression.LZ4.Streams.LZ4Stream.Decode",
+    "K4os.Compression.LZ4.Streams.LZ4Stream.Encode",
+    "SixLabors.ImageSharp.Image<TPixel>.Clone",
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/4sval/FModel",
+   "opportunities": 13,
+   "distinct_rows": 3,
+   "rows": [
+    "K4os.Compression.LZ4.Streams.LZ4Stream.Decode",
+    "K4os.Compression.LZ4.Streams.LZ4Stream.Encode",
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/Nerdbank.GitVersioning",
+   "opportunities": 13,
+   "distinct_rows": 1,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dnobori/DN_SuperBook_PDF_Converter",
+   "opportunities": 13,
+   "distinct_rows": 2,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add",
+    "Renci.SshNet.SftpClient.Open"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/SixLabors/ImageSharp.Web",
+   "opportunities": 13,
+   "distinct_rows": 2,
+   "rows": [
+    "NSec.Cryptography.Key.Create",
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/mono/mono",
+   "opportunities": 13,
+   "distinct_rows": 3,
+   "rows": [
+    "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateDecryptor",
+    "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateEncryptor",
+    "NSec.Cryptography.Key.Import"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/tintoy/dotnet-kube-client",
+   "opportunities": 13,
+   "distinct_rows": 1,
+   "rows": [
+    "Newtonsoft.Json.Linq.JToken.CreateReader"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnetreport/dotnetreport",
+   "opportunities": 13,
+   "distinct_rows": 4,
+   "rows": [
+    "Npgsql.NpgsqlCommand.Clone",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/AscensionGameDev/Intersect-Engine",
+   "opportunities": 13,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/DragoQCC/CrucibleC2",
+   "opportunities": 13,
+   "distinct_rows": 1,
+   "rows": [
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/SixLabors/Samples",
+   "opportunities": 13,
+   "distinct_rows": 1,
+   "rows": [
+    "SixLabors.ImageSharp.Image<TPixel>.Clone"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/ValveResourceFormat/ValveResourceFormat",
+   "opportunities": 13,
+   "distinct_rows": 3,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKTypeface.ToFont"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/PixiEditor/Drawie",
+   "opportunities": 13,
+   "distinct_rows": 8,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKBitmap.FromImage",
+    "SkiaSharp.SKData.AsStream",
+    "SkiaSharp.SKFont.GetTextPath",
+    "SkiaSharp.SKPaint.GetTextPath",
+    "SkiaSharp.SKPath.CreateIterator",
+    "SkiaSharp.SKPath.CreateRawIterator",
+    "SkiaSharp.SKPath.ParseSvgPathData"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/VertexSelection/MeloVertex",
+   "opportunities": 13,
+   "distinct_rows": 2,
+   "rows": [
+    "SkiaSharp.SKBitmap.Decode",
+    "SkiaSharp.SKData.AsStream"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/SnapHutaoRemasteringProject/Snap.Hutao.Remastered",
+   "opportunities": 12,
+   "distinct_rows": 2,
+   "rows": [
+    "Google.Protobuf.ByteString.CreateCodedInput",
+    "LibGit2Sharp.RemoteCollection.Add"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/d3ara1n/Polymerium",
+   "opportunities": 12,
+   "distinct_rows": 2,
+   "rows": [
+    "LibGit2Sharp.RemoteCollection.Add",
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/eclipse-aaspe/package-explorer",
+   "opportunities": 12,
+   "distinct_rows": 2,
+   "rows": [
+    "MQTTnet.MqttClientFactory.CreateMqttClient",
+    "Newtonsoft.Json.Linq.JToken.CreateReader"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/IoTSharp/IoTSharp",
+   "opportunities": 12,
+   "distinct_rows": 2,
+   "rows": [
+    "MQTTnet.MqttClientFactory.CreateMqttClient",
+    "SkiaSharp.SKBitmap.Decode"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/videokojot/EFCore.BulkExtensions.MIT",
+   "opportunities": 12,
+   "distinct_rows": 3,
+   "rows": [
+    "MySqlConnector.MySqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlDataSourceBuilder.Build",
+    "Npgsql.NpgsqlSlimDataSourceBuilder.Build"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/elastic/ecs-dotnet",
+   "opportunities": 12,
+   "distinct_rows": 3,
+   "rows": [
+    "NLog.ScopeContext.PushProperty",
+    "Serilog.Context.LogContext.PushProperty",
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/CXWorld/CapFrameX",
+   "opportunities": 12,
+   "distinct_rows": 2,
+   "rows": [
+    "NSec.Cryptography.Key.Create",
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/dotnet/roslyn",
+   "opportunities": 12,
+   "distinct_rows": 1,
+   "rows": [
+    "NSec.Cryptography.Key.Create"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/VIENNA-Advantage-ERP-CRM/official-VAFramework-ERP-CRM-4.X",
+   "opportunities": 12,
+   "distinct_rows": 4,
+   "rows": [
+    "Npgsql.NpgsqlCommand.Clone",
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/TechnitiumSoftware/DnsServer",
+   "opportunities": 12,
+   "distinct_rows": 2,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.Create",
+    "Serilog.LoggerConfiguration.CreateLogger"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/tumtumtum/Shaolinq",
+   "opportunities": 12,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  },
+  {
+   "repo": "github.com/MarsonShine/MS.Microservice",
+   "opportunities": 12,
+   "distinct_rows": 3,
+   "rows": [
+    "Npgsql.NpgsqlDataSource.CreateConnection",
+    "Npgsql.NpgsqlFactory.CreateConnection",
+    "Npgsql.NpgsqlMultiHostDataSource.CreateConnection"
+   ],
+   "is_row_library_repo": false
+  }
+ ],
+ "repos_ge100_excluding_own": 17,
+ "repos_ge30_excluding_own": 108,
+ "top_excluding_own": [
+  [
+   "github.com/JasperFx/marten",
+   464,
+   11
+  ],
+  [
+   "github.com/NpgsqlRest/NpgsqlRest",
+   450,
+   7
+  ],
+  [
+   "github.com/erikdarlingdata/PerformanceMonitor",
+   309,
+   8
+  ],
+  [
+   "github.com/WebVella/WebVella-ERP",
+   287,
+   8
+  ],
+  [
+   "github.com/mikependon/RepoDB",
+   234,
+   4
+  ],
+  [
+   "github.com/JasperFx/weasel",
+   188,
+   11
+  ],
+  [
+   "github.com/dotnet-ad/SkiaSharp.Components",
+   169,
+   2
+  ],
+  [
+   "github.com/DuendeSoftware/products",
+   158,
+   2
+  ],
+  [
+   "github.com/seiggy/lucia-dotnet",
+   157,
+   6
+  ],
+  [
+   "github.com/JasperFx/wolverine",
+   155,
+   9
+  ],
+  [
+   "github.com/potatobeanradio/circuitRF",
+   154,
+   6
+  ],
+  [
+   "github.com/quartznet/quartznet",
+   145,
+   9
+  ],
+  [
+   "github.com/KrisTHL181/Break-This-Repo",
+   137,
+   7
+  ],
+  [
+   "github.com/wieslawsoltes/ProGPU",
+   118,
+   15
+  ],
+  [
+   "github.com/SixLabors/ImageSharp.Drawing",
+   109,
+   4
+  ],
+  [
+   "github.com/victor-wiki/DatabaseManager",
+   107,
+   8
+  ],
+  [
+   "github.com/Particular/docs.particular.net",
+   102,
+   6
+  ],
+  [
+   "github.com/Altinn/altinn-studio",
+   93,
+   4
+  ],
+  [
+   "github.com/microsoft/aspire",
+   93,
+   8
+  ],
+  [
+   "github.com/isaacrlevin/presencelight",
+   92,
+   1
+  ],
+  [
+   "github.com/spodskubka/RemoteTerminal",
+   87,
+   7
+  ],
+  [
+   "github.com/mono/SkiaSharp",
+   85,
+   11
+  ],
+  [
+   "github.com/Thelittlechicken/oc34n-r2",
+   83,
+   3
+  ],
+  [
+   "github.com/npgsql/efcore.pg",
+   80,
+   9
+  ],
+  [
+   "github.com/TwentyFourMinutes/Venflow",
+   80,
+   2
+  ],
+  [
+   "github.com/simeonradivoev/UniGit",
+   79,
+   2
+  ],
+  [
+   "github.com/lofcz/LlmTornado",
+   79,
+   4
+  ],
+  [
+   "github.com/OpenFireSource/AlarmWorkflow",
+   77,
+   1
+  ],
+  [
+   "github.com/btcpayserver/NBXplorer",
+   77,
+   5
+  ],
+  [
+   "github.com/ArduPilot/MissionPlanner",
+   75,
+   17
+  ]
+ ]
+}
