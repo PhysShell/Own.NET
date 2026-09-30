@@ -44,6 +44,7 @@
 
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
@@ -2970,6 +2971,34 @@ static bool LabBranchNamesOnly(List<object> ops, string x)
 // acquire-shaped: an object creation of an owned disposable type, a pool rent, a curated / answer-key owning
 // factory, or a first-party disposable factory. Null otherwise: zero or 2+ writes (the s11 family), a compound
 // or nested assignment, a `ref`/`out` rebinding, or a foreign rhs (a parameter, a field, a borrowed call).
+// H-23A helpers (top-level, beside LabNullInitSingleAssignment: the disposable-type and factory predicates are top-level).
+static bool H23AAcquireShaped(ExpressionSyntax? rhs, SemanticModel model) =>
+    (rhs is ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax && model.GetTypeInfo(rhs).Type is { } dt
+     && ImplementsIDisposable(dt) && !IsDisposeOptional(dt) && !HasEmptyDisposeBody(dt))
+    || IsPoolRent(rhs, model) || IsOwningFactory(rhs, model) || ReOracle.ReturnsFreshOwned(rhs, model, "assignment");
+// All writes of the local, in source order, or null when any write is not a simple assignment STATEMENT (compound,
+// nested in an expression, deconstruction, ++/--, ref/out, a `ref` alias, or inside a lambda / local function).
+static List<AssignmentExpressionSyntax>? H23AWrites(VariableDeclaratorSyntax v, BlockSyntax mbody, SemanticModel model)
+{
+    if (model.GetDeclaredSymbol(v) is not ILocalSymbol local) return null;
+    var ws = new List<AssignmentExpressionSyntax>();
+    foreach (var id in mbody.DescendantNodes().OfType<IdentifierNameSyntax>())
+    {
+        if (!SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, local)) continue;
+        if (id.Parent is RefExpressionSyntax || id.Parent is ArgumentSyntax { RefKindKeyword.RawKind: not 0 }
+            || id.Parent is PrefixUnaryExpressionSyntax or PostfixUnaryExpressionSyntax || id.Parent is TupleExpressionSyntax) return null;
+        if (id.Parent is not AssignmentExpressionSyntax asg || asg.Left != id) continue;
+        if (!asg.IsKind(SyntaxKind.SimpleAssignmentExpression) || asg.Parent is not ExpressionStatementSyntax
+            || id.Ancestors().TakeWhile(x => x != mbody).Any(x => x is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax)) return null;
+        // A write inside a LOOP body is excluded (fail closed): a version minted per iteration and referenced after
+        // the loop is a name the core's lexical resolver cannot see (the bridge hoists branch-scoped acquires, never
+        // loop-scoped ones) and the whole file would fail with OWN030. Counted as loop_write.
+        if (id.Ancestors().TakeWhile(x => x != mbody).Any(x => x is WhileStatementSyntax or ForStatementSyntax or ForEachStatementSyntax or DoStatementSyntax)) { H23A.Count("excluded_loop_write"); return null; }
+        ws.Add(asg);
+    }
+    return ws;
+}
+
 static ExpressionSyntax? LabNullInitSingleAssignment(VariableDeclaratorSyntax v, BlockSyntax mbody, SemanticModel model)
 {
     if (model.GetDeclaredSymbol(v) is not ILocalSymbol local)
@@ -3865,7 +3894,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                 if (nlAsg.Right is ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax
                     || IsPoolRent(nlAsg.Right, model)
                     || IsOwningFactory(nlAsg.Right, model)
-                    || ReOracle.ReturnsFreshOwned(nlAsg.Right, model))
+                    || ReOracle.ReturnsFreshOwned(nlAsg.Right, model, "nullinit"))
                 {
                     nodes.Add(new { op = "acquire", var = nlId.Identifier.Text,
                                     line = nlPos.Line, column = nlPos.Column,
@@ -3893,6 +3922,36 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                 }
                 EmitInitializerArgUses(nlAsg.Right, tracked, model, nodes, nlCarried, LineOf(es));
                 LabNullInit.Count("lowered");
+                return true;
+            }
+            // H-23A: `x = rhs;` on a versioned local — a marker (consumed by H23A.Rewrite) plus, for an acquire-shaped
+            // rhs, the same acquire / first-party `call` the declaration form emits; a non-acquire rhs only rebinds.
+            if (H23A.Enabled && es.Expression is AssignmentExpressionSyntax hAsg && hAsg.IsKind(SyntaxKind.SimpleAssignmentExpression)
+                && hAsg.Left is IdentifierNameSyntax hId && H23A.Locals.Contains(hId.Identifier.Text) && tracked.Contains(hId.Identifier.Text))
+            {
+                var hPos = PosOf(hAsg.Left); var hName = hId.Identifier.Text; var hCarried = new HashSet<string>(StringComparer.Ordinal);
+                bool hNested = hAsg.Ancestors().TakeWhile(a => a is not (BaseMethodDeclarationSyntax or AccessorDeclarationSyntax or LocalFunctionStatementSyntax or AnonymousFunctionExpressionSyntax)).Any(a => a is IfStatementSyntax or WhileStatementSyntax or ForStatementSyntax or ForEachStatementSyntax or DoStatementSyntax or TryStatementSyntax or SwitchStatementSyntax);
+                if (H23AAcquireShaped(hAsg.Right, model))
+                {
+                    nodes.Add(new { op = "h23_write", var = hName, acquired = true, line = hPos.Line });
+                    nodes.Add(new { op = "acquire", var = hName, line = hPos.Line, column = hPos.Column, kind = IsPoolRent(hAsg.Right, model) ? "pool" : "disposable" });
+                    H23A.Count(hNested ? "write_acquire_nested" : "write_acquire");
+                }
+                else if (IsFirstPartyDisposableFactory(hAsg.Right, model, out var hCallee, out var hSig))
+                {
+                    var hArgs = hAsg.Right is InvocationExpressionSyntax hInv ? hInv.ArgumentList.Arguments.Where(a => a.NameColon is null).Select(a => a.Expression).OfType<IdentifierNameSyntax>().Select(id => id.Identifier.Text).Where(tracked.Contains).ToArray() : Array.Empty<string>();
+                    nodes.Add(new { op = "h23_write", var = hName, acquired = true, line = hPos.Line });
+                    nodes.Add(new { op = "call", callee = hCallee, sig = hSig, args = hArgs, result = hName, line = hPos.Line, column = hPos.Column });
+                    hCarried.UnionWith(hArgs); H23A.Count(hNested ? "write_firstparty_nested" : "write_firstparty");
+                }
+                else
+                {
+                    nodes.Add(new { op = "h23_write", var = hName, acquired = false, line = hPos.Line });
+                    EmitFlowExpr(hAsg.Right, tracked, model, nodes);
+                    H23A.Count(IsNullLiteral(hAsg.Right) ? "write_null" : hNested ? "write_other_nested" : "write_other");
+                    return true;
+                }
+                EmitInitializerArgUses(hAsg.Right, tracked, model, nodes, hCarried, LineOf(es));
                 return true;
             }
             EmitFlowExpr(es.Expression, tracked, model, nodes);
@@ -7774,6 +7833,7 @@ foreach (var (file, tree) in parsed)
                     }
                 }
                 LabNullInit.Locals.Clear();   // ownership-semantics-lab H-01: per-body set
+                H23A.Locals.Clear();          // H-23A: per-body set of versioned locals
                 var candidates = new HashSet<string>();
                 var poolBuffers = new HashSet<string>();   // candidates that are ArrayPool<T> buffers
                 var usingMemoryOwners = new HashSet<string>();   // `using`-declared MemoryPool owners
@@ -7844,11 +7904,34 @@ foreach (var (file, tree) in parsed)
                                 newedDisposables.Add(v.Identifier.Text);
                             else if (IsPoolRent(nlRhs, model))
                                 poolBuffers.Add(v.Identifier.Text);
-                            else if (IsOwningFactory(nlRhs, model) || ReOracle.ReturnsFreshOwned(nlRhs, model))
+                            else if (IsOwningFactory(nlRhs, model) || ReOracle.ReturnsFreshOwned(nlRhs, model, "nullinit"))
                                 mintedFactories.Add(v.Identifier.Text);
                             LabNullInit.Count("candidate");
                         }
                 }
+                // H-23A (OWEN_H23A=1; preregistered h23-prereg-v1.json): a local whose writes are ALL simple
+                // assignment statements and at least one of which is acquire-shaped is a candidate; every write
+                // of such a local (and of an already-tracked local) becomes a VERSION (see H23A.Rewrite).
+                if (H23A.Enabled)
+                    foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
+                        if (ld.UsingKeyword == default)
+                            foreach (var v in ld.Declaration.Variables)
+                                if (model.GetDeclaredSymbol(v) is ILocalSymbol hl
+                                    && ImplementsIDisposable(hl.Type) && !IsDisposeOptional(hl.Type) && !HasEmptyDisposeBody(hl.Type)
+                                    && H23AWrites(v, mbody, model) is { Count: > 0 } hw)
+                                {
+                                    var hAcq = hw.Where(a => H23AAcquireShaped(a.Right, model)).Select(a => a.Right).ToList();
+                                    if (hAcq.Count == 0 && !candidates.Contains(v.Identifier.Text))
+                                        continue;
+                                    H23A.Locals.Add(v.Identifier.Text);
+                                    H23A.Count(candidates.Contains(v.Identifier.Text) ? "versioned_declared_candidate" : "candidate_by_assignment");
+                                    if (candidates.Add(v.Identifier.Text) && hAcq.Count > 0)
+                                    {
+                                        if (hAcq[0] is ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax) newedDisposables.Add(v.Identifier.Text);
+                                        else if (IsPoolRent(hAcq[0], model)) poolBuffers.Add(v.Identifier.Text);
+                                        else if (IsOwningFactory(hAcq[0], model) || ReOracle.ReturnsFreshOwned(hAcq[0], model, "assignment")) mintedFactories.Add(v.Identifier.Text);
+                                    }
+                                }
                 // `using (IMemoryOwner owner = MemoryPool.Rent(...)) { … }` STATEMENT form: track the owner
                 // too, so its returned view dangles after the scope-exit dispose (the desugar mirrors the
                 // `using` DECLARATION form handled in the loop above).
@@ -8075,7 +8158,7 @@ foreach (var (file, tree) in parsed)
                     record["result_slots"] = rslots;
                     P037xRelCount("result_slots");
                 }
-                record["body"] = fbody;
+                record["body"] = H23A.Enabled && H23A.Locals.Count > 0 ? H23A.Rewrite(fbody) : fbody;
                 if (guardedFacts is not null)
                     record["guarded_facts"] = guardedFacts;
                 flowFunctions.Add(record);
@@ -8201,6 +8284,8 @@ if (flowLocals && ReOracle.Enabled && ReOracle.Shadow.Count > 0)
     Console.Error.WriteLine("re-oracle-shadow: " + string.Join(" ", ReOracle.Shadow.Select(kv => $"{kv.Key}={kv.Value}")));
 if (flowLocals && LabNullInit.Enabled)
     Console.Error.WriteLine("lab-nullinit: " + string.Join(" ", LabNullInit.Census.Select(kv => $"{kv.Key}={kv.Value}")));
+if (flowLocals && H23A.Enabled)
+    Console.Error.WriteLine("h23a: " + string.Join(" ", H23A.Census.Select(kv => $"{kv.Key}={kv.Value}")));
 if (flowLocals && LabNullGuard.Enabled)
     Console.Error.WriteLine("lab-nullguard: " + string.Join(" ", LabNullGuard.Census.Select(kv => $"{kv.Key}={kv.Value}")));
 
@@ -8370,11 +8455,11 @@ partial class Program
         }
 
         // `var x = M(...)` where the resolved M is a return_fresh_owned entry.
-        internal static bool ReturnsFreshOwned(ExpressionSyntax? e, SemanticModel model)
+        internal static bool ReturnsFreshOwned(ExpressionSyntax? e, SemanticModel model, string shape = "declaration")
         {
             if (!Enabled || e is not InvocationExpressionSyntax i || model.GetSymbolInfo(i).Symbol is not IMethodSymbol m || m.ReturnsVoid) return false;
             var hit = Has(m, "return_fresh_owned", model.Compilation);
-            if (hit) HitLog(i, m, "return_fresh_owned");
+            if (hit) HitLog(i, m, "return_fresh_owned", shape);
             return hit;
         }
 
@@ -8383,7 +8468,7 @@ partial class Program
         {
             if (!Enabled || model.GetSymbolInfo(i).Symbol is not IMethodSymbol m || m.IsStatic) return false;
             var hit = Has(m, "receiver_terminal_release", model.Compilation);
-            if (hit) HitLog(i, m, "receiver_terminal_release");
+            if (hit) HitLog(i, m, "receiver_terminal_release", "receiver");
             return hit;
         }
 
@@ -8391,13 +8476,13 @@ partial class Program
         // line per oracle application with the call site (file, line, column, span) and the resolved callable, so an
         // exposure unit can be counted as unique(file, span, callable, effect, mvid) without changing any fact.
         static readonly string? s_hitLog = Environment.GetEnvironmentVariable("OWEN_RE_ORACLE_HITLOG");
-        static void HitLog(InvocationExpressionSyntax i, IMethodSymbol m, string effect)
+        static void HitLog(InvocationExpressionSyntax i, IMethodSymbol m, string effect, string shape)
         {
             if (string.IsNullOrEmpty(s_hitLog)) return;
             try
             {
                 var span = i.GetLocation().GetLineSpan(); var def = (m.ReducedFrom ?? m).OriginalDefinition;
-                var line = System.Text.Json.JsonSerializer.Serialize(new { file = span.Path, line = span.StartLinePosition.Line + 1, column = span.StartLinePosition.Character + 1, end_line = span.EndLinePosition.Line + 1, end_column = span.EndLinePosition.Character + 1, callable = $"{def.ContainingType.ToDisplayString()}.{def.Name}", arity = def.Parameters.Length, effect, assembly = def.ContainingAssembly?.Name });
+                var line = System.Text.Json.JsonSerializer.Serialize(new { file = span.Path, line = span.StartLinePosition.Line + 1, column = span.StartLinePosition.Character + 1, end_line = span.EndLinePosition.Line + 1, end_column = span.EndLinePosition.Character + 1, callable = $"{def.ContainingType.ToDisplayString()}.{def.Name}", arity = def.Parameters.Length, effect, assembly = def.ContainingAssembly?.Name, shape });
                 lock (s_hitLogLock) File.AppendAllText(s_hitLog, line + "\n");
             }
             catch { }
@@ -8432,6 +8517,54 @@ partial class Program
         internal static readonly HashSet<string> Locals = new(StringComparer.Ordinal);   // per method body
         internal static readonly SortedDictionary<string, int> Census = new(StringComparer.Ordinal);
         internal static void Count(string what) => Census[what] = Census.GetValueOrDefault(what) + 1;
+    }
+
+    // ===== H-23A call-site enrollment (OWEN_H23A=1; Own.NET-paperwork paper-eval/h23/h23-prereg-v1.json, EXPLORATORY):
+    // the obligation follows the invocation result VALUE, not the declarator: every simple-assignment write of a
+    // versioned local mints a new OwnIR name `x__vk` (acquire-shaped rhs: a new obligation; other rhs: an untracked
+    // rebinding) and the earlier version keeps its own obligation. Textual-latest at merges (fail closed, counted).
+    static class H23A
+    {
+        internal static readonly bool Enabled = Environment.GetEnvironmentVariable("OWEN_H23A") == "1";
+        internal static readonly HashSet<string> Locals = new(StringComparer.Ordinal);   // per method body
+        internal static readonly SortedDictionary<string, int> Census = new(StringComparer.Ordinal);
+        internal static void Count(string what) => Census[what] = Census.GetValueOrDefault(what) + 1;
+        // The post-pass: consume `h23_write` markers in emission (source) order, keep a version per local, rename every
+        // reference (var / src / result / args / results / values) to the current version, and drop references to an
+        // untracked version (a rebinding to null / a borrowed value carries no obligation).
+        internal static JsonArray Rewrite(List<object> body)
+        {
+            var arr = JsonSerializer.SerializeToNode(body)!.AsArray(); var ver = new Dictionary<string, (int n, bool tracked)>();
+            foreach (var x in Locals) ver[x] = (0, true);
+            Walk(arr, ver); return arr;
+        }
+        static void Walk(JsonArray arr, Dictionary<string, (int n, bool tracked)> ver)
+        {
+            for (var i = 0; i < arr.Count; i++)
+            {
+                if (arr[i] is not JsonObject o) continue;
+                if ((string?)o["op"] == "h23_write")
+                {
+                    var x = (string)o["var"]!; var cur = ver.TryGetValue(x, out var c0) ? c0 : (0, true);
+                    ver[x] = (cur.Item1 + 1, (bool)o["acquired"]!); arr.RemoveAt(i--); continue;
+                }
+                foreach (var key in new[] { "then", "else", "body" })
+                    if (o[key] is JsonArray sub) Walk(sub, ver);
+                var drop = false;
+                foreach (var key in new[] { "var", "src", "result" })
+                    if (o[key] is JsonValue jv && jv.TryGetValue<string>(out var nm) && ver.TryGetValue(nm, out var vv))
+                    {
+                        if (!vv.Item2) { if (key == "var" && (string?)o["op"] is "use" or "release" or "acquire" or "overspan") drop = true; else o[key] = null; Count("dropped_untracked_ref"); }
+                        else if (vv.Item1 > 0) o[key] = $"{nm}__v{vv.Item1}";
+                    }
+                foreach (var key in new[] { "args", "results", "values" })
+                    if (o[key] is JsonArray ja)
+                        for (var k = 0; k < ja.Count; k++)
+                            if (ja[k] is JsonValue jv && jv.TryGetValue<string>(out var nm) && ver.TryGetValue(nm, out var vv))
+                                ja[k] = vv.Item2 ? (vv.Item1 > 0 ? $"{nm}__v{vv.Item1}" : nm) : null;
+                if (drop) arr.RemoveAt(i--);
+            }
+        }
     }
 
     // ===== ownership-semantics-lab H-19 (registered before this code): a NOT-NULL guard on a tracked local

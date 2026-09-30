@@ -1,0 +1,124 @@
+{
+ "config": "NOORACLE",
+ "env": {},
+ "extractor_rc": 0,
+ "stderr_tail": "extractor: +1 references from --ref-dir /tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h23/RLib/bin/Release/net8.0 (recursive)\np037x: canonical=0 degraded={}\n",
+ "parity": true,
+ "findings_rust": [],
+ "findings_python": [],
+ "per_method": {
+  "S1_declaration": {
+   "rust": [],
+   "python": []
+  },
+  "S2_existing_local": {
+   "rust": [],
+   "python": []
+  },
+  "S3_field_store": {
+   "rust": [],
+   "python": []
+  },
+  "S4_using_var": {
+   "rust": [],
+   "python": []
+  },
+  "S5_return": {
+   "rust": [],
+   "python": []
+  },
+  "S6_argument": {
+   "rust": [],
+   "python": []
+  },
+  "S7_indexer_store": {
+   "rust": [],
+   "python": []
+  },
+  "S8_null_coalescing_assign": {
+   "rust": [],
+   "python": []
+  },
+  "S9_property_store": {
+   "rust": [],
+   "python": []
+  },
+  "S10_chained_temporary": {
+   "rust": [],
+   "python": []
+  },
+  "S11_conditional": {
+   "rust": [],
+   "python": []
+  },
+  "S12_tuple_assignment": {
+   "rust": [],
+   "python": []
+  },
+  "A1_declaration_baseline": {
+   "rust": [],
+   "python": []
+  },
+  "A2_assignment_leak": {
+   "rust": [],
+   "python": []
+  },
+  "A3_assignment_then_dispose": {
+   "rust": [],
+   "python": []
+  },
+  "A4_declared_value_reassigned_leak": {
+   "rust": [],
+   "python": []
+  },
+  "H1_overwrite_without_dispose": {
+   "rust": [],
+   "python": []
+  },
+  "H2_dispose_before_overwrite": {
+   "rust": [],
+   "python": []
+  },
+  "H3_fresh_to_null": {
+   "rust": [],
+   "python": []
+  },
+  "H4_borrowed_to_fresh": {
+   "rust": [],
+   "python": []
+  },
+  "H5_fresh_to_borrowed": {
+   "rust": [],
+   "python": []
+  },
+  "H6_branch_overwrite": {
+   "rust": [],
+   "python": []
+  },
+  "H6b_branch_dispose_then_overwrite": {
+   "rust": [],
+   "python": []
+  },
+  "H6c_both_branches_assign": {
+   "rust": [],
+   "python": []
+  },
+  "H7_alias_before_overwrite": {
+   "rust": [],
+   "python": []
+  },
+  "H8_loop_reassignment": {
+   "rust": [],
+   "python": []
+  },
+  "H9_try_finally_nullinit": {
+   "rust": [],
+   "python": []
+  },
+  "H10_assignment_in_condition": {
+   "rust": [],
+   "python": []
+  }
+ },
+ "oracle_hits": []
+}

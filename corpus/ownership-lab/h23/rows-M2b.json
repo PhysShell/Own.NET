@@ -1,0 +1,16 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "M2b: the row effect is a valid NON-fresh effect (receiver_terminal_release)",
+ "entries": [
+  {
+   "callable": "RLib.F.Factory",
+   "effect": "receiver_terminal_release",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "RLib",
+    "mvid": "e5852837-a8a1-4c81-aa35-e4240c407582"
+   },
+   "derived_from": "fixture: F.Factory() => new R() (E1 shape); no inference in this track"
+  }
+ ]
+}

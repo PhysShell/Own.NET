@@ -1,0 +1,16 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "H-23A fixture: the ONE trusted row (RLib.F.Factory -> fresh owned R), pinned to the fixture assembly",
+ "entries": [
+  {
+   "callable": "RLib.F.Factory",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "RLib",
+    "mvid": "e5852837-a8a1-4c81-aa35-e4240c407582"
+   },
+   "derived_from": "fixture: F.Factory() => new R() (E1 shape); no inference in this track"
+  }
+ ]
+}

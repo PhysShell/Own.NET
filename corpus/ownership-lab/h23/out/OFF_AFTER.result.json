@@ -1,0 +1,304 @@
+{
+ "config": "OFF_AFTER",
+ "env": {
+  "OWEN_RE_ORACLE": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h23/rows.json"
+ },
+ "engine_internal_error": [],
+ "extractor_rc": 0,
+ "stderr_tail": "extractor: +1 references from --ref-dir /tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h23/RLib/bin/Release/net8.0 (recursive)\np037x: canonical=0 degraded={}\nre-oracle: return_fresh_owned=18\n",
+ "parity": true,
+ "findings_rust": [
+  [
+   6,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   24,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   32,
+   "OWN003",
+   "IDisposable local 'x' is disposed more than once [resource: disposable]"
+  ],
+  [
+   33,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   35,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   37,
+   "OWN003",
+   "IDisposable local 'x' is disposed more than once [resource: disposable]"
+  ]
+ ],
+ "findings_python": [
+  [
+   6,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   24,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   32,
+   "OWN003",
+   "IDisposable local 'x' is disposed more than once [resource: disposable]"
+  ],
+  [
+   33,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   35,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   37,
+   "OWN003",
+   "IDisposable local 'x' is disposed more than once [resource: disposable]"
+  ]
+ ],
+ "per_method": {
+  "S1_declaration": {
+   "rust": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ]
+  },
+  "S2_existing_local": {
+   "rust": [],
+   "python": []
+  },
+  "S3_field_store": {
+   "rust": [],
+   "python": []
+  },
+  "S4_using_var": {
+   "rust": [],
+   "python": []
+  },
+  "S5_return": {
+   "rust": [],
+   "python": []
+  },
+  "S6_argument": {
+   "rust": [],
+   "python": []
+  },
+  "S7_indexer_store": {
+   "rust": [],
+   "python": []
+  },
+  "S8_null_coalescing_assign": {
+   "rust": [],
+   "python": []
+  },
+  "S9_property_store": {
+   "rust": [],
+   "python": []
+  },
+  "S10_chained_temporary": {
+   "rust": [],
+   "python": []
+  },
+  "S11_conditional": {
+   "rust": [],
+   "python": []
+  },
+  "S12_tuple_assignment": {
+   "rust": [],
+   "python": []
+  },
+  "A1_declaration_baseline": {
+   "rust": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ]
+  },
+  "A2_assignment_leak": {
+   "rust": [],
+   "python": []
+  },
+  "A3_assignment_then_dispose": {
+   "rust": [],
+   "python": []
+  },
+  "A4_declared_value_reassigned_leak": {
+   "rust": [],
+   "python": []
+  },
+  "H1_overwrite_without_dispose": {
+   "rust": [],
+   "python": []
+  },
+  "H2_dispose_before_overwrite": {
+   "rust": [
+    "OWN003 IDisposable local 'x' is disposed more than once [resource: disposable]"
+   ],
+   "python": [
+    "OWN003 IDisposable local 'x' is disposed more than once [resource: disposable]"
+   ]
+  },
+  "H3_fresh_to_null": {
+   "rust": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ]
+  },
+  "H4_borrowed_to_fresh": {
+   "rust": [],
+   "python": []
+  },
+  "H5_fresh_to_borrowed": {
+   "rust": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ]
+  },
+  "H6_branch_overwrite": {
+   "rust": [],
+   "python": []
+  },
+  "H6b_branch_dispose_then_overwrite": {
+   "rust": [
+    "OWN003 IDisposable local 'x' is disposed more than once [resource: disposable]"
+   ],
+   "python": [
+    "OWN003 IDisposable local 'x' is disposed more than once [resource: disposable]"
+   ]
+  },
+  "H6c_both_branches_assign": {
+   "rust": [],
+   "python": []
+  },
+  "H7_alias_before_overwrite": {
+   "rust": [],
+   "python": []
+  },
+  "H8_loop_reassignment": {
+   "rust": [],
+   "python": []
+  },
+  "H9_try_finally_nullinit": {
+   "rust": [],
+   "python": []
+  },
+  "H10_assignment_in_condition": {
+   "rust": [],
+   "python": []
+  }
+ },
+ "oracle_hits": [
+  [
+   6,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   6,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   24,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   24,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   31,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   31,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   32,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   32,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   33,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   33,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   35,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   35,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   36,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   36,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   37,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   37,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   39,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   39,
+   "declaration",
+   "RLib.F.Factory"
+  ]
+ ]
+}

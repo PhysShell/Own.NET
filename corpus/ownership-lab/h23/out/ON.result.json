@@ -1,0 +1,554 @@
+{
+ "config": "ON",
+ "env": {
+  "OWEN_RE_ORACLE": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h23/rows.json",
+  "OWEN_H23A": "1"
+ },
+ "engine_internal_error": [],
+ "extractor_rc": 0,
+ "stderr_tail": "extractor: +1 references from --ref-dir /tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h23/RLib/bin/Release/net8.0 (recursive)\np037x: canonical=0 degraded={}\nre-oracle: return_fresh_owned=51\nh23a: candidate_by_assignment=7 excluded_loop_write=1 versioned_declared_candidate=7 write_acquire=8 write_acquire_nested=5 write_null=1 write_other=1\n",
+ "parity": true,
+ "findings_rust": [
+  [
+   6,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   7,
+   "OWN001",
+   "IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   24,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   25,
+   "OWN001",
+   "IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   27,
+   "OWN001",
+   "IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   31,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   33,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   35,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   36,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   37,
+   "OWN001",
+   "IDisposable local 'x' may not be disposed on every path (leak) [resource: disposable]"
+  ],
+  [
+   38,
+   "OWN001",
+   "IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   39,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ]
+ ],
+ "findings_python": [
+  [
+   6,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   7,
+   "OWN001",
+   "IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   24,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   25,
+   "OWN001",
+   "IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   27,
+   "OWN001",
+   "IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   31,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   33,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   35,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   36,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   37,
+   "OWN001",
+   "IDisposable local 'x' may not be disposed on every path (leak) [resource: disposable]"
+  ],
+  [
+   38,
+   "OWN001",
+   "IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   39,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ]
+ ],
+ "per_method": {
+  "S1_declaration": {
+   "rust": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ]
+  },
+  "S2_existing_local": {
+   "rust": [
+    "OWN001 IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+   ]
+  },
+  "S3_field_store": {
+   "rust": [],
+   "python": []
+  },
+  "S4_using_var": {
+   "rust": [],
+   "python": []
+  },
+  "S5_return": {
+   "rust": [],
+   "python": []
+  },
+  "S6_argument": {
+   "rust": [],
+   "python": []
+  },
+  "S7_indexer_store": {
+   "rust": [],
+   "python": []
+  },
+  "S8_null_coalescing_assign": {
+   "rust": [],
+   "python": []
+  },
+  "S9_property_store": {
+   "rust": [],
+   "python": []
+  },
+  "S10_chained_temporary": {
+   "rust": [],
+   "python": []
+  },
+  "S11_conditional": {
+   "rust": [],
+   "python": []
+  },
+  "S12_tuple_assignment": {
+   "rust": [],
+   "python": []
+  },
+  "A1_declaration_baseline": {
+   "rust": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ]
+  },
+  "A2_assignment_leak": {
+   "rust": [
+    "OWN001 IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+   ]
+  },
+  "A3_assignment_then_dispose": {
+   "rust": [],
+   "python": []
+  },
+  "A4_declared_value_reassigned_leak": {
+   "rust": [
+    "OWN001 IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+   ]
+  },
+  "H1_overwrite_without_dispose": {
+   "rust": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ]
+  },
+  "H2_dispose_before_overwrite": {
+   "rust": [],
+   "python": []
+  },
+  "H3_fresh_to_null": {
+   "rust": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ]
+  },
+  "H4_borrowed_to_fresh": {
+   "rust": [],
+   "python": []
+  },
+  "H5_fresh_to_borrowed": {
+   "rust": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ]
+  },
+  "H6_branch_overwrite": {
+   "rust": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ]
+  },
+  "H6b_branch_dispose_then_overwrite": {
+   "rust": [
+    "OWN001 IDisposable local 'x' may not be disposed on every path (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x' may not be disposed on every path (leak) [resource: disposable]"
+   ]
+  },
+  "H6c_both_branches_assign": {
+   "rust": [
+    "OWN001 IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x__v1' is never disposed (leak) [resource: disposable]"
+   ]
+  },
+  "H7_alias_before_overwrite": {
+   "rust": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ]
+  },
+  "H8_loop_reassignment": {
+   "rust": [],
+   "python": []
+  },
+  "H9_try_finally_nullinit": {
+   "rust": [],
+   "python": []
+  },
+  "H10_assignment_in_condition": {
+   "rust": [],
+   "python": []
+  }
+ },
+ "oracle_hits": [
+  [
+   6,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   6,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   7,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   7,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   7,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   24,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   24,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   25,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   25,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   25,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   26,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   26,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   26,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   27,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   27,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   27,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   31,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   31,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   31,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   31,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   32,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   32,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   32,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   32,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   33,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   33,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   34,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   34,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   34,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   35,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   35,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   36,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   36,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   36,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   36,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   37,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   37,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   37,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   37,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   38,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   38,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   38,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   38,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   38,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   39,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   39,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   39,
+   "declaration",
+   "RLib.F.Factory"
+  ],
+  [
+   39,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   41,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   41,
+   "assignment",
+   "RLib.F.Factory"
+  ],
+  [
+   41,
+   "assignment",
+   "RLib.F.Factory"
+  ]
+ ]
+}

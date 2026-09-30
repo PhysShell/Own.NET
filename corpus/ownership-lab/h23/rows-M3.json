@@ -1,0 +1,16 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "M3: a FORCED wrong row on a factory that returns a shared instance (a witness would label it cached and refuse the row)",
+ "entries": [
+  {
+   "callable": "RLib.F.Factory",
+   "effect": "return_fresh_owned",
+   "provenance": "FORCED_WRONG_FOR_M3",
+   "assembly": {
+    "name": "RLib",
+    "mvid": "d5c6447c-e591-4e3e-8607-f0e3304b95ed"
+   },
+   "derived_from": "fixture: F.Factory() => new R() (E1 shape); no inference in this track"
+  }
+ ]
+}
