@@ -1,0 +1,5 @@
+V1.cs:68: warning: [OWN001] IDisposable local 'cw' is never disposed (leak) [resource: disposable]
+V1.cs:77: warning: [OWN001] IDisposable local 'con' is never disposed (leak) [resource: disposable]
+V1.cs:97: warning: [OWN001] IDisposable local 'cw' may not be disposed on every path (leak) [resource: disposable]
+
+3 findings.

@@ -1,0 +1,3 @@
+/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/tax/V0.facts.json: ok — no subscription leaks found
+
+0 findings.
