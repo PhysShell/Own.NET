@@ -1,0 +1,8 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "resource-effects Stage 1 ANSWER KEY (research-only; every row measured with it is labelled 'this row uses the answer key')",
+ "entries": [
+  {"callable": "System.Threading.CancellationTokenSource.CreateLinkedTokenSource", "effect": "return_fresh_owned"},
+  {"callable": "System.Security.Cryptography.CngKey.Delete", "effect": "receiver_terminal_release", "arity": 0}
+ ]
+}

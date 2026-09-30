@@ -1,0 +1,10 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "NAME-RULE MUTANT key for h3-createfrom-alias.cs (must fail)",
+ "entries": [
+  {
+   "callable": "H3.CreateFrom",
+   "effect": "return_fresh_owned"
+  }
+ ]
+}

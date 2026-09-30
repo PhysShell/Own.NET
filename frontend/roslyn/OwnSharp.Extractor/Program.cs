@@ -3657,7 +3657,8 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                                                  or ImplicitObjectCreationExpressionSyntax
                             || IsPoolRent(v.Initializer?.Value, model)        // ArrayPool<T> Rent
                             || IsMemoryPoolRent(v.Initializer?.Value, model)  // MemoryPool<T> Rent (IMemoryOwner)
-                            || IsOwningFactory(v.Initializer?.Value, model)))   // File / crypto Create* factory
+                            || IsOwningFactory(v.Initializer?.Value, model)     // File / crypto Create* factory
+                            || ReOracle.ReturnsFreshOwned(v.Initializer?.Value, model)))   // resource-effects Stage 1: answer-key arm
                     {
                         // Tag an ArrayPool rent so the bridge labels a partial-path leak a
                         // "pooled buffer" (Return not on every path), not the generic "disposable"
@@ -4212,6 +4213,19 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
         nodes.Add(new { op = "release", var = rid.Identifier.Text, line = LineOf(inv) });
         return;
     }
+    // resource-effects Stage 1 (answer-key arm, `OWEN_RE_ORACLE`): x.M() on a tracked local
+    // where the RESOLVED M is a receiver_terminal_release entry -> release, the same shape as
+    // Dispose above (never by name; see ReOracle).
+    if (ReOracle.Enabled
+        && expr is InvocationExpressionSyntax oinv
+        && oinv.Expression is MemberAccessExpressionSyntax oma
+        && oma.Expression is IdentifierNameSyntax oid
+        && tracked.Contains(oid.Identifier.Text)
+        && ReOracle.ReleasesReceiver(oinv, model))
+    {
+        nodes.Add(new { op = "release", var = oid.Identifier.Text, line = LineOf(oinv) });
+        return;
+    }
     // x.Show() on a tracked WinForms Form-derived local -> release: a modeless form's
     // ownership transfers to the framework, which disposes it when the user closes it.
     // Modeled as a release AT THE SHOW SITE (not a method-wide exemption), so it stays
@@ -4259,6 +4273,18 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
         && mb.Name.Identifier.Text is "Dispose" or "Close" or "DisposeAsync")
     {
         nodes.Add(new { op = "release", var = cid.Identifier.Text, line = LineOf(cond) });
+        return;
+    }
+    // resource-effects Stage 1 (answer-key arm): x?.M() where the resolved M is a
+    // receiver_terminal_release entry -> release (the `?.` twin of the block above).
+    if (ReOracle.Enabled
+        && expr is ConditionalAccessExpressionSyntax ocond
+        && ocond.Expression is IdentifierNameSyntax ocid
+        && tracked.Contains(ocid.Identifier.Text)
+        && ocond.WhenNotNull is InvocationExpressionSyntax ocondInv
+        && ReOracle.ReleasesReceiver(ocondInv, model))
+    {
+        nodes.Add(new { op = "release", var = ocid.Identifier.Text, line = LineOf(ocond) });
         return;
     }
     // XPool.Return(buf) on a tracked pooled buffer -> release. The buffer is the
@@ -5456,7 +5482,8 @@ static bool ConsumesParam(IMethodSymbol method, IParameterSymbol param,
     if (ConsumerBody(method) is not { } body)
         return false;                          // no body -> contributes nothing
     var name = param.Name;
-    if (DisposesLocal(body, name))             // (a) disposes the parameter directly
+    if (DisposesLocal(body, name,              // (a) disposes the parameter directly
+                      ReOracle.Enabled ? model.Compilation.GetSemanticModel(body.SyntaxTree) : null))
         return true;
     // (b) transitive: the parameter is handed to another first-party consumer at an IMMEDIATE
     // call (not one deferred in a nested lambda/local function). The body may live in another
@@ -5491,11 +5518,14 @@ static bool ConsumesParam(IMethodSymbol method, IParameterSymbol param,
 // excludes nested lambda / local-function bodies): a `name.Dispose()` inside a stored callback
 // runs deferred, not at this call site, so it is not a discharge here. Only a DEFINITE release
 // counts (INF-S2, #380): see IsDefiniteInBody.
-static bool DisposesLocal(SyntaxNode body, string name)
+static bool DisposesLocal(SyntaxNode body, string name, SemanticModel? bodyModel = null)
 {
     foreach (var i in ImmediateInvocations(body))
         if (i.Expression is MemberAccessExpressionSyntax m
-            && m.Name.Identifier.Text is "Dispose" or "Close" or "DisposeAsync"
+            && (m.Name.Identifier.Text is "Dispose" or "Close" or "DisposeAsync"
+                // resource-effects Stage 1 (answer-key arm): a receiver_terminal_release entry
+                // called on the parameter is the same definite consume signal (H5).
+                || (bodyModel is not null && ReOracle.ReleasesReceiver(i, bodyModel)))
             && m.Expression is IdentifierNameSyntax id && id.Identifier.Text == name
             && IsDefiniteInBody(i, body))
             return true;
@@ -7443,6 +7473,7 @@ foreach (var (file, tree) in parsed)
                 var poolBuffers = new HashSet<string>();   // candidates that are ArrayPool<T> buffers
                 var usingMemoryOwners = new HashSet<string>();   // `using`-declared MemoryPool owners
                 var newedDisposables = new HashSet<string>();    // candidates created via `new` (NOT a pool rental / factory)
+                var mintedFactories = new HashSet<string>();     // sub-stage 1b: candidates minted by a factory acquire (table / answer key)
                 foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
                 {
                     if (ld.UsingKeyword != default)
@@ -7475,8 +7506,12 @@ foreach (var (file, tree) in parsed)
                             candidates.Add(v.Identifier.Text);
                             poolBuffers.Add(v.Identifier.Text);
                         }
-                        else if (IsOwningFactory(v.Initializer?.Value, model))   // File / crypto Create* factory
+                        else if (IsOwningFactory(v.Initializer?.Value, model)   // File / crypto Create* factory
+                                 || ReOracle.ReturnsFreshOwned(v.Initializer?.Value, model))   // resource-effects Stage 1: answer-key arm
+                        {
                             candidates.Add(v.Identifier.Text);
+                            mintedFactories.Add(v.Identifier.Text);
+                        }
                         else if (IsMemoryPoolRent(v.Initializer?.Value, model))   // MemoryPool<T> IMemoryOwner (Dispose-released, NOT a poolBuffer)
                             candidates.Add(v.Identifier.Text);
                         else if (IsFirstPartyDisposableFactory(v.Initializer?.Value, model,
@@ -7571,7 +7606,9 @@ foreach (var (file, tree) in parsed)
                     // literal of a `return` statement (outside any try) is the D5.2 fresh
                     // transfer out, carried by the return's `var`/`values` — not an escape, so
                     // the producer keeps its record and its result relation can be read.
-                    if (P037xRelational && newedDisposables.Contains(nm)
+                    if (P037xRelational
+                        && (newedDisposables.Contains(nm)
+                            || (ReOracle.MintedReturn && mintedFactories.Contains(nm)))   // sub-stage 1b
                         && idn.Parent is ArgumentSyntax { Parent: TupleExpressionSyntax { Parent: ReturnStatementSyntax rtup } }
                         && !rtup.Ancestors().TakeWhile(a => a != mbody).OfType<TryStatementSyntax>().Any())
                         continue;
@@ -7610,7 +7647,8 @@ foreach (var (file, tree) in parsed)
                         // leak. A return INSIDE a try threads `finally` edges the fresh path does
                         // not model yet, so keep the old transfer (escape) there; a `using` owner
                         // also stays tracked (its scope-exit dispose dangles the returned value).
-                        var freshFactory = newedDisposables.Contains(nm)
+                        var freshFactory = (newedDisposables.Contains(nm)
+                                            || (ReOracle.MintedReturn && mintedFactories.Contains(nm)))   // sub-stage 1b
                             && !rsp.Ancestors().TakeWhile(a => a != mbody)
                                    .OfType<TryStatementSyntax>().Any();
                         if (!usingMemoryOwners.Contains(nm) && !freshFactory)
@@ -7798,6 +7836,9 @@ if (flowLocals)
 if (flowLocals && P037xRelational)
     Console.Error.WriteLine("p037x-rel: {"
         + string.Join(", ", P037xRelational_Census.Select(kv => kv.Key + "=" + kv.Value)) + "}");
+// resource-effects Stage 1: which effects of the answer key fired in this document (hits).
+if (flowLocals && ReOracle.Enabled)
+    Console.Error.WriteLine("re-oracle: " + string.Join(" ", ReOracle.Census.Select(kv => $"{kv.Key}={kv.Value}")));
 
 if (outPath is null) Console.WriteLine(json);
 else File.WriteAllText(outPath, json);
@@ -7837,6 +7878,86 @@ partial class Program
     // to learn whether it will carry a record; the memo keys that answer per declaration;
     // the counters are the run's carrier census (the stderr `p037x:` line).
     internal static bool P037xProbing;
+    // ===== resource-effects Stage 1 (research/resource-effects-v1, EXPLORATORY; pre-registered in
+    // Own.NET-paperwork paper-eval/resource-effects/prereg-v1.json, stage1_oracle_design): the
+    // ANSWER-KEY arm. `OWEN_RE_ORACLE=<file>` names a JSON model
+    //   {"schema":"own.net/re-oracle/v1","entries":[{"callable":"<Namespace.Type>.<Method>",
+    //     "effect":"return_fresh_owned"|"receiver_terminal_release","arity":<optional int>}]}
+    // whose entries are matched by the RESOLVED symbol identity — the same
+    // `{ContainingType.ToDisplayString()}.{Name}` key FlowFunctionName stamps — never by syntax
+    // text and never by a name prefix. Unset (the default) nothing here runs and every fact is
+    // byte-identical. The file is an answer key (Stage 1) or an explicit model row (Stage 4B):
+    // no inference reads it and no production rule may be derived from it. Two effects only:
+    //   * return_fresh_owned: the local bound to the call is a candidate with an `acquire`,
+    //     exactly what an IsOwningFactory hit gets (the curated-table path is unchanged);
+    //   * receiver_terminal_release: `x.M()` on a tracked local is a `release` at the call
+    //     line, exactly what `x.Dispose()` gets — NOT a claim that M equals Dispose.
+    // Matching queries are counted per effect (hits, not sites) and printed as `re-oracle:` on
+    // stderr so the population measurement can tell which documents the key touched.
+    static class ReOracle
+    {
+        static readonly Dictionary<string, List<(string effect, int? arity)>> s_entries = Load();
+        internal static bool Enabled => s_entries.Count > 0;
+        internal static readonly SortedDictionary<string, int> Census = new(StringComparer.Ordinal);
+        // Sub-stage 1b (OWEN_RE_MINTED_RETURN=1; pre-registered): a candidate MINTED by a factory
+        // acquire in this body (curated table or answer key) that is returned bare or inside a
+        // tuple literal is the D5.2 transfer out, exactly like a `new`ed candidate — a rule over
+        // the fact vocabulary (an acquire minted here), not over an API name. Off: byte-identical.
+        internal static readonly bool MintedReturn =
+            Environment.GetEnvironmentVariable("OWEN_RE_MINTED_RETURN") == "1";
+
+        static Dictionary<string, List<(string effect, int? arity)>> Load()
+        {
+            var map = new Dictionary<string, List<(string effect, int? arity)>>(StringComparer.Ordinal);
+            var path = Environment.GetEnvironmentVariable("OWEN_RE_ORACLE");
+            if (string.IsNullOrEmpty(path))
+                return map;
+            using var doc = System.Text.Json.JsonDocument.Parse(System.IO.File.ReadAllText(path));
+            if (doc.RootElement.GetProperty("schema").GetString() != "own.net/re-oracle/v1")
+                throw new InvalidOperationException($"OWEN_RE_ORACLE: unknown schema in {path}");
+            foreach (var e in doc.RootElement.GetProperty("entries").EnumerateArray())
+            {
+                var callable = e.GetProperty("callable").GetString() ?? "";
+                var effect = e.GetProperty("effect").GetString() ?? "";
+                if (effect is not ("return_fresh_owned" or "receiver_terminal_release"))
+                    throw new InvalidOperationException($"OWEN_RE_ORACLE: unknown effect '{effect}' for {callable}");
+                int? arity = e.TryGetProperty("arity", out var a) ? a.GetInt32() : null;
+                if (!map.TryGetValue(callable, out var list))
+                    map[callable] = list = new List<(string effect, int? arity)>();
+                list.Add((effect, arity));
+            }
+            return map;
+        }
+
+        static bool Has(IMethodSymbol? m, string effect)
+        {
+            if (!Enabled || m is null)
+                return false;
+            var def = (m.ReducedFrom ?? m).OriginalDefinition;
+            var key = $"{def.ContainingType.ToDisplayString()}.{def.Name}";
+            if (!s_entries.TryGetValue(key, out var list))
+                return false;
+            foreach (var (eff, arity) in list)
+                if (eff == effect && (arity is null || arity == def.Parameters.Length))
+                {
+                    Census[effect] = Census.GetValueOrDefault(effect) + 1;
+                    return true;
+                }
+            return false;
+        }
+
+        // `var x = M(...)` where the resolved M is a return_fresh_owned entry.
+        internal static bool ReturnsFreshOwned(ExpressionSyntax? e, SemanticModel model) =>
+            Enabled && e is InvocationExpressionSyntax i
+            && model.GetSymbolInfo(i).Symbol is IMethodSymbol m
+            && !m.ReturnsVoid && Has(m, "return_fresh_owned");
+
+        // `x.M(...)` where the resolved INSTANCE M is a receiver_terminal_release entry.
+        internal static bool ReleasesReceiver(InvocationExpressionSyntax i, SemanticModel model) =>
+            Enabled && model.GetSymbolInfo(i).Symbol is IMethodSymbol m
+            && !m.IsStatic && Has(m, "receiver_terminal_release");
+    }
+
     internal static int P037xCanonical;
     // P-037-X Stage 4 (research/p037-max-v1, EXPLORATORY; pre-registered): the relational
     // carrier opt-in, `OWEN_P037X_RELATIONAL=1`. Off, every fact is byte-identical to the

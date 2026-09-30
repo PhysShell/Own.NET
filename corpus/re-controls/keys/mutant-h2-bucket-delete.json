@@ -1,0 +1,10 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "NAME-RULE MUTANT key for h2-bucket-delete.cs (must fail)",
+ "entries": [
+  {
+   "callable": "Bucket.Delete",
+   "effect": "receiver_terminal_release"
+  }
+ ]
+}

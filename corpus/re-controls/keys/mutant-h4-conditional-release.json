@@ -1,0 +1,10 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "NAME-RULE MUTANT key for h4-conditional-release.cs (must fail)",
+ "entries": [
+  {
+   "callable": "Handle.Release",
+   "effect": "receiver_terminal_release"
+  }
+ ]
+}

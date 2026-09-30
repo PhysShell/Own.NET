@@ -1,0 +1,10 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "NAME-RULE MUTANT key for h1-shared-createlinked.cs (must fail)",
+ "entries": [
+  {
+   "callable": "Linked.CreateLinkedTokenSource",
+   "effect": "return_fresh_owned"
+  }
+ ]
+}
