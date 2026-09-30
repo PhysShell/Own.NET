@@ -1,0 +1,2 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework><Nullable>disable</Nullable><ImplicitUsings>enable</ImplicitUsings><AssemblyName>Caller</AssemblyName><Deterministic>true</Deterministic></PropertyGroup>
+<ItemGroup><Reference Include="Helper"><HintPath>$(HelperDll)</HintPath></Reference></ItemGroup></Project>

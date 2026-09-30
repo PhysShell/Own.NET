@@ -1,0 +1,92 @@
+[
+ {
+  "id": "H22-OPEN",
+  "kind": "fresh",
+  "packages": [
+   [
+    "SSH.NET",
+    "2026.0.0"
+   ]
+  ],
+  "callable": "Renci.SshNet.SftpClient.Open",
+  "setup": "var sftp = new Renci.SshNet.SftpClient(\"127.0.0.1\", 2222, \"u\", \"p\"); sftp.Connect(); System.IO.File.WriteAllText(\"/tmp/wit-existing.txt\", \"x\"); int n = 0;",
+  "expr": "sftp.Open(\"/tmp/wit-existing.txt\", System.IO.FileMode.Open)",
+  "dispose": true,
+  "expect": "fresh"
+ },
+ {
+  "id": "H22-OPENREAD",
+  "kind": "fresh",
+  "packages": [
+   [
+    "SSH.NET",
+    "2026.0.0"
+   ]
+  ],
+  "callable": "Renci.SshNet.SftpClient.OpenRead",
+  "setup": "var sftp = new Renci.SshNet.SftpClient(\"127.0.0.1\", 2222, \"u\", \"p\"); sftp.Connect(); System.IO.File.WriteAllText(\"/tmp/wit-existing.txt\", \"x\"); int n = 0;",
+  "expr": "sftp.OpenRead(\"/tmp/wit-existing.txt\")",
+  "dispose": true,
+  "expect": "fresh"
+ },
+ {
+  "id": "H22-OPENWRITE",
+  "kind": "fresh",
+  "packages": [
+   [
+    "SSH.NET",
+    "2026.0.0"
+   ]
+  ],
+  "callable": "Renci.SshNet.SftpClient.OpenWrite",
+  "setup": "var sftp = new Renci.SshNet.SftpClient(\"127.0.0.1\", 2222, \"u\", \"p\"); sftp.Connect(); System.IO.File.WriteAllText(\"/tmp/wit-existing.txt\", \"x\"); int n = 0;",
+  "expr": "sftp.OpenWrite(\"/tmp/wit-w\" + (n++) + \".txt\")",
+  "dispose": true,
+  "expect": "fresh"
+ },
+ {
+  "id": "H22-CREATE",
+  "kind": "fresh",
+  "packages": [
+   [
+    "SSH.NET",
+    "2026.0.0"
+   ]
+  ],
+  "callable": "Renci.SshNet.SftpClient.Create",
+  "setup": "var sftp = new Renci.SshNet.SftpClient(\"127.0.0.1\", 2222, \"u\", \"p\"); sftp.Connect(); System.IO.File.WriteAllText(\"/tmp/wit-existing.txt\", \"x\"); int n = 0;",
+  "expr": "sftp.Create(\"/tmp/wit-c\" + (n++) + \".txt\")",
+  "dispose": true,
+  "expect": "fresh"
+ },
+ {
+  "id": "H22-TWIN-ADOPT",
+  "kind": "fresh",
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/sc/h22twin/out/Twin.dll",
+  "callable": "TwinLib.Twin.AdoptingFactory",
+  "setup": "var session = new TwinLib.R();",
+  "expr": "TwinLib.Twin.AdoptingFactory(session)",
+  "dispose": true,
+  "expect": "fresh"
+ },
+ {
+  "id": "H22-TWIN-ALIAS",
+  "kind": "fresh",
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/sc/h22twin/out/Twin.dll",
+  "callable": "TwinLib.Twin.AliasFactory",
+  "setup": "var session = new TwinLib.R();",
+  "expr": "TwinLib.Twin.AliasFactory(session)",
+  "dispose": false,
+  "expect": "cached"
+ },
+ {
+  "id": "H22-TWIN-REGISTERED",
+  "kind": "fresh",
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/sc/h22twin/out/Twin.dll",
+  "callable": "TwinLib.Twin.Registered",
+  "setup": "var session = new TwinLib.R();",
+  "expr": "TwinLib.Twin.Registered(session)",
+  "dispose": false,
+  "expect": "cached"
+ }
+]

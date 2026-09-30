@@ -8370,15 +8370,39 @@ partial class Program
         }
 
         // `var x = M(...)` where the resolved M is a return_fresh_owned entry.
-        internal static bool ReturnsFreshOwned(ExpressionSyntax? e, SemanticModel model) =>
-            Enabled && e is InvocationExpressionSyntax i
-            && model.GetSymbolInfo(i).Symbol is IMethodSymbol m
-            && !m.ReturnsVoid && Has(m, "return_fresh_owned", model.Compilation);
+        internal static bool ReturnsFreshOwned(ExpressionSyntax? e, SemanticModel model)
+        {
+            if (!Enabled || e is not InvocationExpressionSyntax i || model.GetSymbolInfo(i).Symbol is not IMethodSymbol m || m.ReturnsVoid) return false;
+            var hit = Has(m, "return_fresh_owned", model.Compilation);
+            if (hit) HitLog(i, m, "return_fresh_owned");
+            return hit;
+        }
 
         // `x.M(...)` where the resolved INSTANCE M is a receiver_terminal_release entry.
-        internal static bool ReleasesReceiver(InvocationExpressionSyntax i, SemanticModel model) =>
-            Enabled && model.GetSymbolInfo(i).Symbol is IMethodSymbol m
-            && !m.IsStatic && Has(m, "receiver_terminal_release", model.Compilation);
+        internal static bool ReleasesReceiver(InvocationExpressionSyntax i, SemanticModel model)
+        {
+            if (!Enabled || model.GetSymbolInfo(i).Symbol is not IMethodSymbol m || m.IsStatic) return false;
+            var hit = Has(m, "receiver_terminal_release", model.Compilation);
+            if (hit) HitLog(i, m, "receiver_terminal_release");
+            return hit;
+        }
+
+        // semantic-coverage Stage E instrumentation (research-only, opt-in): OWEN_RE_ORACLE_HITLOG=<path> appends one JSON
+        // line per oracle application with the call site (file, line, column, span) and the resolved callable, so an
+        // exposure unit can be counted as unique(file, span, callable, effect, mvid) without changing any fact.
+        static readonly string? s_hitLog = Environment.GetEnvironmentVariable("OWEN_RE_ORACLE_HITLOG");
+        static void HitLog(InvocationExpressionSyntax i, IMethodSymbol m, string effect)
+        {
+            if (string.IsNullOrEmpty(s_hitLog)) return;
+            try
+            {
+                var span = i.GetLocation().GetLineSpan(); var def = (m.ReducedFrom ?? m).OriginalDefinition;
+                var line = System.Text.Json.JsonSerializer.Serialize(new { file = span.Path, line = span.StartLinePosition.Line + 1, column = span.StartLinePosition.Character + 1, end_line = span.EndLinePosition.Line + 1, end_column = span.EndLinePosition.Character + 1, callable = $"{def.ContainingType.ToDisplayString()}.{def.Name}", arity = def.Parameters.Length, effect, assembly = def.ContainingAssembly?.Name });
+                lock (s_hitLogLock) File.AppendAllText(s_hitLog, line + "\n");
+            }
+            catch { }
+        }
+        static readonly object s_hitLogLock = new();
     }
 
     // ===== resource-effects Stage 2 (research/resource-effects-v1, EXPLORATORY; pre-registered in

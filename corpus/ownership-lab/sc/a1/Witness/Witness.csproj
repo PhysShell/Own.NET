@@ -1,0 +1,2 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><Nullable>disable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+<ItemGroup><Reference Include="Caller"><HintPath>$(CallerDll)</HintPath></Reference><Reference Include="Helper"><HintPath>$(HelperDll)</HintPath></Reference></ItemGroup></Project>

@@ -1,0 +1,93 @@
+[
+ {
+  "id": "H22-OPEN",
+  "callable": "Renci.SshNet.SftpClient.Open",
+  "expect": "fresh",
+  "seconds": 3.7,
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "asm": "00a77c77-e75d-4c4c-a3f9-73306891a548",
+  "type": "Renci.SshNet.Sftp.SftpFileStream"
+ },
+ {
+  "id": "H22-OPENREAD",
+  "callable": "Renci.SshNet.SftpClient.OpenRead",
+  "expect": "fresh",
+  "seconds": 3.3,
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "asm": "00a77c77-e75d-4c4c-a3f9-73306891a548",
+  "type": "Renci.SshNet.Sftp.SftpFileStream"
+ },
+ {
+  "id": "H22-OPENWRITE",
+  "callable": "Renci.SshNet.SftpClient.OpenWrite",
+  "expect": "fresh",
+  "seconds": 3.1,
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "asm": "00a77c77-e75d-4c4c-a3f9-73306891a548",
+  "type": "Renci.SshNet.Sftp.SftpFileStream"
+ },
+ {
+  "id": "H22-CREATE",
+  "callable": "Renci.SshNet.SftpClient.Create",
+  "expect": "fresh",
+  "seconds": 3.1,
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "asm": "00a77c77-e75d-4c4c-a3f9-73306891a548",
+  "type": "Renci.SshNet.Sftp.SftpFileStream"
+ },
+ {
+  "id": "H22-TWIN-ADOPT",
+  "callable": "TwinLib.Twin.AdoptingFactory",
+  "expect": "fresh",
+  "seconds": 2.6,
+  "distinct": true,
+  "same": false,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "fresh",
+  "asm": "016ed580-3034-41c1-bd4a-30fa7c195f1d",
+  "type": "TwinLib.W"
+ },
+ {
+  "id": "H22-TWIN-ALIAS",
+  "callable": "TwinLib.Twin.AliasFactory",
+  "expect": "cached",
+  "seconds": 2.9,
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "asm": "016ed580-3034-41c1-bd4a-30fa7c195f1d",
+  "type": "TwinLib.R"
+ },
+ {
+  "id": "H22-TWIN-REGISTERED",
+  "callable": "TwinLib.Twin.Registered",
+  "expect": "cached",
+  "seconds": 2.7,
+  "distinct": false,
+  "same": true,
+  "disposedProbe": "n/a",
+  "err": null,
+  "verdict": "cached",
+  "asm": "016ed580-3034-41c1-bd4a-30fa7c195f1d",
+  "type": "TwinLib.R"
+ }
+]

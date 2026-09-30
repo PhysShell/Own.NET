@@ -88,6 +88,7 @@ foreach (var fi in typeof(OpCodes).GetFields(BindingFlags.Public | BindingFlags.
 var pinvokeDefs = new HashSet<int>();
 foreach (var mh in md.MethodDefinitions) { var m = md.GetMethodDefinition(mh); if ((m.Attributes & MethodAttributes.PinvokeImpl) != 0) pinvokeDefs.Add(MetadataTokens.GetToken(mh)); }
 var nameToken = new Regex("^[A-Z][a-z]*", RegexOptions.CultureInvariant);
+string MetaName(INamedTypeSymbol t) { var n = t.MetadataName; return t.ContainingType is { } ct ? MetaName(ct) + "+" + n : (t.ContainingNamespace is { IsGlobalNamespace: false } ns ? ns.ToDisplayString() + "." + n : n); }
 IEnumerable<INamedTypeSymbol> AllTypes(INamespaceSymbol ns)
 {
     foreach (var m in ns.GetMembers())
@@ -109,7 +110,7 @@ foreach (var t in AllTypes(asm.GlobalNamespace).Where(t => t.DeclaredAccessibili
         var retDisp = Disp(rt) || ADisp(rt);
         // IL relations
         int newobjAll = 0, newobjDisp = 0, callsAll = 0, callsDisp = 0, callsDispose = 0, callsPinvoke = 0, stfldDisp = 0, ldfldDisp = 0, ldsfldDisp = 0, stsfldDisp = 0, throws = 0, rets = 0, ilSize = 0;
-        var beforeRet = new Dictionary<string, int>(); bool isPinvoke = false, hasBody = false; var newobjTypes = new HashSet<string>(); var norm = new System.Text.StringBuilder();
+        var beforeRet = new Dictionary<string, int>(); bool isPinvoke = false, hasBody = false; var newobjTypes = new HashSet<string>(); var norm = new System.Text.StringBuilder(); var callees = new HashSet<string>(); var externalCallees = new HashSet<string>(); var staticFieldTypes = new HashSet<string>();
         try
         {
             var token = me.MetadataToken;
@@ -142,13 +143,14 @@ foreach (var t in AllTypes(asm.GlobalNamespace).Where(t => t.DeclaredAccessibili
                         else if ((cur == "call" || cur == "callvirt") && h is { } ch)
                         {
                             callsAll++; var c = Callee(ch);
+                            if (ch.Kind == HandleKind.MethodDefinition) callees.Add(c.type + "::" + c.name); else if (ch.Kind == HandleKind.MethodSpecification || ch.Kind == HandleKind.MemberReference) { if (ch.Kind == HandleKind.MethodSpecification && md.GetMethodSpecification((MethodSpecificationHandle)ch).Method.Kind == HandleKind.MethodDefinition) callees.Add(c.type + "::" + c.name); else externalCallees.Add(c.type + "::" + c.name); }
                             if (DispName(c.ret)) callsDisp++;
                             if (c.name is "Dispose" or "DisposeAsync" or "Close") callsDispose++;
                             if (c.pinvoke || pinvokeDefs.Contains(operand)) callsPinvoke++;
                         }
                         else if (cur == "stfld" && h is { } sh) { if (DispName(FieldType(sh))) stfldDisp++; }
                         else if (cur == "ldfld" && h is { } lh) { if (DispName(FieldType(lh))) ldfldDisp++; }
-                        else if (cur == "ldsfld" && h is { } lsh) { if (DispName(FieldType(lsh))) ldsfldDisp++; }
+                        else if (cur == "ldsfld" && h is { } lsh) { if (DispName(FieldType(lsh))) ldsfldDisp++; try { staticFieldTypes.Add(lsh.Kind == HandleKind.FieldDefinition ? prov.DefName(md.GetFieldDefinition((FieldDefinitionHandle)lsh).GetDeclaringType()) : lsh.Kind == HandleKind.MemberReference ? TypeName(md.GetMemberReference((MemberReferenceHandle)lsh).Parent) : "?"); } catch { } }
                         else if (cur == "stsfld" && h is { } ssh) { if (DispName(FieldType(ssh))) stsfldDisp++; }
                         else if (cur == "throw") throws++;
                         else if (cur == "ret") { rets++; var k = prev.Split('.')[0]; beforeRet[k] = beforeRet.GetValueOrDefault(k) + 1; }
@@ -161,10 +163,10 @@ foreach (var t in AllTypes(asm.GlobalNamespace).Where(t => t.DeclaredAccessibili
         catch (Exception ex) { Console.Error.WriteLine($"il: {t.ToDisplayString()}.{me.Name}: {ex.GetType().Name}"); }
         records.Add(new
         {
-            callable = $"{t.ToDisplayString()}.{(getter ? "get_" + m.Name : me.Name)}", arity = me.Parameters.Length, il_hash = hasBody ? Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(norm.ToString())))[..16] : null, param_types = me.Parameters.Select(p => p.Type.ToDisplayString()).ToArray(), is_static = me.IsStatic, is_getter = getter,
+            metadata_name = MetaName(t) + "::" + (getter ? "get_" + m.Name : me.Name), callees = callees.OrderBy(x => x, StringComparer.Ordinal).ToArray(), external_callees = externalCallees.OrderBy(x => x, StringComparer.Ordinal).ToArray(), callable = $"{t.ToDisplayString()}.{(getter ? "get_" + m.Name : me.Name)}", arity = me.Parameters.Length, il_hash = hasBody ? Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(norm.ToString())))[..16] : null, param_types = me.Parameters.Select(p => p.Type.ToDisplayString()).ToArray(), is_static = me.IsStatic, is_getter = getter,
             name_token = nameToken.Match(getter ? m.Name : me.Name).Value, is_extension = me.IsExtensionMethod, is_virtual = me.IsVirtual || me.IsAbstract || me.IsOverride,
             ret_type = rt.ToDisplayString(), ret_disposable = retDisp, ret_async_wrapped = !SymbolEqualityComparer.Default.Equals(rt, me.ReturnType),
-            ret_is_declaring_type = SymbolEqualityComparer.Default.Equals(rt.OriginalDefinition, t.OriginalDefinition), ret_is_interface = rt.TypeKind == TypeKind.Interface, ret_is_abstract = rt is INamedTypeSymbol rn && rn.IsAbstract,
+            ret_is_declaring_type = SymbolEqualityComparer.Default.Equals(rt.OriginalDefinition, t.OriginalDefinition), ret_is_type_parameter = rt.TypeKind == TypeKind.TypeParameter || rt.SpecialType == SpecialType.System_Object, static_field_types = staticFieldTypes.OrderBy(x => x, StringComparer.Ordinal).ToArray(), ret_is_interface = rt.TypeKind == TypeKind.Interface, ret_is_abstract = rt is INamedTypeSymbol rn && rn.IsAbstract,
             declaring_type_disposable = tDisp, declaring_type_has_finalizer = tFinal, declaring_type_is_safehandle = tSafe, declaring_type_is_static = t.IsStatic,
             has_bool_param = me.Parameters.Any(p => p.Type.SpecialType == SpecialType.System_Boolean), has_disposable_param = me.Parameters.Any(p => Disp(p.Type) || ADisp(p.Type)),
             has_string_param = me.Parameters.Any(p => p.Type.SpecialType == SpecialType.System_String), has_stream_param = me.Parameters.Any(p => p.Type.ToDisplayString() == "System.IO.Stream"),
@@ -174,8 +176,36 @@ foreach (var t in AllTypes(asm.GlobalNamespace).Where(t => t.DeclaredAccessibili
         });
     }
 }
+var cctors = new Dictionary<string, string>();
+foreach (var th in md.TypeDefinitions)
+{
+    var td = md.GetTypeDefinition(th);
+    foreach (var mh in td.GetMethods())
+    {
+        var mdef = md.GetMethodDefinition(mh); if (md.GetString(mdef.Name) != ".cctor" || mdef.RelativeVirtualAddress == 0) continue;
+        var r = pe.GetMethodBody(mdef.RelativeVirtualAddress).GetILReader(); var norm = new System.Text.StringBuilder();
+        while (r.RemainingBytes > 0)
+        {
+            var b = r.ReadByte(); OpCode? oc = b == 0xfe ? two[r.ReadByte()] : one[b]; if (oc is null) break; string cur = oc.Value.Name ?? "?"; EntityHandle? h = null;
+            switch (oc.Value.OperandType)
+            {
+                case OperandType.InlineNone: break;
+                case OperandType.ShortInlineBrTarget: case OperandType.ShortInlineI: case OperandType.ShortInlineVar: r.ReadByte(); break;
+                case OperandType.InlineVar: r.ReadInt16(); break;
+                case OperandType.InlineI8: case OperandType.InlineR: r.ReadInt64(); break;
+                case OperandType.InlineSwitch: { var n = r.ReadInt32(); for (int i = 0; i < n; i++) r.ReadInt32(); break; }
+                case OperandType.InlineMethod: case OperandType.InlineField: case OperandType.InlineType: case OperandType.InlineTok: { var op = r.ReadInt32(); try { h = MetadataTokens.EntityHandle(op); } catch { } break; }
+                default: r.ReadInt32(); break;
+            }
+            norm.Append(cur).Append(' ');
+            if (h is { } oh) { try { norm.Append(oh.Kind is HandleKind.MethodDefinition or HandleKind.MemberReference or HandleKind.MethodSpecification ? Callee(oh).type + "::" + Callee(oh).name : oh.Kind is HandleKind.FieldDefinition ? FieldType(oh) + "::f" : TypeName(oh)); } catch { norm.Append("?"); } }
+            norm.Append(';');
+        }
+        cctors[prov.DefName(th)] = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(norm.ToString())))[..16];
+    }
+}
 var mvid = asm.Modules.First().GetMetadata()?.GetModuleVersionId().ToString() ?? "";
-Console.WriteLine(JsonSerializer.Serialize(new { assembly = asm.Name, version = asm.Identity.Version.ToString(), mvid, methods = records.Count, bodies, no_body = noBody, records }, new JsonSerializerOptions { WriteIndented = false }));
+Console.WriteLine(JsonSerializer.Serialize(new { assembly = asm.Name, version = asm.Identity.Version.ToString(), mvid, methods = records.Count, bodies, no_body = noBody, cctors, records }, new JsonSerializerOptions { WriteIndented = false }));
 return 0;
 
 sealed class NameProvider : ISignatureTypeProvider<string, object>
