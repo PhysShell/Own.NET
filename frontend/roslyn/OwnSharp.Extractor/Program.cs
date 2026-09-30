@@ -3855,6 +3855,12 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             // on the return path — then exits; outside a try it is a bare CFG exit.
             if (rs.Expression is { } rexpr)
                 EmitFlowExpr(rexpr, tracked, model, nodes);
+            // resource-effects Stage 2 E1 (OWEN_RE_BODY=1): a fresh-shaped return outside any try is
+            // lowered as the acquire/call of `$ret` and `return $ret` (see ReBody).
+            if (ReBody.Enabled && onReturn is null && rs.Expression is { } fre
+                && !(fre is IdentifierNameSyntax)
+                && ReBodyLowerFreshReturn(fre, model, LineOf(rs), nodes))
+                return true;
             // A returned Span/Memory VIEW (borrow) ESCAPES to the caller, who uses it AFTER this
             // method's finally cleanup runs — so `try { return view; } finally { Return(buf); }`
             // hands back a DANGLING borrow (the idiomatic pool-cleanup form). Model the escaped
@@ -4216,12 +4222,12 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
     // resource-effects Stage 1 (answer-key arm, `OWEN_RE_ORACLE`): x.M() on a tracked local
     // where the RESOLVED M is a receiver_terminal_release entry -> release, the same shape as
     // Dispose above (never by name; see ReOracle).
-    if (ReOracle.Enabled
+    if ((ReOracle.Enabled || ReBody.Enabled)
         && expr is InvocationExpressionSyntax oinv
         && oinv.Expression is MemberAccessExpressionSyntax oma
         && oma.Expression is IdentifierNameSyntax oid
         && tracked.Contains(oid.Identifier.Text)
-        && ReOracle.ReleasesReceiver(oinv, model))
+        && (ReOracle.ReleasesReceiver(oinv, model) || ReBodyReleasesReceiver(oinv, model)))   // Stage 2 E2 beside the key
     {
         nodes.Add(new { op = "release", var = oid.Identifier.Text, line = LineOf(oinv) });
         return;
@@ -4277,12 +4283,12 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
     }
     // resource-effects Stage 1 (answer-key arm): x?.M() where the resolved M is a
     // receiver_terminal_release entry -> release (the `?.` twin of the block above).
-    if (ReOracle.Enabled
+    if ((ReOracle.Enabled || ReBody.Enabled)
         && expr is ConditionalAccessExpressionSyntax ocond
         && ocond.Expression is IdentifierNameSyntax ocid
         && tracked.Contains(ocid.Identifier.Text)
         && ocond.WhenNotNull is InvocationExpressionSyntax ocondInv
-        && ReOracle.ReleasesReceiver(ocondInv, model))
+        && (ReOracle.ReleasesReceiver(ocondInv, model) || ReBodyReleasesReceiver(ocondInv, model)))   // Stage 2 E2 beside the key
     {
         nodes.Add(new { op = "release", var = ocid.Identifier.Text, line = LineOf(ocond) });
         return;
@@ -5483,7 +5489,7 @@ static bool ConsumesParam(IMethodSymbol method, IParameterSymbol param,
         return false;                          // no body -> contributes nothing
     var name = param.Name;
     if (DisposesLocal(body, name,              // (a) disposes the parameter directly
-                      ReOracle.Enabled ? model.Compilation.GetSemanticModel(body.SyntaxTree) : null))
+                      ReOracle.Enabled || ReBody.Enabled ? model.Compilation.GetSemanticModel(body.SyntaxTree) : null))
         return true;
     // (b) transitive: the parameter is handed to another first-party consumer at an IMMEDIATE
     // call (not one deferred in a nested lambda/local function). The body may live in another
@@ -5525,7 +5531,8 @@ static bool DisposesLocal(SyntaxNode body, string name, SemanticModel? bodyModel
             && (m.Name.Identifier.Text is "Dispose" or "Close" or "DisposeAsync"
                 // resource-effects Stage 1 (answer-key arm): a receiver_terminal_release entry
                 // called on the parameter is the same definite consume signal (H5).
-                || (bodyModel is not null && ReOracle.ReleasesReceiver(i, bodyModel)))
+                || (bodyModel is not null && (ReOracle.ReleasesReceiver(i, bodyModel)
+                                              || ReBodyReleasesReceiver(i, bodyModel))))   // Stage 2 E2
             && m.Expression is IdentifierNameSyntax id && id.Identifier.Text == name
             && IsDefiniteInBody(i, body))
             return true;
@@ -5600,6 +5607,126 @@ static bool CallReleasesReceiver(IMethodSymbol? sym, SemanticModel model)
     return ConsumesParam(def, def.Parameters[0], model,
                          new HashSet<ISymbol>(SymbolEqualityComparer.Default));
 }
+
+// resource-effects Stage 2 E2 (OWEN_RE_BODY=1): does the resolved instance method release its receiver?
+// See the ReBody header: decided by the resolved IDisposable.Dispose / IAsyncDisposable.DisposeAsync
+// implementation called definitely on `this`, directly or through another such method — never by a name.
+static bool ReBodyReleasesReceiver(InvocationExpressionSyntax inv, SemanticModel model)
+{
+    if (!ReBody.Enabled || model.GetSymbolInfo(inv).Symbol is not IMethodSymbol m
+        || m.IsStatic || m.ReducedFrom is not null)
+        return false;
+    if (!ReBodyReleasesThis(m.OriginalDefinition, model, new HashSet<ISymbol>(SymbolEqualityComparer.Default)))
+        return false;
+    ReBody.Count("receiver_release");
+    return true;
+}
+
+static bool ReBodyIsDisposeImplementation(IMethodSymbol callee, SemanticModel model)
+{
+    foreach (var (iface, member) in new[] { ("System.IDisposable", "Dispose"), ("System.IAsyncDisposable", "DisposeAsync") })
+    {
+        if (model.Compilation.GetTypeByMetadataName(iface) is not { } it)
+            continue;
+        foreach (var im in it.GetMembers(member).OfType<IMethodSymbol>())
+            if (callee.ContainingType.FindImplementationForInterfaceMember(im) is IMethodSymbol impl
+                && SymbolEqualityComparer.Default.Equals(impl.OriginalDefinition, callee.OriginalDefinition))
+                return true;
+    }
+    return false;
+}
+
+static bool ReBodyReleasesThis(IMethodSymbol m, SemanticModel model, HashSet<ISymbol> visited)
+{
+    if (ReBody.Releases.TryGetValue(m, out var known))
+        return known;
+    if (!visited.Add(m))
+        return false;
+    var result = false;
+    if (!m.IsStatic && m.MethodKind == MethodKind.Ordinary
+        && ImplementsIDisposable(m.ContainingType)
+        && m.DeclaringSyntaxReferences.Length > 0
+        && m.DeclaringSyntaxReferences[0].GetSyntax() is BaseMethodDeclarationSyntax decl
+        && ((SyntaxNode?)decl.Body ?? decl.ExpressionBody) is { } body)
+    {
+        var bm = model.Compilation.GetSemanticModel(body.SyntaxTree);
+        foreach (var inv in ImmediateInvocations(body))
+        {
+            var onThis = inv.Expression is IdentifierNameSyntax
+                || inv.Expression is MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax };
+            if (!onThis || bm.GetSymbolInfo(inv).Symbol is not IMethodSymbol callee || callee.IsStatic)
+                continue;
+            var release = ReBodyIsDisposeImplementation(callee, model)
+                || ReBodyReleasesThis(callee.OriginalDefinition, model, visited);
+            if (release && IsDefiniteInBody(inv, body))
+            {
+                result = true;
+                break;
+            }
+        }
+    }
+    ReBody.Releases[m] = result;
+    return result;
+}
+
+// resource-effects Stage 2 E1 (OWEN_RE_BODY=1): lower a fresh-shaped return expression (an object creation
+// of an owned disposable, a first-party disposable factory call, or a conditional expression of those,
+// through parentheses and casts) as the acquire/call of `$ret` followed by `return $ret`; false adds nothing.
+static bool ReBodyLowerFreshReturn(ExpressionSyntax e, SemanticModel model, int line, List<object> nodes)
+{
+    if (!ReBody.Enabled)
+        return false;
+    var probe = new List<object>();
+    if (!ReBodyLower(e, model, line, probe))
+        return false;
+    nodes.AddRange(probe);
+    ReBody.Count("fresh_return");
+    return true;
+}
+
+static bool ReBodyLower(ExpressionSyntax e, SemanticModel model, int line, List<object> nodes)
+{
+    while (true)
+    {
+        if (e is ParenthesizedExpressionSyntax pe) { e = pe.Expression; continue; }
+        if (e is CastExpressionSyntax ce) { e = ce.Expression; continue; }
+        break;
+    }
+    switch (e)
+    {
+        case ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax
+            when model.GetTypeInfo(e).Type is { } t && ImplementsIDisposable(t)
+                 && !IsDisposeOptional(t) && !HasEmptyDisposeBody(t):
+            nodes.Add(new { op = "acquire", var = "$ret", line, kind = "disposable" });
+            nodes.Add(new { op = "return", var = "$ret", line });
+            return true;
+        case InvocationExpressionSyntax inv
+            when IsFirstPartyDisposableFactory(inv, model, out var callee, out var sig):
+            nodes.Add(new { op = "call", callee, sig, args = Array.Empty<string>(), result = "$ret", line });
+            nodes.Add(new { op = "return", var = "$ret", line });
+            return true;
+        case ConditionalExpressionSyntax c:
+        {
+            var thenNodes = new List<object>();
+            var elseNodes = new List<object>();
+            if (!ReBodyLower(c.WhenTrue, model, line, thenNodes) || !ReBodyLower(c.WhenFalse, model, line, elseNodes))
+                return false;
+            nodes.Add(new { op = "if", line, then = thenNodes, @else = elseNodes });
+            return true;
+        }
+        default:
+            return false;
+    }
+}
+
+// E1: does the block contain an immediate fresh-shaped return outside any try (so a record is worth emitting)?
+static bool ReBodyHasFreshReturn(BlockSyntax body, SemanticModel model) =>
+    ReBody.Enabled
+    && body.DescendantNodes(n => n is not (AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
+           .OfType<ReturnStatementSyntax>()
+           .Any(r => r.Expression is { } e
+                     && !r.Ancestors().TakeWhile(a => a != body).OfType<TryStatementSyntax>().Any()
+                     && ReBodyLower(e, model, 0, new List<object>()));
 
 // `Interlocked.Exchange(ref _field, null)` — the atomic "detach and hand back"
 // teardown idiom — atomically nulls the field and RETURNS the object it used to
@@ -7422,7 +7549,25 @@ foreach (var (file, tree) in parsed)
             foreach (var method in cls.Members.OfType<BaseMethodDeclarationSyntax>())
             {
                 if (method.Body is not { } mbody)
+                {
+                    // resource-effects Stage 2 E1 (OWEN_RE_BODY=1): an expression-bodied factory
+                    // (`=> new R()`, `=> c ? new A(t) : Make(t)`) gets a record of just that lowering.
+                    if (ReBody.Enabled && method.ExpressionBody is { } eb)
+                    {
+                        var ebNodes = new List<object>();
+                        if (ReBodyLowerFreshReturn(eb.Expression, model, LineOf(eb), ebNodes)
+                            && model.GetDeclaredSymbol(method) is IMethodSymbol ebSym)
+                        {
+                            flowFunctions.Add(new Dictionary<string, object?>
+                            {
+                                ["name"] = $"{ebSym.ContainingType.ToDisplayString()}.{ebSym.Name}",
+                                ["file"] = file, ["sig"] = CanonicalSig(ebSym), ["body"] = ebNodes,
+                            });
+                            ReBody.Count("fresh_return_expression_body");
+                        }
+                    }
                     continue;
+                }
                 // P-037 A1.1-a1 (#304): this method's OWNERSHIP-RELEVANT parameters.
                 //
                 // Why this exists: `build_skeletons` (own-bridge/src/lower.rs and its Python
@@ -7554,7 +7699,8 @@ foreach (var (file, tree) in parsed)
                 // (The third case the design names, "required as an interprocedural summary
                 // target", is subsumed: a summary is consulted for its PARAMETERS, so a method
                 // with none has no summary anyone can read.)
-                if (candidates.Count == 0 && ownedParamNames.Count == 0)
+                if (candidates.Count == 0 && ownedParamNames.Count == 0
+                    && !ReBodyHasFreshReturn(mbody, model))   // Stage 2 E1: a direct-return factory keeps a record
                     continue;
                 // A local that escapes (returned / assigned out) is conservatively not
                 // tracked — its release may be the caller's job. For an IDisposable,
@@ -7690,7 +7836,8 @@ foreach (var (file, tree) in parsed)
                 }
                 var tracked = new HashSet<string>(candidates);
                 tracked.ExceptWith(escapedLocals);
-                if (tracked.Count == 0 && ownedParamNames.Count == 0)
+                if (tracked.Count == 0 && ownedParamNames.Count == 0
+                    && !ReBodyHasFreshReturn(mbody, model))   // Stage 2 E1: a direct-return factory keeps a record
                     continue;
                 statMethodsWithLocal++;
                 // Lower over locals AND owned parameters, so `param_signals` /
@@ -7837,6 +7984,8 @@ if (flowLocals && P037xRelational)
     Console.Error.WriteLine("p037x-rel: {"
         + string.Join(", ", P037xRelational_Census.Select(kv => kv.Key + "=" + kv.Value)) + "}");
 // resource-effects Stage 1: which effects of the answer key fired in this document (hits).
+if (flowLocals && ReBody.Enabled)
+    Console.Error.WriteLine("re-body: " + string.Join(" ", ReBody.Census.Select(kv => $"{kv.Key}={kv.Value}")));
 if (flowLocals && ReOracle.Enabled)
     Console.Error.WriteLine("re-oracle: " + string.Join(" ", ReOracle.Census.Select(kv => $"{kv.Key}={kv.Value}")));
 
@@ -7956,6 +8105,30 @@ partial class Program
         internal static bool ReleasesReceiver(InvocationExpressionSyntax i, SemanticModel model) =>
             Enabled && model.GetSymbolInfo(i).Symbol is IMethodSymbol m
             && !m.IsStatic && Has(m, "receiver_terminal_release");
+    }
+
+    // ===== resource-effects Stage 2 (research/resource-effects-v1, EXPLORATORY; pre-registered in
+    // Own.NET-paperwork paper-eval/resource-effects/stage2-body-effects-prereg-v1.json): BODY-DERIVED
+    // effects behind `OWEN_RE_BODY=1` (byte-identical off). No OwnIR field, no engine change, no name
+    // rule, no answer key.
+    //   E1 fresh for direct returns: a `return` (outside any try) whose expression is an object creation
+    //      of an owned disposable, a first-party disposable factory call, or a conditional expression of
+    //      those, is lowered as `acquire $ret` / `call … result=$ret` / `if` + `return $ret` — the same
+    //      facts `var r = new R(); return r;` produces today, so the core's R3/R4 rules decide `fresh`.
+    //      An expression-bodied method of that shape gets a record of just that lowering.
+    //   E2 receiver release from a body: an instance method of a first-party type whose body DEFINITELY
+    //      (IsDefiniteInBody) calls this type's IDisposable.Dispose / IAsyncDisposable.DisposeAsync
+    //      implementation on `this` (directly, or through another such method) releases its receiver:
+    //      `x.M()` on a tracked local is a `release`, and the same predicate is a consume signal in
+    //      DisposesLocal so wrappers compose. Decided by the resolved interface implementation, never by
+    //      a name; a conditional body stays a `use`.
+    static class ReBody
+    {
+        internal static readonly bool Enabled =
+            Environment.GetEnvironmentVariable("OWEN_RE_BODY") == "1";
+        internal static readonly SortedDictionary<string, int> Census = new(StringComparer.Ordinal);
+        internal static readonly Dictionary<IMethodSymbol, bool> Releases = new(SymbolEqualityComparer.Default);
+        internal static void Count(string what) => Census[what] = Census.GetValueOrDefault(what) + 1;
     }
 
     internal static int P037xCanonical;

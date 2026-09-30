@@ -72,6 +72,19 @@ _RECORD_1B: dict[str, dict[str, list[str]]] = {
 }
 
 
+# Stage 2 (OWEN_RE_MINTED_RETURN=1 OWEN_RE_BODY=1): the body-derived effects on the
+# corpus/re-cfg-probe witness shapes: E2 (receiver release from a body: s15) and E1 (fresh for
+# direct returns: s08b);
+# the Stage 2 record is paper-eval/resource-effects/stage2-body-effects-v1.json
+_RECORD_2: dict[str, list[str]] = {
+    # RunUse uses c after Kill() (OWN002); RunMaybe keeps c (OWN001, the truth); Run / RunDrop clean
+    "s15-receiver-release-body": ["OWN001", "OWN002"],
+    # Drop1..Drop3 leak the fresh results of Make / Make2 / Make3; Drop4 (Make4: mixed) is silent
+    "s08b-caller": ["OWN001", "OWN001", "OWN001"],
+}
+_SHAPES = os.path.join("corpus", "re-cfg-probe")
+
+
 def _codes(text: str) -> list[str]:
     return sorted(_CODE.findall(text))
 
@@ -82,8 +95,9 @@ def _run(argv: list[str], env: dict[str, str]) -> str:
 
 
 def _check(name: str, arm: str, want: list[str], ext_env: dict[str, str], tmp: str,
-           rust: str | None, env: dict[str, str], fails: list[str]) -> None:
-    src = os.path.join(_CONTROLS, f"{name}.cs")
+           rust: str | None, env: dict[str, str], fails: list[str],
+           folder: str = _CONTROLS) -> None:
+    src = os.path.join(folder, f"{name}.cs")
     facts = os.path.join(tmp, f"{name}.{arm}.json")
     try:
         subprocess.run(["dotnet", "run", "--project", _EXT, "--", "--flow-locals", src,
@@ -113,7 +127,7 @@ def run() -> int:
     if rust and not os.path.isfile(rust):
         rust = None
     env = {**os.environ, "PYTHONPATH": _REPO}
-    for k in ("OWEN_RE_ORACLE", "OWEN_RE_MINTED_RETURN"):
+    for k in ("OWEN_RE_ORACLE", "OWEN_RE_MINTED_RETURN", "OWEN_RE_BODY"):
         env.pop(k, None)
         os.environ.pop(k, None)
     key = os.path.join(_REPO, _KEYS, "answer-key.json")
@@ -135,10 +149,13 @@ def run() -> int:
                 if arm == "key":
                     ext_env["OWEN_RE_ORACLE"] = key
                 _check(name, f"1b-{arm}", want, ext_env, tmp, rust, env, fails)
+        for name, want in sorted(_RECORD_2.items()):
+            _check(name, "body", want, {"OWEN_RE_MINTED_RETURN": "1", "OWEN_RE_BODY": "1"}, tmp,
+                   rust, env, fails, folder=_SHAPES)
     for f in fails:
         print(f"FAIL: {f}")
     n = (sum(len(a) for a in _RECORD.values()) + len(_OBSERVATION)
-         + sum(len(a) for a in _RECORD_1B.values()))
+         + sum(len(a) for a in _RECORD_1B.values()) + len(_RECORD_2))
     print(f"re controls: {n} row(s), {len(fails)} failed"
           + ("" if rust else " (Rust parity not checked: OWEN_RUST_CORE unset)"))
     return 1 if fails else 0
