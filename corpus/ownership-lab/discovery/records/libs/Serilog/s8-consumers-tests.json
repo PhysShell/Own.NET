@@ -1,0 +1,88 @@
+{
+ "package": "Serilog",
+ "consumer": "tests",
+ "repo": "serilog/serilog",
+ "commit": "497f80fda4f9e8f98b9c13ba34b1f0530f8c4449",
+ "files": [
+  {
+   "path": "test/Serilog.Tests/Core/LoggerTests.cs",
+   "sha256": "9bd71e308252d57e54c7c53a98bcbf020b6cb92d8a49ee95e1e6cf8fdcbe2bbd",
+   "bytes": 19289
+  },
+  {
+   "path": "test/Serilog.Tests/Core/ChildLoggerTests.cs",
+   "sha256": "051c45ccdf09d2fcf047ae4ac01a48388565f93f2210308abd42a4bc476e4d0f",
+   "bytes": 11034
+  },
+  {
+   "path": "test/Serilog.Tests/Core/ChildLoggerDisposalTests.cs",
+   "sha256": "4fdd29e20b22384fc58a4e355511e0a4e11d833a45783451fce92c8c406851f9",
+   "bytes": 2347
+  },
+  {
+   "path": "test/Serilog.Tests/Core/ChildLoggerKnownLimitationsTests.cs",
+   "sha256": "cb09ed4d35f0529d70f79489d42aecc55549e15cb63a2d5a4653fd3acdb2706d",
+   "bytes": 6758
+  },
+  {
+   "path": "test/Serilog.Tests/Core/SecondaryLoggerSinkTests.cs",
+   "sha256": "52eccea204eb225f032b8ee1fd7bf82d65c1768c6620c8650d8e9dde9876e369",
+   "bytes": 3292
+  },
+  {
+   "path": "test/Serilog.Tests/Core/AuditSinkTests.cs",
+   "sha256": "eb82692429459c192ff7c402e33f13d2613b6df1aec1e7ba4d438f997ea96fff",
+   "bytes": 2813
+  },
+  {
+   "path": "test/Serilog.Tests/Core/BatchingSinkTests.cs",
+   "sha256": "51ac8cce63e3a317d7b5d33983a26531ef8252e7a58b86ff559a2d05cf156c06",
+   "bytes": 4310
+  },
+  {
+   "path": "test/Serilog.Tests/Core/SafeAggregateSinkTests.cs",
+   "sha256": "e8b936f36310b974ea6901628615844618a3b11da437e450684fb893e912a13a",
+   "bytes": 846
+  },
+  {
+   "path": "test/Serilog.Tests/Core/LoggerExtensionsTests.cs",
+   "sha256": "6e53d9ef77dd47185ed78e0054899b5e9ec96cbfd742b8720557264824bcb85c",
+   "bytes": 1719
+  },
+  {
+   "path": "test/Serilog.Tests/Core/LogEventPropertyCapturingTests.cs",
+   "sha256": "45bfc762cea6036f21879ea35cd4f5c2306aef817577092d1e2cb779dc258c5d",
+   "bytes": 7678
+  },
+  {
+   "path": "test/Serilog.Tests/Core/FailureListenerTests.cs",
+   "sha256": "6c206053f98210cd8bbc977be85523230fe2040fcb9d2d9162b57800eb5136c9",
+   "bytes": 2928
+  },
+  {
+   "path": "test/Serilog.Tests/Core/LevelOverrideMapTests.cs",
+   "sha256": "128bc5409d95781dd36aafc947d2c616bcc2b03b01e042968f24d4de02daecb4",
+   "bytes": 1695
+  },
+  {
+   "path": "test/Serilog.Tests/Context/LogContextTests.cs",
+   "sha256": "39c9e8f45e297e03602a64b258f88155e9361a21dbb49ec1d036e129e1d20c99",
+   "bytes": 12100
+  },
+  {
+   "path": "test/Serilog.Tests/LogTests.cs",
+   "sha256": "897e496a9bc00332aebbe8174021632951d2e02217d8b3622a29a13360c5da20",
+   "bytes": 1653
+  },
+  {
+   "path": "test/Serilog.Tests/ArgumentNullTests.cs",
+   "sha256": "c4203a80f2abc649c9d6c0eda7cc700c1f28379f113f79efa05ebe80ff2db473",
+   "bytes": 1351
+  },
+  {
+   "path": "test/Serilog.Tests/GlobalUsings.cs",
+   "sha256": "14d588202819299e23d7ffba1983edebcb9ea3f94fa8554c94abb07d97bf7b79",
+   "bytes": 1088
+  }
+ ]
+}

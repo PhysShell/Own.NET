@@ -1,0 +1,108 @@
+{
+ "package": "Google.Protobuf",
+ "consumer": "tests",
+ "repo": "protocolbuffers/protobuf",
+ "commit": "2c74169b34066ceb8ddb6b882fcb3fb32d737a55",
+ "files": [
+  {
+   "path": "csharp/src/Google.Protobuf.Test/ByteStringTest.cs",
+   "sha256": "7700050b3e84519424936ec0c2a85502eb0accbe29d7c062c19127004382bef5",
+   "bytes": 14046
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/CodedInputStreamExtensions.cs",
+   "sha256": "baafcf6f462a77e18b04403265602665ec21ef6c1505ace8acdc5069785654eb",
+   "bytes": 912
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/CodedInputStreamTest.cs",
+   "sha256": "dd0b45b2d0f9308744dbc0519dd8db2ad1d1f719d2328bb79c2d0b31e6227843",
+   "bytes": 40930
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/CodedOutputStreamTest.cs",
+   "sha256": "9e68f695f980564b613d18ec9a11b1ba3dd29c357f53a21004e9682b3397e989",
+   "bytes": 24157
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/GeneratedMessageTest.cs",
+   "sha256": "093e70471f2410f46af65e169ab844ac6e6833f781f8504ecfafb9ee5872cb61",
+   "bytes": 37185
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/GeneratedMessageTest.Proto2.cs",
+   "sha256": "40fc77386e2ff300cb287aa75a66733304d194eb5a20d9e01641b2769b725cf9",
+   "bytes": 19761
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/IssuesTest.cs",
+   "sha256": "d766fb755cc4bbf713522668e912294d4214078b84bf8ffe841bf5057dff3721",
+   "bytes": 5488
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/MessageExtensionsTest.cs",
+   "sha256": "5b6dedcd151f5d1a0bfed5d4902e1cb662e5b3be8fb37507be635647df95edc8",
+   "bytes": 1180
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/MessageParsingHelpers.cs",
+   "sha256": "1e3e170bc5ab9767ab0da7efa2417087ae42d8a8aef7f9c92641eb2a28af6008",
+   "bytes": 5377
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/ParsingPrimitivesTest.cs",
+   "sha256": "1abdb8222356e9d806282b4a0cf784526879439e0a93f20d249a01192b4b49e1",
+   "bytes": 1345
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/WritingPrimitivesTest.cs",
+   "sha256": "a565633f3437fc7f46bc2d89fa83d355ab45d62c663677c33ecf25726e70f7f2",
+   "bytes": 1307
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/TestCornerCases.cs",
+   "sha256": "034d91e2180776615feea0de9ee2d2f3bc078344396adc159e09628bf9045799",
+   "bytes": 1255
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/UnknownFieldSetTest.cs",
+   "sha256": "bf0e5574270eb899015b104bd799168f44de4f610ef936e5d3e05c2792536df0",
+   "bytes": 8706
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/FieldCodecTest.cs",
+   "sha256": "32013e5711b743a0e95f708eee8861d9e2a7be7e5375277f90796772c2956169",
+   "bytes": 7923
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/ExtensionSetTest.cs",
+   "sha256": "d83bf08fdbab897ea8f2e80bf4a6ecc00ff71324bc0ec99dfa8e6d1244151fab",
+   "bytes": 8537
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/LegacyGeneratedCodeTest.cs",
+   "sha256": "57ffd5006986106e2b4810d0f01031c3340e42753b0bd827894d9c325d32e822",
+   "bytes": 10538
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/JsonParserTest.cs",
+   "sha256": "9c0ebdac1ea463f125d0167d864f4f0b5a1441ff7fece20d0401c9bec77ac8ee",
+   "bytes": 60174
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/JsonFormatterTest.cs",
+   "sha256": "a64c6a69d0e8dd3f50ff2c175b4984bef3321b205ad452d361bc96c774761b1f",
+   "bytes": 42297
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/SampleMessages.cs",
+   "sha256": "af56eb1ed378dca335755b8aff17c05ef4d6150d5ba60eb58a75d266e3d3b3f6",
+   "bytes": 12439
+  },
+  {
+   "path": "csharp/src/Google.Protobuf.Test/ReadOnlySequenceFactory.cs",
+   "sha256": "480f7ef7b6910e8d546082cf9b557e78d6876859147c879e68145091294d858f",
+   "bytes": 3645
+  }
+ ]
+}

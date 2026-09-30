@@ -1,0 +1,27 @@
+{
+ "package": "Google.Protobuf",
+ "repo": "protocolbuffers/protobuf",
+ "commit": "2c74169b34066ceb8ddb6b882fcb3fb32d737a55",
+ "files": [
+  {
+   "path": "csharp/src/Google.Protobuf/CodedInputStream.cs",
+   "sha256": "98fcc240e7b77505eac5f9f08211542ffba9558971059346a20d42930f20a845",
+   "bytes": 24864
+  },
+  {
+   "path": "csharp/src/Google.Protobuf/CodedOutputStream.cs",
+   "sha256": "683ae26bf26da8196a4b253a6bd75755a51a7593ffca4714b981952e484e8dbe",
+   "bytes": 24451
+  },
+  {
+   "path": "csharp/src/Google.Protobuf/ByteString.cs",
+   "sha256": "73c0540418a9d74894f851c38157307bfd27a30998c9b658425696c0bbe0e9be",
+   "bytes": 16280
+  },
+  {
+   "path": "csharp/src/Google.Protobuf/LimitedInputStream.cs",
+   "sha256": "a9d97bff2dffd34c52f752f92a6f8384bce4d8fcc048b5d448910f3670468e99",
+   "bytes": 2030
+  }
+ ]
+}

@@ -1,0 +1,321 @@
+{
+ "package": "Serilog",
+ "consumer": "tests",
+ "files": 17,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Serilog/rows-applied.json",
+ "key_sha256": "40a238c24ebaa85e4af8c6f9422fd473d9ecd0012b58ae9a806c956c5a13a680",
+ "off": {
+  "findings": [],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 5,
+   "methods_flow_analysed": 5,
+   "methods_skipped_unmodelled": 0
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "test__Serilog.Tests__Context__LogContextTests.cs",
+    10,
+    "OWN001",
+    "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Context__LogContextTests.cs",
+    29,
+    "OWN001",
+    "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Context__LogContextTests.cs",
+    48,
+    "OWN001",
+    "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Context__LogContextTests.cs",
+    67,
+    "OWN001",
+    "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Context__LogContextTests.cs",
+    90,
+    "OWN001",
+    "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Context__LogContextTests.cs",
+    145,
+    "OWN001",
+    "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Context__LogContextTests.cs",
+    175,
+    "OWN001",
+    "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__AuditSinkTests.cs",
+    52,
+    "OWN001",
+    "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+    13,
+    "OWN001",
+    "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+    45,
+    "OWN001",
+    "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+    117,
+    "OWN001",
+    "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+    169,
+    "OWN001",
+    "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+    80,
+    "OWN001",
+    "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+    121,
+    "OWN001",
+    "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+    212,
+    "OWN001",
+    "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+    271,
+    "OWN001",
+    "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__LoggerExtensionsTests.cs",
+    16,
+    "OWN001",
+    "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__LoggerExtensionsTests.cs",
+    39,
+    "OWN001",
+    "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__LoggerTests.cs",
+    294,
+    "OWN001",
+    "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__LoggerTests.cs",
+    309,
+    "OWN001",
+    "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__LoggerTests.cs",
+    417,
+    "OWN001",
+    "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__LoggerTests.cs",
+    456,
+    "OWN001",
+    "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__SecondaryLoggerSinkTests.cs",
+    60,
+    "OWN001",
+    "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Serilog.Tests__Core__SecondaryLoggerSinkTests.cs",
+    76,
+    "OWN001",
+    "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: return_fresh_owned=75"
+  ],
+  "stats": {
+   "methods_with_local": 35,
+   "methods_flow_analysed": 35,
+   "methods_skipped_unmodelled": 0
+  }
+ },
+ "new_findings": [
+  [
+   "test__Serilog.Tests__Context__LogContextTests.cs",
+   10,
+   "OWN001",
+   "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Context__LogContextTests.cs",
+   29,
+   "OWN001",
+   "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Context__LogContextTests.cs",
+   48,
+   "OWN001",
+   "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Context__LogContextTests.cs",
+   67,
+   "OWN001",
+   "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Context__LogContextTests.cs",
+   90,
+   "OWN001",
+   "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Context__LogContextTests.cs",
+   145,
+   "OWN001",
+   "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Context__LogContextTests.cs",
+   175,
+   "OWN001",
+   "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__AuditSinkTests.cs",
+   52,
+   "OWN001",
+   "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+   13,
+   "OWN001",
+   "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+   45,
+   "OWN001",
+   "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+   117,
+   "OWN001",
+   "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+   169,
+   "OWN001",
+   "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+   80,
+   "OWN001",
+   "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+   121,
+   "OWN001",
+   "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+   212,
+   "OWN001",
+   "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+   271,
+   "OWN001",
+   "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__LoggerExtensionsTests.cs",
+   16,
+   "OWN001",
+   "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__LoggerExtensionsTests.cs",
+   39,
+   "OWN001",
+   "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__LoggerTests.cs",
+   294,
+   "OWN001",
+   "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__LoggerTests.cs",
+   309,
+   "OWN001",
+   "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__LoggerTests.cs",
+   417,
+   "OWN001",
+   "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__LoggerTests.cs",
+   456,
+   "OWN001",
+   "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__SecondaryLoggerSinkTests.cs",
+   60,
+   "OWN001",
+   "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Serilog.Tests__Core__SecondaryLoggerSinkTests.cs",
+   76,
+   "OWN001",
+   "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+  ]
+ ],
+ "lost_findings": []
+}

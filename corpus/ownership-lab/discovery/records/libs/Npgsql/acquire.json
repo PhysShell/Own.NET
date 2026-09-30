@@ -1,0 +1,28 @@
+{
+ "package": "Npgsql",
+ "version": "10.0.3",
+ "nupkg_sha256": "75d0970923a8c9fcbbd37e4ebe72fee0b10362a1e36723e86777df1b6728316d",
+ "repository_url": "https://github.com/npgsql/npgsql",
+ "repository_commit": "d3768398c17877b3a916c3c4d87e8e11698991fc",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Npgsql/lib/net8.0/Npgsql.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Npgsql/lib/net8.0/Npgsql.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Npgsql/lib/net8.0/Npgsql.dll",
+  "name": "Npgsql",
+  "version": "10.0.3.0",
+  "culture": "",
+  "public_key_token": "5d8b90d52f46fda7",
+  "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9",
+  "target_framework": ".NETCoreApp,Version=v8.0",
+  "informational_version": "10.0.3+d3768398c17877b3a916c3c4d87e8e11698991fc",
+  "sha256": "82dea3de3fcce1f8442ebb5bfcca0bd48ca6b3a342afb425bef979f5914a08ca",
+  "size": 1477632
+ },
+ "xmldoc": [
+  "lib/net10.0/Npgsql.xml",
+  "lib/net8.0/Npgsql.xml",
+  "lib/net9.0/Npgsql.xml"
+ ]
+}

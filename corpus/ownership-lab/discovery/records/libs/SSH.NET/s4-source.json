@@ -1,0 +1,117 @@
+{
+ "package": "SSH.NET",
+ "repo": "sshnet/SSH.NET",
+ "commit": "7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e",
+ "files": [
+  {
+   "path": "src/Renci.SshNet/SshClient.cs",
+   "sha256": "7e046acdc6b9fa451d2f70fbecccc6ca687c96bc4cb9dc2d3f30d882856543f6",
+   "bytes": 14355
+  },
+  {
+   "path": "src/Renci.SshNet/SftpClient.cs",
+   "sha256": "b2458ca86f35d2c0c2fb0650426bc0f1d6283e0971dc7a159130ef3d1aea72dd",
+   "bytes": 131291
+  },
+  {
+   "path": "src/Renci.SshNet/ScpClient.cs",
+   "sha256": "7b952f8557018da7690b5228f2a4a209c1bddcabeb56f83a09504d38b7275582",
+   "bytes": 46441
+  },
+  {
+   "path": "src/Renci.SshNet/BaseClient.cs",
+   "sha256": "fba2851f337489e68ce060ce071ea32cacd80b596573d64fd7bee9536ab4eb3a",
+   "bytes": 23882
+  },
+  {
+   "path": "src/Renci.SshNet/Session.cs",
+   "sha256": "a1034d92a2992051d1944295fbd9b608c6d5fcabd93df1f6e202368c02f3dc29",
+   "bytes": 98803
+  },
+  {
+   "path": "src/Renci.SshNet/ShellStream.cs",
+   "sha256": "d3fee43c78f5b2765abbb29d65f65c787c78423b5939ddfa125085b6512a8c5a",
+   "bytes": 39681
+  },
+  {
+   "path": "src/Renci.SshNet/Shell.cs",
+   "sha256": "9b4568f25756dd547d9f58210f6f6a599943a7666dcc7efe5cc1e3f193c430b8",
+   "bytes": 12689
+  },
+  {
+   "path": "src/Renci.SshNet/SshCommand.cs",
+   "sha256": "9ecda6b72af4db6cc23b3a2828dbc2c7a8a41ec89fafedd0c2e9d2fe1d215685",
+   "bytes": 27047
+  },
+  {
+   "path": "src/Renci.SshNet/ForwardedPort.cs",
+   "sha256": "42d729ea515f42b8c44ba2b98493267ea2b322142a9c705cc302639756c6fdae",
+   "bytes": 5656
+  },
+  {
+   "path": "src/Renci.SshNet/ForwardedPortLocal.cs",
+   "sha256": "edc2f6cc3e044d9bb44f5da838d5d35ff652128738634de1998264b4e4de6dba",
+   "bytes": 15323
+  },
+  {
+   "path": "src/Renci.SshNet/ForwardedPortRemote.cs",
+   "sha256": "e85f684cc75e399e118221ae9d3f4a32627a61061549ac7c7d56d4ea70465732",
+   "bytes": 14757
+  },
+  {
+   "path": "src/Renci.SshNet/ForwardedPortDynamic.cs",
+   "sha256": "2098beaa5269d19e6b61793d7fe7da2c786441b22da0067d37e63a2fb10a2fe6",
+   "bytes": 25210
+  },
+  {
+   "path": "src/Renci.SshNet/NetConfClient.cs",
+   "sha256": "2de3b3515b663b2b2da0e170273215a34f339fb2520d4c2283bbaaa506e0e013",
+   "bytes": 13540
+  },
+  {
+   "path": "src/Renci.SshNet/PrivateKeyFile.cs",
+   "sha256": "3111e371f104685157fa61de9660c04a4a2041f0d7be7cabe1e36fc8200e6086",
+   "bytes": 19628
+  },
+  {
+   "path": "src/Renci.SshNet/ConnectionInfo.cs",
+   "sha256": "2a533b0d767f3c5956fbe24e57af8e91fe344484b8cb2e836c08f7abf6df7831",
+   "bytes": 26391
+  },
+  {
+   "path": "src/Renci.SshNet/Sftp/SftpFileStream.cs",
+   "sha256": "345d5de33b20f09561291ca6f80bc461bc460ae88dc163c148b27d5cca5ffcc1",
+   "bytes": 25156
+  },
+  {
+   "path": "src/Renci.SshNet/Sftp/SftpSession.cs",
+   "sha256": "c4789d52b3312bbf4ce32bc8e3bf1b9d553998b2f663e914b988e8553871c6ac",
+   "bytes": 71202
+  },
+  {
+   "path": "src/Renci.SshNet/Sftp/SftpFileReader.cs",
+   "sha256": "e41d6da01b8d6296323db5c330ed57139085cd08e950350d50f868d7489e0b09",
+   "bytes": 8767
+  },
+  {
+   "path": "src/Renci.SshNet/Common/PipeStream.cs",
+   "sha256": "1176727f4b5ec688f58b1d51d081b2b62f0af0c5da3bb4adb1de957a57c391d4",
+   "bytes": 9917
+  },
+  {
+   "path": "src/Renci.SshNet/Common/SshDataStream.cs",
+   "sha256": "61982f884ecf301008d01da1c40ee6fcc4791237a6b2102cf34158722af7dbba",
+   "bytes": 14697
+  },
+  {
+   "path": "src/Renci.SshNet/SubsystemSession.cs",
+   "sha256": "5558dbbfccf638058cc1d1a7c947f0d75dbfb914656c6c8daa248dc7d77ceb53",
+   "bytes": 17738
+  },
+  {
+   "path": "src/Renci.SshNet/ServiceFactory.cs",
+   "sha256": "8b6f9ee20ecf3dde58a121fd088223caceed5ace3503c6f28e9e6bf6126c7a86",
+   "bytes": 8936
+  }
+ ]
+}

@@ -1,0 +1,121 @@
+{
+ "package": "BouncyCastle.Cryptography",
+ "consumer": "tests",
+ "repo": "bcgit/bc-csharp",
+ "commit": "4007498b13582d90ee1eda5d9920c324428b98b3",
+ "files": [
+  {
+   "path": "crypto/test/src/crypto/io/test/CipherStreamTest.cs",
+   "sha256": "28b7466a5c17831b8316df51ecfa8b771e552ed1e538a63779b456db4d8cf96c",
+   "bytes": 5092
+  },
+  {
+   "path": "crypto/test/src/crypto/io/test/PemReaderTest.cs",
+   "sha256": "b4ba18cb54a17adbbc65a3f083cc900642ba4ca31ffa41752a2990fc9fbd1401",
+   "bytes": 8716
+  },
+  {
+   "path": "crypto/test/src/openpgp/test/PGPCompressionTest.cs",
+   "sha256": "fe91ca030dcc30336c60849ec1785dfa42a3e8437a56ff6a7d1e6c520da5e14e",
+   "bytes": 5761
+  },
+  {
+   "path": "crypto/test/src/openpgp/test/PGPPBETest.cs",
+   "sha256": "8949f9e24ab34fb1b704bae5d78e577ffa44dae6cda6e8aab64e0d8d27d7e76b",
+   "bytes": 11441
+  },
+  {
+   "path": "crypto/test/src/openpgp/test/PGPArmoredTest.cs",
+   "sha256": "ec31992c7b599a82c458605054391cd40590f62bb7d952eaf71e0c89909d49f9",
+   "bytes": 7292
+  },
+  {
+   "path": "crypto/test/src/openpgp/test/PGPSignatureTest.cs",
+   "sha256": "51cc62e022d7723b2e198767e3f3be51a08e2be630df36d283b77653e27790a8",
+   "bytes": 51326
+  },
+  {
+   "path": "crypto/test/src/openpgp/test/PGPKeyRingTest.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "crypto/test/src/openpgp/test/PGPPacketTest.cs",
+   "sha256": "217c32e44d4eac51cb5d7397695b1894654212ac82e23332890a1afd5f28371a",
+   "bytes": 1885
+  },
+  {
+   "path": "crypto/test/src/openpgp/test/PGPRSATest.cs",
+   "sha256": "c825d63239b47127843deb03e28c4ba23ef21b19aea424f742cdf5816b313a61",
+   "bytes": 55501
+  },
+  {
+   "path": "crypto/test/src/openpgp/test/PGPDSAElGamalTest.cs",
+   "sha256": "a71c524d5a3bef3988b6e5ce97a60290b3a222a37f5cc06dc14511e4291101ec",
+   "bytes": 15400
+  },
+  {
+   "path": "crypto/test/src/openpgp/test/PGPClearSignedSignatureTest.cs",
+   "sha256": "64e8ad2196a5bd51c6169ad0dc5dc5d4f49f5f459c564dc457b80bae396d356d",
+   "bytes": 12853
+  },
+  {
+   "path": "crypto/test/src/openpgp/examples/PbeFileProcessor.cs",
+   "sha256": "131278e202f7ac42bc1087d375ce68b601416f11abf084e1c21a83330b83d9bf",
+   "bytes": 5567
+  },
+  {
+   "path": "crypto/test/src/openpgp/examples/KeyBasedFileProcessor.cs",
+   "sha256": "3a0ba4ccead9b3cb1522bd645d889f9cbf5a2fed329fdea5be945df3a52436c7",
+   "bytes": 8207
+  },
+  {
+   "path": "crypto/test/src/openpgp/examples/SignedFileProcessor.cs",
+   "sha256": "82815fab873ef7495cc39dab833dbe1b07b618219c53984c77d3d3febc279630",
+   "bytes": 5917
+  },
+  {
+   "path": "crypto/test/src/openpgp/examples/PgpExampleUtilities.cs",
+   "sha256": "3af666350ed83ab01f421aad1bd54e8174c4c3f04146b282f6d07853fa984d90",
+   "bytes": 3286
+  },
+  {
+   "path": "crypto/test/src/cms/test/EnvelopedDataTest.cs",
+   "sha256": "0364527d6c66839011cccc761d6d550ff9860b097eee2d4552cb5fc013a787f1",
+   "bytes": 65071
+  },
+  {
+   "path": "crypto/test/src/cms/test/SignedDataTest.cs",
+   "sha256": "94a363203ea0aebfae5bee50da09a398f5b775e808c6a511a3465200697c4e52",
+   "bytes": 124444
+  },
+  {
+   "path": "crypto/test/src/cms/test/CompressedDataTest.cs",
+   "sha256": "a52f6e22b68be3e9f7924649161db57dada33ea52fa91d0e14e8702dd30275d8",
+   "bytes": 6737
+  },
+  {
+   "path": "crypto/test/src/asn1/test/Asn1OutputStreamTest.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "crypto/test/src/util/io/pem/test/AllTests.cs",
+   "sha256": "cbf2c64bb8943448dd94f80604494debe9911891fad7a3e90b1d2dd512ca3893",
+   "bytes": 2652
+  },
+  {
+   "path": "crypto/test/src/tls/test/TlsProtocolTest.cs",
+   "sha256": "22967fc2125b5f7f3b5d10add21651d0c2f00268fe805118adccd4eb51ccdb95",
+   "bytes": 2212
+  },
+  {
+   "path": "crypto/test/src/tls/test/TlsClientTest.cs",
+   "sha256": "5e3e9babf666932ecea96e823e0e0281aadf05a0fc35fd47424ff47905bef6f2",
+   "bytes": 3168
+  },
+  {
+   "path": "crypto/test/src/tls/test/MockTlsClient.cs",
+   "sha256": "23d2ccf1222b09a8a2941ee5004099107b99711270ac4ad9c9d7efac3832bd56",
+   "bytes": 8220
+  }
+ ]
+}

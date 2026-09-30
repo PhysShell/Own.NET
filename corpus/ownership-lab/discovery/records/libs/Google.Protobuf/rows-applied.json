@@ -1,0 +1,26 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for Google.Protobuf 3.36.2 (BODY_PROVED + WITNESSED; MVID 30ebe6c2-f530-434a-a926-51d53bbbde3b)",
+ "entries": [
+  {
+   "callable": "Google.Protobuf.ByteString.CreateCodedInput",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Google.Protobuf",
+    "mvid": "30ebe6c2-f530-434a-a926-51d53bbbde3b"
+   },
+   "derived_from": "https://github.com/protocolbuffers/protobuf.git@2c74169b34066ceb8ddb6b882fcb3fb32d737a55 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Google.Protobuf.CodedInputStream.CreateWithLimits",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Google.Protobuf",
+    "mvid": "30ebe6c2-f530-434a-a926-51d53bbbde3b"
+   },
+   "derived_from": "https://github.com/protocolbuffers/protobuf.git@2c74169b34066ceb8ddb6b882fcb3fb32d737a55 via E1/E3 (inferred)"
+  }
+ ]
+}

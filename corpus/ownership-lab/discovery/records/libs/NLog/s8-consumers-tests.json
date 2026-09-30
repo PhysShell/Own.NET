@@ -1,0 +1,133 @@
+{
+ "package": "NLog",
+ "consumer": "tests",
+ "repo": "NLog/NLog",
+ "commit": "b058028290f245d12c30cb2910c2a574558ed9c6",
+ "files": [
+  {
+   "path": "tests/NLog.UnitTests/LogFactoryTests.cs",
+   "sha256": "c013aa642a81502cc0b2a1c42d0bfd71e298c2390c836f3ea287ddadf56cf47a",
+   "bytes": 19192
+  },
+  {
+   "path": "tests/NLog.UnitTests/LogManagerTests.cs",
+   "sha256": "2bb8f2a191020aebb01d1049456cfa81bc285c4bfe04fbb69dfa098c9299fba1",
+   "bytes": 20293
+  },
+  {
+   "path": "tests/NLog.UnitTests/LoggerTests.cs",
+   "sha256": "715a8a8cd44943236c4174eb971aec0d24d444c67445463ce8ebee71d8c66aee",
+   "bytes": 145378
+  },
+  {
+   "path": "tests/NLog.UnitTests/ApiTests.cs",
+   "sha256": "608b41a83126a5c28b17b3650c0bff05837ae975908d5a2be93ad048a36f3a1b",
+   "bytes": 29075
+  },
+  {
+   "path": "tests/NLog.UnitTests/GetLoggerTests.cs",
+   "sha256": "78dafb293d281def432e861e22240bc74b405c7c901bfac4cc56ad581e2ce0fd",
+   "bytes": 6022
+  },
+  {
+   "path": "tests/NLog.UnitTests/NLogTestBase.cs",
+   "sha256": "e8e8a315ef37fe8699caa6f0f42477d56e8e50c0f2ae0ba42f5afaf2b6259958",
+   "bytes": 17443
+  },
+  {
+   "path": "tests/NLog.UnitTests/RegressionTests.cs",
+   "sha256": "eb38e71859c0462e1000b9e05ceb2568e1a723f21ba37744eacba464c07a7273",
+   "bytes": 3753
+  },
+  {
+   "path": "tests/NLog.UnitTests/LogFactoryTestExtensions.cs",
+   "sha256": "11f80e54ac6b20a0e9235509a42f00b0784ea3a24df9c07fe2e553648bfb7d62",
+   "bytes": 3616
+  },
+  {
+   "path": "tests/NLog.UnitTests/AsyncHelperTests.cs",
+   "sha256": "7dbbf5fc2a2cdebcde97e2285239d9506f509fea2b9b9979903af00d8c8f8ee0",
+   "bytes": 19774
+  },
+  {
+   "path": "tests/NLog.UnitTests/Contexts/ScopeContextTest.cs",
+   "sha256": "fbf4f15ab26d92511c78a9e9bbf84459f7e0c45ad1e4f712247c0caf368c5169",
+   "bytes": 41452
+  },
+  {
+   "path": "tests/NLog.UnitTests/Contexts/MappedDiagnosticsContextTests.cs",
+   "sha256": "969aafbc064792678160af190fc57301a15221ab66f714b2fa636e83f122f720",
+   "bytes": 10261
+  },
+  {
+   "path": "tests/NLog.UnitTests/Contexts/MappedDiagnosticsLogicalContextTests.cs",
+   "sha256": "38928006bef51cae29effa5fe7086dceca6c517f24c296e4718fa5d7cfe190fe",
+   "bytes": 27338
+  },
+  {
+   "path": "tests/NLog.UnitTests/Contexts/NestedDiagnosticsContextTests.cs",
+   "sha256": "4debb377ee1574e5df863e25370a5f66a0cba4546a4184b23672e6a8019c24ca",
+   "bytes": 9613
+  },
+  {
+   "path": "tests/NLog.UnitTests/Contexts/GlobalDiagnosticsContextTests.cs",
+   "sha256": "a2f9000a8672f665d1bffb48cf8bb05e3301d44bf28998d7f440aee92abc1b28",
+   "bytes": 3248
+  },
+  {
+   "path": "tests/NLog.UnitTests/Targets/FileTargetTests.cs",
+   "sha256": "f2320648b1a636b6630bb6b2e624fa0dd7c8ba5000d583d65e923366283d8d58",
+   "bytes": 197768
+  },
+  {
+   "path": "tests/NLog.UnitTests/Targets/TargetTests.cs",
+   "sha256": "33086b34b36dabbf56bf05bb780264aad519bce670db93d738ede23ae796d96c",
+   "bytes": 44602
+  },
+  {
+   "path": "tests/NLog.UnitTests/Targets/MemoryTargetTests.cs",
+   "sha256": "1bc1beba467229be58fa395956bac6aa97b75487121a3870122ef6653a24f05b",
+   "bytes": 8463
+  },
+  {
+   "path": "tests/NLog.UnitTests/Targets/ConsoleTargetTests.cs",
+   "sha256": "413c1f7f4ce1f35df8297d92adb37523ae93a7451ca8befa428e01d211b8bf46",
+   "bytes": 11628
+  },
+  {
+   "path": "tests/NLog.UnitTests/Targets/AsyncTaskTargetTest.cs",
+   "sha256": "f9d61dc808a848cfd796bc4f1a60fde0c52f681363422201edfa346d88cf1577",
+   "bytes": 28766
+  },
+  {
+   "path": "tests/NLog.UnitTests/Targets/TargetWithContextTest.cs",
+   "sha256": "f76c98dd9467beb4f58f1d842b03f881d0995ff16b4385752eacec08d7786a37",
+   "bytes": 25075
+  },
+  {
+   "path": "tests/NLog.UnitTests/Targets/Wrappers/AsyncTargetWrapperTests.cs",
+   "sha256": "ef35badbe79bb3185e26fa48704dcfef4ea7b3c1d17ded663dc81c5db4a7027b",
+   "bytes": 38299
+  },
+  {
+   "path": "tests/NLog.UnitTests/Targets/Wrappers/BufferingTargetWrapperTests.cs",
+   "sha256": "e85243427fc015e47ed7f37398409255fa924fe4a694a798ac6b1f31644eb5e0",
+   "bytes": 28280
+  },
+  {
+   "path": "tests/NLog.UnitTests/Targets/Wrappers/AutoFlushTargetWrapperTests.cs",
+   "sha256": "9627b94605a513b1f8ebe658e31c6f7c912997fead71cf11da8e8ad62ba8215e",
+   "bytes": 20103
+  },
+  {
+   "path": "tests/NLog.UnitTests/Targets/Wrappers/RetryingTargetWrapperTests.cs",
+   "sha256": "ec05eed72de4f3b7ccc6bddcc5c8c982dfc48720bf9a05037dd4bd61af86e9bf",
+   "bytes": 10797
+  },
+  {
+   "path": "tests/NLog.UnitTests/Targets/Wrappers/LimitingTargetWrapperTests.cs",
+   "sha256": "c2918c44d4bbc9d713c939b43a142831eb616ea219c369b4e44ed749e7c3edb8",
+   "bytes": 16450
+  }
+ ]
+}

@@ -1,0 +1,94 @@
+[
+ {
+  "id": "NLOG-W1",
+  "kind": "fresh",
+  "package": "NLog",
+  "version": "6.2.1",
+  "callable": "NLog.LogFactory.SuspendLogging",
+  "setup": "var lf = new NLog.LogFactory();",
+  "expr": "lf.SuspendLogging()",
+  "dispose": true,
+  "expect": "fresh"
+ },
+ {
+  "id": "NLOG-W2",
+  "kind": "fresh",
+  "package": "NLog",
+  "version": "6.2.1",
+  "callable": "NLog.LogManager.SuspendLogging",
+  "expr": "NLog.LogManager.SuspendLogging()",
+  "dispose": true,
+  "expect": "fresh"
+ },
+ {
+  "id": "NLOG-W3",
+  "kind": "fresh",
+  "package": "NLog",
+  "version": "6.2.1",
+  "callable": "NLog.ScopeContext.PushProperty",
+  "expr": "NLog.ScopeContext.PushProperty(\"k\", (object)1)",
+  "dispose": true,
+  "expect": "fresh"
+ },
+ {
+  "id": "NLOG-W4",
+  "kind": "fresh",
+  "package": "NLog",
+  "version": "6.2.1",
+  "callable": "NLog.ScopeContext.PushNestedState",
+  "expr": "NLog.ScopeContext.PushNestedState((object)\"s\")",
+  "dispose": true,
+  "expect": "fresh"
+ },
+ {
+  "id": "NLOG-W5",
+  "kind": "fresh",
+  "package": "NLog",
+  "version": "6.2.1",
+  "callable": "NLog.Logger.PushScopeProperty",
+  "setup": "var lg = new NLog.LogFactory().GetLogger(\"x\");",
+  "expr": "lg.PushScopeProperty(\"k\", (object)1)",
+  "dispose": true,
+  "expect": "fresh"
+ },
+ {
+  "id": "NLOG-W6",
+  "kind": "fresh",
+  "package": "NLog",
+  "version": "6.2.1",
+  "callable": "NLog.ScopeContext.PushProperties",
+  "expr": "NLog.ScopeContext.PushProperties(new System.Collections.Generic.KeyValuePair<string, object>[] { new(\"k\", 1) })",
+  "dispose": true,
+  "expect": "fresh"
+ },
+ {
+  "id": "SERI-W1",
+  "kind": "fresh",
+  "package": "Serilog",
+  "version": "4.4.0",
+  "callable": "Serilog.LoggerConfiguration.CreateLogger",
+  "expr": "new Serilog.LoggerConfiguration().CreateLogger()",
+  "dispose": true,
+  "expect": "fresh"
+ },
+ {
+  "id": "SERI-W2",
+  "kind": "fresh",
+  "package": "Serilog",
+  "version": "4.4.0",
+  "callable": "Serilog.Context.LogContext.PushProperty",
+  "expr": "Serilog.Context.LogContext.PushProperty(\"k\", 1)",
+  "dispose": true,
+  "expect": "fresh"
+ },
+ {
+  "id": "SERI-W3",
+  "kind": "fresh",
+  "package": "Serilog",
+  "version": "4.4.0",
+  "callable": "Serilog.Context.LogContext.Push",
+  "expr": "Serilog.Context.LogContext.Push(new Serilog.Core.Enrichers.PropertyEnricher(\"k\", 1))",
+  "dispose": true,
+  "expect": "fresh"
+ }
+]

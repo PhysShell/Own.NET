@@ -1,0 +1,100 @@
+{
+ "package": "NSec.Cryptography",
+ "consumer": "tests",
+ "repo": "ektrah/nsec",
+ "commit": "02c51bb20a7b6accc96e74ecab6e2659cc1f5c63",
+ "files": [
+  {
+   "path": "tests/Core/KeyTests.cs",
+   "sha256": "96e6eeaa8c162aad7e8874ea7dc732f6a88b84e45002987081aa63da4c9b5a49",
+   "bytes": 21050
+  },
+  {
+   "path": "tests/Core/SharedSecretTests.cs",
+   "sha256": "1155332c5540f014ec895b2c1d0f06250e5c86a98b5e0ca64b43e921aaea823b",
+   "bytes": 9662
+  },
+  {
+   "path": "tests/Core/SecureMemoryHandleTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/Algorithms/Ed25519Tests.cs",
+   "sha256": "9e0203ec1823b83b84e109c120c57b8c680703e7be499f7fa11b5272d4c33723",
+   "bytes": 452
+  },
+  {
+   "path": "tests/Algorithms/X25519Tests.cs",
+   "sha256": "1a2020639746a77084a1780073b4641b6b288bf01a080ef92d8b2403cb148798",
+   "bytes": 6327
+  },
+  {
+   "path": "tests/Algorithms/Aes256GcmTests.cs",
+   "sha256": "341338c3f49885fe0fb9158b58d359ce819a1f39ec025333ab7d85cab564d461",
+   "bytes": 1421
+  },
+  {
+   "path": "tests/Algorithms/ChaCha20Poly1305Tests.cs",
+   "sha256": "b3efc7f8633c95d96dbede617dbfdf967cf2f7466ce7a8ed8e99ffdd80029655",
+   "bytes": 1301
+  },
+  {
+   "path": "tests/Algorithms/HkdfSha256Tests.cs",
+   "sha256": "548109770ba5e0d3addcb9915a7b05a83c670476be41014dd90fcf42bd2463c4",
+   "bytes": 26870
+  },
+  {
+   "path": "tests/Algorithms/Argon2Tests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/Base/AeadAlgorithmTests.cs",
+   "sha256": "82c7ddb995ce6fd788f1bb99d9e5cd69e8319a70c7e98e41246b895d28836d39",
+   "bytes": 17439
+  },
+  {
+   "path": "tests/Base/SignatureAlgorithmTests.cs",
+   "sha256": "bc5f581a650164b093a8309c90227089d136ce89b560dd7d3afc9a776e558897",
+   "bytes": 5241
+  },
+  {
+   "path": "tests/Base/KeyAgreementAlgorithmTests.cs",
+   "sha256": "8122d3a300ca5c552dc8a83c8a4c5b9b3f57546334670dac417e7100d9af99d6",
+   "bytes": 3986
+  },
+  {
+   "path": "tests/Base/KeyDerivationAlgorithmTests.cs",
+   "sha256": "2296143c9eba4b6fb96ba1fbdc12bfbf6c07218d0f4dc6746d6a4c9668006635",
+   "bytes": 19290
+  },
+  {
+   "path": "tests/Base/KeyDerivationAlgorithm2Tests.cs",
+   "sha256": "3f024f07af200fb3ff5a992fda8e651cc4ed93968d6bd88ec5e880c86c1c50e4",
+   "bytes": 8568
+  },
+  {
+   "path": "tests/Base/PasswordBasedKeyDerivationAlgorithmTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/Examples/AeadExample.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/Examples/SignatureExample.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/Examples/KeyAgreementExample.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/Formatting/KeyFormattingTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/Rfc/Rfc7748Tests.cs",
+   "error": "HTTP Error 404: Not Found"
+  }
+ ]
+}

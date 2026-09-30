@@ -1,0 +1,27 @@
+{
+ "package": "Google.Protobuf",
+ "version": "3.36.2",
+ "nupkg_sha256": "1182590db175f9057707857a1df48b217226d0732716cd353fa4aa4683d38dcb",
+ "repository_url": "https://github.com/protocolbuffers/protobuf.git",
+ "repository_commit": "2c74169b34066ceb8ddb6b882fcb3fb32d737a55",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Google.Protobuf/lib/net8.0/Google.Protobuf.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Google.Protobuf/lib/net8.0/Google.Protobuf.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Google.Protobuf/lib/net8.0/Google.Protobuf.dll",
+  "name": "Google.Protobuf",
+  "version": "3.36.2.0",
+  "culture": "",
+  "public_key_token": "a7d26565bac4d604",
+  "mvid": "30ebe6c2-f530-434a-a926-51d53bbbde3b",
+  "target_framework": ".NETCoreApp,Version=v8.0",
+  "informational_version": "3.36.2+2c74169b34066ceb8ddb6b882fcb3fb32d737a55",
+  "sha256": "0f93ce18692e0b789c41299d0d2af2b477644fc4b13482bd0680b29289603996",
+  "size": 512152
+ },
+ "xmldoc": [
+  "lib/net8.0/Google.Protobuf.xml",
+  "lib/netstandard2.0/Google.Protobuf.xml"
+ ]
+}

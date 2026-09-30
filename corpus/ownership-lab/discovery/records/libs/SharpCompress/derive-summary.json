@@ -1,0 +1,59 @@
+{
+ "source_files": 26,
+ "perfile_union_added_fresh": [
+  "SharpCompress.Factories.ZipFactory.Open"
+ ],
+ "extractor_stats": {
+  "methods_with_local": 112,
+  "methods_flow_analysed": 95,
+  "methods_skipped_unmodelled": 17
+ },
+ "re_body_census": "fresh_return=59 fresh_return_expression_body=13",
+ "fresh_summaries_all": [
+  "SharpCompress.Archives.AbstractWritableArchive<TEntry, TVolume>.PauseEntryRebuilding",
+  "SharpCompress.Archives.GZip.GZipArchive.Create",
+  "SharpCompress.Archives.GZip.GZipArchive.Open(System.Collections.Generic.IEnumerable`1,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.GZip.GZipArchive.Open(System.IO.FileInfo,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.GZip.GZipArchive.Open(System.IO.Stream,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.GZip.GZipArchive.Open(System.String,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.Rar.RarArchive.Open",
+  "SharpCompress.Archives.Rar.RarArchive.Open(System.Collections.Generic.IEnumerable`1,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.Rar.RarArchive.Open(System.IO.FileInfo,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.Rar.RarArchive.Open(System.IO.Stream,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.Rar.RarArchive.Open(System.String,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.SevenZip.SevenZipArchive.CreateReaderForSolidExtraction",
+  "SharpCompress.Archives.SevenZip.SevenZipArchive.Open(System.Collections.Generic.IEnumerable`1,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.SevenZip.SevenZipArchive.Open(System.IO.FileInfo,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.SevenZip.SevenZipArchive.Open(System.IO.Stream,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.SevenZip.SevenZipArchive.Open(System.String,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.Tar.TarArchive.Create",
+  "SharpCompress.Archives.Tar.TarArchive.Open(System.Collections.Generic.IEnumerable`1,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.Tar.TarArchive.Open(System.IO.FileInfo,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.Tar.TarArchive.Open(System.IO.Stream,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.Tar.TarArchive.Open(System.String,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.Zip.ZipArchive.Create",
+  "SharpCompress.Archives.Zip.ZipArchive.Open(System.Collections.Generic.IEnumerable`1,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.Zip.ZipArchive.Open(System.IO.FileInfo,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.Zip.ZipArchive.Open(System.IO.Stream,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Archives.Zip.ZipArchive.Open(System.String,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Factories.ZipFactory.CreateWriteableArchive",
+  "SharpCompress.Factories.ZipFactory.Open(System.IO.FileInfo,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Factories.ZipFactory.Open(System.IO.Stream,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Factories.ZipFactory.Open(System.IO.Stream,SharpCompress.Writers.WriterOptions)",
+  "SharpCompress.Factories.ZipFactory.OpenReader",
+  "SharpCompress.Readers.AbstractReader<TEntry, TVolume>.CreateEntryStream",
+  "SharpCompress.Readers.Tar.TarReader.Open",
+  "SharpCompress.Readers.Zip.ZipReader.Open",
+  "SharpCompress.Readers.Zip.ZipReader.Open(System.IO.Stream,SharpCompress.Readers.ReaderOptions)",
+  "SharpCompress.Readers.Zip.ZipReader.Open(System.IO.Stream,SharpCompress.Readers.ReaderOptions,System.Collections.Generic.IEnumerable`1)",
+  "SharpCompress.Writers.Zip.ZipWriter.WriteToStream",
+  "SharpCompress.Factories.ZipFactory.Open"
+ ],
+ "receiver_release_all": [],
+ "fresh_not_public_surface": [
+  "SharpCompress.Archives.SevenZip.SevenZipArchive.CreateReaderForSolidExtraction",
+  "SharpCompress.Readers.AbstractReader<TEntry, TVolume>.CreateEntryStream"
+ ],
+ "instance_methods_evaluated": 250,
+ "public_rows": 15
+}

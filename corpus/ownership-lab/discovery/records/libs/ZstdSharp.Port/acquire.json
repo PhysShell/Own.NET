@@ -1,0 +1,24 @@
+{
+ "package": "ZstdSharp.Port",
+ "version": "0.8.8",
+ "nupkg_sha256": "f6797192deebf4535f0601c2273e750da0c02062e30a3e4a3c4011b9ac22403a",
+ "repository_url": "https://github.com/oleg-st/ZstdSharp.git",
+ "repository_commit": "2cd0c019693bc786a5fe5c3be94e107b24e7267e",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/ZstdSharp.Port/lib/net8.0/ZstdSharp.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/ZstdSharp.Port/lib/net8.0/ZstdSharp.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/ZstdSharp.Port/lib/net8.0/ZstdSharp.dll",
+  "name": "ZstdSharp",
+  "version": "0.8.8.0",
+  "culture": "",
+  "public_key_token": "8d151af33a4ad5cf",
+  "mvid": "0e764b16-6b2f-4ea5-9edf-169fdce9afc0",
+  "target_framework": ".NETCoreApp,Version=v8.0",
+  "informational_version": "0.8.8+2cd0c019693bc786a5fe5c3be94e107b24e7267e",
+  "sha256": "6844a1af1027745ee68118e9e23ad46335a2aa8755826f568e364a48bc784930",
+  "size": 395776
+ },
+ "xmldoc": []
+}

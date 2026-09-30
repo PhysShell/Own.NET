@@ -1,0 +1,27 @@
+{
+ "package": "LibGit2Sharp",
+ "version": "0.32.0",
+ "nupkg_sha256": "16e45e1e1431e9bdd69ea3d69e2779ea5a3af7eb6ae73e868fe470f2e4c3af3e",
+ "repository_url": "https://github.com/libgit2/libgit2sharp",
+ "repository_commit": "eaa698d078941fd5e3cc82b59b885cd35d8cc0f8",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/LibGit2Sharp/lib/net8.0/LibGit2Sharp.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/LibGit2Sharp/lib/net8.0/LibGit2Sharp.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/LibGit2Sharp/lib/net8.0/LibGit2Sharp.dll",
+  "name": "LibGit2Sharp",
+  "version": "0.32.0.0",
+  "culture": "",
+  "public_key_token": "7cbde695407f0333",
+  "mvid": "11bcccd6-7889-4b05-a333-ec401b7bead3",
+  "target_framework": ".NETCoreApp,Version=v8.0",
+  "informational_version": "0.32.0+libgit2-5853918.eaa698d078941fd5e3cc82b59b885cd35d8cc0f8",
+  "sha256": "86d84b0b82344d0089af06f7bb89246039185ef9228f1f811bbb53db6a361744",
+  "size": 514560
+ },
+ "xmldoc": [
+  "lib/net472/LibGit2Sharp.xml",
+  "lib/net8.0/LibGit2Sharp.xml"
+ ]
+}

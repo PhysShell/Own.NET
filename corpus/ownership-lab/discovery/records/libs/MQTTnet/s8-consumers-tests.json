@@ -1,0 +1,85 @@
+{
+ "package": "MQTTnet",
+ "consumer": "tests",
+ "repo": "dotnet/MQTTnet",
+ "commit": "14463d1ef9f1f119514185c1832905b91bff827d",
+ "files": [
+  {
+   "path": "Source/MQTTnet.Tests/MqttTcpChannel_Tests.cs",
+   "sha256": "b8d95e4ed35f7936d3a877a56d98d14bb783353bee3fcaa3ffb95a04d3245cdd",
+   "bytes": 2712
+  },
+  {
+   "path": "Source/MQTTnet.Tests/BaseTestClass.cs",
+   "sha256": "0b738608b6007abbd7fa146e7815967456bd102d874112b0df4f5f06b22c60b2",
+   "bytes": 861
+  },
+  {
+   "path": "Source/MQTTnet.Tests/RoundtripTime_Tests.cs",
+   "sha256": "8f3959c512b5a01c5d31004ca30dc01b1107ad5fd4ffb391bc90166b99318264",
+   "bytes": 1715
+  },
+  {
+   "path": "Source/MQTTnet.Tests/Protocol_Tests.cs",
+   "sha256": "44e80c36f2a62e253c1fd3b1aaf0f468e4732b6bdea8e667a7da00cca1bb67bc",
+   "bytes": 1434
+  },
+  {
+   "path": "Source/MQTTnet.Tests/Clients/MqttClient/MqttClient_Tests.cs",
+   "sha256": "a535c03eba93adf8382e9049fbc6187ccb3d529579194f5ec0e91be40ecf2022",
+   "bytes": 36992
+  },
+  {
+   "path": "Source/MQTTnet.Tests/Clients/MqttClient/Client_Tests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "Source/MQTTnet.Tests/Clients/MqttClient/Client_Connection_Tests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "Source/MQTTnet.Tests/Clients/MqttClient/Client_Subscribe_Tests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "Source/MQTTnet.Tests/Clients/MqttClient/Client_Publish_Tests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "Source/MQTTnet.Tests/Clients/LowLevelMqttClient/LowLevelMqttClient_Tests.cs",
+   "sha256": "2c6cfd6d6d476ae28f3dd4799a540380f095ffa7654ec7d8eb8660da0483a62a",
+   "bytes": 6811
+  },
+  {
+   "path": "Source/MQTTnet.Tests/Server/Server_Tests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "Source/MQTTnet.Tests/Server/Client_Tests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "Source/MQTTnet.Tests/Internal/AsyncLock_Tests.cs",
+   "sha256": "42c6ff4edee9d90ca7a01b22d53b773e0870add9b9e516f0dbc519b1c5770778",
+   "bytes": 7703
+  },
+  {
+   "path": "Source/MQTTnet.Tests/Internal/AsyncQueue_Tests.cs",
+   "sha256": "4afeff13cf8fc1cf86f6062731f78a307b8c1e312cdd99f67b78c41098098d66",
+   "bytes": 3572
+  },
+  {
+   "path": "Source/MQTTnet.Tests/Factory/MqttClientFactory_Tests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "Source/MQTTnet.Tests/Mockups/TestEnvironment.cs",
+   "sha256": "b7a0b8dcc82722109053f76151c07aacb6a162bdf1cbe942b549d4e3d2555ff8",
+   "bytes": 13061
+  },
+  {
+   "path": "Source/MQTTnet.Tests/Mockups/TestEnvironmentCollection.cs",
+   "error": "HTTP Error 404: Not Found"
+  }
+ ]
+}

@@ -1,0 +1,271 @@
+{
+ "package": "ZstdSharp.Port",
+ "consumer": "tests",
+ "files": 6,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/ZstdSharp.Port/rows-applied.json",
+ "key_sha256": "43bade9daac2b1471bb524a7fda67078fbec406e368f7c91728d136a5122ce2b",
+ "off": {
+  "findings": [
+   [
+    "src__ZstdSharp.Test__ZstdNetSteamingTests.cs",
+    304,
+    "OWN001",
+    "IDisposable local 'resultStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdNetSteamingTests.cs",
+    355,
+    "OWN001",
+    "IDisposable local 'resultStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    14,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    25,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    36,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    38,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    58,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    60,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    85,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    87,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    112,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    114,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    158,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    159,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    163,
+    "OWN001",
+    "IDisposable local 'ms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    192,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    193,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    198,
+    "OWN001",
+    "IDisposable local 'ms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdTest.cs",
+    31,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdTest.cs",
+    38,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 15,
+   "methods_flow_analysed": 15,
+   "methods_skipped_unmodelled": 0
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "src__ZstdSharp.Test__ZstdNetSteamingTests.cs",
+    304,
+    "OWN001",
+    "IDisposable local 'resultStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdNetSteamingTests.cs",
+    355,
+    "OWN001",
+    "IDisposable local 'resultStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    14,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    25,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    36,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    38,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    58,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    60,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    85,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    87,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    112,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    114,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    158,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    159,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    163,
+    "OWN001",
+    "IDisposable local 'ms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    192,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    193,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdStreamTest.cs",
+    198,
+    "OWN001",
+    "IDisposable local 'ms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdTest.cs",
+    31,
+    "OWN001",
+    "IDisposable local 'compressor' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__ZstdSharp.Test__ZstdTest.cs",
+    38,
+    "OWN001",
+    "IDisposable local 'decompressor' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 15,
+   "methods_flow_analysed": 15,
+   "methods_skipped_unmodelled": 0
+  }
+ },
+ "new_findings": [],
+ "lost_findings": []
+}

@@ -1,0 +1,83 @@
+{
+ "package": "MySqlConnector",
+ "consumer": "tests",
+ "repo": "mysql-net/MySqlConnector",
+ "commit": "775689bb3e1ab55d16171e0795264fa746e364c4",
+ "files": [
+  {
+   "path": "tests/MySqlConnector.Tests/ConnectionTests.cs",
+   "sha256": "4eee136ebe8509f3f36da5aa440b7de72848bbfd7941b482abb55523a0ea1e89",
+   "bytes": 9988
+  },
+  {
+   "path": "tests/MySqlConnector.Tests/MySqlConnectionTests.cs",
+   "sha256": "6c7e60509e535ab4c914e558eb566c19ab2e821c1e947210480f2d7d25d6811a",
+   "bytes": 5825
+  },
+  {
+   "path": "tests/MySqlConnector.Tests/CancellationTests.cs",
+   "sha256": "c7256aa2d17480bde08db2c4e3111bc0dd73749a27b95aaed0841a3e297a30df",
+   "bytes": 16823
+  },
+  {
+   "path": "tests/MySqlConnector.Tests/DbProviderFactoryTests.cs",
+   "sha256": "6fae57d8b69d52fed408196789f10c19eb871d7d3b24ba625ceca7db860c1e6f",
+   "bytes": 1087
+  },
+  {
+   "path": "tests/MySqlConnector.Tests/ConnectionOpenedCallbackTests.cs",
+   "sha256": "44835cb8266b98a602f2ed0bee5d67a659eb43417f1bc5a97eb8195613adbe47",
+   "bytes": 3902
+  },
+  {
+   "path": "tests/MySqlConnector.Tests/FakeMySqlServer.cs",
+   "sha256": "4aefc71c546335b932d1521a10a15a4618a0f11586a3d9676cbba5c92f02ae0f",
+   "bytes": 3514
+  },
+  {
+   "path": "tests/MySqlConnector.Tests/FakeMySqlServerConnection.cs",
+   "sha256": "fdde5495548b739d12db771a52b3300d34bd6a637fa7c84c344bf88c7129d209",
+   "bytes": 14182
+  },
+  {
+   "path": "tests/MySqlConnector.Tests/LoadBalancerTests.cs",
+   "sha256": "a2f8dc83dde3e603b336d165bee06904cae4c6005b853dbb516c8190dda2bf42",
+   "bytes": 1216
+  },
+  {
+   "path": "tests/MySqlConnector.Tests/CachedProcedureTests.cs",
+   "sha256": "8b486df1e3ed378a348ef576afaaa04875c092ed7a2e7f04bf619ac805f55b46",
+   "bytes": 7934
+  },
+  {
+   "path": "tests/MySqlConnector.Tests/ColumnReaderTests.cs",
+   "sha256": "47275bedf0d20911a5026fb4215381ac2e879eb8ae4bd0d2f280aa8f5a9dd76a",
+   "bytes": 6472
+  },
+  {
+   "path": "tests/MySqlConnector.Tests/StatementPreparerTests.cs",
+   "sha256": "f61d3150deabfe9d5328d7d8330c84dca9f456b156cf06cd978154f7d231cd7f",
+   "bytes": 15957
+  },
+  {
+   "path": "tests/MySqlConnector.Tests/SslSecurityTests.cs",
+   "sha256": "cfe1a4bfe6ec29bbd727e672dc7aa33bd8f74041eb992dc9762a5ddc0b72bd6a",
+   "bytes": 3243
+  },
+  {
+   "path": "tests/MySqlConnector.Tests/MySqlParameterTests.cs",
+   "sha256": "79abea573d5dc141b43d0c72f82ddf046cc73f8d6140873b19c7539c2ca26190",
+   "bytes": 13465
+  },
+  {
+   "path": "tests/MySqlConnector.Tests/MySqlParameterCollectionTests.cs",
+   "sha256": "cf306c33992e098ccb4a08256e914460864b10b23dadd10e38d0d659a75840ea",
+   "bytes": 16614
+  },
+  {
+   "path": "tests/MySqlConnector.Tests/SingleCommandPayloadCreatorTests.cs",
+   "sha256": "6267f04936aae2aaa30c3aa40afb18fb38560c5b2386970b95049f8b69f47a85",
+   "bytes": 2540
+  }
+ ]
+}

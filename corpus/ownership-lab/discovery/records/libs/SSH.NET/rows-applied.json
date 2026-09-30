@@ -1,0 +1,106 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for SSH.NET 2026.0.0 (BODY_PROVED + WITNESSED; MVID 00a77c77-e75d-4c4c-a3f9-73306891a548)",
+ "entries": [
+  {
+   "callable": "Renci.SshNet.SftpClient.AppendText",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Renci.SshNet",
+    "mvid": "00a77c77-e75d-4c4c-a3f9-73306891a548"
+   },
+   "derived_from": "https://github.com/sshnet/SSH.NET@7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Renci.SshNet",
+    "mvid": "00a77c77-e75d-4c4c-a3f9-73306891a548"
+   },
+   "derived_from": "https://github.com/sshnet/SSH.NET@7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.CreateText",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Renci.SshNet",
+    "mvid": "00a77c77-e75d-4c4c-a3f9-73306891a548"
+   },
+   "derived_from": "https://github.com/sshnet/SSH.NET@7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Renci.SshNet",
+    "mvid": "00a77c77-e75d-4c4c-a3f9-73306891a548"
+   },
+   "derived_from": "https://github.com/sshnet/SSH.NET@7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.OpenRead",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Renci.SshNet",
+    "mvid": "00a77c77-e75d-4c4c-a3f9-73306891a548"
+   },
+   "derived_from": "https://github.com/sshnet/SSH.NET@7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.OpenText",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Renci.SshNet",
+    "mvid": "00a77c77-e75d-4c4c-a3f9-73306891a548"
+   },
+   "derived_from": "https://github.com/sshnet/SSH.NET@7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.OpenWrite",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Renci.SshNet",
+    "mvid": "00a77c77-e75d-4c4c-a3f9-73306891a548"
+   },
+   "derived_from": "https://github.com/sshnet/SSH.NET@7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Renci.SshNet.SshClient.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Renci.SshNet",
+    "mvid": "00a77c77-e75d-4c4c-a3f9-73306891a548"
+   },
+   "derived_from": "https://github.com/sshnet/SSH.NET@7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Renci.SshNet.SshClient.CreateShell",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Renci.SshNet",
+    "mvid": "00a77c77-e75d-4c4c-a3f9-73306891a548"
+   },
+   "derived_from": "https://github.com/sshnet/SSH.NET@7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Renci.SshNet.SshClient.CreateShellNoTerminal",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Renci.SshNet",
+    "mvid": "00a77c77-e75d-4c4c-a3f9-73306891a548"
+   },
+   "derived_from": "https://github.com/sshnet/SSH.NET@7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e via E1/E3 (inferred)"
+  }
+ ]
+}

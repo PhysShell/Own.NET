@@ -1,0 +1,36 @@
+{
+ "package": "Serilog",
+ "repo": "serilog/serilog",
+ "commit": "497f80fda4f9e8f98b9c13ba34b1f0530f8c4449",
+ "files": [
+  {
+   "path": "src/Serilog/Core/Logger.cs",
+   "sha256": "7db3778684ea1d53ef80737e7553ecd62861ea334404586f9c46fd2388056eff",
+   "bytes": 68926
+  },
+  {
+   "path": "src/Serilog/LoggerConfiguration.cs",
+   "sha256": "210e72e186605b616668f2203f18832a0b3906c73aaedc8279b4c4b3f8782662",
+   "bytes": 8010
+  },
+  {
+   "path": "src/Serilog/Log.cs",
+   "sha256": "7f4d0ebe8b8f044c5ba3b3a9f87ce2191bdcbf644f54f1b1ce883e2b857dfe6d",
+   "bytes": 59373
+  },
+  {
+   "path": "src/Serilog/Context/LogContext.cs",
+   "sha256": "9f9c69ab51d60c0d6ad415b16c9db78301946d2aaec65c01e73bcd30bdcb2057",
+   "bytes": 8971
+  },
+  {
+   "path": "src/Serilog/Context/ContextStackBookmark.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "src/Serilog/Context/EnricherStack.cs",
+   "sha256": "cfcd64ece0d72941d40c1e63047daef5a1d8fc3818be05b45918f1bcf16deb19",
+   "bytes": 2395
+  }
+ ]
+}

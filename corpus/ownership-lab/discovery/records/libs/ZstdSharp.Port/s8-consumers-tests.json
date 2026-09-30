@@ -1,0 +1,33 @@
+{
+ "package": "ZstdSharp.Port",
+ "consumer": "tests",
+ "repo": "oleg-st/ZstdSharp",
+ "commit": "2cd0c019693bc786a5fe5c3be94e107b24e7267e",
+ "files": [
+  {
+   "path": "src/ZstdSharp.Test/ZstdNetSteamingTests.cs",
+   "sha256": "61d27e4ede3dfd64e3abfdb2d5dcd893521260d21894781e3408ea02a2bfdd84",
+   "bytes": 21359
+  },
+  {
+   "path": "src/ZstdSharp.Test/ZstdNetTests.cs",
+   "sha256": "ddc920a0a0e9358d137af0b813a586c8ef06614c0b09391b465153adf0929140",
+   "bytes": 23182
+  },
+  {
+   "path": "src/ZstdSharp.Test/ZstdStreamTest.cs",
+   "sha256": "b99f61dc96c9e3d53ac2e40ec2927c509ad1fe522c9480ea7e76d4978a83f7c4",
+   "bytes": 10256
+  },
+  {
+   "path": "src/ZstdSharp.Test/ZstdTest.cs",
+   "sha256": "094a628fe0f054ed5b70feda478bb399f2938c91c1845fb5b5c52141fe0c6b18",
+   "bytes": 4216
+  },
+  {
+   "path": "src/ZstdSharp.Test/ZstdValidationTest.cs",
+   "sha256": "2e15884f57b11de2392283dcf4950036a23513c1a4b144e75130b627e6399e70",
+   "bytes": 3408
+  }
+ ]
+}

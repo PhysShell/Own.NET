@@ -1,0 +1,124 @@
+{
+ "package": "SSH.NET",
+ "consumer": "tests",
+ "repo": "sshnet/SSH.NET",
+ "commit": "7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e",
+ "files": [
+  {
+   "path": "test/Renci.SshNet.Tests/Classes/SshClientTest.cs",
+   "sha256": "9aa8a240449b9c78cbe312fc9f9c145bae07d687e0665d377abc0aa19597b90b",
+   "bytes": 11898
+  },
+  {
+   "path": "test/Renci.SshNet.Tests/Classes/SftpClientTest.cs",
+   "sha256": "adfc85d77d323f319f2eb086d281f13945f0547dc1efa6945eeb55d8b3437481",
+   "bytes": 3378
+  },
+  {
+   "path": "test/Renci.SshNet.Tests/Classes/ScpClientTest.cs",
+   "sha256": "fcc09c2efa8f462e2ce8149832a3c0f84cb1c31ffd8e72a6932e9ce13276b97a",
+   "bytes": 12830
+  },
+  {
+   "path": "test/Renci.SshNet.Tests/Classes/SshCommandTest.cs",
+   "sha256": "1bef014f13ab009ac49dd615345006180569184af039aa69999ba4c57185eb00",
+   "bytes": 700
+  },
+  {
+   "path": "test/Renci.SshNet.Tests/Classes/ShellStreamTest.cs",
+   "sha256": "6b85675390d82a904f9bd9355992625ddb0ab0ff751a296eb9886447858d2aa6",
+   "bytes": 6441
+  },
+  {
+   "path": "test/Renci.SshNet.Tests/Classes/SessionTest.cs",
+   "sha256": "797d6b43381679006e93f2871f56981187222f6cfb732ef44be0fb563c03c2cb",
+   "bytes": 3058
+  },
+  {
+   "path": "test/Renci.SshNet.Tests/Classes/PrivateKeyFileTest.cs",
+   "sha256": "74e73ae3df68980f98237fb0629be024e70bba38b4293c0a654063c8f4be124b",
+   "bytes": 28255
+  },
+  {
+   "path": "test/Renci.SshNet.Tests/Classes/BaseClientTest.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "test/Renci.SshNet.Tests/Classes/NetConfClientTest.cs",
+   "sha256": "deffba99a5b24731386e4675c032e8f6cad9ba9e6e1629ef46a515ed1d6fec51",
+   "bytes": 3280
+  },
+  {
+   "path": "test/Renci.SshNet.Tests/Classes/ForwardedPortLocalTest.cs",
+   "sha256": "7496249c2b7cd8094409ac1666b97ca02de93252b7a58b31cc4a1a4587fabdf2",
+   "bytes": 2549
+  },
+  {
+   "path": "test/Renci.SshNet.Tests/Classes/ForwardedPortRemoteTest.cs",
+   "sha256": "45aabf692505b99ae5b2653b5acae62affffbfd0596343376c2171e9fc4c1f89",
+   "bytes": 913
+  },
+  {
+   "path": "test/Renci.SshNet.Tests/Classes/ForwardedPortDynamicTest.cs",
+   "sha256": "87cf2859536633eb4373adf6c4c1f555add161ba527f6ae19bf436d4b127cef7",
+   "bytes": 982
+  },
+  {
+   "path": "test/Renci.SshNet.Tests/Classes/SshClientTest_Dispose_Connected.cs",
+   "sha256": "212005ed4d42af4d4e8dc4a580eccf1eca07fd8c29eb86c609bdc688d8ccf5b9",
+   "bytes": 2489
+  },
+  {
+   "path": "test/Renci.SshNet.Tests/Classes/SftpClientTest_Dispose_Connected.cs",
+   "sha256": "b972d9f29d0e5705ed5c63bc62dbac67e908f26b3364817afd255ef52ca481d4",
+   "bytes": 4457
+  },
+  {
+   "path": "test/Renci.SshNet.Tests/Classes/ShellStreamTest_Dispose.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "test/Renci.SshNet.IntegrationTests/SshClientTests.cs",
+   "sha256": "5e45327f3fe0d4ea801131a12bd59567ee81432d3f438070486d420ee17ff926",
+   "bytes": 3817
+  },
+  {
+   "path": "test/Renci.SshNet.IntegrationTests/SftpClientTests.cs",
+   "sha256": "b09d66296eeca6c35256473e3f1b001c4e94f49f8daf7fc74595f25a52834832",
+   "bytes": 9052
+  },
+  {
+   "path": "test/Renci.SshNet.IntegrationTests/ScpClientTests.cs",
+   "sha256": "8de42735e415a8e99a516a18ddffee1b5818a6f8e00d3945df8ea37f54e09c87",
+   "bytes": 1292
+  },
+  {
+   "path": "test/Renci.SshNet.IntegrationTests/SshCommandTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "test/Renci.SshNet.IntegrationTests/SftpTests.cs",
+   "sha256": "d03c52ca468a4af047412aae969b71bd90410ccbca4529a2fbd4fec24bdc51f2",
+   "bytes": 235497
+  },
+  {
+   "path": "test/Renci.SshNet.IntegrationTests/SshTests.cs",
+   "sha256": "07af9330c1e851af63350b78bf83946d6114fbe28b390e1be7e5b141c6dbbaa3",
+   "bytes": 42183
+  },
+  {
+   "path": "test/Renci.SshNet.IntegrationTests/ScpTests.cs",
+   "sha256": "aa41fe12cc5cfd9f84a30d37592a9fb2c67ea2fbd93c0e4007ae327369cda9b8",
+   "bytes": 86517
+  },
+  {
+   "path": "test/Renci.SshNet.IntegrationTests/ForwardedPortTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "test/Renci.SshNet.IntegrationTests/ConnectivityTests.cs",
+   "sha256": "bfa94b2125858c14717ea65a188fdaf3393aca24fe09e5c9336c08a25b57c112",
+   "bytes": 21782
+  }
+ ]
+}

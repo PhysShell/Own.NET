@@ -1,0 +1,11 @@
+{
+ "package": "Microsoft.Data.Sqlite",
+ "version": "10.0.12",
+ "nupkg_sha256": "246679d8c6c83ffcf4c8a480066e3f4fc4e051c96b71bedfd932fe7a5af1f7d4",
+ "repository_url": "https://github.com/dotnet/dotnet",
+ "repository_commit": "95017c711e6afc1085133d440e42b4bd78155701",
+ "lib_files": [],
+ "main_assembly": null,
+ "identity": null,
+ "xmldoc": []
+}

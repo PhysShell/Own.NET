@@ -1,0 +1,50 @@
+{
+ "package": "Google.Protobuf",
+ "version": "3.36.2",
+ "written_at_utc": "2026-09-30T04:50:13Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read; no source body read before this file was written)",
+ "suggested_rows": [
+  {
+   "callable": "Google.Protobuf.ByteString.CreateCodedInput",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new CodedInputStream over the byte string (memory-only: disposal releases nothing unmanaged, but the object is fresh)"
+  },
+  {
+   "callable": "Google.Protobuf.CodedInputStream.CreateWithLimits",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new CodedInputStream over the given Stream with explicit limits (adopts the stream: no leaveOpen overload)"
+  }
+ ],
+ "suggested_negatives": [],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "CodedInputStream(Stream)",
+   "judgement": "adopt (documented: disposing the CodedInputStream disposes the stream)"
+  },
+  {
+   "ctor": "CodedInputStream(Stream, bool leaveOpen)",
+   "judgement": "adopt-unless(leaveOpen)"
+  },
+  {
+   "ctor": "CodedOutputStream(Stream)",
+   "judgement": "adopt"
+  },
+  {
+   "ctor": "CodedOutputStream(Stream, int bufferSize)",
+   "judgement": "adopt"
+  },
+  {
+   "ctor": "CodedOutputStream(Stream, bool leaveOpen)",
+   "judgement": "adopt-unless(leaveOpen)"
+  },
+  {
+   "ctor": "CodedOutputStream(Stream, int bufferSize, bool leaveOpen)",
+   "judgement": "adopt-unless(leaveOpen)"
+  }
+ ]
+}

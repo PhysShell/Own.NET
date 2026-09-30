@@ -1,0 +1,31 @@
+{
+ "source_files": 24,
+ "perfile_union_added_fresh": [],
+ "extractor_stats": {
+  "methods_with_local": 93,
+  "methods_flow_analysed": 75,
+  "methods_skipped_unmodelled": 18
+ },
+ "re_body_census": "fresh_return=29 fresh_return_expression_body=12",
+ "fresh_summaries_all": [
+  "Org.BouncyCastle.Asn1.Asn1InputStream.CreateSubStream",
+  "Org.BouncyCastle.Asn1.Asn1OutputStream.Create(System.Byte[],System.Int32,System.Int32,System.String,System.Boolean)",
+  "Org.BouncyCastle.Asn1.Asn1OutputStream.Create(System.IO.Stream)",
+  "Org.BouncyCastle.Asn1.Asn1OutputStream.Create(System.IO.Stream,System.String)",
+  "Org.BouncyCastle.Asn1.Asn1OutputStream.Create(System.IO.Stream,System.String,System.Boolean)",
+  "Org.BouncyCastle.Bcpg.ArmoredInputStream.Builder.Build",
+  "Org.BouncyCastle.Bcpg.ArmoredOutputStream.Builder.Build",
+  "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedDataGenerator.Open",
+  "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedDataGenerator.Open(System.IO.Stream)",
+  "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedDataGenerator.Open(System.IO.Stream,System.Byte[])",
+  "Org.BouncyCastle.Bcpg.OpenPgp.PgpLiteralDataGenerator.Open(System.IO.Stream,System.Char,System.IO.FileInfo)",
+  "Org.BouncyCastle.Bcpg.OpenPgp.PgpLiteralDataGenerator.Open(System.IO.Stream,System.Char,System.String,System.DateTime,System.Byte[])",
+  "Org.BouncyCastle.Bcpg.OpenPgp.PgpLiteralDataGenerator.Open(System.IO.Stream,System.Char,System.String,System.Int64,System.DateTime)"
+ ],
+ "receiver_release_all": [],
+ "fresh_not_public_surface": [
+  "Org.BouncyCastle.Asn1.Asn1InputStream.CreateSubStream"
+ ],
+ "instance_methods_evaluated": 281,
+ "public_rows": 5
+}

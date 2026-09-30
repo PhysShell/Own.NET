@@ -1,0 +1,8 @@
+root = true
+[*.cs]
+dotnet_diagnostic.CA2000.severity = warning
+dotnet_diagnostic.CA2213.severity = warning
+dotnet_code_quality.CA2000.dispose_ownership_transfer_at_constructor = false
+dotnet_code_quality.CA2000.dispose_ownership_transfer_at_method_call = false
+dotnet_diagnostic.IDISP001.severity = warning
+dotnet_diagnostic.IDISP004.severity = warning

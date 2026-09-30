@@ -1,0 +1,148 @@
+{
+ "package": "SharpCompress",
+ "consumer": "tests",
+ "repo": "adamhathcock/sharpcompress",
+ "commit": "b6cc95af73950c914e0c6ce7ea3511528ede1121",
+ "files": [
+  {
+   "path": "tests/SharpCompress.Test/ArchiveTests.cs",
+   "sha256": "4746387c0247d4d027f3c163da1f097dbed087d7732f5725025e950b6e470c08",
+   "bytes": 21799
+  },
+  {
+   "path": "tests/SharpCompress.Test/ReaderTests.cs",
+   "sha256": "c99bf7da7c83105be676332cdfb617aea9d5b34a474f2809185313bcc8de739f",
+   "bytes": 8187
+  },
+  {
+   "path": "tests/SharpCompress.Test/WriterTests.cs",
+   "sha256": "31b778b851e9c38f1e5b213a6a02e074e0a3c0b9faa1e033bbfb6d57e9dd2ce7",
+   "bytes": 3342
+  },
+  {
+   "path": "tests/SharpCompress.Test/ExtractionTests.cs",
+   "sha256": "9d1405cda6286ec1af7530ed566a738a8bf78fbf3271374c3eebb56cd2e00a40",
+   "bytes": 3908
+  },
+  {
+   "path": "tests/SharpCompress.Test/ArchiveFactoryTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/SharpCompress.Test/ReaderFactoryTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/SharpCompress.Test/WriterFactoryTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/SharpCompress.Test/ExtractAllEntriesTests.cs",
+   "sha256": "9ccdde9cde4033f8505bb360d4171cb44d2f4adfbf328637a7bc69b34472bb30",
+   "bytes": 1877
+  },
+  {
+   "path": "tests/SharpCompress.Test/LargeArchiveTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/SharpCompress.Test/TestBase.cs",
+   "sha256": "fccc3613931dd7b70331c0353fe41624ae307b80f8a5fdf880f3671a05691419",
+   "bytes": 8135
+  },
+  {
+   "path": "tests/SharpCompress.Test/ExtractAll.cs",
+   "sha256": "9fb0c1a36b9fea5a71b122f79ede66586a4183965097eda8495dd87fdd332f45",
+   "bytes": 1471
+  },
+  {
+   "path": "tests/SharpCompress.Test/MalformedInputTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/SharpCompress.Test/RemainingCrcExtractionTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/SharpCompress.Test/ProgressReportTests.cs",
+   "sha256": "f2973f70a2d9d62fa6deb96bb3d1c3288ea1667b209f90a81f5e7591879aeed7",
+   "bytes": 21249
+  },
+  {
+   "path": "tests/SharpCompress.Test/OptionsUsabilityTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/SharpCompress.Test/AsyncParityAndCancellationTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/SharpCompress.Test/Zip/ZipArchiveTests.cs",
+   "sha256": "48ad5ad707b40ef8ce9e17ac03a93e4400727730949c568cebadb6ad9089fb71",
+   "bytes": 27308
+  },
+  {
+   "path": "tests/SharpCompress.Test/Zip/ZipReaderTests.cs",
+   "sha256": "09433616ff2dd6cc04099dbb9bed0a501dbd2d678fee443961537f23bf5a6eb6",
+   "bytes": 14483
+  },
+  {
+   "path": "tests/SharpCompress.Test/Zip/ZipWriterTests.cs",
+   "sha256": "3789ee0a91d56b378942103a6e8242148e6f18e390398640c055118280e710a8",
+   "bytes": 2791
+  },
+  {
+   "path": "tests/SharpCompress.Test/Tar/TarArchiveTests.cs",
+   "sha256": "eb08df6738f06242292ea8f3bb2b3910ec377dba69e239800d66725ba36ac03a",
+   "bytes": 10973
+  },
+  {
+   "path": "tests/SharpCompress.Test/Tar/TarReaderTests.cs",
+   "sha256": "58d043e90f1d414b103d1a13ad9170d223bf8d9bc31c2acb888a829021e4c937",
+   "bytes": 11041
+  },
+  {
+   "path": "tests/SharpCompress.Test/Tar/TarWriterTests.cs",
+   "sha256": "e3238ef531230ea3a0cf244395adfeb83d76022d1ecae07dd0cf4e7a058b011d",
+   "bytes": 2211
+  },
+  {
+   "path": "tests/SharpCompress.Test/GZip/GZipArchiveTests.cs",
+   "sha256": "e48593b5d0a23bec2f3ca8c89ef6d93d7e719487b151ddd45bc37a0d2ac8a82f",
+   "bytes": 6641
+  },
+  {
+   "path": "tests/SharpCompress.Test/GZip/GZipReaderTests.cs",
+   "sha256": "e0f9d9629f9f9c88a56e3aad5e2650e37e7d50cf9b9376ff7230699b53025dc7",
+   "bytes": 811
+  },
+  {
+   "path": "tests/SharpCompress.Test/GZip/GZipWriterTests.cs",
+   "sha256": "95d8fa80eb854af99f7d58d9015befac0709667b67a8935d124acf9a0a6c70e6",
+   "bytes": 2524
+  },
+  {
+   "path": "tests/SharpCompress.Test/Rar/RarArchiveTests.cs",
+   "sha256": "2d3fcefaa5ac6736ca084c124e5741ef4ad69ca0915ba63692979e08754b9b3a",
+   "bytes": 24453
+  },
+  {
+   "path": "tests/SharpCompress.Test/Rar/RarReaderTests.cs",
+   "sha256": "1aa11256e82f7f7bfbb1eb5f3634b2bbcbd8f9a495774eec133507d575923cc1",
+   "bytes": 13443
+  },
+  {
+   "path": "tests/SharpCompress.Test/SevenZip/SevenZipArchiveTests.cs",
+   "sha256": "df1aac3bfaa2635e6d9110b45519e634fd790fb5cb81a5db88abe909525cfa5f",
+   "bytes": 8544
+  },
+  {
+   "path": "tests/SharpCompress.Test/Streams/SharpCompressStreamTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/SharpCompress.Test/Streams/SourceStreamTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  }
+ ]
+}

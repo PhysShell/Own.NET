@@ -1,0 +1,138 @@
+{
+ "package": "LibGit2Sharp",
+ "consumer": "tests",
+ "repo": "libgit2/libgit2sharp",
+ "commit": "eaa698d078941fd5e3cc82b59b885cd35d8cc0f8",
+ "files": [
+  {
+   "path": "LibGit2Sharp.Tests/RepositoryFixture.cs",
+   "sha256": "4d537c592e48027c74932ef0f6beaa92184663a256325e07f167e276ce14b382",
+   "bytes": 28605
+  },
+  {
+   "path": "LibGit2Sharp.Tests/ConfigurationFixture.cs",
+   "sha256": "e775b255ed8426730f0549c3f91ec824054874d5daee544e77749a410fe59a1e",
+   "bytes": 27138
+  },
+  {
+   "path": "LibGit2Sharp.Tests/BlobFixture.cs",
+   "sha256": "152f3761a52ce5a295583abfd29247cab22b08e3e68b7e996166f02beb4cd568",
+   "bytes": 9830
+  },
+  {
+   "path": "LibGit2Sharp.Tests/ObjectDatabaseFixture.cs",
+   "sha256": "9b5ff562d8dabfbdf50ff1321390400bc3557d3171dcba119e7449fb56055467",
+   "bytes": 29350
+  },
+  {
+   "path": "LibGit2Sharp.Tests/RemoteFixture.cs",
+   "sha256": "c22be2d5e40d0db3c41d0cd95e451bef49ecfacefb059c82bb1ddf18c4edc170",
+   "bytes": 14022
+  },
+  {
+   "path": "LibGit2Sharp.Tests/NetworkFixture.cs",
+   "sha256": "243c8510b2cacc78af8d845178f5f88a37e429f7a084e738fb140c807fdac060",
+   "bytes": 12126
+  },
+  {
+   "path": "LibGit2Sharp.Tests/DiffBlobToBlobFixture.cs",
+   "sha256": "aecd87cb26941cac225f09a2e2559838137d9fd088b96f872d16b15e59584659",
+   "bytes": 7997
+  },
+  {
+   "path": "LibGit2Sharp.Tests/PatchStatsFixture.cs",
+   "sha256": "909242ef7823b9f0b578376ff73215a239fff9320a4222937cc6d088b7a05c80",
+   "bytes": 936
+  },
+  {
+   "path": "LibGit2Sharp.Tests/IndexFixture.cs",
+   "sha256": "7b41cc5081c85c66f4bd9f5c0c7028db5566542f63e5d9335249593965c57b03",
+   "bytes": 21170
+  },
+  {
+   "path": "LibGit2Sharp.Tests/DiffTreeToTreeFixture.cs",
+   "sha256": "22514eb958f857a4165aa786ebd58e483cd6c9b4168c041f0c8bf854500725e3",
+   "bytes": 52563
+  },
+  {
+   "path": "LibGit2Sharp.Tests/DiffWorkdirToIndexFixture.cs",
+   "sha256": "7124ace2147f209be60ffbcaced305bf7d1acdfc69aff7b72de9c2e694c142dc",
+   "bytes": 6832
+  },
+  {
+   "path": "LibGit2Sharp.Tests/CloneFixture.cs",
+   "sha256": "55674b6b2e225630e8e63b393e9a66c0c9ed507cfcc309b611401b9757355997",
+   "bytes": 25038
+  },
+  {
+   "path": "LibGit2Sharp.Tests/CommitFixture.cs",
+   "sha256": "95ba10554ce3407f95a5f687a34dac4c5e644a86d3b3abbcc0771b76692e5e88",
+   "bytes": 47154
+  },
+  {
+   "path": "LibGit2Sharp.Tests/CheckoutFixture.cs",
+   "sha256": "fecbab850a68eaf60f59d18a4b06f108dd9932fbb2bd8945e976208ab911b31e",
+   "bytes": 45206
+  },
+  {
+   "path": "LibGit2Sharp.Tests/FetchFixture.cs",
+   "sha256": "a72a2f8c12be9c8fdd22545a450440a00b2ab94f8c319f716809f51962c65081",
+   "bytes": 12358
+  },
+  {
+   "path": "LibGit2Sharp.Tests/PushFixture.cs",
+   "sha256": "3f6f1345bb62830cde83a455e9141bb5313598fe58bd8a7ac9863c6549685d4e",
+   "bytes": 11045
+  },
+  {
+   "path": "LibGit2Sharp.Tests/PackBuilderFixture.cs",
+   "sha256": "2b6c7441d8d36ee8ee18979b49d31f45f1cfaf611773d0ca9e5aeead3cfb240a",
+   "bytes": 6535
+  },
+  {
+   "path": "LibGit2Sharp.Tests/TreeFixture.cs",
+   "sha256": "5004a201a1b1618f9fa2ce81c5ac50c3b429a6bb19ac4463eb4ea84608a686ea",
+   "bytes": 10131
+  },
+  {
+   "path": "LibGit2Sharp.Tests/BranchFixture.cs",
+   "sha256": "3168000d6e8ce1046ef8d9bd03f080f58b5e41900849a81688304df18dccf06b",
+   "bytes": 50244
+  },
+  {
+   "path": "LibGit2Sharp.Tests/TagFixture.cs",
+   "sha256": "08d44ec6bda8842f11704c1b37501931d7231c498a59e29192b0575c7a4a29ff",
+   "bytes": 28111
+  },
+  {
+   "path": "LibGit2Sharp.Tests/StashFixture.cs",
+   "sha256": "7ef914a27dbc0b95028c0fc15d4271ad670eedf8d13214bd1cb6555dff5cbb79",
+   "bytes": 17092
+  },
+  {
+   "path": "LibGit2Sharp.Tests/MergeFixture.cs",
+   "sha256": "6310e75ccec33fa696869da2092e9beeaa268612a47f2156267e01533fb99939",
+   "bytes": 40538
+  },
+  {
+   "path": "LibGit2Sharp.Tests/RebaseFixture.cs",
+   "sha256": "7d00a41b9e5e40abac7a2d381d97f8cddffa343b21d25009ccdf37532cbda3e1",
+   "bytes": 37090
+  },
+  {
+   "path": "LibGit2Sharp.Tests/RepositoryOptionsFixture.cs",
+   "sha256": "4fdc66f17eb78aa2ecd936b08edac5c67193a5a339b72ee7125f098b61c0354d",
+   "bytes": 6763
+  },
+  {
+   "path": "LibGit2Sharp.Tests/GlobalSettingsFixture.cs",
+   "sha256": "dab92fc6d39299e55fea31b32784db0c622080a785096c9c07e2afa83f778a3e",
+   "bytes": 5155
+  },
+  {
+   "path": "LibGit2Sharp.Tests/TestHelpers/BaseFixture.cs",
+   "sha256": "06c4e7a945c0f3f04cd5be9d3d4ac81d0ea4a2f3ef86255b2fef1e8503b94ec9",
+   "bytes": 20825
+  }
+ ]
+}

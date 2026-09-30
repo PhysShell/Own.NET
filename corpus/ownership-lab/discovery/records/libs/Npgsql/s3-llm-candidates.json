@@ -1,0 +1,170 @@
+{
+ "package": "Npgsql",
+ "version": "10.0.3",
+ "written_at_utc": "2026-09-30T03:58:25Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (the shipped XML doc was NOT read)",
+ "suggested_rows": [
+  {
+   "callable": "Npgsql.NpgsqlDataSource.CreateConnection",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new unopened NpgsqlConnection per call"
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataSource.OpenConnection",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new opened NpgsqlConnection per call; Dispose returns the connector to the pool"
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.CreateCommand",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new NpgsqlCommand bound to the connection"
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginTransaction",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new NpgsqlTransaction; Dispose rolls back"
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginTransaction",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same, with an isolation level"
+  },
+  {
+   "callable": "Npgsql.NpgsqlCommand.ExecuteReader",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new NpgsqlDataReader that holds the connector until disposed"
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginBinaryImport",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a COPY importer that must be completed and disposed"
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginBinaryExport",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a COPY exporter that must be disposed"
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginTextImport",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a COPY text writer"
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginTextExport",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a COPY text reader"
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.BeginRawBinaryCopy",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a raw COPY stream"
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataSourceBuilder.Build",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new NpgsqlDataSource owning a pool"
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataSource.Create",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new data source from a connection string"
+  },
+  {
+   "callable": "Npgsql.NpgsqlLargeObjectManager.OpenRead",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new large-object stream"
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.CloneWith",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new connection with a modified connection string"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "Npgsql.NpgsqlConnection.Close",
+   "arity": 0,
+   "why": "NOT terminal: Close returns the connector to the pool; Open() may follow (production already treats Close as a release by name)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataReader.Close",
+   "arity": 0,
+   "why": "release equivalent to Dispose (production name rule); not a new row"
+  },
+  {
+   "callable": "Npgsql.NpgsqlTransaction.Release",
+   "arity": 1,
+   "why": "releases a SAVEPOINT, not the resource: must NOT become a row (hostile name)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlBinaryImporter.Complete",
+   "arity": 0,
+   "why": "finishes the COPY; Dispose is still required: not terminal"
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataSource.Clear",
+   "arity": 0,
+   "why": "clears the pool; the data source stays usable: not a release"
+  },
+  {
+   "callable": "Npgsql.NpgsqlCommand.get_Connection",
+   "arity": 0,
+   "why": "a property returning a field: not fresh"
+  },
+  {
+   "callable": "Npgsql.NpgsqlTransaction.get_Connection",
+   "arity": 0,
+   "why": "a property returning a field: not fresh"
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.GetSchema",
+   "arity": 0,
+   "why": "DataTable is dispose-optional: no row"
+  }
+ ],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "Npgsql.NpgsqlCommand..ctor(string, NpgsqlConnection)",
+   "judgement": "borrow: the command does not dispose its connection (SUGGESTED: not adopt)"
+  },
+  {
+   "ctor": "Npgsql.NpgsqlBatch..ctor(NpgsqlConnection)",
+   "judgement": "borrow: not adopt"
+  },
+  {
+   "ctor": "Npgsql.NpgsqlDataAdapter..ctor(NpgsqlCommand)",
+   "judgement": "UNDECIDED from the surface: DbDataAdapter.Dispose nulls its commands; whether it disposes them is not known to the LLM arm"
+  }
+ ]
+}

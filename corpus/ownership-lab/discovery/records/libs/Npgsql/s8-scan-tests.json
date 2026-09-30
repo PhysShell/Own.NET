@@ -1,0 +1,837 @@
+{
+ "package": "Npgsql",
+ "consumer": "tests",
+ "files": 39,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Npgsql/rows-applied.json",
+ "key_sha256": "46c3b922c052a0ae4b8e8a9cd994d659d0674a264cc8746b489e67c73f9d67fe",
+ "off": {
+  "findings": [
+   [
+    "test__Npgsql.Tests__AutoPrepareTests.cs",
+    60,
+    "OWN001",
+    "IDisposable local 'cmd1' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__AutoPrepareTests.cs",
+    65,
+    "OWN001",
+    "IDisposable local 'cmd2' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__BatchTests.cs",
+    759,
+    "OWN001",
+    "IDisposable local 'batch' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__BugTests.cs",
+    1205,
+    "OWN001",
+    "IDisposable local 'okCommand' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__BugTests.cs",
+    1217,
+    "OWN001",
+    "IDisposable local 'okCommand' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandBuilderTests.cs",
+    307,
+    "OWN001",
+    "IDisposable local 'cbCommandBuilder' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandBuilderTests.cs",
+    406,
+    "OWN001",
+    "IDisposable local 'builder' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandParameterTests.cs",
+    122,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    518,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    545,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    570,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    573,
+    "OWN001",
+    "event 'reader.ReaderClosed' is subscribed (handler '(sender, args) => { wasClosed = true; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'CommandTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    744,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    782,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    829,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    858,
+    "OWN001",
+    "IDisposable local 'cmdBuilder' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    1113,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ConnectionTests.cs",
+    961,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ConnectionTests.cs",
+    989,
+    "OWN002",
+    "IDisposable local 'c' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ConnectionTests.cs",
+    1021,
+    "OWN050",
+    "cannot verify 'conn.Notice' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    17,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    30,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    40,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    49,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    61,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    106,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    151,
+    "OWN001",
+    "IDisposable local 'cb' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    178,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    197,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    243,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    276,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    281,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    325,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    337,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    411,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    435,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    445,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    459,
+    "OWN001",
+    "IDisposable local 'builder' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    483,
+    "OWN001",
+    "IDisposable local 'cb' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DistributedTransactionTests.cs",
+    495,
+    "OWN014",
+    "event 'Transaction.Current.TransactionCompleted' is subscribed (handler 'resource.Current_TransactionCompleted!') to a static (process-lived) event source that outlives 'DistributedTransactionTests'; the strong subscription promotes 'DistributedTransactionTests' to the source's lifetime, so it can never be collected \u2014 a region escape (leak, no release path) [resource: subscription token]"
+   ],
+   [
+    "test__Npgsql.Tests__DistributedTransactionTests.cs",
+    495,
+    "OWN014",
+    "event 'Transaction.Current.TransactionCompleted' is subscribed (handler 'resource.Current_TransactionCompleted!') to a static (process-lived) event source that outlives 'EnlistResource'; the strong subscription promotes 'EnlistResource' to the source's lifetime, so it can never be collected \u2014 a region escape (leak, no release path) [resource: subscription token]"
+   ],
+   [
+    "test__Npgsql.Tests__FunctionTests.cs",
+    89,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__FunctionTests.cs",
+    122,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__FunctionTests.cs",
+    172,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__PoolTests.cs",
+    109,
+    "OWN001",
+    "IDisposable local 'cts' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderNewSchemaTests.cs",
+    82,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderOldSchemaTests.cs",
+    62,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderOldSchemaTests.cs",
+    121,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderOldSchemaTests.cs",
+    230,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    148,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    226,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    253,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    494,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    529,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    837,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    1137,
+    "OWN001",
+    "event 'firstReader.ReaderClosed' is subscribed (handler '(s, e) =>"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    1895,
+    "OWN050",
+    "cannot verify 'buffer.FilledBytes' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    2026,
+    "OWN001",
+    "IDisposable local 'cancellationSource' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    2078,
+    "OWN001",
+    "IDisposable local 'cancellationSource' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    2129,
+    "OWN001",
+    "IDisposable local 'cancellationSource' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    2174,
+    "OWN001",
+    "IDisposable local 'cancellationSource' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__TransactionTests.cs",
+    29,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__TransactionTests.cs",
+    58,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__TransactionTests.cs",
+    87,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__TransactionTests.cs",
+    116,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__TransactionTests.cs",
+    369,
+    "OWN001",
+    "IDisposable local 'tx' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__TransactionTests.cs",
+    743,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 105,
+   "methods_flow_analysed": 104,
+   "methods_skipped_unmodelled": 1
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "test__Npgsql.Tests__AutoPrepareTests.cs",
+    60,
+    "OWN001",
+    "IDisposable local 'cmd1' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__AutoPrepareTests.cs",
+    65,
+    "OWN001",
+    "IDisposable local 'cmd2' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__BatchTests.cs",
+    759,
+    "OWN001",
+    "IDisposable local 'batch' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__BugTests.cs",
+    1205,
+    "OWN001",
+    "IDisposable local 'okCommand' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__BugTests.cs",
+    1217,
+    "OWN001",
+    "IDisposable local 'okCommand' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandBuilderTests.cs",
+    307,
+    "OWN001",
+    "IDisposable local 'cbCommandBuilder' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandBuilderTests.cs",
+    406,
+    "OWN001",
+    "IDisposable local 'builder' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandParameterTests.cs",
+    122,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    518,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    545,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    570,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    573,
+    "OWN001",
+    "event 'reader.ReaderClosed' is subscribed (handler '(sender, args) => { wasClosed = true; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'CommandTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    744,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    782,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    829,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    858,
+    "OWN001",
+    "IDisposable local 'cmdBuilder' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__CommandTests.cs",
+    1113,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ConnectionTests.cs",
+    961,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ConnectionTests.cs",
+    989,
+    "OWN002",
+    "IDisposable local 'c' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ConnectionTests.cs",
+    1021,
+    "OWN050",
+    "cannot verify 'conn.Notice' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    17,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    30,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    40,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    49,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    61,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    106,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    151,
+    "OWN001",
+    "IDisposable local 'cb' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    178,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    197,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    243,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    276,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    281,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    325,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    337,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    411,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    435,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    445,
+    "OWN001",
+    "IDisposable local 'da' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    459,
+    "OWN001",
+    "IDisposable local 'builder' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DataAdapterTests.cs",
+    483,
+    "OWN001",
+    "IDisposable local 'cb' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__DistributedTransactionTests.cs",
+    495,
+    "OWN014",
+    "event 'Transaction.Current.TransactionCompleted' is subscribed (handler 'resource.Current_TransactionCompleted!') to a static (process-lived) event source that outlives 'DistributedTransactionTests'; the strong subscription promotes 'DistributedTransactionTests' to the source's lifetime, so it can never be collected \u2014 a region escape (leak, no release path) [resource: subscription token]"
+   ],
+   [
+    "test__Npgsql.Tests__DistributedTransactionTests.cs",
+    495,
+    "OWN014",
+    "event 'Transaction.Current.TransactionCompleted' is subscribed (handler 'resource.Current_TransactionCompleted!') to a static (process-lived) event source that outlives 'EnlistResource'; the strong subscription promotes 'EnlistResource' to the source's lifetime, so it can never be collected \u2014 a region escape (leak, no release path) [resource: subscription token]"
+   ],
+   [
+    "test__Npgsql.Tests__FunctionTests.cs",
+    89,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__FunctionTests.cs",
+    122,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__FunctionTests.cs",
+    172,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__PoolTests.cs",
+    109,
+    "OWN001",
+    "IDisposable local 'cts' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderNewSchemaTests.cs",
+    82,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderOldSchemaTests.cs",
+    62,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderOldSchemaTests.cs",
+    121,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderOldSchemaTests.cs",
+    230,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    148,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    226,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    253,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    494,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    529,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    837,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    1137,
+    "OWN001",
+    "event 'firstReader.ReaderClosed' is subscribed (handler '(s, e) =>"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    1895,
+    "OWN050",
+    "cannot verify 'buffer.FilledBytes' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    2026,
+    "OWN001",
+    "IDisposable local 'cancellationSource' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    2078,
+    "OWN001",
+    "IDisposable local 'cancellationSource' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    2129,
+    "OWN001",
+    "IDisposable local 'cancellationSource' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__ReaderTests.cs",
+    2174,
+    "OWN001",
+    "IDisposable local 'cancellationSource' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__TransactionTests.cs",
+    29,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__TransactionTests.cs",
+    58,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__TransactionTests.cs",
+    87,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__TransactionTests.cs",
+    116,
+    "OWN001",
+    "IDisposable local 'cmd' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__TransactionTests.cs",
+    369,
+    "OWN001",
+    "IDisposable local 'tx' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Npgsql.Tests__TransactionTests.cs",
+    743,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: return_fresh_owned=4"
+  ],
+  "stats": {
+   "methods_with_local": 106,
+   "methods_flow_analysed": 105,
+   "methods_skipped_unmodelled": 1
+  }
+ },
+ "new_findings": [],
+ "lost_findings": []
+}

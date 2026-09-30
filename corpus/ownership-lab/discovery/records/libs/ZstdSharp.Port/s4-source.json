@@ -1,0 +1,37 @@
+{
+ "package": "ZstdSharp.Port",
+ "repo": "oleg-st/ZstdSharp",
+ "commit": "2cd0c019693bc786a5fe5c3be94e107b24e7267e",
+ "files": [
+  {
+   "path": "src/ZstdSharp/CompressionStream.cs",
+   "sha256": "c2493f91279dd6460a992eda49ef0bbffefd33f4794bddacc05065660caa218c",
+   "bytes": 8334
+  },
+  {
+   "path": "src/ZstdSharp/DecompressionStream.cs",
+   "sha256": "4b400aa64b16e0ff42dc10b7970e9c7e571078c01b7d996489dff4109ece6a1a",
+   "bytes": 9551
+  },
+  {
+   "path": "src/ZstdSharp/Compressor.cs",
+   "sha256": "cd65d3f8064d8ce3aa3bb39d68857928c85dcba514b318938b83d91da11d0f4f",
+   "bytes": 8071
+  },
+  {
+   "path": "src/ZstdSharp/Decompressor.cs",
+   "sha256": "cb55527477d67d2ee59a89666359ea5ebef1ee66ab66ff54b0b1bf24fd850735",
+   "bytes": 6888
+  },
+  {
+   "path": "src/ZstdSharp/SafeHandles.cs",
+   "sha256": "e8cb2618073b512cc936721fe6c614a8f6003a61c319f9c98e714b029da8b621",
+   "bytes": 5448
+  },
+  {
+   "path": "src/ZstdSharp/UnmanagedObject.cs",
+   "sha256": "1b88b4df066790560bbba0d86ce95e521fc9563efcd3a1dfad29f258e0faceb8",
+   "bytes": 561
+  }
+ ]
+}

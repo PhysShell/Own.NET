@@ -1,0 +1,24 @@
+{
+ "package": "NSec.Cryptography",
+ "version": "26.4.0",
+ "nupkg_sha256": "b802c7e0fdd464794b64d4f38473eddd4817f04c35cb978cafbc668377470ee7",
+ "repository_url": "https://github.com/ektrah/nsec.git",
+ "repository_commit": "02c51bb20a7b6accc96e74ecab6e2659cc1f5c63",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/NSec.Cryptography/lib/net9.0/NSec.Cryptography.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/NSec.Cryptography/lib/net9.0/NSec.Cryptography.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/NSec.Cryptography/lib/net9.0/NSec.Cryptography.dll",
+  "name": "NSec.Cryptography",
+  "version": "26.4.0.0",
+  "culture": "",
+  "public_key_token": "531c072d5efee047",
+  "mvid": "ffd8640c-2483-4406-bcca-c25e459c4813",
+  "target_framework": ".NETCoreApp,Version=v9.0",
+  "informational_version": "26.4.0+02c51bb20a7b6accc96e74ecab6e2659cc1f5c63",
+  "sha256": "e13a3f375f153c48a8220c29dd83827462a80099537c9e43b10d9aaad2176d6b",
+  "size": 111104
+ },
+ "xmldoc": []
+}

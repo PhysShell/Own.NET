@@ -1,0 +1,28 @@
+{
+ "package": "BouncyCastle.Cryptography",
+ "version": "2.7.0",
+ "nupkg_sha256": "f091ffccab4d03993e660bace277659a79dee0972f54d7f1f4bd46d680966241",
+ "repository_url": "https://github.com/bcgit/bc-csharp",
+ "repository_commit": "4007498b13582d90ee1eda5d9920c324428b98b3",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/BouncyCastle.Cryptography/lib/net6.0/BouncyCastle.Cryptography.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/BouncyCastle.Cryptography/lib/net6.0/BouncyCastle.Cryptography.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/BouncyCastle.Cryptography/lib/net6.0/BouncyCastle.Cryptography.dll",
+  "name": "BouncyCastle.Cryptography",
+  "version": "2.0.0.0",
+  "culture": "",
+  "public_key_token": "072edcf4a5328938",
+  "mvid": "fc1a4ae8-411b-471c-974a-95a266252cc5",
+  "target_framework": ".NETCoreApp,Version=v6.0",
+  "informational_version": "2.7.0+4007498b13",
+  "sha256": "ef92fc661e8d7ba8ec4d39a7cdfcdba41f14cb327f0d24fe79d0b5bb428899b5",
+  "size": 5155728
+ },
+ "xmldoc": [
+  "lib/net461/BouncyCastle.Cryptography.xml",
+  "lib/net6.0/BouncyCastle.Cryptography.xml",
+  "lib/netstandard2.0/BouncyCastle.Cryptography.xml"
+ ]
+}

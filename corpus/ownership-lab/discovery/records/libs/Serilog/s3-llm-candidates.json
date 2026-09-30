@@ -1,0 +1,45 @@
+{
+ "package": "Serilog",
+ "version": "4.4.0",
+ "written_at_utc": "2026-09-30T04:50:13Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read; no source body read before this file was written)",
+ "suggested_rows": [
+  {
+   "callable": "Serilog.LoggerConfiguration.CreateLogger",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new Serilog.Core.Logger owning the configured sinks (disposal flushes/closes them)"
+  },
+  {
+   "callable": "Serilog.Context.LogContext.PushProperty",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable context bookmark: disposing restores the ambient property stack (lifetime-only resource)"
+  },
+  {
+   "callable": "Serilog.Context.LogContext.Push",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable context bookmark (all four overloads)"
+  },
+  {
+   "callable": "Serilog.Context.LogContext.Suspend",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable bookmark restoring the suspended context"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "Serilog.Log.CloseAndFlush",
+   "arity": 0,
+   "why": "static: releases the global Log.Logger; not a receiver release (no receiver) and not a factory"
+  }
+ ],
+ "adopting_ctor_judgements": []
+}

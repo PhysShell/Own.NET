@@ -1,0 +1,3058 @@
+{
+ "package": "Newtonsoft.Json",
+ "consumer": "tests",
+ "files": 13,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Newtonsoft.Json/rows-applied.json",
+ "key_sha256": "09d10a04bfcb708e44809e45f833122e04ad61e5eb3cd36e8deb6f3755aaf421",
+ "off": {
+  "findings": [
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    123,
+    "OWN003",
+    "IDisposable local 'reader' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    142,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    240,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    264,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    288,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    379,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    427,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    495,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    536,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    574,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    679,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    708,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    737,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    766,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    795,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    842,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    893,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    903,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    940,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    964,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    979,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1017,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1048,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1072,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1092,
+    "OWN001",
+    "IDisposable local 'bs' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1100,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1113,
+    "OWN001",
+    "IDisposable local 'bs' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1121,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1295,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1338,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1383,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1658,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1667,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1692,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1701,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1724,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1733,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    64,
+    "OWN003",
+    "IDisposable local 'writer' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    82,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    98,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    126,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    142,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    156,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    179,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    195,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    209,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    296,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    398,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    504,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    517,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    537,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    555,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    603,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    613,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    641,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    652,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    696,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    808,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    819,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    841,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    851,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    866,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    876,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    891,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonConvertTest.cs",
+    1117,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonConvertTest.cs",
+    1133,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonConvertTest.cs",
+    1145,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonConvertTest.cs",
+    1173,
+    "OWN001",
+    "IDisposable local 'jsonReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    70,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    123,
+    "OWN001",
+    "IDisposable local 'jsonTextReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    200,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    232,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    286,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    298,
+    "OWN003",
+    "IDisposable local 'reader' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    495,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    527,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    678,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    700,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    721,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    807,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    926,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    947,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    1004,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    1014,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    1033,
+    "OWN001",
+    "IDisposable local 'r' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    75,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    84,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    253,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    281,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    292,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    328,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    340,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    353,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    366,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    380,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    392,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    417,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    431,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    449,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    461,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    70,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    113,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    164,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    232,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    245,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    255,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    264,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    277,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    304,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    383,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    396,
+    "OWN001",
+    "IDisposable local 'jsonReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    423,
+    "OWN001",
+    "IDisposable local 'jsonReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    453,
+    "OWN001",
+    "IDisposable local 'jsonReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    482,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    491,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    501,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    514,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    538,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    580,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    604,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    628,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    652,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    679,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    705,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    740,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    762,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    796,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    824,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    843,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    850,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    857,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    864,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    886,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    938,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    972,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1029,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1092,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1125,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1190,
+    "OWN001",
+    "IDisposable local 'jsonTextReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1222,
+    "OWN001",
+    "IDisposable local 'jsonTextReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1240,
+    "OWN001",
+    "IDisposable local 'jsonTextReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1255,
+    "OWN001",
+    "IDisposable local 'jsonTextReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1276,
+    "OWN001",
+    "IDisposable local 'jsonTextReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1314,
+    "OWN001",
+    "IDisposable local 'jsonTextReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1337,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1441,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1452,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1462,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1477,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1523,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1532,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1579,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1636,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1656,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1742,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1779,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1792,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1805,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    197,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    214,
+    "OWN003",
+    "IDisposable local 'writer' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    233,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    795,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1270,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1284,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1297,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1306,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1320,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1342,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1402,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1448,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1634,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1703,
+    "OWN001",
+    "IDisposable local 'w' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    62,
+    "OWN001",
+    "IDisposable local 'validatingReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    87,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    157,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    232,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    256,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    283,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    320,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    344,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    369,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    430,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    457,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    494,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    517,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    544,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    584,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    625,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    655,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    688,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    740,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    772,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    806,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    841,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    877,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    908,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    934,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    973,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1015,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1054,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1111,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1164,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1222,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1249,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1295,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1403,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1580,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1598,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1612,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1642,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1695,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1731,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    651,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    679,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    707,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    735,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    821,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    831,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    841,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    852,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    862,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    872,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    882,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    893,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    904,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    914,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    924,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    934,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    945,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    956,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    966,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    976,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    989,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    1003,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    198,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    212,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    232,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    257,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    284,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    305,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    329,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    345,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    361,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    383,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Serialization__JsonSerializerTest.cs",
+    2073,
+    "OWN001",
+    "IDisposable local 'sr' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Serialization__JsonSerializerTest.cs",
+    6125,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 246,
+   "methods_flow_analysed": 245,
+   "methods_skipped_unmodelled": 1
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    123,
+    "OWN003",
+    "IDisposable local 'reader' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    142,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    240,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    264,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    288,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    379,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    427,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    495,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    536,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    574,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    679,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    708,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    737,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    766,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    795,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    842,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    893,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    903,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    940,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    964,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    979,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1017,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1048,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1072,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1092,
+    "OWN001",
+    "IDisposable local 'bs' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1100,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1113,
+    "OWN001",
+    "IDisposable local 'bs' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1121,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1295,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1338,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1383,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1658,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1667,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1692,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1701,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1724,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonReaderTests.cs",
+    1733,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    64,
+    "OWN003",
+    "IDisposable local 'writer' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    82,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    98,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    126,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    142,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    156,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    179,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    195,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    209,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    296,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    398,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    504,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    517,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    537,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    555,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    603,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    613,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    641,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    652,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    696,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    808,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    819,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    841,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    851,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    866,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    876,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Bson__BsonWriterTests.cs",
+    891,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonConvertTest.cs",
+    1117,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonConvertTest.cs",
+    1133,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonConvertTest.cs",
+    1145,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonConvertTest.cs",
+    1173,
+    "OWN001",
+    "IDisposable local 'jsonReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    70,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    123,
+    "OWN001",
+    "IDisposable local 'jsonTextReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    200,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    232,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    286,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    298,
+    "OWN003",
+    "IDisposable local 'reader' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    495,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    527,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    678,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    700,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    721,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    807,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    926,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    947,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    1004,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    1014,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__MiscTests.cs",
+    1033,
+    "OWN001",
+    "IDisposable local 'r' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    75,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    84,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    253,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    281,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    292,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    328,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    340,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    353,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    366,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    380,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    392,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    417,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    431,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    449,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ParseTests.cs",
+    461,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    70,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    113,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    164,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    232,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    245,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    255,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    264,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    277,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    304,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    383,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    396,
+    "OWN001",
+    "IDisposable local 'jsonReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    423,
+    "OWN001",
+    "IDisposable local 'jsonReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    453,
+    "OWN001",
+    "IDisposable local 'jsonReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    482,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    491,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    501,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    514,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    538,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    580,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    604,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    628,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    652,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    679,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    705,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    740,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    762,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    796,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    824,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    843,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    850,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    857,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    864,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    886,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    938,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    972,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1029,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1092,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1125,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1190,
+    "OWN001",
+    "IDisposable local 'jsonTextReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1222,
+    "OWN001",
+    "IDisposable local 'jsonTextReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1240,
+    "OWN001",
+    "IDisposable local 'jsonTextReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1255,
+    "OWN001",
+    "IDisposable local 'jsonTextReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1276,
+    "OWN001",
+    "IDisposable local 'jsonTextReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1314,
+    "OWN001",
+    "IDisposable local 'jsonTextReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1337,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1441,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1452,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1462,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1477,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1523,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1532,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1579,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1636,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1656,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1742,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1779,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1792,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextReaderTests__ReadTests.cs",
+    1805,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    197,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    214,
+    "OWN003",
+    "IDisposable local 'writer' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    233,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    795,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1270,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1284,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1297,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1306,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1320,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1342,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1402,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1448,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1634,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonTextWriterTest.cs",
+    1703,
+    "OWN001",
+    "IDisposable local 'w' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    62,
+    "OWN001",
+    "IDisposable local 'validatingReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    87,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    157,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    232,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    256,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    283,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    320,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    344,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    369,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    430,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    457,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    494,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    517,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    544,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    584,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    625,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    655,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    688,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    740,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    772,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    806,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    841,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    877,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    908,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    934,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    973,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1015,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1054,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1111,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1164,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1222,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1249,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1295,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1403,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1580,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1598,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1612,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1642,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1695,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__JsonValidatingReaderTests.cs",
+    1731,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    56,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    68,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    210,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    491,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    572,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    629,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    651,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    679,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    707,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    735,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    821,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    831,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    841,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    852,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    862,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    872,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    882,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    893,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    904,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    914,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    924,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    934,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    945,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    956,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    966,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    976,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    989,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    1003,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    198,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    212,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    232,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    257,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    284,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    305,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    329,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    345,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    361,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenWriterTest.cs",
+    383,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Serialization__JsonSerializerTest.cs",
+    2073,
+    "OWN001",
+    "IDisposable local 'sr' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Src__Newtonsoft.Json.Tests__Serialization__JsonSerializerTest.cs",
+    6125,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: return_fresh_owned=20"
+  ],
+  "stats": {
+   "methods_with_local": 252,
+   "methods_flow_analysed": 251,
+   "methods_skipped_unmodelled": 1
+  }
+ },
+ "new_findings": [
+  [
+   "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+   56,
+   "OWN001",
+   "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+   68,
+   "OWN001",
+   "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+   210,
+   "OWN001",
+   "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+   491,
+   "OWN001",
+   "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+   572,
+   "OWN001",
+   "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+   629,
+   "OWN001",
+   "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+  ]
+ ],
+ "lost_findings": []
+}

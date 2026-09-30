@@ -1,0 +1,114 @@
+{
+ "package": "SixLabors.ImageSharp",
+ "repo": "SixLabors/ImageSharp",
+ "commit": "dee414097e4be7bb35ef0209cf96bd0b61a7133a",
+ "files": [
+  {
+   "path": "src/ImageSharp/Image.cs",
+   "sha256": "19e3f97ea85cfe469bb121370263cc1ddcd838132aac59ca7a4140e3e2f39098",
+   "bytes": 9307
+  },
+  {
+   "path": "src/ImageSharp/Image.Decode.cs",
+   "sha256": "4eb288ffdb98d47eec84c02ede35edd9687244240ae698aa0cc99d70c9a82cc7",
+   "bytes": 10500
+  },
+  {
+   "path": "src/ImageSharp/Image.FromStream.cs",
+   "sha256": "d4df45bcafce7b493c8eb9fc3847ca7ec94f36945a1c951e5b558540298574d9",
+   "bytes": 20578
+  },
+  {
+   "path": "src/ImageSharp/Image.FromFile.cs",
+   "sha256": "8e758ed7f282c8fd6db58cd161dc462852d2e04fc3cd8f6c84fd07f95c6b8f85",
+   "bytes": 17950
+  },
+  {
+   "path": "src/ImageSharp/Image.FromBytes.cs",
+   "sha256": "f823eaf447dd2d5dc9381544324c916d28fa65bc7b6516ca7f51226d5caf72b4",
+   "bytes": 8436
+  },
+  {
+   "path": "src/ImageSharp/Image.LoadPixelData.cs",
+   "sha256": "f590baf47ad863161bfb62b1b30f65f2aa21bd69f54570facae147bd308959d2",
+   "bytes": 10706
+  },
+  {
+   "path": "src/ImageSharp/Image.WrapMemory.cs",
+   "sha256": "eca94948968cb04ccc4a898463872e1f3be6c615fbea973a5ae71b1f16ab7d5a",
+   "bytes": 37000
+  },
+  {
+   "path": "src/ImageSharp/Image{TPixel}.cs",
+   "sha256": "f0c9f4242aaa99132d0329ca8a490710facd5e0ef73b642230ae205e3ba000b5",
+   "bytes": 20428
+  },
+  {
+   "path": "src/ImageSharp/ImageFrame.cs",
+   "sha256": "204df9ff41c5f0d8af6b99759d1f3631b9dc34126219273615f35c2c3858f519",
+   "bytes": 3794
+  },
+  {
+   "path": "src/ImageSharp/ImageFrame{TPixel}.cs",
+   "sha256": "a24c442b6ab0784dda658b434e68d649f0f2150c0aab3b6517f941cd70912a53",
+   "bytes": 23880
+  },
+  {
+   "path": "src/ImageSharp/ImageFrameCollection.cs",
+   "sha256": "48218d54ef40647bd83c1b9bc6b75426c8be53a98eae5cdefb0315d9e3485745",
+   "bytes": 9345
+  },
+  {
+   "path": "src/ImageSharp/ImageFrameCollection{TPixel}.cs",
+   "sha256": "b47407308cfa22215197ec5680dae44aaf9c8b30ca29c5795f52cb090dbf33fb",
+   "bytes": 15083
+  },
+  {
+   "path": "src/ImageSharp/Memory/MemoryAllocator.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "src/ImageSharp/Memory/MemoryAllocatorExtensions.cs",
+   "sha256": "e32f7515a4f0f490a482123fd6d543ca9d4f4e8eb4be4c25921cc2a097f2941b",
+   "bytes": 6053
+  },
+  {
+   "path": "src/ImageSharp/Memory/Buffer2D{T}.cs",
+   "sha256": "180a2b22dcd232cb6202c3e775968def0e5b59807d1fe3dc6bd40679ec6eb79e",
+   "bytes": 18619
+  },
+  {
+   "path": "src/ImageSharp/Memory/Allocators/ArrayPoolMemoryAllocator.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "src/ImageSharp/Memory/Allocators/SimpleGcMemoryAllocator.cs",
+   "sha256": "748e8673def5ed8a3eedc49fd7dc945f1438e5c2036efb6c2be744b7ed10bbb0",
+   "bytes": 1225
+  },
+  {
+   "path": "src/ImageSharp/Memory/Allocators/UniformUnmanagedMemoryPoolMemoryAllocator.cs",
+   "sha256": "208a3fd4b5f6c9d11b584e7e5a5cad872481078d2a2b0fe2751fd4088468e64d",
+   "bytes": 6160
+  },
+  {
+   "path": "src/ImageSharp/Formats/ImageDecoder.cs",
+   "sha256": "64ebce7e69523770b656a491e7093b027fc18df7d8201ca6159effd33f5f7a48",
+   "bytes": 13486
+  },
+  {
+   "path": "src/ImageSharp/Formats/SpecializedImageDecoder{T}.cs",
+   "sha256": "78b017df9f3a9fbf3c6443138a05f49b4488380023b2d61081d4f0c77ba78e6f",
+   "bytes": 5004
+  },
+  {
+   "path": "src/ImageSharp/Processing/ProcessingExtensions.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "src/ImageSharp/Advanced/AdvancedImageExtensions.cs",
+   "sha256": "fb59ec36441b4f6a96636addf5ce1698f405c7b81ee382d4af61beb2f66ab593",
+   "bytes": 8132
+  }
+ ]
+}

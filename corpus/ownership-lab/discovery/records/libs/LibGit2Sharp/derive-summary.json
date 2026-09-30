@@ -1,0 +1,26 @@
+{
+ "source_files": 15,
+ "perfile_union_added_fresh": [],
+ "extractor_stats": {
+  "methods_with_local": 63,
+  "methods_flow_analysed": 60,
+  "methods_skipped_unmodelled": 3
+ },
+ "re_body_census": "fresh_return=13",
+ "fresh_summaries_all": [
+  "LibGit2Sharp.Configuration.BuildFrom(System.String)",
+  "LibGit2Sharp.Configuration.BuildFrom(System.String,System.String)",
+  "LibGit2Sharp.Configuration.BuildFrom(System.String,System.String,System.String)",
+  "LibGit2Sharp.Configuration.BuildFrom(System.String,System.String,System.String,System.String)",
+  "LibGit2Sharp.Diff.BuildOptions",
+  "LibGit2Sharp.RemoteCollection.Add",
+  "LibGit2Sharp.RemoteCollection.Add(System.String,System.String)",
+  "LibGit2Sharp.RemoteCollection.Add(System.String,System.String,System.String)"
+ ],
+ "receiver_release_all": [],
+ "fresh_not_public_surface": [
+  "LibGit2Sharp.Diff.BuildOptions"
+ ],
+ "instance_methods_evaluated": 222,
+ "public_rows": 2
+}

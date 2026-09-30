@@ -1,0 +1,46 @@
+{
+ "package": "NSec.Cryptography",
+ "written_at_utc": "2026-09-30T04:09:40Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read)",
+ "note": "",
+ "suggested_rows": [
+  {
+   "callable": "NSec.Cryptography.Key.Create",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new key (owns libsodium memory)"
+  },
+  {
+   "callable": "NSec.Cryptography.Key.Import",
+   "arity": 4,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new key"
+  },
+  {
+   "callable": "NSec.Cryptography.KeyAgreementAlgorithm.Agree",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new SharedSecret (nullable)"
+  },
+  {
+   "callable": "NSec.Cryptography.KeyDerivationAlgorithm.DeriveKey",
+   "arity": 5,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new key"
+  },
+  {
+   "callable": "NSec.Cryptography.SharedSecret.Import",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new shared secret"
+  }
+ ],
+ "suggested_negatives": [],
+ "adopting_ctor_judgements": []
+}

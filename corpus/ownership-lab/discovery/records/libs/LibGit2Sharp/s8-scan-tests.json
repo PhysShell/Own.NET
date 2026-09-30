@@ -1,0 +1,57 @@
+{
+ "package": "LibGit2Sharp",
+ "consumer": "tests",
+ "files": 27,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/LibGit2Sharp/rows-applied.json",
+ "key_sha256": "30508751c264539791e328060e530b7e3c242018458184530dbf1868d9e2e80a",
+ "off": {
+  "findings": [],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 27,
+   "methods_flow_analysed": 23,
+   "methods_skipped_unmodelled": 4
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "LibGit2Sharp.Tests__RemoteFixture.cs",
+    219,
+    "OWN001",
+    "IDisposable local 'remote' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "LibGit2Sharp.Tests__RemoteFixture.cs",
+    230,
+    "OWN001",
+    "IDisposable local 'remote' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: return_fresh_owned=7"
+  ],
+  "stats": {
+   "methods_with_local": 29,
+   "methods_flow_analysed": 25,
+   "methods_skipped_unmodelled": 4
+  }
+ },
+ "new_findings": [
+  [
+   "LibGit2Sharp.Tests__RemoteFixture.cs",
+   219,
+   "OWN001",
+   "IDisposable local 'remote' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "LibGit2Sharp.Tests__RemoteFixture.cs",
+   230,
+   "OWN001",
+   "IDisposable local 'remote' is never disposed (leak) [resource: disposable]"
+  ]
+ ],
+ "lost_findings": []
+}

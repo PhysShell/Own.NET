@@ -1,0 +1,24 @@
+{
+ "package": "SharpCompress",
+ "version": "1.0.0",
+ "nupkg_sha256": "5f3e8fd8cb13a8b9a8ac86002ec262839520a28b7bfd340d013831d8434612f8",
+ "repository_url": "https://github.com/adamhathcock/sharpcompress",
+ "repository_commit": "b6cc95af73950c914e0c6ce7ea3511528ede1121",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SharpCompress/lib/net8.0/SharpCompress.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SharpCompress/lib/net8.0/SharpCompress.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SharpCompress/lib/net8.0/SharpCompress.dll",
+  "name": "SharpCompress",
+  "version": "1.0.0.0",
+  "culture": "",
+  "public_key_token": "afb0a02973931d96",
+  "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba",
+  "target_framework": ".NETCoreApp,Version=v8.0",
+  "informational_version": "1.0.0+b6cc95af73950c914e0c6ce7ea3511528ede1121",
+  "sha256": "aa04c584d1f3561226b336359bb0809e8be105bb29363523000c1276bb557fad",
+  "size": 1531904
+ },
+ "xmldoc": []
+}

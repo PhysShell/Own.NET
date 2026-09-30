@@ -1,0 +1,26 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for RabbitMQ.Client 7.2.2 (BODY_PROVED + WITNESSED; MVID a5a91a86-3c7c-4189-81ab-41160f9adf1e)",
+ "entries": [
+  {
+   "callable": "RabbitMQ.Client.ConnectionFactoryBase.DefaultSocketFactory",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "RabbitMQ.Client",
+    "mvid": "a5a91a86-3c7c-4189-81ab-41160f9adf1e"
+   },
+   "derived_from": "https://github.com/rabbitmq/rabbitmq-dotnet-client.git@740faf07f04ade7d35d3539e20613c6ac6b9b46f via E1/E3 (inferred)"
+  },
+  {
+   "callable": "RabbitMQ.Client.TcpClientAdapter.GetStream",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "RabbitMQ.Client",
+    "mvid": "a5a91a86-3c7c-4189-81ab-41160f9adf1e"
+   },
+   "derived_from": "https://github.com/rabbitmq/rabbitmq-dotnet-client.git@740faf07f04ade7d35d3539e20613c6ac6b9b46f via E1/E3 (inferred)"
+  }
+ ]
+}

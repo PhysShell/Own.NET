@@ -1,0 +1,94 @@
+{
+  "assembly": "Serilog",
+  "version": "4.4.0.0",
+  "mvid": "a781a394-adba-452a-ab38-d28ea52bd305",
+  "disposable_types": 1,
+  "types": [
+    {
+      "type": "Serilog.Core.Logger",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    }
+  ],
+  "factories": [
+    {
+      "callable": "Serilog.LoggerConfiguration.CreateLogger",
+      "arity": 0,
+      "is_static": false,
+      "returns": "Serilog.Core.Logger",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": []
+    },
+    {
+      "callable": "Serilog.Context.LogContext.PushProperty",
+      "arity": 3,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "string",
+        "object?",
+        "bool"
+      ]
+    },
+    {
+      "callable": "Serilog.Context.LogContext.Push",
+      "arity": 1,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "Serilog.Core.ILogEventEnricher"
+      ]
+    },
+    {
+      "callable": "Serilog.Context.LogContext.Push",
+      "arity": 1,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "Serilog.Core.ILogEventEnricher[]"
+      ]
+    },
+    {
+      "callable": "Serilog.Context.LogContext.Push",
+      "arity": 1,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.ReadOnlySpan\u003CSerilog.Core.ILogEventEnricher\u003E"
+      ]
+    },
+    {
+      "callable": "Serilog.Context.LogContext.Push",
+      "arity": 1,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.Collections.Generic.IEnumerable\u003CSerilog.Core.ILogEventEnricher\u003E"
+      ]
+    },
+    {
+      "callable": "Serilog.Context.LogContext.Suspend",
+      "arity": 0,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": []
+    }
+  ],
+  "adopting_ctors": [],
+  "release_name_candidates": []
+}

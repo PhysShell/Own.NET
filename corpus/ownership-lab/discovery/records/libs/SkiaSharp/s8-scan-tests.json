@@ -1,0 +1,826 @@
+{
+ "package": "SkiaSharp",
+ "consumer": "tests",
+ "files": 31,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SkiaSharp/rows-applied.json",
+ "key_sha256": "bb382f24117481a40c84b893ead0ae75229e852441cd0fe587f668211f1515fb",
+ "off": {
+  "findings": [
+   [
+    "tests__Tests__SkiaSharp__SKCodecTest.cs",
+    474,
+    "OWN001",
+    "IDisposable local 'httpClient' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKDataTest.cs",
+    71,
+    "OWN001",
+    "IDisposable local 'ms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    83,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    115,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    130,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    148,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    160,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    171,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    191,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    203,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    226,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    238,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    251,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    259,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    275,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    288,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    334,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    346,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    366,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    420,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    428,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    444,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    456,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    480,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    501,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFrontBufferedStreamTest.cs",
+    34,
+    "OWN001",
+    "IDisposable local 'buffered' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFrontBufferedStreamTest.cs",
+    53,
+    "OWN001",
+    "IDisposable local 'buffered' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFrontBufferedStreamTest.cs",
+    78,
+    "OWN001",
+    "IDisposable local 'buffered' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFrontBufferedStreamTest.cs",
+    98,
+    "OWN001",
+    "IDisposable local 'buffered' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKImageTest.cs",
+    143,
+    "OWN001",
+    "IDisposable local 'pixelData' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKImageTest.cs",
+    396,
+    "OWN001",
+    "IDisposable local 'dstBmp' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    108,
+    "OWN001",
+    "IDisposable local 'skManagedStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    145,
+    "OWN001",
+    "IDisposable local 'managedStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    174,
+    "OWN001",
+    "IDisposable local 'managedStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    200,
+    "OWN001",
+    "IDisposable local 'managedStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    218,
+    "OWN001",
+    "IDisposable local 'skManagedStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    239,
+    "OWN001",
+    "IDisposable local 'skManagedStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    261,
+    "OWN001",
+    "IDisposable local 'skManagedStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    867,
+    "OWN001",
+    "IDisposable field 'inner' (type 'MemoryStream') is never disposed \u2014 its owner 'LifecycleTrackingStream' leaks it (leak) [resource: disposable field]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedWStreamTest.cs",
+    71,
+    "OWN001",
+    "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedWStreamTest.cs",
+    99,
+    "OWN001",
+    "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKObjectTest.cs",
+    335,
+    "OWN001",
+    "IDisposable local 'obj' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPaintTest.cs",
+    19,
+    "OWN001",
+    "IDisposable local 'paint' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPaintTest.cs",
+    33,
+    "OWN001",
+    "IDisposable local 'paint' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPaintTest.cs",
+    51,
+    "OWN001",
+    "IDisposable local 'paint' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPathTest.cs",
+    256,
+    "OWN001",
+    "IDisposable local 'region' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPathTest.cs",
+    299,
+    "OWN001",
+    "IDisposable local 'measure' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPixmapTest.cs",
+    18,
+    "OWN001",
+    "IDisposable local 'dstBmp' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPixmapTest.cs",
+    46,
+    "OWN001",
+    "IDisposable local 'pix1' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPixmapTest.cs",
+    59,
+    "OWN001",
+    "IDisposable local 'pixmap' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    363,
+    "OWN001",
+    "IDisposable local 'uniforms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    368,
+    "OWN001",
+    "IDisposable local 'reference' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    375,
+    "OWN001",
+    "IDisposable local 'shuffled' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    470,
+    "OWN001",
+    "IDisposable local 'children' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    513,
+    "OWN001",
+    "IDisposable local 'children' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    563,
+    "OWN001",
+    "IDisposable local 'uniforms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    670,
+    "OWN001",
+    "IDisposable local 'uniforms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    691,
+    "OWN001",
+    "IDisposable local 'uniforms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKStreamTest.cs",
+    90,
+    "OWN001",
+    "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 113,
+   "methods_flow_analysed": 104,
+   "methods_skipped_unmodelled": 9
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "tests__Tests__SkiaSharp__SKBitmapTest.cs",
+    143,
+    "OWN001",
+    "IDisposable local 'bmp' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKBitmapTest.cs",
+    338,
+    "OWN001",
+    "IDisposable local 'bitmap' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKCodecTest.cs",
+    323,
+    "OWN001",
+    "IDisposable local 'correctBitmap' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKCodecTest.cs",
+    474,
+    "OWN001",
+    "IDisposable local 'httpClient' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKDataTest.cs",
+    46,
+    "OWN001",
+    "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKDataTest.cs",
+    59,
+    "OWN001",
+    "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKDataTest.cs",
+    71,
+    "OWN001",
+    "IDisposable local 'ms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKDataTest.cs",
+    216,
+    "OWN001",
+    "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    83,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    115,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    130,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    148,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    160,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    171,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    191,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    203,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    226,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    238,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    251,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    259,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    275,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    288,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    325,
+    "OWN001",
+    "IDisposable local 'textPath' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    334,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    346,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    366,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    420,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    428,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    444,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    456,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    480,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    501,
+    "OWN001",
+    "IDisposable local 'font' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFrontBufferedStreamTest.cs",
+    34,
+    "OWN001",
+    "IDisposable local 'buffered' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFrontBufferedStreamTest.cs",
+    53,
+    "OWN001",
+    "IDisposable local 'buffered' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFrontBufferedStreamTest.cs",
+    78,
+    "OWN001",
+    "IDisposable local 'buffered' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKFrontBufferedStreamTest.cs",
+    98,
+    "OWN001",
+    "IDisposable local 'buffered' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKImageTest.cs",
+    143,
+    "OWN001",
+    "IDisposable local 'pixelData' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKImageTest.cs",
+    396,
+    "OWN001",
+    "IDisposable local 'dstBmp' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    108,
+    "OWN001",
+    "IDisposable local 'skManagedStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    145,
+    "OWN001",
+    "IDisposable local 'managedStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    174,
+    "OWN001",
+    "IDisposable local 'managedStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    200,
+    "OWN001",
+    "IDisposable local 'managedStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    218,
+    "OWN001",
+    "IDisposable local 'skManagedStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    239,
+    "OWN001",
+    "IDisposable local 'skManagedStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    261,
+    "OWN001",
+    "IDisposable local 'skManagedStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedStreamTest.cs",
+    867,
+    "OWN001",
+    "IDisposable field 'inner' (type 'MemoryStream') is never disposed \u2014 its owner 'LifecycleTrackingStream' leaks it (leak) [resource: disposable field]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedWStreamTest.cs",
+    71,
+    "OWN001",
+    "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKManagedWStreamTest.cs",
+    99,
+    "OWN001",
+    "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKObjectTest.cs",
+    335,
+    "OWN001",
+    "IDisposable local 'obj' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPaintTest.cs",
+    19,
+    "OWN001",
+    "IDisposable local 'paint' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPaintTest.cs",
+    33,
+    "OWN001",
+    "IDisposable local 'paint' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPaintTest.cs",
+    51,
+    "OWN001",
+    "IDisposable local 'paint' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPathTest.cs",
+    256,
+    "OWN001",
+    "IDisposable local 'region' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPathTest.cs",
+    299,
+    "OWN001",
+    "IDisposable local 'measure' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPixmapTest.cs",
+    18,
+    "OWN001",
+    "IDisposable local 'dstBmp' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPixmapTest.cs",
+    46,
+    "OWN001",
+    "IDisposable local 'pix1' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKPixmapTest.cs",
+    59,
+    "OWN001",
+    "IDisposable local 'pixmap' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    363,
+    "OWN001",
+    "IDisposable local 'uniforms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    368,
+    "OWN001",
+    "IDisposable local 'reference' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    375,
+    "OWN001",
+    "IDisposable local 'shuffled' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    470,
+    "OWN001",
+    "IDisposable local 'children' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    513,
+    "OWN001",
+    "IDisposable local 'children' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    563,
+    "OWN001",
+    "IDisposable local 'uniforms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    670,
+    "OWN001",
+    "IDisposable local 'uniforms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKRuntimeEffectTest.cs",
+    691,
+    "OWN001",
+    "IDisposable local 'uniforms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__Tests__SkiaSharp__SKStreamTest.cs",
+    90,
+    "OWN001",
+    "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: return_fresh_owned=23"
+  ],
+  "stats": {
+   "methods_with_local": 120,
+   "methods_flow_analysed": 111,
+   "methods_skipped_unmodelled": 9
+  }
+ },
+ "new_findings": [
+  [
+   "tests__Tests__SkiaSharp__SKBitmapTest.cs",
+   143,
+   "OWN001",
+   "IDisposable local 'bmp' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "tests__Tests__SkiaSharp__SKBitmapTest.cs",
+   338,
+   "OWN001",
+   "IDisposable local 'bitmap' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "tests__Tests__SkiaSharp__SKCodecTest.cs",
+   323,
+   "OWN001",
+   "IDisposable local 'correctBitmap' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "tests__Tests__SkiaSharp__SKDataTest.cs",
+   46,
+   "OWN001",
+   "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "tests__Tests__SkiaSharp__SKDataTest.cs",
+   59,
+   "OWN001",
+   "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "tests__Tests__SkiaSharp__SKDataTest.cs",
+   216,
+   "OWN001",
+   "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "tests__Tests__SkiaSharp__SKFontTest.cs",
+   325,
+   "OWN001",
+   "IDisposable local 'textPath' is never disposed (leak) [resource: disposable]"
+  ]
+ ],
+ "lost_findings": []
+}

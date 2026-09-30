@@ -1,0 +1,1197 @@
+{
+ "package": "CsvHelper",
+ "consumer": "tests",
+ "files": 21,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/CsvHelper/rows-applied.json",
+ "key_sha256": "d6c3cea30b6a3dfecd74ec8e8ed85e7950b8a39863e6dca3defe642f3a2b5c41",
+ "off": {
+  "findings": [
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    41,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    48,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    67,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    78,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    93,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    100,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    119,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    126,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    145,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    156,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    173,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    180,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    451,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    463,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    478,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    486,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    497,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    510,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    521,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    532,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    544,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    554,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    566,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    573,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    588,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    594,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    27,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    51,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    77,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    100,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    119,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    143,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    163,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    185,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    209,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderSubClassingTests.cs",
+    25,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    41,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    71,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    113,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    161,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    177,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    195,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    217,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    290,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    310,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    347,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    378,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    417,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    451,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    490,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    528,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    566,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    576,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    639,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    651,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    665,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    699,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    732,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    796,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    817,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    836,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    854,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    875,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    897,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    919,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    1001,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    1024,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    1042,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    29,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    36,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    48,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    54,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    66,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    72,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    105,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    112,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterSubClassingTests.cs",
+    26,
+    "OWN001",
+    "IDisposable local 'csvWriter' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    33,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    50,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    70,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    77,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    105,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    137,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    143,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    159,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    165,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    195,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    201,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    219,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    225,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    244,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    256,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    291,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    298,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__DisposeTests.cs",
+    49,
+    "OWN003",
+    "IDisposable local 'reader' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__LocalCultureTests.cs",
+    30,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__LocalCultureTests.cs",
+    54,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 73,
+   "methods_flow_analysed": 70,
+   "methods_skipped_unmodelled": 3
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    41,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    48,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    67,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    78,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    93,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    100,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    119,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    126,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    145,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    156,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    173,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    180,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    451,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    463,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    478,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    486,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    497,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    510,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    521,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    532,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    544,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    554,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    566,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    573,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    588,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvParserTests.cs",
+    594,
+    "OWN001",
+    "IDisposable local 'parser' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    27,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    51,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    77,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    100,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    119,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    143,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    163,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    185,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderMappingTests.cs",
+    209,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderSubClassingTests.cs",
+    25,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    41,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    71,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    113,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    161,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    177,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    195,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    217,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    290,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    310,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    347,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    378,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    417,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    451,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    490,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    528,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    566,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    576,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    639,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    651,
+    "OWN001",
+    "IDisposable local 'writer' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    665,
+    "OWN001",
+    "IDisposable local 'csvReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    699,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    732,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    796,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    817,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    836,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    854,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    875,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    897,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    919,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    1001,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    1024,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvReaderTests.cs",
+    1042,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    29,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    36,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    48,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    54,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    66,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    72,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    105,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterFormatTests.cs",
+    112,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterSubClassingTests.cs",
+    26,
+    "OWN001",
+    "IDisposable local 'csvWriter' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    33,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    50,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    70,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    77,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    105,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    137,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    143,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    159,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    165,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    195,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    201,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    219,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    225,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    244,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    256,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    291,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__CsvWriterTests.cs",
+    298,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__DisposeTests.cs",
+    49,
+    "OWN003",
+    "IDisposable local 'reader' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__LocalCultureTests.cs",
+    30,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__CsvHelper.Tests__LocalCultureTests.cs",
+    54,
+    "OWN001",
+    "IDisposable local 'csv' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: "
+  ],
+  "stats": {
+   "methods_with_local": 73,
+   "methods_flow_analysed": 70,
+   "methods_skipped_unmodelled": 3
+  }
+ },
+ "new_findings": [],
+ "lost_findings": []
+}

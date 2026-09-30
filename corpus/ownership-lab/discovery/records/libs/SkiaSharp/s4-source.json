@@ -1,0 +1,131 @@
+{
+ "package": "SkiaSharp",
+ "repo": "mono/SkiaSharp",
+ "commit": "4783f51448f9b070dda4f87b83e941c9599e466e",
+ "files": [
+  {
+   "path": "binding/SkiaSharp/SKObject.cs",
+   "sha256": "1b3b1c32fb2a5f0ed3e40ba7d10f408555c2f51bb62054d3569f371d8b70a14f",
+   "bytes": 15730
+  },
+  {
+   "path": "binding/SkiaSharp/SKData.cs",
+   "sha256": "8c77671968ac51ce37d48343a5bb7d0fbb303fbbb7cee5d63969ff7ef17e0c55",
+   "bytes": 9916
+  },
+  {
+   "path": "binding/SkiaSharp/SKStream.cs",
+   "sha256": "da18f2abb445810cfc6726cb3c3b444de456ab12d876af7b2e570142c0cc58ac",
+   "bytes": 15694
+  },
+  {
+   "path": "binding/SkiaSharp/SKImage.cs",
+   "sha256": "f318da95e2939cdbab6f4fff5179cbe2ebed369b079874b4f02f2e746e3b0214",
+   "bytes": 30134
+  },
+  {
+   "path": "binding/SkiaSharp/SKBitmap.cs",
+   "sha256": "13fec8d7fb6a5979651417d4d204ab1b7fb639a566efbb3b0c5d68662c18c434",
+   "bytes": 22226
+  },
+  {
+   "path": "binding/SkiaSharp/SKSurface.cs",
+   "sha256": "848c718a0fb6eff6d45d2c17dfa67625bbb0eb5ec99d2536ad876a9ee691b35c",
+   "bytes": 24518
+  },
+  {
+   "path": "binding/SkiaSharp/SKCanvas.cs",
+   "sha256": "694499b2a6957039eccd10c4d14b3803b7c1929fc857f54388bc942ecd5c87c3",
+   "bytes": 40177
+  },
+  {
+   "path": "binding/SkiaSharp/SKPaint.cs",
+   "sha256": "9ae2a0252110491c33d578c5d13b5acd3c13d47f2532479c3af3d9c30c90728d",
+   "bytes": 43158
+  },
+  {
+   "path": "binding/SkiaSharp/SKPath.cs",
+   "sha256": "56859d47f471bb899180298a6260348815ec36664fac89362eec51215f6c8dbc",
+   "bytes": 22973
+  },
+  {
+   "path": "binding/SkiaSharp/SKCodec.cs",
+   "sha256": "e00a34bb62bb2e223b8f44f24b8a011c9cb086a82b6a03680e08db1f249f4d18",
+   "bytes": 9655
+  },
+  {
+   "path": "binding/SkiaSharp/SKColorSpace.cs",
+   "sha256": "4c72d1a4addb1497db40c82097f0ffdd22f3d8a9487425d3e645a40395a94c30",
+   "bytes": 6136
+  },
+  {
+   "path": "binding/SkiaSharp/SKColorFilter.cs",
+   "sha256": "3702e702153f3ce4c15f9913025e9ddb57a13ada332c83443d2b5df039cef4c5",
+   "bytes": 7191
+  },
+  {
+   "path": "binding/SkiaSharp/SKShader.cs",
+   "sha256": "81f33c9acb5c4c6754f76701339bdfd3c2c838a589557d14db89dea63fe2f146",
+   "bytes": 23393
+  },
+  {
+   "path": "binding/SkiaSharp/SKTypeface.cs",
+   "sha256": "3871cd83f74a2e2de7ce93a44f751900d0d956925dcaf621de1a22a5221cc6ca",
+   "bytes": 17243
+  },
+  {
+   "path": "binding/SkiaSharp/SKFont.cs",
+   "sha256": "2cc79011c7eed1566baa4b92ad35f97972f0efa120de28cb0400935f9093b2a7",
+   "bytes": 34264
+  },
+  {
+   "path": "binding/SkiaSharp/SKDocument.cs",
+   "sha256": "822b2cd1314f93542f0f5e1fdb03a584189d450fc5af61c6f9c132ea25b8bce4",
+   "bytes": 6468
+  },
+  {
+   "path": "binding/SkiaSharp/SKPicture.cs",
+   "sha256": "17d06c274d8c94fff93374580ce26b7aaa76d09a3bcbefef6ce318f505644b1d",
+   "bytes": 4869
+  },
+  {
+   "path": "binding/SkiaSharp/SKPictureRecorder.cs",
+   "sha256": "3b5a8d87aab195f1e335ae0135029dd56c161f7d3db52594bf46e993a48c1a70",
+   "bytes": 2118
+  },
+  {
+   "path": "binding/SkiaSharp/SKManagedStream.cs",
+   "sha256": "c017b7eaadb75ea5cd4a2503c6813c22d5f307912eb761baa2fe764c3ad50038",
+   "bytes": 4760
+  },
+  {
+   "path": "binding/SkiaSharp/SKManagedWStream.cs",
+   "sha256": "94530393cf8ddcf5cfcc8fe30e17c7a4960b3abdbac55f74faf6c3c312ce87ca",
+   "bytes": 1437
+  },
+  {
+   "path": "binding/SkiaSharp/SKFrontBufferedStream.cs",
+   "sha256": "ff492339b15ef561be853f1fc16d7686311a821f8d644865301d4a1d91c1f31a",
+   "bytes": 5082
+  },
+  {
+   "path": "binding/SkiaSharp/SKPixmap.cs",
+   "sha256": "a107ba338dfcf7a7d5ce3190549976de978ae74c09364a676deafc7a4b39d253",
+   "bytes": 12806
+  },
+  {
+   "path": "binding/SkiaSharp/GRContext.cs",
+   "sha256": "78117c78d3080023bf30a8e5d78c6430684ffb3bb5dfab5ba141730b16fe7b1e",
+   "bytes": 6964
+  },
+  {
+   "path": "binding/SkiaSharp/SKRuntimeEffect.cs",
+   "sha256": "ba90eb125d4ab207298e90f3c9c12494f6bf9cf454842a532cd86b49dcc6542c",
+   "bytes": 21225
+  },
+  {
+   "path": "binding/SkiaSharp/SKAutoCanvasRestore.cs",
+   "error": "HTTP Error 404: Not Found"
+  }
+ ]
+}

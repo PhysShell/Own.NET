@@ -1,0 +1,109 @@
+{
+ "package": "SharpZipLib",
+ "written_at_utc": "2026-09-30T04:05:02Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read)",
+ "note": "",
+ "suggested_rows": [
+  {
+   "callable": "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new ZipFile over a new file"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Zip.ZipFile.GetInputStream",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new entry stream (partial input stream)"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateInputTarArchive",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new TarArchive wrapping the stream"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateOutputTarArchive",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new TarArchive"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateDecryptor",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new ICryptoTransform"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateEncryptor",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new ICryptoTransform"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Zip.DiskArchiveStorage.GetTemporaryOutput",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new temp FileStream"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "ICSharpCode.SharpZipLib.Zip.ZipFile.Close",
+   "arity": 0,
+   "why": "Close == Dispose for ZipFile (production name rule)"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Tar.TarArchive.Close",
+   "arity": 0,
+   "why": "same"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Tar.TarArchive.CloseArchive",
+   "arity": 0,
+   "why": "UNSURE: closes the archive: likely terminal (candidate release)"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Zip.ZipOutputStream.CloseEntry",
+   "arity": 0,
+   "why": "closes an ENTRY, not the stream: hostile name"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Zip.ZipInputStream.CloseEntry",
+   "arity": 0,
+   "why": "same"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Zip.ZipFile.Delete",
+   "arity": 1,
+   "why": "deletes an entry: hostile name"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Zip.ZipFile.AbortUpdate",
+   "arity": 0,
+   "why": "not a release"
+  }
+ ],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "ZipInputStream(Stream)/ZipOutputStream(Stream)/GZipInputStream(Stream)/GZipOutputStream(Stream)/BZip2*(Stream)/Tar*(Stream)/DeflaterOutputStream(Stream)/InflaterInputStream(Stream)",
+   "judgement": "adopt unless IsStreamOwner=false is set later (a PROPERTY flag, not a ctor flag): the ctor adopts by default; the leaveOpen-style decision is a mutable property \u2014 a representation question"
+  },
+  {
+   "ctor": "ZipFile(FileStream, bool leaveOpen)",
+   "judgement": "adopt-if(leaveOpen == false): the H-03 shape"
+  },
+  {
+   "ctor": "ZipFile(Stream, bool leaveOpen, StringCodec)",
+   "judgement": "adopt-if(leaveOpen == false): the H-03 shape"
+  }
+ ]
+}

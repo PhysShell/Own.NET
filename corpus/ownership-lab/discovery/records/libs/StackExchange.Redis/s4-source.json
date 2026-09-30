@@ -1,0 +1,91 @@
+{
+ "package": "StackExchange.Redis",
+ "repo": "StackExchange/StackExchange.Redis",
+ "commit": "0a92ae43b0f8e80467920115a54f9761cc04ee4c",
+ "files": [
+  {
+   "path": "src/StackExchange.Redis/ConnectionMultiplexer.cs",
+   "sha256": "bead380ac96670587459feeeeee480891b7304a24353a6288ed7def8a85ab4d0",
+   "bytes": 139204
+  },
+  {
+   "path": "src/StackExchange.Redis/ConnectionMultiplexer.Sentinel.cs",
+   "sha256": "b159952b69025701633add999978d7e9e8ee4c784e0fe799e2e87213814888ed",
+   "bytes": 32348
+  },
+  {
+   "path": "src/StackExchange.Redis/ConnectionMultiplexer.Profiling.cs",
+   "sha256": "b87fe4df75515a1e67841829f204dde14a1af98629ef8d9b1283ecebe567fc09",
+   "bytes": 726
+  },
+  {
+   "path": "src/StackExchange.Redis/Interfaces/IConnectionMultiplexer.cs",
+   "sha256": "1726984710578bcb8fc03b59cddc218150f97c5b795d941e429443d2bf1b3d81",
+   "bytes": 13439
+  },
+  {
+   "path": "src/StackExchange.Redis/Lease.cs",
+   "sha256": "e69c444ba2ddf8b7dbed2e3a73a4b86f903d65c71aacf65f01d951a6b6e5a165",
+   "bytes": 5625
+  },
+  {
+   "path": "src/StackExchange.Redis/RedisDatabase.cs",
+   "sha256": "97f67a1ef93955f1111210579427a4038a3130a3f66bb3282cab76a743d93c09",
+   "bytes": 349501
+  },
+  {
+   "path": "src/StackExchange.Redis/RedisSubscriber.cs",
+   "sha256": "fb98e6db7939f84a9f17778ca5e1ef7ebab28ed7fe906ee444242d133e8a7cde",
+   "bytes": 17405
+  },
+  {
+   "path": "src/StackExchange.Redis/ChannelMessageQueue.cs",
+   "sha256": "669b9632c3f63cacda462572cdcbe157562c96dddb2f75e412e61c8f250a1731",
+   "bytes": 11432
+  },
+  {
+   "path": "src/StackExchange.Redis/LoggingPipe.cs",
+   "sha256": "5577e21aa4a1b204c8b7208141bb960ce227fa2fe9187e6fc54d9efc2922eca0",
+   "bytes": 3124
+  },
+  {
+   "path": "src/StackExchange.Redis/SocketManager.cs",
+   "sha256": "5a9814931af914262c0dfd4f056cb976d3c369a23d6623adf0c34e3e1c2ee676",
+   "bytes": 6901
+  },
+  {
+   "path": "src/StackExchange.Redis/PhysicalConnection.cs",
+   "sha256": "2a5e29fc7cc8da29bd2d9083c9ae4b88e36ff42a385ef3b0537a2c7517d6771f",
+   "bytes": 68580
+  },
+  {
+   "path": "src/StackExchange.Redis/PhysicalBridge.cs",
+   "sha256": "c8139d8b367c11ca808ef681e42da2427d6f45566489d6f80a178fac81176089",
+   "bytes": 87183
+  },
+  {
+   "path": "src/StackExchange.Redis/ServerEndPoint.cs",
+   "sha256": "bda0499067138110a39b827aa95cda88d2d12d5747e5359f2759f6040139bbec",
+   "bytes": 75614
+  },
+  {
+   "path": "src/StackExchange.Redis/ExtensionMethods.cs",
+   "sha256": "d8aa82c4b48ea1a37b19d10c7b9728a61cacefab4690409c93fe7045e7c7aaf9",
+   "bytes": 13242
+  },
+  {
+   "path": "src/StackExchange.Redis/HashImport.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "src/StackExchange.Redis/RespResult.cs",
+   "sha256": "144b024c9b0b96059ca56a2f0c861f1c300e024d3720bcd7b6d48a66935a2f84",
+   "bytes": 5211
+  },
+  {
+   "path": "src/StackExchange.Redis/Configuration/LoggingTunnel.cs",
+   "sha256": "942a086e95baecda46f5e70c38ab71a8a461a229f4bb28111eb2f91cf3a44ee7",
+   "bytes": 31266
+  }
+ ]
+}

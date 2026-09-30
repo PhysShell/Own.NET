@@ -1,0 +1,25 @@
+{
+ "source_files": 8,
+ "perfile_union_added_fresh": [],
+ "extractor_stats": {
+  "methods_with_local": 13,
+  "methods_flow_analysed": 13,
+  "methods_skipped_unmodelled": 0
+ },
+ "re_body_census": "fresh_return=8",
+ "fresh_summaries_all": [
+  "NSec.Cryptography.Key.Create",
+  "NSec.Cryptography.Key.Import",
+  "NSec.Cryptography.KeyDerivationAlgorithm.DeriveKey",
+  "NSec.Cryptography.KeyDerivationAlgorithm.DeriveKey(NSec.Cryptography.SharedSecret,System.ReadOnlySpan`1,System.ReadOnlySpan`1,NSec.Cryptography.Algorithm,NSec.Cryptography.KeyCreationParameters)",
+  "NSec.Cryptography.KeyDerivationAlgorithm.DeriveKey(System.ReadOnlySpan`1,System.ReadOnlySpan`1,System.ReadOnlySpan`1,NSec.Cryptography.Algorithm,NSec.Cryptography.KeyCreationParameters)",
+  "NSec.Cryptography.KeyDerivationAlgorithm2.ExpandKey",
+  "NSec.Cryptography.PasswordBasedKeyDerivationAlgorithm.DeriveKey(System.ReadOnlySpan`1,System.ReadOnlySpan`1,NSec.Cryptography.Algorithm,NSec.Cryptography.KeyCreationParameters)",
+  "NSec.Cryptography.PasswordBasedKeyDerivationAlgorithm.DeriveKey(System.String,System.ReadOnlySpan`1,NSec.Cryptography.Algorithm,NSec.Cryptography.KeyCreationParameters)",
+  "NSec.Cryptography.SharedSecret.Import"
+ ],
+ "receiver_release_all": [],
+ "fresh_not_public_surface": [],
+ "instance_methods_evaluated": 58,
+ "public_rows": 6
+}

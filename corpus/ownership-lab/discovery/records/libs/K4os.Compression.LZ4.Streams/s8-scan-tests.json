@@ -1,0 +1,45 @@
+{
+ "package": "K4os.Compression.LZ4.Streams",
+ "consumer": "tests",
+ "files": 15,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/K4os.Compression.LZ4.Streams/rows-applied.json",
+ "key_sha256": "414baf4d18cf3388156049f3cf75a283952cdb49a59975174a17696ba7fe6a94",
+ "off": {
+  "findings": [],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 8,
+   "methods_flow_analysed": 4,
+   "methods_skipped_unmodelled": 4
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "src__K4os.Compression.LZ4.Streams.Tests__StreamInterfaceTests.cs",
+    57,
+    "OWN003",
+    "IDisposable local 'lz4' is disposed more than once [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: return_fresh_owned=14"
+  ],
+  "stats": {
+   "methods_with_local": 12,
+   "methods_flow_analysed": 8,
+   "methods_skipped_unmodelled": 4
+  }
+ },
+ "new_findings": [
+  [
+   "src__K4os.Compression.LZ4.Streams.Tests__StreamInterfaceTests.cs",
+   57,
+   "OWN003",
+   "IDisposable local 'lz4' is disposed more than once [resource: disposable]"
+  ]
+ ],
+ "lost_findings": []
+}

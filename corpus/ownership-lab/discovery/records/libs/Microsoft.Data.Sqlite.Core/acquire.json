@@ -1,0 +1,27 @@
+{
+ "package": "Microsoft.Data.Sqlite.Core",
+ "version": "10.0.12",
+ "nupkg_sha256": "5e8ed353006dadf55d5c7f56d237321c20bb10c786262e6b25526756e1036332",
+ "repository_url": "https://github.com/dotnet/dotnet",
+ "repository_commit": "95017c711e6afc1085133d440e42b4bd78155701",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Microsoft.Data.Sqlite.Core/lib/net8.0/Microsoft.Data.Sqlite.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Microsoft.Data.Sqlite.Core/lib/net8.0/Microsoft.Data.Sqlite.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Microsoft.Data.Sqlite.Core/lib/net8.0/Microsoft.Data.Sqlite.dll",
+  "name": "Microsoft.Data.Sqlite",
+  "version": "10.0.12.0",
+  "culture": "",
+  "public_key_token": "adb9793829ddae60",
+  "mvid": "c031b608-828e-489e-938d-6a4064eb899a",
+  "target_framework": ".NETCoreApp,Version=v8.0",
+  "informational_version": "10.0.12",
+  "sha256": "b98d957462be432895b00dccca012d3c127e118d3d4262418014b92c7bbd66cf",
+  "size": 177464
+ },
+ "xmldoc": [
+  "lib/net8.0/Microsoft.Data.Sqlite.xml",
+  "lib/netstandard2.0/Microsoft.Data.Sqlite.xml"
+ ]
+}

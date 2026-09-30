@@ -1,0 +1,348 @@
+{
+  "assembly": "Microsoft.Data.Sqlite",
+  "version": "10.0.12.0",
+  "mvid": "c031b608-828e-489e-938d-6a4064eb899a",
+  "disposable_types": 5,
+  "types": [
+    {
+      "type": "Microsoft.Data.Sqlite.SqliteBlob",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "Microsoft.Data.Sqlite.SqliteCommand",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "Microsoft.Data.Sqlite.SqliteConnection",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "Microsoft.Data.Sqlite.SqliteDataReader",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "Microsoft.Data.Sqlite.SqliteTransaction",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    }
+  ],
+  "factories": [
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader",
+      "arity": 0,
+      "is_static": false,
+      "returns": "Microsoft.Data.Sqlite.SqliteDataReader",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": []
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader",
+      "arity": 1,
+      "is_static": false,
+      "returns": "Microsoft.Data.Sqlite.SqliteDataReader",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": [
+        "System.Data.CommandBehavior"
+      ]
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync",
+      "arity": 0,
+      "is_static": false,
+      "returns": "Microsoft.Data.Sqlite.SqliteDataReader",
+      "async_wrapped": true,
+      "declaring_type_disposable": true,
+      "parameters": []
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync",
+      "arity": 1,
+      "is_static": false,
+      "returns": "Microsoft.Data.Sqlite.SqliteDataReader",
+      "async_wrapped": true,
+      "declaring_type_disposable": true,
+      "parameters": [
+        "System.Threading.CancellationToken"
+      ]
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync",
+      "arity": 1,
+      "is_static": false,
+      "returns": "Microsoft.Data.Sqlite.SqliteDataReader",
+      "async_wrapped": true,
+      "declaring_type_disposable": true,
+      "parameters": [
+        "System.Data.CommandBehavior"
+      ]
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync",
+      "arity": 2,
+      "is_static": false,
+      "returns": "Microsoft.Data.Sqlite.SqliteDataReader",
+      "async_wrapped": true,
+      "declaring_type_disposable": true,
+      "parameters": [
+        "System.Data.CommandBehavior",
+        "System.Threading.CancellationToken"
+      ]
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteCommand.get_Connection",
+      "arity": 0,
+      "is_static": false,
+      "returns": "Microsoft.Data.Sqlite.SqliteConnection?",
+      "declaring_type_disposable": true,
+      "parameters": [],
+      "property": true
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteCommand.get_Transaction",
+      "arity": 0,
+      "is_static": false,
+      "returns": "Microsoft.Data.Sqlite.SqliteTransaction?",
+      "declaring_type_disposable": true,
+      "parameters": [],
+      "property": true
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteConnection.CreateCommand",
+      "arity": 0,
+      "is_static": false,
+      "returns": "Microsoft.Data.Sqlite.SqliteCommand",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": []
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteConnection.BeginTransaction",
+      "arity": 0,
+      "is_static": false,
+      "returns": "Microsoft.Data.Sqlite.SqliteTransaction",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": []
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteConnection.BeginTransaction",
+      "arity": 1,
+      "is_static": false,
+      "returns": "Microsoft.Data.Sqlite.SqliteTransaction",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": [
+        "bool"
+      ]
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteConnection.BeginTransaction",
+      "arity": 1,
+      "is_static": false,
+      "returns": "Microsoft.Data.Sqlite.SqliteTransaction",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": [
+        "System.Data.IsolationLevel"
+      ]
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteConnection.BeginTransaction",
+      "arity": 2,
+      "is_static": false,
+      "returns": "Microsoft.Data.Sqlite.SqliteTransaction",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": [
+        "System.Data.IsolationLevel",
+        "bool"
+      ]
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteConnection.GetSchema",
+      "arity": 0,
+      "is_static": false,
+      "returns": "System.Data.DataTable",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": []
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteConnection.GetSchema",
+      "arity": 1,
+      "is_static": false,
+      "returns": "System.Data.DataTable",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": [
+        "string"
+      ]
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteConnection.GetSchema",
+      "arity": 2,
+      "is_static": false,
+      "returns": "System.Data.DataTable",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": [
+        "string",
+        "string?[]"
+      ]
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteDataReader.GetStream",
+      "arity": 1,
+      "is_static": false,
+      "returns": "System.IO.Stream",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": [
+        "int"
+      ]
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteDataReader.GetTextReader",
+      "arity": 1,
+      "is_static": false,
+      "returns": "System.IO.TextReader",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": [
+        "int"
+      ]
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteDataReader.GetSchemaTable",
+      "arity": 0,
+      "is_static": false,
+      "returns": "System.Data.DataTable",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": []
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteFactory.CreateCommand",
+      "arity": 0,
+      "is_static": false,
+      "returns": "System.Data.Common.DbCommand",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": []
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+      "arity": 0,
+      "is_static": false,
+      "returns": "System.Data.Common.DbConnection",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": []
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteTransaction.get_Connection",
+      "arity": 0,
+      "is_static": false,
+      "returns": "Microsoft.Data.Sqlite.SqliteConnection?",
+      "declaring_type_disposable": true,
+      "parameters": [],
+      "property": true
+    }
+  ],
+  "adopting_ctors": [
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteBlob..ctor",
+      "arity": 5,
+      "parameters": [
+        "Microsoft.Data.Sqlite.SqliteConnection",
+        "string",
+        "string",
+        "long",
+        "bool"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": [
+        "readOnly"
+      ]
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteBlob..ctor",
+      "arity": 6,
+      "parameters": [
+        "Microsoft.Data.Sqlite.SqliteConnection",
+        "string",
+        "string",
+        "string",
+        "long",
+        "bool"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": [
+        "readOnly"
+      ]
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteCommand..ctor",
+      "arity": 2,
+      "parameters": [
+        "string?",
+        "Microsoft.Data.Sqlite.SqliteConnection?"
+      ],
+      "disposable_params": [
+        1
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteCommand..ctor",
+      "arity": 3,
+      "parameters": [
+        "string?",
+        "Microsoft.Data.Sqlite.SqliteConnection?",
+        "Microsoft.Data.Sqlite.SqliteTransaction?"
+      ],
+      "disposable_params": [
+        1,
+        2
+      ],
+      "bool_params": []
+    }
+  ],
+  "release_name_candidates": [
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteConnection.Close",
+      "arity": 0,
+      "returns": "void"
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteDataReader.Close",
+      "arity": 0,
+      "returns": "void"
+    },
+    {
+      "callable": "Microsoft.Data.Sqlite.SqliteTransaction.Release",
+      "arity": 1,
+      "returns": "void"
+    }
+  ]
+}

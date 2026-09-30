@@ -1,0 +1,56 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for SharpZipLib 1.4.2 (BODY_PROVED + WITNESSED; MVID 60042469-5ff8-41b2-b5b3-98c15d8a2421)",
+ "entries": [
+  {
+   "callable": "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateDecryptor",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "ICSharpCode.SharpZipLib",
+    "mvid": "60042469-5ff8-41b2-b5b3-98c15d8a2421"
+   },
+   "derived_from": "https://github.com/icsharpcode/SharpZipLib@33f64eb0f28cdd2b084cb822fcc224c7c5aba553 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateEncryptor",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "ICSharpCode.SharpZipLib",
+    "mvid": "60042469-5ff8-41b2-b5b3-98c15d8a2421"
+   },
+   "derived_from": "https://github.com/icsharpcode/SharpZipLib@33f64eb0f28cdd2b084cb822fcc224c7c5aba553 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateInputTarArchive",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "ICSharpCode.SharpZipLib",
+    "mvid": "60042469-5ff8-41b2-b5b3-98c15d8a2421"
+   },
+   "derived_from": "https://github.com/icsharpcode/SharpZipLib@33f64eb0f28cdd2b084cb822fcc224c7c5aba553 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateOutputTarArchive",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "ICSharpCode.SharpZipLib",
+    "mvid": "60042469-5ff8-41b2-b5b3-98c15d8a2421"
+   },
+   "derived_from": "https://github.com/icsharpcode/SharpZipLib@33f64eb0f28cdd2b084cb822fcc224c7c5aba553 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "ICSharpCode.SharpZipLib",
+    "mvid": "60042469-5ff8-41b2-b5b3-98c15d8a2421"
+   },
+   "derived_from": "https://github.com/icsharpcode/SharpZipLib@33f64eb0f28cdd2b084cb822fcc224c7c5aba553 via E1/E3 (inferred)"
+  }
+ ]
+}

@@ -1,0 +1,1108 @@
+{
+  "assembly": "NLog",
+  "version": "6.0.0.0",
+  "mvid": "03802750-90df-4f67-b7f1-d84eee3bd509",
+  "disposable_types": 40,
+  "types": [
+    {
+      "type": "NLog.LogFactory\u003CT\u003E",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.LogFactory",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Config.InstallationContext",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Internal.ObjectReflectionCache.ObjectPropertyList.Enumerator",
+      "kind": "struct",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Internal.PropertiesDictionary.PropertyDictionaryEnumerator",
+      "kind": "struct",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Internal.ReusableObjectCreator\u003CT\u003E.LockOject",
+      "kind": "struct",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Internal.SingleItemOptimizedHashSet\u003CT\u003E.SingleItemScopedInsert",
+      "kind": "struct",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Internal.SortHelpers.ReadOnlySingleBucketGroupBy\u003CTKey, TValue\u003E.Enumerator",
+      "kind": "struct",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Internal.StringBuilderPool.ItemHolder",
+      "kind": "struct",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Internal.ThreadSafeDictionary\u003CTKey, TValue\u003E.Enumerator",
+      "kind": "struct",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.AsyncTaskTarget",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": true
+    },
+    {
+      "type": "NLog.Targets.ColoredConsoleTarget",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.ConsoleTarget",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.DebuggerTarget",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.DebugSystemTarget",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.DebugTarget",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.FileTarget",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.MemoryTarget",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.MethodCallTarget",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.MethodCallTargetBase",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": true
+    },
+    {
+      "type": "NLog.Targets.NullTarget",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.Target",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": true
+    },
+    {
+      "type": "NLog.Targets.TargetWithContext",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": true
+    },
+    {
+      "type": "NLog.Targets.TargetWithLayout",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": true
+    },
+    {
+      "type": "NLog.Targets.TargetWithLayoutHeaderAndFooter",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": true
+    },
+    {
+      "type": "NLog.Targets.Wrappers.AsyncTargetWrapper",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.Wrappers.AutoFlushTargetWrapper",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.Wrappers.BufferingTargetWrapper",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.Wrappers.CompoundTargetBase",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": true
+    },
+    {
+      "type": "NLog.Targets.Wrappers.FallbackGroupTarget",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.Wrappers.FilteringTargetWrapper",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.Wrappers.GroupByTargetWrapper",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.Wrappers.LimitingTargetWrapper",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.Wrappers.PostFilteringTargetWrapper",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.Wrappers.RandomizeGroupTarget",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.Wrappers.RepeatingTargetWrapper",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.Wrappers.RetryingTargetWrapper",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.Wrappers.RoundRobinGroupTarget",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.Wrappers.SplitGroupTarget",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "NLog.Targets.Wrappers.WrapperTargetBase",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": true
+    }
+  ],
+  "factories": [
+    {
+      "callable": "NLog.ILoggerBase.get_Factory",
+      "arity": 0,
+      "is_static": false,
+      "returns": "NLog.LogFactory",
+      "declaring_type_disposable": false,
+      "parameters": [],
+      "property": true
+    },
+    {
+      "callable": "NLog.LogFactory.Setup",
+      "arity": 1,
+      "is_static": false,
+      "returns": "NLog.LogFactory",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": [
+        "System.Action\u003CNLog.Config.ISetupBuilder\u003E"
+      ]
+    },
+    {
+      "callable": "NLog.LogFactory.SuspendLogging",
+      "arity": 0,
+      "is_static": false,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": []
+    },
+    {
+      "callable": "NLog.LogFactory.LoadConfiguration",
+      "arity": 1,
+      "is_static": false,
+      "returns": "NLog.LogFactory",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": [
+        "string"
+      ]
+    },
+    {
+      "callable": "NLog.Logger.PushScopeProperty",
+      "arity": 2,
+      "is_static": false,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "string",
+        "object?"
+      ]
+    },
+    {
+      "callable": "NLog.Logger.PushScopeProperty",
+      "arity": 2,
+      "is_static": false,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "string",
+        "TValue?"
+      ]
+    },
+    {
+      "callable": "NLog.Logger.PushScopeProperties",
+      "arity": 1,
+      "is_static": false,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.Collections.Generic.IReadOnlyCollection\u003CSystem.Collections.Generic.KeyValuePair\u003Cstring, object?\u003E\u003E"
+      ]
+    },
+    {
+      "callable": "NLog.Logger.PushScopeProperties",
+      "arity": 1,
+      "is_static": false,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.Collections.Generic.IReadOnlyCollection\u003CSystem.Collections.Generic.KeyValuePair\u003Cstring, TValue?\u003E\u003E"
+      ]
+    },
+    {
+      "callable": "NLog.Logger.PushScopeNested",
+      "arity": 1,
+      "is_static": false,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "T"
+      ]
+    },
+    {
+      "callable": "NLog.Logger.PushScopeNested",
+      "arity": 1,
+      "is_static": false,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "object"
+      ]
+    },
+    {
+      "callable": "NLog.Logger.get_Factory",
+      "arity": 0,
+      "is_static": false,
+      "returns": "NLog.LogFactory",
+      "declaring_type_disposable": false,
+      "parameters": [],
+      "property": true
+    },
+    {
+      "callable": "NLog.LogManager.Setup",
+      "arity": 1,
+      "is_static": true,
+      "returns": "NLog.LogFactory",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.Action\u003CNLog.Config.ISetupBuilder\u003E"
+      ]
+    },
+    {
+      "callable": "NLog.LogManager.LoadConfiguration",
+      "arity": 1,
+      "is_static": true,
+      "returns": "NLog.LogFactory",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "string"
+      ]
+    },
+    {
+      "callable": "NLog.LogManager.DisableLogging",
+      "arity": 0,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": []
+    },
+    {
+      "callable": "NLog.LogManager.SuspendLogging",
+      "arity": 0,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": []
+    },
+    {
+      "callable": "NLog.LogManager.get_LogFactory",
+      "arity": 0,
+      "is_static": true,
+      "returns": "NLog.LogFactory",
+      "declaring_type_disposable": false,
+      "parameters": [],
+      "property": true
+    },
+    {
+      "callable": "NLog.MappedDiagnosticsContext.SetScoped",
+      "arity": 2,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "string",
+        "string?"
+      ]
+    },
+    {
+      "callable": "NLog.MappedDiagnosticsContext.SetScoped",
+      "arity": 2,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "string",
+        "object?"
+      ]
+    },
+    {
+      "callable": "NLog.MappedDiagnosticsLogicalContext.SetScoped",
+      "arity": 2,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "string",
+        "string?"
+      ]
+    },
+    {
+      "callable": "NLog.MappedDiagnosticsLogicalContext.SetScoped",
+      "arity": 2,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "string",
+        "object?"
+      ]
+    },
+    {
+      "callable": "NLog.MappedDiagnosticsLogicalContext.SetScoped",
+      "arity": 2,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "string",
+        "T?"
+      ]
+    },
+    {
+      "callable": "NLog.MappedDiagnosticsLogicalContext.SetScoped",
+      "arity": 1,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.Collections.Generic.IReadOnlyList\u003CSystem.Collections.Generic.KeyValuePair\u003Cstring, object?\u003E\u003E"
+      ]
+    },
+    {
+      "callable": "NLog.NestedDiagnosticsContext.Push",
+      "arity": 1,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "string"
+      ]
+    },
+    {
+      "callable": "NLog.NestedDiagnosticsContext.Push",
+      "arity": 1,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "object"
+      ]
+    },
+    {
+      "callable": "NLog.NestedDiagnosticsLogicalContext.Push",
+      "arity": 1,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "T"
+      ]
+    },
+    {
+      "callable": "NLog.NestedDiagnosticsLogicalContext.PushObject",
+      "arity": 1,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "object"
+      ]
+    },
+    {
+      "callable": "NLog.ScopeContext.PushNestedStateProperties",
+      "arity": 2,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "object?",
+        "System.Collections.Generic.IReadOnlyCollection\u003CSystem.Collections.Generic.KeyValuePair\u003Cstring, object?\u003E\u003E?"
+      ]
+    },
+    {
+      "callable": "NLog.ScopeContext.PushProperties",
+      "arity": 1,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.Collections.Generic.IReadOnlyCollection\u003CSystem.Collections.Generic.KeyValuePair\u003Cstring, object?\u003E\u003E"
+      ]
+    },
+    {
+      "callable": "NLog.ScopeContext.PushProperties",
+      "arity": 1,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.Collections.Generic.IReadOnlyCollection\u003CSystem.Collections.Generic.KeyValuePair\u003Cstring, TValue?\u003E\u003E"
+      ]
+    },
+    {
+      "callable": "NLog.ScopeContext.PushProperty",
+      "arity": 2,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "string",
+        "TValue?"
+      ]
+    },
+    {
+      "callable": "NLog.ScopeContext.PushProperty",
+      "arity": 2,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "string",
+        "object?"
+      ]
+    },
+    {
+      "callable": "NLog.ScopeContext.PushNestedState",
+      "arity": 1,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "T"
+      ]
+    },
+    {
+      "callable": "NLog.ScopeContext.PushNestedState",
+      "arity": 1,
+      "is_static": true,
+      "returns": "System.IDisposable",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "object"
+      ]
+    },
+    {
+      "callable": "NLog.SetupLoadConfigurationExtensions.FirstTarget",
+      "arity": 1,
+      "is_static": true,
+      "returns": "NLog.Targets.Target",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "NLog.Config.ISetupConfigurationTargetBuilder"
+      ]
+    },
+    {
+      "callable": "NLog.Common.InternalLogger.get_LogWriter",
+      "arity": 0,
+      "is_static": true,
+      "returns": "System.IO.TextWriter?",
+      "declaring_type_disposable": false,
+      "parameters": [],
+      "property": true
+    },
+    {
+      "callable": "NLog.Config.InstallationContext.get_LogOutput",
+      "arity": 0,
+      "is_static": false,
+      "returns": "System.IO.TextWriter?",
+      "declaring_type_disposable": true,
+      "parameters": [],
+      "property": true
+    },
+    {
+      "callable": "NLog.Config.ISetupBuilder.get_LogFactory",
+      "arity": 0,
+      "is_static": false,
+      "returns": "NLog.LogFactory",
+      "declaring_type_disposable": false,
+      "parameters": [],
+      "property": true
+    },
+    {
+      "callable": "NLog.Config.ISetupConfigurationTargetBuilder.get_LogFactory",
+      "arity": 0,
+      "is_static": false,
+      "returns": "NLog.LogFactory",
+      "declaring_type_disposable": false,
+      "parameters": [],
+      "property": true
+    },
+    {
+      "callable": "NLog.Config.ISetupExtensionsBuilder.get_LogFactory",
+      "arity": 0,
+      "is_static": false,
+      "returns": "NLog.LogFactory",
+      "declaring_type_disposable": false,
+      "parameters": [],
+      "property": true
+    },
+    {
+      "callable": "NLog.Config.ISetupInternalLoggerBuilder.get_LogFactory",
+      "arity": 0,
+      "is_static": false,
+      "returns": "NLog.LogFactory",
+      "declaring_type_disposable": false,
+      "parameters": [],
+      "property": true
+    },
+    {
+      "callable": "NLog.Config.ISetupLoadConfigurationBuilder.get_LogFactory",
+      "arity": 0,
+      "is_static": false,
+      "returns": "NLog.LogFactory",
+      "declaring_type_disposable": false,
+      "parameters": [],
+      "property": true
+    },
+    {
+      "callable": "NLog.Config.ISetupLogFactoryBuilder.get_LogFactory",
+      "arity": 0,
+      "is_static": false,
+      "returns": "NLog.LogFactory",
+      "declaring_type_disposable": false,
+      "parameters": [],
+      "property": true
+    },
+    {
+      "callable": "NLog.Config.ISetupSerializationBuilder.get_LogFactory",
+      "arity": 0,
+      "is_static": false,
+      "returns": "NLog.LogFactory",
+      "declaring_type_disposable": false,
+      "parameters": [],
+      "property": true
+    },
+    {
+      "callable": "NLog.Config.LoggingConfiguration.FindTargetByName",
+      "arity": 1,
+      "is_static": false,
+      "returns": "NLog.Targets.Target?",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "string"
+      ]
+    },
+    {
+      "callable": "NLog.Config.LoggingConfiguration.get_LogFactory",
+      "arity": 0,
+      "is_static": false,
+      "returns": "NLog.LogFactory",
+      "declaring_type_disposable": false,
+      "parameters": [],
+      "property": true
+    },
+    {
+      "callable": "NLog.Targets.FileLifecycleHooks.OnFileOpened",
+      "arity": 2,
+      "is_static": false,
+      "returns": "System.IO.Stream",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "string",
+        "System.IO.Stream"
+      ]
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.WrapperTargetBase.get_WrappedTarget",
+      "arity": 0,
+      "is_static": false,
+      "returns": "NLog.Targets.Target?",
+      "declaring_type_disposable": true,
+      "parameters": [],
+      "property": true
+    }
+  ],
+  "adopting_ctors": [
+    {
+      "callable": "NLog.Config.InstallationContext..ctor",
+      "arity": 1,
+      "parameters": [
+        "System.IO.TextWriter"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Internal.ThreadSafeDictionary\u003CTKey, TValue\u003E.Enumerator..ctor",
+      "arity": 1,
+      "parameters": [
+        "System.Collections.Generic.Dictionary\u003CTKey, TValue\u003E.Enumerator"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.AsyncTargetWrapper..ctor",
+      "arity": 2,
+      "parameters": [
+        "string",
+        "NLog.Targets.Target"
+      ],
+      "disposable_params": [
+        1
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.AsyncTargetWrapper..ctor",
+      "arity": 1,
+      "parameters": [
+        "NLog.Targets.Target"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.AsyncTargetWrapper..ctor",
+      "arity": 3,
+      "parameters": [
+        "NLog.Targets.Target",
+        "int",
+        "NLog.Targets.Wrappers.AsyncTargetWrapperOverflowAction"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.AutoFlushTargetWrapper..ctor",
+      "arity": 2,
+      "parameters": [
+        "string",
+        "NLog.Targets.Target"
+      ],
+      "disposable_params": [
+        1
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.AutoFlushTargetWrapper..ctor",
+      "arity": 1,
+      "parameters": [
+        "NLog.Targets.Target"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.BufferingTargetWrapper..ctor",
+      "arity": 2,
+      "parameters": [
+        "string",
+        "NLog.Targets.Target"
+      ],
+      "disposable_params": [
+        1
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.BufferingTargetWrapper..ctor",
+      "arity": 1,
+      "parameters": [
+        "NLog.Targets.Target"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.BufferingTargetWrapper..ctor",
+      "arity": 2,
+      "parameters": [
+        "NLog.Targets.Target",
+        "int"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.BufferingTargetWrapper..ctor",
+      "arity": 3,
+      "parameters": [
+        "NLog.Targets.Target",
+        "int",
+        "int"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.BufferingTargetWrapper..ctor",
+      "arity": 4,
+      "parameters": [
+        "NLog.Targets.Target",
+        "int",
+        "int",
+        "NLog.Targets.Wrappers.BufferingTargetWrapperOverflowAction"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.FilteringTargetWrapper..ctor",
+      "arity": 3,
+      "parameters": [
+        "string",
+        "NLog.Targets.Target",
+        "NLog.Conditions.ConditionExpression"
+      ],
+      "disposable_params": [
+        1
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.FilteringTargetWrapper..ctor",
+      "arity": 2,
+      "parameters": [
+        "NLog.Targets.Target",
+        "NLog.Conditions.ConditionExpression"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.GroupByTargetWrapper..ctor",
+      "arity": 1,
+      "parameters": [
+        "NLog.Targets.Target"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.GroupByTargetWrapper..ctor",
+      "arity": 2,
+      "parameters": [
+        "string",
+        "NLog.Targets.Target"
+      ],
+      "disposable_params": [
+        1
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.GroupByTargetWrapper..ctor",
+      "arity": 3,
+      "parameters": [
+        "string",
+        "NLog.Targets.Target",
+        "NLog.Layouts.Layout"
+      ],
+      "disposable_params": [
+        1
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.LimitingTargetWrapper..ctor",
+      "arity": 2,
+      "parameters": [
+        "string",
+        "NLog.Targets.Target"
+      ],
+      "disposable_params": [
+        1
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.LimitingTargetWrapper..ctor",
+      "arity": 1,
+      "parameters": [
+        "NLog.Targets.Target"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.LimitingTargetWrapper..ctor",
+      "arity": 3,
+      "parameters": [
+        "NLog.Targets.Target",
+        "int",
+        "System.TimeSpan"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.PostFilteringTargetWrapper..ctor",
+      "arity": 1,
+      "parameters": [
+        "NLog.Targets.Target"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.PostFilteringTargetWrapper..ctor",
+      "arity": 2,
+      "parameters": [
+        "string",
+        "NLog.Targets.Target"
+      ],
+      "disposable_params": [
+        1
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.RepeatingTargetWrapper..ctor",
+      "arity": 3,
+      "parameters": [
+        "string",
+        "NLog.Targets.Target",
+        "int"
+      ],
+      "disposable_params": [
+        1
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.RepeatingTargetWrapper..ctor",
+      "arity": 2,
+      "parameters": [
+        "NLog.Targets.Target",
+        "int"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.RetryingTargetWrapper..ctor",
+      "arity": 4,
+      "parameters": [
+        "string",
+        "NLog.Targets.Target",
+        "int",
+        "int"
+      ],
+      "disposable_params": [
+        1
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "NLog.Targets.Wrappers.RetryingTargetWrapper..ctor",
+      "arity": 3,
+      "parameters": [
+        "NLog.Targets.Target",
+        "int",
+        "int"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    }
+  ],
+  "release_name_candidates": [
+    {
+      "callable": "NLog.LogFactory.Shutdown",
+      "arity": 0,
+      "returns": "void"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+ "package": "RabbitMQ.Client",
+ "version": "7.2.2",
+ "nupkg_sha256": "fa217255b5c8a77de197a73170804ee83a965df0eb984b84fd04d06de697f582",
+ "repository_url": "https://github.com/rabbitmq/rabbitmq-dotnet-client.git",
+ "repository_commit": "740faf07f04ade7d35d3539e20613c6ac6b9b46f",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/RabbitMQ.Client/lib/net8.0/RabbitMQ.Client.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/RabbitMQ.Client/lib/net8.0/RabbitMQ.Client.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/RabbitMQ.Client/lib/net8.0/RabbitMQ.Client.dll",
+  "name": "RabbitMQ.Client",
+  "version": "7.0.0.0",
+  "culture": "",
+  "public_key_token": "89e7d7c5feba84ce",
+  "mvid": "a5a91a86-3c7c-4189-81ab-41160f9adf1e",
+  "target_framework": ".NETCoreApp,Version=v8.0",
+  "informational_version": "7.2.2+740faf07f04ade7d35d3539e20613c6ac6b9b46f",
+  "sha256": "22d9ffa8cc2de798c61ec95b3f0b576c90d3370afa7128998859d3b2734d2910",
+  "size": 352256
+ },
+ "xmldoc": [
+  "lib/net8.0/RabbitMQ.Client.xml",
+  "lib/netstandard2.0/RabbitMQ.Client.xml"
+ ]
+}

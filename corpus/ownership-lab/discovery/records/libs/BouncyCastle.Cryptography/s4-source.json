@@ -1,0 +1,130 @@
+{
+ "package": "BouncyCastle.Cryptography",
+ "repo": "bcgit/bc-csharp",
+ "commit": "4007498b13582d90ee1eda5d9920c324428b98b3",
+ "files": [
+  {
+   "path": "crypto/src/crypto/io/CipherStream.cs",
+   "sha256": "1a9011aa70eb4e23926f53200ff219f0a356bef6d1399658eeb7a10711337744",
+   "bytes": 11492
+  },
+  {
+   "path": "crypto/src/crypto/io/DigestStream.cs",
+   "sha256": "a6abf435afbd7fb4cca1aaa59ee3431d73482ba1b4a2ebc7f2b42e6ae09d2fb3",
+   "bytes": 5777
+  },
+  {
+   "path": "crypto/src/crypto/io/MacStream.cs",
+   "sha256": "6be98d1517ce0e2b74980de9e889eac510a14a3522b1208671d21e105cc97510",
+   "bytes": 5666
+  },
+  {
+   "path": "crypto/src/crypto/io/SignerStream.cs",
+   "sha256": "99385028d8917156a20667cc8ab3ded11fafa7e8a6af8139b83e019ecb99cb0a",
+   "bytes": 5777
+  },
+  {
+   "path": "crypto/src/asn1/Asn1InputStream.cs",
+   "sha256": "29ef7f5650f0c528bf000ece9f917a620a8845dd4312a5206a5cd3b0a86fc274",
+   "bytes": 16226
+  },
+  {
+   "path": "crypto/src/asn1/Asn1OutputStream.cs",
+   "sha256": "468da5ffb539a289ecc966085a3bede5b473d8e2ba53528583f7b71a7447e1eb",
+   "bytes": 7620
+  },
+  {
+   "path": "crypto/src/bcpg/ArmoredInputStream.cs",
+   "sha256": "60a41b4904633f31f9bb9245a5b5b326fb3e2488fc5a61efc0b26ad696d80f5d",
+   "bytes": 25290
+  },
+  {
+   "path": "crypto/src/bcpg/ArmoredOutputStream.cs",
+   "sha256": "48a3fb29b9bb50dde603893f3650c97ab8cad5d90146b3fc3794a932a7d79432",
+   "bytes": 25912
+  },
+  {
+   "path": "crypto/src/bcpg/BcpgInputStream.cs",
+   "sha256": "72f1cb1a49a1a09944bd8603c688b46003f2b3d3432c011ed40546e0408b665d",
+   "bytes": 11445
+  },
+  {
+   "path": "crypto/src/bcpg/BcpgOutputStream.cs",
+   "sha256": "bd07fc1522065b48cf36ec7df70660f2528700ae01945e9453b5c28b944cc539",
+   "bytes": 15755
+  },
+  {
+   "path": "crypto/src/openpgp/PgpCompressedDataGenerator.cs",
+   "sha256": "8874a4993b45251285dd13a5454858a7cae7fa5c23e00720d9a898598403b484",
+   "bytes": 5978
+  },
+  {
+   "path": "crypto/src/openpgp/PgpEncryptedDataGenerator.cs",
+   "sha256": "2420aa8cea93c13b60e9dd893cc1fdd9818d05f5dfaca2a223814b20c1157bf5",
+   "bytes": 26688
+  },
+  {
+   "path": "crypto/src/openpgp/PgpLiteralDataGenerator.cs",
+   "sha256": "75288e20e9256e073f7733a0582e7a02029f677f2a0d78c9bb6bc57e75032b8c",
+   "bytes": 6178
+  },
+  {
+   "path": "crypto/src/openpgp/PgpUtilities.cs",
+   "sha256": "fa812e3c760988646ee85d17c1f3ca4c89e45010cb10b21284ae1671a7ac5971",
+   "bytes": 22796
+  },
+  {
+   "path": "crypto/src/openpgp/PgpPublicKeyEncryptedData.cs",
+   "sha256": "dd9428ec74ad3d5d9bb681940805ea98e05b0da90efcd408f55fc6444a66d133",
+   "bytes": 9803
+  },
+  {
+   "path": "crypto/src/openpgp/PgpPbeEncryptedData.cs",
+   "sha256": "39408a0b7e789baa3dcb68a4d7810231d13dc74ba8661fc457448ea132ca0e94",
+   "bytes": 5820
+  },
+  {
+   "path": "crypto/src/openpgp/PgpCompressedData.cs",
+   "sha256": "469b18975db6a9fb4b93035321bf92c247a71b12413ba785a4cd983423150de2",
+   "bytes": 6829
+  },
+  {
+   "path": "crypto/src/openpgp/PgpLiteralData.cs",
+   "sha256": "8cb89bad778f430ace3810107278ab791666196f24eb6e8a1d82da99bec504bd",
+   "bytes": 3544
+  },
+  {
+   "path": "crypto/src/util/io/pem/PemReader.cs",
+   "sha256": "43f11ad9a274f5f8b94e40bf8177d56a35e40b5b7ed877cd93b799b5cb143138",
+   "bytes": 8390
+  },
+  {
+   "path": "crypto/src/util/io/pem/PemWriter.cs",
+   "sha256": "423517174c256ae141ea0e846a2bc4fba51c539232a7318bc5c699ea2a632ac9",
+   "bytes": 4055
+  },
+  {
+   "path": "crypto/src/tls/TlsProtocol.cs",
+   "sha256": "a2d1a2e6e5998121e526992ec71e366fa2817353cfd50a3652d4a3529f5a395d",
+   "bytes": 83446
+  },
+  {
+   "path": "crypto/src/tls/TlsClientProtocol.cs",
+   "sha256": "9f939980fe4cc3b7b867b8c087d04b8082dabf981a395a2ee403c18aa14ec8d3",
+   "bytes": 81212
+  },
+  {
+   "path": "crypto/src/tls/TlsStream.cs",
+   "sha256": "c60653862c6e86592c5324d669483a93ba804a12a630759ac74d7db7ed5d7ef5",
+   "bytes": 3577
+  },
+  {
+   "path": "crypto/src/cms/CmsContentInfoParser.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "crypto/src/cms/CmsTypedStream.cs",
+   "error": "HTTP Error 404: Not Found"
+  }
+ ]
+}

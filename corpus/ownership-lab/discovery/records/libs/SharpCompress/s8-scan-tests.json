@@ -1,0 +1,106 @@
+{
+ "package": "SharpCompress",
+ "consumer": "tests",
+ "files": 21,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SharpCompress/rows-applied.json",
+ "key_sha256": "4ccc5898b5b5f55f4286f5b04a6e7ef6a42003769167c7bb057c6632da73828c",
+ "off": {
+  "findings": [
+   [
+    "tests__SharpCompress.Test__Tar__TarArchiveTests.cs",
+    40,
+    "OWN001",
+    "IDisposable local 'sw' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__SharpCompress.Test__Tar__TarArchiveTests.cs",
+    100,
+    "OWN001",
+    "IDisposable local 'sw' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__SharpCompress.Test__Zip__ZipArchiveTests.cs",
+    636,
+    "OWN001",
+    "IDisposable local 'tempStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__SharpCompress.Test__Zip__ZipReaderTests.cs",
+    276,
+    "OWN001",
+    "IDisposable local 'tempStream' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 12,
+   "methods_flow_analysed": 12,
+   "methods_skipped_unmodelled": 0
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "tests__SharpCompress.Test__Tar__TarArchiveTests.cs",
+    40,
+    "OWN001",
+    "IDisposable local 'sw' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__SharpCompress.Test__Tar__TarArchiveTests.cs",
+    100,
+    "OWN001",
+    "IDisposable local 'sw' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__SharpCompress.Test__Zip__ZipArchiveTests.cs",
+    392,
+    "OWN001",
+    "IDisposable local 'archive' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__SharpCompress.Test__Zip__ZipArchiveTests.cs",
+    636,
+    "OWN001",
+    "IDisposable local 'tempStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__SharpCompress.Test__Zip__ZipReaderTests.cs",
+    276,
+    "OWN001",
+    "IDisposable local 'tempStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__SharpCompress.Test__Zip__ZipReaderTests.cs",
+    377,
+    "OWN001",
+    "IDisposable local 'zipReader' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: return_fresh_owned=6"
+  ],
+  "stats": {
+   "methods_with_local": 15,
+   "methods_flow_analysed": 14,
+   "methods_skipped_unmodelled": 1
+  }
+ },
+ "new_findings": [
+  [
+   "tests__SharpCompress.Test__Zip__ZipArchiveTests.cs",
+   392,
+   "OWN001",
+   "IDisposable local 'archive' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "tests__SharpCompress.Test__Zip__ZipReaderTests.cs",
+   377,
+   "OWN001",
+   "IDisposable local 'zipReader' is never disposed (leak) [resource: disposable]"
+  ]
+ ],
+ "lost_findings": []
+}

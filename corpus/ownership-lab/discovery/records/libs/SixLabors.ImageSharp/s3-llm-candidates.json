@@ -1,0 +1,97 @@
+{
+ "package": "SixLabors.ImageSharp",
+ "written_at_utc": "2026-09-30T04:09:40Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read)",
+ "note": "",
+ "suggested_rows": [
+  {
+   "callable": "SixLabors.ImageSharp.Image.Load",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new decoded Image (owns pixel buffers)"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.Image.Load",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.Image.LoadPixelData",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "new image copying pixels"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.Image<TPixel>.Clone",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new image"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.Image.CloneAs",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new image"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.Image.WrapMemory",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new image over CALLER memory: fresh object, does not own the memory (an adopt/borrow question)"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.Memory.MemoryAllocator.Allocate",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new IMemoryOwner buffer"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.Processing.ProcessingExtensions.Clone",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new processed image"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.ImageFrameCollection.ExportFrame",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new image built from a frame"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.Formats.ImageDecoder.Decode",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new decoded image"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "SixLabors.ImageSharp.ImageFrameCollection.CreateFrame",
+   "arity": 0,
+   "why": "the frame is OWNED by the collection (returned alias): NOT fresh for the caller"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.ImageFrameCollection.AddFrame",
+   "arity": 1,
+   "why": "adds and returns an alias owned by the collection: not fresh"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.ImageFrameCollection.InsertFrame",
+   "arity": 2,
+   "why": "same"
+  }
+ ],
+ "adopting_ctor_judgements": []
+}

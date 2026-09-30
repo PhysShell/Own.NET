@@ -1,0 +1,766 @@
+{
+ "package": "Google.Protobuf",
+ "consumer": "tests",
+ "files": 21,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Google.Protobuf/rows-applied.json",
+ "key_sha256": "48616292b2d4417066af1cbed1d4ac285919d4b09550e87abe504e33f69002bb",
+ "off": {
+  "findings": [
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    41,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    202,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    232,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    376,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    395,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    427,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    514,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    544,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    559,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    587,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    606,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    624,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    663,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    673,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    681,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    696,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    705,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    730,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    756,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    774,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    787,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    801,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    806,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    815,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    824,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    833,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    846,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    32,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    51,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    74,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    88,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    146,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    162,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    183,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    199,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    257,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    345,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    364,
+    "OWN001",
+    "IDisposable local 'cout' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    385,
+    "OWN001",
+    "IDisposable local 'cout' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    405,
+    "OWN001",
+    "IDisposable local 'cin' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    498,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    504,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    514,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    526,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    537,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    550,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    262,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    285,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    307,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    329,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    361,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    390,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    447,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    821,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__IssuesTest.cs",
+    77,
+    "OWN001",
+    "IDisposable local 'cos' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__IssuesTest.cs",
+    83,
+    "OWN001",
+    "IDisposable local 'cis' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__LegacyGeneratedCodeTest.cs",
+    37,
+    "OWN001",
+    "IDisposable local 'codedInput' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__LegacyGeneratedCodeTest.cs",
+    80,
+    "OWN001",
+    "IDisposable local 'codedOutput' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__LegacyGeneratedCodeTest.cs",
+    92,
+    "OWN001",
+    "IDisposable local 'codedInput' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__UnknownFieldSetTest.cs",
+    189,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 49,
+   "methods_flow_analysed": 47,
+   "methods_skipped_unmodelled": 2
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "csharp__src__Google.Protobuf.Test__ByteStringTest.cs",
+    193,
+    "OWN001",
+    "IDisposable local 'codedInputStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    41,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    202,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    232,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    376,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    395,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    427,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    514,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    544,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    559,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    587,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    606,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    624,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    663,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    673,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    681,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    696,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    705,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    730,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    756,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    774,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    787,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    801,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    806,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    815,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    824,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    833,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedInputStreamTest.cs",
+    846,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    32,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    51,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    74,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    88,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    146,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    162,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    183,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    199,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    257,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    345,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    364,
+    "OWN001",
+    "IDisposable local 'cout' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    385,
+    "OWN001",
+    "IDisposable local 'cout' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    405,
+    "OWN001",
+    "IDisposable local 'cin' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    498,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    504,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    514,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    526,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    537,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__CodedOutputStreamTest.cs",
+    550,
+    "OWN001",
+    "IDisposable local 'input' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    262,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    285,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    307,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    329,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    361,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    390,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    447,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__GeneratedMessageTest.cs",
+    821,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__IssuesTest.cs",
+    77,
+    "OWN001",
+    "IDisposable local 'cos' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__IssuesTest.cs",
+    83,
+    "OWN001",
+    "IDisposable local 'cis' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__LegacyGeneratedCodeTest.cs",
+    37,
+    "OWN001",
+    "IDisposable local 'codedInput' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__LegacyGeneratedCodeTest.cs",
+    80,
+    "OWN001",
+    "IDisposable local 'codedOutput' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__LegacyGeneratedCodeTest.cs",
+    92,
+    "OWN001",
+    "IDisposable local 'codedInput' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "csharp__src__Google.Protobuf.Test__UnknownFieldSetTest.cs",
+    189,
+    "OWN001",
+    "IDisposable local 'output' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: return_fresh_owned=3"
+  ],
+  "stats": {
+   "methods_with_local": 50,
+   "methods_flow_analysed": 48,
+   "methods_skipped_unmodelled": 2
+  }
+ },
+ "new_findings": [
+  [
+   "csharp__src__Google.Protobuf.Test__ByteStringTest.cs",
+   193,
+   "OWN001",
+   "IDisposable local 'codedInputStream' is never disposed (leak) [resource: disposable]"
+  ]
+ ],
+ "lost_findings": []
+}

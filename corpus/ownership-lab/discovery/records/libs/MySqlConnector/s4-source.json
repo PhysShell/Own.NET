@@ -1,0 +1,67 @@
+{
+ "package": "MySqlConnector",
+ "repo": "mysql-net/MySqlConnector",
+ "commit": "775689bb3e1ab55d16171e0795264fa746e364c4",
+ "files": [
+  {
+   "path": "src/MySqlConnector/MySqlConnection.cs",
+   "sha256": "f7e3dd6cbcd1d1974158cd4973d7ce0b6fb04a60229e7fb3bfd81f5611ded523",
+   "bytes": 58511
+  },
+  {
+   "path": "src/MySqlConnector/MySqlCommand.cs",
+   "sha256": "864321747c045d8c2a82d08a226839dbc81179af0b38350478b94234e1c20c47",
+   "bytes": 19625
+  },
+  {
+   "path": "src/MySqlConnector/MySqlDataReader.cs",
+   "sha256": "d5d9f842597b08c343b1e1605c23a1346fc2d4c99901d9d124a7b9acee70f80a",
+   "bytes": 29314
+  },
+  {
+   "path": "src/MySqlConnector/MySqlTransaction.cs",
+   "sha256": "1e8dd1612c3596f253ad4ef6dd17c4d09cf910094322f9c033997dc62de91ad7",
+   "bytes": 14083
+  },
+  {
+   "path": "src/MySqlConnector/MySqlDataSource.cs",
+   "sha256": "751e068b2910a7ff83398f0cb527da2565f5134b434c04c16a16daf08966f73b",
+   "bytes": 10881
+  },
+  {
+   "path": "src/MySqlConnector/MySqlDataSourceBuilder.cs",
+   "sha256": "868ff842f0dce2c228750b1a07180296a93501b608209eedabea739e5c901452",
+   "bytes": 7338
+  },
+  {
+   "path": "src/MySqlConnector/MySqlBatch.cs",
+   "sha256": "44bbcf03eb883d040b00b3e6262a188c9e8bcfc8df0af5adde4b619afce90db9",
+   "bytes": 15369
+  },
+  {
+   "path": "src/MySqlConnector/MySqlConnectorFactory.cs",
+   "sha256": "068585b13d4f95fc3bd4e8bd02b5063f0d7da07849768ea89805ad7a5b7f3b8a",
+   "bytes": 3075
+  },
+  {
+   "path": "src/MySqlConnector/MySqlCommandBuilder.cs",
+   "sha256": "210a05f45c9830ebbe67e92b74a0932bad99f964cdc368a59905f558d9ae191d",
+   "bytes": 4592
+  },
+  {
+   "path": "src/MySqlConnector/MySqlDataAdapter.cs",
+   "sha256": "61f39ae66e4d80d9efce39ac331be6358554e156f26f332d308dc8cacab7abde",
+   "bytes": 8553
+  },
+  {
+   "path": "src/MySqlConnector/MySqlBulkLoader.cs",
+   "sha256": "de0076e546fb29d762a70bc0fa7eeddaf7cd1f23a55fab28efd6868bdf54f2e3",
+   "bytes": 10990
+  },
+  {
+   "path": "src/MySqlConnector/MySqlBulkCopy.cs",
+   "sha256": "434f3cee7dee356ab3b8593367c7e04b6c118c3c4a522a790b6517f60d632798",
+   "bytes": 28415
+  }
+ ]
+}

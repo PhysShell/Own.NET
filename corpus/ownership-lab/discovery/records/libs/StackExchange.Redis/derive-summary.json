@@ -1,0 +1,28 @@
+{
+ "source_files": 17,
+ "perfile_union_added_fresh": [],
+ "extractor_stats": {
+  "methods_with_local": 98,
+  "methods_flow_analysed": 70,
+  "methods_skipped_unmodelled": 28
+ },
+ "re_body_census": "fresh_return=16 fresh_return_expression_body=8",
+ "fresh_summaries_all": [
+  "StackExchange.Redis.Configuration.LoggingTunnel.DirectoryLoggingTunnel.Log",
+  "StackExchange.Redis.Configuration.LoggingTunnel.TlsHandshakeAsync",
+  "StackExchange.Redis.ConnectionMultiplexer.CreateMultiplexer",
+  "StackExchange.Redis.Lease<T>.Create(System.Buffers.IMemoryOwner`1,System.Int32,System.Int32)",
+  "StackExchange.Redis.PhysicalConnection.GetTimeout",
+  "StackExchange.Redis.RespResult.CreateNullSingleton"
+ ],
+ "receiver_release_all": [],
+ "fresh_not_public_surface": [
+  "StackExchange.Redis.Configuration.LoggingTunnel.DirectoryLoggingTunnel.Log",
+  "StackExchange.Redis.Configuration.LoggingTunnel.TlsHandshakeAsync",
+  "StackExchange.Redis.ConnectionMultiplexer.CreateMultiplexer",
+  "StackExchange.Redis.PhysicalConnection.GetTimeout",
+  "StackExchange.Redis.RespResult.CreateNullSingleton"
+ ],
+ "instance_methods_evaluated": 1075,
+ "public_rows": 1
+}

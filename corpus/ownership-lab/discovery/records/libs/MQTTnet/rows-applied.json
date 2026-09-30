@@ -1,0 +1,37 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for MQTTnet 5.2.0.1603 (BODY_PROVED + WITNESSED; MVID 3059e61f-8649-4e25-ba89-8d031023acb8)",
+ "entries": [
+  {
+   "callable": "MQTTnet.MqttClientFactory.CreateLowLevelMqttClient",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "MQTTnet",
+    "mvid": "3059e61f-8649-4e25-ba89-8d031023acb8"
+   },
+   "derived_from": "https://github.com/dotnet/MQTTnet.git@14463d1ef9f1f119514185c1832905b91bff827d via E1/E3 (inferred)"
+  },
+  {
+   "callable": "MQTTnet.MqttClientFactory.CreateMqttClient",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "MQTTnet",
+    "mvid": "3059e61f-8649-4e25-ba89-8d031023acb8"
+   },
+   "derived_from": "https://github.com/dotnet/MQTTnet.git@14463d1ef9f1f119514185c1832905b91bff827d via E1/E3 (inferred)"
+  },
+  {
+   "callable": "MQTTnet.Implementations.MqttTcpChannel.DisconnectAsync",
+   "effect": "receiver_terminal_release",
+   "arity": 1,
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "MQTTnet",
+    "mvid": "3059e61f-8649-4e25-ba89-8d031023acb8"
+   },
+   "derived_from": "https://github.com/dotnet/MQTTnet.git@14463d1ef9f1f119514185c1832905b91bff827d via E2"
+  }
+ ]
+}

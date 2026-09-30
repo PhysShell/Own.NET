@@ -1,0 +1,198 @@
+{
+ "package": "Npgsql",
+ "consumer": "tests",
+ "repo": "npgsql/npgsql",
+ "commit": "d3768398c17877b3a916c3c4d87e8e11698991fc",
+ "files": [
+  {
+   "path": "test/Npgsql.Tests/ConnectionTests.cs",
+   "sha256": "f9b3b6ca7f1714301a0af7124b49d5fad21fcefaa67f70dc091b3b07f22d8664",
+   "bytes": 88832
+  },
+  {
+   "path": "test/Npgsql.Tests/CommandTests.cs",
+   "sha256": "7ebe421b291ad5522885195ffad9be6bb983a5d273cac3fa39a7d28b43f02d72",
+   "bytes": 68923
+  },
+  {
+   "path": "test/Npgsql.Tests/ReaderTests.cs",
+   "sha256": "6132085c5355d28bf6e4cb40eaf4a007799f92852ba235dbbcc90c9fa98f662e",
+   "bytes": 105565
+  },
+  {
+   "path": "test/Npgsql.Tests/TransactionTests.cs",
+   "sha256": "e76cc2ffcda3771c0a91a4f8f80d7efb9f2c4a3ac3148482556da92fab7fad0d",
+   "bytes": 30595
+  },
+  {
+   "path": "test/Npgsql.Tests/CopyTests.cs",
+   "sha256": "cdb18330039f10fec1681c60f28e5559c29f60e16b68d0d4d7d76f98370ee7d6",
+   "bytes": 55589
+  },
+  {
+   "path": "test/Npgsql.Tests/LargeObjectTests.cs",
+   "sha256": "26a5b34056a97586c61f157867113f888de465502463252c38f9bb18b77b9dac",
+   "bytes": 1531
+  },
+  {
+   "path": "test/Npgsql.Tests/DataSourceTests.cs",
+   "sha256": "ab79e557f03ccfa9153bf4303001fc62e3f0a54f55c0be8de82dc7cfac0e58f8",
+   "bytes": 17842
+  },
+  {
+   "path": "test/Npgsql.Tests/MultipleHostsTests.cs",
+   "sha256": "b58f1ffd6fb6797826887800947759f7192e443b882c31d4a780234f0fc644d0",
+   "bytes": 59689
+  },
+  {
+   "path": "test/Npgsql.Tests/PoolTests.cs",
+   "sha256": "74e62d3bde94249cdf8c1da48f9ffa4a1c7557c8fa6259fca2a653e12b9fe472",
+   "bytes": 17748
+  },
+  {
+   "path": "test/Npgsql.Tests/PoolManagerTests.cs",
+   "sha256": "3d809916aec5086974ea051047324320690f03e083ff07e1b23f1a6590e22021",
+   "bytes": 2394
+  },
+  {
+   "path": "test/Npgsql.Tests/BatchTests.cs",
+   "sha256": "e9d5f9d384076c774ba9769e7fb661bf86f23d273a77957ac5d40cd1bb66e476",
+   "bytes": 32633
+  },
+  {
+   "path": "test/Npgsql.Tests/NotificationTests.cs",
+   "sha256": "cb0cc5911a8b9578ea6135b3219df80f04e8b1fbae9288e2feb233a0fa543f12",
+   "bytes": 9064
+  },
+  {
+   "path": "test/Npgsql.Tests/PrepareTests.cs",
+   "sha256": "77158222a87e1cb7082bd33ece409972ecd0cacf155e1c6a0cb0b84dfd4d0b34",
+   "bytes": 33987
+  },
+  {
+   "path": "test/Npgsql.Tests/AutoPrepareTests.cs",
+   "sha256": "0d78ff42e9b5a1056e0ddc845916e1e84dc8dca2f6ad63b1654178c75677cde2",
+   "bytes": 26992
+  },
+  {
+   "path": "test/Npgsql.Tests/SecurityTests.cs",
+   "sha256": "fbda6cc819988f5cf98b91be9fa197a6648bcea7b32b41c42dfba76b81218bfa",
+   "bytes": 23222
+  },
+  {
+   "path": "test/Npgsql.Tests/AuthenticationTests.cs",
+   "sha256": "b66dc8707b4d6adacbe46188cba84cee4d3e5b447de2d11646a7b85df4335811",
+   "bytes": 20440
+  },
+  {
+   "path": "test/Npgsql.Tests/TestUtil.cs",
+   "sha256": "19f5db7690f122c200a71bea2bf52214fdd5f751701cc7fac66b678046826c7a",
+   "bytes": 20966
+  },
+  {
+   "path": "test/Npgsql.Tests/SyncOrAsyncTestBase.cs",
+   "sha256": "51cfe9503b65cf35a7964610fe1c8c189c97dd2a6dd7861bab60384964330192",
+   "bytes": 371
+  },
+  {
+   "path": "test/Npgsql.Tests/ExceptionTests.cs",
+   "sha256": "ce291fb9e2ee818592896d70ee8066db26d269cf9bb3d400ff9d3e9843a00be9",
+   "bytes": 14102
+  },
+  {
+   "path": "test/Npgsql.Tests/SchemaTests.cs",
+   "sha256": "bc07c11ca589117eaf3335ef7fbdd0fceca27c356bc0ff7e362b149e1529b3bc",
+   "bytes": 25411
+  },
+  {
+   "path": "test/Npgsql.Tests/CommandBuilderTests.cs",
+   "sha256": "c9b7705382e780efba929f2617e00b97cbe83a2346050f931945a82406702f3c",
+   "bytes": 23066
+  },
+  {
+   "path": "test/Npgsql.Tests/DataAdapterTests.cs",
+   "sha256": "5e830df842c9db6acaa5f6d00182b24068537fcdce6d6c52524c37f63149b368",
+   "bytes": 19641
+  },
+  {
+   "path": "test/Npgsql.Tests/NestedDataReaderTests.cs",
+   "sha256": "8a7c2fe448b3d5c0d6e18af782df5d4667ade783b6e40e739a3fbf456e1c938b",
+   "bytes": 10388
+  },
+  {
+   "path": "test/Npgsql.Tests/BugTests.cs",
+   "sha256": "845bcd8c1d283117890579104edd5662ca52c933102cd22ba403c46f91f0b95c",
+   "bytes": 55855
+  },
+  {
+   "path": "test/Npgsql.Tests/AsyncTests.cs",
+   "sha256": "2e2e5d387cc752493f555e76de0ad302ebdc9ebb62cf5f83851b088a758c25da",
+   "bytes": 1687
+  },
+  {
+   "path": "test/Npgsql.Tests/LoggingTests.cs",
+   "sha256": "24d0b702a431db1860fe685083715ab7d42ef8933a31a470e0b11a567c2bc8f6",
+   "bytes": 15214
+  },
+  {
+   "path": "test/Npgsql.Tests/MetricTests.cs",
+   "sha256": "9efd631b475a4e0129996396fc472749c86814e4e3a57b53a10a90b84e843a43",
+   "bytes": 7100
+  },
+  {
+   "path": "test/Npgsql.Tests/TracingTests.cs",
+   "sha256": "31848996fd4610ae1440847bfa5a8fee1bb029eebf45eb1fffcfd31b5f2c8666",
+   "bytes": 38200
+  },
+  {
+   "path": "test/Npgsql.Tests/SystemTransactionTests.cs",
+   "sha256": "77e75c1841265921a11830ad37774b0d9f3699aa8c5ff6292d5869ac6fc87f6f",
+   "bytes": 18138
+  },
+  {
+   "path": "test/Npgsql.Tests/DistributedTransactionTests.cs",
+   "sha256": "53f231f86b7764aa38cf13527eeade322d4ba7d7ea652b9bd95783fd5911e808",
+   "bytes": 24200
+  },
+  {
+   "path": "test/Npgsql.Tests/StoredProcedureTests.cs",
+   "sha256": "bbc6f90aef444e6f8e3926d973c8d9a289392bf259165a639cd3e58c1aaa4c04",
+   "bytes": 18548
+  },
+  {
+   "path": "test/Npgsql.Tests/FunctionTests.cs",
+   "sha256": "e13849374bcdc770ad5127a3b0603127f7e7d4a9ff7bbabda206ac10527571cf",
+   "bytes": 27294
+  },
+  {
+   "path": "test/Npgsql.Tests/TypesTests.cs",
+   "sha256": "a06524f0abd83d4503d2261c1d9e97f4ac091e57e3364aaa9d9276c0f9a30f6b",
+   "bytes": 11438
+  },
+  {
+   "path": "test/Npgsql.Tests/ReaderNewSchemaTests.cs",
+   "sha256": "27707741bfda33297689b523bc50fe6c46284413e6c68381fe97e3eaa8f3d5e8",
+   "bytes": 37853
+  },
+  {
+   "path": "test/Npgsql.Tests/ReaderOldSchemaTests.cs",
+   "sha256": "894b57a20f3cc6ca087d188f0e4e4c4a75208fef8a4342ec54afeb03a1a83446",
+   "bytes": 10372
+  },
+  {
+   "path": "test/Npgsql.Tests/CommandParameterTests.cs",
+   "sha256": "1d9509b4136c1370b174987aaa8f5bda36b88b51fba3da084cf6dbf9d5f704a5",
+   "bytes": 9134
+  },
+  {
+   "path": "test/Npgsql.Tests/NpgsqlParameterTests.cs",
+   "sha256": "4a2e05e19b49f3674f70406ee0f883af3ce8813c03e2e402edbef3f2d10005ff",
+   "bytes": 34867
+  },
+  {
+   "path": "test/Npgsql.Tests/TypeMapperTests.cs",
+   "sha256": "8748f618724a56f879c7cc13063b160a2509475c815c2df7a464d43f05b92298",
+   "bytes": 11145
+  }
+ ]
+}

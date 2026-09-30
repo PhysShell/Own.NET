@@ -1,0 +1,112 @@
+{
+ "package": "MailKit",
+ "repo": "jstedfast/MailKit",
+ "commit": "4.18.1",
+ "files": [
+  {
+   "path": "MailKit/Net/Imap/ImapClient.cs",
+   "sha256": "5a7ed1a5cc1dff55be68f513ad9c3235daf4df75804ed76bb03beac8662f05a8",
+   "bytes": 103068
+  },
+  {
+   "path": "MailKit/Net/Imap/ImapFolder.cs",
+   "sha256": "9ea05bb4c0585c3e4d4fbbdc1415a9d1e6e48f0b9a165077fcafea5a44a77c4b",
+   "bytes": 235806
+  },
+  {
+   "path": "MailKit/Net/Imap/ImapFolderFetch.cs",
+   "sha256": "048fcd5a3ed5e9717a0605b66fa890c1c78e0319699201e3087adbd37acd3bfc",
+   "bytes": 218834
+  },
+  {
+   "path": "MailKit/Net/Imap/ImapEngine.cs",
+   "sha256": "30139cee09ed20764044445a54ed0e25532b79ee4995964f991653019eae6d41",
+   "bytes": 159015
+  },
+  {
+   "path": "MailKit/Net/Pop3/Pop3Client.cs",
+   "sha256": "407b2e387857c7399e123402b8e57d939f1391a37466c8c2f6abb1be9505b379",
+   "bytes": 122243
+  },
+  {
+   "path": "MailKit/Net/Pop3/Pop3Engine.cs",
+   "sha256": "51d84308eb95e813ec97122d89934dd65fa917da33d091d93fe339e583f2ef85",
+   "bytes": 23056
+  },
+  {
+   "path": "MailKit/Net/Smtp/SmtpClient.cs",
+   "sha256": "8484e5ece00d94546fda0410ac4c0a408c790ea2dd9f522d30f25fbbcabfdf95",
+   "bytes": 104477
+  },
+  {
+   "path": "MailKit/MailService.cs",
+   "sha256": "0733add91798099c7d8379d4e4e8eb8c6adb4c3ca2e17805c33f76a78ab35958",
+   "bytes": 75585
+  },
+  {
+   "path": "MailKit/MailStore.cs",
+   "sha256": "daada09f259285babefb220cbf809043559e4b15e36e234f00d497627f637b2c",
+   "bytes": 34362
+  },
+  {
+   "path": "MailKit/MailTransport.cs",
+   "sha256": "92cd46451f398e9beb795c1b2544082c86616ba19399cf4d6ba1b163b089bfe0",
+   "bytes": 22559
+  },
+  {
+   "path": "MailKit/MailSpool.cs",
+   "sha256": "68134506891871a0ddc4b4d5c8825e9afbfa95f07235063e0853e8f2f39d3641",
+   "bytes": 66308
+  },
+  {
+   "path": "MailKit/MailFolder.cs",
+   "sha256": "a54d7cb6a9f9cc5955c3db555f791343e9a81ae2a34d0ee0d14e82439f8edcac",
+   "bytes": 438378
+  },
+  {
+   "path": "MailKit/ProtocolLogger.cs",
+   "sha256": "255fe783e1ace30f18b5e5e0d4873afa131e10fd2af1771b0c6de3bb97f6253a",
+   "bytes": 15186
+  },
+  {
+   "path": "MailKit/Net/NetworkStream.cs",
+   "sha256": "76ec7e945c5e796023321768dd4b945e6333f89dc9ad2d261f7656341e842e32",
+   "bytes": 8171
+  },
+  {
+   "path": "MailKit/Net/ExtendedSslStream.cs",
+   "sha256": "e9dba7d8f3278444703290d43c7a50cfe7f2c2083c572733c03ff9bba9b92895",
+   "bytes": 5086
+  },
+  {
+   "path": "MailKit/CompressedStream.cs",
+   "sha256": "6323e20c5061c4c06e9ae6681898da8cbac7ab201de4c06d9276d30448bb970e",
+   "bytes": 16345
+  },
+  {
+   "path": "MailKit/DuplexStream.cs",
+   "sha256": "905ec066c6e2cb32fc716b8346d5d2f2c1c5a65833dc381c27bc106dbdda466c",
+   "bytes": 14837
+  },
+  {
+   "path": "MailKit/ProgressStream.cs",
+   "sha256": "ff7268e28b5a438990935f508459461e8a65abfa23f13e969976464858c96658",
+   "bytes": 4703
+  },
+  {
+   "path": "MailKit/Net/Proxy/ProxyClient.cs",
+   "sha256": "e06d10b3356953cff76410a545e37e9dd098c3b245874b991355a1622df8fc37",
+   "bytes": 16917
+  },
+  {
+   "path": "MailKit/Net/Proxy/Socks5Client.cs",
+   "sha256": "3bef6cd5b4f51c753e97b16292c513508ac79e55d38c2ba3fa361b0c0baa26e6",
+   "bytes": 19375
+  },
+  {
+   "path": "MailKit/Net/Proxy/HttpProxyClient.cs",
+   "sha256": "bb1a119f0f41b17f6b156725bb47a48116efd35ccdb027ca9a91c1d69c04ce77",
+   "bytes": 10198
+  }
+ ]
+}

@@ -1,0 +1,42 @@
+{
+ "source_files": 25,
+ "perfile_union_added_fresh": [],
+ "extractor_stats": {
+  "methods_with_local": 344,
+  "methods_flow_analysed": 281,
+  "methods_skipped_unmodelled": 63
+ },
+ "re_body_census": "fresh_return=297 fresh_return_expression_body=229",
+ "fresh_summaries_all": [
+  "SkiaSharp.SKBitmap.Decode(SkiaSharp.SKCodec)",
+  "SkiaSharp.SKBitmap.Decode(SkiaSharp.SKCodec,SkiaSharp.SKImageInfo)",
+  "SkiaSharp.SKBitmap.FromImage",
+  "SkiaSharp.SKCodec.WrapManagedStream",
+  "SkiaSharp.SKColorSpace.ToProfile",
+  "SkiaSharp.SKData.AsStream",
+  "SkiaSharp.SKData.AsStream()",
+  "SkiaSharp.SKData.AsStream(System.Boolean)",
+  "SkiaSharp.SKFileStream.OpenStream",
+  "SkiaSharp.SKFileWStream.OpenStream",
+  "SkiaSharp.SKFont.GetGlyphPath",
+  "SkiaSharp.SKFont.GetTextPath(System.IntPtr,System.Int32,SkiaSharp.SKTextEncoding,SkiaSharp.SKPoint)",
+  "SkiaSharp.SKFont.GetTextPath(System.Void*,System.Int32,SkiaSharp.SKTextEncoding,SkiaSharp.SKPoint)",
+  "SkiaSharp.SKPaint.GetTextPath(System.IntPtr,System.Int32,System.Single,System.Single)",
+  "SkiaSharp.SKPaint.GetTextPath(System.IntPtr,System.IntPtr,System.Single,System.Single)",
+  "SkiaSharp.SKPath.CreateIterator",
+  "SkiaSharp.SKPath.CreateRawIterator",
+  "SkiaSharp.SKPath.ParseSvgPathData",
+  "SkiaSharp.SKRuntimeEffect.BuildBlender",
+  "SkiaSharp.SKRuntimeEffect.BuildColorFilter",
+  "SkiaSharp.SKRuntimeEffect.BuildShader",
+  "SkiaSharp.SKTypeface.ToFont",
+  "SkiaSharp.SKTypeface.ToFont()",
+  "SkiaSharp.SKTypeface.ToFont(System.Single,System.Single,System.Single)"
+ ],
+ "receiver_release_all": [],
+ "fresh_not_public_surface": [
+  "SkiaSharp.SKCodec.WrapManagedStream"
+ ],
+ "instance_methods_evaluated": 913,
+ "public_rows": 16
+}

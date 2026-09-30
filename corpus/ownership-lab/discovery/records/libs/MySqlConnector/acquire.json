@@ -1,0 +1,28 @@
+{
+ "package": "MySqlConnector",
+ "version": "2.6.2",
+ "nupkg_sha256": "3d8758d29d2b19a5efa9f78cfac9cae824a870aaf88e2e3adc40bce3cddac748",
+ "repository_url": "https://github.com/mysql-net/MySqlConnector.git",
+ "repository_commit": "775689bb3e1ab55d16171e0795264fa746e364c4",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/MySqlConnector/lib/net8.0/MySqlConnector.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/MySqlConnector/lib/net8.0/MySqlConnector.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/MySqlConnector/lib/net8.0/MySqlConnector.dll",
+  "name": "MySqlConnector",
+  "version": "2.0.0.0",
+  "culture": "",
+  "public_key_token": "d33d3e53aa5f8c92",
+  "mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258",
+  "target_framework": ".NETCoreApp,Version=v8.0",
+  "informational_version": "2.6.2+775689bb3e1ab55d16171e0795264fa746e364c4",
+  "sha256": "ddb7e36b0b5339f17f1e97c9ab7ed8bf34ef0bf4d2190b11a4420fbc1b27f1a1",
+  "size": 881000
+ },
+ "xmldoc": [
+  "lib/net10.0/MySqlConnector.xml",
+  "lib/net462/MySqlConnector.xml",
+  "lib/net471/MySqlConnector.xml"
+ ]
+}

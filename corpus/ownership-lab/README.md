@@ -15,7 +15,9 @@ probes, discovery protocol and results).
 | `h16/` | the Z3 symbolic probe and the complementary-guard fixture |
 | `h20/` | F3 (throw-exit versus bare return) with observed outputs off/on |
 | `witness/` | the runtime-witness generator (`gen.py`), its ten rows and results |
-| `discovery/` | the discovery-experiment pipeline scripts (acquire, API surface, fetch, derive, consumers, scan) |
+| `discovery/` | the discovery-experiment pipeline scripts (acquire, API surface, fetch, derive, compare, consumers, scan, triage, record) |
+| `discovery/records/` | the per-library S1..S8 artefacts of the 22 completed libraries (acquire/identity, API surface, LLM candidates written before bodies, pinned source digests, derivation summary, applied rows, consumer file digests, OFF/KEY scan results), the ledger, the triage file and the witness rows/results |
+| `discovery/repros/` | one minimal repro per new finding class with the expected outputs of Own.NET OFF/KEY, IDisposableAnalyzers and CA2000 |
 
 Tools: `frontend/roslyn/OwnSharp.AsmId` (assembly identity facets), `frontend/roslyn/OwnSharp.ApiList`
 (public resource-bearing API surface). Scratch paths inside the scripts point at the session

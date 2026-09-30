@@ -1,0 +1,72 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for NLog 6.2.1 (BODY_PROVED + WITNESSED; MVID 03802750-90df-4f67-b7f1-d84eee3bd509)",
+ "entries": [
+  {
+   "callable": "NLog.LogFactory.SuspendLogging",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "assembly": {
+    "name": "NLog",
+    "mvid": "03802750-90df-4f67-b7f1-d84eee3bd509"
+   },
+   "witness": "NLOG-W1",
+   "witness_asm_mvid": "03802750-90df-4f67-b7f1-d84eee3bd509"
+  },
+  {
+   "callable": "NLog.LogManager.SuspendLogging",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "assembly": {
+    "name": "NLog",
+    "mvid": "03802750-90df-4f67-b7f1-d84eee3bd509"
+   },
+   "witness": "NLOG-W2",
+   "witness_asm_mvid": "03802750-90df-4f67-b7f1-d84eee3bd509"
+  },
+  {
+   "callable": "NLog.ScopeContext.PushProperty",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "assembly": {
+    "name": "NLog",
+    "mvid": "03802750-90df-4f67-b7f1-d84eee3bd509"
+   },
+   "witness": "NLOG-W3",
+   "witness_asm_mvid": "03802750-90df-4f67-b7f1-d84eee3bd509"
+  },
+  {
+   "callable": "NLog.ScopeContext.PushNestedState",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "assembly": {
+    "name": "NLog",
+    "mvid": "03802750-90df-4f67-b7f1-d84eee3bd509"
+   },
+   "witness": "NLOG-W4",
+   "witness_asm_mvid": "03802750-90df-4f67-b7f1-d84eee3bd509"
+  },
+  {
+   "callable": "NLog.Logger.PushScopeProperty",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "assembly": {
+    "name": "NLog",
+    "mvid": "03802750-90df-4f67-b7f1-d84eee3bd509"
+   },
+   "witness": "NLOG-W5",
+   "witness_asm_mvid": "03802750-90df-4f67-b7f1-d84eee3bd509"
+  },
+  {
+   "callable": "NLog.ScopeContext.PushProperties",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "assembly": {
+    "name": "NLog",
+    "mvid": "03802750-90df-4f67-b7f1-d84eee3bd509"
+   },
+   "witness": "NLOG-W6",
+   "witness_asm_mvid": "03802750-90df-4f67-b7f1-d84eee3bd509"
+  }
+ ]
+}

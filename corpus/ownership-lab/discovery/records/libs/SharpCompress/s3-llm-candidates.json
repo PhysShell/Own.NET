@@ -1,0 +1,111 @@
+{
+ "package": "SharpCompress",
+ "written_at_utc": "2026-09-30T04:09:40Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read)",
+ "note": "",
+ "suggested_rows": [
+  {
+   "callable": "SharpCompress.Archives.ArchiveFactory.Open",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new archive over the stream/file"
+  },
+  {
+   "callable": "SharpCompress.Archives.Zip.ZipArchive.Open",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "new archive"
+  },
+  {
+   "callable": "SharpCompress.Archives.Zip.ZipArchive.Create",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "new writable archive"
+  },
+  {
+   "callable": "SharpCompress.Archives.Tar.TarArchive.Open",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "new archive"
+  },
+  {
+   "callable": "SharpCompress.Archives.Rar.RarArchive.Open",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "new archive"
+  },
+  {
+   "callable": "SharpCompress.Archives.SevenZip.SevenZipArchive.Open",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "new archive"
+  },
+  {
+   "callable": "SharpCompress.Archives.GZip.GZipArchive.Open",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "new archive"
+  },
+  {
+   "callable": "SharpCompress.Archives.IArchiveEntry.OpenEntryStream",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new entry stream (must be disposed before the next entry)"
+  },
+  {
+   "callable": "SharpCompress.Readers.ReaderFactory.Open",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new reader"
+  },
+  {
+   "callable": "SharpCompress.Writers.WriterFactory.Open",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new writer"
+  },
+  {
+   "callable": "SharpCompress.Archives.IArchive.ExtractAllEntries",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new reader over the archive"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "SharpCompress.IO.SourceStream.Close",
+   "arity": 0,
+   "why": "Close == Dispose (production name rule)"
+  }
+ ],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "DeflateStream(Stream, CompressionMode, ...)",
+   "judgement": "adopt: the wrapper closes the underlying stream unless leaveOpen (older API had no flag): SUGGESTED adopt"
+  },
+  {
+   "ctor": "ZstandardStream(Stream, ..., bool leaveOpen)",
+   "judgement": "adopt-if(leaveOpen == false)"
+  },
+  {
+   "ctor": "SharpCompressStream(Stream, bool leaveOpen, bool throwOnDispose, int, bool forceBuffer)",
+   "judgement": "adopt-if(leaveOpen == false)"
+  },
+  {
+   "ctor": "GZipStream(Stream, CompressionMode, bool decompressConcatenated)",
+   "judgement": "adopt: the bool is not an ownership flag"
+  }
+ ]
+}

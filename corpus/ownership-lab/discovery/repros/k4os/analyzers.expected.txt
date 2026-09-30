@@ -1,0 +1,4 @@
+Repro.cs(10,9): warning IDISP016: Don't use disposed instance 
+Repro.cs(10,9): warning IDISP017: Prefer using 
+Repro.cs(11,9): warning IDISP017: Prefer using 
+Repro.cs(17,9): warning IDISP001: Dispose created 

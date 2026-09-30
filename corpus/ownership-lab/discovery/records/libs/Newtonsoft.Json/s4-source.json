@@ -1,0 +1,72 @@
+{
+ "package": "Newtonsoft.Json",
+ "repo": "JamesNK/Newtonsoft.Json",
+ "commit": "4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a",
+ "files": [
+  {
+   "path": "Src/Newtonsoft.Json/JsonTextReader.cs",
+   "sha256": "a9f79ebf4527275d5de362dd9160f8b246cf34a5d1f767b4a978ecf420c36039",
+   "bytes": 101923
+  },
+  {
+   "path": "Src/Newtonsoft.Json/JsonTextWriter.cs",
+   "sha256": "cbeeb4f5a322e3772910cec13788938ae6598b03c396b1187b9ec170127469d2",
+   "bytes": 30240
+  },
+  {
+   "path": "Src/Newtonsoft.Json/JsonReader.cs",
+   "sha256": "eda80d41e20e057cd0ac63c60ceb42697185217681b44fe26d09e0657b2a6672",
+   "bytes": 44034
+  },
+  {
+   "path": "Src/Newtonsoft.Json/JsonWriter.cs",
+   "sha256": "75b69b3ebed4305947adeed867ea8780ab2b03f0f3cbe6ffaa391ef56cdb4c73",
+   "bytes": 63246
+  },
+  {
+   "path": "Src/Newtonsoft.Json/JsonValidatingReader.cs",
+   "sha256": "bfe9c4a0f7d683f129dde30fdae0596f5fb1a04f1137c4816cdaecf94db66e32",
+   "bytes": 39004
+  },
+  {
+   "path": "Src/Newtonsoft.Json/Bson/BsonReader.cs",
+   "sha256": "7a6611be78356a363175fe7889ae52f8e6406aab834ca6f8dc78b442e94b7ec3",
+   "bytes": 30451
+  },
+  {
+   "path": "Src/Newtonsoft.Json/Bson/BsonWriter.cs",
+   "sha256": "f0bfe3a8f3432a7183e3620d260ee772b2367ec53c71791a036d027d4e237cc8",
+   "bytes": 17988
+  },
+  {
+   "path": "Src/Newtonsoft.Json/Linq/JTokenReader.cs",
+   "sha256": "d553ba739a7f86850fe6fb310f08ab523ef6fb8dad439cd5033a9644542fe11d",
+   "bytes": 10959
+  },
+  {
+   "path": "Src/Newtonsoft.Json/Linq/JTokenWriter.cs",
+   "sha256": "3320a0118184d75f22c510616c959b6a45a168cbc72bd8e72d4eac9dbe8b767c",
+   "bytes": 17989
+  },
+  {
+   "path": "Src/Newtonsoft.Json/Linq/JToken.cs",
+   "sha256": "b734e99241d456975315890916a9a04dc0f8a5dddf207a1491d2055b08883a78",
+   "bytes": 111305
+  },
+  {
+   "path": "Src/Newtonsoft.Json/Linq/JContainer.cs",
+   "sha256": "6af45b6f87175997614fbdb7243b2f6426a99e0b942661c32d2c8b9ef0a5430e",
+   "bytes": 40747
+  },
+  {
+   "path": "Src/Newtonsoft.Json/JsonSerializer.cs",
+   "sha256": "8eb9ad99a39d208ccdb1f6315a6c8764619ad42464c9ffe3e20fb3e74d3c41e1",
+   "bytes": 50876
+  },
+  {
+   "path": "Src/Newtonsoft.Json/JsonConvert.cs",
+   "sha256": "daeb3fef0bcde2e756cb0cbcaa92fb8a7782727cdb4addba7b8c66e94b5a6205",
+   "bytes": 55576
+  }
+ ]
+}

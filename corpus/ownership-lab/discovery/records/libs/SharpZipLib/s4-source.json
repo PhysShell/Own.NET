@@ -1,0 +1,102 @@
+{
+ "package": "SharpZipLib",
+ "repo": "icsharpcode/SharpZipLib",
+ "commit": "33f64eb0f28cdd2b084cb822fcc224c7c5aba553",
+ "files": [
+  {
+   "path": "src/ICSharpCode.SharpZipLib/Zip/ZipFile.cs",
+   "sha256": "d2804204259d1018f76ed0fd86ad7e73c0d4e890634b4371d245805df761f823",
+   "bytes": 138488
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/Zip/ZipInputStream.cs",
+   "sha256": "73d45180dc2c23b717303d1bed16b2300b9cb9f89fe6cf61f27f9a62972a88d7",
+   "bytes": 21557
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/Zip/ZipOutputStream.cs",
+   "sha256": "51bca38d4f9b905158cff65470c67d9f3b352f377a696eec8f76f471a685f898",
+   "bytes": 29125
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/Zip/ZipHelperStream.cs",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "bytes": 0
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/Zip/FastZip.cs",
+   "sha256": "920fafbc844c330364d76414c7480754ff8f0e6ff949eb93ced267d7b7e91a49",
+   "bytes": 31937
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/Zip/Compression/Streams/DeflaterOutputStream.cs",
+   "sha256": "0716809ccb85ddd355aa4d87decef4f322199d824a20602982368c1a3b648c63",
+   "bytes": 14134
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/Zip/Compression/Streams/InflaterInputStream.cs",
+   "sha256": "d5d9b01c88268e9c446955c62d2e622378ccbb7576b5e2e58031ea8cc53215a7",
+   "bytes": 17576
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/GZip/GzipInputStream.cs",
+   "sha256": "99815e8a96a1f88c2d3120997f53ef8cd8a2ce59e40d3c410b4a53c2cca3e04e",
+   "bytes": 9696
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/GZip/GzipOutputStream.cs",
+   "sha256": "c711462fba30380618eb2d2f59a0404b2e71cf5c19efa6592635ba17b14b55ad",
+   "bytes": 9809
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/GZip/GZip.cs",
+   "sha256": "0e687276b4751dd3ab29085d258a3ddaf2302c2bf634b914d724ca14c1a29136",
+   "bytes": 3361
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/BZip2/BZip2InputStream.cs",
+   "sha256": "0928a144a7ab3a6e82032924c755f5ec81696bd9272a03d77d678f7cef9c5a43",
+   "bytes": 21921
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/BZip2/BZip2OutputStream.cs",
+   "sha256": "d3b16dd5fe53894b5f14bd049d38c581e3d49d9d5362a0cd4f6995b864921435",
+   "bytes": 39504
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/BZip2/BZip2.cs",
+   "sha256": "e7f4e9043c646a7ecbb1b99a7665540b8ade2e89f7a23ae925893e968604f30c",
+   "bytes": 2517
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/Tar/TarArchive.cs",
+   "sha256": "05dac4ee946b326d20b7bf4e683bff38ec5e76400fff2540b43213b3c9f5013b",
+   "bytes": 27578
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/Tar/TarInputStream.cs",
+   "sha256": "e9e4e2c3dad5ea29363e075f4b8dfa843ce81f8de9dc530ef760e4df8ff9428e",
+   "bytes": 27602
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/Tar/TarOutputStream.cs",
+   "sha256": "167be23d4e5ff6a5cbfce00ac05383b435935e8fc3f34cdffbd2c6cbd7d81243",
+   "bytes": 20203
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/Lzw/LzwInputStream.cs",
+   "sha256": "b5402be61ce361963917828e1b87e330e1e1586a5460cd851a8702f78d12e33c",
+   "bytes": 14137
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/Encryption/PkzipClassic.cs",
+   "sha256": "aefa10eb5863ca10e1aad98b646a45a01def6ab262e98185fb8955008edc304a",
+   "bytes": 12734
+  },
+  {
+   "path": "src/ICSharpCode.SharpZipLib/Core/StreamUtils.cs",
+   "sha256": "d563398350e4c3deafa6a669ae87a01b3ad9c1f888545c64adb57c72f6aaced7",
+   "bytes": 9215
+  }
+ ]
+}

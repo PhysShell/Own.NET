@@ -1,0 +1,72 @@
+{
+ "package": "Microsoft.Data.Sqlite.Core",
+ "repo": "dotnet/dotnet",
+ "commit": "95017c711e6afc1085133d440e42b4bd78155701",
+ "files": [
+  {
+   "path": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteConnection.cs",
+   "sha256": "0fd8dd0cd1ca7e6f9ad7fa1301cfd77a743c33be3276550fad94b20557b096b6",
+   "bytes": 38343
+  },
+  {
+   "path": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteCommand.cs",
+   "sha256": "c5d427a5d70161528f63b9f789af93b0b24af3d7118dbfd92912db808ac1f5fb",
+   "bytes": 21934
+  },
+  {
+   "path": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteDataReader.cs",
+   "sha256": "0712b68bd0b036886b3ea5c5209ba257a4d6b3ba9ac51655dbb2c4c374946968",
+   "bytes": 33555
+  },
+  {
+   "path": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteDataRecord.cs",
+   "sha256": "80b4a911325e4ece4c24428d410e6c502d3ce71afb4c90bbd149ebd80b19eb57",
+   "bytes": 15701
+  },
+  {
+   "path": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteTransaction.cs",
+   "sha256": "fc7e9f47ca6d53643cbb2eebaa4d0d4fe33e9e41a898baef67fc3dd943db4898",
+   "bytes": 8242
+  },
+  {
+   "path": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteBlob.cs",
+   "sha256": "f9625b43316885ba62cab79171e99f28f3d78fbb6ff1e47eac809aa31d5fbbfc",
+   "bytes": 12713
+  },
+  {
+   "path": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteFactory.cs",
+   "sha256": "343c8226433108f92f3540200138248a8ee61e5a50f73ae660d3755f45894896",
+   "bytes": 1409
+  },
+  {
+   "path": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteConnectionInternal.cs",
+   "sha256": "1a2324129be6f53d624d45eb8f8fb8d6f3ae3e3fb17de9490e2662698a96018d",
+   "bytes": 8127
+  },
+  {
+   "path": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteConnectionPool.cs",
+   "sha256": "883c4f8752379a9d98523c9b3b29eea512b6617d736ba5cbae64a422e7b05a57",
+   "bytes": 4387
+  },
+  {
+   "path": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteConnectionFactory.cs",
+   "sha256": "cd94372e4c4be077d845f0d77d91297688a80b5a96cef126d640443ec19cf08a",
+   "bytes": 5001
+  },
+  {
+   "path": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteConnectionPoolGroup.cs",
+   "sha256": "f210a1f4d259a1837eba70ef43e3d53d89bc3f5e7ea3b0e75680650a1bde3a07",
+   "bytes": 2322
+  },
+  {
+   "path": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteParameterReader.cs",
+   "sha256": "100a9498a410d745467e06499ca2ec774e66720c71853e916af3a43914cb2315",
+   "bytes": 1094
+  },
+  {
+   "path": "src/efcore/src/Microsoft.Data.Sqlite.Core/SqliteValueReader.cs",
+   "sha256": "77406d1020ae1c5800f72edecd8dd8c33b69adb8562f37fc1bdbd963959b0567",
+   "bytes": 13263
+  }
+ ]
+}

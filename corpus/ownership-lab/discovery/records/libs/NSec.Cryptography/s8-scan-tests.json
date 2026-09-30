@@ -1,0 +1,81 @@
+{
+ "package": "NSec.Cryptography",
+ "consumer": "tests",
+ "files": 13,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/NSec.Cryptography/rows-applied.json",
+ "key_sha256": "5499210369a5f701d997fcd7e92edc7277c2e2943b1dc2e0b7d36481c033bea0",
+ "off": {
+  "findings": [
+   [
+    "tests__Core__KeyTests.cs",
+    49,
+    "OWN002",
+    "IDisposable local 'k' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "tests__Core__KeyTests.cs",
+    147,
+    "OWN003",
+    "IDisposable local 'k' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "tests__Core__KeyTests.cs",
+    314,
+    "OWN002",
+    "IDisposable local 'k' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "tests__Core__KeyTests.cs",
+    469,
+    "OWN002",
+    "IDisposable local 'k' is used after it is disposed [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 4,
+   "methods_flow_analysed": 4,
+   "methods_skipped_unmodelled": 0
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "tests__Core__KeyTests.cs",
+    49,
+    "OWN002",
+    "IDisposable local 'k' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "tests__Core__KeyTests.cs",
+    147,
+    "OWN003",
+    "IDisposable local 'k' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "tests__Core__KeyTests.cs",
+    314,
+    "OWN002",
+    "IDisposable local 'k' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "tests__Core__KeyTests.cs",
+    469,
+    "OWN002",
+    "IDisposable local 'k' is used after it is disposed [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: "
+  ],
+  "stats": {
+   "methods_with_local": 4,
+   "methods_flow_analysed": 4,
+   "methods_skipped_unmodelled": 0
+  }
+ },
+ "new_findings": [],
+ "lost_findings": []
+}

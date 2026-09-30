@@ -1,0 +1,2 @@
+Repro.cs(10,9): warning IDISP001: Dispose created 
+Repro.cs(25,9): warning IDISP004: Don't ignore created IDisposable 

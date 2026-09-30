@@ -1,0 +1,165 @@
+{
+ "package": "Microsoft.Data.Sqlite.Core",
+ "version": "10.0.12",
+ "written_at_utc": "2026-09-30T04:51:39Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read; no source body read before this file was written)",
+ "note": "substituted for the meta-package Microsoft.Data.Sqlite 10.0.12, which carries no assembly (its acquire.json is kept as the record of the substitution)",
+ "suggested_rows": [
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new SqliteDataReader per call (the command is not released by it)"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new SqliteDataReader (CommandBehavior overload)"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "Task-wrapped fresh reader (unwrapped)"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "Task-wrapped fresh reader (both 1-arity overloads)"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "Task-wrapped fresh reader"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteConnection.CreateCommand",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new SqliteCommand bound to the connection"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteConnection.BeginTransaction",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new SqliteTransaction"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteConnection.BeginTransaction",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new SqliteTransaction (both 1-arity overloads)"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteConnection.BeginTransaction",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new SqliteTransaction"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteDataReader.GetStream",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new SqliteBlob stream (blob columns) or a MemoryStream copy"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteDataReader.GetTextReader",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new reader over the column value"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteFactory.CreateCommand",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new SqliteCommand (DbProviderFactory)"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new SqliteConnection (DbProviderFactory)"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteDataReader.Close",
+   "arity": 0,
+   "effect": "receiver_terminal_release",
+   "provenance": "SUGGESTED",
+   "rationale": "a closed reader cannot be reopened: terminal"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteConnection.Close",
+   "arity": 0,
+   "effect": "receiver_terminal_release",
+   "provenance": "SUGGESTED",
+   "rationale": "returns the native handle to the pool; the connection object can be re-Opened, so E2 may reject it as non-terminal"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteConnection.GetSchema",
+   "arity": 0,
+   "why": "returns a fresh DataTable whose Dispose is inert (MarshalByValueComponent): deliberately not suggested, a finding there is benign noise (all three overloads)"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteDataReader.GetSchemaTable",
+   "arity": 0,
+   "why": "same DataTable case"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteCommand.get_Connection",
+   "arity": 0,
+   "why": "alias getter"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteCommand.get_Transaction",
+   "arity": 0,
+   "why": "alias getter"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteTransaction.get_Connection",
+   "arity": 0,
+   "why": "alias getter"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteTransaction.Release",
+   "arity": 1,
+   "why": "releases a named SAVEPOINT, not the transaction: hostile release name"
+  }
+ ],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "SqliteBlob(SqliteConnection, string table, string column, long rowid, bool readOnly)",
+   "judgement": "borrow: the blob does not own the connection; readOnly is NOT an ownership flag (hostile twin for a name-based flag heuristic)"
+  },
+  {
+   "ctor": "SqliteBlob(SqliteConnection, string db, string table, string column, long rowid, bool readOnly)",
+   "judgement": "borrow (same)"
+  },
+  {
+   "ctor": "SqliteCommand(string?, SqliteConnection?)",
+   "judgement": "borrow: a command never owns its connection"
+  },
+  {
+   "ctor": "SqliteCommand(string?, SqliteConnection?, SqliteTransaction?)",
+   "judgement": "borrow"
+  }
+ ]
+}

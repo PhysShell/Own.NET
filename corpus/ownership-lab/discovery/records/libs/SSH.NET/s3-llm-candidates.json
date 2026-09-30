@@ -1,0 +1,160 @@
+{
+ "package": "SSH.NET",
+ "written_at_utc": "2026-09-30T04:05:02Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read)",
+ "note": "",
+ "suggested_rows": [
+  {
+   "callable": "Renci.SshNet.SshClient.CreateCommand",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new SshCommand"
+  },
+  {
+   "callable": "Renci.SshNet.SshClient.CreateCommand",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same with encoding"
+  },
+  {
+   "callable": "Renci.SshNet.SshClient.RunCommand",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new executed SshCommand"
+  },
+  {
+   "callable": "Renci.SshNet.SshClient.CreateShell",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new Shell"
+  },
+  {
+   "callable": "Renci.SshNet.SshClient.CreateShellStream",
+   "arity": 6,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new ShellStream (channel)"
+  },
+  {
+   "callable": "Renci.SshNet.SshClient.CreateShellStreamNoTerminal",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new ShellStream"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.Open",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new SftpFileStream"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.Open",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.OpenRead",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new SftpFileStream"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.OpenWrite",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new SftpFileStream"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.Create",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new SftpFileStream"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.CreateText",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new StreamWriter over an SftpFileStream"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.OpenText",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new StreamReader"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.AppendText",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new StreamWriter"
+  },
+  {
+   "callable": "Renci.SshNet.SshCommand.CreateInputStream",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new input stream for the command"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "Renci.SshNet.BaseClient.Disconnect",
+   "arity": 0,
+   "why": "disconnect; the client can reconnect: not terminal"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.DeleteFile",
+   "arity": 1,
+   "why": "deletes a REMOTE file: not a resource release (hostile name)"
+  },
+  {
+   "callable": "Renci.SshNet.SftpClient.Delete",
+   "arity": 1,
+   "why": "same"
+  },
+  {
+   "callable": "Renci.SshNet.ForwardedPort.Stop",
+   "arity": 0,
+   "why": "stops forwarding; the port can be started again: not terminal"
+  },
+  {
+   "callable": "Renci.SshNet.Shell.Stop",
+   "arity": 0,
+   "why": "UNSURE: stopping the shell may be terminal"
+  },
+  {
+   "callable": "Renci.SshNet.SshCommand.get_OutputStream",
+   "arity": 0,
+   "why": "property alias: not fresh"
+  }
+ ],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "SshDataStream(Stream)/PipeStream(...)",
+   "judgement": "UNSURE"
+  },
+  {
+   "ctor": "EcdsaDigitalSignature(EcdsaKey)",
+   "judgement": "borrow: the signature object does not own the key"
+  },
+  {
+   "ctor": "RsaDigitalSignature(RsaKey)",
+   "judgement": "borrow"
+  }
+ ]
+}

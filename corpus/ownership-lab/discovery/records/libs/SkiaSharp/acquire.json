@@ -1,0 +1,27 @@
+{
+ "package": "SkiaSharp",
+ "version": "4.153.1",
+ "nupkg_sha256": "9cf0fa681223d4956bfbd37995c9eaa8d259935ae3d195fac681ff9a4e9c4816",
+ "repository_url": "https://go.microsoft.com/fwlink/?linkid=868515",
+ "repository_commit": "4783f51448f9b070dda4f87b83e941c9599e466e",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SkiaSharp/lib/net6.0/SkiaSharp.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SkiaSharp/lib/net6.0/SkiaSharp.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SkiaSharp/lib/net6.0/SkiaSharp.dll",
+  "name": "SkiaSharp",
+  "version": "4.153.0.0",
+  "culture": "",
+  "public_key_token": "0738eb9f132ed756",
+  "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522",
+  "target_framework": ".NETCoreApp,Version=v6.0",
+  "informational_version": "4.153.1+release-4.153.1.4783f51448f9b070dda4f87b83e941c9599e466e.4783f51448f9b070dda4f87b83e941c9599e466e",
+  "sha256": "a1355e19984ea92935090d7e54d084ab2018fd9633ded1abef446b530d806617",
+  "size": 532320
+ },
+ "xmldoc": [
+  "lib/net10.0-android36.0/SkiaSharp.xml",
+  "lib/net9.0-android35.0/SkiaSharp.xml"
+ ]
+}

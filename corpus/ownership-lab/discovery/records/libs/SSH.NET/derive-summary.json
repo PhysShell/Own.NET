@@ -1,0 +1,67 @@
+{
+ "source_files": 23,
+ "perfile_union_added_fresh": [
+  "Renci.SshNet.ServiceFactory.CreateSession",
+  "Renci.SshNet.ServiceFactory.CreateSftpSession"
+ ],
+ "extractor_stats": {
+  "methods_with_local": 119,
+  "methods_flow_analysed": 105,
+  "methods_skipped_unmodelled": 14
+ },
+ "re_body_census": "fresh_return=33",
+ "fresh_summaries_all": [
+  "Renci.SshNet.BaseClient.CreateKeepAliveTimer",
+  "Renci.SshNet.ConnectionInfo.Renci.SshNet.IConnectionInfoInternal.CreateNoneAuthenticationMethod",
+  "Renci.SshNet.ServiceFactory.CreateNetConfSession",
+  "Renci.SshNet.ServiceFactory.CreatePipeStream",
+  "Renci.SshNet.ServiceFactory.CreateShellStream",
+  "Renci.SshNet.ServiceFactory.CreateShellStreamNoTerminal",
+  "Renci.SshNet.Session.Renci.SshNet.ISession.CreateChannelDirectTcpip",
+  "Renci.SshNet.Session.Renci.SshNet.ISession.CreateChannelForwardedTcpip",
+  "Renci.SshNet.Session.Renci.SshNet.ISession.CreateChannelSession",
+  "Renci.SshNet.Sftp.SftpFileStream.Open",
+  "Renci.SshNet.SftpClient.AppendText(System.String)",
+  "Renci.SshNet.SftpClient.AppendText(System.String,System.Text.Encoding)",
+  "Renci.SshNet.SftpClient.Create(System.String)",
+  "Renci.SshNet.SftpClient.Create(System.String,System.Int32)",
+  "Renci.SshNet.SftpClient.CreateText(System.String)",
+  "Renci.SshNet.SftpClient.CreateText(System.String,System.Text.Encoding)",
+  "Renci.SshNet.SftpClient.Open(System.String,System.IO.FileMode)",
+  "Renci.SshNet.SftpClient.Open(System.String,System.IO.FileMode,System.IO.FileAccess)",
+  "Renci.SshNet.SftpClient.OpenRead",
+  "Renci.SshNet.SftpClient.OpenText",
+  "Renci.SshNet.SftpClient.OpenWrite",
+  "Renci.SshNet.SshClient.CreateCommand(System.String)",
+  "Renci.SshNet.SshClient.CreateCommand(System.String,System.Text.Encoding)",
+  "Renci.SshNet.SshClient.CreateShell(System.IO.Stream,System.IO.Stream,System.IO.Stream)",
+  "Renci.SshNet.SshClient.CreateShell(System.IO.Stream,System.IO.Stream,System.IO.Stream,System.String,System.UInt32,System.UInt32,System.UInt32,System.UInt32,System.Collections.Generic.IDictionary`2)",
+  "Renci.SshNet.SshClient.CreateShell(System.IO.Stream,System.IO.Stream,System.IO.Stream,System.String,System.UInt32,System.UInt32,System.UInt32,System.UInt32,System.Collections.Generic.IDictionary`2,System.Int32)",
+  "Renci.SshNet.SshClient.CreateShell(System.Text.Encoding,System.String,System.IO.Stream,System.IO.Stream)",
+  "Renci.SshNet.SshClient.CreateShell(System.Text.Encoding,System.String,System.IO.Stream,System.IO.Stream,System.String,System.UInt32,System.UInt32,System.UInt32,System.UInt32,System.Collections.Generic.IDictionary`2)",
+  "Renci.SshNet.SshClient.CreateShell(System.Text.Encoding,System.String,System.IO.Stream,System.IO.Stream,System.String,System.UInt32,System.UInt32,System.UInt32,System.UInt32,System.Collections.Generic.IDictionary`2,System.Int32)",
+  "Renci.SshNet.SshClient.CreateShellNoTerminal",
+  "Renci.SshNet.ServiceFactory.CreateSession",
+  "Renci.SshNet.ServiceFactory.CreateSftpSession"
+ ],
+ "receiver_release_all": [
+  "Renci.SshNet.ShellStream.Channel_Closed",
+  "Renci.SshNet.ShellStream.Session_Disconnected"
+ ],
+ "fresh_not_public_surface": [
+  "Renci.SshNet.BaseClient.CreateKeepAliveTimer",
+  "Renci.SshNet.ConnectionInfo.Renci.SshNet.IConnectionInfoInternal.CreateNoneAuthenticationMethod",
+  "Renci.SshNet.ServiceFactory.CreateNetConfSession",
+  "Renci.SshNet.ServiceFactory.CreatePipeStream",
+  "Renci.SshNet.ServiceFactory.CreateShellStream",
+  "Renci.SshNet.ServiceFactory.CreateShellStreamNoTerminal",
+  "Renci.SshNet.Session.Renci.SshNet.ISession.CreateChannelDirectTcpip",
+  "Renci.SshNet.Session.Renci.SshNet.ISession.CreateChannelForwardedTcpip",
+  "Renci.SshNet.Session.Renci.SshNet.ISession.CreateChannelSession",
+  "Renci.SshNet.Sftp.SftpFileStream.Open",
+  "Renci.SshNet.ServiceFactory.CreateSession",
+  "Renci.SshNet.ServiceFactory.CreateSftpSession"
+ ],
+ "instance_methods_evaluated": 507,
+ "public_rows": 10
+}

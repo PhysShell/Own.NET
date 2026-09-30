@@ -1,0 +1,571 @@
+{
+  "assembly": "K4os.Compression.LZ4.Streams",
+  "version": "1.3.8.0",
+  "mvid": "38e23572-cbfb-4606-a307-86a2e169c893",
+  "disposable_types": 21,
+  "types": [
+    {
+      "type": "K4os.Compression.LZ4.Streams.LZ4DecoderStream",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.LZ4EncoderStream",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Abstractions.ILZ4FrameReader",
+      "kind": "interface",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": true
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Abstractions.ILZ4FrameWriter",
+      "kind": "interface",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": true
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Frames.LZ4FrameReader\u003CTStreamReader, TStreamState\u003E",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Frames.ByteSpanLZ4FrameReader",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Frames.ByteMemoryLZ4FrameReader",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Frames.ByteSequenceLZ4FrameReader",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Frames.StreamLZ4FrameReader",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Frames.PipeLZ4FrameReader",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Frames.LZ4FrameReaderAsStream",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Frames.LZ4FrameWriter\u003CTStreamWriter, TStreamState\u003E",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Frames.ByteBufferLZ4FrameWriter\u003CTBufferWriter\u003E",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Frames.ByteBufferLZ4FrameWriter",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Frames.ByteMemoryLZ4FrameWriter",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Frames.ByteSpanLZ4FrameWriter",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Frames.StreamLZ4FrameWriter",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Frames.PipeLZ4FrameWriter",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Frames.LZ4FrameWriterAsStream",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Internal.LZ4StreamEssentials\u003CT\u003E",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": true
+    },
+    {
+      "type": "K4os.Compression.LZ4.Streams.Internal.LZ4StreamOnStreamEssentials",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": true
+    }
+  ],
+  "factories": [
+    {
+      "callable": "K4os.Compression.LZ4.Streams.Extensions.AsStream",
+      "arity": 3,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.LZ4FrameReaderAsStream",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "K4os.Compression.LZ4.Streams.Abstractions.ILZ4FrameReader",
+        "bool",
+        "bool"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.Extensions.AsStream",
+      "arity": 2,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.LZ4FrameWriterAsStream",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "K4os.Compression.LZ4.Streams.Abstractions.ILZ4FrameWriter",
+        "bool"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Decode",
+      "arity": 2,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.ByteMemoryLZ4FrameReader",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.ReadOnlyMemory\u003Cbyte\u003E",
+        "int"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Decode",
+      "arity": 2,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.ByteSequenceLZ4FrameReader",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.Buffers.ReadOnlySequence\u003Cbyte\u003E",
+        "int"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Decode",
+      "arity": 3,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.StreamLZ4FrameReader",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.IO.Stream",
+        "int",
+        "bool"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Decode",
+      "arity": 3,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.PipeLZ4FrameReader",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.IO.Pipelines.PipeReader",
+        "int",
+        "bool"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+      "arity": 3,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.ByteSpanLZ4FrameWriter",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "byte*",
+        "int",
+        "K4os.Compression.LZ4.Streams.LZ4EncoderSettings?"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+      "arity": 4,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.ByteSpanLZ4FrameWriter",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "byte*",
+        "int",
+        "K4os.Compression.LZ4.LZ4Level",
+        "int"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+      "arity": 2,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.ByteMemoryLZ4FrameWriter",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.Memory\u003Cbyte\u003E",
+        "K4os.Compression.LZ4.Streams.LZ4EncoderSettings?"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+      "arity": 3,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.ByteMemoryLZ4FrameWriter",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.Memory\u003Cbyte\u003E",
+        "K4os.Compression.LZ4.LZ4Level",
+        "int"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+      "arity": 2,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.ByteBufferLZ4FrameWriter\u003CTBufferWriter\u003E",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "TBufferWriter",
+        "K4os.Compression.LZ4.Streams.LZ4EncoderSettings?"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+      "arity": 3,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.ByteBufferLZ4FrameWriter\u003CTBufferWriter\u003E",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "TBufferWriter",
+        "K4os.Compression.LZ4.LZ4Level",
+        "int"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+      "arity": 2,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.ByteBufferLZ4FrameWriter",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.Buffers.IBufferWriter\u003Cbyte\u003E",
+        "K4os.Compression.LZ4.Streams.LZ4EncoderSettings?"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+      "arity": 3,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.ByteBufferLZ4FrameWriter",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.Buffers.IBufferWriter\u003Cbyte\u003E",
+        "K4os.Compression.LZ4.LZ4Level",
+        "int"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+      "arity": 3,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.StreamLZ4FrameWriter",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.IO.Stream",
+        "K4os.Compression.LZ4.Streams.LZ4EncoderSettings?",
+        "bool"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+      "arity": 4,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.StreamLZ4FrameWriter",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.IO.Stream",
+        "K4os.Compression.LZ4.LZ4Level",
+        "int",
+        "bool"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+      "arity": 3,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.PipeLZ4FrameWriter",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.IO.Pipelines.PipeWriter",
+        "K4os.Compression.LZ4.Streams.LZ4EncoderSettings?",
+        "bool"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+      "arity": 4,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.Frames.PipeLZ4FrameWriter",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.IO.Pipelines.PipeWriter",
+        "K4os.Compression.LZ4.LZ4Level",
+        "int",
+        "bool"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Stream.Encode",
+      "arity": 3,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.LZ4EncoderStream",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.IO.Stream",
+        "K4os.Compression.LZ4.Streams.LZ4EncoderSettings?",
+        "bool"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Stream.Encode",
+      "arity": 4,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.LZ4EncoderStream",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.IO.Stream",
+        "K4os.Compression.LZ4.LZ4Level",
+        "int",
+        "bool"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Stream.Decode",
+      "arity": 4,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.LZ4DecoderStream",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.IO.Stream",
+        "K4os.Compression.LZ4.Streams.LZ4DecoderSettings?",
+        "bool",
+        "bool"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4Stream.Decode",
+      "arity": 4,
+      "is_static": true,
+      "returns": "K4os.Compression.LZ4.Streams.LZ4DecoderStream",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": [
+        "System.IO.Stream",
+        "int",
+        "bool",
+        "bool"
+      ]
+    }
+  ],
+  "adopting_ctors": [
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4DecoderStream..ctor",
+      "arity": 4,
+      "parameters": [
+        "System.IO.Stream",
+        "System.Func\u003CK4os.Compression.LZ4.Streams.ILZ4Descriptor, K4os.Compression.LZ4.Encoders.ILZ4Decoder\u003E",
+        "bool",
+        "bool"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": [
+        "leaveOpen",
+        "interactive"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.LZ4EncoderStream..ctor",
+      "arity": 4,
+      "parameters": [
+        "System.IO.Stream",
+        "K4os.Compression.LZ4.Streams.ILZ4Descriptor",
+        "System.Func\u003CK4os.Compression.LZ4.Streams.ILZ4Descriptor, K4os.Compression.LZ4.Encoders.ILZ4Encoder\u003E",
+        "bool"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": [
+        "leaveOpen"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.Frames.StreamLZ4FrameReader..ctor",
+      "arity": 3,
+      "parameters": [
+        "System.IO.Stream",
+        "bool",
+        "System.Func\u003CK4os.Compression.LZ4.Streams.ILZ4Descriptor, K4os.Compression.LZ4.Encoders.ILZ4Decoder\u003E"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": [
+        "leaveOpen"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.Frames.LZ4FrameReaderAsStream..ctor",
+      "arity": 3,
+      "parameters": [
+        "K4os.Compression.LZ4.Streams.Abstractions.ILZ4FrameReader",
+        "bool",
+        "bool"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": [
+        "doNotDispose",
+        "interactive"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.Frames.StreamLZ4FrameWriter..ctor",
+      "arity": 4,
+      "parameters": [
+        "System.IO.Stream",
+        "bool",
+        "System.Func\u003CK4os.Compression.LZ4.Streams.ILZ4Descriptor, K4os.Compression.LZ4.Encoders.ILZ4Encoder\u003E",
+        "K4os.Compression.LZ4.Streams.ILZ4Descriptor"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": [
+        "leaveOpen"
+      ]
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.Frames.LZ4FrameWriterAsStream..ctor",
+      "arity": 2,
+      "parameters": [
+        "K4os.Compression.LZ4.Streams.Abstractions.ILZ4FrameWriter",
+        "bool"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": [
+        "doNotDispose"
+      ]
+    }
+  ],
+  "release_name_candidates": [
+    {
+      "callable": "K4os.Compression.LZ4.Streams.Abstractions.ILZ4FrameReader.CloseFrame",
+      "arity": 0,
+      "returns": "void"
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.Abstractions.ILZ4FrameWriter.CloseFrame",
+      "arity": 0,
+      "returns": "void"
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.Abstractions.ILZ4FrameWriter.CloseFrameAsync",
+      "arity": 1,
+      "returns": "System.Threading.Tasks.Task"
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.Frames.LZ4FrameReader\u003CTStreamReader, TStreamState\u003E.CloseFrame",
+      "arity": 0,
+      "returns": "void"
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.Frames.LZ4FrameWriter\u003CTStreamWriter, TStreamState\u003E.CloseFrame",
+      "arity": 0,
+      "returns": "void"
+    },
+    {
+      "callable": "K4os.Compression.LZ4.Streams.Frames.LZ4FrameWriter\u003CTStreamWriter, TStreamState\u003E.CloseFrameAsync",
+      "arity": 1,
+      "returns": "System.Threading.Tasks.Task"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+ "source_files": 11,
+ "perfile_union_added_fresh": [
+  "CsvHelper.Factory.CreateParser(TextReader,CsvHelper.Configuration.CsvConfiguration)",
+  "CsvHelper.Factory.CreateParser(TextReader,System.Globalization.CultureInfo)",
+  "CsvHelper.Factory.CreateReader(TextReader,CsvHelper.Configuration.CsvConfiguration)",
+  "CsvHelper.Factory.CreateReader(TextReader,System.Globalization.CultureInfo)",
+  "CsvHelper.Factory.CreateWriter(TextWriter,CsvHelper.Configuration.CsvConfiguration)",
+  "CsvHelper.Factory.CreateWriter(TextWriter,System.Globalization.CultureInfo)"
+ ],
+ "extractor_stats": {
+  "methods_with_local": 15,
+  "methods_flow_analysed": 11,
+  "methods_skipped_unmodelled": 4
+ },
+ "re_body_census": "fresh_return=7",
+ "fresh_summaries_all": [
+  "CsvHelper.Factory.CreateParser",
+  "CsvHelper.Factory.CreateParser(System.IO.TextReader,CsvHelper.Configuration.CsvConfiguration)",
+  "CsvHelper.Factory.CreateParser(System.IO.TextReader,System.Globalization.CultureInfo)",
+  "CsvHelper.Factory.CreateReader",
+  "CsvHelper.Factory.CreateReader(CsvHelper.IParser)",
+  "CsvHelper.Factory.CreateReader(System.IO.TextReader,CsvHelper.Configuration.CsvConfiguration)",
+  "CsvHelper.Factory.CreateReader(System.IO.TextReader,System.Globalization.CultureInfo)",
+  "CsvHelper.Factory.CreateWriter",
+  "CsvHelper.Factory.CreateWriter(System.IO.TextWriter,CsvHelper.Configuration.CsvConfiguration)",
+  "CsvHelper.Factory.CreateWriter(System.IO.TextWriter,System.Globalization.CultureInfo)",
+  "CsvHelper.Factory.CreateParser(TextReader,CsvHelper.Configuration.CsvConfiguration)",
+  "CsvHelper.Factory.CreateParser(TextReader,System.Globalization.CultureInfo)",
+  "CsvHelper.Factory.CreateReader(TextReader,CsvHelper.Configuration.CsvConfiguration)",
+  "CsvHelper.Factory.CreateReader(TextReader,System.Globalization.CultureInfo)",
+  "CsvHelper.Factory.CreateWriter(TextWriter,CsvHelper.Configuration.CsvConfiguration)",
+  "CsvHelper.Factory.CreateWriter(TextWriter,System.Globalization.CultureInfo)"
+ ],
+ "receiver_release_all": [
+  "CsvHelper.CsvDataReader.Close"
+ ],
+ "fresh_not_public_surface": [],
+ "instance_methods_evaluated": 178,
+ "public_rows": 4
+}

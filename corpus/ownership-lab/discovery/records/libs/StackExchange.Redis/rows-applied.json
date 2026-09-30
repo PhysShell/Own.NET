@@ -1,0 +1,16 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for StackExchange.Redis 3.3.1 (BODY_PROVED + WITNESSED; MVID 5f6069ec-0f05-4928-b425-d8a49146d0a9)",
+ "entries": [
+  {
+   "callable": "StackExchange.Redis.Lease<T>.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "StackExchange.Redis",
+    "mvid": "5f6069ec-0f05-4928-b425-d8a49146d0a9"
+   },
+   "derived_from": "https://github.com/StackExchange/StackExchange.Redis/@0a92ae43b0f8e80467920115a54f9761cc04ee4c via E1/E3 (inferred)"
+  }
+ ]
+}

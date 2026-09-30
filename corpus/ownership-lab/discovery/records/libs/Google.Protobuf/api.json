@@ -1,0 +1,126 @@
+{
+  "assembly": "Google.Protobuf",
+  "version": "3.36.2.0",
+  "mvid": "30ebe6c2-f530-434a-a926-51d53bbbde3b",
+  "disposable_types": 2,
+  "types": [
+    {
+      "type": "Google.Protobuf.CodedInputStream",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "Google.Protobuf.CodedOutputStream",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    }
+  ],
+  "factories": [
+    {
+      "callable": "Google.Protobuf.ByteString.CreateCodedInput",
+      "arity": 0,
+      "is_static": false,
+      "returns": "Google.Protobuf.CodedInputStream",
+      "async_wrapped": false,
+      "declaring_type_disposable": false,
+      "parameters": []
+    },
+    {
+      "callable": "Google.Protobuf.CodedInputStream.CreateWithLimits",
+      "arity": 3,
+      "is_static": true,
+      "returns": "Google.Protobuf.CodedInputStream",
+      "async_wrapped": false,
+      "declaring_type_disposable": true,
+      "parameters": [
+        "System.IO.Stream",
+        "int",
+        "int"
+      ]
+    }
+  ],
+  "adopting_ctors": [
+    {
+      "callable": "Google.Protobuf.CodedInputStream..ctor",
+      "arity": 1,
+      "parameters": [
+        "System.IO.Stream"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "Google.Protobuf.CodedInputStream..ctor",
+      "arity": 2,
+      "parameters": [
+        "System.IO.Stream",
+        "bool"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": [
+        "leaveOpen"
+      ]
+    },
+    {
+      "callable": "Google.Protobuf.CodedOutputStream..ctor",
+      "arity": 1,
+      "parameters": [
+        "System.IO.Stream"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "Google.Protobuf.CodedOutputStream..ctor",
+      "arity": 2,
+      "parameters": [
+        "System.IO.Stream",
+        "int"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": []
+    },
+    {
+      "callable": "Google.Protobuf.CodedOutputStream..ctor",
+      "arity": 2,
+      "parameters": [
+        "System.IO.Stream",
+        "bool"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": [
+        "leaveOpen"
+      ]
+    },
+    {
+      "callable": "Google.Protobuf.CodedOutputStream..ctor",
+      "arity": 3,
+      "parameters": [
+        "System.IO.Stream",
+        "int",
+        "bool"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": [
+        "leaveOpen"
+      ]
+    }
+  ],
+  "release_name_candidates": []
+}

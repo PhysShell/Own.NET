@@ -1,0 +1,36 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for Microsoft.Data.Sqlite.Core 10.0.12 (BODY_PROVED + WITNESSED; MVID c031b608-828e-489e-938d-6a4064eb899a)",
+ "entries": [
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteConnection.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Microsoft.Data.Sqlite",
+    "mvid": "c031b608-828e-489e-938d-6a4064eb899a"
+   },
+   "derived_from": "https://github.com/dotnet/dotnet@95017c711e6afc1085133d440e42b4bd78155701 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteFactory.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Microsoft.Data.Sqlite",
+    "mvid": "c031b608-828e-489e-938d-6a4064eb899a"
+   },
+   "derived_from": "https://github.com/dotnet/dotnet@95017c711e6afc1085133d440e42b4bd78155701 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Microsoft.Data.Sqlite",
+    "mvid": "c031b608-828e-489e-938d-6a4064eb899a"
+   },
+   "derived_from": "https://github.com/dotnet/dotnet@95017c711e6afc1085133d440e42b4bd78155701 via E1/E3 (inferred)"
+  }
+ ]
+}

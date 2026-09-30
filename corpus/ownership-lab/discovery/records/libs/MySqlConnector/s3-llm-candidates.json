@@ -1,0 +1,150 @@
+{
+ "package": "MySqlConnector",
+ "written_at_utc": "2026-09-30T04:05:02Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read)",
+ "note": "",
+ "suggested_rows": [
+  {
+   "callable": "MySqlConnector.MySqlDataSource.CreateConnection",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "new unopened connection"
+  },
+  {
+   "callable": "MySqlConnector.MySqlDataSource.OpenConnection",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "new opened connection"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnection.CreateCommand",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "new command"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnection.CreateBatch",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "new batch"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnection.BeginTransaction",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "new transaction"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnection.BeginTransaction",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same with isolation level"
+  },
+  {
+   "callable": "MySqlConnector.MySqlCommand.ExecuteReader",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "new reader holding the session"
+  },
+  {
+   "callable": "MySqlConnector.MySqlCommand.ExecuteReader",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same with behavior"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnection.Clone",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new connection object"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnection.CloneWith",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new connection with another string"
+  },
+  {
+   "callable": "MySqlConnector.MySqlCommand.Clone",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new command"
+  },
+  {
+   "callable": "MySqlConnector.MySqlDataSourceBuilder.Build",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "new data source"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "DbProviderFactory pattern"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnectorFactory.CreateCommand",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "DbProviderFactory pattern"
+  },
+  {
+   "callable": "MySqlConnector.MySqlDataReader.GetStream",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a stream over a column value (probably a MemoryStream copy)"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "MySqlConnector.MySqlConnection.Close",
+   "arity": 0,
+   "why": "pool return, reopenable: not terminal (production name rule already releases)"
+  },
+  {
+   "callable": "MySqlConnector.MySqlTransaction.Release",
+   "arity": 1,
+   "why": "savepoint release: hostile name, no row"
+  },
+  {
+   "callable": "MySqlConnector.MySqlCommand.get_Connection",
+   "arity": 0,
+   "why": "property alias: not fresh"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnection.GetSchema",
+   "arity": 0,
+   "why": "DataTable dispose-optional"
+  }
+ ],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "MySqlCommand(string, MySqlConnection)",
+   "judgement": "borrow: the command never disposes its connection"
+  },
+  {
+   "ctor": "MySqlDataAdapter(MySqlCommand)",
+   "judgement": "UNDECIDED (DbDataAdapter semantics)"
+  },
+  {
+   "ctor": "MySqlCommandBuilder(MySqlDataAdapter)",
+   "judgement": "borrow"
+  }
+ ]
+}

@@ -8,14 +8,15 @@ FRESH='''using System; using System.IO; using System.Threading;
 {setup}
 object Make() => {expr};
 string disposedProbe = "n/a"; string err = null;
-object a, b, c;
-try {{ a = Make(); b = Make(); c = Make(); }}
+object w1, w2, w3;
+try {{ w1 = Make(); w2 = Make(); w3 = Make(); }}
 catch (Exception e) {{ Console.WriteLine("WITNESS " + System.Text.Json.JsonSerializer.Serialize(new {{ verdict = "environment-error", err = e.GetType().Name, msg = e.Message.Length > 120 ? e.Message.Substring(0, 120) : e.Message }})); return; }}
-bool distinct = !ReferenceEquals(a,b) && !ReferenceEquals(b,c) && !ReferenceEquals(a,c);
-bool same = ReferenceEquals(a,b) && ReferenceEquals(b,c);
-if ({dispose}) {{ try {{ ((IDisposable)a).Dispose(); {probe} }} catch (Exception e) {{ err = e.GetType().Name; }} }}
+var b = w2;
+bool distinct = !ReferenceEquals(w1,w2) && !ReferenceEquals(w2,w3) && !ReferenceEquals(w1,w3);
+bool same = ReferenceEquals(w1,w2) && ReferenceEquals(w2,w3);
+if ({dispose}) {{ try {{ ((IDisposable)w1).Dispose(); {probe} }} catch (Exception e) {{ err = e.GetType().Name; }} }}
 string verdict = same ? "cached" : distinct ? "fresh" : "inconclusive";
-Console.WriteLine("WITNESS " + System.Text.Json.JsonSerializer.Serialize(new {{ distinct, same, disposedProbe, err, verdict, asm = a.GetType().Assembly.ManifestModule.ModuleVersionId.ToString(), type = a.GetType().FullName }}));
+Console.WriteLine("WITNESS " + System.Text.Json.JsonSerializer.Serialize(new {{ distinct, same, disposedProbe, err, verdict, asm = w1.GetType().Assembly.ManifestModule.ModuleVersionId.ToString(), type = w1.GetType().FullName }}));
 '''
 TERM='''using System; using System.IO; using System.Threading;
 string outcome; string err = null;

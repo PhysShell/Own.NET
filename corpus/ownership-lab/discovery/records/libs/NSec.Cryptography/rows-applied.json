@@ -1,0 +1,66 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for NSec.Cryptography 26.4.0 (BODY_PROVED + WITNESSED; MVID ffd8640c-2483-4406-bcca-c25e459c4813)",
+ "entries": [
+  {
+   "callable": "NSec.Cryptography.Key.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "NSec.Cryptography",
+    "mvid": "ffd8640c-2483-4406-bcca-c25e459c4813"
+   },
+   "derived_from": "https://github.com/ektrah/nsec.git@02c51bb20a7b6accc96e74ecab6e2659cc1f5c63 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "NSec.Cryptography.Key.Import",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "NSec.Cryptography",
+    "mvid": "ffd8640c-2483-4406-bcca-c25e459c4813"
+   },
+   "derived_from": "https://github.com/ektrah/nsec.git@02c51bb20a7b6accc96e74ecab6e2659cc1f5c63 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "NSec.Cryptography.KeyDerivationAlgorithm.DeriveKey",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "NSec.Cryptography",
+    "mvid": "ffd8640c-2483-4406-bcca-c25e459c4813"
+   },
+   "derived_from": "https://github.com/ektrah/nsec.git@02c51bb20a7b6accc96e74ecab6e2659cc1f5c63 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "NSec.Cryptography.KeyDerivationAlgorithm2.ExpandKey",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "NSec.Cryptography",
+    "mvid": "ffd8640c-2483-4406-bcca-c25e459c4813"
+   },
+   "derived_from": "https://github.com/ektrah/nsec.git@02c51bb20a7b6accc96e74ecab6e2659cc1f5c63 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "NSec.Cryptography.PasswordBasedKeyDerivationAlgorithm.DeriveKey",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "NSec.Cryptography",
+    "mvid": "ffd8640c-2483-4406-bcca-c25e459c4813"
+   },
+   "derived_from": "https://github.com/ektrah/nsec.git@02c51bb20a7b6accc96e74ecab6e2659cc1f5c63 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "NSec.Cryptography.SharedSecret.Import",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "NSec.Cryptography",
+    "mvid": "ffd8640c-2483-4406-bcca-c25e459c4813"
+   },
+   "derived_from": "https://github.com/ektrah/nsec.git@02c51bb20a7b6accc96e74ecab6e2659cc1f5c63 via E1/E3 (inferred)"
+  }
+ ]
+}

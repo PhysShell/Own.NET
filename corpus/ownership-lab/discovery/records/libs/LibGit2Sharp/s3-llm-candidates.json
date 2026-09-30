@@ -1,0 +1,39 @@
+{
+ "package": "LibGit2Sharp",
+ "written_at_utc": "2026-09-30T04:09:40Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read)",
+ "note": "Repository is constructed with new; most factories are methods on the repository",
+ "suggested_rows": [
+  {
+   "callable": "LibGit2Sharp.Blob.GetContentStream",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new stream over blob content"
+  },
+  {
+   "callable": "LibGit2Sharp.Configuration.BuildFrom",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new Configuration"
+  },
+  {
+   "callable": "LibGit2Sharp.RemoteCollection.Add",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new Remote handle"
+  },
+  {
+   "callable": "LibGit2Sharp.ObjectDatabase.MergeCommitsIntoIndex",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new TransientIndex"
+  }
+ ],
+ "suggested_negatives": [],
+ "adopting_ctor_judgements": []
+}

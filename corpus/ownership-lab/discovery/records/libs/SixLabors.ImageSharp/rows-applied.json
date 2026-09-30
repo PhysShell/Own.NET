@@ -1,0 +1,86 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for SixLabors.ImageSharp 4.1.2 (BODY_PROVED + WITNESSED; MVID 10201e40-acc4-4407-9bcf-0b6a8b13982d)",
+ "entries": [
+  {
+   "callable": "SixLabors.ImageSharp.Image.WrapMemory",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SixLabors.ImageSharp",
+    "mvid": "10201e40-acc4-4407-9bcf-0b6a8b13982d"
+   },
+   "derived_from": "https://github.com/SixLabors/ImageSharp@dee414097e4be7bb35ef0209cf96bd0b61a7133a via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.Image<TPixel>.Clone",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SixLabors.ImageSharp",
+    "mvid": "10201e40-acc4-4407-9bcf-0b6a8b13982d"
+   },
+   "derived_from": "https://github.com/SixLabors/ImageSharp@dee414097e4be7bb35ef0209cf96bd0b61a7133a via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.Image<TPixel>.CloneAs",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SixLabors.ImageSharp",
+    "mvid": "10201e40-acc4-4407-9bcf-0b6a8b13982d"
+   },
+   "derived_from": "https://github.com/SixLabors/ImageSharp@dee414097e4be7bb35ef0209cf96bd0b61a7133a via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.ImageFrameCollection<TPixel>.CloneFrame",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SixLabors.ImageSharp",
+    "mvid": "10201e40-acc4-4407-9bcf-0b6a8b13982d"
+   },
+   "derived_from": "https://github.com/SixLabors/ImageSharp@dee414097e4be7bb35ef0209cf96bd0b61a7133a via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.ImageFrameCollection<TPixel>.ExportFrame",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SixLabors.ImageSharp",
+    "mvid": "10201e40-acc4-4407-9bcf-0b6a8b13982d"
+   },
+   "derived_from": "https://github.com/SixLabors/ImageSharp@dee414097e4be7bb35ef0209cf96bd0b61a7133a via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.Memory.Buffer2D<T>.WrapMemory",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SixLabors.ImageSharp",
+    "mvid": "10201e40-acc4-4407-9bcf-0b6a8b13982d"
+   },
+   "derived_from": "https://github.com/SixLabors/ImageSharp@dee414097e4be7bb35ef0209cf96bd0b61a7133a via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.Memory.MemoryAllocatorExtensions.Allocate2D",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SixLabors.ImageSharp",
+    "mvid": "10201e40-acc4-4407-9bcf-0b6a8b13982d"
+   },
+   "derived_from": "https://github.com/SixLabors/ImageSharp@dee414097e4be7bb35ef0209cf96bd0b61a7133a via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SixLabors.ImageSharp.Image.LoadPixelData",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SixLabors.ImageSharp",
+    "mvid": "10201e40-acc4-4407-9bcf-0b6a8b13982d"
+   },
+   "derived_from": "https://github.com/SixLabors/ImageSharp@dee414097e4be7bb35ef0209cf96bd0b61a7133a via E1/E3 (inferred (per-file run))"
+  }
+ ]
+}

@@ -1,0 +1,789 @@
+{
+ "package": "Microsoft.Data.Sqlite.Core",
+ "consumer": "tests",
+ "files": 10,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Microsoft.Data.Sqlite.Core/rows-applied.json",
+ "key_sha256": "9d9acbd5f1f3376d7bb045dbf17434a7f90da3adea35dae1f4af149e4ff0547c",
+ "off": {
+  "findings": [
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    81,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    93,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    101,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    131,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    142,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    150,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    158,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    170,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    215,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    419,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    431,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    444,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    457,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    470,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    483,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    496,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    509,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    522,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    568,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    581,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    594,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    682,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    695,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    719,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    738,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    758,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    775,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    796,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    813,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    830,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    847,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    1121,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    23,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    31,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    39,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    59,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    70,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    78,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    98,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    106,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    114,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    122,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    132,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    508,
+    "OWN002",
+    "IDisposable local 'connection' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    519,
+    "OWN003",
+    "IDisposable local 'connection' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    1036,
+    "OWN001",
+    "IDisposable local 'command1' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    1043,
+    "OWN001",
+    "IDisposable local 'command2' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteDataReaderTest.cs",
+    472,
+    "OWN001",
+    "IDisposable local 'selectCommand' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteDataReaderTest.cs",
+    499,
+    "OWN001",
+    "IDisposable local 'selectCommand' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteDataReaderTest.cs",
+    527,
+    "OWN001",
+    "IDisposable local 'selectCommand' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteDataReaderTest.cs",
+    555,
+    "OWN001",
+    "IDisposable local 'selectCommand' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    183,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    216,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    359,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    375,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    391,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    407,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    423,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    442,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    474,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    499,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    526,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteTransactionTest.cs",
+    426,
+    "OWN003",
+    "IDisposable local 'transaction' is disposed more than once [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 63,
+   "methods_flow_analysed": 63,
+   "methods_skipped_unmodelled": 0
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    81,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    93,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    101,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    131,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    142,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    150,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    158,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    170,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    215,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    419,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    431,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    444,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    457,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    470,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    483,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    496,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    509,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    522,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    568,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    581,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    594,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    682,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    695,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    719,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    738,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    758,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    775,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    796,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    813,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    830,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    847,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteCommandTest.cs",
+    1121,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    23,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    31,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    39,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    59,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    70,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    78,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    98,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    106,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    114,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    122,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    132,
+    "OWN001",
+    "IDisposable local 'connection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    508,
+    "OWN002",
+    "IDisposable local 'connection' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    519,
+    "OWN003",
+    "IDisposable local 'connection' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    1036,
+    "OWN001",
+    "IDisposable local 'command1' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteConnectionTest.cs",
+    1043,
+    "OWN001",
+    "IDisposable local 'command2' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteDataReaderTest.cs",
+    472,
+    "OWN001",
+    "IDisposable local 'selectCommand' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteDataReaderTest.cs",
+    499,
+    "OWN001",
+    "IDisposable local 'selectCommand' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteDataReaderTest.cs",
+    527,
+    "OWN001",
+    "IDisposable local 'selectCommand' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteDataReaderTest.cs",
+    555,
+    "OWN001",
+    "IDisposable local 'selectCommand' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    183,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    216,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    359,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    375,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    391,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    407,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    423,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    442,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    474,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    499,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteParameterTest.cs",
+    526,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "src__efcore__test__Microsoft.Data.Sqlite.Tests__SqliteTransactionTest.cs",
+    426,
+    "OWN003",
+    "IDisposable local 'transaction' is disposed more than once [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: "
+  ],
+  "stats": {
+   "methods_with_local": 63,
+   "methods_flow_analysed": 63,
+   "methods_skipped_unmodelled": 0
+  }
+ },
+ "new_findings": [],
+ "lost_findings": []
+}

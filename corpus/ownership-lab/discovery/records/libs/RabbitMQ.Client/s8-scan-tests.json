@@ -1,0 +1,81 @@
+{
+ "package": "RabbitMQ.Client",
+ "consumer": "tests",
+ "files": 13,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/RabbitMQ.Client/rows-applied.json",
+ "key_sha256": "ca80a31519b4fbcab99ec851d7bb76fb329a3b96da8c4cb8f8808d491ced78be",
+ "off": {
+  "findings": [
+   [
+    "projects__Test__Integration__TestBasicPublish.cs",
+    199,
+    "OWN001",
+    "event 'conn.ConnectionShutdownAsync' is subscribed (handler '(o, a) =>"
+   ],
+   [
+    "projects__Test__Integration__TestBasicPublish.cs",
+    211,
+    "OWN001",
+    "event 'channel.ChannelShutdownAsync' is subscribed (handler '(o, a) =>"
+   ],
+   [
+    "projects__Test__Integration__TestBasicPublish.cs",
+    217,
+    "OWN001",
+    "event 'channel.CallbackExceptionAsync' is subscribed (handler '(o, a) =>"
+   ],
+   [
+    "projects__Test__Integration__TestPublisherConfirms.cs",
+    63,
+    "OWN001",
+    "event 'ch.BasicAcksAsync' is subscribed (handler '(_, args) =>"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 19,
+   "methods_flow_analysed": 14,
+   "methods_skipped_unmodelled": 5
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "projects__Test__Integration__TestBasicPublish.cs",
+    199,
+    "OWN001",
+    "event 'conn.ConnectionShutdownAsync' is subscribed (handler '(o, a) =>"
+   ],
+   [
+    "projects__Test__Integration__TestBasicPublish.cs",
+    211,
+    "OWN001",
+    "event 'channel.ChannelShutdownAsync' is subscribed (handler '(o, a) =>"
+   ],
+   [
+    "projects__Test__Integration__TestBasicPublish.cs",
+    217,
+    "OWN001",
+    "event 'channel.CallbackExceptionAsync' is subscribed (handler '(o, a) =>"
+   ],
+   [
+    "projects__Test__Integration__TestPublisherConfirms.cs",
+    63,
+    "OWN001",
+    "event 'ch.BasicAcksAsync' is subscribed (handler '(_, args) =>"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: "
+  ],
+  "stats": {
+   "methods_with_local": 19,
+   "methods_flow_analysed": 14,
+   "methods_skipped_unmodelled": 5
+  }
+ },
+ "new_findings": [],
+ "lost_findings": []
+}

@@ -1,0 +1,28 @@
+{
+ "package": "CsvHelper",
+ "version": "33.1.0",
+ "nupkg_sha256": "a447d7e28eb7c6ea48eeebb07baa9ad393a77b4a49ed46f3cc9a8b8784a18eef",
+ "repository_url": "https://github.com/JoshClose/CsvHelper",
+ "repository_commit": "5dad8b8b1d8b074f8353cfd482e939db788a8927",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/CsvHelper/lib/net8.0/CsvHelper.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/CsvHelper/lib/net8.0/CsvHelper.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/CsvHelper/lib/net8.0/CsvHelper.dll",
+  "name": "CsvHelper",
+  "version": "33.0.0.0",
+  "culture": "",
+  "public_key_token": "8c4959082be5c823",
+  "mvid": "64574a8c-edb4-4e30-aeac-95290a74d6ad",
+  "target_framework": ".NETCoreApp,Version=v8.0",
+  "informational_version": "33.1.0+5dad8b8b1d8b074f8353cfd482e939db788a8927",
+  "sha256": "8964322c777eb7491a0eb218c770c04cdc33914d3439ae0fbed1adf4678c304b",
+  "size": 226816
+ },
+ "xmldoc": [
+  "lib/net462/CsvHelper.xml",
+  "lib/net47/CsvHelper.xml",
+  "lib/net48/CsvHelper.xml"
+ ]
+}

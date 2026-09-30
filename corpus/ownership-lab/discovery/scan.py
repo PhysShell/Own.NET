@@ -5,6 +5,7 @@ S='/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad'; R=
 pid, tag = sys.argv[1], sys.argv[2]; L=f'{S}/lab/disc/libs/{pid}'
 key = sys.argv[3] if len(sys.argv)>3 else f'{L}/rows-applied.json'
 acq=json.load(open(f'{L}/acquire.json')); refdir=os.path.dirname(acq['main_assembly'])
+open(f'{L}/consumers/{tag}/__GlobalUsings.cs','w').write('// synthesised for the discovery derivation: the SDK implicit usings (ImplicitUsings=enable) the fetched files rely on\nglobal using System;\nglobal using System.Collections.Generic;\nglobal using System.IO;\nglobal using System.Linq;\nglobal using System.Net.Http;\nglobal using System.Threading;\nglobal using System.Threading.Tasks;\n')
 files=sorted(glob.glob(f'{L}/consumers/{tag}/*.cs'))
 DLL=f'{R}/frontend/roslyn/OwnSharp.Extractor/bin/Release/net8.0/ownsharp-extract.dll'; OWN=f'{R}/rust/target/release/own-cli'
 FIND=re.compile(r'([^/\s]+\.cs):(\d+): (\w+): \[(OWN\d+)\] (.*)')

@@ -1,0 +1,217 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for Npgsql 10.0.3 (BODY_PROVED + WITNESSED; MVID a8d2544f-8092-4b08-8016-a6f476ff57f9)",
+ "entries": [
+  {
+   "callable": "Npgsql.NpgsqlCommand.Clone",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.CloneWith",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.CloneWithAsync",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataSource.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataSource.CreateBatch",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataSource.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataSource.CreateConnection",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataSourceBuilder.Build",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlDataSourceBuilder.BuildMultiHost",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlFactory.CreateBatch",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlFactory.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlFactory.CreateCommandBuilder",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlFactory.CreateConnection",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlFactory.CreateDataAdapter",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlFactory.CreateDataSource",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlLargeObjectManager.OpenRead",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlLargeObjectManager.OpenReadWrite",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlSlimDataSourceBuilder.BuildMultiHost",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "derived_from": "https://github.com/npgsql/npgsql@d3768398c17877b3a916c3c4d87e8e11698991fc via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Npgsql.NpgsqlConnection.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "assembly": {
+    "name": "Npgsql",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+   },
+   "witness": "NPG-W1",
+   "witness_asm_mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9"
+  }
+ ]
+}

@@ -1,0 +1,87 @@
+{
+ "package": "MQTTnet",
+ "repo": "dotnet/MQTTnet",
+ "commit": "14463d1ef9f1f119514185c1832905b91bff827d",
+ "files": [
+  {
+   "path": "Source/MQTTnet/MqttClient.cs",
+   "sha256": "4c88641a7ae25ffb9669f7691fe620a7c20a6e38a3184c624c0dd2cf7501eee6",
+   "bytes": 40581
+  },
+  {
+   "path": "Source/MQTTnet/MqttClientFactory.cs",
+   "sha256": "59aca80abc37ecda0961efb4b8b75ed29375e1fb0d7a0939c9475a61f6b1b927",
+   "bytes": 3784
+  },
+  {
+   "path": "Source/MQTTnet/IMqttClient.cs",
+   "sha256": "841cce7e94476453e008732e0e54714d4a67c01eb27aeccdbac0852a69022dc8",
+   "bytes": 2214
+  },
+  {
+   "path": "Source/MQTTnet/Implementations/CrossPlatformSocket.cs",
+   "sha256": "d773591c7b18d95506ebdac2a0d33bdccad00bea1c6c7de242ea904b697649f0",
+   "bytes": 6175
+  },
+  {
+   "path": "Source/MQTTnet/Implementations/MqttClientAdapterFactory.cs",
+   "sha256": "d607c3140ba3846c38cc5aebb30763cab7d6d52b76a54d5327dbf29646f187c8",
+   "bytes": 1578
+  },
+  {
+   "path": "Source/MQTTnet/Implementations/MqttTcpChannel.cs",
+   "sha256": "f947ae64725c62f9709b699649c263e99e3df105112441a35ddbb53f0dcf29c3",
+   "bytes": 12830
+  },
+  {
+   "path": "Source/MQTTnet/Implementations/MqttWebSocketChannel.cs",
+   "sha256": "75e5be4919df0decce68bd93e4646c045462075bc407de4d95a58384b24a8ad0",
+   "bytes": 8353
+  },
+  {
+   "path": "Source/MQTTnet/Adapter/MqttChannelAdapter.cs",
+   "sha256": "85e4baaac76e55e93c0f849b39cda54a76867b004813b8dd68ce9cc06720d556",
+   "bytes": 15569
+  },
+  {
+   "path": "Source/MQTTnet/Adapter/IMqttChannelAdapter.cs",
+   "sha256": "4cd80a3a0ab7e159e1f15729b2c6b6feb5e04795c442ebb11b3cfc42acfb8d58",
+   "bytes": 1009
+  },
+  {
+   "path": "Source/MQTTnet/LowLevelClient/LowLevelMqttClient.cs",
+   "sha256": "d51338c4aeaca9eef2b974106994dcb84e3c470ceba744445da82704ab95fc74",
+   "bytes": 4223
+  },
+  {
+   "path": "Source/MQTTnet/Internal/AsyncLock.cs",
+   "sha256": "8e48807e032060766f41578716fb0dc30e439e72d20437ce80b11e17d17b02b4",
+   "bytes": 4015
+  },
+  {
+   "path": "Source/MQTTnet/Internal/AsyncQueue.cs",
+   "sha256": "cd5c7ecd5f74d64a347e076fc30c956257ebceba8e00b75a4f73dc916eb2cd5f",
+   "bytes": 2733
+  },
+  {
+   "path": "Source/MQTTnet/Internal/Disposable.cs",
+   "sha256": "718bc49a32416a0a6d8ff2f0df194e3f9380a5acaefd46c50c64e9397f8d43c6",
+   "bytes": 861
+  },
+  {
+   "path": "Source/MQTTnet/PacketDispatcher/MqttPacketDispatcher.cs",
+   "sha256": "5d113c1d11fc11a8909f5b8b4048dcc5befa0254a2fe5594827e435ac0c388aa",
+   "bytes": 3338
+  },
+  {
+   "path": "Source/MQTTnet/PacketDispatcher/MqttPacketAwaitable.cs",
+   "sha256": "5f5be27584b3e950d8fa433d65f257e475fd8f5a99af0f6c7a7fe3e071059258",
+   "bytes": 1776
+  },
+  {
+   "path": "Source/MQTTnet/Internal/MqttPacketBus.cs",
+   "sha256": "4faaf5363ef14d04b65bccd5ea604face974a2b309925bb9728663f56f6c76bd",
+   "bytes": 4225
+  }
+ ]
+}

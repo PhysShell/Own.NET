@@ -1,0 +1,26 @@
+{
+ "package": "SixLabors.ImageSharp",
+ "version": "4.1.2",
+ "nupkg_sha256": "bc0beb22acb9830921ae31dbef93e31e0f8fee261b70baaff00b96e69ec928a3",
+ "repository_url": "https://github.com/SixLabors/ImageSharp",
+ "repository_commit": "dee414097e4be7bb35ef0209cf96bd0b61a7133a",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SixLabors.ImageSharp/lib/net8.0/SixLabors.ImageSharp.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SixLabors.ImageSharp/lib/net8.0/SixLabors.ImageSharp.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SixLabors.ImageSharp/lib/net8.0/SixLabors.ImageSharp.dll",
+  "name": "SixLabors.ImageSharp",
+  "version": "4.0.0.0",
+  "culture": "",
+  "public_key_token": "d998eea7b14cab13",
+  "mvid": "10201e40-acc4-4407-9bcf-0b6a8b13982d",
+  "target_framework": ".NETCoreApp,Version=v8.0",
+  "informational_version": "4.1.2+dee414097e4be7bb35ef0209cf96bd0b61a7133a",
+  "sha256": "80bbde81578be31ca7864f303200b0ef188be1b3048a657546bda04afdf394d3",
+  "size": 2604544
+ },
+ "xmldoc": [
+  "lib/net8.0/SixLabors.ImageSharp.xml"
+ ]
+}

@@ -1,0 +1,77 @@
+{
+ "package": "RabbitMQ.Client",
+ "repo": "rabbitmq/rabbitmq-dotnet-client",
+ "commit": "740faf07f04ade7d35d3539e20613c6ac6b9b46f",
+ "files": [
+  {
+   "path": "projects/RabbitMQ.Client/ConnectionFactory.cs",
+   "sha256": "bbfa19a96cbb0bfaf73fe69a28b401014c5585aef960b123ae7ea78c757b632b",
+   "bytes": 31625
+  },
+  {
+   "path": "projects/RabbitMQ.Client/ConnectionFactoryBase.cs",
+   "sha256": "a32fc0291cfc9c39ebf84abe070f567d9ca5cb3e834b815821d998de68b93431",
+   "bytes": 2301
+  },
+  {
+   "path": "projects/RabbitMQ.Client/TcpClientAdapter.cs",
+   "sha256": "1ee5ba1f7659bdfa758843bac2448b4c9bba31bd6a90a1d70ac6b3f6031bf1e0",
+   "bytes": 2422
+  },
+  {
+   "path": "projects/RabbitMQ.Client/IConnection.cs",
+   "sha256": "9da79fc66539219f6230c0b9c78cc3ba10551a3353c06ebe90fa618846e7af5c",
+   "bytes": 11522
+  },
+  {
+   "path": "projects/RabbitMQ.Client/IChannel.cs",
+   "sha256": "7560cd022ba05b8db0bae3e1e2c6af1f319bd5ce2c53933b34abd78babb6db51",
+   "bytes": 25393
+  },
+  {
+   "path": "projects/RabbitMQ.Client/Impl/Connection.cs",
+   "sha256": "dcaaa6c954dca29d80d6c867a38d850a3c1401b4eeb7fff37d3532cfca8ef9e4",
+   "bytes": 21627
+  },
+  {
+   "path": "projects/RabbitMQ.Client/Impl/Channel.cs",
+   "sha256": "576e3754b39afb40867bb0d07c38af2056d433be288bad9e800c02d7eb5b4988",
+   "bytes": 66508
+  },
+  {
+   "path": "projects/RabbitMQ.Client/Impl/AutorecoveringConnection.cs",
+   "sha256": "46a54cf1ae8d0b1785567fc419374eac83d2555abd41d355de61eb94b5cc32d2",
+   "bytes": 14263
+  },
+  {
+   "path": "projects/RabbitMQ.Client/Impl/AutorecoveringChannel.cs",
+   "sha256": "c6e76263aa82d7c2b20ee4a6fe5e39676f3f57bcb5cdeb7115632656ce55f766",
+   "bytes": 21593
+  },
+  {
+   "path": "projects/RabbitMQ.Client/Impl/SocketFactory.cs",
+   "sha256": "28350056cf39bd758d9ae644bfe7940a5bcc432f844f4622e453e06c701b2b53",
+   "bytes": 5520
+  },
+  {
+   "path": "projects/RabbitMQ.Client/Impl/SocketFrameHandler.cs",
+   "sha256": "9a36b81a2333e04a1b76f6bc80bd3e966786fd6f9575b403cf7599f259a89b7e",
+   "bytes": 9103
+  },
+  {
+   "path": "projects/RabbitMQ.Client/Impl/Session.cs",
+   "sha256": "4e546cf50836662f069b2609da98780bc4a078cc279b62ccce9cfdb451b78ea3",
+   "bytes": 2284
+  },
+  {
+   "path": "projects/RabbitMQ.Client/Impl/SessionBase.cs",
+   "sha256": "d4c40fde564871435cb2078ec68afe34a6bf40da0b4b7a2f4cb1d0832542d294",
+   "bytes": 6184
+  },
+  {
+   "path": "projects/RabbitMQ.Client/Impl/MainSession.cs",
+   "sha256": "643487f1c795b322d84db791e42ffd651168bd41069b0e434b4d8f964385eb6c",
+   "bytes": 5717
+  }
+ ]
+}

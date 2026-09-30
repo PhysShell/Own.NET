@@ -1,0 +1,105 @@
+{
+ "package": "MailKit",
+ "consumer": "tests",
+ "repo": "jstedfast/MailKit",
+ "commit": "4.18.1",
+ "files": [
+  {
+   "path": "UnitTests/ProtocolLoggerTests.cs",
+   "sha256": "28f42deec26d2e30637b5ab7a21a6aec1da2005fb1ed38273284af9b1959cfa4",
+   "bytes": 9835
+  },
+  {
+   "path": "UnitTests/CompressedStreamTests.cs",
+   "sha256": "b14dd852a3168ffb696ce969e3747ed80bbb68dabada97d5d368e16d2d3da0c5",
+   "bytes": 6253
+  },
+  {
+   "path": "UnitTests/DuplexStreamTests.cs",
+   "sha256": "4898a527e2a88048d863afa565f179abb48b12b26475cf81dfd08d6774f815d4",
+   "bytes": 5763
+  },
+  {
+   "path": "UnitTests/ProgressStreamTests.cs",
+   "sha256": "d2246eeddac7b04dbe64de3de2db07e3ae8d6650fea6eaf20900a836d410311f",
+   "bytes": 5357
+  },
+  {
+   "path": "UnitTests/MailServiceTests.cs",
+   "sha256": "a204eb377476cbfce6a95b4428864c96d53be0599eb62cbf891325b11ba81e2b",
+   "bytes": 2691
+  },
+  {
+   "path": "UnitTests/Net/Imap/ImapClientTests.cs",
+   "sha256": "af1f93b6b131828c13a3f109ab2e7cad9ecc308cb60bfbb9dc0c195ed261fb08",
+   "bytes": 417615
+  },
+  {
+   "path": "UnitTests/Net/Pop3/Pop3ClientTests.cs",
+   "sha256": "e96f53ff7ff7fef03239b31cb288c7ec607fd17d44688317e8c26d320aed7b09",
+   "bytes": 195904
+  },
+  {
+   "path": "UnitTests/Net/Smtp/SmtpClientTests.cs",
+   "sha256": "dc5ff4564c748afb13679e12a036269ffb73cee2964f2b68e60f24fd99bc4cac",
+   "bytes": 234486
+  },
+  {
+   "path": "UnitTests/Net/Imap/ImapFolderTests.cs",
+   "sha256": "92d3fe652b345658116631c26a242e41c0d7b21bcfdbc465092ef8b436f3f5be",
+   "bytes": 150331
+  },
+  {
+   "path": "UnitTests/Net/Imap/ImapFolderFetchTests.cs",
+   "sha256": "3690839f61938b3391517e9d70098c0f463c4ca0d3748e21c093aa99be3bbce9",
+   "bytes": 157576
+  },
+  {
+   "path": "UnitTests/Net/Proxy/Socks5ClientTests.cs",
+   "sha256": "d74e0f874b0021ba662fcf94235951a876d40878ae41906df7ef92e785232c76",
+   "bytes": 12928
+  },
+  {
+   "path": "UnitTests/Net/Proxy/HttpProxyClientTests.cs",
+   "sha256": "592b18bd7a83175d5a6c946da168ef3fca0e801bd23a276fce5654ff4d6d826b",
+   "bytes": 6375
+  },
+  {
+   "path": "UnitTests/Net/Proxy/HttpsProxyClientTests.cs",
+   "sha256": "6c889fa874e7ec6d54061b3fa6b4d4d8aec0fca63be79a44b13c253c91bbeb96",
+   "bytes": 7436
+  },
+  {
+   "path": "UnitTests/Net/Proxy/Socks4ClientTests.cs",
+   "sha256": "8b0c3be7a9ebab0b31a307a5e9fe7f520c070d3b7b08b097a1873f2de94b9258",
+   "bytes": 6815
+  },
+  {
+   "path": "UnitTests/Net/Imap/ImapEngineTests.cs",
+   "sha256": "84b81218d29996bbddd0e31fc49f5a08b6eb89f476b84acf79111da8249da274",
+   "bytes": 23542
+  },
+  {
+   "path": "UnitTests/Net/NetworkStreamTests.cs",
+   "sha256": "d11eabda4b7cf1295413ee63992214191a875cc722f1529a270298fd76133e29",
+   "bytes": 3615
+  },
+  {
+   "path": "UnitTests/Net/Imap/ImapReplayCommand.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "UnitTests/Net/Pop3/Pop3ReplayCommand.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "UnitTests/Net/Smtp/SmtpReplayCommand.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "UnitTests/TestHelper.cs",
+   "sha256": "4821b41b1789055efd0652c963c8ab27abd68d9c73fb20ebbd314bc9a2bab4bc",
+   "bytes": 2510
+  }
+ ]
+}

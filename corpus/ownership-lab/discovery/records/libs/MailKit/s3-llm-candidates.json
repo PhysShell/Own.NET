@@ -1,0 +1,64 @@
+{
+ "package": "MailKit",
+ "written_at_utc": "2026-09-30T04:09:40Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read)",
+ "note": "the clients (ImapClient/Pop3Client/SmtpClient) are constructed, not returned by factories: the discovery surface is small; Connect(...) methods on clients return void",
+ "suggested_rows": [
+  {
+   "callable": "MailKit.Net.Imap.ImapFolder.GetStream",
+   "arity": 4,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new stream over a message part (likely a MemoryStream copy)"
+  },
+  {
+   "callable": "MailKit.Net.Pop3.Pop3Client.GetStream",
+   "arity": 4,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same"
+  },
+  {
+   "callable": "MailKit.Net.Proxy.ProxyClient.Connect",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new connected Stream (socket) through the proxy"
+  },
+  {
+   "callable": "MailKit.Net.Proxy.Socks5Client.Connect",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "MailKit.Net.Imap.ImapClient.Disconnect",
+   "arity": 1,
+   "why": "disconnect; reconnect allowed: not terminal"
+  },
+  {
+   "callable": "MailKit.Net.Pop3.Pop3Client.DeleteMessage",
+   "arity": 2,
+   "why": "deletes a remote message: hostile name"
+  },
+  {
+   "callable": "MailKit.MailSpool.DeleteAllMessages",
+   "arity": 1,
+   "why": "hostile name"
+  }
+ ],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "ProtocolLogger(Stream, bool leaveOpen)",
+   "judgement": "adopt-if(leaveOpen == false): the H-03 shape"
+  },
+  {
+   "ctor": "MailService(IProtocolLogger)",
+   "judgement": "adopt: the client disposes its logger (SUGGESTED adopt, UNSURE)"
+  }
+ ]
+}

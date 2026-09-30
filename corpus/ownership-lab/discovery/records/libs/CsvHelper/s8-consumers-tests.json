@@ -1,0 +1,128 @@
+{
+ "package": "CsvHelper",
+ "consumer": "tests",
+ "repo": "JoshClose/CsvHelper",
+ "commit": "5dad8b8b1d8b074f8353cfd482e939db788a8927",
+ "files": [
+  {
+   "path": "tests/CsvHelper.Tests/CsvReaderTests.cs",
+   "sha256": "ebf1a50026802b6d131e07704b28d001d880831f13f5085193ceb90ee8673040",
+   "bytes": 31512
+  },
+  {
+   "path": "tests/CsvHelper.Tests/CsvWriterTests.cs",
+   "sha256": "7b5c6c9d43fcb74f55c2b437dda4628b02e5b327be57c1bd65ac872c1faee2f3",
+   "bytes": 26203
+  },
+  {
+   "path": "tests/CsvHelper.Tests/CsvParserTests.cs",
+   "sha256": "7d4abde66bffd2b93296488f6a565c8d9bd6197cf52589b7c29918bd4ab7b243",
+   "bytes": 36337
+  },
+  {
+   "path": "tests/CsvHelper.Tests/DisposeTests.cs",
+   "sha256": "8e79e600fded47c5c796545cc19ac30fef4c4146dbd75c77faedbefc79c53261",
+   "bytes": 1264
+  },
+  {
+   "path": "tests/CsvHelper.Tests/CsvReaderConstructorTests.cs",
+   "sha256": "63638bcd80ac9224ffb970c8e1f85ec766a80cab46815be5af6eea4c630d3a2c",
+   "bytes": 1596
+  },
+  {
+   "path": "tests/CsvHelper.Tests/CsvWriterConstructorTests.cs",
+   "sha256": "bc0d2c2aa702f7359120a47526f48eb0dfcfb4dcb4dccadf623d9a59539d661e",
+   "bytes": 859
+  },
+  {
+   "path": "tests/CsvHelper.Tests/CsvParserConstructorTests.cs",
+   "sha256": "f9fb43d137457c890b2038d00c9a1cd94ce527d3b5442e89f28b0e8d82416293",
+   "bytes": 865
+  },
+  {
+   "path": "tests/CsvHelper.Tests/EnumerateRecordsTests.cs",
+   "sha256": "39202b4136667c07f438a330e5b49a047f1e6f5ad279b39817e8b905ad94a78b",
+   "bytes": 3819
+  },
+  {
+   "path": "tests/CsvHelper.Tests/HeaderValidationTests.cs",
+   "sha256": "3d82d49c8b2ae0bec97fd5adab24d03e3e93eef0a8d2e54c46185769a2b33430",
+   "bytes": 6521
+  },
+  {
+   "path": "tests/CsvHelper.Tests/CsvReaderMappingTests.cs",
+   "sha256": "ee76ee59571ab3e8100f2511d7cc8ff602d7627a487d6a4b8406feecf5f7d8d7",
+   "bytes": 8749
+  },
+  {
+   "path": "tests/CsvHelper.Tests/CsvWriterMappingTests.cs",
+   "sha256": "7fe3db4869a4ae991d04872ff1a42315f8fa461dee37cc77bfb79071db31900e",
+   "bytes": 8621
+  },
+  {
+   "path": "tests/CsvHelper.Tests/CsvReaderDefaultValueTests.cs",
+   "sha256": "1419b88dcc4fba986f39a827426f4e08be756c64d42138ce086bed18884666b2",
+   "bytes": 2710
+  },
+  {
+   "path": "tests/CsvHelper.Tests/CsvReaderErrorMessageTests.cs",
+   "sha256": "0a1466fdb5bc659287823c79a65c1a24e424c37201d78cf07780c6ceec39cb9f",
+   "bytes": 6428
+  },
+  {
+   "path": "tests/CsvHelper.Tests/CsvParserDelimiterTests.cs",
+   "sha256": "48a57bc46696b04d051fe72405e91684f93a96c52454ca4f83c19e1369690a1e",
+   "bytes": 8899
+  },
+  {
+   "path": "tests/CsvHelper.Tests/CsvParserRawRecordTests.cs",
+   "sha256": "1c92231226d0d8e5616bde0ed7b524c727801d6e7826c20601e05e1f61a8f895",
+   "bytes": 3717
+  },
+  {
+   "path": "tests/CsvHelper.Tests/LocalCultureTests.cs",
+   "sha256": "99ed93bcd278539847d4632cf2f305bab600ff3cb9724d545453981a0613cf41",
+   "bytes": 2022
+  },
+  {
+   "path": "tests/CsvHelper.Tests/CsvWriterFormatTests.cs",
+   "sha256": "a263cfb82a160f7fb76bdb4480d540ece3b1590141e37d9a355eaa27d6c587aa",
+   "bytes": 5127
+  },
+  {
+   "path": "tests/CsvHelper.Tests/CsvReaderSubClassingTests.cs",
+   "sha256": "470c07b038de8b1a0bcf71f39b9963c35fa45a9241e3fb02c9d3cc8fb5c49069",
+   "bytes": 961
+  },
+  {
+   "path": "tests/CsvHelper.Tests/CsvWriterSubClassingTests.cs",
+   "sha256": "0caa0a51af6490a4e6667f78f4ee2ab24b01484b8cffabb504df27cb7180c6d5",
+   "bytes": 1053
+  },
+  {
+   "path": "tests/CsvHelper.Tests/DynamicProxyTests.cs",
+   "sha256": "b6a32d188c4c87dab2c4b902d5100ed9402ad22e845281dd0165ecfe1dc265b3",
+   "bytes": 1723
+  },
+  {
+   "path": "tests/CsvHelper.Tests/Reading/ReadingTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/CsvHelper.Tests/Writing/WritingTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/CsvHelper.Tests/Async/AsyncTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/CsvHelper.Tests/Parsing/ParsingTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/CsvHelper.Tests/DataTableTests/DataTableTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  }
+ ]
+}

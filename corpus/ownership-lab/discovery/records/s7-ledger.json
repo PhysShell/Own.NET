@@ -1,0 +1,703 @@
+{
+ "BouncyCastle.Cryptography": {
+  "version": "2.7.0",
+  "mvid": "fc1a4ae8-411b-471c-974a-95a266252cc5",
+  "body_proved_rows": 5,
+  "body_proved_rows_before_H20": 3,
+  "witnessed_rows_added": 0,
+  "applied_rows": 5,
+  "llm_candidates": 6,
+  "llm_admitted_by_proof": 3,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 3,
+  "proved_not_suggested_by_llm": 2,
+  "witness_runs": [
+   {
+    "id": "BC-W1",
+    "callable": "Org.BouncyCastle.Asn1.Asn1OutputStream.Create",
+    "verdict": "fresh",
+    "expect": "fresh (identity only)"
+   }
+  ],
+  "llm_rejected_list": [
+   "Org.BouncyCastle.Bcpg.OpenPgp.PgpEncryptedDataGenerator.Open",
+   "Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities.GetDecoderStream",
+   "Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyEncryptedData.GetDataStream"
+  ]
+ },
+ "CsvHelper": {
+  "version": "33.1.0",
+  "mvid": "64574a8c-edb4-4e30-aeac-95290a74d6ad",
+  "body_proved_rows": 4,
+  "body_proved_rows_before_H20": 1,
+  "witnessed_rows_added": 0,
+  "applied_rows": 4,
+  "llm_candidates": 3,
+  "llm_admitted_by_proof": 3,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 0,
+  "proved_not_suggested_by_llm": 1,
+  "witness_runs": [
+   {
+    "id": "CSV-W1",
+    "callable": "CsvHelper.Factory.CreateReader",
+    "verdict": "fresh",
+    "expect": "fresh (the LLM candidate: not body-proved (E1 missed); the witness decides)"
+   },
+   {
+    "id": "CSV-W2",
+    "callable": "CsvHelper.Factory.CreateWriter",
+    "verdict": "fresh",
+    "expect": "fresh"
+   }
+  ],
+  "llm_rejected_list": []
+ },
+ "Google.Protobuf": {
+  "version": "3.36.2",
+  "mvid": "30ebe6c2-f530-434a-a926-51d53bbbde3b",
+  "body_proved_rows": 2,
+  "body_proved_rows_before_H20": null,
+  "witnessed_rows_added": 0,
+  "applied_rows": 2,
+  "llm_candidates": 2,
+  "llm_admitted_by_proof": 2,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 0,
+  "proved_not_suggested_by_llm": 0,
+  "witness_runs": [],
+  "llm_rejected_list": []
+ },
+ "K4os.Compression.LZ4.Streams": {
+  "version": "1.3.8",
+  "mvid": "38e23572-cbfb-4606-a307-86a2e169c893",
+  "body_proved_rows": 5,
+  "body_proved_rows_before_H20": null,
+  "witnessed_rows_added": 0,
+  "applied_rows": 5,
+  "llm_candidates": 10,
+  "llm_admitted_by_proof": 10,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 0,
+  "proved_not_suggested_by_llm": 0,
+  "witness_runs": [],
+  "llm_rejected_list": []
+ },
+ "LibGit2Sharp": {
+  "version": "0.32.0",
+  "mvid": "11bcccd6-7889-4b05-a333-ec401b7bead3",
+  "body_proved_rows": 2,
+  "body_proved_rows_before_H20": 2,
+  "witnessed_rows_added": 0,
+  "applied_rows": 2,
+  "llm_candidates": 4,
+  "llm_admitted_by_proof": 2,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 2,
+  "proved_not_suggested_by_llm": 0,
+  "witness_runs": [
+   {
+    "id": "LG2-W1",
+    "callable": "LibGit2Sharp.Configuration.BuildFrom",
+    "verdict": "fresh",
+    "expect": "fresh, or environment-error without the native asset"
+   }
+  ],
+  "llm_rejected_list": [
+   "LibGit2Sharp.Blob.GetContentStream",
+   "LibGit2Sharp.ObjectDatabase.MergeCommitsIntoIndex"
+  ]
+ },
+ "MQTTnet": {
+  "version": "5.2.0.1603",
+  "mvid": "3059e61f-8649-4e25-ba89-8d031023acb8",
+  "body_proved_rows": 3,
+  "body_proved_rows_before_H20": 2,
+  "witnessed_rows_added": 0,
+  "applied_rows": 3,
+  "llm_candidates": 9,
+  "llm_admitted_by_proof": 6,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 3,
+  "proved_not_suggested_by_llm": 1,
+  "witness_runs": [
+   {
+    "id": "MQTT-W1",
+    "callable": "MQTTnet.MqttClientFactory.CreateMqttClient",
+    "verdict": "fresh",
+    "expect": "fresh (the record lost to the source-subset artefact; the witness decides)"
+   },
+   {
+    "id": "MQTT-W2",
+    "callable": "MQTTnet.MqttClientFactory.CreateLowLevelMqttClient",
+    "verdict": "fresh",
+    "expect": "fresh (corroboration)"
+   }
+  ],
+  "llm_rejected_list": [
+   "MQTTnet.Implementations.MqttClientAdapterFactory.CreateClientAdapter",
+   "MQTTnet.Implementations.CrossPlatformSocket.GetStream",
+   "MQTTnet.Internal.AsyncLock.EnterAsync"
+  ]
+ },
+ "MailKit": {
+  "version": "4.18.1",
+  "mvid": "762b5943-5c82-4157-a98e-a67f79017a8b",
+  "body_proved_rows": 2,
+  "body_proved_rows_before_H20": 0,
+  "witnessed_rows_added": 0,
+  "applied_rows": 2,
+  "llm_candidates": 4,
+  "llm_admitted_by_proof": 1,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 3,
+  "proved_not_suggested_by_llm": 1,
+  "witness_runs": [
+   {
+    "id": "MK-W1",
+    "callable": "MailKit.ProtocolLogger..ctor",
+    "verdict": "fresh",
+    "expect": "fresh (a constructor, listed to exercise the adopt-if(leaveOpen) shape's object)"
+   }
+  ],
+  "llm_rejected_list": [
+   "MailKit.Net.Pop3.Pop3Client.GetStream",
+   "MailKit.Net.Proxy.ProxyClient.Connect",
+   "MailKit.Net.Proxy.Socks5Client.Connect"
+  ]
+ },
+ "Microsoft.Data.Sqlite.Core": {
+  "version": "10.0.12",
+  "mvid": "c031b608-828e-489e-938d-6a4064eb899a",
+  "body_proved_rows": 3,
+  "body_proved_rows_before_H20": null,
+  "witnessed_rows_added": 0,
+  "applied_rows": 3,
+  "llm_candidates": 15,
+  "llm_admitted_by_proof": 3,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 12,
+  "proved_not_suggested_by_llm": 0,
+  "witness_runs": [],
+  "llm_rejected_list": [
+   "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader",
+   "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader",
+   "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync",
+   "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync",
+   "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync",
+   "Microsoft.Data.Sqlite.SqliteConnection.BeginTransaction",
+   "Microsoft.Data.Sqlite.SqliteConnection.BeginTransaction",
+   "Microsoft.Data.Sqlite.SqliteConnection.BeginTransaction",
+   "Microsoft.Data.Sqlite.SqliteDataReader.GetStream",
+   "Microsoft.Data.Sqlite.SqliteDataReader.GetTextReader",
+   "Microsoft.Data.Sqlite.SqliteDataReader.Close",
+   "Microsoft.Data.Sqlite.SqliteConnection.Close"
+  ]
+ },
+ "Microsoft.Data.Sqlite": {
+  "version": "10.0.12",
+  "mvid": null,
+  "body_proved_rows": 0,
+  "body_proved_rows_before_H20": null,
+  "witnessed_rows_added": 0,
+  "applied_rows": 0,
+  "llm_candidates": 0,
+  "llm_admitted_by_proof": 0,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 0,
+  "proved_not_suggested_by_llm": 0,
+  "witness_runs": [
+   {
+    "id": "BC-W2",
+    "callable": "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedDataGenerator.Open",
+    "verdict": "environment-error",
+    "expect": "environment-error or fresh: a generator allows one open stream at a time (Open twice throws): a typed refusal is the honest answer"
+   },
+   {
+    "id": "NSEC-W1",
+    "callable": "NSec.Cryptography.Key.Create",
+    "verdict": "environment-error",
+    "expect": "fresh, or environment-error if libsodium is missing"
+   },
+   {
+    "id": "SKIA-W1",
+    "callable": "SkiaSharp.SKColorSpace.CreateSrgb",
+    "verdict": "environment-error",
+    "expect": "cached (the LLM flagged it as a hostile fresh candidate) or environment-error without the native asset"
+   },
+   {
+    "id": "SKIA-W2",
+    "callable": "SkiaSharp.SKData.Create",
+    "verdict": "environment-error",
+    "expect": "fresh or environment-error without the native asset"
+   },
+   {
+    "id": "SSH-W1",
+    "callable": "Renci.SshNet.SshClient.CreateCommand",
+    "verdict": "environment-error",
+    "expect": "fresh (body-proved) or environment-error (needs a session)"
+   },
+   {
+    "id": "NPG-W4",
+    "callable": "Npgsql.NpgsqlConnection.BeginTransaction",
+    "verdict": "build-or-run-error",
+    "expect": "environment-error expected (needs an open connection): an UNDECIDABLE row"
+   }
+  ],
+  "llm_rejected_list": []
+ },
+ "MySqlConnector": {
+  "version": "2.6.2",
+  "mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258",
+  "body_proved_rows": 8,
+  "body_proved_rows_before_H20": 0,
+  "witnessed_rows_added": 2,
+  "applied_rows": 10,
+  "llm_candidates": 15,
+  "llm_admitted_by_proof": 4,
+  "llm_admitted_by_witness": 2,
+  "llm_rejected_or_undecidable": 9,
+  "proved_not_suggested_by_llm": 4,
+  "witness_runs": [
+   {
+    "id": "MYSQL-W1",
+    "callable": "MySqlConnector.MySqlConnection.CreateCommand",
+    "verdict": "fresh",
+    "expect": "fresh"
+   },
+   {
+    "id": "MYSQL-W2",
+    "callable": "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+    "verdict": "fresh",
+    "expect": "fresh"
+   },
+   {
+    "id": "MYSQL-W3",
+    "callable": "MySqlConnector.MySqlConnection.Clone",
+    "verdict": "fresh",
+    "expect": "fresh"
+   }
+  ],
+  "llm_rejected_list": [
+   "MySqlConnector.MySqlDataSource.CreateConnection",
+   "MySqlConnector.MySqlDataSource.OpenConnection",
+   "MySqlConnector.MySqlConnection.BeginTransaction",
+   "MySqlConnector.MySqlConnection.BeginTransaction",
+   "MySqlConnector.MySqlCommand.ExecuteReader",
+   "MySqlConnector.MySqlCommand.ExecuteReader",
+   "MySqlConnector.MySqlConnection.CloneWith",
+   "MySqlConnector.MySqlCommand.Clone",
+   "MySqlConnector.MySqlDataReader.GetStream"
+  ]
+ },
+ "NLog": {
+  "version": "6.2.1",
+  "mvid": "03802750-90df-4f67-b7f1-d84eee3bd509",
+  "body_proved_rows": 0,
+  "body_proved_rows_before_H20": null,
+  "witnessed_rows_added": 6,
+  "applied_rows": 6,
+  "llm_candidates": 17,
+  "llm_admitted_by_proof": 0,
+  "llm_admitted_by_witness": 6,
+  "llm_rejected_or_undecidable": 11,
+  "proved_not_suggested_by_llm": 0,
+  "witness_runs": [
+   {
+    "id": "NLOG-W1",
+    "callable": "NLog.LogFactory.SuspendLogging",
+    "verdict": "fresh",
+    "expect": "fresh"
+   },
+   {
+    "id": "NLOG-W2",
+    "callable": "NLog.LogManager.SuspendLogging",
+    "verdict": "fresh",
+    "expect": "fresh"
+   },
+   {
+    "id": "NLOG-W3",
+    "callable": "NLog.ScopeContext.PushProperty",
+    "verdict": "fresh",
+    "expect": "fresh"
+   },
+   {
+    "id": "NLOG-W4",
+    "callable": "NLog.ScopeContext.PushNestedState",
+    "verdict": "fresh",
+    "expect": "fresh"
+   },
+   {
+    "id": "NLOG-W5",
+    "callable": "NLog.Logger.PushScopeProperty",
+    "verdict": "fresh",
+    "expect": "fresh"
+   },
+   {
+    "id": "NLOG-W6",
+    "callable": "NLog.ScopeContext.PushProperties",
+    "verdict": "fresh",
+    "expect": "fresh"
+   }
+  ],
+  "llm_rejected_list": [
+   "NLog.LogManager.DisableLogging",
+   "NLog.Logger.PushScopeProperties",
+   "NLog.Logger.PushScopeNested",
+   "NLog.ScopeContext.PushNestedStateProperties",
+   "NLog.MappedDiagnosticsContext.SetScoped",
+   "NLog.MappedDiagnosticsLogicalContext.SetScoped",
+   "NLog.MappedDiagnosticsLogicalContext.SetScoped",
+   "NLog.NestedDiagnosticsContext.Push",
+   "NLog.NestedDiagnosticsLogicalContext.Push",
+   "NLog.NestedDiagnosticsLogicalContext.PushObject",
+   "NLog.LogFactory.Shutdown"
+  ]
+ },
+ "NSec.Cryptography": {
+  "version": "26.4.0",
+  "mvid": "ffd8640c-2483-4406-bcca-c25e459c4813",
+  "body_proved_rows": 6,
+  "body_proved_rows_before_H20": 1,
+  "witnessed_rows_added": 0,
+  "applied_rows": 6,
+  "llm_candidates": 5,
+  "llm_admitted_by_proof": 4,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 1,
+  "proved_not_suggested_by_llm": 2,
+  "witness_runs": [
+   {
+    "id": "NSEC-W1",
+    "callable": "NSec.Cryptography.Key.Create",
+    "verdict": "environment-error",
+    "expect": "fresh, or environment-error if libsodium is missing"
+   }
+  ],
+  "llm_rejected_list": [
+   "NSec.Cryptography.KeyAgreementAlgorithm.Agree"
+  ]
+ },
+ "Newtonsoft.Json": {
+  "version": "13.0.4",
+  "mvid": "00b3a5ef-dbc3-4c2f-9c39-8fe4911d40e8",
+  "body_proved_rows": 2,
+  "body_proved_rows_before_H20": 0,
+  "witnessed_rows_added": 0,
+  "applied_rows": 2,
+  "llm_candidates": 2,
+  "llm_admitted_by_proof": 2,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 0,
+  "proved_not_suggested_by_llm": 0,
+  "witness_runs": [
+   {
+    "id": "NJ-W1",
+    "callable": "Newtonsoft.Json.Linq.JToken.CreateReader",
+    "verdict": "fresh",
+    "expect": "fresh (dispose-optional in practice)"
+   }
+  ],
+  "llm_rejected_list": []
+ },
+ "Npgsql": {
+  "version": "10.0.3",
+  "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9",
+  "body_proved_rows": 20,
+  "body_proved_rows_before_H20": 20,
+  "witnessed_rows_added": 1,
+  "applied_rows": 21,
+  "llm_candidates": 15,
+  "llm_admitted_by_proof": 5,
+  "llm_admitted_by_witness": 1,
+  "llm_rejected_or_undecidable": 9,
+  "proved_not_suggested_by_llm": 15,
+  "witness_runs": [
+   {
+    "id": "NPG-W1",
+    "callable": "Npgsql.NpgsqlConnection.CreateCommand",
+    "verdict": "fresh",
+    "expect": "fresh (LLM candidate not body-proved: the witness decides)"
+   },
+   {
+    "id": "NPG-W2",
+    "callable": "Npgsql.NpgsqlDataSource.Create",
+    "verdict": "fresh",
+    "expect": "fresh (body-proved; the witness corroborates on the deployed binary)"
+   },
+   {
+    "id": "NPG-W3",
+    "callable": "Npgsql.NpgsqlConnection.CloneWith",
+    "verdict": "fresh",
+    "expect": "fresh (body-proved; corroboration)"
+   },
+   {
+    "id": "NPG-W4",
+    "callable": "Npgsql.NpgsqlConnection.BeginTransaction",
+    "verdict": "build-or-run-error",
+    "expect": "environment-error expected (needs an open connection): an UNDECIDABLE row"
+   }
+  ],
+  "llm_rejected_list": [
+   "Npgsql.NpgsqlDataSource.OpenConnection",
+   "Npgsql.NpgsqlConnection.BeginTransaction",
+   "Npgsql.NpgsqlConnection.BeginTransaction",
+   "Npgsql.NpgsqlCommand.ExecuteReader",
+   "Npgsql.NpgsqlConnection.BeginBinaryImport",
+   "Npgsql.NpgsqlConnection.BeginBinaryExport",
+   "Npgsql.NpgsqlConnection.BeginTextImport",
+   "Npgsql.NpgsqlConnection.BeginTextExport",
+   "Npgsql.NpgsqlConnection.BeginRawBinaryCopy"
+  ]
+ },
+ "RabbitMQ.Client": {
+  "version": "7.2.2",
+  "mvid": "a5a91a86-3c7c-4189-81ab-41160f9adf1e",
+  "body_proved_rows": 2,
+  "body_proved_rows_before_H20": 2,
+  "witnessed_rows_added": 0,
+  "applied_rows": 2,
+  "llm_candidates": 4,
+  "llm_admitted_by_proof": 2,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 2,
+  "proved_not_suggested_by_llm": 0,
+  "witness_runs": [
+   {
+    "id": "RMQ-W1",
+    "callable": "RabbitMQ.Client.ConnectionFactoryBase.DefaultSocketFactory",
+    "verdict": "fresh",
+    "expect": "fresh (corroboration)"
+   }
+  ],
+  "llm_rejected_list": [
+   "RabbitMQ.Client.ConnectionFactory.CreateConnectionAsync",
+   "RabbitMQ.Client.IConnection.CreateChannelAsync"
+  ]
+ },
+ "SSH.NET": {
+  "version": "2026.0.0",
+  "mvid": "00a77c77-e75d-4c4c-a3f9-73306891a548",
+  "body_proved_rows": 10,
+  "body_proved_rows_before_H20": 6,
+  "witnessed_rows_added": 0,
+  "applied_rows": 10,
+  "llm_candidates": 15,
+  "llm_admitted_by_proof": 11,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 4,
+  "proved_not_suggested_by_llm": 1,
+  "witness_runs": [],
+  "llm_rejected_list": [
+   "Renci.SshNet.SshClient.RunCommand",
+   "Renci.SshNet.SshClient.CreateShellStream",
+   "Renci.SshNet.SshClient.CreateShellStreamNoTerminal",
+   "Renci.SshNet.SshCommand.CreateInputStream"
+  ]
+ },
+ "Serilog": {
+  "version": "4.4.0",
+  "mvid": "a781a394-adba-452a-ab38-d28ea52bd305",
+  "body_proved_rows": 2,
+  "body_proved_rows_before_H20": null,
+  "witnessed_rows_added": 2,
+  "applied_rows": 4,
+  "llm_candidates": 4,
+  "llm_admitted_by_proof": 2,
+  "llm_admitted_by_witness": 2,
+  "llm_rejected_or_undecidable": 0,
+  "proved_not_suggested_by_llm": 0,
+  "witness_runs": [
+   {
+    "id": "SERI-W1",
+    "callable": "Serilog.LoggerConfiguration.CreateLogger",
+    "verdict": "fresh",
+    "expect": "fresh"
+   },
+   {
+    "id": "SERI-W2",
+    "callable": "Serilog.Context.LogContext.PushProperty",
+    "verdict": "fresh",
+    "expect": "fresh"
+   },
+   {
+    "id": "SERI-W3",
+    "callable": "Serilog.Context.LogContext.Push",
+    "verdict": "fresh",
+    "expect": "fresh"
+   }
+  ],
+  "llm_rejected_list": []
+ },
+ "SharpCompress": {
+  "version": "1.0.0",
+  "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba",
+  "body_proved_rows": 15,
+  "body_proved_rows_before_H20": 14,
+  "witnessed_rows_added": 1,
+  "applied_rows": 16,
+  "llm_candidates": 11,
+  "llm_admitted_by_proof": 6,
+  "llm_admitted_by_witness": 1,
+  "llm_rejected_or_undecidable": 4,
+  "proved_not_suggested_by_llm": 9,
+  "witness_runs": [
+   {
+    "id": "SC-W1",
+    "callable": "SharpCompress.Archives.Zip.ZipArchive.Create",
+    "verdict": "fresh",
+    "expect": "fresh"
+   },
+   {
+    "id": "SC-W2",
+    "callable": "SharpCompress.Writers.WriterFactory.Open",
+    "verdict": "fresh",
+    "expect": "fresh (identity only: disposing a tar writer over one stream twice would finish the stream)"
+   }
+  ],
+  "llm_rejected_list": [
+   "SharpCompress.Archives.ArchiveFactory.Open",
+   "SharpCompress.Archives.IArchiveEntry.OpenEntryStream",
+   "SharpCompress.Readers.ReaderFactory.Open",
+   "SharpCompress.Archives.IArchive.ExtractAllEntries"
+  ]
+ },
+ "SharpZipLib": {
+  "version": "1.4.2",
+  "mvid": "60042469-5ff8-41b2-b5b3-98c15d8a2421",
+  "body_proved_rows": 5,
+  "body_proved_rows_before_H20": 2,
+  "witnessed_rows_added": 0,
+  "applied_rows": 5,
+  "llm_candidates": 7,
+  "llm_admitted_by_proof": 5,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 2,
+  "proved_not_suggested_by_llm": 0,
+  "witness_runs": [
+   {
+    "id": "SZL-W1",
+    "callable": "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+    "verdict": "fresh",
+    "expect": "fresh (H-20 row; corroboration)"
+   },
+   {
+    "id": "SZL-W2",
+    "callable": "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateOutputTarArchive",
+    "verdict": "fresh",
+    "expect": "fresh"
+   },
+   {
+    "id": "SZL-W3",
+    "callable": "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateEncryptor",
+    "verdict": "fresh",
+    "expect": "fresh (corroboration)"
+   }
+  ],
+  "llm_rejected_list": [
+   "ICSharpCode.SharpZipLib.Zip.ZipFile.GetInputStream",
+   "ICSharpCode.SharpZipLib.Zip.DiskArchiveStorage.GetTemporaryOutput"
+  ]
+ },
+ "SixLabors.ImageSharp": {
+  "version": "4.1.2",
+  "mvid": "10201e40-acc4-4407-9bcf-0b6a8b13982d",
+  "body_proved_rows": 8,
+  "body_proved_rows_before_H20": 0,
+  "witnessed_rows_added": 0,
+  "applied_rows": 8,
+  "llm_candidates": 10,
+  "llm_admitted_by_proof": 3,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 7,
+  "proved_not_suggested_by_llm": 5,
+  "witness_runs": [],
+  "llm_rejected_list": [
+   "SixLabors.ImageSharp.Image.Load",
+   "SixLabors.ImageSharp.Image.Load",
+   "SixLabors.ImageSharp.Image.CloneAs",
+   "SixLabors.ImageSharp.Memory.MemoryAllocator.Allocate",
+   "SixLabors.ImageSharp.Processing.ProcessingExtensions.Clone",
+   "SixLabors.ImageSharp.ImageFrameCollection.ExportFrame",
+   "SixLabors.ImageSharp.Formats.ImageDecoder.Decode"
+  ]
+ },
+ "SkiaSharp": {
+  "version": "4.153.1",
+  "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522",
+  "body_proved_rows": 16,
+  "body_proved_rows_before_H20": 14,
+  "witnessed_rows_added": 0,
+  "applied_rows": 16,
+  "llm_candidates": 9,
+  "llm_admitted_by_proof": 2,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 7,
+  "proved_not_suggested_by_llm": 14,
+  "witness_runs": [
+   {
+    "id": "SKIA-W1",
+    "callable": "SkiaSharp.SKColorSpace.CreateSrgb",
+    "verdict": "environment-error",
+    "expect": "cached (the LLM flagged it as a hostile fresh candidate) or environment-error without the native asset"
+   },
+   {
+    "id": "SKIA-W2",
+    "callable": "SkiaSharp.SKData.Create",
+    "verdict": "environment-error",
+    "expect": "fresh or environment-error without the native asset"
+   }
+  ],
+  "llm_rejected_list": [
+   "SkiaSharp.SKBitmap.Copy",
+   "SkiaSharp.SKCodec.Create",
+   "SkiaSharp.SKData.Create",
+   "SkiaSharp.SKColorFilter.CreateBlendMode",
+   "SkiaSharp.SKColorSpace.CreateSrgb",
+   "SkiaSharp.SKImage.FromBitmap",
+   "SkiaSharp.SKSurface.Create"
+  ]
+ },
+ "StackExchange.Redis": {
+  "version": "3.3.1",
+  "mvid": "5f6069ec-0f05-4928-b425-d8a49146d0a9",
+  "body_proved_rows": 1,
+  "body_proved_rows_before_H20": 1,
+  "witnessed_rows_added": 0,
+  "applied_rows": 1,
+  "llm_candidates": 5,
+  "llm_admitted_by_proof": 1,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 4,
+  "proved_not_suggested_by_llm": 0,
+  "witness_runs": [
+   {
+    "id": "SER-W1",
+    "callable": "StackExchange.Redis.Lease<T>.Create",
+    "verdict": "fresh",
+    "expect": "fresh (pooled lease objects: may be reused after Dispose \u2014 identity across three live calls decides)"
+   }
+  ],
+  "llm_rejected_list": [
+   "StackExchange.Redis.ConnectionMultiplexer.Connect",
+   "StackExchange.Redis.ConnectionMultiplexer.Connect",
+   "StackExchange.Redis.ConnectionMultiplexer.SentinelConnect",
+   "StackExchange.Redis.IDatabase.StringGetLease"
+  ]
+ },
+ "ZstdSharp.Port": {
+  "version": "0.8.8",
+  "mvid": "0e764b16-6b2f-4ea5-9edf-169fdce9afc0",
+  "body_proved_rows": 0,
+  "body_proved_rows_before_H20": null,
+  "witnessed_rows_added": 0,
+  "applied_rows": 0,
+  "llm_candidates": 0,
+  "llm_admitted_by_proof": 0,
+  "llm_admitted_by_witness": 0,
+  "llm_rejected_or_undecidable": 0,
+  "proved_not_suggested_by_llm": 0,
+  "witness_runs": [],
+  "llm_rejected_list": []
+ }
+}

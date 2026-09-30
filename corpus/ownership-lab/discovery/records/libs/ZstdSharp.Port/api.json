@@ -1,0 +1,113 @@
+{
+  "assembly": "ZstdSharp",
+  "version": "0.8.8.0",
+  "mvid": "0e764b16-6b2f-4ea5-9edf-169fdce9afc0",
+  "disposable_types": 4,
+  "types": [
+    {
+      "type": "ZstdSharp.CompressionStream",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "ZstdSharp.Compressor",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    },
+    {
+      "type": "ZstdSharp.DecompressionStream",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": true,
+      "is_abstract": false
+    },
+    {
+      "type": "ZstdSharp.Decompressor",
+      "kind": "class",
+      "disposable": true,
+      "async_disposable": false,
+      "is_abstract": false
+    }
+  ],
+  "factories": [],
+  "adopting_ctors": [
+    {
+      "callable": "ZstdSharp.CompressionStream..ctor",
+      "arity": 4,
+      "parameters": [
+        "System.IO.Stream",
+        "int",
+        "int",
+        "bool"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": [
+        "leaveOpen"
+      ]
+    },
+    {
+      "callable": "ZstdSharp.CompressionStream..ctor",
+      "arity": 5,
+      "parameters": [
+        "System.IO.Stream",
+        "ZstdSharp.Compressor",
+        "int",
+        "bool",
+        "bool"
+      ],
+      "disposable_params": [
+        0,
+        1
+      ],
+      "bool_params": [
+        "preserveCompressor",
+        "leaveOpen"
+      ]
+    },
+    {
+      "callable": "ZstdSharp.DecompressionStream..ctor",
+      "arity": 4,
+      "parameters": [
+        "System.IO.Stream",
+        "int",
+        "bool",
+        "bool"
+      ],
+      "disposable_params": [
+        0
+      ],
+      "bool_params": [
+        "checkEndOfStream",
+        "leaveOpen"
+      ]
+    },
+    {
+      "callable": "ZstdSharp.DecompressionStream..ctor",
+      "arity": 6,
+      "parameters": [
+        "System.IO.Stream",
+        "ZstdSharp.Decompressor",
+        "int",
+        "bool",
+        "bool",
+        "bool"
+      ],
+      "disposable_params": [
+        0,
+        1
+      ],
+      "bool_params": [
+        "checkEndOfStream",
+        "preserveDecompressor",
+        "leaveOpen"
+      ]
+    }
+  ],
+  "release_name_candidates": []
+}

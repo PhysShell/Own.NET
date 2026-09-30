@@ -1,0 +1,108 @@
+{
+ "package": "MQTTnet",
+ "written_at_utc": "2026-09-30T04:05:02Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read)",
+ "note": "",
+ "suggested_rows": [
+  {
+   "callable": "MQTTnet.MqttClientFactory.CreateMqttClient",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new IMqttClient"
+  },
+  {
+   "callable": "MQTTnet.MqttClientFactory.CreateMqttClient",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same with a logger"
+  },
+  {
+   "callable": "MQTTnet.MqttClientFactory.CreateMqttClient",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same with adapter factory"
+  },
+  {
+   "callable": "MQTTnet.MqttClientFactory.CreateLowLevelMqttClient",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new low-level client"
+  },
+  {
+   "callable": "MQTTnet.MqttClientFactory.CreateLowLevelMqttClient",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same"
+  },
+  {
+   "callable": "MQTTnet.MqttClientFactory.CreateLowLevelMqttClient",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same"
+  },
+  {
+   "callable": "MQTTnet.Implementations.MqttClientAdapterFactory.CreateClientAdapter",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new channel adapter"
+  },
+  {
+   "callable": "MQTTnet.Implementations.CrossPlatformSocket.GetStream",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a NetworkStream over the socket (UNSURE: may be cached)"
+  },
+  {
+   "callable": "MQTTnet.Internal.AsyncLock.EnterAsync",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a releaser token (IDisposable) per Enter \u2014 fresh"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "MQTTnet.MqttClient.DisconnectAsync",
+   "arity": 1,
+   "why": "disconnect; the client may reconnect: not terminal"
+  },
+  {
+   "callable": "MQTTnet.Implementations.MqttTcpChannel.DisconnectAsync",
+   "arity": 1,
+   "why": "UNSURE: channel disconnect may be terminal"
+  },
+  {
+   "callable": "MQTTnet.Internal.AsyncQueue<TItem>.Clear",
+   "arity": 0,
+   "why": "clears items: not a release"
+  },
+  {
+   "callable": "MQTTnet.PacketDispatcher.MqttPacketAwaitable<TPacket>.Complete",
+   "arity": 1,
+   "why": "completes the awaitable; not a release"
+  }
+ ],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "MqttChannelAdapter(IMqttChannel, formatter, logger)",
+   "judgement": "adopt: the adapter disposes its channel (SUGGESTED adopt)"
+  },
+  {
+   "ctor": "MqttTcpChannel(Stream, EndPoint, EndPoint, X509Certificate2)",
+   "judgement": "adopt: the channel owns the stream (SUGGESTED adopt)"
+  },
+  {
+   "ctor": "MqttWebSocketChannel(WebSocket, EndPoint, bool isSecureConnection, X509Certificate2)",
+   "judgement": "adopt: owns the websocket; the bool is not an ownership flag"
+  }
+ ]
+}

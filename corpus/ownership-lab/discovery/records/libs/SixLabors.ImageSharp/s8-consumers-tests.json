@@ -1,0 +1,150 @@
+{
+ "package": "SixLabors.ImageSharp",
+ "consumer": "tests",
+ "repo": "SixLabors/ImageSharp",
+ "commit": "dee414097e4be7bb35ef0209cf96bd0b61a7133a",
+ "files": [
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageTests.cs",
+   "sha256": "6b3d4dbb554e769d4f5ba71b1ebb63c6f2d8b65f563bd23123cf6db269885199",
+   "bytes": 12848
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageCloneTests.cs",
+   "sha256": "64bf60b2f3ea5cb335c290c4b99c4de7396f174073a4d0c12815a6a2878784bb",
+   "bytes": 5466
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageFrameCollectionTests.cs",
+   "sha256": "1d37cbc1e7dae25d1a8e04fa4bd890233018b25af36d6cb1a4f4239f68dfa19d",
+   "bytes": 850
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageFrameCollectionTests.Generic.cs",
+   "sha256": "884e02e69683c23f562ecb8ca797525d21ec125e0345220028f77e602ee41f53",
+   "bytes": 15217
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageFrameCollectionTests.NonGeneric.cs",
+   "sha256": "c2ab8e7d3512eff77d1c63784ae32432ae7ed2f6150c7ff07adb6129b52038af",
+   "bytes": 13012
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageFrameTests.cs",
+   "sha256": "54e7dc3f289a0f4a14d820c50a66323f7cef43f420854f93dfe8005b1bb7a4fc",
+   "bytes": 6664
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageTests.LoadPixelData.cs",
+   "sha256": "35811d24e636122d09088f933c6b67e9154dfc6450907b8d1ea1d42db72aec64",
+   "bytes": 4785
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageTests.Load_FromStream_UseDefaultConfiguration.cs",
+   "sha256": "93ac07f417e96b453df47651fc90b39d2f8311305b17e8ce62959be8b1582735",
+   "bytes": 3142
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageTests.Load_FromBytes_UseGlobalConfiguration.cs",
+   "sha256": "2578644893091b3e4d9cd39afd3951dbefcfef028f5a0468c9d2d5c7cc02be07",
+   "bytes": 1564
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageTests.Load_FileSystemPath_UseDefaultConfiguration.cs",
+   "sha256": "7c7ea73a0043274f07458abdd77575f3688684ead2cd82db76147ea3e057b823",
+   "bytes": 2603
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageTests.Load_FromStream_PassLocalConfiguration.cs",
+   "sha256": "6a77ab3a920373e0c5378a988c628e5e6870268b4b72e6193a6ca5e39ce0ecf3",
+   "bytes": 3530
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageTests.Load_FromBytes_PassLocalConfiguration.cs",
+   "sha256": "64996f9b72b192eb204d6387890b04e1718f1e301f24eef966af0b6b508d08b3",
+   "bytes": 2841
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageTests.Load_FileSystemPath_PassLocalConfiguration.cs",
+   "sha256": "75012a04ae28bb2cee258361acce8564fd6f0655f147ced3bc54dd37d2ead892",
+   "bytes": 3298
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageTests.WrapMemory.cs",
+   "sha256": "61a56ab1716a17817c2fc6da1548fe625981707a40eaf8dbb867f6ec6bbb17ef",
+   "bytes": 25582
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageTests.Save.cs",
+   "sha256": "4f350ab04ca3586ed84274e10bb1d4700ba708ece16076bd9766f1e27a57d9e2",
+   "bytes": 2137
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageTests.SaveAsync.cs",
+   "sha256": "3b35199128204626679de40e16a7646fa1df66839be61881a12d7bac40d2288c",
+   "bytes": 4692
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageTests.ImageLoadTestBase.cs",
+   "sha256": "cd897f04ba4784b34e36db31eddf15ed0f41050927c0ed7ad91a306a695fa05d",
+   "bytes": 5981
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/LargeImageIntegrationTests.cs",
+   "sha256": "77415139a476412b00563bb6cba3817230b21e34562110120577f453fa727989",
+   "bytes": 3314
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageSaveTests.cs",
+   "sha256": "45bb3f987721af2d4b2c8ab3ccb6f656cf05de4c66285c6cd42645f65bd952f4",
+   "bytes": 2849
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageTests.Identify.cs",
+   "sha256": "cafc6db4805279ae64066e7ed8052075ed2ab424e9c843a0bbfc9d0110167ef4",
+   "bytes": 11406
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageTests.DetectFormat.cs",
+   "sha256": "be0cace924436f577a8f55456cc73c6bc1b9b4648cc27700744dc3f8bf80a4cb",
+   "bytes": 5155
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageTests.Decode_Cancellation.cs",
+   "sha256": "b451d25b7feea52cf1c788191eb32e35358d19d9358546ce2f5e4a41652b6d46",
+   "bytes": 3619
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Image/ImageRotationTests.cs",
+   "sha256": "604c4cea13fd1b5161c6610a35e8b3e044bfbdf0f0a4ed3247e1c1d6f5b1447d",
+   "bytes": 1465
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Memory/Allocators/ArrayPoolMemoryAllocatorTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Memory/Allocators/UniformUnmanagedPoolMemoryAllocatorTests.cs",
+   "sha256": "4e1b27b66082ad59be0a86156a759241b793120ea102840a59aa6972d23fd80c",
+   "bytes": 26194
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Memory/Allocators/SimpleGcMemoryAllocatorTests.cs",
+   "sha256": "7636f2c08e3113118a687facd7f8d47cc60c9047d0b05b7930e75785fdf5ecd5",
+   "bytes": 3120
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Memory/Buffer2DTests.cs",
+   "sha256": "8ba0f1443f73fc0d6c939356259e8e406e6c0d016e146e49dddbf08653bc3c90",
+   "bytes": 14381
+  },
+  {
+   "path": "tests/ImageSharp.Tests/Memory/MemoryAllocatorExtensionsTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/ImageSharp.Tests/TestUtilities/TestImageProvider.cs",
+   "error": "HTTP Error 404: Not Found"
+  }
+ ]
+}

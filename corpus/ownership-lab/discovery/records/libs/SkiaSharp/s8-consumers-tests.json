@@ -1,0 +1,158 @@
+{
+ "package": "SkiaSharp",
+ "consumer": "tests",
+ "repo": "mono/SkiaSharp",
+ "commit": "4783f51448f9b070dda4f87b83e941c9599e466e",
+ "files": [
+  {
+   "path": "tests/Tests/SkiaSharp/SKBitmapTest.cs",
+   "sha256": "a468144e3a2af5e68b93f043e166cb6d7ab49d0fdcb560f4478a6929c81534d0",
+   "bytes": 25048
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKImageTest.cs",
+   "sha256": "a19d53dbd1a3f388a0432ab169e96f3a21d85b3bc87b7a920de38cec8b80f127",
+   "bytes": 28381
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKSurfaceTest.cs",
+   "sha256": "ed66151220e68aad703878fead172749e769fabb28601b8a77092b09f2cf5994",
+   "bytes": 10938
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKCodecTest.cs",
+   "sha256": "832fbebfc095e75f10302ea7162fb8ffd6183ef07922b9c5cbdb91b20b84a006",
+   "bytes": 16387
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKDataTest.cs",
+   "sha256": "cedd4f85d730500644432d0b0bf8c4eebe1d30386b4df9a59f6c6bc880d32b1a",
+   "bytes": 7030
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKStreamTest.cs",
+   "sha256": "8282c1eeab72b3a938b084146f428a0f334c6e558f37753cc1c8f0386910411b",
+   "bytes": 7683
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKCanvasTest.cs",
+   "sha256": "36cfe367e9f4fd4ff6415056a6c560a5a671f5cdcf1b248d640180b46f7b1a59",
+   "bytes": 21463
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKPaintTest.cs",
+   "sha256": "beafc1b0eb481fb649caede4260eea7b1a8f7f1ced0efd5db0ad206e297ef873",
+   "bytes": 9928
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKPathTest.cs",
+   "sha256": "6773959636035e4814a2b6111b03b1c7dae7ce7f699ba90a6c20012bb6c27b1d",
+   "bytes": 23094
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKTypefaceTest.cs",
+   "sha256": "59eff6198012d1a502ce3400a1fd065625a3fe87cc4aebd44ba54d2e76cf82ff",
+   "bytes": 34421
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKColorSpaceTest.cs",
+   "sha256": "61301c23eddc2405c7f7003985d7c9e9d545d676f2a708829119b4e73fcec89d",
+   "bytes": 10741
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKDocumentTest.cs",
+   "sha256": "db01e98a91082c6f09f9098c4d261312e26d399a54bb3b72a8da357f019d4c7a",
+   "bytes": 5125
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKPictureTest.cs",
+   "sha256": "cfdacb3a536660c990998154df9f1b7b150d9f6388b4cb8304f21d951ff904f2",
+   "bytes": 3384
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKManagedStreamTest.cs",
+   "sha256": "16b73fa959e4bab9411865011bc6a54539a0e2a60541782053fa63fccc6c0a63",
+   "bytes": 27212
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKFontTest.cs",
+   "sha256": "3f3eb6e4cec96f2e1be32ad78bbce2ed473ce6746cabc5c7baabae157047adf3",
+   "bytes": 16389
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKColorFilterTest.cs",
+   "sha256": "4525e2ab946103a315b5a571c65ec22f49ab82e18d4cce3ccfc68d5cbd456ae4",
+   "bytes": 5565
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKShaderTest.cs",
+   "sha256": "1fd488b2f0ca12ca809568a86f2c346beb045d81b6ebd395d1b928876974853b",
+   "bytes": 6530
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKPixmapTest.cs",
+   "sha256": "72d94e650446cac96209ba62f0d7a0469b682e38fd93932c6412a99d98f233e7",
+   "bytes": 27033
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKObjectTest.cs",
+   "sha256": "a728228c944098d368d04e85c90dfd7e87678028055c8aac360fcc0c9213278a",
+   "bytes": 13732
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/Pr3997ResourceLeakTest.cs",
+   "sha256": "b33cde88aa90c4bef8dcbe02a133fa7b68d21e3e6cb46b1a7783145b28663c21",
+   "bytes": 5457
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/Pr4080UseAfterFreeTest.cs",
+   "sha256": "3bf0ac081ad5debd4e4223a9ee89e7686396c284ecbb8ac62588dbd8a2bccaac",
+   "bytes": 3013
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKTest.cs",
+   "sha256": "2ec9f6fba0bdcede1c05f49aea399db37d64de7d88154f02423a324669c3805b",
+   "bytes": 7113
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKRuntimeEffectTest.cs",
+   "sha256": "be156edcb181cb23b15523e47eeecb03ef5847652db7784819eb4befd38a7e76",
+   "bytes": 37012
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKPictureRecorderTest.cs",
+   "sha256": "8c7de7f9bd43c3e8521fb3f0c2a21502b7bcf2c4ddafbe05bad36789eb7d2cd2",
+   "bytes": 2027
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKImageFilterTest.cs",
+   "sha256": "49049b5ca613f9ebbcd96eb029a19faea99548a84581943a54f3ba9df2b39e5f",
+   "bytes": 6446
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKFrontBufferedStreamTest.cs",
+   "sha256": "b5451ea85ead8f18400ac880061e7f059c597e5c9c92001d9354adccb2521327",
+   "bytes": 3781
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKManagedWStreamTest.cs",
+   "sha256": "a8a7866ba34865f7995af9976c9b05e9c55bad6f5a998c62e6ecac6519c48b66",
+   "bytes": 3590
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKFontManagerTest.cs",
+   "sha256": "5a9086ab419d6326ff8649d4e89890f555651d0b0d15e73958255a24efc6deaf",
+   "bytes": 7717
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKDrawableTest.cs",
+   "sha256": "7155c6099490b5b7c08a478d55f915aff47e07c729234380577cbe4acda7fe2e",
+   "bytes": 3009
+  },
+  {
+   "path": "tests/Tests/SkiaSharp/SKRegionTest.cs",
+   "sha256": "79aa1e0e1f3d0cbad1ad0ffce0114898124eb1e1f281bc5be5c0ec670f5cf57d",
+   "bytes": 9346
+  }
+ ]
+}

@@ -1,0 +1,166 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for SkiaSharp 4.153.1 (BODY_PROVED + WITNESSED; MVID eaaacb99-6acb-4ce1-8ed4-2d26f77ba522)",
+ "entries": [
+  {
+   "callable": "SkiaSharp.SKBitmap.Decode",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SkiaSharp.SKBitmap.FromImage",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SkiaSharp.SKColorSpace.ToProfile",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SkiaSharp.SKData.AsStream",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SkiaSharp.SKFileStream.OpenStream",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SkiaSharp.SKFileWStream.OpenStream",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SkiaSharp.SKFont.GetGlyphPath",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SkiaSharp.SKFont.GetTextPath",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SkiaSharp.SKPaint.GetTextPath",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SkiaSharp.SKPath.CreateIterator",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SkiaSharp.SKPath.CreateRawIterator",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SkiaSharp.SKPath.ParseSvgPathData",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SkiaSharp.SKRuntimeEffect.BuildBlender",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SkiaSharp.SKRuntimeEffect.BuildColorFilter",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SkiaSharp.SKRuntimeEffect.BuildShader",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SkiaSharp.SKTypeface.ToFont",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SkiaSharp",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522"
+   },
+   "derived_from": "https://go.microsoft.com/fwlink/?linkid=868515@4783f51448f9b070dda4f87b83e941c9599e466e via E1/E3 (inferred)"
+  }
+ ]
+}

@@ -1,0 +1,219 @@
+{
+ "package": "NLog",
+ "version": "6.2.1",
+ "written_at_utc": "2026-09-30T04:50:13Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read; no source body read before this file was written)",
+ "suggested_rows": [
+  {
+   "callable": "NLog.LogFactory.SuspendLogging",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable token that resumes logging when disposed"
+  },
+  {
+   "callable": "NLog.LogManager.SuspendLogging",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable token (global factory)"
+  },
+  {
+   "callable": "NLog.LogManager.DisableLogging",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable token (obsolete twin of SuspendLogging)"
+  },
+  {
+   "callable": "NLog.Logger.PushScopeProperty",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable scope token (both overloads)"
+  },
+  {
+   "callable": "NLog.Logger.PushScopeProperties",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable scope token"
+  },
+  {
+   "callable": "NLog.Logger.PushScopeNested",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable scope token"
+  },
+  {
+   "callable": "NLog.ScopeContext.PushProperty",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable scope token"
+  },
+  {
+   "callable": "NLog.ScopeContext.PushProperties",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable scope token"
+  },
+  {
+   "callable": "NLog.ScopeContext.PushNestedState",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable scope token"
+  },
+  {
+   "callable": "NLog.ScopeContext.PushNestedStateProperties",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable scope token"
+  },
+  {
+   "callable": "NLog.MappedDiagnosticsContext.SetScoped",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable scope token (obsolete API)"
+  },
+  {
+   "callable": "NLog.MappedDiagnosticsLogicalContext.SetScoped",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable scope token (obsolete API)"
+  },
+  {
+   "callable": "NLog.MappedDiagnosticsLogicalContext.SetScoped",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable scope token (obsolete API)"
+  },
+  {
+   "callable": "NLog.NestedDiagnosticsContext.Push",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable scope token (obsolete API)"
+  },
+  {
+   "callable": "NLog.NestedDiagnosticsLogicalContext.Push",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable scope token (obsolete API)"
+  },
+  {
+   "callable": "NLog.NestedDiagnosticsLogicalContext.PushObject",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a disposable scope token (obsolete API)"
+  },
+  {
+   "callable": "NLog.LogFactory.Shutdown",
+   "arity": 0,
+   "effect": "receiver_terminal_release",
+   "provenance": "SUGGESTED",
+   "rationale": "flushes and closes all targets and drops the configuration: the receiver is finished with (Dispose calls it); a terminal release in effect, but the factory can be reconfigured afterwards, so this may be rejected by E2"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "NLog.LogFactory.Setup",
+   "arity": 1,
+   "why": "fluent: returns the receiver (alias)"
+  },
+  {
+   "callable": "NLog.LogFactory.LoadConfiguration",
+   "arity": 1,
+   "why": "fluent: returns the receiver (alias)"
+  },
+  {
+   "callable": "NLog.LogManager.Setup",
+   "arity": 1,
+   "why": "returns the global LogFactory (alias of a static)"
+  },
+  {
+   "callable": "NLog.LogManager.LoadConfiguration",
+   "arity": 1,
+   "why": "returns the global LogFactory (alias of a static)"
+  },
+  {
+   "callable": "NLog.LogManager.get_LogFactory",
+   "arity": 0,
+   "why": "static alias getter"
+  },
+  {
+   "callable": "NLog.ILoggerBase.get_Factory",
+   "arity": 0,
+   "why": "alias getter"
+  },
+  {
+   "callable": "NLog.Logger.get_Factory",
+   "arity": 0,
+   "why": "alias getter"
+  },
+  {
+   "callable": "NLog.Config.LoggingConfiguration.get_LogFactory",
+   "arity": 0,
+   "why": "alias getter"
+  },
+  {
+   "callable": "NLog.Config.ISetupBuilder.get_LogFactory",
+   "arity": 0,
+   "why": "alias getter (and the six sibling builder interfaces)"
+  },
+  {
+   "callable": "NLog.Config.LoggingConfiguration.FindTargetByName",
+   "arity": 1,
+   "why": "returns a target owned by the configuration (alias)"
+  },
+  {
+   "callable": "NLog.SetupLoadConfigurationExtensions.FirstTarget",
+   "arity": 1,
+   "why": "returns a target owned by the configuration (alias)"
+  },
+  {
+   "callable": "NLog.Targets.Wrappers.WrapperTargetBase.get_WrappedTarget",
+   "arity": 0,
+   "why": "alias getter"
+  },
+  {
+   "callable": "NLog.Common.InternalLogger.get_LogWriter",
+   "arity": 0,
+   "why": "alias getter of a static writer"
+  },
+  {
+   "callable": "NLog.Config.InstallationContext.get_LogOutput",
+   "arity": 0,
+   "why": "alias getter"
+  },
+  {
+   "callable": "NLog.Targets.FileLifecycleHooks.OnFileOpened",
+   "arity": 2,
+   "why": "hook returning the given stream (identity) or a wrapper: undecidable from the surface"
+  }
+ ],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "InstallationContext(TextWriter)",
+   "judgement": "borrow (the context writes to the given writer; does not own it)"
+  },
+  {
+   "ctor": "*TargetWrapper(Target) / (string, Target) / (Target, ...)",
+   "judgement": "adopt (a wrapper target owns and closes its wrapped target on Close/Dispose); no bool flag"
+  },
+  {
+   "ctor": "ThreadSafeDictionary<,>.Enumerator(Dictionary<,>.Enumerator)",
+   "judgement": "struct enumerator wrapper: not an ownership transfer of interest"
+  }
+ ]
+}

@@ -1,0 +1,108 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for MySqlConnector 2.6.2 (BODY_PROVED + WITNESSED; MVID bec6ec26-a3ae-42a3-8aca-cc9d928b0258)",
+ "entries": [
+  {
+   "callable": "MySqlConnector.MySqlConnection.CreateBatch",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "MySqlConnector",
+    "mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258"
+   },
+   "derived_from": "https://github.com/mysql-net/MySqlConnector.git@775689bb3e1ab55d16171e0795264fa746e364c4 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnectorFactory.CreateBatch",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "MySqlConnector",
+    "mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258"
+   },
+   "derived_from": "https://github.com/mysql-net/MySqlConnector.git@775689bb3e1ab55d16171e0795264fa746e364c4 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnectorFactory.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "MySqlConnector",
+    "mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258"
+   },
+   "derived_from": "https://github.com/mysql-net/MySqlConnector.git@775689bb3e1ab55d16171e0795264fa746e364c4 via E1/E3 (inferred (per-file run))"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnectorFactory.CreateCommandBuilder",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "MySqlConnector",
+    "mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258"
+   },
+   "derived_from": "https://github.com/mysql-net/MySqlConnector.git@775689bb3e1ab55d16171e0795264fa746e364c4 via E1/E3 (inferred (per-file run))"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "MySqlConnector",
+    "mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258"
+   },
+   "derived_from": "https://github.com/mysql-net/MySqlConnector.git@775689bb3e1ab55d16171e0795264fa746e364c4 via E1/E3 (inferred (per-file run))"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnectorFactory.CreateDataAdapter",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "MySqlConnector",
+    "mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258"
+   },
+   "derived_from": "https://github.com/mysql-net/MySqlConnector.git@775689bb3e1ab55d16171e0795264fa746e364c4 via E1/E3 (inferred (per-file run))"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnectorFactory.CreateDataSource",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "MySqlConnector",
+    "mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258"
+   },
+   "derived_from": "https://github.com/mysql-net/MySqlConnector.git@775689bb3e1ab55d16171e0795264fa746e364c4 via E1/E3 (inferred (per-file run))"
+  },
+  {
+   "callable": "MySqlConnector.MySqlDataSourceBuilder.Build",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "MySqlConnector",
+    "mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258"
+   },
+   "derived_from": "https://github.com/mysql-net/MySqlConnector.git@775689bb3e1ab55d16171e0795264fa746e364c4 via E1/E3 (inferred (per-file run))"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnection.CreateCommand",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "assembly": {
+    "name": "MySqlConnector",
+    "mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258"
+   },
+   "witness": "MYSQL-W1",
+   "witness_asm_mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258"
+  },
+  {
+   "callable": "MySqlConnector.MySqlConnection.Clone",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "assembly": {
+    "name": "MySqlConnector",
+    "mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258"
+   },
+   "witness": "MYSQL-W3",
+   "witness_asm_mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258"
+  }
+ ]
+}

@@ -1,0 +1,478 @@
+{
+ "package": "MQTTnet",
+ "consumer": "tests",
+ "files": 10,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/MQTTnet/rows-applied.json",
+ "key_sha256": "c80c3a39f3aaafc28c834887d30d6ff7df8141e3665b48dc50385bac4b2cc7cd",
+ "off": {
+  "findings": [
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    43,
+    "OWN001",
+    "event 'subscriber.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    106,
+    "OWN001",
+    "event 'client.DisconnectedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    175,
+    "OWN001",
+    "event 'client.DisconnectedAsync' is subscribed (handler '_ =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    217,
+    "OWN001",
+    "event 'receiveClient.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    274,
+    "OWN001",
+    "event 'receiver.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    366,
+    "OWN001",
+    "event 'client1.ApplicationMessageReceivedAsync' is subscribed (handler 'Handler1') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'MqttClient_Tests' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    398,
+    "OWN001",
+    "event 'client1.ApplicationMessageReceivedAsync' is subscribed (handler 'Handler1') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'MqttClient_Tests' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    468,
+    "OWN001",
+    "event 'client.DisconnectedAsync' is subscribed (handler 'eventArgs =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    500,
+    "OWN001",
+    "event 'client1.ApplicationMessageReceivedAsync' is subscribed (handler 'async _ =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    511,
+    "OWN001",
+    "event 'client2.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    540,
+    "OWN001",
+    "event 'client1.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    594,
+    "OWN001",
+    "event 'client.DisconnectedAsync' is subscribed (handler 'async _ =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    682,
+    "OWN001",
+    "event 'client1.ApplicationMessageReceivedAsync' is subscribed (handler 'Handler1') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'MqttClient_Tests' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    699,
+    "OWN001",
+    "event 'client2.ApplicationMessageReceivedAsync' is subscribed (handler 'Handler2') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'MqttClient_Tests' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    725,
+    "OWN001",
+    "event 'client1.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    735,
+    "OWN001",
+    "event 'client2.ApplicationMessageReceivedAsync' is subscribed (handler 'async e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    768,
+    "OWN001",
+    "event 'client.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    799,
+    "OWN001",
+    "event 'client.DisconnectedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    817,
+    "OWN001",
+    "event 'client.DisconnectedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    838,
+    "OWN001",
+    "event 'client.ConnectedAsync' is subscribed (handler 'async e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    848,
+    "OWN001",
+    "event 'client.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    875,
+    "OWN001",
+    "event 'client1.DisconnectedAsync' is subscribed (handler 'c =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    882,
+    "OWN001",
+    "event 'client1.ApplicationMessageReceivedAsync' is subscribed (handler '_ =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    930,
+    "OWN001",
+    "event 'client.DisconnectedAsync' is subscribed (handler '_ =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    973,
+    "OWN001",
+    "event 'subscriber.ApplicationMessageReceivedAsync' is subscribed (handler '_ =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    981,
+    "OWN001",
+    "event 'publisher.DisconnectedAsync' is subscribed (handler '_ =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncLock_Tests.cs",
+    176,
+    "OWN001",
+    "IDisposable local '@lock' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncLock_Tests.cs",
+    206,
+    "OWN001",
+    "IDisposable local 'asyncLock' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncLock_Tests.cs",
+    234,
+    "OWN001",
+    "IDisposable local '@lock' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncQueue_Tests.cs",
+    16,
+    "OWN001",
+    "IDisposable local 'queue' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncQueue_Tests.cs",
+    29,
+    "OWN001",
+    "IDisposable local 'queue' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncQueue_Tests.cs",
+    44,
+    "OWN001",
+    "IDisposable local 'queue' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncQueue_Tests.cs",
+    115,
+    "OWN001",
+    "IDisposable local 'queue' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncQueue_Tests.cs",
+    128,
+    "OWN001",
+    "IDisposable local 'queue' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Mockups__TestEnvironment.cs",
+    192,
+    "OWN001",
+    "event 'client.ConnectingAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__RoundtripTime_Tests.cs",
+    29,
+    "OWN001",
+    "event 'receiverClient.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 12,
+   "methods_flow_analysed": 12,
+   "methods_skipped_unmodelled": 0
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "Source__MQTTnet.Tests__Clients__LowLevelMqttClient__LowLevelMqttClient_Tests.cs",
+    44,
+    "OWN001",
+    "IDisposable local 'lowLevelClient' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    43,
+    "OWN001",
+    "event 'subscriber.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    106,
+    "OWN001",
+    "event 'client.DisconnectedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    175,
+    "OWN001",
+    "event 'client.DisconnectedAsync' is subscribed (handler '_ =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    217,
+    "OWN001",
+    "event 'receiveClient.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    274,
+    "OWN001",
+    "event 'receiver.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    366,
+    "OWN001",
+    "event 'client1.ApplicationMessageReceivedAsync' is subscribed (handler 'Handler1') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'MqttClient_Tests' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    398,
+    "OWN001",
+    "event 'client1.ApplicationMessageReceivedAsync' is subscribed (handler 'Handler1') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'MqttClient_Tests' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    468,
+    "OWN001",
+    "event 'client.DisconnectedAsync' is subscribed (handler 'eventArgs =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    500,
+    "OWN001",
+    "event 'client1.ApplicationMessageReceivedAsync' is subscribed (handler 'async _ =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    511,
+    "OWN001",
+    "event 'client2.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    540,
+    "OWN001",
+    "event 'client1.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    594,
+    "OWN001",
+    "event 'client.DisconnectedAsync' is subscribed (handler 'async _ =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    682,
+    "OWN001",
+    "event 'client1.ApplicationMessageReceivedAsync' is subscribed (handler 'Handler1') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'MqttClient_Tests' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    699,
+    "OWN001",
+    "event 'client2.ApplicationMessageReceivedAsync' is subscribed (handler 'Handler2') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'MqttClient_Tests' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    725,
+    "OWN001",
+    "event 'client1.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    735,
+    "OWN001",
+    "event 'client2.ApplicationMessageReceivedAsync' is subscribed (handler 'async e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    768,
+    "OWN001",
+    "event 'client.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    799,
+    "OWN001",
+    "event 'client.DisconnectedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    817,
+    "OWN001",
+    "event 'client.DisconnectedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    838,
+    "OWN001",
+    "event 'client.ConnectedAsync' is subscribed (handler 'async e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    848,
+    "OWN001",
+    "event 'client.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    875,
+    "OWN001",
+    "event 'client1.DisconnectedAsync' is subscribed (handler 'c =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    882,
+    "OWN001",
+    "event 'client1.ApplicationMessageReceivedAsync' is subscribed (handler '_ =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    930,
+    "OWN001",
+    "event 'client.DisconnectedAsync' is subscribed (handler '_ =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    973,
+    "OWN001",
+    "event 'subscriber.ApplicationMessageReceivedAsync' is subscribed (handler '_ =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Clients__MqttClient__MqttClient_Tests.cs",
+    981,
+    "OWN001",
+    "event 'publisher.DisconnectedAsync' is subscribed (handler '_ =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncLock_Tests.cs",
+    176,
+    "OWN001",
+    "IDisposable local '@lock' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncLock_Tests.cs",
+    206,
+    "OWN001",
+    "IDisposable local 'asyncLock' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncLock_Tests.cs",
+    234,
+    "OWN001",
+    "IDisposable local '@lock' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncQueue_Tests.cs",
+    16,
+    "OWN001",
+    "IDisposable local 'queue' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncQueue_Tests.cs",
+    29,
+    "OWN001",
+    "IDisposable local 'queue' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncQueue_Tests.cs",
+    44,
+    "OWN001",
+    "IDisposable local 'queue' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncQueue_Tests.cs",
+    115,
+    "OWN001",
+    "IDisposable local 'queue' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Internal__AsyncQueue_Tests.cs",
+    128,
+    "OWN001",
+    "IDisposable local 'queue' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "Source__MQTTnet.Tests__Mockups__TestEnvironment.cs",
+    192,
+    "OWN001",
+    "event 'client.ConnectingAsync' is subscribed (handler 'e =>"
+   ],
+   [
+    "Source__MQTTnet.Tests__RoundtripTime_Tests.cs",
+    29,
+    "OWN001",
+    "event 'receiverClient.ApplicationMessageReceivedAsync' is subscribed (handler 'e =>"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: return_fresh_owned=8"
+  ],
+  "stats": {
+   "methods_with_local": 13,
+   "methods_flow_analysed": 13,
+   "methods_skipped_unmodelled": 0
+  }
+ },
+ "new_findings": [
+  [
+   "Source__MQTTnet.Tests__Clients__LowLevelMqttClient__LowLevelMqttClient_Tests.cs",
+   44,
+   "OWN001",
+   "IDisposable local 'lowLevelClient' is never disposed (leak) [resource: disposable]"
+  ]
+ ],
+ "lost_findings": []
+}

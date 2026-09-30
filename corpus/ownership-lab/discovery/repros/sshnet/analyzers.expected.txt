@@ -1,0 +1,2 @@
+Repro.cs(3,56): warning IDISP001: Dispose created  
+Repro.cs(4,84): warning IDISP001: Dispose created  

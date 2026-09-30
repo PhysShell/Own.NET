@@ -1,0 +1,4 @@
+Repro.cs(3,47): warning IDISP001: Dispose created  
+Repro.cs(3,61): warning CA2000: Call System.IDisposable.Dispose on object created by 'ZipArchive.Create()' before all references to it are out of scope  
+Repro.cs(4,51): warning IDISP001: Dispose created  
+Repro.cs(4,67): warning CA2000: Call System.IDisposable.Dispose on object created by 'ZipReader.Open(entry)' before all references to it are out of scope  

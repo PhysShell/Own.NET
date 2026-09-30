@@ -1,0 +1,84 @@
+{
+ "package": "Newtonsoft.Json",
+ "consumer": "tests",
+ "repo": "JamesNK/Newtonsoft.Json",
+ "commit": "4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a",
+ "files": [
+  {
+   "path": "Src/Newtonsoft.Json.Tests/JsonTextWriterTest.cs",
+   "sha256": "023e0c8a2f93e3246e64da27cf4e4d44314db6af2285dabe1be9b926df20053a",
+   "bytes": 61999
+  },
+  {
+   "path": "Src/Newtonsoft.Json.Tests/JsonTextReaderTest.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "Src/Newtonsoft.Json.Tests/JsonReaderTest.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "Src/Newtonsoft.Json.Tests/JsonWriterTest.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "Src/Newtonsoft.Json.Tests/JsonValidatingReaderTests.cs",
+   "sha256": "b9b0e9a6edf0f32867300a5dc2f7c2f2d7a4370b4a0d90f647651144a9ef189f",
+   "bytes": 64067
+  },
+  {
+   "path": "Src/Newtonsoft.Json.Tests/JsonConvertTest.cs",
+   "sha256": "82d0fdc6c06c09ca167fab6f15bd8d6b0a266453284ef80660cb6b61fe85228a",
+   "bytes": 72609
+  },
+  {
+   "path": "Src/Newtonsoft.Json.Tests/Bson/BsonReaderTests.cs",
+   "sha256": "a35489b993dfa8b1738069b740971eacdce8a173944891c59b0ba56d1c818bc6",
+   "bytes": 72285
+  },
+  {
+   "path": "Src/Newtonsoft.Json.Tests/Bson/BsonWriterTests.cs",
+   "sha256": "de970e4fee947f27375ef2f106a23bb74458e2a26a6231c4ae7d0fb55694ff97",
+   "bytes": 36496
+  },
+  {
+   "path": "Src/Newtonsoft.Json.Tests/Linq/JTokenReaderTest.cs",
+   "sha256": "810b73b907023b3fbe2f9b993a3878a9f2e127a357dcbebba9a3797896e0f829",
+   "bytes": 33856
+  },
+  {
+   "path": "Src/Newtonsoft.Json.Tests/Linq/JTokenWriterTest.cs",
+   "sha256": "22fa7f4937927014d100852790e4d0891b9d1b7ad9cc7e4bdaac55ffb816aa9e",
+   "bytes": 13776
+  },
+  {
+   "path": "Src/Newtonsoft.Json.Tests/Linq/JTokenTests.cs",
+   "sha256": "af4bbcce880aff3f0b35fc5cab49b99965f61f920538ea41d3bd068280162be8",
+   "bytes": 58386
+  },
+  {
+   "path": "Src/Newtonsoft.Json.Tests/JsonTextReaderTests/ParseTests.cs",
+   "sha256": "ac802817aff95d14f68a34b548dda677470132732ace7eeff749e5e48ccf69bc",
+   "bytes": 21369
+  },
+  {
+   "path": "Src/Newtonsoft.Json.Tests/JsonTextReaderTests/ReadTests.cs",
+   "sha256": "6a9488fdc66dea7bd3dea8600ad5a6031c52c7d1539a34289aad8523045afcdd",
+   "bytes": 63290
+  },
+  {
+   "path": "Src/Newtonsoft.Json.Tests/JsonTextReaderTests/MiscTests.cs",
+   "sha256": "d89dff15d91907013b769c8e2960cc01d82cd23d34cde9fcf4b94b04b45e71ca",
+   "bytes": 42010
+  },
+  {
+   "path": "Src/Newtonsoft.Json.Tests/JsonTextReaderTests/ExceptionTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "Src/Newtonsoft.Json.Tests/Serialization/JsonSerializerTest.cs",
+   "sha256": "84293ceaed28dcd7013b4665f4ee9b59ddc7d06b6bd3af6237a426d08a575075",
+   "bytes": 317069
+  }
+ ]
+}

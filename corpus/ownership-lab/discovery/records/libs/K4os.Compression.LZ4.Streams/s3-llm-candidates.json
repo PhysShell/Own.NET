@@ -1,0 +1,122 @@
+{
+ "package": "K4os.Compression.LZ4.Streams",
+ "version": "1.3.8",
+ "written_at_utc": "2026-09-30T04:50:13Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read; no source body read before this file was written)",
+ "suggested_rows": [
+  {
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Stream.Encode",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new LZ4EncoderStream wrapping the inner stream (adopts it unless leaveOpen)"
+  },
+  {
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Stream.Encode",
+   "arity": 4,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new LZ4EncoderStream (level overload)"
+  },
+  {
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Stream.Decode",
+   "arity": 4,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new LZ4DecoderStream wrapping the inner stream (adopts it unless leaveOpen)"
+  },
+  {
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Decode",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new frame reader over memory / a byte sequence"
+  },
+  {
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Decode",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new frame reader over a Stream / PipeReader (adopts unless leaveOpen)"
+  },
+  {
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new frame writer over memory / a buffer writer"
+  },
+  {
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new frame writer (Stream / PipeWriter / byte* overloads)"
+  },
+  {
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+   "arity": 4,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new frame writer (level overloads)"
+  },
+  {
+   "callable": "K4os.Compression.LZ4.Streams.Extensions.AsStream",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new LZ4FrameReaderAsStream adapter (adopts the reader unless doNotDispose)"
+  },
+  {
+   "callable": "K4os.Compression.LZ4.Streams.Extensions.AsStream",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new LZ4FrameWriterAsStream adapter (adopts the writer unless doNotDispose)"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "K4os.Compression.LZ4.Streams.Abstractions.ILZ4FrameReader.CloseFrame",
+   "arity": 0,
+   "why": "finishes the LZ4 frame; the reader stays usable/disposable: hostile release name"
+  },
+  {
+   "callable": "K4os.Compression.LZ4.Streams.Abstractions.ILZ4FrameWriter.CloseFrame",
+   "arity": 0,
+   "why": "flushes the end-of-frame marker; the writer must still be disposed: hostile release name"
+  },
+  {
+   "callable": "K4os.Compression.LZ4.Streams.Abstractions.ILZ4FrameWriter.CloseFrameAsync",
+   "arity": 1,
+   "why": "async twin of CloseFrame: hostile release name"
+  }
+ ],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "LZ4DecoderStream(Stream, Func<...>, bool leaveOpen, bool interactive)",
+   "judgement": "adopt-unless(leaveOpen): the H-03 shape; interactive is unrelated"
+  },
+  {
+   "ctor": "LZ4EncoderStream(Stream, ILZ4Descriptor, Func<...>, bool leaveOpen)",
+   "judgement": "adopt-unless(leaveOpen)"
+  },
+  {
+   "ctor": "StreamLZ4FrameReader(Stream, bool leaveOpen, Func<...>)",
+   "judgement": "adopt-unless(leaveOpen)"
+  },
+  {
+   "ctor": "StreamLZ4FrameWriter(Stream, bool leaveOpen, Func<...>, ILZ4Descriptor)",
+   "judgement": "adopt-unless(leaveOpen)"
+  },
+  {
+   "ctor": "LZ4FrameReaderAsStream(ILZ4FrameReader, bool doNotDispose, bool interactive)",
+   "judgement": "adopt-unless(doNotDispose): the same polarity as leaveOpen under a different name"
+  },
+  {
+   "ctor": "LZ4FrameWriterAsStream(ILZ4FrameWriter, bool doNotDispose)",
+   "judgement": "adopt-unless(doNotDispose)"
+  }
+ ]
+}

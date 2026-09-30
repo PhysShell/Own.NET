@@ -1,0 +1,57 @@
+{
+ "package": "CsvHelper",
+ "repo": "JoshClose/CsvHelper",
+ "commit": "5dad8b8b1d8b074f8353cfd482e939db788a8927",
+ "files": [
+  {
+   "path": "src/CsvHelper/CsvReader.cs",
+   "sha256": "f7b87edd534764eebf2388a77d49e5cd9c6d49eb6788dca9b1c07d4545412715",
+   "bytes": 38834
+  },
+  {
+   "path": "src/CsvHelper/CsvWriter.cs",
+   "sha256": "b89e9ca0189ddab90e93eb942cd8d371ea06cadaf77cfdfaf0a5c01f5e8215d3",
+   "bytes": 24787
+  },
+  {
+   "path": "src/CsvHelper/CsvParser.cs",
+   "sha256": "8c2f3fe8f5df02dd57b41deaa5551abf413548acc86e35ba7b7cc808aca86ae0",
+   "bytes": 29139
+  },
+  {
+   "path": "src/CsvHelper/CsvDataReader.cs",
+   "sha256": "966a953606b2368ff82039e8d31a1ade309900c424b30addab5cdbc3af7672fe",
+   "bytes": 8897
+  },
+  {
+   "path": "src/CsvHelper/Factory.cs",
+   "sha256": "98ea4b7b058cb52d033d40888c5776f3989bb4afbeccbfd1a3cfccf32dca725f",
+   "bytes": 3744
+  },
+  {
+   "path": "src/CsvHelper/IFactory.cs",
+   "sha256": "97fe6a5a58bc056d657a2497c6ff0fbdafac502764a449f9a79c58f3f4e30b50",
+   "bytes": 3190
+  },
+  {
+   "path": "src/CsvHelper/IReader.cs",
+   "sha256": "8880e25ed4de58fc32b7030d26e267b96aea0efd60cab1c43c440da1304ceb00",
+   "bytes": 5884
+  },
+  {
+   "path": "src/CsvHelper/IWriter.cs",
+   "sha256": "86809d65b933e4cd8f05c4be1a0d694105a163ef33858719d875de209a59ca37",
+   "bytes": 2881
+  },
+  {
+   "path": "src/CsvHelper/IParser.cs",
+   "sha256": "92a7e1b7d00b2e15fb919fa3141be7c9fed22ec05b89de4e1ce756926d1348aa",
+   "bytes": 2405
+  },
+  {
+   "path": "src/CsvHelper/Configuration/CsvConfiguration.cs",
+   "sha256": "a4394bf1cc5fdd59033bebf2f669ab08ca074ba9e97bda20589aef51857e9a83",
+   "bytes": 14378
+  }
+ ]
+}

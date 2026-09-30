@@ -1,0 +1,27 @@
+{
+ "package": "MQTTnet",
+ "version": "5.2.0.1603",
+ "nupkg_sha256": "c394fb7a463054683e66cf2ea25bdc585c98fabf5dba78b4a888a0c601e021dc",
+ "repository_url": "https://github.com/dotnet/MQTTnet.git",
+ "repository_commit": "14463d1ef9f1f119514185c1832905b91bff827d",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/MQTTnet/lib/net8.0/MQTTnet.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/MQTTnet/lib/net8.0/MQTTnet.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/MQTTnet/lib/net8.0/MQTTnet.dll",
+  "name": "MQTTnet",
+  "version": "5.2.0.1603",
+  "culture": "",
+  "public_key_token": "fdb7629f2e364a63",
+  "mvid": "3059e61f-8649-4e25-ba89-8d031023acb8",
+  "target_framework": ".NETCoreApp,Version=v8.0",
+  "informational_version": "5.2.0.1603+14463d1ef9f1f119514185c1832905b91bff827d",
+  "sha256": "5b3a8ca8ea1bb610fb68166c61e870c1cf6e45243798303d033c9704a66c0998",
+  "size": 243112
+ },
+ "xmldoc": [
+  "lib/net10.0/MQTTnet.xml",
+  "lib/net8.0/MQTTnet.xml"
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "package": "NLog",
+ "version": "6.2.1",
+ "nupkg_sha256": "c4a527db864484cba0c114e5f276da3f38c206d125417c99afba41927c149167",
+ "repository_url": "https://github.com/NLog/NLog.git",
+ "repository_commit": "b058028290f245d12c30cb2910c2a574558ed9c6",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/NLog/lib/netstandard2.1/NLog.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/NLog/lib/netstandard2.1/NLog.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/NLog/lib/netstandard2.1/NLog.dll",
+  "name": "NLog",
+  "version": "6.0.0.0",
+  "culture": "",
+  "public_key_token": "5120e14c03d0593c",
+  "mvid": "03802750-90df-4f67-b7f1-d84eee3bd509",
+  "target_framework": ".NETStandard,Version=v2.1",
+  "informational_version": "6.2.1+b058028290f245d12c30cb2910c2a574558ed9c6",
+  "sha256": "93144de1f878f1a9a8ed544f53ba1b5fa7c14a1d2fdc576008835a0aee6aa769",
+  "size": 936448
+ },
+ "xmldoc": [
+  "lib/net35/NLog.xml",
+  "lib/net45/NLog.xml",
+  "lib/net46/NLog.xml"
+ ]
+}

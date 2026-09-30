@@ -1,0 +1,26 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for Newtonsoft.Json 13.0.4 (BODY_PROVED + WITNESSED; MVID 00b3a5ef-dbc3-4c2f-9c39-8fe4911d40e8)",
+ "entries": [
+  {
+   "callable": "Newtonsoft.Json.Linq.JContainer.CreateWriter",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Newtonsoft.Json",
+    "mvid": "00b3a5ef-dbc3-4c2f-9c39-8fe4911d40e8"
+   },
+   "derived_from": "https://github.com/JamesNK/Newtonsoft.Json@4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a via E1/E3 (inferred (per-file run))"
+  },
+  {
+   "callable": "Newtonsoft.Json.Linq.JToken.CreateReader",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Newtonsoft.Json",
+    "mvid": "00b3a5ef-dbc3-4c2f-9c39-8fe4911d40e8"
+   },
+   "derived_from": "https://github.com/JamesNK/Newtonsoft.Json@4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a via E1/E3 (inferred (per-file run))"
+  }
+ ]
+}

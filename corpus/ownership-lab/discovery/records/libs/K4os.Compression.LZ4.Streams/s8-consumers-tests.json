@@ -1,0 +1,78 @@
+{
+ "package": "K4os.Compression.LZ4.Streams",
+ "consumer": "tests",
+ "repo": "MiloszKrajewski/K4os.Compression.LZ4",
+ "commit": "1.3.8",
+ "files": [
+  {
+   "path": "src/K4os.Compression.LZ4.Streams.Tests/AsyncDecoderTests.cs",
+   "sha256": "ea3320cbd7ed2ca5a25c5ad8c7543c2f1b6d8b401a82ae5d87d1367bbe3af151",
+   "bytes": 2003
+  },
+  {
+   "path": "src/K4os.Compression.LZ4.Streams.Tests/AsyncEncoderTests.cs",
+   "sha256": "612e4b45103e63055d107c6d3261c92cc55912286c88fd85d95f143ea6cd265a",
+   "bytes": 1175
+  },
+  {
+   "path": "src/K4os.Compression.LZ4.Streams.Tests/AsyncRoundtripTests.cs",
+   "sha256": "362c9035bc0f5f8a48ab9b8469041a8bb7834cc3e79ce9cd4146dca1e73242ba",
+   "bytes": 3397
+  },
+  {
+   "path": "src/K4os.Compression.LZ4.Streams.Tests/ChecksumTests.cs",
+   "sha256": "5e934a13b3be8cd527f6d6eb747c338442500ed07f474f29a969dc8ff4ed62f5",
+   "bytes": 1967
+  },
+  {
+   "path": "src/K4os.Compression.LZ4.Streams.Tests/DecoderTests.cs",
+   "sha256": "24f87d00b4757858660471b581b95783c197d10ea7817f9e35a54db5c0bf7331",
+   "bytes": 6657
+  },
+  {
+   "path": "src/K4os.Compression.LZ4.Streams.Tests/EncoderTests.cs",
+   "sha256": "a3a9b740a0d8d0636c5126bf48cc95e036d4d82a2deca3dd6a8893c30672681e",
+   "bytes": 4302
+  },
+  {
+   "path": "src/K4os.Compression.LZ4.Streams.Tests/FrameRountripTests.cs",
+   "sha256": "2ac74a52d263641f51ce3a9442bd18c824e89b86d24d90d799bc3915716b112f",
+   "bytes": 7137
+  },
+  {
+   "path": "src/K4os.Compression.LZ4.Streams.Tests/FriendlyApiTests.cs",
+   "sha256": "82838d485fbebc434a5299cd6712d0262ee0e9eccca40f340ee517d4b43e93d3",
+   "bytes": 1050
+  },
+  {
+   "path": "src/K4os.Compression.LZ4.Streams.Tests/Issue96.cs",
+   "sha256": "f73fe67ad294b74005697447426c219bdfc9bb1727f822ecb4cd05165749eb4c",
+   "bytes": 2340
+  },
+  {
+   "path": "src/K4os.Compression.LZ4.Streams.Tests/MemoryAdapterTests.cs",
+   "sha256": "2b6b5d3f81acb59cfcb053944f38c2e993185eb00f5dee913c419d3ce3e963e2",
+   "bytes": 4444
+  },
+  {
+   "path": "src/K4os.Compression.LZ4.Streams.Tests/RoundtripTests.cs",
+   "sha256": "7f771c6619ee82ba29f38c6d0589b6174a76a057a0a0c0443fb4a962553e092b",
+   "bytes": 1874
+  },
+  {
+   "path": "src/K4os.Compression.LZ4.Streams.Tests/RoundtripWithSerializer.cs",
+   "sha256": "339ba0c3680e04095fa6ef7b3cccdf998bed1cb54b9191c2655b37926e158d3b",
+   "bytes": 1713
+  },
+  {
+   "path": "src/K4os.Compression.LZ4.Streams.Tests/StreamInterfaceTests.cs",
+   "sha256": "f491ab5ba01b088d7e6ec3011cbb862d67be0cf1af4040a130621c792f3e89d9",
+   "bytes": 1953
+  },
+  {
+   "path": "src/K4os.Compression.LZ4.Streams.Tests/TarTests.cs",
+   "sha256": "71464971d1bd50ace2d19aa92dd98d01d0fc9709523b2c1457eafdd7c1bfe6be",
+   "bytes": 3093
+  }
+ ]
+}

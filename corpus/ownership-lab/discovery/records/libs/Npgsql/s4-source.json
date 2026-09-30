@@ -1,0 +1,127 @@
+{
+ "package": "Npgsql",
+ "repo": "npgsql/npgsql",
+ "commit": "d3768398c17877b3a916c3c4d87e8e11698991fc",
+ "files": [
+  {
+   "path": "src/Npgsql/NpgsqlConnection.cs",
+   "sha256": "02ed57055a9e1f025c631590d10c4040af1abddf4fa53d04cd07eaf35675d93b",
+   "bytes": 87404
+  },
+  {
+   "path": "src/Npgsql/NpgsqlCommand.cs",
+   "sha256": "6bdde5901d32a6331a0d22367673a83bcce01d9fe0782bbf6829594e52837b6f",
+   "bytes": 84694
+  },
+  {
+   "path": "src/Npgsql/NpgsqlDataReader.cs",
+   "sha256": "9c109626d6627b55aef9768827ce4aa860d3934c224d009048ba57060431607c",
+   "bytes": 92885
+  },
+  {
+   "path": "src/Npgsql/NpgsqlTransaction.cs",
+   "sha256": "2a44d5f8fcb23459fc1f1f5cacaecce6c1ae1df9cee4f254ff389ae446b9ec6c",
+   "bytes": 15314
+  },
+  {
+   "path": "src/Npgsql/NpgsqlDataSource.cs",
+   "sha256": "df93af941b0e51c67d7ca9c01cd4b926b2f86256e86a2a5d7e86b7b19ade209d",
+   "bytes": 22897
+  },
+  {
+   "path": "src/Npgsql/NpgsqlDataSourceBuilder.cs",
+   "sha256": "978c6fb138a62548eb86038c46961dc8db40150df261c5fba3717e5fd83c3d1e",
+   "bytes": 35634
+  },
+  {
+   "path": "src/Npgsql/NpgsqlBatch.cs",
+   "sha256": "5285cdfb6affc6789bb0bf17f2dee5b1205d3a457b75a5fc8b93f8006132bba7",
+   "bytes": 7367
+  },
+  {
+   "path": "src/Npgsql/NpgsqlBinaryImporter.cs",
+   "sha256": "17e10a5b25e6859e5ab246a04ace7696191c1b6636cdec3ba92b4dd5d7b5964f",
+   "bytes": 25906
+  },
+  {
+   "path": "src/Npgsql/NpgsqlBinaryExporter.cs",
+   "sha256": "58cd9be27ab93708838446a609acaff5e76b3a9391db9019de4a04c4e4c0740a",
+   "bytes": 21799
+  },
+  {
+   "path": "src/Npgsql/NpgsqlRawCopyStream.cs",
+   "sha256": "d36fa180137d759533cc38ef61f395c6b1a42fae7e77b180b72fcc34b2d54f8d",
+   "bytes": 20649
+  },
+  {
+   "path": "src/Npgsql/NpgsqlLargeObjectManager.cs",
+   "sha256": "214bab8a1793c31e62efc5b9e4f4fd4611615c88a5f7f1621b828509164a4c3e",
+   "bytes": 12034
+  },
+  {
+   "path": "src/Npgsql/NpgsqlLargeObjectStream.cs",
+   "sha256": "50cdceb18328f2db744dc90ae5093e24e21708ec2cdeef359976ebc9e39ca867",
+   "bytes": 13263
+  },
+  {
+   "path": "src/Npgsql/NpgsqlMultiHostDataSource.cs",
+   "sha256": "b7863f517420e4d236ce8875aa8f99cdc11cca2b0d75a3801b8b0cab44f5bd9e",
+   "bytes": 18758
+  },
+  {
+   "path": "src/Npgsql/NpgsqlNestedDataReader.cs",
+   "sha256": "dbc220c1450df0c5f1d19f083486f9f25493572caa359d63edc3912250b740f8",
+   "bytes": 18228
+  },
+  {
+   "path": "src/Npgsql/NpgsqlCommandBuilder.cs",
+   "sha256": "e5c8ea1c9a225c04ab44473e20751fb4939bee3b3c043937e6b0c53923835e06",
+   "bytes": 14188
+  },
+  {
+   "path": "src/Npgsql/NpgsqlDataAdapter.cs",
+   "sha256": "010722ecb1a3c54197a6bd3916475ac7278057de3fd11b0e364d0e17e895b188",
+   "bytes": 8015
+  },
+  {
+   "path": "src/Npgsql/NpgsqlFactory.cs",
+   "sha256": "50eb33a1e603a97699d1222a93b8bee4d0e54f0fe42295c444e6f0dea8588908",
+   "bytes": 2945
+  },
+  {
+   "path": "src/Npgsql/NpgsqlSlimDataSourceBuilder.cs",
+   "sha256": "18b9c4e283b525e6c2f43c212ab8687f93596639e5118912f200a7787aeeace4",
+   "bytes": 49484
+  },
+  {
+   "path": "src/Npgsql/PoolingDataSource.cs",
+   "sha256": "c4b07159ad967bc94ef731be9a51bd2a9763d72b1201da12c994f29716f86049",
+   "bytes": 19559
+  },
+  {
+   "path": "src/Npgsql/UnpooledDataSource.cs",
+   "sha256": "ca6bbc83f10d8e35ee46fa4e151da76fb39660dbab0d69a9531907f8ae39439f",
+   "bytes": 1535
+  },
+  {
+   "path": "src/Npgsql/MultiHostDataSourceWrapper.cs",
+   "sha256": "a9069ed1d66dfc32672d61a5e54d22118d0d2f3f4c2068e5033388899f58b8ed",
+   "bytes": 2605
+  },
+  {
+   "path": "src/Npgsql/Replication/ReplicationConnection.cs",
+   "sha256": "268645a9eeb01dc889b438d06a33098e027680249967c4589bdc3aac8a493bbe",
+   "bytes": 40586
+  },
+  {
+   "path": "src/Npgsql/Replication/LogicalReplicationConnection.cs",
+   "sha256": "a52e6b289c3580e6c0c8ef64472c212491cabfb4dbc433e90d804f91a3f1db53",
+   "bytes": 814
+  },
+  {
+   "path": "src/Npgsql/Replication/PhysicalReplicationConnection.cs",
+   "sha256": "cc04e824922204c7cfd18f9686c18fc347ffedd35cf2580715ec54fbc0c963c3",
+   "bytes": 10251
+  }
+ ]
+}

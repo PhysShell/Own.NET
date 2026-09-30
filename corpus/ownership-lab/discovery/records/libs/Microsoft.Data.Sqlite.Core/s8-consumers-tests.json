@@ -1,0 +1,53 @@
+{
+ "package": "Microsoft.Data.Sqlite.Core",
+ "consumer": "tests",
+ "repo": "dotnet/dotnet",
+ "commit": "95017c711e6afc1085133d440e42b4bd78155701",
+ "files": [
+  {
+   "path": "src/efcore/test/Microsoft.Data.Sqlite.Tests/SqliteBlobTest.cs",
+   "sha256": "b8abdb7aab0a0f67ae947f03b92948c65a1a753ac103c05ab66e016793ec97d2",
+   "bytes": 12312
+  },
+  {
+   "path": "src/efcore/test/Microsoft.Data.Sqlite.Tests/SqliteCommandTest.cs",
+   "sha256": "ba6f0b30fd7a83ae25f8f741e6a1882fd151eb8be37552939e72e37db6a21b24",
+   "bytes": 35758
+  },
+  {
+   "path": "src/efcore/test/Microsoft.Data.Sqlite.Tests/SqliteConnectionFactoryTest.cs",
+   "sha256": "d0cf1dff70a4146ac725ac719b5819e1c2d054511669d32be68d1276960063c2",
+   "bytes": 8512
+  },
+  {
+   "path": "src/efcore/test/Microsoft.Data.Sqlite.Tests/SqliteConnectionTest.cs",
+   "sha256": "97ab7ce4492b24f41b886b2955894505468fb511de491bb9f247ebac01367cd0",
+   "bytes": 44195
+  },
+  {
+   "path": "src/efcore/test/Microsoft.Data.Sqlite.Tests/SqliteDataReaderTest.cs",
+   "sha256": "78c33cacb10e03b787b967fc3e0449b57bd7c3c273dbe38f940cb911d60aaaa5",
+   "bytes": 83976
+  },
+  {
+   "path": "src/efcore/test/Microsoft.Data.Sqlite.Tests/SqliteFactoryTest.cs",
+   "sha256": "391f12385c6250f7f3d8417fd8a3087df2019a5ce89a07a351cfab7ecb8918b8",
+   "bytes": 810
+  },
+  {
+   "path": "src/efcore/test/Microsoft.Data.Sqlite.Tests/SqliteParameterTest.cs",
+   "sha256": "fd3110087078efe304684817ac3872414ac3e61c4a447ed0fad87eb7791248cc",
+   "bytes": 20375
+  },
+  {
+   "path": "src/efcore/test/Microsoft.Data.Sqlite.Tests/SqliteTransactionTest.cs",
+   "sha256": "01585d195abfd204a492060e4920facfbc1bd96eae82bdcefeb32bb0dfcf02b9",
+   "bytes": 14575
+  },
+  {
+   "path": "src/efcore/test/Microsoft.Data.Sqlite.Tests/SqliteExceptionTest.cs",
+   "sha256": "f2eda82e4ef70575f7425c5c61e93496496fcd7a4698db1ab70fb5a4bd781b6f",
+   "bytes": 993
+  }
+ ]
+}

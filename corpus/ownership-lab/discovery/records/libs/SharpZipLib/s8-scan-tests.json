@@ -1,0 +1,549 @@
+{
+ "package": "SharpZipLib",
+ "consumer": "tests",
+ "files": 16,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SharpZipLib/rows-applied.json",
+ "key_sha256": "01ee9aeaea420cf7331df465b8949d3d3f9e45454005616cbd746bde2d24b832",
+ "off": {
+  "findings": [
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Base__InflaterDeflaterTests.cs",
+    277,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Base__InflaterDeflaterTests.cs",
+    277,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Base__InflaterDeflaterTests.cs",
+    305,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Base__InflaterDeflaterTests.cs",
+    305,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__GZip__GZipTests.cs",
+    168,
+    "OWN001",
+    "IDisposable local 'gzi' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__GZip__GZipTests.cs",
+    189,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__GZip__GZipTests.cs",
+    189,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__GZip__GZipTests.cs",
+    217,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__GZip__GZipTests.cs",
+    217,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__GZip__GZipTests.cs",
+    255,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Lzw__LzwTests.cs",
+    44,
+    "OWN001",
+    "IDisposable local 'lis' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Lzw__LzwTests.cs",
+    63,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Lzw__LzwTests.cs",
+    63,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Tar__TarTests.cs",
+    57,
+    "OWN001",
+    "event 'tarIn.ProgressMessageEvent' is subscribed (handler 'EntryCounter') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'TarTestSuite' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Tar__TarTests.cs",
+    624,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Tar__TarTests.cs",
+    624,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Tar__TarTests.cs",
+    652,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Tar__TarTests.cs",
+    652,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__GeneralHandling.cs",
+    225,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__GeneralHandling.cs",
+    621,
+    "OWN001",
+    "IDisposable local 'zOut' may not be disposed on every path (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__GeneralHandling.cs",
+    808,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__StreamHandling.cs",
+    20,
+    "OWN001",
+    "IDisposable field 'Listener' (type 'TestTraceListener') is never disposed \u2014 its owner 'StreamHandling' leaks it (leak) [resource: disposable field]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__StreamHandling.cs",
+    48,
+    "OWN001",
+    "IDisposable local 'outStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__StreamHandling.cs",
+    56,
+    "OWN001",
+    "IDisposable local 'inStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__StreamHandling.cs",
+    82,
+    "OWN002",
+    "IDisposable local 'outStream' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__StreamHandling.cs",
+    82,
+    "OWN003",
+    "IDisposable local 'outStream' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__StreamHandling.cs",
+    323,
+    "OWN001",
+    "IDisposable local 'outStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__StreamHandling.cs",
+    328,
+    "OWN001",
+    "IDisposable local 'inStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipEncryptionHandling.cs",
+    194,
+    "OWN001",
+    "IDisposable local 'zipFile' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipEntryHandling.cs",
+    46,
+    "OWN001",
+    "IDisposable local 'zis' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    36,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    76,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    112,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    118,
+    "OWN001",
+    "IDisposable local 'zed2' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    253,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    276,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    334,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    386,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    438,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipFileHandling.cs",
+    1244,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipFileHandling.cs",
+    1266,
+    "OWN001",
+    "IDisposable local 'zf' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipFileHandling.cs",
+    1288,
+    "OWN001",
+    "IDisposable local 'ms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipTests.cs",
+    400,
+    "OWN001",
+    "IDisposable local 'data' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 71,
+   "methods_flow_analysed": 58,
+   "methods_skipped_unmodelled": 13
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Base__InflaterDeflaterTests.cs",
+    277,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Base__InflaterDeflaterTests.cs",
+    277,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Base__InflaterDeflaterTests.cs",
+    305,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Base__InflaterDeflaterTests.cs",
+    305,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__GZip__GZipTests.cs",
+    168,
+    "OWN001",
+    "IDisposable local 'gzi' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__GZip__GZipTests.cs",
+    189,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__GZip__GZipTests.cs",
+    189,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__GZip__GZipTests.cs",
+    217,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__GZip__GZipTests.cs",
+    217,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__GZip__GZipTests.cs",
+    255,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Lzw__LzwTests.cs",
+    44,
+    "OWN001",
+    "IDisposable local 'lis' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Lzw__LzwTests.cs",
+    63,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Lzw__LzwTests.cs",
+    63,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Tar__TarTests.cs",
+    57,
+    "OWN001",
+    "event 'tarIn.ProgressMessageEvent' is subscribed (handler 'EntryCounter') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'TarTestSuite' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Tar__TarTests.cs",
+    624,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Tar__TarTests.cs",
+    624,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Tar__TarTests.cs",
+    652,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Tar__TarTests.cs",
+    652,
+    "OWN003",
+    "IDisposable local 's' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__GeneralHandling.cs",
+    225,
+    "OWN002",
+    "IDisposable local 's' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__GeneralHandling.cs",
+    621,
+    "OWN001",
+    "IDisposable local 'zOut' may not be disposed on every path (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__GeneralHandling.cs",
+    808,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__StreamHandling.cs",
+    20,
+    "OWN001",
+    "IDisposable field 'Listener' (type 'TestTraceListener') is never disposed \u2014 its owner 'StreamHandling' leaks it (leak) [resource: disposable field]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__StreamHandling.cs",
+    48,
+    "OWN001",
+    "IDisposable local 'outStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__StreamHandling.cs",
+    56,
+    "OWN001",
+    "IDisposable local 'inStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__StreamHandling.cs",
+    82,
+    "OWN002",
+    "IDisposable local 'outStream' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__StreamHandling.cs",
+    82,
+    "OWN003",
+    "IDisposable local 'outStream' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__StreamHandling.cs",
+    323,
+    "OWN001",
+    "IDisposable local 'outStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__StreamHandling.cs",
+    328,
+    "OWN001",
+    "IDisposable local 'inStream' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipEncryptionHandling.cs",
+    194,
+    "OWN001",
+    "IDisposable local 'zipFile' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipEntryHandling.cs",
+    46,
+    "OWN001",
+    "IDisposable local 'zis' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    36,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    76,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    112,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    118,
+    "OWN001",
+    "IDisposable local 'zed2' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    253,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    276,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    334,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    386,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipExtraDataHandling.cs",
+    438,
+    "OWN001",
+    "IDisposable local 'zed' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipFileHandling.cs",
+    1244,
+    "OWN001",
+    "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipFileHandling.cs",
+    1266,
+    "OWN001",
+    "IDisposable local 'zf' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipFileHandling.cs",
+    1288,
+    "OWN001",
+    "IDisposable local 'ms' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__ICSharpCode.SharpZipLib.Tests__Zip__ZipTests.cs",
+    400,
+    "OWN001",
+    "IDisposable local 'data' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: "
+  ],
+  "stats": {
+   "methods_with_local": 71,
+   "methods_flow_analysed": 58,
+   "methods_skipped_unmodelled": 13
+  }
+ },
+ "new_findings": [],
+ "lost_findings": []
+}

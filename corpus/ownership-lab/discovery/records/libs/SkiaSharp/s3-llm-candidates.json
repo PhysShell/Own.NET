@@ -1,0 +1,108 @@
+{
+ "package": "SkiaSharp",
+ "written_at_utc": "2026-09-30T04:09:40Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read)",
+ "note": "",
+ "suggested_rows": [
+  {
+   "callable": "SkiaSharp.SKBitmap.Decode",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new bitmap (native)"
+  },
+  {
+   "callable": "SkiaSharp.SKBitmap.Copy",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new bitmap"
+  },
+  {
+   "callable": "SkiaSharp.SKCodec.Create",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new codec"
+  },
+  {
+   "callable": "SkiaSharp.SKData.Create",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "new data"
+  },
+  {
+   "callable": "SkiaSharp.SKColorFilter.CreateBlendMode",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new native filter"
+  },
+  {
+   "callable": "SkiaSharp.SKColorSpace.CreateSrgb",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "UNSURE: sRGB color space is a CACHED singleton in SkiaSharp (a hostile fresh candidate)"
+  },
+  {
+   "callable": "SkiaSharp.SKImage.FromBitmap",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new image"
+  },
+  {
+   "callable": "SkiaSharp.SKSurface.Create",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new surface"
+  },
+  {
+   "callable": "SkiaSharp.SKData.AsStream",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new stream over the data"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "SkiaSharp.SKCanvas.Clear",
+   "arity": 0,
+   "why": "clears pixels: hostile name"
+  },
+  {
+   "callable": "SkiaSharp.SKPath.Close",
+   "arity": 0,
+   "why": "closes a contour: hostile name"
+  },
+  {
+   "callable": "SkiaSharp.SKDocument.Close",
+   "arity": 0,
+   "why": "finishes the document (terminal? UNSURE)"
+  },
+  {
+   "callable": "SkiaSharp.SKDynamicMemoryWStream.DetachAsData",
+   "arity": 0,
+   "why": "transfers ownership of the buffer out: not a release"
+  }
+ ],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "SKManagedStream(Stream, bool disposeManagedStream)",
+   "judgement": "adopt-if(disposeManagedStream == true): the H-03 shape with the opposite polarity"
+  },
+  {
+   "ctor": "SKFrontBufferedStream(SKStream, int, bool disposeUnderlyingStream)",
+   "judgement": "adopt-if(disposeUnderlyingStream == true)"
+  },
+  {
+   "ctor": "SKAutoCanvasRestore(SKCanvas, bool doSave)",
+   "judgement": "borrow (restores state; does not dispose the canvas)"
+  }
+ ]
+}

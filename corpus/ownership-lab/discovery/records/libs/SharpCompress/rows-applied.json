@@ -1,0 +1,167 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for SharpCompress 1.0.0 (BODY_PROVED + WITNESSED; MVID d522a43a-2a9e-475c-b017-09dd425a2fba)",
+ "entries": [
+  {
+   "callable": "SharpCompress.Archives.AbstractWritableArchive<TEntry, TVolume>.PauseEntryRebuilding",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "derived_from": "https://github.com/adamhathcock/sharpcompress@b6cc95af73950c914e0c6ce7ea3511528ede1121 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SharpCompress.Archives.GZip.GZipArchive.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "derived_from": "https://github.com/adamhathcock/sharpcompress@b6cc95af73950c914e0c6ce7ea3511528ede1121 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SharpCompress.Archives.GZip.GZipArchive.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "derived_from": "https://github.com/adamhathcock/sharpcompress@b6cc95af73950c914e0c6ce7ea3511528ede1121 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SharpCompress.Archives.Rar.RarArchive.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "derived_from": "https://github.com/adamhathcock/sharpcompress@b6cc95af73950c914e0c6ce7ea3511528ede1121 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SharpCompress.Archives.SevenZip.SevenZipArchive.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "derived_from": "https://github.com/adamhathcock/sharpcompress@b6cc95af73950c914e0c6ce7ea3511528ede1121 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SharpCompress.Archives.Tar.TarArchive.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "derived_from": "https://github.com/adamhathcock/sharpcompress@b6cc95af73950c914e0c6ce7ea3511528ede1121 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SharpCompress.Archives.Tar.TarArchive.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "derived_from": "https://github.com/adamhathcock/sharpcompress@b6cc95af73950c914e0c6ce7ea3511528ede1121 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SharpCompress.Archives.Zip.ZipArchive.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "derived_from": "https://github.com/adamhathcock/sharpcompress@b6cc95af73950c914e0c6ce7ea3511528ede1121 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SharpCompress.Archives.Zip.ZipArchive.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "derived_from": "https://github.com/adamhathcock/sharpcompress@b6cc95af73950c914e0c6ce7ea3511528ede1121 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SharpCompress.Factories.ZipFactory.CreateWriteableArchive",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "derived_from": "https://github.com/adamhathcock/sharpcompress@b6cc95af73950c914e0c6ce7ea3511528ede1121 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SharpCompress.Factories.ZipFactory.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "derived_from": "https://github.com/adamhathcock/sharpcompress@b6cc95af73950c914e0c6ce7ea3511528ede1121 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SharpCompress.Factories.ZipFactory.OpenReader",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "derived_from": "https://github.com/adamhathcock/sharpcompress@b6cc95af73950c914e0c6ce7ea3511528ede1121 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SharpCompress.Readers.Tar.TarReader.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "derived_from": "https://github.com/adamhathcock/sharpcompress@b6cc95af73950c914e0c6ce7ea3511528ede1121 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SharpCompress.Readers.Zip.ZipReader.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "derived_from": "https://github.com/adamhathcock/sharpcompress@b6cc95af73950c914e0c6ce7ea3511528ede1121 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SharpCompress.Writers.Zip.ZipWriter.WriteToStream",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "derived_from": "https://github.com/adamhathcock/sharpcompress@b6cc95af73950c914e0c6ce7ea3511528ede1121 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "SharpCompress.Writers.WriterFactory.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "assembly": {
+    "name": "SharpCompress",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+   },
+   "witness": "SC-W2",
+   "witness_asm_mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba"
+  }
+ ]
+}

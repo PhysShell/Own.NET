@@ -1,0 +1,96 @@
+{
+ "package": "RabbitMQ.Client",
+ "consumer": "tests",
+ "repo": "rabbitmq/rabbitmq-dotnet-client",
+ "commit": "740faf07f04ade7d35d3539e20613c6ac6b9b46f",
+ "files": [
+  {
+   "path": "projects/Test/Unit/TestTcpClientAdapter.cs",
+   "sha256": "6268d8ca1bda1880ee189bec7ebf8b75f851f9b7307a3f4264863450dad34ed7",
+   "bytes": 2690
+  },
+  {
+   "path": "projects/Test/Unit/TestConnectionOpen.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "projects/Test/Unit/TestConnectionCloseTimeout.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "projects/Test/Unit/TestConsumerDispatchConcurrency.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "projects/Test/Integration/TestConnectionRecovery.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "projects/Test/Integration/TestChannelAllocation.cs",
+   "sha256": "1d293574268001c5df400817480bdff24d2f5767f26090ef8239feca29cbfcea",
+   "bytes": 5111
+  },
+  {
+   "path": "projects/Test/Integration/TestBasicPublish.cs",
+   "sha256": "4ae60271f174161d6ffc997800ab6bcf5077512570d68bd4edd9cdc6a5cb30db",
+   "bytes": 13083
+  },
+  {
+   "path": "projects/Test/Integration/TestConnectionFactory.cs",
+   "sha256": "d58a344f1f8a86e82d0cdddecc37b9ce08aa1d002541b6d0301c2dc42634343f",
+   "bytes": 17795
+  },
+  {
+   "path": "projects/Test/Integration/TestChannelShutdown.cs",
+   "sha256": "3053cf8db9207be2136b316746c4f17c51fe6a6f1c414c242d54bae71305aec2",
+   "bytes": 5212
+  },
+  {
+   "path": "projects/Test/Integration/TestConnectionShutdown.cs",
+   "sha256": "c81f157dafa3604dbb5d5e6e64492b16dca6b740cde73ffb517a04bf5d41fb1d",
+   "bytes": 10016
+  },
+  {
+   "path": "projects/Test/Integration/IntegrationFixture.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "projects/Test/Integration/TestConnectionFactoryContinuationTimeout.cs",
+   "sha256": "9b96f0fc5b83f9c020e2bada85285960187201fa605a4ef4a240545d671313b6",
+   "bytes": 3580
+  },
+  {
+   "path": "projects/Test/Integration/TestConnectionTopologyRecovery.cs",
+   "sha256": "debf5a76e92b23c37437e1361890ebeb8f5901cc02296146711b9fb82428b09d",
+   "bytes": 26953
+  },
+  {
+   "path": "projects/Test/Integration/TestPublisherConfirms.cs",
+   "sha256": "864346243e92d5b843c5b9fd32134ccef488ce45f985a16a24e16399fa9c94bf",
+   "bytes": 3357
+  },
+  {
+   "path": "projects/Test/Integration/TestExchangeDeclare.cs",
+   "sha256": "57982812085134b8883fcae5565c211d44dc1c3b08f13d1767a4a0ffde719856",
+   "bytes": 7159
+  },
+  {
+   "path": "projects/Test/Integration/TestQueueDeclare.cs",
+   "sha256": "445855e26e5b6a16be3b44eee79fd2937995d1c3fe5e6adf4edbbf18fe68180c",
+   "bytes": 8463
+  },
+  {
+   "path": "projects/Test/Integration/TestConsumer.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "projects/Test/Common/TestConnectionRecoveryBase.cs",
+   "sha256": "b5b497ef5b9f32e9a59f1a270896f7fd8691b859a27530979780473a8fac5ce0",
+   "bytes": 14843
+  },
+  {
+   "path": "projects/Test/Common/IntegrationFixtureBase.cs",
+   "error": "HTTP Error 404: Not Found"
+  }
+ ]
+}

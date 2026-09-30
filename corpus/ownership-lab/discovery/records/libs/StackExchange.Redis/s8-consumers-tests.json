@@ -1,0 +1,142 @@
+{
+ "package": "StackExchange.Redis",
+ "consumer": "tests",
+ "repo": "StackExchange/StackExchange.Redis",
+ "commit": "0a92ae43b0f8e80467920115a54f9761cc04ee4c",
+ "files": [
+  {
+   "path": "tests/StackExchange.Redis.Tests/BasicOpTests.cs",
+   "sha256": "8002515eca598005e7704404161a89f4d0558fdfc8801a824ba101f71827c6e6",
+   "bytes": 17334
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/ConnectionShutdownTests.cs",
+   "sha256": "9e5d4af4c0c9004dad15d9064a7d4a9242f489126bfcb0d613d2276b04039325",
+   "bytes": 2050
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/DatabaseTests.cs",
+   "sha256": "3a16f9b065aa6883422348aa1ab2138be1784ef9ad4e51cea7234358d359ec24",
+   "bytes": 7306
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/BatchTests.cs",
+   "sha256": "b5cd71a4e661c3c96a54021c9d095becc6a5696a7c3e3b74bf586dd6932cfbff",
+   "bytes": 1658
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/ChannelTests.cs",
+   "sha256": "6d24f4ac8a2cf1d12d2add11d258787ce2ca666a6a8cfe18a5e85d6962a74179",
+   "bytes": 6323
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/AsyncTests.cs",
+   "sha256": "eeb183473986bbb4386d015490c4015ed6f8ba9d03a4fce26140c74bfeb8609b",
+   "bytes": 3699
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/GarbageCollectionTests.cs",
+   "sha256": "1c577cf90aa8b7e992c3fb943f3aefb3a4e10da397ae53787db0010498952338",
+   "bytes": 3874
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/ConfigTests.cs",
+   "sha256": "61136230c4e4be8195312c131c4a4822d72a5c4ec1b1a55ac4bdf586c1e76d62",
+   "bytes": 40516
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/DedicatedThreadsTests.cs",
+   "sha256": "6c9badd3eaa0d641470e1543fff08708b7bf6dc68e8d9c4190f1d35b16ef57f5",
+   "bytes": 4391
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/ExecuteTests.cs",
+   "sha256": "b279a9ef9af264cc89ec4969b08f03a51853f3f1847b61ece7d8779a86400cfb",
+   "bytes": 1057
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/FailoverTests.cs",
+   "sha256": "095e733cfc8c72a0ec39f49d082400233aad746282f25c92f14f44650cd5a16f",
+   "bytes": 21124
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/HashTests.cs",
+   "sha256": "71550dea5659a0d74c435254032230d82c7a89802d1328e748a8bab6f1a8e229",
+   "bytes": 25111
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/ConnectCustomConfigTests.cs",
+   "sha256": "af0792cd51c2b249e35be9affb3685dea08e75e14ef08d3da0e8d0dc9e52cf25",
+   "bytes": 4695
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/ConnectFailTimeoutTests.cs",
+   "sha256": "608668550152be53837cab2042d0cdac539b04a196e4dd9fb34d98ca313d99b9",
+   "bytes": 2233
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/ConnectByIPTests.cs",
+   "sha256": "441514450cd6bd7c8f265f3db0b43aa911fa2e1e1b7cd69a9d49a38912686860",
+   "bytes": 3959
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/ClientKillTests.cs",
+   "sha256": "b42f40880dfd4c9c87660c3f4f2299d8d6978377d6b70bb4470d91e22d33ebde",
+   "bytes": 2589
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/CopyTests.cs",
+   "sha256": "304f47ba3a44979cb5de4077cffad908f67285314b7c1bcfa3bbcffe6a35e2df",
+   "bytes": 2043
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/AbortOnConnectFailTests.cs",
+   "sha256": "7e017720a15b5ba72bd04f829f30cd4ed8d310e415277e3d220c20db0166c2c8",
+   "bytes": 8131
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/AdhocTests.cs",
+   "sha256": "15fb6e6b1306b576ba3f4be0d291f10840d187180a8abd97ab58d2430f147f57",
+   "bytes": 827
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/CommandTimeoutTests.cs",
+   "sha256": "2a8cf379723a6382a9d04948bc3fffd735d1960655dcdf2b8f59320d11619e52",
+   "bytes": 2343
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/BacklogTests.cs",
+   "sha256": "4dcb46389cb76d98921e3a31aeee2cbe9b491f1a0274f30d36dd7c7ccd1b8fca",
+   "bytes": 22591
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/ConnectionFailureErrorsTests.cs",
+   "sha256": "c523a12368ed3295d57f450d562e921cc4e5ca2db8ad1c270f78d8679f8524e2",
+   "bytes": 9927
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/HeartbeatTests.cs",
+   "sha256": "0c726b2dfab4e33c4b07c2c7dda5ff3337a25880d1a4eff78e8e5ec7a69d7d72",
+   "bytes": 1442
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/AggressiveTests.cs",
+   "sha256": "1d7f1f6e360ad173358dc729a7108377b8a691ce4d63f865aa537e1c3df50bc4",
+   "bytes": 10439
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/HashImportTests.cs",
+   "sha256": "d2fbffd5347a87b4420e5f3e6dc1ec3d83847176202b70c8c2eeb3f8b8ebe067",
+   "bytes": 9498
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/Helpers/TestBase.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "tests/StackExchange.Redis.Tests/Helpers/SharedConnectionFixture.cs",
+   "sha256": "0584e5226ad66e55f16d62751d815903ee378790e3314044f4a78634c0d46946",
+   "bytes": 11914
+  }
+ ]
+}

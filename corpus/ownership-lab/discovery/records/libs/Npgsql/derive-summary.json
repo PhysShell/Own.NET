@@ -1,0 +1,56 @@
+{
+ "source_files": 25,
+ "perfile_union_added_fresh": [],
+ "extractor_stats": {
+  "methods_with_local": 42,
+  "methods_flow_analysed": 30,
+  "methods_skipped_unmodelled": 12
+ },
+ "re_body_census": "fresh_return=45 fresh_return_expression_body=35",
+ "fresh_summaries_all": [
+  "Npgsql.NpgsqlBatch.CreateCachedBatch",
+  "Npgsql.NpgsqlCommand.Clone",
+  "Npgsql.NpgsqlCommand.CreateCachedCommand",
+  "Npgsql.NpgsqlCommand.System.ICloneable.Clone",
+  "Npgsql.NpgsqlConnection.CloneWith",
+  "Npgsql.NpgsqlConnection.CloneWithAsync",
+  "Npgsql.NpgsqlConnection.FromDataSource",
+  "Npgsql.NpgsqlConnection.StartTemporaryBindingScope",
+  "Npgsql.NpgsqlDataSource.Create(Npgsql.NpgsqlConnectionStringBuilder)",
+  "Npgsql.NpgsqlDataSource.Create(System.String)",
+  "Npgsql.NpgsqlDataSource.CreateBatch",
+  "Npgsql.NpgsqlDataSource.CreateCommand",
+  "Npgsql.NpgsqlDataSource.CreateConnection",
+  "Npgsql.NpgsqlDataSource.CreateDbBatch",
+  "Npgsql.NpgsqlDataSource.CreateDbCommand",
+  "Npgsql.NpgsqlDataSource.CreateDbConnection",
+  "Npgsql.NpgsqlDataSourceBuilder.Build",
+  "Npgsql.NpgsqlDataSourceBuilder.BuildMultiHost",
+  "Npgsql.NpgsqlFactory.CreateBatch",
+  "Npgsql.NpgsqlFactory.CreateCommand",
+  "Npgsql.NpgsqlFactory.CreateCommandBuilder",
+  "Npgsql.NpgsqlFactory.CreateConnection",
+  "Npgsql.NpgsqlFactory.CreateDataAdapter",
+  "Npgsql.NpgsqlFactory.CreateDataSource",
+  "Npgsql.NpgsqlLargeObjectManager.OpenRead",
+  "Npgsql.NpgsqlLargeObjectManager.OpenReadWrite",
+  "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+  "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+  "Npgsql.NpgsqlSlimDataSourceBuilder.BuildMultiHost"
+ ],
+ "receiver_release_all": [
+  "Npgsql.NpgsqlCopyTextReader.DisposeAsync"
+ ],
+ "fresh_not_public_surface": [
+  "Npgsql.NpgsqlBatch.CreateCachedBatch",
+  "Npgsql.NpgsqlCommand.CreateCachedCommand",
+  "Npgsql.NpgsqlCommand.System.ICloneable.Clone",
+  "Npgsql.NpgsqlConnection.FromDataSource",
+  "Npgsql.NpgsqlConnection.StartTemporaryBindingScope",
+  "Npgsql.NpgsqlDataSource.CreateDbBatch",
+  "Npgsql.NpgsqlDataSource.CreateDbCommand",
+  "Npgsql.NpgsqlDataSource.CreateDbConnection"
+ ],
+ "instance_methods_evaluated": 616,
+ "public_rows": 20
+}

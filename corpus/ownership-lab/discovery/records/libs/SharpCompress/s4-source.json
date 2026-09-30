@@ -1,0 +1,132 @@
+{
+ "package": "SharpCompress",
+ "repo": "adamhathcock/sharpcompress",
+ "commit": "b6cc95af73950c914e0c6ce7ea3511528ede1121",
+ "files": [
+  {
+   "path": "src/SharpCompress/Archives/ArchiveFactory.cs",
+   "sha256": "05dc31e0ad306ec1da6a4f2efa0b7face09a1cc4eec33c020982ef23ddd75776",
+   "bytes": 7503
+  },
+  {
+   "path": "src/SharpCompress/Archives/AbstractArchive.cs",
+   "sha256": "579e70b21a94f2a1a707df913560b05197b1567fd203824ac45997a1ce93f67a",
+   "bytes": 4861
+  },
+  {
+   "path": "src/SharpCompress/Archives/AbstractWritableArchive.cs",
+   "sha256": "42384f3d9b0eb53e3d13dad4c51ab3eaf0ecd9820ebf3294e97b77c5eb801bc9",
+   "bytes": 6538
+  },
+  {
+   "path": "src/SharpCompress/Archives/Zip/ZipArchive.cs",
+   "sha256": "3c4a9a9657158debc783356cd9338b6c30381c35abf241705bdc88988efe75ba",
+   "bytes": 13036
+  },
+  {
+   "path": "src/SharpCompress/Archives/Zip/ZipArchiveEntry.cs",
+   "sha256": "1818a85a6fc671602543d02b85c85b444c798cd18c88ead4ca4e8d72f40e67f4",
+   "bytes": 719
+  },
+  {
+   "path": "src/SharpCompress/Archives/Tar/TarArchive.cs",
+   "sha256": "990d859ae98075006df4390826af581a74cafae6787c783a62d153b9c972658e",
+   "bytes": 9752
+  },
+  {
+   "path": "src/SharpCompress/Archives/GZip/GZipArchive.cs",
+   "sha256": "57fd0838d35b3ed1389391c77101d9d364c87272f74d787b1694b2e2f119b22d",
+   "bytes": 8123
+  },
+  {
+   "path": "src/SharpCompress/Archives/Rar/RarArchive.cs",
+   "sha256": "c640fffbfa3dbc6d2e0a2527d5cb0e8b859c78e449e684455fdfeb5907e2f363",
+   "bytes": 6465
+  },
+  {
+   "path": "src/SharpCompress/Archives/SevenZip/SevenZipArchive.cs",
+   "sha256": "0d5d375bf8fa6776831cd4f6c38f35c6744a0191d5564c00e2c5d6c9a50fe616",
+   "bytes": 12660
+  },
+  {
+   "path": "src/SharpCompress/Readers/ReaderFactory.cs",
+   "sha256": "d79bd1515f0eb9ffbc3335d8ae93a8c166c6f98003f1bfd1aa37543b6d0df716",
+   "bytes": 2411
+  },
+  {
+   "path": "src/SharpCompress/Readers/AbstractReader.cs",
+   "sha256": "ccde41c3119b78005ef2d1a3044f298a851d8200ded55d57b987ca20af61e1c8",
+   "bytes": 10457
+  },
+  {
+   "path": "src/SharpCompress/Readers/Zip/ZipReader.cs",
+   "sha256": "6241a584911f10bc6e32db54f32cd38b05ca3e750795efd83e2187654da6eb2c",
+   "bytes": 3135
+  },
+  {
+   "path": "src/SharpCompress/Readers/Tar/TarReader.cs",
+   "sha256": "5ecd467a17facba72ea1b75ec07fe918dde77740709b9d5563e7f7ec6d9940fd",
+   "bytes": 4897
+  },
+  {
+   "path": "src/SharpCompress/Writers/WriterFactory.cs",
+   "sha256": "f6cf3101af83ff49eed994be99aed7412328163affd5fcaaa0c8370106fbc293",
+   "bytes": 629
+  },
+  {
+   "path": "src/SharpCompress/Writers/Zip/ZipWriter.cs",
+   "sha256": "76d1a378f5bdbd7f05ea1104a583b05ba9d6905d308622f5be7958bc2992f3c1",
+   "bytes": 25004
+  },
+  {
+   "path": "src/SharpCompress/Writers/Tar/TarWriter.cs",
+   "sha256": "af72171e42bf978c7c960ea990d64d6a9cfad08ea708162f23e3ed943819dcd5",
+   "bytes": 6413
+  },
+  {
+   "path": "src/SharpCompress/Writers/GZip/GZipWriter.cs",
+   "sha256": "f1e604a6f32e76a1488a41df4394c4622999d3586599d18940b260f34a12ebdb",
+   "bytes": 1858
+  },
+  {
+   "path": "src/SharpCompress/Compressors/Deflate/DeflateStream.cs",
+   "sha256": "47c0fbca07c5cb0de52702de7a38690ced832cf28dff9dd09e8127e780628970",
+   "bytes": 14855
+  },
+  {
+   "path": "src/SharpCompress/Compressors/Deflate/GZipStream.cs",
+   "sha256": "cc067d9cc5d6156f889b9471dbe31f8bbbd90369094de39af219330f47785eb8",
+   "bytes": 18274
+  },
+  {
+   "path": "src/SharpCompress/Compressors/Deflate/ZlibStream.cs",
+   "sha256": "f6bc18be1315f31e1c5e8da23ed2b19b51718eab09b793e4e92e0bba772238b0",
+   "bytes": 13887
+  },
+  {
+   "path": "src/SharpCompress/Compressors/BZip2/BZip2Stream.cs",
+   "sha256": "821b76e5deb4cef2692adc6a83deebc0bdd2344f151382e7d9e2f4a356a32c0a",
+   "bytes": 4331
+  },
+  {
+   "path": "src/SharpCompress/Compressors/LZMA/LzmaStream.cs",
+   "sha256": "6a9e9fb18b62686990fba0ceec809c45086b3ff71349b84f8b947fec838919d8",
+   "bytes": 21505
+  },
+  {
+   "path": "src/SharpCompress/IO/SourceStream.cs",
+   "sha256": "0fe8b4b5cca54acd624b94ba3e714fa8eb77c73e38391780e0e70c3fe75266a1",
+   "bytes": 9832
+  },
+  {
+   "path": "src/SharpCompress/Common/EntryStream.cs",
+   "sha256": "a12cba85bff70face8461761af823557a6aaeb3f622530715ae0008c8a2d7ed9",
+   "bytes": 5752
+  },
+  {
+   "path": "src/SharpCompress/Factories/ZipFactory.cs",
+   "sha256": "22fb470e6bbe562c220980b976534889ba16c4048f6107ba77e16c6b8950dd64",
+   "bytes": 3378
+  }
+ ]
+}

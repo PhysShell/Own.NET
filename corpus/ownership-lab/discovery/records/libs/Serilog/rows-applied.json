@@ -1,0 +1,48 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for Serilog 4.4.0 (BODY_PROVED + WITNESSED; MVID a781a394-adba-452a-ab38-d28ea52bd305)",
+ "entries": [
+  {
+   "callable": "Serilog.Context.LogContext.Push",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Serilog",
+    "mvid": "a781a394-adba-452a-ab38-d28ea52bd305"
+   },
+   "derived_from": "https://github.com/serilog/serilog@497f80fda4f9e8f98b9c13ba34b1f0530f8c4449 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Serilog.Context.LogContext.Suspend",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "Serilog",
+    "mvid": "a781a394-adba-452a-ab38-d28ea52bd305"
+   },
+   "derived_from": "https://github.com/serilog/serilog@497f80fda4f9e8f98b9c13ba34b1f0530f8c4449 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Serilog.LoggerConfiguration.CreateLogger",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "assembly": {
+    "name": "Serilog",
+    "mvid": "a781a394-adba-452a-ab38-d28ea52bd305"
+   },
+   "witness": "SERI-W1",
+   "witness_asm_mvid": "a781a394-adba-452a-ab38-d28ea52bd305"
+  },
+  {
+   "callable": "Serilog.Context.LogContext.PushProperty",
+   "effect": "return_fresh_owned",
+   "provenance": "WITNESSED",
+   "assembly": {
+    "name": "Serilog",
+    "mvid": "a781a394-adba-452a-ab38-d28ea52bd305"
+   },
+   "witness": "SERI-W2",
+   "witness_asm_mvid": "a781a394-adba-452a-ab38-d28ea52bd305"
+  }
+ ]
+}

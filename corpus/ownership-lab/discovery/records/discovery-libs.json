@@ -1,0 +1,3368 @@
+{
+ "schema": "own.net/ownership-lab/discovery/v1",
+ "generated_utc": "2026-09-30T05:02:27Z",
+ "libraries": {
+  "BouncyCastle.Cryptography": {
+   "version": "2.7.0",
+   "nupkg_sha256": "f091ffccab4d03993e660bace277659a79dee0972f54d7f1f4bd46d680966241",
+   "repository": "https://github.com/bcgit/bc-csharp",
+   "commit_pin": "4007498b13582d90ee1eda5d9920c324428b98b3",
+   "assembly_mvid": "fc1a4ae8-411b-471c-974a-95a266252cc5",
+   "S2_surface": {
+    "disposable_types": 57,
+    "factory_candidates": 103,
+    "adopting_ctors": 82,
+    "adopting_ctors_with_bool": 21,
+    "release_name_candidates": 1
+   },
+   "S3_llm": {
+    "suggested_rows": 6,
+    "suggested_negatives": 1,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 23,
+    "files_requested": 25
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 93,
+     "methods_flow_analysed": 75,
+     "methods_skipped_unmodelled": 18
+    },
+    "re_body_census": "fresh_return=29 fresh_return_expression_body=12",
+    "fresh_summaries_all": 13,
+    "perfile_union_added": 0,
+    "public_body_proved_rows": 5
+   },
+   "S6_S7": {
+    "version": "2.7.0",
+    "mvid": "fc1a4ae8-411b-471c-974a-95a266252cc5",
+    "body_proved_rows": 5,
+    "body_proved_rows_before_H20": 3,
+    "witnessed_rows_added": 0,
+    "applied_rows": 5,
+    "llm_candidates": 6,
+    "llm_admitted_by_proof": 3,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 3,
+    "proved_not_suggested_by_llm": 2,
+    "witness_runs": [
+     {
+      "id": "BC-W1",
+      "callable": "Org.BouncyCastle.Asn1.Asn1OutputStream.Create",
+      "verdict": "fresh",
+      "expect": "fresh (identity only)"
+     }
+    ],
+    "llm_rejected_list": [
+     "Org.BouncyCastle.Bcpg.OpenPgp.PgpEncryptedDataGenerator.Open",
+     "Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities.GetDecoderStream",
+     "Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyEncryptedData.GetDataStream"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "Org.BouncyCastle.Asn1.Asn1OutputStream.Create",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Org.BouncyCastle.Bcpg.ArmoredInputStream.Builder.Build",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Org.BouncyCastle.Bcpg.ArmoredOutputStream.Builder.Build",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedDataGenerator.Open",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Org.BouncyCastle.Bcpg.OpenPgp.PgpLiteralDataGenerator.Open",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 22,
+     "files_fetched": 21,
+     "off_findings": 16,
+     "key_findings": 16,
+     "new": [],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: return_fresh_owned=1"
+     ],
+     "triage": []
+    }
+   }
+  },
+  "CsvHelper": {
+   "version": "33.1.0",
+   "nupkg_sha256": "a447d7e28eb7c6ea48eeebb07baa9ad393a77b4a49ed46f3cc9a8b8784a18eef",
+   "repository": "https://github.com/JoshClose/CsvHelper",
+   "commit_pin": "5dad8b8b1d8b074f8353cfd482e939db788a8927",
+   "assembly_mvid": "64574a8c-edb4-4e30-aeac-95290a74d6ad",
+   "S2_surface": {
+    "disposable_types": 7,
+    "factory_candidates": 21,
+    "adopting_ctors": 8,
+    "adopting_ctors_with_bool": 6,
+    "release_name_candidates": 1
+   },
+   "S3_llm": {
+    "suggested_rows": 3,
+    "suggested_negatives": 2,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 10,
+    "files_requested": 10
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 15,
+     "methods_flow_analysed": 11,
+     "methods_skipped_unmodelled": 4
+    },
+    "re_body_census": "fresh_return=7",
+    "fresh_summaries_all": 16,
+    "perfile_union_added": 6,
+    "public_body_proved_rows": 4
+   },
+   "S6_S7": {
+    "version": "33.1.0",
+    "mvid": "64574a8c-edb4-4e30-aeac-95290a74d6ad",
+    "body_proved_rows": 4,
+    "body_proved_rows_before_H20": 1,
+    "witnessed_rows_added": 0,
+    "applied_rows": 4,
+    "llm_candidates": 3,
+    "llm_admitted_by_proof": 3,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 0,
+    "proved_not_suggested_by_llm": 1,
+    "witness_runs": [
+     {
+      "id": "CSV-W1",
+      "callable": "CsvHelper.Factory.CreateReader",
+      "verdict": "fresh",
+      "expect": "fresh (the LLM candidate: not body-proved (E1 missed); the witness decides)"
+     },
+     {
+      "id": "CSV-W2",
+      "callable": "CsvHelper.Factory.CreateWriter",
+      "verdict": "fresh",
+      "expect": "fresh"
+     }
+    ],
+    "llm_rejected_list": []
+   },
+   "applied_rows": [
+    {
+     "callable": "CsvHelper.Factory.CreateParser",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "CsvHelper.Factory.CreateReader",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "CsvHelper.Factory.CreateWriter",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "CsvHelper.CsvDataReader.Close",
+     "effect": "receiver_terminal_release",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 21,
+     "files_fetched": 20,
+     "off_findings": 97,
+     "key_findings": 97,
+     "new": [],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: "
+     ],
+     "triage": []
+    }
+   }
+  },
+  "Google.Protobuf": {
+   "version": "3.36.2",
+   "nupkg_sha256": "1182590db175f9057707857a1df48b217226d0732716cd353fa4aa4683d38dcb",
+   "repository": "https://github.com/protocolbuffers/protobuf.git",
+   "commit_pin": "2c74169b34066ceb8ddb6b882fcb3fb32d737a55",
+   "assembly_mvid": "30ebe6c2-f530-434a-a926-51d53bbbde3b",
+   "S2_surface": {
+    "disposable_types": 2,
+    "factory_candidates": 2,
+    "adopting_ctors": 6,
+    "adopting_ctors_with_bool": 3,
+    "release_name_candidates": 0
+   },
+   "S3_llm": {
+    "suggested_rows": 2,
+    "suggested_negatives": 0,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 4,
+    "files_requested": 4
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 17,
+     "methods_flow_analysed": 11,
+     "methods_skipped_unmodelled": 6
+    },
+    "re_body_census": "fresh_return=4",
+    "fresh_summaries_all": 2,
+    "perfile_union_added": 0,
+    "public_body_proved_rows": 2
+   },
+   "S6_S7": {
+    "version": "3.36.2",
+    "mvid": "30ebe6c2-f530-434a-a926-51d53bbbde3b",
+    "body_proved_rows": 2,
+    "body_proved_rows_before_H20": null,
+    "witnessed_rows_added": 0,
+    "applied_rows": 2,
+    "llm_candidates": 2,
+    "llm_admitted_by_proof": 2,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 0,
+    "proved_not_suggested_by_llm": 0,
+    "witness_runs": [],
+    "llm_rejected_list": []
+   },
+   "applied_rows": [
+    {
+     "callable": "Google.Protobuf.ByteString.CreateCodedInput",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Google.Protobuf.CodedInputStream.CreateWithLimits",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 21,
+     "files_fetched": 20,
+     "off_findings": 60,
+     "key_findings": 61,
+     "new": [
+      [
+       "csharp__src__Google.Protobuf.Test__ByteStringTest.cs",
+       193,
+       "OWN001",
+       "IDisposable local 'codedInputStream' is never disposed (leak) [resource: disposable]"
+      ]
+     ],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: return_fresh_owned=3"
+     ],
+     "triage": [
+      {
+       "finding": [
+        "csharp__src__Google.Protobuf.Test__ByteStringTest.cs",
+        193,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "resource-spec: CodedInputStream created from a ByteString has no underlying Stream, so its Dispose is inert on this construction path; the object is fresh (row correct) but the missed disposal costs nothing",
+       "severity": "none",
+       "overlap": "IDISP001 would also flag (any IDisposable local); CA2000 excludes non-stream-like types? (not run)",
+       "note": "test code; the row is semantically right, the finding is noise for this type's memory-only constructions"
+      }
+     ]
+    }
+   }
+  },
+  "K4os.Compression.LZ4.Streams": {
+   "version": "1.3.8",
+   "nupkg_sha256": "bf83f9dd7009ed69ce710d35e2952ffcf8b4950bb45a7903c2206dfd054edf4e",
+   "repository": null,
+   "commit_pin": "tag (no nuspec commit)",
+   "assembly_mvid": "38e23572-cbfb-4606-a307-86a2e169c893",
+   "S2_surface": {
+    "disposable_types": 21,
+    "factory_candidates": 22,
+    "adopting_ctors": 6,
+    "adopting_ctors_with_bool": 6,
+    "release_name_candidates": 6
+   },
+   "S3_llm": {
+    "suggested_rows": 10,
+    "suggested_negatives": 3,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 25,
+    "files_requested": 25
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 25,
+     "methods_flow_analysed": 18,
+     "methods_skipped_unmodelled": 7
+    },
+    "re_body_census": "fresh_return=24 fresh_return_expression_body=12",
+    "fresh_summaries_all": 34,
+    "perfile_union_added": 10,
+    "public_body_proved_rows": 5
+   },
+   "S6_S7": {
+    "version": "1.3.8",
+    "mvid": "38e23572-cbfb-4606-a307-86a2e169c893",
+    "body_proved_rows": 5,
+    "body_proved_rows_before_H20": null,
+    "witnessed_rows_added": 0,
+    "applied_rows": 5,
+    "llm_candidates": 10,
+    "llm_admitted_by_proof": 10,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 0,
+    "proved_not_suggested_by_llm": 0,
+    "witness_runs": [],
+    "llm_rejected_list": []
+   },
+   "applied_rows": [
+    {
+     "callable": "K4os.Compression.LZ4.Streams.Extensions.AsStream",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Decode",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "K4os.Compression.LZ4.Streams.LZ4Stream.Decode",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "K4os.Compression.LZ4.Streams.LZ4Stream.Encode",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 15,
+     "files_fetched": 14,
+     "off_findings": 0,
+     "key_findings": 1,
+     "new": [
+      [
+       "src__K4os.Compression.LZ4.Streams.Tests__StreamInterfaceTests.cs",
+       57,
+       "OWN003",
+       "IDisposable local 'lz4' is disposed more than once [resource: disposable]"
+      ]
+     ],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: return_fresh_owned=14"
+     ],
+     "triage": [
+      {
+       "finding": [
+        "src__K4os.Compression.LZ4.Streams.Tests__StreamInterfaceTests.cs",
+        57,
+        "OWN003"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "intentional: the test CallingDisposeMultipleTimesIsFine disposes the decoder stream 1001 times on purpose; OWN003 (disposed more than once) is factually correct and newly reachable because the row makes LZ4Stream.Decode a tracked acquire",
+       "severity": "none",
+       "overlap": "IDISP017 (prefer using) / no double-dispose rule in CA2000; not run",
+       "note": "test code; a correct verdict on an intentional pattern"
+      }
+     ]
+    }
+   }
+  },
+  "LibGit2Sharp": {
+   "version": "0.32.0",
+   "nupkg_sha256": "16e45e1e1431e9bdd69ea3d69e2779ea5a3af7eb6ae73e868fe470f2e4c3af3e",
+   "repository": "https://github.com/libgit2/libgit2sharp",
+   "commit_pin": "eaa698d078941fd5e3cc82b59b885cd35d8cc0f8",
+   "assembly_mvid": "11bcccd6-7889-4b05-a333-ec401b7bead3",
+   "S2_surface": {
+    "disposable_types": 10,
+    "factory_candidates": 19,
+    "adopting_ctors": 0,
+    "adopting_ctors_with_bool": 0,
+    "release_name_candidates": 0
+   },
+   "S3_llm": {
+    "suggested_rows": 4,
+    "suggested_negatives": 0,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 14,
+    "files_requested": 14
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 63,
+     "methods_flow_analysed": 60,
+     "methods_skipped_unmodelled": 3
+    },
+    "re_body_census": "fresh_return=13",
+    "fresh_summaries_all": 8,
+    "perfile_union_added": 0,
+    "public_body_proved_rows": 2
+   },
+   "S6_S7": {
+    "version": "0.32.0",
+    "mvid": "11bcccd6-7889-4b05-a333-ec401b7bead3",
+    "body_proved_rows": 2,
+    "body_proved_rows_before_H20": 2,
+    "witnessed_rows_added": 0,
+    "applied_rows": 2,
+    "llm_candidates": 4,
+    "llm_admitted_by_proof": 2,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 2,
+    "proved_not_suggested_by_llm": 0,
+    "witness_runs": [
+     {
+      "id": "LG2-W1",
+      "callable": "LibGit2Sharp.Configuration.BuildFrom",
+      "verdict": "fresh",
+      "expect": "fresh, or environment-error without the native asset"
+     }
+    ],
+    "llm_rejected_list": [
+     "LibGit2Sharp.Blob.GetContentStream",
+     "LibGit2Sharp.ObjectDatabase.MergeCommitsIntoIndex"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "LibGit2Sharp.Configuration.BuildFrom",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "LibGit2Sharp.RemoteCollection.Add",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 27,
+     "files_fetched": 26,
+     "off_findings": 0,
+     "key_findings": 2,
+     "new": [
+      [
+       "LibGit2Sharp.Tests__RemoteFixture.cs",
+       219,
+       "OWN001",
+       "IDisposable local 'remote' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "LibGit2Sharp.Tests__RemoteFixture.cs",
+       230,
+       "OWN001",
+       "IDisposable local 'remote' is never disposed (leak) [resource: disposable]"
+      ]
+     ],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: return_fresh_owned=7"
+     ],
+     "triage": [
+      {
+       "finding": [
+        "LibGit2Sharp.Tests__RemoteFixture.cs",
+        219,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "external factory row (Remotes.Add returns a fresh Remote wrapping a native git_remote handle); never disposed in the test",
+       "severity": "low (test code; native handle freed by the SafeHandle finalizer)",
+       "note": "RemoteFixture.CreatingARemoteAddsADefaultFetchRefSpec",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "LibGit2Sharp.Tests__RemoteFixture.cs",
+        230,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "same",
+       "severity": "low",
+       "note": "RemoteFixture.CanCreateARemoteWithASpecifiedFetchRefSpec",
+       "review_minutes": 2
+      }
+     ]
+    }
+   }
+  },
+  "MQTTnet": {
+   "version": "5.2.0.1603",
+   "nupkg_sha256": "c394fb7a463054683e66cf2ea25bdc585c98fabf5dba78b4a888a0c601e021dc",
+   "repository": "https://github.com/dotnet/MQTTnet.git",
+   "commit_pin": "14463d1ef9f1f119514185c1832905b91bff827d",
+   "assembly_mvid": "3059e61f-8649-4e25-ba89-8d031023acb8",
+   "S2_surface": {
+    "disposable_types": 19,
+    "factory_candidates": 27,
+    "adopting_ctors": 4,
+    "adopting_ctors_with_bool": 1,
+    "release_name_candidates": 14
+   },
+   "S3_llm": {
+    "suggested_rows": 9,
+    "suggested_negatives": 4,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 16,
+    "files_requested": 16
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 22,
+     "methods_flow_analysed": 18,
+     "methods_skipped_unmodelled": 4
+    },
+    "re_body_census": "fresh_return=8",
+    "fresh_summaries_all": 10,
+    "perfile_union_added": 0,
+    "public_body_proved_rows": 3
+   },
+   "S6_S7": {
+    "version": "5.2.0.1603",
+    "mvid": "3059e61f-8649-4e25-ba89-8d031023acb8",
+    "body_proved_rows": 3,
+    "body_proved_rows_before_H20": 2,
+    "witnessed_rows_added": 0,
+    "applied_rows": 3,
+    "llm_candidates": 9,
+    "llm_admitted_by_proof": 6,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 3,
+    "proved_not_suggested_by_llm": 1,
+    "witness_runs": [
+     {
+      "id": "MQTT-W1",
+      "callable": "MQTTnet.MqttClientFactory.CreateMqttClient",
+      "verdict": "fresh",
+      "expect": "fresh (the record lost to the source-subset artefact; the witness decides)"
+     },
+     {
+      "id": "MQTT-W2",
+      "callable": "MQTTnet.MqttClientFactory.CreateLowLevelMqttClient",
+      "verdict": "fresh",
+      "expect": "fresh (corroboration)"
+     }
+    ],
+    "llm_rejected_list": [
+     "MQTTnet.Implementations.MqttClientAdapterFactory.CreateClientAdapter",
+     "MQTTnet.Implementations.CrossPlatformSocket.GetStream",
+     "MQTTnet.Internal.AsyncLock.EnterAsync"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "MQTTnet.MqttClientFactory.CreateLowLevelMqttClient",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "MQTTnet.MqttClientFactory.CreateMqttClient",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "MQTTnet.Implementations.MqttTcpChannel.DisconnectAsync",
+     "effect": "receiver_terminal_release",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 10,
+     "files_fetched": 9,
+     "off_findings": 36,
+     "key_findings": 37,
+     "new": [
+      [
+       "Source__MQTTnet.Tests__Clients__LowLevelMqttClient__LowLevelMqttClient_Tests.cs",
+       44,
+       "OWN001",
+       "IDisposable local 'lowLevelClient' is never disposed (leak) [resource: disposable]"
+      ]
+     ],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: return_fresh_owned=8"
+     ],
+     "triage": [
+      {
+       "finding": [
+        "Source__MQTTnet.Tests__Clients__LowLevelMqttClient__LowLevelMqttClient_Tests.cs",
+        44,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "external factory row (CreateLowLevelMqttClient); the client is connected, disconnected and never disposed",
+       "severity": "low (test code; the disposable client owns an adapter/socket after Connect)",
+       "note": "Connect_And_Disconnect",
+       "review_minutes": 2
+      }
+     ]
+    }
+   }
+  },
+  "MailKit": {
+   "version": "4.18.1",
+   "nupkg_sha256": "c379dc06694f9134df287f3b64f84a83865a2ec7859b07dcb6daac3ba36e063a",
+   "repository": null,
+   "commit_pin": "tag (no nuspec commit)",
+   "assembly_mvid": "762b5943-5c82-4157-a98e-a67f79017a8b",
+   "S2_surface": {
+    "disposable_types": 17,
+    "factory_candidates": 86,
+    "adopting_ctors": 5,
+    "adopting_ctors_with_bool": 1,
+    "release_name_candidates": 34
+   },
+   "S3_llm": {
+    "suggested_rows": 4,
+    "suggested_negatives": 3,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 21,
+    "files_requested": 21
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 168,
+     "methods_flow_analysed": 138,
+     "methods_skipped_unmodelled": 30
+    },
+    "re_body_census": "fresh_return=20",
+    "fresh_summaries_all": 10,
+    "perfile_union_added": 0,
+    "public_body_proved_rows": 2
+   },
+   "S6_S7": {
+    "version": "4.18.1",
+    "mvid": "762b5943-5c82-4157-a98e-a67f79017a8b",
+    "body_proved_rows": 2,
+    "body_proved_rows_before_H20": 0,
+    "witnessed_rows_added": 0,
+    "applied_rows": 2,
+    "llm_candidates": 4,
+    "llm_admitted_by_proof": 1,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 3,
+    "proved_not_suggested_by_llm": 1,
+    "witness_runs": [
+     {
+      "id": "MK-W1",
+      "callable": "MailKit.ProtocolLogger..ctor",
+      "verdict": "fresh",
+      "expect": "fresh (a constructor, listed to exercise the adopt-if(leaveOpen) shape's object)"
+     }
+    ],
+    "llm_rejected_list": [
+     "MailKit.Net.Pop3.Pop3Client.GetStream",
+     "MailKit.Net.Proxy.ProxyClient.Connect",
+     "MailKit.Net.Proxy.Socks5Client.Connect"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "MailKit.Net.Imap.ImapFolder.GetStream",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "MailKit.Net.Imap.ImapFolder.GetStreamAsync",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 18,
+     "files_fetched": 17,
+     "off_findings": 106,
+     "key_findings": 106,
+     "new": [],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: "
+     ],
+     "triage": []
+    }
+   }
+  },
+  "Microsoft.Data.Sqlite.Core": {
+   "version": "10.0.12",
+   "nupkg_sha256": "5e8ed353006dadf55d5c7f56d237321c20bb10c786262e6b25526756e1036332",
+   "repository": "https://github.com/dotnet/dotnet",
+   "commit_pin": "95017c711e6afc1085133d440e42b4bd78155701",
+   "assembly_mvid": "c031b608-828e-489e-938d-6a4064eb899a",
+   "S2_surface": {
+    "disposable_types": 5,
+    "factory_candidates": 22,
+    "adopting_ctors": 4,
+    "adopting_ctors_with_bool": 2,
+    "release_name_candidates": 3
+   },
+   "S3_llm": {
+    "suggested_rows": 15,
+    "suggested_negatives": 6,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 13,
+    "files_requested": 13
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 11,
+     "methods_flow_analysed": 9,
+     "methods_skipped_unmodelled": 2
+    },
+    "re_body_census": "fresh_return=12 fresh_return_expression_body=10",
+    "fresh_summaries_all": 4,
+    "perfile_union_added": 0,
+    "public_body_proved_rows": 3
+   },
+   "S6_S7": {
+    "version": "10.0.12",
+    "mvid": "c031b608-828e-489e-938d-6a4064eb899a",
+    "body_proved_rows": 3,
+    "body_proved_rows_before_H20": null,
+    "witnessed_rows_added": 0,
+    "applied_rows": 3,
+    "llm_candidates": 15,
+    "llm_admitted_by_proof": 3,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 12,
+    "proved_not_suggested_by_llm": 0,
+    "witness_runs": [],
+    "llm_rejected_list": [
+     "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader",
+     "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader",
+     "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync",
+     "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync",
+     "Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync",
+     "Microsoft.Data.Sqlite.SqliteConnection.BeginTransaction",
+     "Microsoft.Data.Sqlite.SqliteConnection.BeginTransaction",
+     "Microsoft.Data.Sqlite.SqliteConnection.BeginTransaction",
+     "Microsoft.Data.Sqlite.SqliteDataReader.GetStream",
+     "Microsoft.Data.Sqlite.SqliteDataReader.GetTextReader",
+     "Microsoft.Data.Sqlite.SqliteDataReader.Close",
+     "Microsoft.Data.Sqlite.SqliteConnection.Close"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "Microsoft.Data.Sqlite.SqliteConnection.CreateCommand",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Microsoft.Data.Sqlite.SqliteFactory.CreateCommand",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 10,
+     "files_fetched": 9,
+     "off_findings": 63,
+     "key_findings": 63,
+     "new": [],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: "
+     ],
+     "triage": []
+    }
+   }
+  },
+  "Microsoft.Data.Sqlite": {
+   "version": "10.0.12",
+   "nupkg_sha256": "246679d8c6c83ffcf4c8a480066e3f4fc4e051c96b71bedfd932fe7a5af1f7d4",
+   "status": "meta-package without a lib assembly; substituted by Microsoft.Data.Sqlite.Core 10.0.12 (the assembly-bearing package); not counted as a completed library"
+  },
+  "MySqlConnector": {
+   "version": "2.6.2",
+   "nupkg_sha256": "3d8758d29d2b19a5efa9f78cfac9cae824a870aaf88e2e3adc40bce3cddac748",
+   "repository": "https://github.com/mysql-net/MySqlConnector.git",
+   "commit_pin": "775689bb3e1ab55d16171e0795264fa746e364c4",
+   "assembly_mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258",
+   "S2_surface": {
+    "disposable_types": 8,
+    "factory_candidates": 57,
+    "adopting_ctors": 7,
+    "adopting_ctors_with_bool": 0,
+    "release_name_candidates": 5
+   },
+   "S3_llm": {
+    "suggested_rows": 15,
+    "suggested_negatives": 4,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 12,
+    "files_requested": 12
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 9,
+     "methods_flow_analysed": 6,
+     "methods_skipped_unmodelled": 3
+    },
+    "re_body_census": "fresh_return=5 fresh_return_expression_body=3",
+    "fresh_summaries_all": 10,
+    "perfile_union_added": 8,
+    "public_body_proved_rows": 8
+   },
+   "S6_S7": {
+    "version": "2.6.2",
+    "mvid": "bec6ec26-a3ae-42a3-8aca-cc9d928b0258",
+    "body_proved_rows": 8,
+    "body_proved_rows_before_H20": 0,
+    "witnessed_rows_added": 2,
+    "applied_rows": 10,
+    "llm_candidates": 15,
+    "llm_admitted_by_proof": 4,
+    "llm_admitted_by_witness": 2,
+    "llm_rejected_or_undecidable": 9,
+    "proved_not_suggested_by_llm": 4,
+    "witness_runs": [
+     {
+      "id": "MYSQL-W1",
+      "callable": "MySqlConnector.MySqlConnection.CreateCommand",
+      "verdict": "fresh",
+      "expect": "fresh"
+     },
+     {
+      "id": "MYSQL-W2",
+      "callable": "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+      "verdict": "fresh",
+      "expect": "fresh"
+     },
+     {
+      "id": "MYSQL-W3",
+      "callable": "MySqlConnector.MySqlConnection.Clone",
+      "verdict": "fresh",
+      "expect": "fresh"
+     }
+    ],
+    "llm_rejected_list": [
+     "MySqlConnector.MySqlDataSource.CreateConnection",
+     "MySqlConnector.MySqlDataSource.OpenConnection",
+     "MySqlConnector.MySqlConnection.BeginTransaction",
+     "MySqlConnector.MySqlConnection.BeginTransaction",
+     "MySqlConnector.MySqlCommand.ExecuteReader",
+     "MySqlConnector.MySqlCommand.ExecuteReader",
+     "MySqlConnector.MySqlConnection.CloneWith",
+     "MySqlConnector.MySqlCommand.Clone",
+     "MySqlConnector.MySqlDataReader.GetStream"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "MySqlConnector.MySqlConnection.CreateBatch",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "MySqlConnector.MySqlConnectorFactory.CreateBatch",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "MySqlConnector.MySqlConnectorFactory.CreateCommand",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "MySqlConnector.MySqlConnectorFactory.CreateCommandBuilder",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "MySqlConnector.MySqlConnectorFactory.CreateConnection",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "MySqlConnector.MySqlConnectorFactory.CreateDataAdapter",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "MySqlConnector.MySqlConnectorFactory.CreateDataSource",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "MySqlConnector.MySqlDataSourceBuilder.Build",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "MySqlConnector.MySqlConnection.CreateCommand",
+     "effect": "return_fresh_owned",
+     "provenance": "WITNESSED"
+    },
+    {
+     "callable": "MySqlConnector.MySqlConnection.Clone",
+     "effect": "return_fresh_owned",
+     "provenance": "WITNESSED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 16,
+     "files_fetched": 15,
+     "off_findings": 17,
+     "key_findings": 17,
+     "new": [],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: "
+     ],
+     "triage": []
+    }
+   }
+  },
+  "NLog": {
+   "version": "6.2.1",
+   "nupkg_sha256": "c4a527db864484cba0c114e5f276da3f38c206d125417c99afba41927c149167",
+   "repository": "https://github.com/NLog/NLog.git",
+   "commit_pin": "b058028290f245d12c30cb2910c2a574558ed9c6",
+   "assembly_mvid": "03802750-90df-4f67-b7f1-d84eee3bd509",
+   "S2_surface": {
+    "disposable_types": 40,
+    "factory_candidates": 47,
+    "adopting_ctors": 26,
+    "adopting_ctors_with_bool": 0,
+    "release_name_candidates": 1
+   },
+   "S3_llm": {
+    "suggested_rows": 17,
+    "suggested_negatives": 15,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 21,
+    "files_requested": 21
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 80,
+     "methods_flow_analysed": 66,
+     "methods_skipped_unmodelled": 14
+    },
+    "re_body_census": "fresh_return=34",
+    "fresh_summaries_all": 3,
+    "perfile_union_added": 0,
+    "public_body_proved_rows": 0
+   },
+   "S6_S7": {
+    "version": "6.2.1",
+    "mvid": "03802750-90df-4f67-b7f1-d84eee3bd509",
+    "body_proved_rows": 0,
+    "body_proved_rows_before_H20": null,
+    "witnessed_rows_added": 6,
+    "applied_rows": 6,
+    "llm_candidates": 17,
+    "llm_admitted_by_proof": 0,
+    "llm_admitted_by_witness": 6,
+    "llm_rejected_or_undecidable": 11,
+    "proved_not_suggested_by_llm": 0,
+    "witness_runs": [
+     {
+      "id": "NLOG-W1",
+      "callable": "NLog.LogFactory.SuspendLogging",
+      "verdict": "fresh",
+      "expect": "fresh"
+     },
+     {
+      "id": "NLOG-W2",
+      "callable": "NLog.LogManager.SuspendLogging",
+      "verdict": "fresh",
+      "expect": "fresh"
+     },
+     {
+      "id": "NLOG-W3",
+      "callable": "NLog.ScopeContext.PushProperty",
+      "verdict": "fresh",
+      "expect": "fresh"
+     },
+     {
+      "id": "NLOG-W4",
+      "callable": "NLog.ScopeContext.PushNestedState",
+      "verdict": "fresh",
+      "expect": "fresh"
+     },
+     {
+      "id": "NLOG-W5",
+      "callable": "NLog.Logger.PushScopeProperty",
+      "verdict": "fresh",
+      "expect": "fresh"
+     },
+     {
+      "id": "NLOG-W6",
+      "callable": "NLog.ScopeContext.PushProperties",
+      "verdict": "fresh",
+      "expect": "fresh"
+     }
+    ],
+    "llm_rejected_list": [
+     "NLog.LogManager.DisableLogging",
+     "NLog.Logger.PushScopeProperties",
+     "NLog.Logger.PushScopeNested",
+     "NLog.ScopeContext.PushNestedStateProperties",
+     "NLog.MappedDiagnosticsContext.SetScoped",
+     "NLog.MappedDiagnosticsLogicalContext.SetScoped",
+     "NLog.MappedDiagnosticsLogicalContext.SetScoped",
+     "NLog.NestedDiagnosticsContext.Push",
+     "NLog.NestedDiagnosticsLogicalContext.Push",
+     "NLog.NestedDiagnosticsLogicalContext.PushObject",
+     "NLog.LogFactory.Shutdown"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "NLog.LogFactory.SuspendLogging",
+     "effect": "return_fresh_owned",
+     "provenance": "WITNESSED"
+    },
+    {
+     "callable": "NLog.LogManager.SuspendLogging",
+     "effect": "return_fresh_owned",
+     "provenance": "WITNESSED"
+    },
+    {
+     "callable": "NLog.ScopeContext.PushProperty",
+     "effect": "return_fresh_owned",
+     "provenance": "WITNESSED"
+    },
+    {
+     "callable": "NLog.ScopeContext.PushNestedState",
+     "effect": "return_fresh_owned",
+     "provenance": "WITNESSED"
+    },
+    {
+     "callable": "NLog.Logger.PushScopeProperty",
+     "effect": "return_fresh_owned",
+     "provenance": "WITNESSED"
+    },
+    {
+     "callable": "NLog.ScopeContext.PushProperties",
+     "effect": "return_fresh_owned",
+     "provenance": "WITNESSED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 26,
+     "files_fetched": 25,
+     "off_findings": 53,
+     "key_findings": 53,
+     "new": [],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: "
+     ],
+     "triage": []
+    }
+   }
+  },
+  "NSec.Cryptography": {
+   "version": "26.4.0",
+   "nupkg_sha256": "b802c7e0fdd464794b64d4f38473eddd4817f04c35cb978cafbc668377470ee7",
+   "repository": "https://github.com/ektrah/nsec.git",
+   "commit_pin": "02c51bb20a7b6accc96e74ecab6e2659cc1f5c63",
+   "assembly_mvid": "ffd8640c-2483-4406-bcca-c25e459c4813",
+   "S2_surface": {
+    "disposable_types": 2,
+    "factory_candidates": 9,
+    "adopting_ctors": 0,
+    "adopting_ctors_with_bool": 0,
+    "release_name_candidates": 0
+   },
+   "S3_llm": {
+    "suggested_rows": 5,
+    "suggested_negatives": 0,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 7,
+    "files_requested": 8
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 13,
+     "methods_flow_analysed": 13,
+     "methods_skipped_unmodelled": 0
+    },
+    "re_body_census": "fresh_return=8",
+    "fresh_summaries_all": 9,
+    "perfile_union_added": 0,
+    "public_body_proved_rows": 6
+   },
+   "S6_S7": {
+    "version": "26.4.0",
+    "mvid": "ffd8640c-2483-4406-bcca-c25e459c4813",
+    "body_proved_rows": 6,
+    "body_proved_rows_before_H20": 1,
+    "witnessed_rows_added": 0,
+    "applied_rows": 6,
+    "llm_candidates": 5,
+    "llm_admitted_by_proof": 4,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 1,
+    "proved_not_suggested_by_llm": 2,
+    "witness_runs": [
+     {
+      "id": "NSEC-W1",
+      "callable": "NSec.Cryptography.Key.Create",
+      "verdict": "environment-error",
+      "expect": "fresh, or environment-error if libsodium is missing"
+     }
+    ],
+    "llm_rejected_list": [
+     "NSec.Cryptography.KeyAgreementAlgorithm.Agree"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "NSec.Cryptography.Key.Create",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "NSec.Cryptography.Key.Import",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "NSec.Cryptography.KeyDerivationAlgorithm.DeriveKey",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "NSec.Cryptography.KeyDerivationAlgorithm2.ExpandKey",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "NSec.Cryptography.PasswordBasedKeyDerivationAlgorithm.DeriveKey",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "NSec.Cryptography.SharedSecret.Import",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 13,
+     "files_fetched": 12,
+     "off_findings": 4,
+     "key_findings": 4,
+     "new": [],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: "
+     ],
+     "triage": []
+    }
+   }
+  },
+  "Newtonsoft.Json": {
+   "version": "13.0.4",
+   "nupkg_sha256": "f09081d457405baf35a973fa0c50d6bf272ed683f2568c5a620a49da952f6529",
+   "repository": "https://github.com/JamesNK/Newtonsoft.Json",
+   "commit_pin": "4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a",
+   "assembly_mvid": "00b3a5ef-dbc3-4c2f-9c39-8fe4911d40e8",
+   "S2_surface": {
+    "disposable_types": 9,
+    "factory_candidates": 3,
+    "adopting_ctors": 9,
+    "adopting_ctors_with_bool": 2,
+    "release_name_candidates": 10
+   },
+   "S3_llm": {
+    "suggested_rows": 2,
+    "suggested_negatives": 2,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 13,
+    "files_requested": 13
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 46,
+     "methods_flow_analysed": 44,
+     "methods_skipped_unmodelled": 2
+    },
+    "re_body_census": "fresh_return=2",
+    "fresh_summaries_all": 3,
+    "perfile_union_added": 3,
+    "public_body_proved_rows": 2
+   },
+   "S6_S7": {
+    "version": "13.0.4",
+    "mvid": "00b3a5ef-dbc3-4c2f-9c39-8fe4911d40e8",
+    "body_proved_rows": 2,
+    "body_proved_rows_before_H20": 0,
+    "witnessed_rows_added": 0,
+    "applied_rows": 2,
+    "llm_candidates": 2,
+    "llm_admitted_by_proof": 2,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 0,
+    "proved_not_suggested_by_llm": 0,
+    "witness_runs": [
+     {
+      "id": "NJ-W1",
+      "callable": "Newtonsoft.Json.Linq.JToken.CreateReader",
+      "verdict": "fresh",
+      "expect": "fresh (dispose-optional in practice)"
+     }
+    ],
+    "llm_rejected_list": []
+   },
+   "applied_rows": [
+    {
+     "callable": "Newtonsoft.Json.Linq.JContainer.CreateWriter",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Newtonsoft.Json.Linq.JToken.CreateReader",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 13,
+     "files_fetched": 12,
+     "off_findings": 246,
+     "key_findings": 252,
+     "new": [
+      [
+       "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+       56,
+       "OWN001",
+       "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+       68,
+       "OWN001",
+       "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+       210,
+       "OWN001",
+       "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+       491,
+       "OWN001",
+       "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+       572,
+       "OWN001",
+       "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+       629,
+       "OWN001",
+       "IDisposable local 'reader' is never disposed (leak) [resource: disposable]"
+      ]
+     ],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: return_fresh_owned=20"
+     ],
+     "triage": [
+      {
+       "finding": [
+        "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+        56,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "external factory row (JToken.CreateReader is fresh, proved) but JTokenReader holds no OS resource: its Dispose/Close only changes state \u2014 a dispose-optional TYPE question, the same class as the resource-effects HttpRequestMessage observation",
+       "severity": "none (no resource)",
+       "note": "JTokenReaderTest",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+        68,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "external factory row (JToken.CreateReader is fresh, proved) but JTokenReader holds no OS resource: its Dispose/Close only changes state \u2014 a dispose-optional TYPE question, the same class as the resource-effects HttpRequestMessage observation",
+       "severity": "none (no resource)",
+       "note": "JTokenReaderTest",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+        210,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "external factory row (JToken.CreateReader is fresh, proved) but JTokenReader holds no OS resource: its Dispose/Close only changes state \u2014 a dispose-optional TYPE question, the same class as the resource-effects HttpRequestMessage observation",
+       "severity": "none (no resource)",
+       "note": "JTokenReaderTest",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+        491,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "external factory row (JToken.CreateReader is fresh, proved) but JTokenReader holds no OS resource: its Dispose/Close only changes state \u2014 a dispose-optional TYPE question, the same class as the resource-effects HttpRequestMessage observation",
+       "severity": "none (no resource)",
+       "note": "JTokenReaderTest",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+        572,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "external factory row (JToken.CreateReader is fresh, proved) but JTokenReader holds no OS resource: its Dispose/Close only changes state \u2014 a dispose-optional TYPE question, the same class as the resource-effects HttpRequestMessage observation",
+       "severity": "none (no resource)",
+       "note": "JTokenReaderTest",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+        629,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "external factory row (JToken.CreateReader is fresh, proved) but JTokenReader holds no OS resource: its Dispose/Close only changes state \u2014 a dispose-optional TYPE question, the same class as the resource-effects HttpRequestMessage observation",
+       "severity": "none (no resource)",
+       "note": "JTokenReaderTest",
+       "review_minutes": 2
+      }
+     ]
+    }
+   }
+  },
+  "Npgsql": {
+   "version": "10.0.3",
+   "nupkg_sha256": "75d0970923a8c9fcbbd37e4ebe72fee0b10362a1e36723e86777df1b6728316d",
+   "repository": "https://github.com/npgsql/npgsql",
+   "commit_pin": "d3768398c17877b3a916c3c4d87e8e11698991fc",
+   "assembly_mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9",
+   "S2_surface": {
+    "disposable_types": 21,
+    "factory_candidates": 94,
+    "adopting_ctors": 6,
+    "adopting_ctors_with_bool": 0,
+    "release_name_candidates": 15
+   },
+   "S3_llm": {
+    "suggested_rows": 15,
+    "suggested_negatives": 8,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 24,
+    "files_requested": 24
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 42,
+     "methods_flow_analysed": 30,
+     "methods_skipped_unmodelled": 12
+    },
+    "re_body_census": "fresh_return=45 fresh_return_expression_body=35",
+    "fresh_summaries_all": 29,
+    "perfile_union_added": 0,
+    "public_body_proved_rows": 20
+   },
+   "S6_S7": {
+    "version": "10.0.3",
+    "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9",
+    "body_proved_rows": 20,
+    "body_proved_rows_before_H20": 20,
+    "witnessed_rows_added": 1,
+    "applied_rows": 21,
+    "llm_candidates": 15,
+    "llm_admitted_by_proof": 5,
+    "llm_admitted_by_witness": 1,
+    "llm_rejected_or_undecidable": 9,
+    "proved_not_suggested_by_llm": 15,
+    "witness_runs": [
+     {
+      "id": "NPG-W1",
+      "callable": "Npgsql.NpgsqlConnection.CreateCommand",
+      "verdict": "fresh",
+      "expect": "fresh (LLM candidate not body-proved: the witness decides)"
+     },
+     {
+      "id": "NPG-W2",
+      "callable": "Npgsql.NpgsqlDataSource.Create",
+      "verdict": "fresh",
+      "expect": "fresh (body-proved; the witness corroborates on the deployed binary)"
+     },
+     {
+      "id": "NPG-W3",
+      "callable": "Npgsql.NpgsqlConnection.CloneWith",
+      "verdict": "fresh",
+      "expect": "fresh (body-proved; corroboration)"
+     },
+     {
+      "id": "NPG-W4",
+      "callable": "Npgsql.NpgsqlConnection.BeginTransaction",
+      "verdict": "build-or-run-error",
+      "expect": "environment-error expected (needs an open connection): an UNDECIDABLE row"
+     }
+    ],
+    "llm_rejected_list": [
+     "Npgsql.NpgsqlDataSource.OpenConnection",
+     "Npgsql.NpgsqlConnection.BeginTransaction",
+     "Npgsql.NpgsqlConnection.BeginTransaction",
+     "Npgsql.NpgsqlCommand.ExecuteReader",
+     "Npgsql.NpgsqlConnection.BeginBinaryImport",
+     "Npgsql.NpgsqlConnection.BeginBinaryExport",
+     "Npgsql.NpgsqlConnection.BeginTextImport",
+     "Npgsql.NpgsqlConnection.BeginTextExport",
+     "Npgsql.NpgsqlConnection.BeginRawBinaryCopy"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "Npgsql.NpgsqlCommand.Clone",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlConnection.CloneWith",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlConnection.CloneWithAsync",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlDataSource.Create",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlDataSource.CreateBatch",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlDataSource.CreateCommand",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlDataSource.CreateConnection",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlDataSourceBuilder.Build",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlDataSourceBuilder.BuildMultiHost",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlFactory.CreateBatch",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlFactory.CreateCommand",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlFactory.CreateCommandBuilder",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlFactory.CreateConnection",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlFactory.CreateDataAdapter",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlFactory.CreateDataSource",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlLargeObjectManager.OpenRead",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlLargeObjectManager.OpenReadWrite",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlMultiHostDataSource.CreateConnection",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlSlimDataSourceBuilder.Build",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlSlimDataSourceBuilder.BuildMultiHost",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Npgsql.NpgsqlConnection.CreateCommand",
+     "effect": "return_fresh_owned",
+     "provenance": "WITNESSED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 39,
+     "files_fetched": 38,
+     "off_findings": 67,
+     "key_findings": 67,
+     "new": [],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: return_fresh_owned=4"
+     ],
+     "triage": []
+    }
+   }
+  },
+  "RabbitMQ.Client": {
+   "version": "7.2.2",
+   "nupkg_sha256": "fa217255b5c8a77de197a73170804ee83a965df0eb984b84fd04d06de697f582",
+   "repository": "https://github.com/rabbitmq/rabbitmq-dotnet-client.git",
+   "commit_pin": "740faf07f04ade7d35d3539e20613c6ac6b9b46f",
+   "assembly_mvid": "a5a91a86-3c7c-4189-81ab-41160f9adf1e",
+   "S2_surface": {
+    "disposable_types": 4,
+    "factory_candidates": 21,
+    "adopting_ctors": 1,
+    "adopting_ctors_with_bool": 0,
+    "release_name_candidates": 6
+   },
+   "S3_llm": {
+    "suggested_rows": 4,
+    "suggested_negatives": 3,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 14,
+    "files_requested": 14
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 19,
+     "methods_flow_analysed": 15,
+     "methods_skipped_unmodelled": 4
+    },
+    "re_body_census": "fresh_return=2",
+    "fresh_summaries_all": 2,
+    "perfile_union_added": 0,
+    "public_body_proved_rows": 2
+   },
+   "S6_S7": {
+    "version": "7.2.2",
+    "mvid": "a5a91a86-3c7c-4189-81ab-41160f9adf1e",
+    "body_proved_rows": 2,
+    "body_proved_rows_before_H20": 2,
+    "witnessed_rows_added": 0,
+    "applied_rows": 2,
+    "llm_candidates": 4,
+    "llm_admitted_by_proof": 2,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 2,
+    "proved_not_suggested_by_llm": 0,
+    "witness_runs": [
+     {
+      "id": "RMQ-W1",
+      "callable": "RabbitMQ.Client.ConnectionFactoryBase.DefaultSocketFactory",
+      "verdict": "fresh",
+      "expect": "fresh (corroboration)"
+     }
+    ],
+    "llm_rejected_list": [
+     "RabbitMQ.Client.ConnectionFactory.CreateConnectionAsync",
+     "RabbitMQ.Client.IConnection.CreateChannelAsync"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "RabbitMQ.Client.ConnectionFactoryBase.DefaultSocketFactory",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "RabbitMQ.Client.TcpClientAdapter.GetStream",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 13,
+     "files_fetched": 12,
+     "off_findings": 4,
+     "key_findings": 4,
+     "new": [],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: "
+     ],
+     "triage": []
+    }
+   }
+  },
+  "SSH.NET": {
+   "version": "2026.0.0",
+   "nupkg_sha256": "b2515de616821198f5cf5530f5ea198912730bbe3504ef4c6aee00a661fecac2",
+   "repository": "https://github.com/sshnet/SSH.NET",
+   "commit_pin": "7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e",
+   "assembly_mvid": "00a77c77-e75d-4c4c-a3f9-73306891a548",
+   "S2_surface": {
+    "disposable_types": 44,
+    "factory_candidates": 64,
+    "adopting_ctors": 7,
+    "adopting_ctors_with_bool": 0,
+    "release_name_candidates": 17
+   },
+   "S3_llm": {
+    "suggested_rows": 15,
+    "suggested_negatives": 6,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 22,
+    "files_requested": 22
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 119,
+     "methods_flow_analysed": 105,
+     "methods_skipped_unmodelled": 14
+    },
+    "re_body_census": "fresh_return=33",
+    "fresh_summaries_all": 32,
+    "perfile_union_added": 2,
+    "public_body_proved_rows": 10
+   },
+   "S6_S7": {
+    "version": "2026.0.0",
+    "mvid": "00a77c77-e75d-4c4c-a3f9-73306891a548",
+    "body_proved_rows": 10,
+    "body_proved_rows_before_H20": 6,
+    "witnessed_rows_added": 0,
+    "applied_rows": 10,
+    "llm_candidates": 15,
+    "llm_admitted_by_proof": 11,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 4,
+    "proved_not_suggested_by_llm": 1,
+    "witness_runs": [],
+    "llm_rejected_list": [
+     "Renci.SshNet.SshClient.RunCommand",
+     "Renci.SshNet.SshClient.CreateShellStream",
+     "Renci.SshNet.SshClient.CreateShellStreamNoTerminal",
+     "Renci.SshNet.SshCommand.CreateInputStream"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "Renci.SshNet.SftpClient.AppendText",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Renci.SshNet.SftpClient.Create",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Renci.SshNet.SftpClient.CreateText",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Renci.SshNet.SftpClient.Open",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Renci.SshNet.SftpClient.OpenRead",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Renci.SshNet.SftpClient.OpenText",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Renci.SshNet.SftpClient.OpenWrite",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Renci.SshNet.SshClient.CreateCommand",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Renci.SshNet.SshClient.CreateShell",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Renci.SshNet.SshClient.CreateShellNoTerminal",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 21,
+     "files_fetched": 20,
+     "off_findings": 31,
+     "key_findings": 36,
+     "new": [
+      [
+       "test__Renci.SshNet.IntegrationTests__ConnectivityTests.cs",
+       397,
+       "OWN001",
+       "IDisposable local 'sshCommand' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Renci.SshNet.IntegrationTests__SshClientTests.cs",
+       97,
+       "OWN001",
+       "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Renci.SshNet.IntegrationTests__SshClientTests.cs",
+       105,
+       "OWN001",
+       "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+       182,
+       "OWN001",
+       "IDisposable local 'shell' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+       207,
+       "OWN001",
+       "IDisposable local 'shell' is never disposed (leak) [resource: disposable]"
+      ]
+     ],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: return_fresh_owned=10"
+     ],
+     "triage": [
+      {
+       "finding": [
+        "test__Renci.SshNet.IntegrationTests__ConnectivityTests.cs",
+        397,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "external factory row (SshClient.CreateCommand returns a fresh SshCommand owning a channel); never disposed",
+       "severity": "medium (channel/session resources; integration test)",
+       "note": "ConnectivityTests",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "test__Renci.SshNet.IntegrationTests__SshClientTests.cs",
+        97,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "same",
+       "severity": "medium",
+       "note": "SshClientTests",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "test__Renci.SshNet.IntegrationTests__SshClientTests.cs",
+        105,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "same",
+       "severity": "medium",
+       "note": "SshClientTests",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+        182,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "external factory row (SshClient.CreateShell returns a fresh Shell owning a channel); never disposed",
+       "severity": "medium",
+       "note": "SshTests",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+        207,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "same",
+       "severity": "medium",
+       "note": "SshTests",
+       "review_minutes": 2
+      }
+     ]
+    }
+   }
+  },
+  "Serilog": {
+   "version": "4.4.0",
+   "nupkg_sha256": "b4fe17d3a4e170354be975ed60885d272c67e2e2fd8cb2f4b370d13ba1cd424f",
+   "repository": "https://github.com/serilog/serilog",
+   "commit_pin": "497f80fda4f9e8f98b9c13ba34b1f0530f8c4449",
+   "assembly_mvid": "a781a394-adba-452a-ab38-d28ea52bd305",
+   "S2_surface": {
+    "disposable_types": 1,
+    "factory_candidates": 7,
+    "adopting_ctors": 0,
+    "adopting_ctors_with_bool": 0,
+    "release_name_candidates": 0
+   },
+   "S3_llm": {
+    "suggested_rows": 4,
+    "suggested_negatives": 1,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 5,
+    "files_requested": 6
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 7,
+     "methods_flow_analysed": 7,
+     "methods_skipped_unmodelled": 0
+    },
+    "re_body_census": "fresh_return=3",
+    "fresh_summaries_all": 5,
+    "perfile_union_added": 0,
+    "public_body_proved_rows": 2
+   },
+   "S6_S7": {
+    "version": "4.4.0",
+    "mvid": "a781a394-adba-452a-ab38-d28ea52bd305",
+    "body_proved_rows": 2,
+    "body_proved_rows_before_H20": null,
+    "witnessed_rows_added": 2,
+    "applied_rows": 4,
+    "llm_candidates": 4,
+    "llm_admitted_by_proof": 2,
+    "llm_admitted_by_witness": 2,
+    "llm_rejected_or_undecidable": 0,
+    "proved_not_suggested_by_llm": 0,
+    "witness_runs": [
+     {
+      "id": "SERI-W1",
+      "callable": "Serilog.LoggerConfiguration.CreateLogger",
+      "verdict": "fresh",
+      "expect": "fresh"
+     },
+     {
+      "id": "SERI-W2",
+      "callable": "Serilog.Context.LogContext.PushProperty",
+      "verdict": "fresh",
+      "expect": "fresh"
+     },
+     {
+      "id": "SERI-W3",
+      "callable": "Serilog.Context.LogContext.Push",
+      "verdict": "fresh",
+      "expect": "fresh"
+     }
+    ],
+    "llm_rejected_list": []
+   },
+   "applied_rows": [
+    {
+     "callable": "Serilog.Context.LogContext.Push",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Serilog.Context.LogContext.Suspend",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "Serilog.LoggerConfiguration.CreateLogger",
+     "effect": "return_fresh_owned",
+     "provenance": "WITNESSED"
+    },
+    {
+     "callable": "Serilog.Context.LogContext.PushProperty",
+     "effect": "return_fresh_owned",
+     "provenance": "WITNESSED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 17,
+     "files_fetched": 16,
+     "off_findings": 0,
+     "key_findings": 24,
+     "new": [
+      [
+       "test__Serilog.Tests__Context__LogContextTests.cs",
+       10,
+       "OWN001",
+       "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Context__LogContextTests.cs",
+       29,
+       "OWN001",
+       "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Context__LogContextTests.cs",
+       48,
+       "OWN001",
+       "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Context__LogContextTests.cs",
+       67,
+       "OWN001",
+       "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Context__LogContextTests.cs",
+       90,
+       "OWN001",
+       "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Context__LogContextTests.cs",
+       145,
+       "OWN001",
+       "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Context__LogContextTests.cs",
+       175,
+       "OWN001",
+       "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__AuditSinkTests.cs",
+       52,
+       "OWN001",
+       "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+       13,
+       "OWN001",
+       "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+       45,
+       "OWN001",
+       "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+       117,
+       "OWN001",
+       "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+       169,
+       "OWN001",
+       "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+       80,
+       "OWN001",
+       "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+       121,
+       "OWN001",
+       "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+       212,
+       "OWN001",
+       "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+       271,
+       "OWN001",
+       "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__LoggerExtensionsTests.cs",
+       16,
+       "OWN001",
+       "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__LoggerExtensionsTests.cs",
+       39,
+       "OWN001",
+       "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__LoggerTests.cs",
+       294,
+       "OWN001",
+       "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__LoggerTests.cs",
+       309,
+       "OWN001",
+       "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__LoggerTests.cs",
+       417,
+       "OWN001",
+       "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__LoggerTests.cs",
+       456,
+       "OWN001",
+       "IDisposable local 'log' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__SecondaryLoggerSinkTests.cs",
+       60,
+       "OWN001",
+       "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "test__Serilog.Tests__Core__SecondaryLoggerSinkTests.cs",
+       76,
+       "OWN001",
+       "IDisposable local 'logger' is never disposed (leak) [resource: disposable]"
+      ]
+     ],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: return_fresh_owned=75"
+     ],
+     "triage": [
+      {
+       "finding": [
+        "test__Serilog.Tests__Context__LogContextTests.cs",
+        10,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Context__LogContextTests.cs",
+        29,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Context__LogContextTests.cs",
+        48,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Context__LogContextTests.cs",
+        67,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Context__LogContextTests.cs",
+        90,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Context__LogContextTests.cs",
+        145,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Context__LogContextTests.cs",
+        175,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__AuditSinkTests.cs",
+        52,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+        13,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+        45,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+        117,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+        169,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+        80,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+        121,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+        212,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+        271,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__LoggerExtensionsTests.cs",
+        16,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__LoggerExtensionsTests.cs",
+        39,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__LoggerTests.cs",
+        294,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__LoggerTests.cs",
+        309,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__LoggerTests.cs",
+        417,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__LoggerTests.cs",
+        456,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__SecondaryLoggerSinkTests.cs",
+        60,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      },
+      {
+       "finding": [
+        "test__Serilog.Tests__Core__SecondaryLoggerSinkTests.cs",
+        76,
+        "OWN001"
+       ],
+       "verdict": "BENIGN",
+       "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+       "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+       "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+       "note": "Serilog tests",
+       "review_minutes": 0.5
+      }
+     ]
+    }
+   }
+  },
+  "SharpCompress": {
+   "version": "1.0.0",
+   "nupkg_sha256": "5f3e8fd8cb13a8b9a8ac86002ec262839520a28b7bfd340d013831d8434612f8",
+   "repository": "https://github.com/adamhathcock/sharpcompress",
+   "commit_pin": "b6cc95af73950c914e0c6ce7ea3511528ede1121",
+   "assembly_mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba",
+   "S2_surface": {
+    "disposable_types": 74,
+    "factory_candidates": 139,
+    "adopting_ctors": 47,
+    "adopting_ctors_with_bool": 11,
+    "release_name_candidates": 1
+   },
+   "S3_llm": {
+    "suggested_rows": 11,
+    "suggested_negatives": 1,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 25,
+    "files_requested": 25
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 112,
+     "methods_flow_analysed": 95,
+     "methods_skipped_unmodelled": 17
+    },
+    "re_body_census": "fresh_return=59 fresh_return_expression_body=13",
+    "fresh_summaries_all": 38,
+    "perfile_union_added": 1,
+    "public_body_proved_rows": 15
+   },
+   "S6_S7": {
+    "version": "1.0.0",
+    "mvid": "d522a43a-2a9e-475c-b017-09dd425a2fba",
+    "body_proved_rows": 15,
+    "body_proved_rows_before_H20": 14,
+    "witnessed_rows_added": 1,
+    "applied_rows": 16,
+    "llm_candidates": 11,
+    "llm_admitted_by_proof": 6,
+    "llm_admitted_by_witness": 1,
+    "llm_rejected_or_undecidable": 4,
+    "proved_not_suggested_by_llm": 9,
+    "witness_runs": [
+     {
+      "id": "SC-W1",
+      "callable": "SharpCompress.Archives.Zip.ZipArchive.Create",
+      "verdict": "fresh",
+      "expect": "fresh"
+     },
+     {
+      "id": "SC-W2",
+      "callable": "SharpCompress.Writers.WriterFactory.Open",
+      "verdict": "fresh",
+      "expect": "fresh (identity only: disposing a tar writer over one stream twice would finish the stream)"
+     }
+    ],
+    "llm_rejected_list": [
+     "SharpCompress.Archives.ArchiveFactory.Open",
+     "SharpCompress.Archives.IArchiveEntry.OpenEntryStream",
+     "SharpCompress.Readers.ReaderFactory.Open",
+     "SharpCompress.Archives.IArchive.ExtractAllEntries"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "SharpCompress.Archives.AbstractWritableArchive<TEntry, TVolume>.PauseEntryRebuilding",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SharpCompress.Archives.GZip.GZipArchive.Create",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SharpCompress.Archives.GZip.GZipArchive.Open",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SharpCompress.Archives.Rar.RarArchive.Open",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SharpCompress.Archives.SevenZip.SevenZipArchive.Open",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SharpCompress.Archives.Tar.TarArchive.Create",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SharpCompress.Archives.Tar.TarArchive.Open",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SharpCompress.Archives.Zip.ZipArchive.Create",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SharpCompress.Archives.Zip.ZipArchive.Open",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SharpCompress.Factories.ZipFactory.CreateWriteableArchive",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SharpCompress.Factories.ZipFactory.Open",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SharpCompress.Factories.ZipFactory.OpenReader",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SharpCompress.Readers.Tar.TarReader.Open",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SharpCompress.Readers.Zip.ZipReader.Open",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SharpCompress.Writers.Zip.ZipWriter.WriteToStream",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SharpCompress.Writers.WriterFactory.Open",
+     "effect": "return_fresh_owned",
+     "provenance": "WITNESSED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 21,
+     "files_fetched": 20,
+     "off_findings": 4,
+     "key_findings": 6,
+     "new": [
+      [
+       "tests__SharpCompress.Test__Zip__ZipArchiveTests.cs",
+       392,
+       "OWN001",
+       "IDisposable local 'archive' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "tests__SharpCompress.Test__Zip__ZipReaderTests.cs",
+       377,
+       "OWN001",
+       "IDisposable local 'zipReader' is never disposed (leak) [resource: disposable]"
+      ]
+     ],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: return_fresh_owned=6"
+     ],
+     "triage": [
+      {
+       "finding": [
+        "tests__SharpCompress.Test__Zip__ZipArchiveTests.cs",
+        392,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "external factory row (ZipArchive.Create); the writable archive is saved and never disposed",
+       "severity": "low (memory; test code)",
+       "note": "Zip_Create_Empty_And_Read",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "tests__SharpCompress.Test__Zip__ZipReaderTests.cs",
+        377,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "external factory row (ZipReader.Open over an entry stream); the reader (and the entry stream it wraps) is never disposed",
+       "severity": "low (test code)",
+       "note": "Zip_Uncompressed_64bit",
+       "review_minutes": 2
+      }
+     ]
+    }
+   }
+  },
+  "SharpZipLib": {
+   "version": "1.4.2",
+   "nupkg_sha256": "fe0895aa2930a2b1b65caa9f37db8bca35125ebdf9cc1b99d855f6afc5ff5946",
+   "repository": "https://github.com/icsharpcode/SharpZipLib",
+   "commit_pin": "33f64eb0f28cdd2b084cb822fcc224c7c5aba553",
+   "assembly_mvid": "60042469-5ff8-41b2-b5b3-98c15d8a2421",
+   "S2_surface": {
+    "disposable_types": 16,
+    "factory_candidates": 37,
+    "adopting_ctors": 32,
+    "adopting_ctors_with_bool": 2,
+    "release_name_candidates": 13
+   },
+   "S3_llm": {
+    "suggested_rows": 7,
+    "suggested_negatives": 7,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 19,
+    "files_requested": 19
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 104,
+     "methods_flow_analysed": 74,
+     "methods_skipped_unmodelled": 30
+    },
+    "re_body_census": "fresh_return=12",
+    "fresh_summaries_all": 9,
+    "perfile_union_added": 0,
+    "public_body_proved_rows": 5
+   },
+   "S6_S7": {
+    "version": "1.4.2",
+    "mvid": "60042469-5ff8-41b2-b5b3-98c15d8a2421",
+    "body_proved_rows": 5,
+    "body_proved_rows_before_H20": 2,
+    "witnessed_rows_added": 0,
+    "applied_rows": 5,
+    "llm_candidates": 7,
+    "llm_admitted_by_proof": 5,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 2,
+    "proved_not_suggested_by_llm": 0,
+    "witness_runs": [
+     {
+      "id": "SZL-W1",
+      "callable": "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+      "verdict": "fresh",
+      "expect": "fresh (H-20 row; corroboration)"
+     },
+     {
+      "id": "SZL-W2",
+      "callable": "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateOutputTarArchive",
+      "verdict": "fresh",
+      "expect": "fresh"
+     },
+     {
+      "id": "SZL-W3",
+      "callable": "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateEncryptor",
+      "verdict": "fresh",
+      "expect": "fresh (corroboration)"
+     }
+    ],
+    "llm_rejected_list": [
+     "ICSharpCode.SharpZipLib.Zip.ZipFile.GetInputStream",
+     "ICSharpCode.SharpZipLib.Zip.DiskArchiveStorage.GetTemporaryOutput"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateDecryptor",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "ICSharpCode.SharpZipLib.Encryption.PkzipClassicManaged.CreateEncryptor",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateInputTarArchive",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "ICSharpCode.SharpZipLib.Tar.TarArchive.CreateOutputTarArchive",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "ICSharpCode.SharpZipLib.Zip.ZipFile.Create",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 16,
+     "files_fetched": 15,
+     "off_findings": 43,
+     "key_findings": 43,
+     "new": [],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: "
+     ],
+     "triage": []
+    }
+   }
+  },
+  "SixLabors.ImageSharp": {
+   "version": "4.1.2",
+   "nupkg_sha256": "bc0beb22acb9830921ae31dbef93e31e0f8fee261b70baaff00b96e69ec928a3",
+   "repository": "https://github.com/SixLabors/ImageSharp",
+   "commit_pin": "dee414097e4be7bb35ef0209cf96bd0b61a7133a",
+   "assembly_mvid": "10201e40-acc4-4407-9bcf-0b6a8b13982d",
+   "S2_surface": {
+    "disposable_types": 19,
+    "factory_candidates": 171,
+    "adopting_ctors": 0,
+    "adopting_ctors_with_bool": 0,
+    "release_name_candidates": 0
+   },
+   "S3_llm": {
+    "suggested_rows": 10,
+    "suggested_negatives": 3,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 19,
+    "files_requested": 22
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 104,
+     "methods_flow_analysed": 93,
+     "methods_skipped_unmodelled": 11
+    },
+    "re_body_census": "fresh_return=76 fresh_return_expression_body=45",
+    "fresh_summaries_all": 37,
+    "perfile_union_added": 8,
+    "public_body_proved_rows": 8
+   },
+   "S6_S7": {
+    "version": "4.1.2",
+    "mvid": "10201e40-acc4-4407-9bcf-0b6a8b13982d",
+    "body_proved_rows": 8,
+    "body_proved_rows_before_H20": 0,
+    "witnessed_rows_added": 0,
+    "applied_rows": 8,
+    "llm_candidates": 10,
+    "llm_admitted_by_proof": 3,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 7,
+    "proved_not_suggested_by_llm": 5,
+    "witness_runs": [],
+    "llm_rejected_list": [
+     "SixLabors.ImageSharp.Image.Load",
+     "SixLabors.ImageSharp.Image.Load",
+     "SixLabors.ImageSharp.Image.CloneAs",
+     "SixLabors.ImageSharp.Memory.MemoryAllocator.Allocate",
+     "SixLabors.ImageSharp.Processing.ProcessingExtensions.Clone",
+     "SixLabors.ImageSharp.ImageFrameCollection.ExportFrame",
+     "SixLabors.ImageSharp.Formats.ImageDecoder.Decode"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "SixLabors.ImageSharp.Image.WrapMemory",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SixLabors.ImageSharp.Image<TPixel>.Clone",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SixLabors.ImageSharp.Image<TPixel>.CloneAs",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SixLabors.ImageSharp.ImageFrameCollection<TPixel>.CloneFrame",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SixLabors.ImageSharp.ImageFrameCollection<TPixel>.ExportFrame",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SixLabors.ImageSharp.Memory.Buffer2D<T>.WrapMemory",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SixLabors.ImageSharp.Memory.MemoryAllocatorExtensions.Allocate2D",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SixLabors.ImageSharp.Image.LoadPixelData",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 27,
+     "files_fetched": 26,
+     "off_findings": 5,
+     "key_findings": 5,
+     "new": [],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: return_fresh_owned=6"
+     ],
+     "triage": []
+    }
+   }
+  },
+  "SkiaSharp": {
+   "version": "4.153.1",
+   "nupkg_sha256": "9cf0fa681223d4956bfbd37995c9eaa8d259935ae3d195fac681ff9a4e9c4816",
+   "repository": "https://go.microsoft.com/fwlink/?linkid=868515",
+   "commit_pin": "4783f51448f9b070dda4f87b83e941c9599e466e",
+   "assembly_mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522",
+   "S2_surface": {
+    "disposable_types": 91,
+    "factory_candidates": 682,
+    "adopting_ctors": 34,
+    "adopting_ctors_with_bool": 8,
+    "release_name_candidates": 13
+   },
+   "S3_llm": {
+    "suggested_rows": 9,
+    "suggested_negatives": 4,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 24,
+    "files_requested": 25
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 344,
+     "methods_flow_analysed": 281,
+     "methods_skipped_unmodelled": 63
+    },
+    "re_body_census": "fresh_return=297 fresh_return_expression_body=229",
+    "fresh_summaries_all": 24,
+    "perfile_union_added": 0,
+    "public_body_proved_rows": 16
+   },
+   "S6_S7": {
+    "version": "4.153.1",
+    "mvid": "eaaacb99-6acb-4ce1-8ed4-2d26f77ba522",
+    "body_proved_rows": 16,
+    "body_proved_rows_before_H20": 14,
+    "witnessed_rows_added": 0,
+    "applied_rows": 16,
+    "llm_candidates": 9,
+    "llm_admitted_by_proof": 2,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 7,
+    "proved_not_suggested_by_llm": 14,
+    "witness_runs": [
+     {
+      "id": "SKIA-W1",
+      "callable": "SkiaSharp.SKColorSpace.CreateSrgb",
+      "verdict": "environment-error",
+      "expect": "cached (the LLM flagged it as a hostile fresh candidate) or environment-error without the native asset"
+     },
+     {
+      "id": "SKIA-W2",
+      "callable": "SkiaSharp.SKData.Create",
+      "verdict": "environment-error",
+      "expect": "fresh or environment-error without the native asset"
+     }
+    ],
+    "llm_rejected_list": [
+     "SkiaSharp.SKBitmap.Copy",
+     "SkiaSharp.SKCodec.Create",
+     "SkiaSharp.SKData.Create",
+     "SkiaSharp.SKColorFilter.CreateBlendMode",
+     "SkiaSharp.SKColorSpace.CreateSrgb",
+     "SkiaSharp.SKImage.FromBitmap",
+     "SkiaSharp.SKSurface.Create"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "SkiaSharp.SKBitmap.Decode",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SkiaSharp.SKBitmap.FromImage",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SkiaSharp.SKColorSpace.ToProfile",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SkiaSharp.SKData.AsStream",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SkiaSharp.SKFileStream.OpenStream",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SkiaSharp.SKFileWStream.OpenStream",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SkiaSharp.SKFont.GetGlyphPath",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SkiaSharp.SKFont.GetTextPath",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SkiaSharp.SKPaint.GetTextPath",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SkiaSharp.SKPath.CreateIterator",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SkiaSharp.SKPath.CreateRawIterator",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SkiaSharp.SKPath.ParseSvgPathData",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SkiaSharp.SKRuntimeEffect.BuildBlender",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SkiaSharp.SKRuntimeEffect.BuildColorFilter",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SkiaSharp.SKRuntimeEffect.BuildShader",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    },
+    {
+     "callable": "SkiaSharp.SKTypeface.ToFont",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 31,
+     "files_fetched": 30,
+     "off_findings": 59,
+     "key_findings": 66,
+     "new": [
+      [
+       "tests__Tests__SkiaSharp__SKBitmapTest.cs",
+       143,
+       "OWN001",
+       "IDisposable local 'bmp' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "tests__Tests__SkiaSharp__SKBitmapTest.cs",
+       338,
+       "OWN001",
+       "IDisposable local 'bitmap' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "tests__Tests__SkiaSharp__SKCodecTest.cs",
+       323,
+       "OWN001",
+       "IDisposable local 'correctBitmap' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "tests__Tests__SkiaSharp__SKDataTest.cs",
+       46,
+       "OWN001",
+       "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "tests__Tests__SkiaSharp__SKDataTest.cs",
+       59,
+       "OWN001",
+       "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "tests__Tests__SkiaSharp__SKDataTest.cs",
+       216,
+       "OWN001",
+       "IDisposable local 'stream' is never disposed (leak) [resource: disposable]"
+      ],
+      [
+       "tests__Tests__SkiaSharp__SKFontTest.cs",
+       325,
+       "OWN001",
+       "IDisposable local 'textPath' is never disposed (leak) [resource: disposable]"
+      ]
+     ],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: return_fresh_owned=23"
+     ],
+     "triage": [
+      {
+       "finding": [
+        "tests__Tests__SkiaSharp__SKBitmapTest.cs",
+        143,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "external factory row (SKBitmap.Decode returns a fresh native-backed bitmap); never disposed (nor the Copy result)",
+       "severity": "medium (native memory; test code)",
+       "note": "CopyIndex8ToPlatformPreservesData",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "tests__Tests__SkiaSharp__SKBitmapTest.cs",
+        338,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "same",
+       "severity": "medium",
+       "note": "TestExtractAlpha",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "tests__Tests__SkiaSharp__SKCodecTest.cs",
+        323,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "same (correctBitmap)",
+       "severity": "medium",
+       "note": "DecodeImageScanlines",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "tests__Tests__SkiaSharp__SKDataTest.cs",
+        46,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "external factory row (SKData.AsStream returns a fresh SKStream over native data); never disposed",
+       "severity": "low (native wrapper; test code)",
+       "note": "AsStreamReturnsCorrectStreamData",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "tests__Tests__SkiaSharp__SKDataTest.cs",
+        59,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "same",
+       "severity": "low",
+       "note": "CanWriteToAsStream",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "tests__Tests__SkiaSharp__SKDataTest.cs",
+        216,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "same; the test is [Fact(Skip)] \u2014 real code, never executed",
+       "severity": "low",
+       "note": "DataDisposedReturnsInvalidStream (skipped test)",
+       "review_minutes": 2
+      },
+      {
+       "finding": [
+        "tests__Tests__SkiaSharp__SKFontTest.cs",
+        325,
+        "OWN001"
+       ],
+       "verdict": "TRUE",
+       "root_cause": "external factory row (SKFont.GetTextPath returns a fresh native SKPath); never disposed",
+       "severity": "low (native; test code)",
+       "note": "GetTextPathOnEmpty?/intercepts test",
+       "review_minutes": 2
+      }
+     ]
+    }
+   }
+  },
+  "StackExchange.Redis": {
+   "version": "3.3.1",
+   "nupkg_sha256": "35a366b33b201db4048f286f24e40960d1da08abbfaa8adfb725836f7cff789f",
+   "repository": "https://github.com/StackExchange/StackExchange.Redis/",
+   "commit_pin": "0a92ae43b0f8e80467920115a54f9761cc04ee4c",
+   "assembly_mvid": "5f6069ec-0f05-4928-b425-d8a49146d0a9",
+   "S2_surface": {
+    "disposable_types": 11,
+    "factory_candidates": 59,
+    "adopting_ctors": 0,
+    "adopting_ctors_with_bool": 0,
+    "release_name_candidates": 4
+   },
+   "S3_llm": {
+    "suggested_rows": 5,
+    "suggested_negatives": 1,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 16,
+    "files_requested": 17
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 98,
+     "methods_flow_analysed": 70,
+     "methods_skipped_unmodelled": 28
+    },
+    "re_body_census": "fresh_return=16 fresh_return_expression_body=8",
+    "fresh_summaries_all": 6,
+    "perfile_union_added": 0,
+    "public_body_proved_rows": 1
+   },
+   "S6_S7": {
+    "version": "3.3.1",
+    "mvid": "5f6069ec-0f05-4928-b425-d8a49146d0a9",
+    "body_proved_rows": 1,
+    "body_proved_rows_before_H20": 1,
+    "witnessed_rows_added": 0,
+    "applied_rows": 1,
+    "llm_candidates": 5,
+    "llm_admitted_by_proof": 1,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 4,
+    "proved_not_suggested_by_llm": 0,
+    "witness_runs": [
+     {
+      "id": "SER-W1",
+      "callable": "StackExchange.Redis.Lease<T>.Create",
+      "verdict": "fresh",
+      "expect": "fresh (pooled lease objects: may be reused after Dispose \u2014 identity across three live calls decides)"
+     }
+    ],
+    "llm_rejected_list": [
+     "StackExchange.Redis.ConnectionMultiplexer.Connect",
+     "StackExchange.Redis.ConnectionMultiplexer.Connect",
+     "StackExchange.Redis.ConnectionMultiplexer.SentinelConnect",
+     "StackExchange.Redis.IDatabase.StringGetLease"
+    ]
+   },
+   "applied_rows": [
+    {
+     "callable": "StackExchange.Redis.Lease<T>.Create",
+     "effect": "return_fresh_owned",
+     "provenance": "BODY_PROVED"
+    }
+   ],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 27,
+     "files_fetched": 26,
+     "off_findings": 18,
+     "key_findings": 18,
+     "new": [],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [
+      "re-oracle: "
+     ],
+     "triage": []
+    }
+   }
+  },
+  "ZstdSharp.Port": {
+   "version": "0.8.8",
+   "nupkg_sha256": "f6797192deebf4535f0601c2273e750da0c02062e30a3e4a3c4011b9ac22403a",
+   "repository": "https://github.com/oleg-st/ZstdSharp.git",
+   "commit_pin": "2cd0c019693bc786a5fe5c3be94e107b24e7267e",
+   "assembly_mvid": "0e764b16-6b2f-4ea5-9edf-169fdce9afc0",
+   "S2_surface": {
+    "disposable_types": 4,
+    "factory_candidates": 0,
+    "adopting_ctors": 4,
+    "adopting_ctors_with_bool": 4,
+    "release_name_candidates": 0
+   },
+   "S3_llm": {
+    "suggested_rows": 0,
+    "suggested_negatives": 0,
+    "written_before_bodies": true
+   },
+   "S4_source": {
+    "files_fetched": 6,
+    "files_requested": 6
+   },
+   "S5_derivation": {
+    "extractor_stats": {
+     "methods_with_local": 6,
+     "methods_flow_analysed": 4,
+     "methods_skipped_unmodelled": 2
+    },
+    "re_body_census": "",
+    "fresh_summaries_all": 2,
+    "perfile_union_added": 0,
+    "public_body_proved_rows": 0
+   },
+   "S6_S7": {
+    "version": "0.8.8",
+    "mvid": "0e764b16-6b2f-4ea5-9edf-169fdce9afc0",
+    "body_proved_rows": 0,
+    "body_proved_rows_before_H20": null,
+    "witnessed_rows_added": 0,
+    "applied_rows": 0,
+    "llm_candidates": 0,
+    "llm_admitted_by_proof": 0,
+    "llm_admitted_by_witness": 0,
+    "llm_rejected_or_undecidable": 0,
+    "proved_not_suggested_by_llm": 0,
+    "witness_runs": [],
+    "llm_rejected_list": []
+   },
+   "applied_rows": [],
+   "S8_scans": {
+    "tests": {
+     "files_scanned": 6,
+     "files_fetched": 5,
+     "off_findings": 20,
+     "key_findings": 20,
+     "new": [],
+     "lost": [],
+     "python_equals_rust": true,
+     "key_census": [],
+     "triage": []
+    }
+   }
+  }
+ }
+}

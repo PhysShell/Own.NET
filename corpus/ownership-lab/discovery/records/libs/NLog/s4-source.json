@@ -1,0 +1,112 @@
+{
+ "package": "NLog",
+ "repo": "NLog/NLog",
+ "commit": "b058028290f245d12c30cb2910c2a574558ed9c6",
+ "files": [
+  {
+   "path": "src/NLog/LogFactory.cs",
+   "sha256": "7f0ce70f030c589a4f33672dbd8074effaf7885f18c47e50b4c96e960051227a",
+   "bytes": 52119
+  },
+  {
+   "path": "src/NLog/LogFactory-T.cs",
+   "sha256": "bca3052b9b8e177a833ef47d5fe73b56641dde7c72891dc85db05720d7373714",
+   "bytes": 3112
+  },
+  {
+   "path": "src/NLog/LogManager.cs",
+   "sha256": "cee502171fa7e694da4b81c3bfc2bac17990ec472aa645cbc19c0ffa67a14f21",
+   "bytes": 18935
+  },
+  {
+   "path": "src/NLog/Logger.cs",
+   "sha256": "a8957a91d00258a982131eb6816c3f15417d7c26a36c53a6f3038f5ed34577be",
+   "bytes": 46894
+  },
+  {
+   "path": "src/NLog/LoggerImpl.cs",
+   "sha256": "b6c3039e66585082ac094b787e268df93d98723fb770983e4ca934ea1c3ac055",
+   "bytes": 8748
+  },
+  {
+   "path": "src/NLog/ScopeContext.cs",
+   "sha256": "c9ab1c20d1366837e393c9e0fc383cde1786bb7d0cdde65bea87e96924552031",
+   "bytes": 38656
+  },
+  {
+   "path": "src/NLog/MappedDiagnosticsContext.cs",
+   "sha256": "ecdd4ce91155f3b106cdc80de1c32f5c74f6c9ef913b59db4d14d004842cb21d",
+   "bytes": 8879
+  },
+  {
+   "path": "src/NLog/MappedDiagnosticsLogicalContext.cs",
+   "sha256": "d512690e88986caf74c352213c8e5e24db1a6e49e50e6501ebfc6de9c1d786aa",
+   "bytes": 11358
+  },
+  {
+   "path": "src/NLog/NestedDiagnosticsContext.cs",
+   "sha256": "424d8170b285acc24af2e4048b17e404653236cfedbfab9018b8af0d9689647a",
+   "bytes": 8122
+  },
+  {
+   "path": "src/NLog/NestedDiagnosticsLogicalContext.cs",
+   "sha256": "cfcb4a0942a7b772704e6c86ce8c1610ac61ff4a5fac671f46bc48fbc83149e7",
+   "bytes": 9508
+  },
+  {
+   "path": "src/NLog/SetupLoadConfigurationExtensions.cs",
+   "sha256": "be8330a66e4274e074a9b5e734591ad85d1cd4ff7c3d94fc7e3db105a7618d5c",
+   "bytes": 42055
+  },
+  {
+   "path": "src/NLog/Targets/Target.cs",
+   "sha256": "37ce5bc66161cf24facee037760d24b77bd46cecb8f5d14c0f52bb1236a34c33",
+   "bytes": 31673
+  },
+  {
+   "path": "src/NLog/Targets/FileTarget.cs",
+   "sha256": "a2fe9c63c5a75aba00ff1f7f098f1cbc38fdd0c81a82bb1bda590bb608b7f810",
+   "bytes": 65323
+  },
+  {
+   "path": "src/NLog/Targets/FileLifecycleHooks.cs",
+   "sha256": "6de2facd0eb9c76dab7ab5749422711f04e76c894cb2af8b5d8136b59f5ee122",
+   "bytes": 7155
+  },
+  {
+   "path": "src/NLog/Targets/Wrappers/WrapperTargetBase.cs",
+   "sha256": "379d2796e7038833c7b1fa2547e5cc001477468a6e4915af604b6ee0b98f9384",
+   "bytes": 3980
+  },
+  {
+   "path": "src/NLog/Targets/Wrappers/AsyncTargetWrapper.cs",
+   "sha256": "0abc28f0bf90975ce0052e8c50327f2cd4171884573014014220794ab44f3ee7",
+   "bytes": 24503
+  },
+  {
+   "path": "src/NLog/Targets/Wrappers/BufferingTargetWrapper.cs",
+   "sha256": "9a42f97962644bb41f301b886cb39e8488bbcb89972c2f647b53fc6b72d7a1d4",
+   "bytes": 13700
+  },
+  {
+   "path": "src/NLog/Targets/Wrappers/AutoFlushTargetWrapper.cs",
+   "sha256": "dd4dae10ca32eb9c07c6ae8d0c6b12b8c982510e84a7b4dd5fccbe64d0be169b",
+   "bytes": 8920
+  },
+  {
+   "path": "src/NLog/Config/LoggingConfiguration.cs",
+   "sha256": "39753326941dbe857c62a527b4de9a97da765d3e906b9f4ae565e7b98d83cdd5",
+   "bytes": 45767
+  },
+  {
+   "path": "src/NLog/Config/InstallationContext.cs",
+   "sha256": "3367efe902f30c2aac8c91d2b8e721877c452564b054697afaab0674c389bc73",
+   "bytes": 7687
+  },
+  {
+   "path": "src/NLog/Common/InternalLogger.cs",
+   "sha256": "9963eb1689cfc7ed3e6a3f8d0fe7368d559b1462bff68d4da94e3a56729f7a19",
+   "bytes": 24756
+  }
+ ]
+}

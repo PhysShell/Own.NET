@@ -1,0 +1,52 @@
+{
+ "package": "StackExchange.Redis",
+ "written_at_utc": "2026-09-30T04:09:40Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read)",
+ "note": "ConnectAsync/ConnectGroupAsync are async factories (UNDECIDABLE in the sync vocabulary)",
+ "suggested_rows": [
+  {
+   "callable": "StackExchange.Redis.ConnectionMultiplexer.Connect",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new multiplexer per call (Connect creates; not cached)"
+  },
+  {
+   "callable": "StackExchange.Redis.ConnectionMultiplexer.Connect",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same"
+  },
+  {
+   "callable": "StackExchange.Redis.ConnectionMultiplexer.SentinelConnect",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same"
+  },
+  {
+   "callable": "StackExchange.Redis.Lease<T>.Create",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new pooled lease"
+  },
+  {
+   "callable": "StackExchange.Redis.IDatabase.StringGetLease",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new lease (null when missing)"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "StackExchange.Redis.ConnectionMultiplexer.Close",
+   "arity": 1,
+   "why": "Close == Dispose for the multiplexer (production name rule)"
+  }
+ ],
+ "adopting_ctor_judgements": []
+}

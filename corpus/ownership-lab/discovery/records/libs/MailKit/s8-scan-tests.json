@@ -1,0 +1,1305 @@
+{
+ "package": "MailKit",
+ "consumer": "tests",
+ "files": 18,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/MailKit/rows-applied.json",
+ "key_sha256": "16a82b90fffc1573b1db75d29b9bd111a85e8f47e6adcf6153616674aa4d1ef4",
+ "off": {
+  "findings": [
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4409,
+    "OWN001",
+    "event 'folder.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4413,
+    "OWN001",
+    "event 'folder.ModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4417,
+    "OWN001",
+    "event 'folder.MessagesVanished' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4421,
+    "OWN001",
+    "event 'folder.RecentChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4608,
+    "OWN001",
+    "event 'destination.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4612,
+    "OWN001",
+    "event 'destination.ModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4616,
+    "OWN001",
+    "event 'destination.MessagesVanished' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4620,
+    "OWN001",
+    "event 'destination.RecentChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5059,
+    "OWN001",
+    "event 'folder.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5063,
+    "OWN001",
+    "event 'folder.ModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5067,
+    "OWN001",
+    "event 'folder.MessagesVanished' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5071,
+    "OWN001",
+    "event 'folder.RecentChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5253,
+    "OWN001",
+    "event 'destination.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5257,
+    "OWN001",
+    "event 'destination.ModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5261,
+    "OWN001",
+    "event 'destination.MessagesVanished' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5265,
+    "OWN001",
+    "event 'destination.RecentChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5851,
+    "OWN001",
+    "event 'dummy.Renamed' is subscribed (handler '(sender, e) => { dummyRenamed = true; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5852,
+    "OWN001",
+    "event 'created.Renamed' is subscribed (handler '(sender, e) => { renamed = true; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5862,
+    "OWN001",
+    "event 'created.Deleted' is subscribed (handler '(sender, e) => { deleted = true; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6050,
+    "OWN001",
+    "event 'dummy.Renamed' is subscribed (handler '(sender, e) => { dummyRenamed = true; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6051,
+    "OWN001",
+    "event 'created.Renamed' is subscribed (handler '(sender, e) => { renamed = true; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6061,
+    "OWN001",
+    "event 'created.Deleted' is subscribed (handler '(sender, e) => { deleted = true; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6403,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6407,
+    "OWN001",
+    "event 'inbox.MessageFlagsChanged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6411,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6465,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6469,
+    "OWN001",
+    "event 'inbox.MessageFlagsChanged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6473,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6672,
+    "OWN001",
+    "event 'inbox.MetadataChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6678,
+    "OWN001",
+    "event 'deleteMe.Deleted' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6682,
+    "OWN001",
+    "event 'renameMe.Renamed' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6687,
+    "OWN001",
+    "event 'subscribeMe.Subscribed' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6691,
+    "OWN001",
+    "event 'unsubscribeMe.Unsubscribed' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6695,
+    "OWN001",
+    "event 'inbox.HighestModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6699,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6703,
+    "OWN001",
+    "event 'folder.MessageSummaryFetched' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6708,
+    "OWN001",
+    "event 'folder.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6712,
+    "OWN001",
+    "event 'folder.CountChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6717,
+    "OWN001",
+    "event 'folder.CountChanged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6851,
+    "OWN001",
+    "event 'inbox.MetadataChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6857,
+    "OWN001",
+    "event 'deleteMe.Deleted' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6861,
+    "OWN001",
+    "event 'renameMe.Renamed' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6866,
+    "OWN001",
+    "event 'subscribeMe.Subscribed' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6870,
+    "OWN001",
+    "event 'unsubscribeMe.Unsubscribed' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6874,
+    "OWN001",
+    "event 'inbox.HighestModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6878,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6882,
+    "OWN001",
+    "event 'folder.MessageSummaryFetched' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6887,
+    "OWN001",
+    "event 'folder.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6891,
+    "OWN001",
+    "event 'folder.CountChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6896,
+    "OWN001",
+    "event 'folder.CountChanged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    7003,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => { expunged++; Assert.That (e.Index, Is.EqualTo (0), \"Expunged event message index\"); }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    7004,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => { changed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    7049,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => { expunged++; Assert.That (e.Index, Is.EqualTo (0), \"Expunged event message index\"); }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    7050,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => { changed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    646,
+    "OWN001",
+    "event 'inbox.MessagesVanished' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    693,
+    "OWN001",
+    "event 'inbox.MessagesVanished' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2449,
+    "OWN001",
+    "event 'inbox.AnnotationsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2528,
+    "OWN001",
+    "event 'inbox.AnnotationsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2697,
+    "OWN001",
+    "event 'inbox.AnnotationsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2701,
+    "OWN001",
+    "event 'inbox.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2705,
+    "OWN001",
+    "event 'inbox.MessageLabelsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2709,
+    "OWN001",
+    "event 'inbox.ModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2763,
+    "OWN001",
+    "event 'inbox.AnnotationsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2767,
+    "OWN001",
+    "event 'inbox.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2771,
+    "OWN001",
+    "event 'inbox.MessageLabelsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2775,
+    "OWN001",
+    "event 'inbox.ModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1699,
+    "OWN001",
+    "event 'toplevel1.Renamed' is subscribed (handler '(o, e) => { top1Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1700,
+    "OWN001",
+    "event 'toplevel2.Renamed' is subscribed (handler '(o, e) => { top2Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1701,
+    "OWN001",
+    "event 'sublevel1.Renamed' is subscribed (handler '(o, e) => { sub1Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1702,
+    "OWN001",
+    "event 'sublevel2.Renamed' is subscribed (handler '(o, e) => { sub2Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1704,
+    "OWN001",
+    "event 'toplevel1.Deleted' is subscribed (handler '(o, e) => { top1Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1705,
+    "OWN001",
+    "event 'toplevel2.Deleted' is subscribed (handler '(o, e) => { top2Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1706,
+    "OWN001",
+    "event 'sublevel1.Deleted' is subscribed (handler '(o, e) => { sub1Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1707,
+    "OWN001",
+    "event 'sublevel2.Deleted' is subscribed (handler '(o, e) => { sub2Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1709,
+    "OWN001",
+    "event 'toplevel1.Closed' is subscribed (handler '(o, e) => { top1Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1710,
+    "OWN001",
+    "event 'toplevel2.Closed' is subscribed (handler '(o, e) => { top2Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1711,
+    "OWN001",
+    "event 'sublevel1.Closed' is subscribed (handler '(o, e) => { sub1Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1712,
+    "OWN001",
+    "event 'sublevel2.Closed' is subscribed (handler '(o, e) => { sub2Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1776,
+    "OWN001",
+    "event 'toplevel1.Renamed' is subscribed (handler '(o, e) => { top1Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1777,
+    "OWN001",
+    "event 'toplevel2.Renamed' is subscribed (handler '(o, e) => { top2Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1778,
+    "OWN001",
+    "event 'sublevel1.Renamed' is subscribed (handler '(o, e) => { sub1Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1779,
+    "OWN001",
+    "event 'sublevel2.Renamed' is subscribed (handler '(o, e) => { sub2Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1781,
+    "OWN001",
+    "event 'toplevel1.Deleted' is subscribed (handler '(o, e) => { top1Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1782,
+    "OWN001",
+    "event 'toplevel2.Deleted' is subscribed (handler '(o, e) => { top2Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1783,
+    "OWN001",
+    "event 'sublevel1.Deleted' is subscribed (handler '(o, e) => { sub1Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1784,
+    "OWN001",
+    "event 'sublevel2.Deleted' is subscribed (handler '(o, e) => { sub2Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1786,
+    "OWN001",
+    "event 'toplevel1.Closed' is subscribed (handler '(o, e) => { top1Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1787,
+    "OWN001",
+    "event 'toplevel2.Closed' is subscribed (handler '(o, e) => { top2Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1788,
+    "OWN001",
+    "event 'sublevel1.Closed' is subscribed (handler '(o, e) => { sub1Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1789,
+    "OWN001",
+    "event 'sublevel2.Closed' is subscribed (handler '(o, e) => { sub2Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2499,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => { expunged++; Assert.That (e.Index, Is.EqualTo (0), \"Expunged event message index\"); }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2500,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => { changed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2558,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => { expunged++; Assert.That (e.Index, Is.EqualTo (0), \"Expunged event message index\"); }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2559,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => { changed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2638,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => { expunged++; Assert.That (e.Index, Is.EqualTo (0), \"Expunged event message index\"); }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2639,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => { changed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2684,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => { expunged++; Assert.That (e.Index, Is.EqualTo (0), \"Expunged event message index\"); }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2685,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => { changed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2749,
+    "OWN001",
+    "event 'client.Inbox.CountChanged' is subscribed (handler 'delegate {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2754,
+    "OWN001",
+    "event 'client.Inbox.MessageExpunged' is subscribed (handler 'delegate (object sender, MessageEventArgs e) {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2802,
+    "OWN001",
+    "event 'client.Inbox.CountChanged' is subscribed (handler 'delegate {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2807,
+    "OWN001",
+    "event 'client.Inbox.MessageExpunged' is subscribed (handler 'delegate (object sender, MessageEventArgs e) {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2872,
+    "OWN001",
+    "event 'client.Inbox.CountChanged' is subscribed (handler 'delegate {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2877,
+    "OWN001",
+    "event 'client.Inbox.MessageExpunged' is subscribed (handler 'delegate (object sender, MessageEventArgs e) {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2925,
+    "OWN001",
+    "event 'client.Inbox.CountChanged' is subscribed (handler 'delegate {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2930,
+    "OWN001",
+    "event 'client.Inbox.MessageExpunged' is subscribed (handler 'delegate (object sender, MessageEventArgs e) {"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 14,
+   "methods_flow_analysed": 11,
+   "methods_skipped_unmodelled": 3
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4409,
+    "OWN001",
+    "event 'folder.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4413,
+    "OWN001",
+    "event 'folder.ModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4417,
+    "OWN001",
+    "event 'folder.MessagesVanished' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4421,
+    "OWN001",
+    "event 'folder.RecentChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4608,
+    "OWN001",
+    "event 'destination.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4612,
+    "OWN001",
+    "event 'destination.ModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4616,
+    "OWN001",
+    "event 'destination.MessagesVanished' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    4620,
+    "OWN001",
+    "event 'destination.RecentChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5059,
+    "OWN001",
+    "event 'folder.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5063,
+    "OWN001",
+    "event 'folder.ModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5067,
+    "OWN001",
+    "event 'folder.MessagesVanished' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5071,
+    "OWN001",
+    "event 'folder.RecentChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5253,
+    "OWN001",
+    "event 'destination.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5257,
+    "OWN001",
+    "event 'destination.ModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5261,
+    "OWN001",
+    "event 'destination.MessagesVanished' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5265,
+    "OWN001",
+    "event 'destination.RecentChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5851,
+    "OWN001",
+    "event 'dummy.Renamed' is subscribed (handler '(sender, e) => { dummyRenamed = true; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5852,
+    "OWN001",
+    "event 'created.Renamed' is subscribed (handler '(sender, e) => { renamed = true; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    5862,
+    "OWN001",
+    "event 'created.Deleted' is subscribed (handler '(sender, e) => { deleted = true; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6050,
+    "OWN001",
+    "event 'dummy.Renamed' is subscribed (handler '(sender, e) => { dummyRenamed = true; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6051,
+    "OWN001",
+    "event 'created.Renamed' is subscribed (handler '(sender, e) => { renamed = true; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6061,
+    "OWN001",
+    "event 'created.Deleted' is subscribed (handler '(sender, e) => { deleted = true; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6403,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6407,
+    "OWN001",
+    "event 'inbox.MessageFlagsChanged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6411,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6465,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6469,
+    "OWN001",
+    "event 'inbox.MessageFlagsChanged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6473,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6672,
+    "OWN001",
+    "event 'inbox.MetadataChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6678,
+    "OWN001",
+    "event 'deleteMe.Deleted' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6682,
+    "OWN001",
+    "event 'renameMe.Renamed' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6687,
+    "OWN001",
+    "event 'subscribeMe.Subscribed' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6691,
+    "OWN001",
+    "event 'unsubscribeMe.Unsubscribed' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6695,
+    "OWN001",
+    "event 'inbox.HighestModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6699,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6703,
+    "OWN001",
+    "event 'folder.MessageSummaryFetched' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6708,
+    "OWN001",
+    "event 'folder.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6712,
+    "OWN001",
+    "event 'folder.CountChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6717,
+    "OWN001",
+    "event 'folder.CountChanged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6851,
+    "OWN001",
+    "event 'inbox.MetadataChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6857,
+    "OWN001",
+    "event 'deleteMe.Deleted' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6861,
+    "OWN001",
+    "event 'renameMe.Renamed' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6866,
+    "OWN001",
+    "event 'subscribeMe.Subscribed' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6870,
+    "OWN001",
+    "event 'unsubscribeMe.Unsubscribed' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6874,
+    "OWN001",
+    "event 'inbox.HighestModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6878,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6882,
+    "OWN001",
+    "event 'folder.MessageSummaryFetched' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6887,
+    "OWN001",
+    "event 'folder.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6891,
+    "OWN001",
+    "event 'folder.CountChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    6896,
+    "OWN001",
+    "event 'folder.CountChanged' is subscribed (handler '(o, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    7003,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => { expunged++; Assert.That (e.Index, Is.EqualTo (0), \"Expunged event message index\"); }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    7004,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => { changed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    7049,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => { expunged++; Assert.That (e.Index, Is.EqualTo (0), \"Expunged event message index\"); }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapClientTests.cs",
+    7050,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => { changed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapClientTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    646,
+    "OWN001",
+    "event 'inbox.MessagesVanished' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    693,
+    "OWN001",
+    "event 'inbox.MessagesVanished' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2449,
+    "OWN001",
+    "event 'inbox.AnnotationsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2528,
+    "OWN001",
+    "event 'inbox.AnnotationsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2697,
+    "OWN001",
+    "event 'inbox.AnnotationsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2701,
+    "OWN001",
+    "event 'inbox.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2705,
+    "OWN001",
+    "event 'inbox.MessageLabelsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2709,
+    "OWN001",
+    "event 'inbox.ModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2763,
+    "OWN001",
+    "event 'inbox.AnnotationsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2767,
+    "OWN001",
+    "event 'inbox.MessageFlagsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2771,
+    "OWN001",
+    "event 'inbox.MessageLabelsChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderFetchTests.cs",
+    2775,
+    "OWN001",
+    "event 'inbox.ModSeqChanged' is subscribed (handler '(sender, e) => {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1699,
+    "OWN001",
+    "event 'toplevel1.Renamed' is subscribed (handler '(o, e) => { top1Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1700,
+    "OWN001",
+    "event 'toplevel2.Renamed' is subscribed (handler '(o, e) => { top2Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1701,
+    "OWN001",
+    "event 'sublevel1.Renamed' is subscribed (handler '(o, e) => { sub1Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1702,
+    "OWN001",
+    "event 'sublevel2.Renamed' is subscribed (handler '(o, e) => { sub2Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1704,
+    "OWN001",
+    "event 'toplevel1.Deleted' is subscribed (handler '(o, e) => { top1Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1705,
+    "OWN001",
+    "event 'toplevel2.Deleted' is subscribed (handler '(o, e) => { top2Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1706,
+    "OWN001",
+    "event 'sublevel1.Deleted' is subscribed (handler '(o, e) => { sub1Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1707,
+    "OWN001",
+    "event 'sublevel2.Deleted' is subscribed (handler '(o, e) => { sub2Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1709,
+    "OWN001",
+    "event 'toplevel1.Closed' is subscribed (handler '(o, e) => { top1Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1710,
+    "OWN001",
+    "event 'toplevel2.Closed' is subscribed (handler '(o, e) => { top2Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1711,
+    "OWN001",
+    "event 'sublevel1.Closed' is subscribed (handler '(o, e) => { sub1Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1712,
+    "OWN001",
+    "event 'sublevel2.Closed' is subscribed (handler '(o, e) => { sub2Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1776,
+    "OWN001",
+    "event 'toplevel1.Renamed' is subscribed (handler '(o, e) => { top1Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1777,
+    "OWN001",
+    "event 'toplevel2.Renamed' is subscribed (handler '(o, e) => { top2Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1778,
+    "OWN001",
+    "event 'sublevel1.Renamed' is subscribed (handler '(o, e) => { sub1Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1779,
+    "OWN001",
+    "event 'sublevel2.Renamed' is subscribed (handler '(o, e) => { sub2Renamed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1781,
+    "OWN001",
+    "event 'toplevel1.Deleted' is subscribed (handler '(o, e) => { top1Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1782,
+    "OWN001",
+    "event 'toplevel2.Deleted' is subscribed (handler '(o, e) => { top2Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1783,
+    "OWN001",
+    "event 'sublevel1.Deleted' is subscribed (handler '(o, e) => { sub1Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1784,
+    "OWN001",
+    "event 'sublevel2.Deleted' is subscribed (handler '(o, e) => { sub2Deleted++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1786,
+    "OWN001",
+    "event 'toplevel1.Closed' is subscribed (handler '(o, e) => { top1Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1787,
+    "OWN001",
+    "event 'toplevel2.Closed' is subscribed (handler '(o, e) => { top2Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1788,
+    "OWN001",
+    "event 'sublevel1.Closed' is subscribed (handler '(o, e) => { sub1Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    1789,
+    "OWN001",
+    "event 'sublevel2.Closed' is subscribed (handler '(o, e) => { sub2Closed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2499,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => { expunged++; Assert.That (e.Index, Is.EqualTo (0), \"Expunged event message index\"); }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2500,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => { changed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2558,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => { expunged++; Assert.That (e.Index, Is.EqualTo (0), \"Expunged event message index\"); }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2559,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => { changed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2638,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => { expunged++; Assert.That (e.Index, Is.EqualTo (0), \"Expunged event message index\"); }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2639,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => { changed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2684,
+    "OWN001",
+    "event 'inbox.MessageExpunged' is subscribed (handler '(o, e) => { expunged++; Assert.That (e.Index, Is.EqualTo (0), \"Expunged event message index\"); }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2685,
+    "OWN001",
+    "event 'inbox.CountChanged' is subscribed (handler '(o, e) => { changed++; }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ImapFolderTests' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2749,
+    "OWN001",
+    "event 'client.Inbox.CountChanged' is subscribed (handler 'delegate {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2754,
+    "OWN001",
+    "event 'client.Inbox.MessageExpunged' is subscribed (handler 'delegate (object sender, MessageEventArgs e) {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2802,
+    "OWN001",
+    "event 'client.Inbox.CountChanged' is subscribed (handler 'delegate {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2807,
+    "OWN001",
+    "event 'client.Inbox.MessageExpunged' is subscribed (handler 'delegate (object sender, MessageEventArgs e) {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2872,
+    "OWN001",
+    "event 'client.Inbox.CountChanged' is subscribed (handler 'delegate {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2877,
+    "OWN001",
+    "event 'client.Inbox.MessageExpunged' is subscribed (handler 'delegate (object sender, MessageEventArgs e) {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2925,
+    "OWN001",
+    "event 'client.Inbox.CountChanged' is subscribed (handler 'delegate {"
+   ],
+   [
+    "UnitTests__Net__Imap__ImapFolderTests.cs",
+    2930,
+    "OWN001",
+    "event 'client.Inbox.MessageExpunged' is subscribed (handler 'delegate (object sender, MessageEventArgs e) {"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: "
+  ],
+  "stats": {
+   "methods_with_local": 14,
+   "methods_flow_analysed": 11,
+   "methods_skipped_unmodelled": 3
+  }
+ },
+ "new_findings": [],
+ "lost_findings": []
+}

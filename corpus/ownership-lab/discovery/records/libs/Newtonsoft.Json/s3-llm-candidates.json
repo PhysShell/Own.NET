@@ -1,0 +1,53 @@
+{
+ "package": "Newtonsoft.Json",
+ "written_at_utc": "2026-09-30T04:09:40Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read)",
+ "note": "",
+ "suggested_rows": [
+  {
+   "callable": "Newtonsoft.Json.Linq.JToken.CreateReader",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new JTokenReader (dispose-optional in practice: no OS resource)"
+  },
+  {
+   "callable": "Newtonsoft.Json.Linq.JContainer.CreateWriter",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new JTokenWriter (dispose-optional)"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "Newtonsoft.Json.JsonReader.Close",
+   "arity": 0,
+   "why": "Close == Dispose (releases the underlying when CloseInput)"
+  },
+  {
+   "callable": "Newtonsoft.Json.JsonTextWriter.Close",
+   "arity": 0,
+   "why": "same with CloseOutput"
+  }
+ ],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "JsonTextReader(TextReader)",
+   "judgement": "adopt-if(CloseInput == true) where CloseInput is a PROPERTY defaulting to true: a mutable-property flag, the ZipFile IsStreamOwner shape"
+  },
+  {
+   "ctor": "JsonTextWriter(TextWriter)",
+   "judgement": "adopt-if(CloseOutput == true) (property, default true)"
+  },
+  {
+   "ctor": "BsonReader(Stream)",
+   "judgement": "adopt-if(CloseInput)"
+  },
+  {
+   "ctor": "BsonWriter(Stream)",
+   "judgement": "adopt-if(CloseOutput)"
+  }
+ ]
+}

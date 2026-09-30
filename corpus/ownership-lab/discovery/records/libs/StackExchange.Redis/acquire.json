@@ -1,0 +1,28 @@
+{
+ "package": "StackExchange.Redis",
+ "version": "3.3.1",
+ "nupkg_sha256": "35a366b33b201db4048f286f24e40960d1da08abbfaa8adfb725836f7cff789f",
+ "repository_url": "https://github.com/StackExchange/StackExchange.Redis/",
+ "repository_commit": "0a92ae43b0f8e80467920115a54f9761cc04ee4c",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/StackExchange.Redis/lib/net8.0/StackExchange.Redis.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/StackExchange.Redis/lib/net8.0/StackExchange.Redis.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/StackExchange.Redis/lib/net8.0/StackExchange.Redis.dll",
+  "name": "StackExchange.Redis",
+  "version": "3.0.0.0",
+  "culture": "",
+  "public_key_token": "c219ff1ca8c2ce46",
+  "mvid": "5f6069ec-0f05-4928-b425-d8a49146d0a9",
+  "target_framework": ".NETCoreApp,Version=v8.0",
+  "informational_version": "3.3.1+0a92ae43b0",
+  "sha256": "60ab2872b511793e99442fc225a10c67c1d5c013ada71a6d8b2d2a9baeaa72f0",
+  "size": 2316800
+ },
+ "xmldoc": [
+  "lib/net10.0/StackExchange.Redis.xml",
+  "lib/net461/StackExchange.Redis.xml",
+  "lib/net472/StackExchange.Redis.xml"
+ ]
+}

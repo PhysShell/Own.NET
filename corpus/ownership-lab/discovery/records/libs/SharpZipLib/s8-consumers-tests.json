@@ -1,0 +1,95 @@
+{
+ "package": "SharpZipLib",
+ "consumer": "tests",
+ "repo": "icsharpcode/SharpZipLib",
+ "commit": "33f64eb0f28cdd2b084cb822fcc224c7c5aba553",
+ "files": [
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/Zip/ZipFileHandling.cs",
+   "sha256": "321e71a233536897daa928071eb87732a939014ed771504de19600a6b61ed4d9",
+   "bytes": 52288
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/Zip/ZipTests.cs",
+   "sha256": "b7fdf5bccf2822a5b837b38d93219d0de194d2ec98a08d31f55395fc01cedf60",
+   "bytes": 11813
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/Zip/StreamHandling.cs",
+   "sha256": "62dca22581f0c143855cb634e2446ad7d8f2de05ae239dcff210d305d374469b",
+   "bytes": 16476
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/Zip/ZipEntryHandling.cs",
+   "sha256": "bfe995421372cda9bceb3a832ea12993b70a5128b9cc39491ac2a475a9e57106",
+   "bytes": 6810
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/Zip/FastZipHandling.cs",
+   "sha256": "c1b74d5a71c51d9db1178a20e720b468ce44ced5279a7e227574aaef792300e6",
+   "bytes": 27937
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/Zip/ZipEncryptionHandling.cs",
+   "sha256": "98e81bd0d64f4647c7684901a5560fcdc2a028225461d6c4b53c5c4cc7811fd5",
+   "bytes": 17512
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/Zip/ZipExtraDataHandling.cs",
+   "sha256": "5e211afa9a02a039523a6b96710ee6024a125d47639fd9ce6de4250690d80427",
+   "bytes": 14273
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/Zip/GeneralHandling.cs",
+   "sha256": "7ac465e4864edfd064a4d6a81e3e439a5e3ee04f2311203a860009e0f05b512f",
+   "bytes": 22836
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/Zip/ZipCryptoTests.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/Zip/ZipNameTransformHandling.cs",
+   "sha256": "7a5ac54449e81a01819506195611ad6fbde9bf07334d17f135664bc9133d8765",
+   "bytes": 4005
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/GZip/GZipTests.cs",
+   "sha256": "e6fdf7d2cff13c5a6b1bd37c678424ad49c5851f55517b0d48b10bc1f0c75779",
+   "bytes": 12743
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/Tar/TarTests.cs",
+   "sha256": "483d0d6978901287d33579311d809cfab1e96740149ae88a9f594e9102d9ca93",
+   "bytes": 28147
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/BZip2/Bzip2Tests.cs",
+   "sha256": "12e8ba0dd54276da533cb19bd38f38964724608e6e73e57dcef23482bd4e2efc",
+   "bytes": 2394
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/Base/InflaterDeflaterTests.cs",
+   "sha256": "9fdb62c66ec915fa14f9df83fd2c834bc54036df598bc7a3ed0cd09e5fdffb7c",
+   "bytes": 9759
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/Lzw/LzwTests.cs",
+   "sha256": "0df3ac965661e3f2c81ba81b947f7390ab8dd32e837d9a2f84e712bacfb2e664",
+   "bytes": 2468
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/TestSupport/Utils.cs",
+   "sha256": "9d257ab68ab82a9770353a8ed55057b432ce0c01a95d2b183dfef679bf1756ec",
+   "bytes": 7680
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/TestSupport/ZipTestUtils.cs",
+   "error": "HTTP Error 404: Not Found"
+  },
+  {
+   "path": "test/ICSharpCode.SharpZipLib.Tests/TestSupport/TestExtensions.cs",
+   "error": "HTTP Error 404: Not Found"
+  }
+ ]
+}

@@ -1,0 +1,56 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for BouncyCastle.Cryptography 2.7.0 (BODY_PROVED + WITNESSED; MVID fc1a4ae8-411b-471c-974a-95a266252cc5)",
+ "entries": [
+  {
+   "callable": "Org.BouncyCastle.Asn1.Asn1OutputStream.Create",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "BouncyCastle.Cryptography",
+    "mvid": "fc1a4ae8-411b-471c-974a-95a266252cc5"
+   },
+   "derived_from": "https://github.com/bcgit/bc-csharp@4007498b13582d90ee1eda5d9920c324428b98b3 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Org.BouncyCastle.Bcpg.ArmoredInputStream.Builder.Build",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "BouncyCastle.Cryptography",
+    "mvid": "fc1a4ae8-411b-471c-974a-95a266252cc5"
+   },
+   "derived_from": "https://github.com/bcgit/bc-csharp@4007498b13582d90ee1eda5d9920c324428b98b3 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Org.BouncyCastle.Bcpg.ArmoredOutputStream.Builder.Build",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "BouncyCastle.Cryptography",
+    "mvid": "fc1a4ae8-411b-471c-974a-95a266252cc5"
+   },
+   "derived_from": "https://github.com/bcgit/bc-csharp@4007498b13582d90ee1eda5d9920c324428b98b3 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedDataGenerator.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "BouncyCastle.Cryptography",
+    "mvid": "fc1a4ae8-411b-471c-974a-95a266252cc5"
+   },
+   "derived_from": "https://github.com/bcgit/bc-csharp@4007498b13582d90ee1eda5d9920c324428b98b3 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "Org.BouncyCastle.Bcpg.OpenPgp.PgpLiteralDataGenerator.Open",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "BouncyCastle.Cryptography",
+    "mvid": "fc1a4ae8-411b-471c-974a-95a266252cc5"
+   },
+   "derived_from": "https://github.com/bcgit/bc-csharp@4007498b13582d90ee1eda5d9920c324428b98b3 via E1/E3 (inferred)"
+  }
+ ]
+}

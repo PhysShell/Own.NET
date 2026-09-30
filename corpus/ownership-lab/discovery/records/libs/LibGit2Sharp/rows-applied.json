@@ -1,0 +1,26 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for LibGit2Sharp 0.32.0 (BODY_PROVED + WITNESSED; MVID 11bcccd6-7889-4b05-a333-ec401b7bead3)",
+ "entries": [
+  {
+   "callable": "LibGit2Sharp.Configuration.BuildFrom",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "LibGit2Sharp",
+    "mvid": "11bcccd6-7889-4b05-a333-ec401b7bead3"
+   },
+   "derived_from": "https://github.com/libgit2/libgit2sharp@eaa698d078941fd5e3cc82b59b885cd35d8cc0f8 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "LibGit2Sharp.RemoteCollection.Add",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "LibGit2Sharp",
+    "mvid": "11bcccd6-7889-4b05-a333-ec401b7bead3"
+   },
+   "derived_from": "https://github.com/libgit2/libgit2sharp@eaa698d078941fd5e3cc82b59b885cd35d8cc0f8 via E1/E3 (inferred)"
+  }
+ ]
+}

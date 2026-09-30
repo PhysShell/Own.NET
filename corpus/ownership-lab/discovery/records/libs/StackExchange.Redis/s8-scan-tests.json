@@ -1,0 +1,249 @@
+{
+ "package": "StackExchange.Redis",
+ "consumer": "tests",
+ "files": 27,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/StackExchange.Redis/rows-applied.json",
+ "key_sha256": "5970f620a110b48b06c0278c964dbc253ed63269eb38d92e631b17e7d2a9d51d",
+ "off": {
+  "findings": [
+   [
+    "tests__StackExchange.Redis.Tests__ConnectionFailureErrorsTests.cs",
+    33,
+    "OWN001",
+    "event 'conn.ConnectionFailed' is subscribed (handler '(sender, e) =>"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__ConnectionFailureErrorsTests.cs",
+    76,
+    "OWN001",
+    "event 'conn.ConnectionFailed' is subscribed (handler '(sender, e) =>"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    112,
+    "OWN001",
+    "event '_inner.ErrorMessage' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    112,
+    "OWN001",
+    "event '_inner.ErrorMessage' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    118,
+    "OWN001",
+    "event '_inner.ConnectionFailed' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    118,
+    "OWN001",
+    "event '_inner.ConnectionFailed' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    124,
+    "OWN001",
+    "event '_inner.InternalError' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    124,
+    "OWN001",
+    "event '_inner.InternalError' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    130,
+    "OWN001",
+    "event '_inner.ConnectionRestored' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    130,
+    "OWN001",
+    "event '_inner.ConnectionRestored' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    136,
+    "OWN001",
+    "event '_inner.ConfigurationChanged' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    136,
+    "OWN001",
+    "event '_inner.ConfigurationChanged' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    142,
+    "OWN001",
+    "event '_inner.ConfigurationChangedBroadcast' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    142,
+    "OWN001",
+    "event '_inner.ConfigurationChangedBroadcast' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    148,
+    "OWN001",
+    "event '_inner.HashSlotMoved' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    148,
+    "OWN001",
+    "event '_inner.HashSlotMoved' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    154,
+    "OWN001",
+    "event '_inner.ServerMaintenanceEvent' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    154,
+    "OWN001",
+    "event '_inner.ServerMaintenanceEvent' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 3,
+   "methods_flow_analysed": 1,
+   "methods_skipped_unmodelled": 2
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "tests__StackExchange.Redis.Tests__ConnectionFailureErrorsTests.cs",
+    33,
+    "OWN001",
+    "event 'conn.ConnectionFailed' is subscribed (handler '(sender, e) =>"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__ConnectionFailureErrorsTests.cs",
+    76,
+    "OWN001",
+    "event 'conn.ConnectionFailed' is subscribed (handler '(sender, e) =>"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    112,
+    "OWN001",
+    "event '_inner.ErrorMessage' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    112,
+    "OWN001",
+    "event '_inner.ErrorMessage' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    118,
+    "OWN001",
+    "event '_inner.ConnectionFailed' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    118,
+    "OWN001",
+    "event '_inner.ConnectionFailed' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    124,
+    "OWN001",
+    "event '_inner.InternalError' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    124,
+    "OWN001",
+    "event '_inner.InternalError' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    130,
+    "OWN001",
+    "event '_inner.ConnectionRestored' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    130,
+    "OWN001",
+    "event '_inner.ConnectionRestored' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    136,
+    "OWN001",
+    "event '_inner.ConfigurationChanged' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    136,
+    "OWN001",
+    "event '_inner.ConfigurationChanged' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    142,
+    "OWN001",
+    "event '_inner.ConfigurationChangedBroadcast' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    142,
+    "OWN001",
+    "event '_inner.ConfigurationChangedBroadcast' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    148,
+    "OWN001",
+    "event '_inner.HashSlotMoved' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    148,
+    "OWN001",
+    "event '_inner.HashSlotMoved' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    154,
+    "OWN001",
+    "event '_inner.ServerMaintenanceEvent' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'NonDisposingConnection' alive (possible leak) [resource: subscription token]"
+   ],
+   [
+    "tests__StackExchange.Redis.Tests__Helpers__SharedConnectionFixture.cs",
+    154,
+    "OWN001",
+    "event '_inner.ServerMaintenanceEvent' is subscribed (handler 'value') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SharedConnectionFixture' alive (possible leak) [resource: subscription token]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: "
+  ],
+  "stats": {
+   "methods_with_local": 3,
+   "methods_flow_analysed": 1,
+   "methods_skipped_unmodelled": 2
+  }
+ },
+ "new_findings": [],
+ "lost_findings": []
+}

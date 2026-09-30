@@ -1,0 +1,28 @@
+{
+ "package": "SharpZipLib",
+ "version": "1.4.2",
+ "nupkg_sha256": "fe0895aa2930a2b1b65caa9f37db8bca35125ebdf9cc1b99d855f6afc5ff5946",
+ "repository_url": "https://github.com/icsharpcode/SharpZipLib",
+ "repository_commit": "33f64eb0f28cdd2b084cb822fcc224c7c5aba553",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SharpZipLib/lib/net6.0/ICSharpCode.SharpZipLib.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SharpZipLib/lib/net6.0/ICSharpCode.SharpZipLib.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SharpZipLib/lib/net6.0/ICSharpCode.SharpZipLib.dll",
+  "name": "ICSharpCode.SharpZipLib",
+  "version": "1.4.2.13",
+  "culture": "",
+  "public_key_token": "1b03e6acf1164f73",
+  "mvid": "60042469-5ff8-41b2-b5b3-98c15d8a2421",
+  "target_framework": ".NETCoreApp,Version=v6.0",
+  "informational_version": "1.4.2+33f64eb0f28cdd2b084cb822fcc224c7c5aba553",
+  "sha256": "32ea2d0ce3512e74f1c7ad82591fe67e6b8939d76a8a4ff9c93ead030131e71c",
+  "size": 258048
+ },
+ "xmldoc": [
+  "lib/net6.0/ICSharpCode.SharpZipLib.xml",
+  "lib/netstandard2.0/ICSharpCode.SharpZipLib.xml",
+  "lib/netstandard2.1/ICSharpCode.SharpZipLib.xml"
+ ]
+}

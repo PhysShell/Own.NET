@@ -1,0 +1,28 @@
+{
+ "package": "Newtonsoft.Json",
+ "version": "13.0.4",
+ "nupkg_sha256": "f09081d457405baf35a973fa0c50d6bf272ed683f2568c5a620a49da952f6529",
+ "repository_url": "https://github.com/JamesNK/Newtonsoft.Json",
+ "repository_commit": "4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Newtonsoft.Json/lib/net6.0/Newtonsoft.Json.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Newtonsoft.Json/lib/net6.0/Newtonsoft.Json.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/Newtonsoft.Json/lib/net6.0/Newtonsoft.Json.dll",
+  "name": "Newtonsoft.Json",
+  "version": "13.0.0.0",
+  "culture": "",
+  "public_key_token": "30ad4fe6b2a6aeed",
+  "mvid": "00b3a5ef-dbc3-4c2f-9c39-8fe4911d40e8",
+  "target_framework": ".NETCoreApp,Version=v6.0",
+  "informational_version": "13.0.4+4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a",
+  "sha256": "a28c251dfe36d881e9e2462e171441b8b0ec156fe3f452602c9149b1b9efe05b",
+  "size": 723368
+ },
+ "xmldoc": [
+  "lib/net20/Newtonsoft.Json.xml",
+  "lib/net35/Newtonsoft.Json.xml",
+  "lib/net40/Newtonsoft.Json.xml"
+ ]
+}

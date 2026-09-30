@@ -1,0 +1,21 @@
+{
+ "source_files": 6,
+ "perfile_union_added_fresh": [],
+ "extractor_stats": {
+  "methods_with_local": 7,
+  "methods_flow_analysed": 7,
+  "methods_skipped_unmodelled": 0
+ },
+ "re_body_census": "fresh_return=3",
+ "fresh_summaries_all": [
+  "Serilog.Context.LogContext.Push(ILogEventEnricher)",
+  "Serilog.Context.LogContext.Push(ILogEventEnricher[])",
+  "Serilog.Context.LogContext.Push(System.Collections.Generic.IEnumerable`1)",
+  "Serilog.Context.LogContext.Push(System.ReadOnlySpan`1)",
+  "Serilog.Context.LogContext.Suspend"
+ ],
+ "receiver_release_all": [],
+ "fresh_not_public_surface": [],
+ "instance_methods_evaluated": 91,
+ "public_rows": 2
+}

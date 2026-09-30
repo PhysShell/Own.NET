@@ -1,0 +1,93 @@
+{
+ "package": "SixLabors.ImageSharp",
+ "consumer": "tests",
+ "files": 27,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SixLabors.ImageSharp/rows-applied.json",
+ "key_sha256": "5766406b8826ac2e8c200136181efe6d685d205a71638e1908ac6b022c5432fc",
+ "off": {
+  "findings": [
+   [
+    "tests__ImageSharp.Tests__Image__ImageFrameCollectionTests.Generic.cs",
+    129,
+    "OWN001",
+    "IDisposable local 'collection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__ImageSharp.Tests__Image__ImageFrameCollectionTests.Generic.cs",
+    142,
+    "OWN001",
+    "IDisposable local 'collection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__ImageSharp.Tests__Image__ImageFrameCollectionTests.Generic.cs",
+    154,
+    "OWN001",
+    "IDisposable local 'collection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__ImageSharp.Tests__Image__ImageFrameCollectionTests.Generic.cs",
+    166,
+    "OWN002",
+    "IDisposable local 'collection' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "tests__ImageSharp.Tests__Image__ImageTests.cs",
+    270,
+    "OWN003",
+    "IDisposable local 'image' is disposed more than once [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 13,
+   "methods_flow_analysed": 13,
+   "methods_skipped_unmodelled": 0
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "tests__ImageSharp.Tests__Image__ImageFrameCollectionTests.Generic.cs",
+    129,
+    "OWN001",
+    "IDisposable local 'collection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__ImageSharp.Tests__Image__ImageFrameCollectionTests.Generic.cs",
+    142,
+    "OWN001",
+    "IDisposable local 'collection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__ImageSharp.Tests__Image__ImageFrameCollectionTests.Generic.cs",
+    154,
+    "OWN001",
+    "IDisposable local 'collection' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__ImageSharp.Tests__Image__ImageFrameCollectionTests.Generic.cs",
+    166,
+    "OWN002",
+    "IDisposable local 'collection' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "tests__ImageSharp.Tests__Image__ImageTests.cs",
+    270,
+    "OWN003",
+    "IDisposable local 'image' is disposed more than once [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: return_fresh_owned=6"
+  ],
+  "stats": {
+   "methods_with_local": 14,
+   "methods_flow_analysed": 13,
+   "methods_skipped_unmodelled": 1
+  }
+ },
+ "new_findings": [],
+ "lost_findings": []
+}

@@ -1,0 +1,632 @@
+{
+ "LibGit2Sharp/tests": [
+  {
+   "finding": [
+    "LibGit2Sharp.Tests__RemoteFixture.cs",
+    219,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "external factory row (Remotes.Add returns a fresh Remote wrapping a native git_remote handle); never disposed in the test",
+   "severity": "low (test code; native handle freed by the SafeHandle finalizer)",
+   "note": "RemoteFixture.CreatingARemoteAddsADefaultFetchRefSpec",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "LibGit2Sharp.Tests__RemoteFixture.cs",
+    230,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "same",
+   "severity": "low",
+   "note": "RemoteFixture.CanCreateARemoteWithASpecifiedFetchRefSpec",
+   "review_minutes": 2
+  }
+ ],
+ "MQTTnet/tests": [
+  {
+   "finding": [
+    "Source__MQTTnet.Tests__Clients__LowLevelMqttClient__LowLevelMqttClient_Tests.cs",
+    44,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "external factory row (CreateLowLevelMqttClient); the client is connected, disconnected and never disposed",
+   "severity": "low (test code; the disposable client owns an adapter/socket after Connect)",
+   "note": "Connect_And_Disconnect",
+   "review_minutes": 2
+  }
+ ],
+ "SharpCompress/tests": [
+  {
+   "finding": [
+    "tests__SharpCompress.Test__Zip__ZipArchiveTests.cs",
+    392,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "external factory row (ZipArchive.Create); the writable archive is saved and never disposed",
+   "severity": "low (memory; test code)",
+   "note": "Zip_Create_Empty_And_Read",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "tests__SharpCompress.Test__Zip__ZipReaderTests.cs",
+    377,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "external factory row (ZipReader.Open over an entry stream); the reader (and the entry stream it wraps) is never disposed",
+   "severity": "low (test code)",
+   "note": "Zip_Uncompressed_64bit",
+   "review_minutes": 2
+  }
+ ],
+ "Newtonsoft.Json/tests": [
+  {
+   "finding": [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    56,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "external factory row (JToken.CreateReader is fresh, proved) but JTokenReader holds no OS resource: its Dispose/Close only changes state \u2014 a dispose-optional TYPE question, the same class as the resource-effects HttpRequestMessage observation",
+   "severity": "none (no resource)",
+   "note": "JTokenReaderTest",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    68,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "external factory row (JToken.CreateReader is fresh, proved) but JTokenReader holds no OS resource: its Dispose/Close only changes state \u2014 a dispose-optional TYPE question, the same class as the resource-effects HttpRequestMessage observation",
+   "severity": "none (no resource)",
+   "note": "JTokenReaderTest",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    210,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "external factory row (JToken.CreateReader is fresh, proved) but JTokenReader holds no OS resource: its Dispose/Close only changes state \u2014 a dispose-optional TYPE question, the same class as the resource-effects HttpRequestMessage observation",
+   "severity": "none (no resource)",
+   "note": "JTokenReaderTest",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    491,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "external factory row (JToken.CreateReader is fresh, proved) but JTokenReader holds no OS resource: its Dispose/Close only changes state \u2014 a dispose-optional TYPE question, the same class as the resource-effects HttpRequestMessage observation",
+   "severity": "none (no resource)",
+   "note": "JTokenReaderTest",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    572,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "external factory row (JToken.CreateReader is fresh, proved) but JTokenReader holds no OS resource: its Dispose/Close only changes state \u2014 a dispose-optional TYPE question, the same class as the resource-effects HttpRequestMessage observation",
+   "severity": "none (no resource)",
+   "note": "JTokenReaderTest",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "Src__Newtonsoft.Json.Tests__Linq__JTokenReaderTest.cs",
+    629,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "external factory row (JToken.CreateReader is fresh, proved) but JTokenReader holds no OS resource: its Dispose/Close only changes state \u2014 a dispose-optional TYPE question, the same class as the resource-effects HttpRequestMessage observation",
+   "severity": "none (no resource)",
+   "note": "JTokenReaderTest",
+   "review_minutes": 2
+  }
+ ],
+ "SkiaSharp/tests": [
+  {
+   "finding": [
+    "tests__Tests__SkiaSharp__SKBitmapTest.cs",
+    143,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "external factory row (SKBitmap.Decode returns a fresh native-backed bitmap); never disposed (nor the Copy result)",
+   "severity": "medium (native memory; test code)",
+   "note": "CopyIndex8ToPlatformPreservesData",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "tests__Tests__SkiaSharp__SKBitmapTest.cs",
+    338,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "same",
+   "severity": "medium",
+   "note": "TestExtractAlpha",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "tests__Tests__SkiaSharp__SKCodecTest.cs",
+    323,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "same (correctBitmap)",
+   "severity": "medium",
+   "note": "DecodeImageScanlines",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "tests__Tests__SkiaSharp__SKDataTest.cs",
+    46,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "external factory row (SKData.AsStream returns a fresh SKStream over native data); never disposed",
+   "severity": "low (native wrapper; test code)",
+   "note": "AsStreamReturnsCorrectStreamData",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "tests__Tests__SkiaSharp__SKDataTest.cs",
+    59,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "same",
+   "severity": "low",
+   "note": "CanWriteToAsStream",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "tests__Tests__SkiaSharp__SKDataTest.cs",
+    216,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "same; the test is [Fact(Skip)] \u2014 real code, never executed",
+   "severity": "low",
+   "note": "DataDisposedReturnsInvalidStream (skipped test)",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "tests__Tests__SkiaSharp__SKFontTest.cs",
+    325,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "external factory row (SKFont.GetTextPath returns a fresh native SKPath); never disposed",
+   "severity": "low (native; test code)",
+   "note": "GetTextPathOnEmpty?/intercepts test",
+   "review_minutes": 2
+  }
+ ],
+ "SSH.NET/tests": [
+  {
+   "finding": [
+    "test__Renci.SshNet.IntegrationTests__ConnectivityTests.cs",
+    397,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "external factory row (SshClient.CreateCommand returns a fresh SshCommand owning a channel); never disposed",
+   "severity": "medium (channel/session resources; integration test)",
+   "note": "ConnectivityTests",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "test__Renci.SshNet.IntegrationTests__SshClientTests.cs",
+    97,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "same",
+   "severity": "medium",
+   "note": "SshClientTests",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "test__Renci.SshNet.IntegrationTests__SshClientTests.cs",
+    105,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "same",
+   "severity": "medium",
+   "note": "SshClientTests",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+    182,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "external factory row (SshClient.CreateShell returns a fresh Shell owning a channel); never disposed",
+   "severity": "medium",
+   "note": "SshTests",
+   "review_minutes": 2
+  },
+  {
+   "finding": [
+    "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+    207,
+    "OWN001"
+   ],
+   "verdict": "TRUE",
+   "root_cause": "same",
+   "severity": "medium",
+   "note": "SshTests",
+   "review_minutes": 2
+  }
+ ],
+ "Google.Protobuf/tests": [
+  {
+   "finding": [
+    "csharp__src__Google.Protobuf.Test__ByteStringTest.cs",
+    193,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "resource-spec: CodedInputStream created from a ByteString has no underlying Stream, so its Dispose is inert on this construction path; the object is fresh (row correct) but the missed disposal costs nothing",
+   "severity": "none",
+   "overlap": "IDISP001 would also flag (any IDisposable local); CA2000 excludes non-stream-like types? (not run)",
+   "note": "test code; the row is semantically right, the finding is noise for this type's memory-only constructions"
+  }
+ ],
+ "K4os.Compression.LZ4.Streams/tests": [
+  {
+   "finding": [
+    "src__K4os.Compression.LZ4.Streams.Tests__StreamInterfaceTests.cs",
+    57,
+    "OWN003"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "intentional: the test CallingDisposeMultipleTimesIsFine disposes the decoder stream 1001 times on purpose; OWN003 (disposed more than once) is factually correct and newly reachable because the row makes LZ4Stream.Decode a tracked acquire",
+   "severity": "none",
+   "overlap": "IDISP017 (prefer using) / no double-dispose rule in CA2000; not run",
+   "note": "test code; a correct verdict on an intentional pattern"
+  }
+ ],
+ "Serilog/tests": [
+  {
+   "finding": [
+    "test__Serilog.Tests__Context__LogContextTests.cs",
+    10,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Context__LogContextTests.cs",
+    29,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Context__LogContextTests.cs",
+    48,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Context__LogContextTests.cs",
+    67,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Context__LogContextTests.cs",
+    90,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Context__LogContextTests.cs",
+    145,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Context__LogContextTests.cs",
+    175,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__AuditSinkTests.cs",
+    52,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+    13,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+    45,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+    117,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__ChildLoggerKnownLimitationsTests.cs",
+    169,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+    80,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+    121,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+    212,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__ChildLoggerTests.cs",
+    271,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__LoggerExtensionsTests.cs",
+    16,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__LoggerExtensionsTests.cs",
+    39,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__LoggerTests.cs",
+    294,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__LoggerTests.cs",
+    309,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__LoggerTests.cs",
+    417,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__LoggerTests.cs",
+    456,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__SecondaryLoggerSinkTests.cs",
+    60,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  },
+  {
+   "finding": [
+    "test__Serilog.Tests__Core__SecondaryLoggerSinkTests.cs",
+    76,
+    "OWN001"
+   ],
+   "verdict": "BENIGN",
+   "root_cause": "WITNESSED row LoggerConfiguration.CreateLogger (fresh Serilog.Core.Logger owning its sinks); the test logger is built over in-memory sinks (CollectingSink/DelegatingSink), whose disposal is inert, and is never disposed",
+   "severity": "none in test code (in production an undisposed Logger over file/network sinks loses buffered events: a real class)",
+   "overlap": "IDISP001 (any undisposed IDisposable local) expected to flag; CA2000 checked on the minimal repro",
+   "note": "Serilog tests",
+   "review_minutes": 0.5
+  }
+ ]
+}

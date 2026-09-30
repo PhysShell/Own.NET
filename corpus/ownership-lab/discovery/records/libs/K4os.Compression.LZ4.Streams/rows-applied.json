@@ -1,0 +1,56 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for K4os.Compression.LZ4.Streams 1.3.8 (BODY_PROVED + WITNESSED; MVID 38e23572-cbfb-4606-a307-86a2e169c893)",
+ "entries": [
+  {
+   "callable": "K4os.Compression.LZ4.Streams.Extensions.AsStream",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "K4os.Compression.LZ4.Streams",
+    "mvid": "38e23572-cbfb-4606-a307-86a2e169c893"
+   },
+   "derived_from": "None@None via E1/E3 (inferred)"
+  },
+  {
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Decode",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "K4os.Compression.LZ4.Streams",
+    "mvid": "38e23572-cbfb-4606-a307-86a2e169c893"
+   },
+   "derived_from": "None@None via E1/E3 (inferred)"
+  },
+  {
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Frame.Encode",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "K4os.Compression.LZ4.Streams",
+    "mvid": "38e23572-cbfb-4606-a307-86a2e169c893"
+   },
+   "derived_from": "None@None via E1/E3 (inferred)"
+  },
+  {
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Stream.Decode",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "K4os.Compression.LZ4.Streams",
+    "mvid": "38e23572-cbfb-4606-a307-86a2e169c893"
+   },
+   "derived_from": "None@None via E1/E3 (inferred)"
+  },
+  {
+   "callable": "K4os.Compression.LZ4.Streams.LZ4Stream.Encode",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "K4os.Compression.LZ4.Streams",
+    "mvid": "38e23572-cbfb-4606-a307-86a2e169c893"
+   },
+   "derived_from": "None@None via E1/E3 (inferred)"
+  }
+ ]
+}

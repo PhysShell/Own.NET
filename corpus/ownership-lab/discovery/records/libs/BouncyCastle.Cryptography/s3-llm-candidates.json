@@ -1,0 +1,76 @@
+{
+ "package": "BouncyCastle.Cryptography",
+ "written_at_utc": "2026-09-30T04:09:40Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read)",
+ "note": "a large surface: the LLM arm lists 6 of ~74 candidates; the rest are UNDECIDED by omission",
+ "suggested_rows": [
+  {
+   "callable": "Org.BouncyCastle.Asn1.Asn1OutputStream.Create",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new ASN.1 output stream over the given stream (adopts? UNSURE: BC streams often do not close the underlying)"
+  },
+  {
+   "callable": "Org.BouncyCastle.Bcpg.OpenPgp.PgpCompressedDataGenerator.Open",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new output stream that must be closed to finish the packet"
+  },
+  {
+   "callable": "Org.BouncyCastle.Bcpg.OpenPgp.PgpEncryptedDataGenerator.Open",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same"
+  },
+  {
+   "callable": "Org.BouncyCastle.Bcpg.OpenPgp.PgpLiteralDataGenerator.Open",
+   "arity": 3,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "same"
+  },
+  {
+   "callable": "Org.BouncyCastle.Bcpg.OpenPgp.PgpUtilities.GetDecoderStream",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new armored/decoder stream (or the input itself: UNSURE)"
+  },
+  {
+   "callable": "Org.BouncyCastle.Bcpg.OpenPgp.PgpPublicKeyEncryptedData.GetDataStream",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new decrypting stream"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "Org.BouncyCastle.Cms.CmsContentInfoParser.Close",
+   "arity": 0,
+   "why": "Close == Dispose"
+  }
+ ],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "CipherStream(Stream, IBufferedCipher, IBufferedCipher)",
+   "judgement": "adopt: closing the CipherStream closes the underlying (BC convention: UNSURE)"
+  },
+  {
+   "ctor": "ArmoredOutputStream(Stream, bool addVersionHeader)",
+   "judgement": "the bool is not an ownership flag; adopts UNSURE"
+  },
+  {
+   "ctor": "PemReader(TextReader)/PemWriter(TextWriter)",
+   "judgement": "borrow: the reader/writer wrappers do not close (UNSURE)"
+  },
+  {
+   "ctor": "*(Stream, bool leaveOpen)",
+   "judgement": "adopt-if(leaveOpen == false): the H-03 shape (one ctor in the listing)"
+  }
+ ]
+}

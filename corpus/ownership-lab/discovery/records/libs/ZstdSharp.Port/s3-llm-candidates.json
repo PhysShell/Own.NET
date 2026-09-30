@@ -1,0 +1,28 @@
+{
+ "package": "ZstdSharp.Port",
+ "version": "0.8.8",
+ "written_at_utc": "2026-09-30T04:50:13Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read; no source body read before this file was written)",
+ "suggested_rows": [],
+ "suggested_negatives": [],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "CompressionStream(Stream, int level, int bufferSize, bool leaveOpen)",
+   "judgement": "adopt-unless(leaveOpen)"
+  },
+  {
+   "ctor": "CompressionStream(Stream, Compressor, int bufferSize, bool preserveCompressor, bool leaveOpen)",
+   "judgement": "stream: adopt-unless(leaveOpen); compressor: adopt-unless(preserveCompressor): two independent ownership flags in one ctor"
+  },
+  {
+   "ctor": "DecompressionStream(Stream, int bufferSize, bool checkEndOfStream, bool leaveOpen)",
+   "judgement": "adopt-unless(leaveOpen); checkEndOfStream is unrelated (a bool that is NOT an ownership flag: a hostile twin for any name-based flag heuristic)"
+  },
+  {
+   "ctor": "DecompressionStream(Stream, Decompressor, int, bool checkEndOfStream, bool preserveDecompressor, bool leaveOpen)",
+   "judgement": "stream: adopt-unless(leaveOpen); decompressor: adopt-unless(preserveDecompressor); checkEndOfStream unrelated"
+  }
+ ],
+ "note": "no factory methods on the public surface (4 disposable types reached only through constructors); the LLM arm has nothing to suggest. Kept in the sample as a zero-factory data point: the OFF arm already tracks the constructor allocations."
+}

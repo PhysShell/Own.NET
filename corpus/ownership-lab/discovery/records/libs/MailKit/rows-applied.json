@@ -1,0 +1,26 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for MailKit 4.18.1 (BODY_PROVED + WITNESSED; MVID 762b5943-5c82-4157-a98e-a67f79017a8b)",
+ "entries": [
+  {
+   "callable": "MailKit.Net.Imap.ImapFolder.GetStream",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "MailKit",
+    "mvid": "762b5943-5c82-4157-a98e-a67f79017a8b"
+   },
+   "derived_from": "None@None via E1/E3 (inferred)"
+  },
+  {
+   "callable": "MailKit.Net.Imap.ImapFolder.GetStreamAsync",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "MailKit",
+    "mvid": "762b5943-5c82-4157-a98e-a67f79017a8b"
+   },
+   "derived_from": "None@None via E1/E3 (inferred)"
+  }
+ ]
+}

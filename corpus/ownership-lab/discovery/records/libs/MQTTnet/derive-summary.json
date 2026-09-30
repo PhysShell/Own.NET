@@ -1,0 +1,28 @@
+{
+ "source_files": 17,
+ "perfile_union_added_fresh": [],
+ "extractor_stats": {
+  "methods_with_local": 22,
+  "methods_flow_analysed": 18,
+  "methods_skipped_unmodelled": 4
+ },
+ "re_body_census": "fresh_return=8",
+ "fresh_summaries_all": [
+  "MQTTnet.MqttClientFactory.CreateLowLevelMqttClient",
+  "MQTTnet.MqttClientFactory.CreateLowLevelMqttClient()",
+  "MQTTnet.MqttClientFactory.CreateLowLevelMqttClient(MQTTnet.Adapter.IMqttClientAdapterFactory)",
+  "MQTTnet.MqttClientFactory.CreateLowLevelMqttClient(MQTTnet.Diagnostics.Logger.IMqttNetLogger)",
+  "MQTTnet.MqttClientFactory.CreateLowLevelMqttClient(MQTTnet.Diagnostics.Logger.IMqttNetLogger,MQTTnet.Adapter.IMqttClientAdapterFactory)",
+  "MQTTnet.MqttClientFactory.CreateMqttClient",
+  "MQTTnet.MqttClientFactory.CreateMqttClient()",
+  "MQTTnet.MqttClientFactory.CreateMqttClient(MQTTnet.Adapter.IMqttClientAdapterFactory)",
+  "MQTTnet.MqttClientFactory.CreateMqttClient(MQTTnet.Diagnostics.Logger.IMqttNetLogger)",
+  "MQTTnet.MqttClientFactory.CreateMqttClient(MQTTnet.Diagnostics.Logger.IMqttNetLogger,MQTTnet.Adapter.IMqttClientAdapterFactory)"
+ ],
+ "receiver_release_all": [
+  "MQTTnet.Implementations.MqttTcpChannel.DisconnectAsync"
+ ],
+ "fresh_not_public_surface": [],
+ "instance_methods_evaluated": 142,
+ "public_rows": 3
+}

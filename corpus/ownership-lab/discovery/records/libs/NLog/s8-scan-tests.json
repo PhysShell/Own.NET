@@ -1,0 +1,669 @@
+{
+ "package": "NLog",
+ "consumer": "tests",
+ "files": 26,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/NLog/rows-applied.json",
+ "key_sha256": "702616445338fe77f72d1928ea4e1b8bd3b90013967c6857eb91f78e4ada92be",
+ "off": {
+  "findings": [
+   [
+    "tests__NLog.UnitTests__Contexts__MappedDiagnosticsContextTests.cs",
+    197,
+    "OWN001",
+    "IDisposable local 'thread' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Contexts__MappedDiagnosticsLogicalContextTests.cs",
+    306,
+    "OWN001",
+    "IDisposable local 'thread' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__GetLoggerTests.cs",
+    60,
+    "OWN001",
+    "IDisposable local 'lf' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__GetLoggerTests.cs",
+    82,
+    "OWN001",
+    "IDisposable local 'lf' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__GetLoggerTests.cs",
+    104,
+    "OWN001",
+    "IDisposable local 'lf' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__GetLoggerTests.cs",
+    120,
+    "OWN001",
+    "IDisposable local 'lf' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__LogFactoryTests.cs",
+    107,
+    "OWN001",
+    "IDisposable local 'logFactory' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__LogFactoryTests.cs",
+    117,
+    "OWN001",
+    "IDisposable local 'logFactory' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__LogFactoryTests.cs",
+    128,
+    "OWN001",
+    "IDisposable local 'logFactory' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__LogFactoryTests.cs",
+    288,
+    "OWN001",
+    "IDisposable local 'logFactory' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__LogFactoryTests.cs",
+    410,
+    "OWN001",
+    "IDisposable local 'factory' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__LogFactoryTests.cs",
+    433,
+    "OWN001",
+    "IDisposable local 'factory' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__AsyncTaskTargetTest.cs",
+    51,
+    "OWN001",
+    "IDisposable field '_writeEvent' (type 'AutoResetEvent') is never disposed \u2014 its owner 'AsyncTaskTestTarget' leaks it (leak) [resource: disposable field]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__ConsoleTargetTests.cs",
+    60,
+    "OWN001",
+    "IDisposable local 'target' may not be disposed on every path (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__ConsoleTargetTests.cs",
+    107,
+    "OWN001",
+    "IDisposable local 'target' may not be disposed on every path (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__ConsoleTargetTests.cs",
+    174,
+    "OWN001",
+    "IDisposable local 'target' may not be disposed on every path (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__FileTargetTests.cs",
+    1019,
+    "OWN001",
+    "IDisposable local 'fileStream' may not be disposed on every path (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__FileTargetTests.cs",
+    3778,
+    "OWN014",
+    "event 'AppDomain.CurrentDomain.TypeResolve' is subscribed (handler 'noResolveTest') to a static (process-lived) event source that outlives 'FileTargetTests'; the strong subscription promotes 'FileTargetTests' to the source's lifetime, so it can never be collected \u2014 a region escape (leak, no release path) [resource: subscription token]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__FileTargetTests.cs",
+    3779,
+    "OWN014",
+    "event 'AppDomain.CurrentDomain.AssemblyResolve' is subscribed (handler 'noResolveTest') to a static (process-lived) event source that outlives 'FileTargetTests'; the strong subscription promotes 'FileTargetTests' to the source's lifetime, so it can never be collected \u2014 a region escape (leak, no release path) [resource: subscription token]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__FileTargetTests.cs",
+    4361,
+    "OWN001",
+    "IDisposable local 'fileTarget' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    298,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    310,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    331,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    352,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    430,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    442,
+    "OWN002",
+    "IDisposable local 'target' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    442,
+    "OWN003",
+    "IDisposable local 'target' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    456,
+    "OWN002",
+    "IDisposable local 'target' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    466,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    485,
+    "OWN002",
+    "IDisposable local 'target' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    510,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    525,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    556,
+    "OWN002",
+    "IDisposable local 'target' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    622,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetWithContextTest.cs",
+    147,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetWithContextTest.cs",
+    159,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetWithContextTest.cs",
+    171,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetWithContextTest.cs",
+    183,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AsyncTargetWrapperTests.cs",
+    51,
+    "OWN001",
+    "IDisposable local 'targetWrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AsyncTargetWrapperTests.cs",
+    62,
+    "OWN001",
+    "IDisposable local 'targetWrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AsyncTargetWrapperTests.cs",
+    965,
+    "OWN001",
+    "IDisposable field '_writeEvent' (type 'AutoResetEvent') is never disposed \u2014 its owner 'MyTarget' leaks it (leak) [resource: disposable field]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    50,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    86,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    166,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    204,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    262,
+    "OWN001",
+    "IDisposable local 'autoFlushWrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    283,
+    "OWN001",
+    "IDisposable local 'autoFlushOnMessageWrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    306,
+    "OWN001",
+    "IDisposable local 'autoFlushOnLevelWrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    332,
+    "OWN001",
+    "IDisposable local 'autoFlushOnLevelWrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__LimitingTargetWrapperTests.cs",
+    232,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__LimitingTargetWrapperTests.cs",
+    242,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__LimitingTargetWrapperTests.cs",
+    252,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__RetryingTargetWrapperTests.cs",
+    49,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 75,
+   "methods_flow_analysed": 72,
+   "methods_skipped_unmodelled": 3
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "tests__NLog.UnitTests__Contexts__MappedDiagnosticsContextTests.cs",
+    197,
+    "OWN001",
+    "IDisposable local 'thread' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Contexts__MappedDiagnosticsLogicalContextTests.cs",
+    306,
+    "OWN001",
+    "IDisposable local 'thread' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__GetLoggerTests.cs",
+    60,
+    "OWN001",
+    "IDisposable local 'lf' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__GetLoggerTests.cs",
+    82,
+    "OWN001",
+    "IDisposable local 'lf' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__GetLoggerTests.cs",
+    104,
+    "OWN001",
+    "IDisposable local 'lf' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__GetLoggerTests.cs",
+    120,
+    "OWN001",
+    "IDisposable local 'lf' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__LogFactoryTests.cs",
+    107,
+    "OWN001",
+    "IDisposable local 'logFactory' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__LogFactoryTests.cs",
+    117,
+    "OWN001",
+    "IDisposable local 'logFactory' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__LogFactoryTests.cs",
+    128,
+    "OWN001",
+    "IDisposable local 'logFactory' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__LogFactoryTests.cs",
+    288,
+    "OWN001",
+    "IDisposable local 'logFactory' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__LogFactoryTests.cs",
+    410,
+    "OWN001",
+    "IDisposable local 'factory' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__LogFactoryTests.cs",
+    433,
+    "OWN001",
+    "IDisposable local 'factory' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__AsyncTaskTargetTest.cs",
+    51,
+    "OWN001",
+    "IDisposable field '_writeEvent' (type 'AutoResetEvent') is never disposed \u2014 its owner 'AsyncTaskTestTarget' leaks it (leak) [resource: disposable field]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__ConsoleTargetTests.cs",
+    60,
+    "OWN001",
+    "IDisposable local 'target' may not be disposed on every path (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__ConsoleTargetTests.cs",
+    107,
+    "OWN001",
+    "IDisposable local 'target' may not be disposed on every path (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__ConsoleTargetTests.cs",
+    174,
+    "OWN001",
+    "IDisposable local 'target' may not be disposed on every path (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__FileTargetTests.cs",
+    1019,
+    "OWN001",
+    "IDisposable local 'fileStream' may not be disposed on every path (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__FileTargetTests.cs",
+    3778,
+    "OWN014",
+    "event 'AppDomain.CurrentDomain.TypeResolve' is subscribed (handler 'noResolveTest') to a static (process-lived) event source that outlives 'FileTargetTests'; the strong subscription promotes 'FileTargetTests' to the source's lifetime, so it can never be collected \u2014 a region escape (leak, no release path) [resource: subscription token]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__FileTargetTests.cs",
+    3779,
+    "OWN014",
+    "event 'AppDomain.CurrentDomain.AssemblyResolve' is subscribed (handler 'noResolveTest') to a static (process-lived) event source that outlives 'FileTargetTests'; the strong subscription promotes 'FileTargetTests' to the source's lifetime, so it can never be collected \u2014 a region escape (leak, no release path) [resource: subscription token]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__FileTargetTests.cs",
+    4361,
+    "OWN001",
+    "IDisposable local 'fileTarget' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    298,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    310,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    331,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    352,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    430,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    442,
+    "OWN002",
+    "IDisposable local 'target' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    442,
+    "OWN003",
+    "IDisposable local 'target' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    456,
+    "OWN002",
+    "IDisposable local 'target' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    466,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    485,
+    "OWN002",
+    "IDisposable local 'target' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    510,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    525,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    556,
+    "OWN002",
+    "IDisposable local 'target' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetTests.cs",
+    622,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetWithContextTest.cs",
+    147,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetWithContextTest.cs",
+    159,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetWithContextTest.cs",
+    171,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__TargetWithContextTest.cs",
+    183,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AsyncTargetWrapperTests.cs",
+    51,
+    "OWN001",
+    "IDisposable local 'targetWrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AsyncTargetWrapperTests.cs",
+    62,
+    "OWN001",
+    "IDisposable local 'targetWrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AsyncTargetWrapperTests.cs",
+    965,
+    "OWN001",
+    "IDisposable field '_writeEvent' (type 'AutoResetEvent') is never disposed \u2014 its owner 'MyTarget' leaks it (leak) [resource: disposable field]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    50,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    86,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    166,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    204,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    262,
+    "OWN001",
+    "IDisposable local 'autoFlushWrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    283,
+    "OWN001",
+    "IDisposable local 'autoFlushOnMessageWrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    306,
+    "OWN001",
+    "IDisposable local 'autoFlushOnLevelWrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__AutoFlushTargetWrapperTests.cs",
+    332,
+    "OWN001",
+    "IDisposable local 'autoFlushOnLevelWrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__LimitingTargetWrapperTests.cs",
+    232,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__LimitingTargetWrapperTests.cs",
+    242,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__LimitingTargetWrapperTests.cs",
+    252,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "tests__NLog.UnitTests__Targets__Wrappers__RetryingTargetWrapperTests.cs",
+    49,
+    "OWN001",
+    "IDisposable local 'wrapper' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: "
+  ],
+  "stats": {
+   "methods_with_local": 75,
+   "methods_flow_analysed": 72,
+   "methods_skipped_unmodelled": 3
+  }
+ },
+ "new_findings": [],
+ "lost_findings": []
+}

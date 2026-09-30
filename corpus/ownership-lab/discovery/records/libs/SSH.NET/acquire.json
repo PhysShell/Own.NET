@@ -1,0 +1,28 @@
+{
+ "package": "SSH.NET",
+ "version": "2026.0.0",
+ "nupkg_sha256": "b2515de616821198f5cf5530f5ea198912730bbe3504ef4c6aee00a661fecac2",
+ "repository_url": "https://github.com/sshnet/SSH.NET",
+ "repository_commit": "7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e",
+ "lib_files": [
+  "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SSH.NET/lib/net8.0/Renci.SshNet.dll"
+ ],
+ "main_assembly": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SSH.NET/lib/net8.0/Renci.SshNet.dll",
+ "identity": {
+  "path": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SSH.NET/lib/net8.0/Renci.SshNet.dll",
+  "name": "Renci.SshNet",
+  "version": "2026.0.0.1",
+  "culture": "",
+  "public_key_token": "1cee9f8bde3db106",
+  "mvid": "00a77c77-e75d-4c4c-a3f9-73306891a548",
+  "target_framework": ".NETCoreApp,Version=v8.0",
+  "informational_version": "2026.0.0.1+7b2fd3dbf2",
+  "sha256": "f0e7c1d1911dc8565ea10f203e8b3fa2baeddcc58480afb7291f922f88d13e05",
+  "size": 547840
+ },
+ "xmldoc": [
+  "lib/net10.0/Renci.SshNet.xml",
+  "lib/net462/Renci.SshNet.xml",
+  "lib/net8.0/Renci.SshNet.xml"
+ ]
+}

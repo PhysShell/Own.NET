@@ -1,0 +1,60 @@
+{
+ "package": "RabbitMQ.Client",
+ "written_at_utc": "2026-09-30T04:05:02Z",
+ "written_before_bodies": true,
+ "source_of_judgement": "api.json listing + general API knowledge (XML docs not read)",
+ "note": "async factories dominate; the sync effect vocabulary cannot carry Task<T> results: expected UNDECIDABLE for most rows",
+ "suggested_rows": [
+  {
+   "callable": "RabbitMQ.Client.ConnectionFactory.CreateConnectionAsync",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new IConnection (async factory)"
+  },
+  {
+   "callable": "RabbitMQ.Client.IConnection.CreateChannelAsync",
+   "arity": 2,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new IChannel owned by the caller"
+  },
+  {
+   "callable": "RabbitMQ.Client.ConnectionFactoryBase.DefaultSocketFactory",
+   "arity": 1,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "a new ITcpClient (socket wrapper)"
+  },
+  {
+   "callable": "RabbitMQ.Client.TcpClientAdapter.GetStream",
+   "arity": 0,
+   "effect": "return_fresh_owned",
+   "provenance": "SUGGESTED",
+   "rationale": "UNSURE: NetworkStream over the socket; may be cached"
+  }
+ ],
+ "suggested_negatives": [
+  {
+   "callable": "RabbitMQ.Client.IChannel.CloseAsync",
+   "arity": 0,
+   "why": "CloseAsync closes the channel; Dispose still expected: not terminal by the strict definition (UNSURE)"
+  },
+  {
+   "callable": "RabbitMQ.Client.IConnection.CloseAsync",
+   "arity": 0,
+   "why": "same as channel"
+  },
+  {
+   "callable": "RabbitMQ.Client.TcpClientAdapter.Close",
+   "arity": 0,
+   "why": "closes the socket: terminal for the adapter (candidate release, UNSURE)"
+  }
+ ],
+ "adopting_ctor_judgements": [
+  {
+   "ctor": "TcpClientAdapter(Socket)",
+   "judgement": "adopt: the adapter owns and closes the socket (SUGGESTED adopt)"
+  }
+ ]
+}

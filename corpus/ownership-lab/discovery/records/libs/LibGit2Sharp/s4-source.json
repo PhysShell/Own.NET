@@ -1,0 +1,77 @@
+{
+ "package": "LibGit2Sharp",
+ "repo": "libgit2/libgit2sharp",
+ "commit": "eaa698d078941fd5e3cc82b59b885cd35d8cc0f8",
+ "files": [
+  {
+   "path": "LibGit2Sharp/Repository.cs",
+   "sha256": "153247f6391a886a255ec6dea9622333c9f1c22dfd85e03186ff4b39cfacf78c",
+   "bytes": 75486
+  },
+  {
+   "path": "LibGit2Sharp/Configuration.cs",
+   "sha256": "ea20f41957591d5e850b5bf545d4651dc23bad68f0c0d6c5def7f9c83aaca0ef",
+   "bytes": 37781
+  },
+  {
+   "path": "LibGit2Sharp/Blob.cs",
+   "sha256": "d0c82e04263d128e5f35f70e3ec9f0a8b0d3ed8d6c6d0cf7ad1e118e61562e30",
+   "bytes": 5558
+  },
+  {
+   "path": "LibGit2Sharp/ObjectDatabase.cs",
+   "sha256": "9560167eafd5709aaf7b52d8f63cfc3a0537dbed3828528beb1499d60def49fa",
+   "bytes": 49417
+  },
+  {
+   "path": "LibGit2Sharp/PackBuilder.cs",
+   "sha256": "a137379e008b36d78ba6ff0bb1dfa8b5c1ff2b1ec0fd628069393277a38e23bb",
+   "bytes": 7116
+  },
+  {
+   "path": "LibGit2Sharp/Patch.cs",
+   "sha256": "34dc772bb26e0646518cccd25394717dde16f959a0c0d30e9ca97d0e17fd0271",
+   "bytes": 7084
+  },
+  {
+   "path": "LibGit2Sharp/PatchStats.cs",
+   "sha256": "60ec185bdf04d4526a6dcc2ff7d294b27a020358251307d8ba0d19b1c7df0af9",
+   "bytes": 4868
+  },
+  {
+   "path": "LibGit2Sharp/Remote.cs",
+   "sha256": "8910390bde1399ec6a012ba6e9a1d14541c5244f932ab329820c3f6c92f28a6a",
+   "bytes": 5896
+  },
+  {
+   "path": "LibGit2Sharp/RemoteCollection.cs",
+   "sha256": "6fafe69efff3d2da168d09acc516db87151ee2d3d8d3b1564a7c026bb7394126",
+   "bytes": 6681
+  },
+  {
+   "path": "LibGit2Sharp/TransientIndex.cs",
+   "sha256": "3913cfa5f0cec30110a91df2a9612779bfd9217cf4c87f58ed83af4a88c48303",
+   "bytes": 850
+  },
+  {
+   "path": "LibGit2Sharp/TreeChanges.cs",
+   "sha256": "7478b0ce63062feb345e7903626f5c504bd9d7ffeb7482026521658c85fc4e29",
+   "bytes": 7525
+  },
+  {
+   "path": "LibGit2Sharp/Diff.cs",
+   "sha256": "a6bbf4cddc42b41c616d7add40eb12cbd1aea6d8e090ef2e0176af06984bb1bb",
+   "bytes": 34193
+  },
+  {
+   "path": "LibGit2Sharp/Index.cs",
+   "sha256": "6afe45596bbafc364ca6f2f6ae0a4ebd66fc67c9ef546ab4f865ff624a22d788",
+   "bytes": 11994
+  },
+  {
+   "path": "LibGit2Sharp/Network.cs",
+   "sha256": "7ba6ce9c8de86598e6c9f8622fdbe0dd1ad3d333aea4252cacdfc6d6664c820a",
+   "bytes": 21671
+  }
+ ]
+}

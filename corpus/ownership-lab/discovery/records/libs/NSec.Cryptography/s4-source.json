@@ -1,0 +1,46 @@
+{
+ "package": "NSec.Cryptography",
+ "repo": "ektrah/nsec",
+ "commit": "02c51bb20a7b6accc96e74ecab6e2659cc1f5c63",
+ "files": [
+  {
+   "path": "src/Cryptography/Key.cs",
+   "sha256": "aba4d4aea40cd5b0a244acd5a74ebe5a41d7d061a8db6203f46029f009e1db27",
+   "bytes": 8911
+  },
+  {
+   "path": "src/Cryptography/SharedSecret.cs",
+   "sha256": "58497f9ebb21996a9537d90633148c4fcea32cf94d9d768894ffd3dd50da9f86",
+   "bytes": 8529
+  },
+  {
+   "path": "src/Cryptography/KeyAgreementAlgorithm.cs",
+   "sha256": "38c3d96093d4936e53c61083a37e0829a55b9e277ecc587fbda19f13fde0ad24",
+   "bytes": 3761
+  },
+  {
+   "path": "src/Cryptography/KeyDerivationAlgorithm.cs",
+   "sha256": "616e82aa83377d3d87ec92b6db3e0b36f4dac8a56650606f0310ac4b21f86698",
+   "bytes": 12806
+  },
+  {
+   "path": "src/Cryptography/KeyDerivationAlgorithm2.cs",
+   "sha256": "12f9ea531b2bb551b6886d79b260ee58c201857834d189e6849a543d529010f6",
+   "bytes": 9599
+  },
+  {
+   "path": "src/Cryptography/PasswordBasedKeyDerivationAlgorithm.cs",
+   "sha256": "11e62f2a3ac9fd8aaf28bc6f97d33b75d3d6a5b1e15a8c921b1bfb4f46d008e7",
+   "bytes": 6976
+  },
+  {
+   "path": "src/Cryptography/Algorithm.cs",
+   "sha256": "7d47b2d9ca991a7cc9e9a241492a32f71cf4a81f6cd32e0d2854c5035e3580c4",
+   "bytes": 3256
+  },
+  {
+   "path": "src/Cryptography/SecureMemoryHandle.cs",
+   "error": "HTTP Error 404: Not Found"
+  }
+ ]
+}

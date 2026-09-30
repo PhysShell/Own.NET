@@ -1,0 +1,47 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "discovery APPLIED rows for CsvHelper 33.1.0 (BODY_PROVED + WITNESSED; MVID 64574a8c-edb4-4e30-aeac-95290a74d6ad)",
+ "entries": [
+  {
+   "callable": "CsvHelper.Factory.CreateParser",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "CsvHelper",
+    "mvid": "64574a8c-edb4-4e30-aeac-95290a74d6ad"
+   },
+   "derived_from": "https://github.com/JoshClose/CsvHelper@5dad8b8b1d8b074f8353cfd482e939db788a8927 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "CsvHelper.Factory.CreateReader",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "CsvHelper",
+    "mvid": "64574a8c-edb4-4e30-aeac-95290a74d6ad"
+   },
+   "derived_from": "https://github.com/JoshClose/CsvHelper@5dad8b8b1d8b074f8353cfd482e939db788a8927 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "CsvHelper.Factory.CreateWriter",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "CsvHelper",
+    "mvid": "64574a8c-edb4-4e30-aeac-95290a74d6ad"
+   },
+   "derived_from": "https://github.com/JoshClose/CsvHelper@5dad8b8b1d8b074f8353cfd482e939db788a8927 via E1/E3 (inferred)"
+  },
+  {
+   "callable": "CsvHelper.CsvDataReader.Close",
+   "effect": "receiver_terminal_release",
+   "arity": 0,
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "CsvHelper",
+    "mvid": "64574a8c-edb4-4e30-aeac-95290a74d6ad"
+   },
+   "derived_from": "https://github.com/JoshClose/CsvHelper@5dad8b8b1d8b074f8353cfd482e939db788a8927 via E2"
+  }
+ ]
+}

@@ -1,0 +1,225 @@
+{
+ "package": "BouncyCastle.Cryptography",
+ "consumer": "tests",
+ "files": 22,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/BouncyCastle.Cryptography/rows-applied.json",
+ "key_sha256": "1cebac33692f20ca2e4ac9813b042b8ebe4bf481750d24ce6e99fc96a20d6f7e",
+ "off": {
+  "findings": [
+   [
+    "crypto__test__src__cms__test__SignedDataTest.cs",
+    2477,
+    "OWN001",
+    "IDisposable local 'sp' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPArmoredTest.cs",
+    109,
+    "OWN001",
+    "IDisposable local 'aIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPArmoredTest.cs",
+    111,
+    "OWN001",
+    "IDisposable local 'bOut' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPArmoredTest.cs",
+    139,
+    "OWN001",
+    "IDisposable local 'aIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPArmoredTest.cs",
+    161,
+    "OWN002",
+    "IDisposable local 'aOut' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPArmoredTest.cs",
+    161,
+    "OWN003",
+    "IDisposable local 'aOut' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPClearSignedSignatureTest.cs",
+    187,
+    "OWN001",
+    "IDisposable local 'bOut' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPDSAElGamalTest.cs",
+    128,
+    "OWN001",
+    "IDisposable local 'testIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPPBETest.cs",
+    101,
+    "OWN001",
+    "IDisposable local 'bOut' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPRSATest.cs",
+    1022,
+    "OWN001",
+    "IDisposable local 'testIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPRSATest.cs",
+    1199,
+    "OWN001",
+    "IDisposable local 'testIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPSignatureTest.cs",
+    836,
+    "OWN001",
+    "IDisposable local 'testIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPSignatureTest.cs",
+    876,
+    "OWN001",
+    "IDisposable local 'testIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPSignatureTest.cs",
+    930,
+    "OWN001",
+    "IDisposable local 'testIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPSignatureTest.cs",
+    970,
+    "OWN001",
+    "IDisposable local 'testIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__tls__test__TlsClientTest.cs",
+    84,
+    "OWN001",
+    "IDisposable local 'tcp' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 34,
+   "methods_flow_analysed": 29,
+   "methods_skipped_unmodelled": 5
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "crypto__test__src__cms__test__SignedDataTest.cs",
+    2477,
+    "OWN001",
+    "IDisposable local 'sp' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPArmoredTest.cs",
+    109,
+    "OWN001",
+    "IDisposable local 'aIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPArmoredTest.cs",
+    111,
+    "OWN001",
+    "IDisposable local 'bOut' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPArmoredTest.cs",
+    139,
+    "OWN001",
+    "IDisposable local 'aIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPArmoredTest.cs",
+    161,
+    "OWN002",
+    "IDisposable local 'aOut' is used after it is disposed [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPArmoredTest.cs",
+    161,
+    "OWN003",
+    "IDisposable local 'aOut' is disposed more than once [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPClearSignedSignatureTest.cs",
+    187,
+    "OWN001",
+    "IDisposable local 'bOut' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPDSAElGamalTest.cs",
+    128,
+    "OWN001",
+    "IDisposable local 'testIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPPBETest.cs",
+    101,
+    "OWN001",
+    "IDisposable local 'bOut' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPRSATest.cs",
+    1022,
+    "OWN001",
+    "IDisposable local 'testIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPRSATest.cs",
+    1199,
+    "OWN001",
+    "IDisposable local 'testIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPSignatureTest.cs",
+    836,
+    "OWN001",
+    "IDisposable local 'testIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPSignatureTest.cs",
+    876,
+    "OWN001",
+    "IDisposable local 'testIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPSignatureTest.cs",
+    930,
+    "OWN001",
+    "IDisposable local 'testIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__openpgp__test__PGPSignatureTest.cs",
+    970,
+    "OWN001",
+    "IDisposable local 'testIn' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "crypto__test__src__tls__test__TlsClientTest.cs",
+    84,
+    "OWN001",
+    "IDisposable local 'tcp' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: return_fresh_owned=1"
+  ],
+  "stats": {
+   "methods_with_local": 34,
+   "methods_flow_analysed": 29,
+   "methods_skipped_unmodelled": 5
+  }
+ },
+ "new_findings": [],
+ "lost_findings": []
+}

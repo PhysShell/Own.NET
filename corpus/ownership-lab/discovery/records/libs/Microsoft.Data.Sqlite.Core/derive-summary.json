@@ -1,0 +1,22 @@
+{
+ "source_files": 14,
+ "perfile_union_added_fresh": [],
+ "extractor_stats": {
+  "methods_with_local": 11,
+  "methods_flow_analysed": 9,
+  "methods_skipped_unmodelled": 2
+ },
+ "re_body_census": "fresh_return=12 fresh_return_expression_body=10",
+ "fresh_summaries_all": [
+  "Microsoft.Data.Sqlite.SqliteConnection.CreateCommand",
+  "Microsoft.Data.Sqlite.SqliteConnection.CreateDbCommand",
+  "Microsoft.Data.Sqlite.SqliteFactory.CreateCommand",
+  "Microsoft.Data.Sqlite.SqliteFactory.CreateConnection"
+ ],
+ "receiver_release_all": [],
+ "fresh_not_public_surface": [
+  "Microsoft.Data.Sqlite.SqliteConnection.CreateDbCommand"
+ ],
+ "instance_methods_evaluated": 180,
+ "public_rows": 3
+}

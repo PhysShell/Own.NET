@@ -1,0 +1,466 @@
+{
+ "package": "SSH.NET",
+ "consumer": "tests",
+ "files": 21,
+ "key": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/disc/libs/SSH.NET/rows-applied.json",
+ "key_sha256": "ed5890b681cb5f592c47df15749cbb060f0de7d2eda3568c496a7a07f3337f50",
+ "off": {
+  "findings": [
+   [
+    "test__Renci.SshNet.IntegrationTests__SftpTests.cs",
+    2933,
+    "OWN001",
+    "IDisposable local 'sw' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SftpTests.cs",
+    2983,
+    "OWN001",
+    "IDisposable local 'sw' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SftpTests.cs",
+    3119,
+    "OWN001",
+    "IDisposable local 'sw' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SftpTests.cs",
+    6482,
+    "OWN001",
+    "IDisposable local 'sw' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+    185,
+    "OWN001",
+    "IDisposable local 'inputWriter' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+    188,
+    "OWN001",
+    "IDisposable local 'outputReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+    211,
+    "OWN001",
+    "IDisposable local 'inputWriter' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+    220,
+    "OWN001",
+    "IDisposable local 'outputReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ForwardedPortDynamicTest.cs",
+    19,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ForwardedPortDynamicTest.cs",
+    30,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ForwardedPortLocalTest.cs",
+    36,
+    "OWN001",
+    "IDisposable local 'forwardedPort' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ForwardedPortLocalTest.cs",
+    46,
+    "OWN001",
+    "IDisposable local 'forwardedPort' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ForwardedPortLocalTest.cs",
+    71,
+    "OWN001",
+    "IDisposable local 'forwardedPort' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ForwardedPortLocalTest.cs",
+    81,
+    "OWN001",
+    "IDisposable local 'forwardedPort' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ForwardedPortRemoteTest.cs",
+    21,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__NetConfClientTest.cs",
+    24,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__NetConfClientTest.cs",
+    36,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__NetConfClientTest.cs",
+    51,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__NetConfClientTest.cs",
+    66,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__PrivateKeyFileTest.cs",
+    213,
+    "OWN001",
+    "IDisposable local 'privateKeyFile' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__PrivateKeyFileTest.cs",
+    279,
+    "OWN001",
+    "IDisposable local 'privateKeyFile' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__PrivateKeyFileTest.cs",
+    293,
+    "OWN001",
+    "IDisposable local 'privateKeyFile' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__PrivateKeyFileTest.cs",
+    308,
+    "OWN001",
+    "IDisposable local 'privateKeyFile' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__PrivateKeyFileTest.cs",
+    370,
+    "OWN001",
+    "IDisposable local 'pkFile' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__PrivateKeyFileTest.cs",
+    526,
+    "OWN001",
+    "IDisposable local 'pkFile' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ScpClientTest.cs",
+    253,
+    "OWN001",
+    "IDisposable local 'client' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ScpClientTest.cs",
+    263,
+    "OWN001",
+    "IDisposable local 'client' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__SftpClientTest.cs",
+    27,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__SftpClientTest.cs",
+    39,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__SftpClientTest.cs",
+    54,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__SftpClientTest.cs",
+    69,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [],
+  "stats": {
+   "methods_with_local": 44,
+   "methods_flow_analysed": 42,
+   "methods_skipped_unmodelled": 2
+  }
+ },
+ "key_arm": {
+  "findings": [
+   [
+    "test__Renci.SshNet.IntegrationTests__ConnectivityTests.cs",
+    397,
+    "OWN001",
+    "IDisposable local 'sshCommand' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SftpTests.cs",
+    2933,
+    "OWN001",
+    "IDisposable local 'sw' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SftpTests.cs",
+    2983,
+    "OWN001",
+    "IDisposable local 'sw' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SftpTests.cs",
+    3119,
+    "OWN001",
+    "IDisposable local 'sw' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SftpTests.cs",
+    6482,
+    "OWN001",
+    "IDisposable local 'sw' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SshClientTests.cs",
+    97,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SshClientTests.cs",
+    105,
+    "OWN001",
+    "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+    182,
+    "OWN001",
+    "IDisposable local 'shell' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+    185,
+    "OWN001",
+    "IDisposable local 'inputWriter' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+    188,
+    "OWN001",
+    "IDisposable local 'outputReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+    207,
+    "OWN001",
+    "IDisposable local 'shell' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+    211,
+    "OWN001",
+    "IDisposable local 'inputWriter' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+    220,
+    "OWN001",
+    "IDisposable local 'outputReader' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ForwardedPortDynamicTest.cs",
+    19,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ForwardedPortDynamicTest.cs",
+    30,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ForwardedPortLocalTest.cs",
+    36,
+    "OWN001",
+    "IDisposable local 'forwardedPort' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ForwardedPortLocalTest.cs",
+    46,
+    "OWN001",
+    "IDisposable local 'forwardedPort' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ForwardedPortLocalTest.cs",
+    71,
+    "OWN001",
+    "IDisposable local 'forwardedPort' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ForwardedPortLocalTest.cs",
+    81,
+    "OWN001",
+    "IDisposable local 'forwardedPort' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ForwardedPortRemoteTest.cs",
+    21,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__NetConfClientTest.cs",
+    24,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__NetConfClientTest.cs",
+    36,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__NetConfClientTest.cs",
+    51,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__NetConfClientTest.cs",
+    66,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__PrivateKeyFileTest.cs",
+    213,
+    "OWN001",
+    "IDisposable local 'privateKeyFile' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__PrivateKeyFileTest.cs",
+    279,
+    "OWN001",
+    "IDisposable local 'privateKeyFile' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__PrivateKeyFileTest.cs",
+    293,
+    "OWN001",
+    "IDisposable local 'privateKeyFile' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__PrivateKeyFileTest.cs",
+    308,
+    "OWN001",
+    "IDisposable local 'privateKeyFile' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__PrivateKeyFileTest.cs",
+    370,
+    "OWN001",
+    "IDisposable local 'pkFile' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__PrivateKeyFileTest.cs",
+    526,
+    "OWN001",
+    "IDisposable local 'pkFile' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ScpClientTest.cs",
+    253,
+    "OWN001",
+    "IDisposable local 'client' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__ScpClientTest.cs",
+    263,
+    "OWN001",
+    "IDisposable local 'client' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__SftpClientTest.cs",
+    27,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__SftpClientTest.cs",
+    39,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__SftpClientTest.cs",
+    54,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ],
+   [
+    "test__Renci.SshNet.Tests__Classes__SftpClientTest.cs",
+    69,
+    "OWN001",
+    "IDisposable local 'target' is never disposed (leak) [resource: disposable]"
+   ]
+  ],
+  "python_equals_rust": true,
+  "census": [
+   "re-oracle: return_fresh_owned=10"
+  ],
+  "stats": {
+   "methods_with_local": 47,
+   "methods_flow_analysed": 45,
+   "methods_skipped_unmodelled": 2
+  }
+ },
+ "new_findings": [
+  [
+   "test__Renci.SshNet.IntegrationTests__ConnectivityTests.cs",
+   397,
+   "OWN001",
+   "IDisposable local 'sshCommand' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Renci.SshNet.IntegrationTests__SshClientTests.cs",
+   97,
+   "OWN001",
+   "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Renci.SshNet.IntegrationTests__SshClientTests.cs",
+   105,
+   "OWN001",
+   "IDisposable local 'command' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+   182,
+   "OWN001",
+   "IDisposable local 'shell' is never disposed (leak) [resource: disposable]"
+  ],
+  [
+   "test__Renci.SshNet.IntegrationTests__SshTests.cs",
+   207,
+   "OWN001",
+   "IDisposable local 'shell' is never disposed (leak) [resource: disposable]"
+  ]
+ ],
+ "lost_findings": []
+}
