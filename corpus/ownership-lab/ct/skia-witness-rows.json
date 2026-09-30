@@ -1,0 +1,522 @@
+[
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "3.119.4"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "3.119.4"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-3119-PKG-DEC",
+  "callable": "SkiaSharp.SKBitmap.Decode",
+  "version_under_test": "3.119.4",
+  "setup": "var png = Convert.FromBase64String(\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\");",
+  "expr": "SkiaSharp.SKBitmap.Decode(png)",
+  "probe": "try { var _ = ((SkiaSharp.SKBitmap)b).Width; disposedProbe = \"b_usable\"; } catch (ObjectDisposedException) { disposedProbe = \"b_disposed\"; }"
+ },
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "3.119.4"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "3.119.4"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-3119-PKG-FIM",
+  "callable": "SkiaSharp.SKBitmap.FromImage",
+  "version_under_test": "3.119.4",
+  "setup": "var img = SkiaSharp.SKImage.FromBitmap(new SkiaSharp.SKBitmap(2, 2));",
+  "expr": "SkiaSharp.SKBitmap.FromImage(img)"
+ },
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "3.119.4"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "3.119.4"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-3119-PKG-AS",
+  "callable": "SkiaSharp.SKData.AsStream",
+  "version_under_test": "3.119.4",
+  "setup": "var data = SkiaSharp.SKData.CreateCopy(new byte[] { 1, 2, 3 });",
+  "expr": "data.AsStream()"
+ },
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "3.119.4"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "3.119.4"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-3119-PKG-GTP",
+  "callable": "SkiaSharp.SKFont.GetTextPath",
+  "version_under_test": "3.119.4",
+  "setup": "var font = new SkiaSharp.SKFont();",
+  "expr": "font.GetTextPath(\"x\", SkiaSharp.SKPoint.Empty)"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/3.119.4/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/3.119.4/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-3119-NS20-DEC",
+  "callable": "SkiaSharp.SKBitmap.Decode",
+  "version_under_test": "3.119.4",
+  "setup": "var png = Convert.FromBase64String(\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\");",
+  "expr": "SkiaSharp.SKBitmap.Decode(png)",
+  "probe": "try { var _ = ((SkiaSharp.SKBitmap)b).Width; disposedProbe = \"b_usable\"; } catch (ObjectDisposedException) { disposedProbe = \"b_disposed\"; }"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/3.119.4/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/3.119.4/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-3119-NS20-FIM",
+  "callable": "SkiaSharp.SKBitmap.FromImage",
+  "version_under_test": "3.119.4",
+  "setup": "var img = SkiaSharp.SKImage.FromBitmap(new SkiaSharp.SKBitmap(2, 2));",
+  "expr": "SkiaSharp.SKBitmap.FromImage(img)"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/3.119.4/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/3.119.4/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-3119-NS20-AS",
+  "callable": "SkiaSharp.SKData.AsStream",
+  "version_under_test": "3.119.4",
+  "setup": "var data = SkiaSharp.SKData.CreateCopy(new byte[] { 1, 2, 3 });",
+  "expr": "data.AsStream()"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/3.119.4/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/3.119.4/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-3119-NS20-GTP",
+  "callable": "SkiaSharp.SKFont.GetTextPath",
+  "version_under_test": "3.119.4",
+  "setup": "var font = new SkiaSharp.SKFont();",
+  "expr": "font.GetTextPath(\"x\", SkiaSharp.SKPoint.Empty)"
+ },
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "4.148.0"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "4.148.0"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4148-PKG-DEC",
+  "callable": "SkiaSharp.SKBitmap.Decode",
+  "version_under_test": "4.148.0",
+  "setup": "var png = Convert.FromBase64String(\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\");",
+  "expr": "SkiaSharp.SKBitmap.Decode(png)",
+  "probe": "try { var _ = ((SkiaSharp.SKBitmap)b).Width; disposedProbe = \"b_usable\"; } catch (ObjectDisposedException) { disposedProbe = \"b_disposed\"; }"
+ },
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "4.148.0"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "4.148.0"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4148-PKG-FIM",
+  "callable": "SkiaSharp.SKBitmap.FromImage",
+  "version_under_test": "4.148.0",
+  "setup": "var img = SkiaSharp.SKImage.FromBitmap(new SkiaSharp.SKBitmap(2, 2));",
+  "expr": "SkiaSharp.SKBitmap.FromImage(img)"
+ },
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "4.148.0"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "4.148.0"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4148-PKG-AS",
+  "callable": "SkiaSharp.SKData.AsStream",
+  "version_under_test": "4.148.0",
+  "setup": "var data = SkiaSharp.SKData.CreateCopy(new byte[] { 1, 2, 3 });",
+  "expr": "data.AsStream()"
+ },
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "4.148.0"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "4.148.0"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4148-PKG-GTP",
+  "callable": "SkiaSharp.SKFont.GetTextPath",
+  "version_under_test": "4.148.0",
+  "setup": "var font = new SkiaSharp.SKFont();",
+  "expr": "font.GetTextPath(\"x\", SkiaSharp.SKPoint.Empty)"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.148.0/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.148.0/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4148-NS20-DEC",
+  "callable": "SkiaSharp.SKBitmap.Decode",
+  "version_under_test": "4.148.0",
+  "setup": "var png = Convert.FromBase64String(\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\");",
+  "expr": "SkiaSharp.SKBitmap.Decode(png)",
+  "probe": "try { var _ = ((SkiaSharp.SKBitmap)b).Width; disposedProbe = \"b_usable\"; } catch (ObjectDisposedException) { disposedProbe = \"b_disposed\"; }"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.148.0/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.148.0/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4148-NS20-FIM",
+  "callable": "SkiaSharp.SKBitmap.FromImage",
+  "version_under_test": "4.148.0",
+  "setup": "var img = SkiaSharp.SKImage.FromBitmap(new SkiaSharp.SKBitmap(2, 2));",
+  "expr": "SkiaSharp.SKBitmap.FromImage(img)"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.148.0/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.148.0/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4148-NS20-AS",
+  "callable": "SkiaSharp.SKData.AsStream",
+  "version_under_test": "4.148.0",
+  "setup": "var data = SkiaSharp.SKData.CreateCopy(new byte[] { 1, 2, 3 });",
+  "expr": "data.AsStream()"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.148.0/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.148.0/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4148-NS20-GTP",
+  "callable": "SkiaSharp.SKFont.GetTextPath",
+  "version_under_test": "4.148.0",
+  "setup": "var font = new SkiaSharp.SKFont();",
+  "expr": "font.GetTextPath(\"x\", SkiaSharp.SKPoint.Empty)"
+ },
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "4.152.0"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "4.152.0"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4152-PKG-DEC",
+  "callable": "SkiaSharp.SKBitmap.Decode",
+  "version_under_test": "4.152.0",
+  "setup": "var png = Convert.FromBase64String(\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\");",
+  "expr": "SkiaSharp.SKBitmap.Decode(png)",
+  "probe": "try { var _ = ((SkiaSharp.SKBitmap)b).Width; disposedProbe = \"b_usable\"; } catch (ObjectDisposedException) { disposedProbe = \"b_disposed\"; }"
+ },
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "4.152.0"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "4.152.0"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4152-PKG-FIM",
+  "callable": "SkiaSharp.SKBitmap.FromImage",
+  "version_under_test": "4.152.0",
+  "setup": "var img = SkiaSharp.SKImage.FromBitmap(new SkiaSharp.SKBitmap(2, 2));",
+  "expr": "SkiaSharp.SKBitmap.FromImage(img)"
+ },
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "4.152.0"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "4.152.0"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4152-PKG-AS",
+  "callable": "SkiaSharp.SKData.AsStream",
+  "version_under_test": "4.152.0",
+  "setup": "var data = SkiaSharp.SKData.CreateCopy(new byte[] { 1, 2, 3 });",
+  "expr": "data.AsStream()"
+ },
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "4.152.0"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "4.152.0"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4152-PKG-GTP",
+  "callable": "SkiaSharp.SKFont.GetTextPath",
+  "version_under_test": "4.152.0",
+  "setup": "var font = new SkiaSharp.SKFont();",
+  "expr": "font.GetTextPath(\"x\", SkiaSharp.SKPoint.Empty)"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.152.0/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.152.0/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4152-NS20-DEC",
+  "callable": "SkiaSharp.SKBitmap.Decode",
+  "version_under_test": "4.152.0",
+  "setup": "var png = Convert.FromBase64String(\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\");",
+  "expr": "SkiaSharp.SKBitmap.Decode(png)",
+  "probe": "try { var _ = ((SkiaSharp.SKBitmap)b).Width; disposedProbe = \"b_usable\"; } catch (ObjectDisposedException) { disposedProbe = \"b_disposed\"; }"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.152.0/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.152.0/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4152-NS20-FIM",
+  "callable": "SkiaSharp.SKBitmap.FromImage",
+  "version_under_test": "4.152.0",
+  "setup": "var img = SkiaSharp.SKImage.FromBitmap(new SkiaSharp.SKBitmap(2, 2));",
+  "expr": "SkiaSharp.SKBitmap.FromImage(img)"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.152.0/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.152.0/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4152-NS20-AS",
+  "callable": "SkiaSharp.SKData.AsStream",
+  "version_under_test": "4.152.0",
+  "setup": "var data = SkiaSharp.SKData.CreateCopy(new byte[] { 1, 2, 3 });",
+  "expr": "data.AsStream()"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.152.0/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.152.0/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4152-NS20-GTP",
+  "callable": "SkiaSharp.SKFont.GetTextPath",
+  "version_under_test": "4.152.0",
+  "setup": "var font = new SkiaSharp.SKFont();",
+  "expr": "font.GetTextPath(\"x\", SkiaSharp.SKPoint.Empty)"
+ },
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "4.153.1"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "4.153.1"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4153-PKG-DEC",
+  "callable": "SkiaSharp.SKBitmap.Decode",
+  "version_under_test": "4.153.1",
+  "setup": "var png = Convert.FromBase64String(\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\");",
+  "expr": "SkiaSharp.SKBitmap.Decode(png)",
+  "probe": "try { var _ = ((SkiaSharp.SKBitmap)b).Width; disposedProbe = \"b_usable\"; } catch (ObjectDisposedException) { disposedProbe = \"b_disposed\"; }"
+ },
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "4.153.1"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "4.153.1"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4153-PKG-FIM",
+  "callable": "SkiaSharp.SKBitmap.FromImage",
+  "version_under_test": "4.153.1",
+  "setup": "var img = SkiaSharp.SKImage.FromBitmap(new SkiaSharp.SKBitmap(2, 2));",
+  "expr": "SkiaSharp.SKBitmap.FromImage(img)"
+ },
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "4.153.1"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "4.153.1"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4153-PKG-AS",
+  "callable": "SkiaSharp.SKData.AsStream",
+  "version_under_test": "4.153.1",
+  "setup": "var data = SkiaSharp.SKData.CreateCopy(new byte[] { 1, 2, 3 });",
+  "expr": "data.AsStream()"
+ },
+ {
+  "packages": [
+   [
+    "SkiaSharp",
+    "4.153.1"
+   ],
+   [
+    "SkiaSharp.NativeAssets.Linux",
+    "4.153.1"
+   ]
+  ],
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4153-PKG-GTP",
+  "callable": "SkiaSharp.SKFont.GetTextPath",
+  "version_under_test": "4.153.1",
+  "setup": "var font = new SkiaSharp.SKFont();",
+  "expr": "font.GetTextPath(\"x\", SkiaSharp.SKPoint.Empty)"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.153.1/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.153.1/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4153-NS20-DEC",
+  "callable": "SkiaSharp.SKBitmap.Decode",
+  "version_under_test": "4.153.1",
+  "setup": "var png = Convert.FromBase64String(\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\");",
+  "expr": "SkiaSharp.SKBitmap.Decode(png)",
+  "probe": "try { var _ = ((SkiaSharp.SKBitmap)b).Width; disposedProbe = \"b_usable\"; } catch (ObjectDisposedException) { disposedProbe = \"b_disposed\"; }"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.153.1/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.153.1/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4153-NS20-FIM",
+  "callable": "SkiaSharp.SKBitmap.FromImage",
+  "version_under_test": "4.153.1",
+  "setup": "var img = SkiaSharp.SKImage.FromBitmap(new SkiaSharp.SKBitmap(2, 2));",
+  "expr": "SkiaSharp.SKBitmap.FromImage(img)"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.153.1/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.153.1/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4153-NS20-AS",
+  "callable": "SkiaSharp.SKData.AsStream",
+  "version_under_test": "4.153.1",
+  "setup": "var data = SkiaSharp.SKData.CreateCopy(new byte[] { 1, 2, 3 });",
+  "expr": "data.AsStream()"
+ },
+ {
+  "ref": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.153.1/skiasharp/lib/netstandard2.0/SkiaSharp.dll",
+  "native": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/ct/skia/4.153.1/native/runtimes/linux-x64/native/libSkiaSharp.so",
+  "expect": "fresh",
+  "kind": "fresh",
+  "dispose": true,
+  "id": "SKIA-4153-NS20-GTP",
+  "callable": "SkiaSharp.SKFont.GetTextPath",
+  "version_under_test": "4.153.1",
+  "setup": "var font = new SkiaSharp.SKFont();",
+  "expr": "font.GetTextPath(\"x\", SkiaSharp.SKPoint.Empty)"
+ }
+]
