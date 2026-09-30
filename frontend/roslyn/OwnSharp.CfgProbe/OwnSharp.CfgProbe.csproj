@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- resource-effects Stage 2A (research/resource-effects-v1, EXPLORATORY): the CFG/IOperation cheap
+       falsifier probe. A research-only console tool; the extractor never references it and nothing here
+       reaches OwnIR. Pre-registered in Own.NET-paperwork paper-eval/resource-effects/stage2a-cfg-probe-prereg-v1.json. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>ownsharp-cfgprobe</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
+  </ItemGroup>
+</Project>
