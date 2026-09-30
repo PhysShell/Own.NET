@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""resource-effects Stage 7 (research/resource-effects-v1, EXPLORATORY): the effect-model seam on the
-OwnTS twin emitter. corpus/re-controls/ownts/e7-*.ts are the twins frozen in Own.NET-paperwork
-`paper-eval/resource-effects/stage7-seam-prereg-v1.json`; each is emitted under four arms (no effects,
-the MODELLED key, the same rows as SUGGESTED, SUGGESTED with --trust-all) and run through the Python
-reference and, when `OWEN_RUST_CORE` names an own-cli, through Rust (parity). The table is the RECORD
-of the Stage 7 measurement; a row that moves is a change to classify, never one to repair here.
-A seam proof for one shape, never TypeScript support. Always runs (no external toolchain)."""
+"""resource-effects Stage 7 (research/resource-effects-v1, EXPLORATORY): the effect-model seam on
+the OwnTS twin emitter. corpus/re-controls/ownts/e7-*.ts are the twins frozen in Own.NET-
+paperwork `paper-eval/resource-effects/stage7-seam-prereg-v1.json`; each is emitted under four
+arms (no effects, the MODELLED key, the same rows as SUGGESTED, SUGGESTED with --trust-all) and
+run through the Python reference and, when `OWEN_RUST_CORE` names an own-cli, through Rust
+(parity). The table is the RECORD of the Stage 7 measurement; a row that moves is a change to
+classify, never one to repair here. A seam proof for one shape, never TypeScript support. Always
+runs (no external toolchain)."""
 
 from __future__ import annotations
 
