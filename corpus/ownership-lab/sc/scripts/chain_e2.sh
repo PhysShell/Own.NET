@@ -10,5 +10,5 @@ python3 - <<'PY'
 import json; S='/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad'
 pool=json.load(open(f'{S}/lab/sc/e1pool.json'))['frozen_pool_top30']; open(f'{S}/lab/sc/e2-order.txt','w').write('\n'.join(x['repo'].replace('github.com/','') for x in pool[:12]))
 PY
-while read -r repo; do [ -z "$repo" ] && continue; echo "=== $repo $(date -u +%H:%M:%S)"; timeout 3600 python3 $S/lab/sc/e2.py "$repo" 2>&1 | tail -3; rm -rf "$S/lab/sc/e2/${repo//\//__}"; df -h / | tail -1 | awk '{print "avail",$4}'; done < $S/lab/sc/e2-order.txt
+while read -r repo || [ -n "$repo" ]; do [ -z "$repo" ] && continue; echo "=== $repo $(date -u +%H:%M:%S)"; timeout 3600 python3 $S/lab/sc/e2.py "$repo" 2>&1 | tail -3; rm -rf "$S/lab/sc/e2/${repo//\//__}"; df -h / | tail -1 | awk '{print "avail",$4}'; done < $S/lab/sc/e2-order.txt
 echo E2_DONE

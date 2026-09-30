@@ -1,0 +1,31 @@
+"""Stage E record: E1 frozen pool (summary), TFM-targeted witnesses, E2 semantic opportunity census per consumer with the
+row classes, the exposure floor decision, E3 OFF vs ON per consumer (frozen rows), findings with their manual classification
+(triage file), overlap with IDisposableAnalyzers / CA2000 where the consumer builds, decisions. Everything computed from the
+scratch outputs; nothing is edited by hand except the triage file, which is quoted verbatim with its own hash."""
+import json, glob, os, collections, datetime, hashlib
+OD=collections.OrderedDict; S='/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad'; P='/home/user/Own.NET-paperwork'
+now=datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+def J(p,d=None): return json.load(open(p)) if os.path.exists(p) else d
+pool=J(f'{P}/paper-eval/semantic-coverage/e1-pool-frozen-v1.json'); floor=J(f'{S}/lab/sc/e2-floor.json',{}); tfm=J(f'{S}/lab/sc/witness-results-tfm.json',[])
+e3=[J(f) for f in sorted(glob.glob(f'{S}/lab/sc/e3/*.e3.json'))]; triage=J(f'{S}/lab/sc/e3-triage.json',{'findings':[]}); idisp=[J(f) for f in sorted(glob.glob(f'{S}/lab/sc/e3/idisp-*.json'))]
+tv=collections.Counter((r['tfm'],r['verdict']) for r in tfm)
+e2_summary=[]
+for f in sorted(glob.glob(f'{S}/lab/sc/e2/*.e2.json')):
+    d=J(f); res=collections.Counter()
+    for rel,p in d['per_project'].items():
+        for t in (p.get('targets') or {}).values():
+            for r in t['resolved']: res[r['status']]+=1
+    e2_summary.append(OD([('repo',d['repo']),('sha',d['sha']),('production_projects',d['production_projects']),('restored_ok',d['restored_ok']),('seconds',d.get('seconds')),('trusted_units',d['unit_count_trusted']),('unverified_units',d['unit_count_unverified']),('units_by_class',d.get('units_by_class',{})),('row_resolution_statuses',dict(res)),('extractor_failures',sum(1 for x in d.get('extractor_runs',[]) if x.get('rc') not in (0,))),('trusted_units_list',d['units_trusted'][:40])]))
+e3_summary=[OD([('repo',d['repo']),('sha',d['sha']),('project_tfm_units',len(d['per_project_tfm'])),('rows_applied_total',sum(v['rows_applied'] for v in d['per_project_tfm'].values())),('off_findings',sum(v['off_findings'] for v in d['per_project_tfm'].values())),('on_findings',sum(v['on_findings'] for v in d['per_project_tfm'].values())),('new_findings',d['new_findings']),('lost_findings',d['lost_findings']),('engine_parity',all((v['off'].get('python_equals_rust') in (True,None)) and (v['on'].get('python_equals_rust') in (True,None)) for v in d['per_project_tfm'].values()))]) for d in e3]
+cls=collections.Counter(x.get('class') for x in triage.get('findings',[])); ov=collections.Counter(x.get('overlap') for x in triage.get('findings',[]))
+rec=OD([("schema","own.net/semantic-coverage/stage-e/v1"),("written_at_utc",now),("prereg","sc-prereg-v1.json E (two-stage freeze; floor; OFF/ON; classification; overlap; no replacement)"),
+ ("E1_pool",OD([("rows_queried",pool['rows_queried']),("frozen_top30",[(x['repo'],x['opportunities'],x['distinct_rows'],x['packages']) for x in pool['frozen_pool_top30']]),("frozen_file","paper-eval/semantic-coverage/e1-pool-frozen-v1.json"),("caveat","textual over-count: NpgsqlRest (rank 1, 475) has its production factory calls in the assignment shape the oracle does not apply to (stage-cd-v1.json extractor_findings_for_stage_e)")])),
+ ("tfm_targeted_witnesses",OD([("what","the Npgsql Stage D rows re-executed on the net9.0 and net10.0 package assets (the builds consumers resolve); each verdict pinned to that asset's MVID"),("verdicts",{f'{k[0]}:{k[1]}':v for k,v in tv.items()}),("rows",len(tfm))])),
+ ("E2_census_notes",["pool entries censused: ranks 1-18 of the frozen top-30 (12 planned + 6 more because the floor was not reachable), minus KrisTHL181/Break-This-Repo whose clone failed on the second attempt (first attempt found no C# project): 17 consumers in the freeze","consumers whose census was repeated after a harness fix carry their earlier outputs as *.pre-rederive.json / *.run1.json / *.run2.json / *.pre-skia.json files (never overwritten)","marten's HEAD moved between the first pass and the re-run (e0165d1b1c -> 7a6c9c3bb1); the freeze holds the re-run revision","restore burden: aspire (private SDK bootstrap) 0/379, PerformanceMonitor 0/22, efcore.pg 0/3 even with its SDK pin set aside; quartznet needed the artifacts output layout; FeatherQR needed a workload restore for one project"]),
+ ("E2_census",OD([("method","clone at HEAD (SHA recorded); restore; project.assets.json per TFM; row classes against the resolved asset: identity_match / rederived_same_source / witnessed_exact_binary / witnessed_identity_match are trusted, version_drift / tfm_variant_body_differs are census-only; extractor build chosen by TFM (net8.0 build <= net8.0, net10.0 build for net9.0/net10.0); opportunities = unique(sha, project/TFM, file, span, callable, effect, assembly) from the oracle hit log"),("per_consumer",e2_summary),("floor",floor.get('floor')),("per_consumer_floor_rows",floor.get('per_consumer'))])),
+ ("E3_off_vs_on",OD([("method","the frozen consumers re-cloned at the frozen SHA; the trusted rows of the E2 census applied through OWEN_RE_ORACLE per project/TFM; OFF = no oracle; both engines (own-cli ownir, python -m ownlang ownir) at severity warning; findings = (file, line, rule, message)"),("per_consumer",e3_summary),("new_findings_total",sum(len(x['new_findings']) for x in e3_summary)),("lost_findings_total",sum(len(x['lost_findings']) for x in e3_summary))])),
+ ("findings_classification",OD([("file",f'{S}/lab/sc/e3-triage.json'),("sha256",hashlib.sha256(json.dumps(triage,sort_keys=True).encode()).hexdigest() if triage.get('findings') else None),("classes",dict(cls)),("overlap",dict(ov)),("findings",triage.get('findings',[]))])),
+ ("textual_recount_frozen_clones",J(f'{S}/lab/sc/textsites.json',{})),("triage_observations",triage.get('observations',[])),
+ ("overlap_runs",[OD([('project',x['project']),('build_rc',x['build_rc']),('warnings',len(x['warnings'])),('warnings_list',x['warnings'][:60])]) for x in idisp]),
+ ("decisions",triage.get('decisions',{}))])
+json.dump(rec,open(f'{P}/paper-eval/semantic-coverage/stage-e-v1.json','w'),indent=1); print('stage-e record written',len(json.dumps(rec)))

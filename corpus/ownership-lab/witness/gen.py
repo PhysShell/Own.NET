@@ -3,7 +3,7 @@ from identity / disposed-state / ObjectDisposedException observations on the dep
 import json, os, subprocess, sys, time
 W='/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/witness'
 import sys as _s; ROWS=_s.argv[1] if len(_s.argv)>1 else f'{W}/rows.json'; OUTF=_s.argv[2] if len(_s.argv)>2 else f'{W}/results.json'; rows=json.load(open(ROWS))
-CSPROJ='<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><Nullable>disable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>{refs}</Project>'
+CSPROJ='<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>{tfm}</TargetFramework><RollForward>Major</RollForward><Nullable>disable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>{refs}</Project>'
 FRESH='''using System; using System.IO; using System.Threading;
 {setup}
 object Make() => {expr};
@@ -67,7 +67,7 @@ for r in rows:
     elif r.get('package'): refs+=f'<ItemGroup><PackageReference Include="{r["package"]}" Version="{r["version"]}" /></ItemGroup>'
     if r.get('ref'): refs+=f'<ItemGroup><Reference Include="{_o.path.splitext(_o.path.basename(r["ref"]))[0]}"><HintPath>{r["ref"]}</HintPath></Reference></ItemGroup>'
     if r.get('native'): refs+=f'<ItemGroup><None Include="{r["native"]}" Link="{_o.path.basename(r["native"])}" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>'
-    open(f'{d}/w.csproj','w').write(CSPROJ.format(refs=refs))
+    open(f'{d}/w.csproj','w').write(CSPROJ.format(refs=refs,tfm=r.get('tfm','net8.0')))
     if r['kind']=='fresh':
         mode=r.get('mode','parallel')
         makes='w1 = Make(); DisposeIt(w1); w2 = Make(); DisposeIt(w2); w3 = Make();' if mode=='sequential' else 'w1 = Make(); w2 = Make(); w3 = Make();'
@@ -80,7 +80,7 @@ for r in rows:
     t=time.time()
     p=subprocess.run(['dotnet','run','-c','Release','--project',f'{d}/w.csproj'],capture_output=True,text=True,env=env,timeout=600)
     line=[l for l in p.stdout.splitlines() if l.startswith('WITNESS ')]
-    res={'id':r['id'],'callable':r['callable'],'expect':r['expect'],'seconds':round(time.time()-t,1)}
+    res={'id':r['id'],'callable':r['callable'],'expect':r['expect'],'seconds':round(time.time()-t,1),'tfm':r.get('tfm','net8.0'),'packages':r.get('packages')}
     if line: res.update(json.loads(line[-1][8:]))
     else:
         so=(p.stderr+p.stdout); res.update({'verdict':'build-or-run-error','stderr':(so[:500]+' ... '+so[-500:]) if len(so)>1000 else so})

@@ -10,7 +10,10 @@ LIBS={'SkiaSharp':('mono/SkiaSharp','4783f51448f9b070dda4f87b83e941c9599e466e','
  'Npgsql':('npgsql/npgsql','d3768398c17877b3a916c3c4d87e8e11698991fc','src/Npgsql/'),
  'MQTTnet':('dotnet/MQTTnet','14463d1ef9f1f119514185c1832905b91bff827d','Source/MQTTnet/'),
  'SSH.NET':('sshnet/SSH.NET','7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e','src/Renci.SshNet/'),
- 'LibGit2Sharp':('libgit2/libgit2sharp','eaa698d078941fd5e3cc82b59b885cd35d8cc0f8','LibGit2Sharp/')}
+ 'LibGit2Sharp':('libgit2/libgit2sharp','eaa698d078941fd5e3cc82b59b885cd35d8cc0f8','LibGit2Sharp/'),
+ 'Npgsql@9.0.4':('npgsql/npgsql','3b6c74c505c4dbc68a39b05e7440153b3bf511f4','src/Npgsql/'),
+ 'Npgsql@10.0.0':('npgsql/npgsql','a18021849f244716d3b68eefd705677f131f9ace','src/Npgsql/'),
+ 'SkiaSharp@4.148.0':('mono/SkiaSharp','4e4ce7af7ea8702593af5aeb25d05c65ffb74e90','binding/SkiaSharp/')}
 EXCL=re.compile(r'(^|/)(tests?|samples?|benchmarks?|examples?|obj|bin)(/|$)',re.I)
 def paths(repo, rev):
     q=f'repo:^github\\.com/{re.escape(repo)}$@{rev} file:\\.cs$ type:path count:all'
