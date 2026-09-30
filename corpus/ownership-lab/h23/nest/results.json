@@ -1,0 +1,270 @@
+{
+ "depth1_then_use_after": {
+  "body": [
+   {
+    "op": "if",
+    "line": 1,
+    "then": [
+     {
+      "op": "acquire",
+      "var": "x",
+      "line": 2,
+      "column": 1,
+      "kind": "disposable"
+     }
+    ],
+    "else": [
+     {
+      "op": "return",
+      "var": null,
+      "line": 3
+     }
+    ]
+   },
+   {
+    "op": "use",
+    "var": "x",
+    "line": 4
+   },
+   {
+    "op": "return",
+    "var": "x",
+    "line": 5
+   }
+  ],
+  "engines": {
+   "rust": {
+    "engine_internal_error": true,
+    "message": "message=\"undefined name 'loc_0'\"). The O",
+    "findings": []
+   },
+   "python": {
+    "engine_internal_error": true,
+    "message": "message=\"undefined name 'loc_0'\"). The O",
+    "findings": []
+   }
+  }
+ },
+ "depth2_else_if_then_use_after": {
+  "body": [
+   {
+    "op": "if",
+    "line": 1,
+    "then": [],
+    "else": [
+     {
+      "op": "if",
+      "line": 2,
+      "then": [
+       {
+        "op": "acquire",
+        "var": "x",
+        "line": 3,
+        "column": 1,
+        "kind": "disposable"
+       }
+      ],
+      "else": [
+       {
+        "op": "return",
+        "var": null,
+        "line": 4
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "op": "use",
+    "var": "x",
+    "line": 5
+   },
+   {
+    "op": "return",
+    "var": "x",
+    "line": 6
+   }
+  ],
+  "engines": {
+   "rust": {
+    "engine_internal_error": true,
+    "message": "message=\"undefined name 'loc_0'\"). The O",
+    "findings": []
+   },
+   "python": {
+    "engine_internal_error": true,
+    "message": "message=\"undefined name 'loc_0'\"). The O",
+    "findings": []
+   }
+  }
+ },
+ "depth2_two_versions": {
+  "body": [
+   {
+    "op": "if",
+    "line": 1,
+    "then": [
+     {
+      "op": "acquire",
+      "var": "x__v1",
+      "line": 2,
+      "column": 1,
+      "kind": "disposable"
+     }
+    ],
+    "else": [
+     {
+      "op": "if",
+      "line": 3,
+      "then": [
+       {
+        "op": "acquire",
+        "var": "x__v2",
+        "line": 4,
+        "column": 1,
+        "kind": "disposable"
+       }
+      ],
+      "else": [
+       {
+        "op": "return",
+        "var": null,
+        "line": 5
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "op": "use",
+    "var": "x__v2",
+    "line": 6
+   },
+   {
+    "op": "return",
+    "var": "x__v2",
+    "line": 7
+   }
+  ],
+  "engines": {
+   "rust": {
+    "engine_internal_error": true,
+    "message": "message=\"undefined name 'loc_1'\"). The O",
+    "findings": []
+   },
+   "python": {
+    "engine_internal_error": true,
+    "message": "message=\"undefined name 'loc_1'\"). The O",
+    "findings": []
+   }
+  }
+ },
+ "npgsqlrest_exact": {
+  "body": [
+   {
+    "op": "if",
+    "line": 35,
+    "then": [
+     {
+      "op": "if",
+      "line": 38,
+      "then": [],
+      "else": [
+       {
+        "op": "if",
+        "line": 43,
+        "then": [
+         {
+          "op": "acquire",
+          "var": "connection__v2",
+          "line": 45,
+          "column": 1,
+          "kind": "disposable"
+         }
+        ],
+        "else": [
+         {
+          "op": "return",
+          "var": null,
+          "line": 49
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "else": [
+     {
+      "op": "if",
+      "line": 56,
+      "then": [
+       {
+        "op": "acquire",
+        "var": "connection__v3",
+        "line": 58,
+        "column": 1,
+        "kind": "disposable"
+       }
+      ],
+      "else": [
+       {
+        "op": "if",
+        "line": 61,
+        "then": [
+         {
+          "op": "acquire",
+          "var": "connection__v4",
+          "line": 63,
+          "column": 1,
+          "kind": "disposable"
+         }
+        ],
+        "else": [
+         {
+          "op": "return",
+          "var": null,
+          "line": 67
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "op": "if",
+    "line": 73,
+    "then": [
+     {
+      "op": "use",
+      "var": "connection__v4",
+      "line": 75
+     }
+    ],
+    "else": []
+   },
+   {
+    "op": "use",
+    "var": "connection__v4",
+    "line": 82
+   },
+   {
+    "op": "return",
+    "var": "connection__v4",
+    "line": 84
+   }
+  ],
+  "engines": {
+   "rust": {
+    "engine_internal_error": true,
+    "message": "message=\"undefined name 'loc_2'\"). The O",
+    "findings": []
+   },
+   "python": {
+    "engine_internal_error": true,
+    "message": "message=\"undefined name 'loc_2'\"). The O",
+    "findings": []
+   }
+  }
+ }
+}

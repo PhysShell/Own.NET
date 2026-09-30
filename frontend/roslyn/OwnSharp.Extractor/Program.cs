@@ -2972,16 +2972,16 @@ static bool LabBranchNamesOnly(List<object> ops, string x)
 // factory, or a first-party disposable factory. Null otherwise: zero or 2+ writes (the s11 family), a compound
 // or nested assignment, a `ref`/`out` rebinding, or a foreign rhs (a parameter, a field, a borrowed call).
 // H-23A helpers (top-level, beside LabNullInitSingleAssignment: the disposable-type and factory predicates are top-level).
-static bool H23AAcquireShaped(ExpressionSyntax? rhs, SemanticModel model) =>
+static bool H23AAcquireShaped(ExpressionSyntax? rhs, SemanticModel model, string shape = "assignment") =>
     (rhs is ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax && model.GetTypeInfo(rhs).Type is { } dt
      && ImplementsIDisposable(dt) && !IsDisposeOptional(dt) && !HasEmptyDisposeBody(dt))
-    || IsPoolRent(rhs, model) || IsOwningFactory(rhs, model) || ReOracle.ReturnsFreshOwned(rhs, model, "assignment");
+    || IsPoolRent(rhs, model) || IsOwningFactory(rhs, model) || ReOracle.ReturnsFreshOwned(rhs, model, shape);
 // All writes of the local, in source order, or null when any write is not a simple assignment STATEMENT (compound,
 // nested in an expression, deconstruction, ++/--, ref/out, a `ref` alias, or inside a lambda / local function).
 static List<AssignmentExpressionSyntax>? H23AWrites(VariableDeclaratorSyntax v, BlockSyntax mbody, SemanticModel model)
 {
     if (model.GetDeclaredSymbol(v) is not ILocalSymbol local) return null;
-    var ws = new List<AssignmentExpressionSyntax>();
+    var ws = new List<AssignmentExpressionSyntax>(); var anyLoop = false; var anyNested = false;
     foreach (var id in mbody.DescendantNodes().OfType<IdentifierNameSyntax>())
     {
         if (!SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, local)) continue;
@@ -2990,12 +2990,20 @@ static List<AssignmentExpressionSyntax>? H23AWrites(VariableDeclaratorSyntax v, 
         if (id.Parent is not AssignmentExpressionSyntax asg || asg.Left != id) continue;
         if (!asg.IsKind(SyntaxKind.SimpleAssignmentExpression) || asg.Parent is not ExpressionStatementSyntax
             || id.Ancestors().TakeWhile(x => x != mbody).Any(x => x is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax)) return null;
-        // A write inside a LOOP body is excluded (fail closed): a version minted per iteration and referenced after
-        // the loop is a name the core's lexical resolver cannot see (the bridge hoists branch-scoped acquires, never
-        // loop-scoped ones) and the whole file would fail with OWN030. Counted as loop_write.
-        if (id.Ancestors().TakeWhile(x => x != mbody).Any(x => x is WhileStatementSyntax or ForStatementSyntax or ForEachStatementSyntax or DoStatementSyntax)) { H23A.Count("excluded_loop_write"); return null; }
+        // A write nested in ANY statement other than the method body (if/else, switch, try/catch/finally, using, lock,
+        // a loop, a bare block) excludes the local, fail closed, as today (population kill 1, h23a-population-kill-1):
+        // the core's bridge refuses to hoist a branch-scoped acquire when a sibling path exits before the merge, and a
+        // post-merge reference to that version fails the WHOLE FILE with OWN030 (NpgsqlRest ConnectionHelper.cs). The
+        // oracle predicate is still evaluated, so the hit log keeps the semantic opportunity labelled by its shape
+        // (assignment / assignment_nested / assignment_loop).
+        var loop = id.Ancestors().TakeWhile(x => x != mbody).Any(x => x is WhileStatementSyntax or ForStatementSyntax or ForEachStatementSyntax or DoStatementSyntax);
+        var nested = id.Ancestors().TakeWhile(x => x != mbody).Any(x => x is StatementSyntax && x is not ExpressionStatementSyntax);
+        H23AAcquireShaped(asg.Right, model, loop ? "assignment_loop" : nested ? "assignment_nested" : "assignment");
+        anyLoop |= loop; anyNested |= nested;
         ws.Add(asg);
     }
+    if (anyLoop) { H23A.Count("excluded_loop_write"); return null; }
+    if (anyNested) { H23A.Count("excluded_nested_write"); return null; }
     return ws;
 }
 
