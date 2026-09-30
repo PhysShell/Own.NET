@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- ownership-semantics-lab (research/ownership-semantics-lab-v1, EXPLORATORY): prints the identity facets of
+       a managed assembly (simple name, version, culture, public key token, MVID, TFM attribute, sha256) so the
+       reference A/B and the runtime-effective dependency identity experiment can record exactly what was loaded.
+       Research-only; the extractor never references it. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>ownsharp-asmid</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+</Project>
