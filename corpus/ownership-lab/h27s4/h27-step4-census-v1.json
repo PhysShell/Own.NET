@@ -1,0 +1,276 @@
+{
+ "schema": "own.net/h27-step4/census/v1",
+ "written_at_utc": "2026-10-01T08:29:48Z",
+ "track": "H-27 step 4: owned-handle (lease) cheapest falsifier",
+ "anchors": {
+  "prereg": "paper-eval/h26/h27-step4-prereg-v1.json (f36f95f)",
+  "amendment_1": "paper-eval/h26/h27-step4-amendment-1.json (bbd5ac4)",
+  "erratum_4": "paper-eval/semantic-coverage/erratum-4-using-statement-declaration.json",
+  "seam_commit": "22908d2f (97 lines, census only)",
+  "own_net_head": "22908d2f2ff66efc814a00e0e39a4ceb30208533",
+  "own_net_main": "fb06adc2beddd750e99a52ad8c1c8b5905602539 (untouched)",
+  "fixture": "corpus/ownership-lab/h27s4/fx/Lease.cs (29 methods, every class as intended)",
+  "step3_value_v2": "paper-eval/h26/h26b-census-v2.json"
+ },
+ "population": "the 8 frozen consumers, corrected environment, the H-25 unit row files, production units, TFM-collapsed per (consumer, file, line, callable); the same pass as the corrected H-26B census",
+ "totals": {
+  "consumers": 8,
+  "units": 772,
+  "extractor_failures": 0,
+  "sites_raw": 1701,
+  "sites_unique": 1061,
+  "production_unique": 705,
+  "frozen_pair_production": 643,
+  "sync_twin_production": 62,
+  "class_distribution_pair": {
+   "RELEASED": 593,
+   "UNCLEAR": 46,
+   "RECLAIMED_IN_MEMBER": 4
+  },
+  "class_distribution_twins": {
+   "UNCLEAR": 38,
+   "RELEASED": 24
+  },
+  "handle_release_pair": {
+   "USING": 558,
+   "EXPLICIT_RELEASE_CALL": 32,
+   "TRANSFERRED": 9,
+   "NOT_A_LOCAL": 35,
+   "TRY_FINALLY_RELEASE": 3,
+   "PASSED_TO_CALLEE": 5,
+   "NONE": 1
+  },
+  "receiver_lifetime_pair": {
+   "RECEIVER_TEMPORARY": 26,
+   "RECEIVER_RELEASED_IN_MEMBER": 509,
+   "RECEIVER_OUTLIVES_MEMBER": 94,
+   "RECEIVER_LOCAL_UNRELEASED": 14
+  },
+  "receiver_kind_pair": {
+   "temporary": 26,
+   "local": 523,
+   "parameter": 58,
+   "field": 9,
+   "this": 15,
+   "property": 12
+  },
+  "value_sites_pair_h27_library_callables": 34,
+  "value_sites_pair_h27_first_party_callables": 0,
+  "value_sites_pair_h26b_v2": 34,
+  "value_agreement": true,
+  "value_sites_by_class": {
+   "RELEASED": 28,
+   "UNCLEAR": 2,
+   "RECLAIMED_IN_MEMBER": 4
+  },
+  "value_sites_by_handle_release": {
+   "EXPLICIT_RELEASE_CALL": 25,
+   "TRY_FINALLY_RELEASE": 3,
+   "PASSED_TO_CALLEE": 5,
+   "NONE": 1
+  },
+  "value_sites_first_party_by_class": {},
+  "value_sites_not_released": [
+   {
+    "repo": "JasperFx/weasel",
+    "file": "src/Weasel.Core/MultiCommandDataReader.cs",
+    "line": 43,
+    "member": "OpenAsync",
+    "callable": "System.Data.Common.DbCommand.ExecuteReaderAsync/1",
+    "site_class": "UNCLEAR",
+    "handle_release": "PASSED_TO_CALLEE",
+    "transferred": [
+     "passed_as_argument"
+    ],
+    "receiver_kind": "property",
+    "receiver_static_type": "System.Data.Common.DbCommand",
+    "receiver_lifetime": "RECEIVER_OUTLIVES_MEMBER",
+    "awaited": true
+   },
+   {
+    "repo": "JasperFx/wolverine",
+    "file": "src/Persistence/Oracle/Wolverine.Oracle/OracleMessageStore.cs",
+    "line": 451,
+    "member": "EnrollAndFetchSagaStorage",
+    "callable": "System.Data.Common.DbConnection.BeginTransactionAsync/1",
+    "site_class": "RECLAIMED_IN_MEMBER",
+    "handle_release": "PASSED_TO_CALLEE",
+    "transferred": [
+     "passed_as_argument"
+    ],
+    "receiver_kind": "local",
+    "receiver_static_type": "Oracle.ManagedDataAccess.Client.OracleConnection",
+    "receiver_lifetime": "RECEIVER_RELEASED_IN_MEMBER",
+    "awaited": true
+   },
+   {
+    "repo": "JasperFx/wolverine",
+    "file": "src/Persistence/Wolverine.Postgresql/Transport/PostgresqlQueueSender.cs",
+    "line": 119,
+    "member": "ScheduleRetryAsync",
+    "callable": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+    "site_class": "RECLAIMED_IN_MEMBER",
+    "handle_release": "NONE",
+    "transferred": [],
+    "receiver_kind": "local",
+    "receiver_static_type": "Npgsql.NpgsqlConnection",
+    "receiver_lifetime": "RECEIVER_RELEASED_IN_MEMBER",
+    "awaited": false
+   },
+   {
+    "repo": "JasperFx/wolverine",
+    "file": "src/Persistence/Wolverine.RDBMS/MessageDatabase.cs",
+    "line": 537,
+    "member": "EnrollAndFetchSagaStorage",
+    "callable": "System.Data.Common.DbConnection.BeginTransactionAsync/1",
+    "site_class": "RECLAIMED_IN_MEMBER",
+    "handle_release": "PASSED_TO_CALLEE",
+    "transferred": [
+     "passed_as_argument"
+    ],
+    "receiver_kind": "local",
+    "receiver_static_type": "T",
+    "receiver_lifetime": "RECEIVER_RELEASED_IN_MEMBER",
+    "awaited": true
+   },
+   {
+    "repo": "quartznet/quartznet",
+    "file": "src/Quartz/Impl/AdoJobStore/AdoJobStoreBase.Execution.cs",
+    "line": 197,
+    "member": "GetConnection",
+    "callable": "System.Data.Common.DbConnection.BeginTransactionAsync/2",
+    "site_class": "RECLAIMED_IN_MEMBER",
+    "handle_release": "PASSED_TO_CALLEE",
+    "transferred": [
+     "passed_as_argument"
+    ],
+    "receiver_kind": "local",
+    "receiver_static_type": "System.Data.Common.DbConnection",
+    "receiver_lifetime": "RECEIVER_RELEASED_IN_MEMBER",
+    "awaited": true
+   },
+   {
+    "repo": "victor-wiki/DatabaseManager",
+    "file": "DatabaseInterpreter/DatabaseInterpreter.Core/Interpreter/DbInterpreter.cs",
+    "line": 699,
+    "member": "GetDataTableAsync",
+    "callable": "System.Data.Common.DbCommand.ExecuteReaderAsync/1",
+    "site_class": "UNCLEAR",
+    "handle_release": "PASSED_TO_CALLEE",
+    "transferred": [
+     "passed_as_argument"
+    ],
+    "receiver_kind": "local",
+    "receiver_static_type": "System.Data.Common.DbCommand",
+    "receiver_lifetime": "RECEIVER_LOCAL_UNRELEASED",
+    "awaited": true
+   }
+  ],
+  "cross_check": {
+   "shared_sites": 1000,
+   "disagreements": 0,
+   "verdict": "OK",
+   "examples": []
+  },
+  "leak_candidates_pair_production": 0,
+  "leak_by_callable": {},
+  "leak_by_consumer": {},
+  "leak_by_receiver_kind": {},
+  "leak_connection_using_flag": {}
+ },
+ "per_consumer": {
+  "JasperFx/marten": {
+   "units": 105,
+   "extractor_failures": 0,
+   "seconds": 497,
+   "sites_raw": 444
+  },
+  "JasperFx/weasel": {
+   "units": 43,
+   "extractor_failures": 0,
+   "seconds": 235,
+   "sites_raw": 184
+  },
+  "JasperFx/wolverine": {
+   "units": 240,
+   "extractor_failures": 0,
+   "seconds": 961,
+   "sites_raw": 388
+  },
+  "NpgsqlRest/NpgsqlRest": {
+   "units": 12,
+   "extractor_failures": 0,
+   "seconds": 76,
+   "sites_raw": 59
+  },
+  "erikdarlingdata/PerformanceMonitor": {
+   "units": 16,
+   "extractor_failures": 0,
+   "seconds": 89,
+   "sites_raw": 299
+  },
+  "mikependon/RepoDB": {
+   "units": 301,
+   "extractor_failures": 0,
+   "seconds": 1768,
+   "sites_raw": 201
+  },
+  "quartznet/quartznet": {
+   "units": 41,
+   "extractor_failures": 0,
+   "seconds": 225,
+   "sites_raw": 108
+  },
+  "victor-wiki/DatabaseManager": {
+   "units": 14,
+   "extractor_failures": 0,
+   "seconds": 53,
+   "sites_raw": 18
+  }
+ },
+ "step3_value_corrected": {
+  "count": 34,
+  "rule": ">= 20 keeps step 4 open (frozen)",
+  "ok": true
+ },
+ "manual_read": {
+  "sites_read": 0,
+  "confirmed": 0,
+  "refuted": 0,
+  "refutations_by_reason": {},
+  "confirmed_sites": [],
+  "refuted_sites": []
+ },
+ "gate": {
+  "primary": 0,
+  "rule": "confirmed LEAK_CANDIDATE production sites: >= 10 ENGINE_EXPERIMENT (own prereg) / 3-9 NARROW / < 3 KILL_STEP4 (frozen)",
+  "decision": "KILL_STEP4 (no measurable value beyond using forms)"
+ },
+ "descriptive_read_not_in_the_gate": {
+  "rule": "the frozen manual read covers LEAK_CANDIDATE sites only (0 here); the three value sites that are not RELEASED / RECLAIMED were read for the record and enter no count",
+  "sites": [
+   {
+    "site": "victor-wiki/DatabaseManager DbInterpreter.GetDataTableAsync (DbInterpreter.cs:699)",
+    "seam": "UNCLEAR: handle PASSED_TO_CALLEE (table.Load(reader)), receiver cmd is a local never released, the connection is a parameter (outlives the member)",
+    "reading": "a PLAUSIBLE true lease leak hidden by the argument pass: DataTable.Load consumes the first result set and leaves the reader open (it does not close it), the command is never disposed, and the caller-owned connection stays busy serving the reader (the ADO.NET protocol of P5 / P6); classifying it would need callee knowledge (a row saying DataTable.Load does not release its argument), which the step-4 seam does not have by design; NOT counted"
+   },
+   {
+    "site": "JasperFx/weasel MultiCommandDataReader.OpenAsync (MultiCommandDataReader.cs:43)",
+    "seam": "UNCLEAR: handle PASSED_TO_CALLEE (new MultiCommandDataReader(commands, first)), receiver commands[0] outlives the member",
+    "reading": "an ownership transfer through a constructor argument (adoption): the wrapper stores the reader and disposes it in its own NextResultAsync / DisposeAsync; not a leak; the adoption shape is the H-23-family pattern already recorded in the hard-case taxonomy"
+   },
+   {
+    "site": "JasperFx/wolverine PostgresqlQueueSender.ScheduleRetryAsync (PostgresqlQueueSender.cs:119)",
+    "seam": "RECLAIMED_IN_MEMBER: handle NONE, receiver conn is a local released by a using declaration and CloseAsync in finally; awaited = false",
+    "reading": "`var tx = conn.BeginTransactionAsync(cancellationToken);` is never awaited, never committed, never disposed: a dropped ValueTask<NpgsqlTransaction> (no compiler warning because the task is assigned); not a lease leak under the frozen rules (the receiver reclaims it on close), a different defect class (an un-awaited acquire); recorded, not counted"
+   }
+  ]
+ },
+ "what_the_population_says": "of the 643 production sites of the frozen pair, 558 are using forms, 32 are released by an explicit call (Commit / Rollback / Dispose), 3 in a finally, 9 are transferred, 35 are non-local sinks, 5 are handed to a callee, 4 are reclaimed by a receiver released in the same member and 0 leave a lease unreleased with a receiver that outlives the member: on this population an owned-handle effect would report nothing that a using form or an explicit release does not already settle",
+ "not_done": [
+  "no lowering",
+  "no vocabulary change",
+  "no engine change",
+  "H-26A"
+ ]
+}

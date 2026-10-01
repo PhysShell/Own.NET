@@ -1,0 +1,9 @@
+H27_DONE NpgsqlRest/NpgsqlRest units 12 fails 0 disposable-returning library calls 59 pair sites by kind/class {('test', 'RELEASED'): 42, ('production', 'RELEASED'): 4, ('production', 'UNCLEAR'): 6} h26b2 records 2024
+H27_DONE victor-wiki/DatabaseManager units 14 fails 0 disposable-returning library calls 18 pair sites by kind/class {('production', 'UNCLEAR'): 3, ('production', 'RELEASED'): 14} h26b2 records 54
+H27_DONE quartznet/quartznet units 41 fails 0 disposable-returning library calls 108 pair sites by kind/class {('test', 'RELEASED'): 38, ('production', 'RELEASED'): 52, ('production', 'RECLAIMED_IN_MEMBER'): 1, ('production', 'UNCLEAR'): 1} h26b2 records 1707
+H27_DONE JasperFx/weasel units 43 fails 0 disposable-returning library calls 184 pair sites by kind/class {('test', 'RELEASED'): 76, ('production', 'UNCLEAR'): 10, ('production', 'RELEASED'): 74, ('test', 'UNCLEAR'): 2} h26b2 records 1015
+H27_DONE erikdarlingdata/PerformanceMonitor units 16 fails 0 disposable-returning library calls 299 pair sites by kind/class {('production', 'RELEASED'): 288, ('test', 'RELEASED'): 10, ('production', 'UNCLEAR'): 1} h26b2 records 718
+H27_DONE JasperFx/marten units 105 fails 0 disposable-returning library calls 444 pair sites by kind/class {('test', 'RELEASED'): 186, ('test', 'UNCLEAR'): 18, ('production', 'RELEASED'): 180, ('production', 'UNCLEAR'): 26} h26b2 records 2177
+H27_DONE JasperFx/wolverine units 240 fails 0 disposable-returning library calls 388 pair sites by kind/class {('test', 'RELEASED'): 128, ('test', 'UNCLEAR'): 30, ('production', 'RELEASED'): 180, ('production', 'UNCLEAR'): 26, ('production', 'RECLAIMED_IN_MEMBER'): 6, ('test', 'RECLAIMED_IN_MEMBER'): 16} h26b2 records 6048
+H27_DONE mikependon/RepoDB units 301 fails 0 disposable-returning library calls 201 pair sites by kind/class {('test', 'RELEASED'): 9, ('production', 'UNCLEAR'): 11, ('production', 'RELEASED'): 55} h26b2 records 1118
+H27_CENSUS_DONE
