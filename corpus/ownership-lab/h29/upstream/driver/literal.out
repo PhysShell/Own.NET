@@ -1,0 +1,75 @@
+DO $$
+BEGIN      IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = 'wolverine_queues') THEN
+        BEGIN
+          EXECUTE 'CREATE SCHEMA IF NOT EXISTS wolverine_queues';
+        EXCEPTION
+          WHEN duplicate_schema THEN NULL;
+          WHEN unique_violation THEN NULL;
+        END;
+      END IF;
+
+END
+$$;
+
+
+CREATE TABLE IF NOT EXISTS wolverine_queues.wolverine_queue_retrytest (
+    id              uuid                        NOT NULL,
+    body            bytea                       NOT NULL,
+    message_type    varchar                     NOT NULL,
+    keep_until      timestamp with time zone    NULL,
+    timestamp       timestamp with time zone    NULL DEFAULT now(),
+CONSTRAINT pkey_wolverine_queue_retrytest_id PRIMARY KEY (id)
+);
+
+CREATE INDEX idx_wolverine_queue_retrytest_timestamp ON wolverine_queues.wolverine_queue_retrytest USING btree (timestamp);
+
+DO $$
+BEGIN      IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = 'wolverine_queues') THEN
+        BEGIN
+          EXECUTE 'CREATE SCHEMA IF NOT EXISTS wolverine_queues';
+        EXCEPTION
+          WHEN duplicate_schema THEN NULL;
+          WHEN unique_violation THEN NULL;
+        END;
+      END IF;
+
+END
+$$;
+
+
+CREATE TABLE IF NOT EXISTS wolverine_queues.wolverine_queue_retrytest_scheduled (
+    id                uuid                        NOT NULL,
+    body              bytea                       NOT NULL,
+    message_type      varchar                     NOT NULL,
+    execution_time    timestamp with time zone    NOT NULL,
+    keep_until        timestamp with time zone    NULL,
+    timestamp         timestamp with time zone    NULL DEFAULT now(),
+CONSTRAINT pkey_wolverine_queue_retrytest_scheduled_id PRIMARY KEY (id)
+);
+
+CREATE INDEX idx_wolverine_queue_retrytest_scheduled_execution_time ON wolverine_queues.wolverine_queue_retrytest_scheduled USING btree (execution_time);
+
+CREATE TABLE IF NOT EXISTS public.wolverine_incoming_envelopes (
+    id                uuid                        NOT NULL,
+    status            varchar                     NOT NULL,
+    owner_id          integer                     NOT NULL,
+    execution_time    timestamp with time zone    NULL DEFAULT NULL,
+    attempts          integer                     NULL DEFAULT 0,
+    body              bytea                       NOT NULL,
+    message_type      varchar                     NOT NULL,
+    received_at       varchar                     NULL,
+    keep_until        timestamp with time zone    NULL,
+CONSTRAINT pkey_wolverine_incoming_envelopes_id PRIMARY KEY (id)
+);
+
+CREATE INDEX idx_wolverine_incoming_envelopes_owner ON public.wolverine_incoming_envelopes USING btree (owner_id) WHERE (owner_id <> 0);
+
+CREATE INDEX idx_wolverine_incoming_envelopes_recover ON public.wolverine_incoming_envelopes USING btree (received_at) WHERE (status = 'Incoming' AND owner_id = 0);
+
+CREATE INDEX idx_wolverine_incoming_envelopes_keep_until ON public.wolverine_incoming_envelopes USING btree (keep_until) WHERE (status = 'Handled');
+
+before: incoming=1 scheduled=0
+after ScheduleRetryAsync #1: incoming=0 scheduled=1 execution_time=2026-10-01 15:47:04.289321+00
+after ScheduleRetryAsync #2 (new scheduled time): incoming=0 scheduled=1 execution_time=2026-10-01 15:57:04.311445+00 (updated by the autocommitted upsert? True)
+pool sanity: select 1 = 1
+pool sanity: a new transaction on a pooled connection begins and rolls back fine

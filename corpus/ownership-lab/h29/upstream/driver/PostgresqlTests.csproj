@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><AssemblyName>PostgresqlTests</AssemblyName><RootNamespace>PostgresqlTests</RootNamespace><Nullable>disable</Nullable><ImplicitUsings>enable</ImplicitUsings><NoWarn>CS8632</NoWarn></PropertyGroup>
+  <ItemGroup><ProjectReference Include="<wolverine clone at c20fb0cc322be06ce7a8debb933b76133619cdd9>/src/Persistence/Wolverine.Postgresql/Wolverine.Postgresql.csproj" /></ItemGroup>
+</Project>
