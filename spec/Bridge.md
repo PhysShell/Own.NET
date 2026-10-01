@@ -70,7 +70,11 @@ array) → `effects[]` (`deps` strings, `io` bool, `line` int, `bindings`
 non-empty `name`, `line` int, `effect` ∈ `_PARAM_EFFECTS` when present) →
 `protocols[]` via the shared obligation parser (fail-loud; **duplicate protocol
 names rejected** — the name is the identity verdicts map back by) →
-`protocol_functions[]` via the shared method parser. Every violation raises
+`protocol_functions[]` via the shared method parser → `orphaned_awaitables[]`
+(the OWN053 site list, [OwnIR.md §9](OwnIR.md); array of objects; each entry:
+non-empty `local` and `callee`, `file` string, `line` int-not-bool in the §4.2
+domain, `column`, `method` / `result_type` string-or-null, `family` ∈
+`_ORPHAN_FAMILIES` when present). Every violation raises
 `OwnIRError` with an actionable message, never a bare traceback.
 
 **BR-D2 (the tolerant door).** `check_facts(facts)` (and `to_module`/`to_own`)

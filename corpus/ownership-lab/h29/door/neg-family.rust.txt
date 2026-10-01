@@ -1,0 +1,1 @@
+neg-family.facts.json: error: orphaned awaitable 'family' must be one of ["A_owned_result", "B_protocol_lifecycle"], got "C_whatever"

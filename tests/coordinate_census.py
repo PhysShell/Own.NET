@@ -91,6 +91,10 @@ SLOTS: tuple[tuple[str, str], ...] = (
     (f"functions[].{NESTED}.column", "column"),
     ("protocol_functions[].events[].line", "line"),
     (f"protocol_functions[].events[].{NESTED}.line", "line"),
+    # The OWN053 site anchor (spec/OwnIR.md §9), a door slot since
+    # P-OWN053-DOOR bound the list at both strict doors.
+    ("orphaned_awaitables[].line", "line"),
+    ("orphaned_awaitables[].column", "column"),
 )
 
 

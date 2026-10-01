@@ -344,6 +344,10 @@ _FLOW_OPS = frozenset({
 # per-parameter effect. Like `_FLOW_OPS`, a closed enum the schema and the Rust
 # `ParamEffect` are bound to; an absent effect is inferred from the body.
 _PARAM_EFFECTS = frozenset({"consume", "borrow", "borrow_mut", "plain"})
+# OWN053 site families (spec/OwnIR.md §9): the closed set the strict door gates
+# `orphaned_awaitables[].family` against; the schema's `orphanFamily` enum is
+# pinned to it by tests/test_ownir.py exactly as `paramEffect` is to the set above.
+_ORPHAN_FAMILIES = frozenset({"A_owned_result", "B_protocol_lifecycle"})
 
 # --- P-004 region escape (the `capture` resource kind) ----------------------
 # A `capture` is a tokenless strong subscription routed NOT through the
@@ -1025,6 +1029,45 @@ def load(path: str) -> dict[str, Any]:
             parse_method(fraw)
         except ProtocolFactsError as e:
             raise OwnIRError(str(e)) from e
+    # OWN053 sites (spec/OwnIR.md §9; P-OWN053-DOOR). Validated LAST because it
+    # was the last section to join the door: the list shipped UNBOUND with the
+    # promotion (read by both engines through the tolerant coercions only) and
+    # is bound here because a default-on diagnostic is minted from every entry,
+    # so a malformed entry must fail loud at the door rather than render as an
+    # OWN053 built from the stringification of garbage. The two name slots
+    # first (identity — the finding's event and handler), then the anchor
+    # (`file`, `line`, `column` under the same §4.2 rules as every other
+    # coordinate), then the typed optionals; `family` is a closed vocabulary.
+    orphans = result.get("orphaned_awaitables", [])
+    if not isinstance(orphans, list) or not all(isinstance(o, dict) for o in orphans):
+        raise OwnIRError("OwnIR 'orphaned_awaitables' must be a JSON array of objects")
+    for o in orphans:
+        for slot in ("local", "callee"):
+            sv = o.get(slot)
+            if not isinstance(sv, str) or not sv:
+                raise OwnIRError(
+                    f"orphaned awaitable '{slot}' must be a non-empty string, got {sv!r}")
+        fv = o.get("file")
+        if not isinstance(fv, str):
+            raise OwnIRError(f"orphaned awaitable 'file' must be a string, got {fv!r}")
+        oln = o.get("line")
+        if not isinstance(oln, int) or isinstance(oln, bool):
+            raise OwnIRError(f"orphaned awaitable 'line' must be an integer, got {oln!r}")
+        _check_line_domain(oln, "orphaned awaitable")
+        _check_column(o.get("column"), "orphaned awaitable")
+        mv = o.get("method")
+        if mv is not None and not isinstance(mv, str):
+            raise OwnIRError(
+                f"orphaned awaitable 'method' must be a string or null, got {mv!r}")
+        fam = o.get("family")
+        if fam is not None and (not isinstance(fam, str) or fam not in _ORPHAN_FAMILIES):
+            raise OwnIRError(
+                f"orphaned awaitable 'family' must be one of {sorted(_ORPHAN_FAMILIES)}, "
+                f"got {fam!r}")
+        rtv = o.get("result_type")
+        if rtv is not None and not isinstance(rtv, str):
+            raise OwnIRError(
+                f"orphaned awaitable 'result_type' must be a string or null, got {rtv!r}")
     return result
 
 

@@ -226,8 +226,8 @@ contract question that recorded ("whether a coordinate no rule reads should
 nevertheless be well-formed") is answered **yes**, because the tolerant door
 does read it and anchors findings on it.
 
-Two line-bearing paths are, deliberately, validated by **neither door** for now.
-The first is the `site` of a guarded-fact sidecar entry (`functions[].guarded_facts`, §5.2).
+One line-bearing path is, deliberately, validated by **neither door** for now:
+the `site` of a guarded-fact sidecar entry (`functions[].guarded_facts`, §5.2).
 The P-037 A2 staging contract makes that sidecar inert at both doors in A2.1 —
 `load()` never reads the key and the Rust door carries it as an unknown field —
 so a domain the door does not check is not stated by the schema either
@@ -235,15 +235,11 @@ so a domain the door does not check is not stated by the schema either
 the type); the producer refuses to write a record whose line or column is
 below 1. The instrument step that registers the sidecar at the doors binds
 both coordinates to the domain above, at which point this paragraph goes.
-The second is the `line` / `column` of an orphaned-awaitable site
-(`orphaned_awaitables[]`, §9): the same door status (`load()` never reads the
-key, the Rust door carries it unknown; `orphanedAwaitable` states only the
-type), but unlike the sidecar the list **is** consumed — each entry becomes one
-OWN053 advisory — and only through the tolerant coercions (`_as_line` /
-`_as_col` and their Rust twins), which degrade an out-of-domain line to 0 and
-an out-of-domain column to absent, so the strict door's silence cannot produce
-a coordinate this section forbids. Registering the list at the doors binds both
-coordinates to the domain above.
+(The orphaned-awaitable site list of §9 was a second such path for exactly one
+commit — it shipped read through the tolerant coercions only — and was bound
+at both doors by P-OWN053-DOOR once a default-on advisory was minted from it:
+a list a user-facing diagnostic is built from is not inert, and the sidecar
+exception above is the only one left.)
 
 **Flow bodies and protocol event trees nest at most 32 levels.**
 
@@ -578,9 +574,16 @@ enclosing method's canonical name), `local`, `callee` (`Type.Member/arity`),
 The bridge turns every entry into one advisory finding; it never lowers them and
 never makes a verdict out of them. The decision of which sites qualify is the
 frontend's (it owns the syntax and the reference count); the engines only render.
-Neither door validates the list (§4.2): `line` and `column` reach the finding
-through the tolerant coercions only, an out-of-domain line reads as 0 and an
-out-of-domain column as absent, and an entry that is not an object is skipped.
+Both strict doors validate the list, last in BR-D1 order (after
+`protocol_functions`; P-OWN053-DOOR): it must be an array of objects; each entry
+carries non-empty `local` and `callee` (name slots), a string `file`, a `line`
+in the §4.2 domain, an optional `column` under the same rules as every other
+column, `method` and `result_type` as string-or-null, and `family` from the
+closed set `A_owned_result` / `B_protocol_lifecycle` when present. The tolerant
+door (`check_facts` on an un-validated document) keeps degrading: an
+out-of-domain line reads as 0, an out-of-domain column as absent, and an entry
+that is not an object is skipped — two entry points, two contracts, as for
+every other coordinate.
 
 ## 10. Rules
 

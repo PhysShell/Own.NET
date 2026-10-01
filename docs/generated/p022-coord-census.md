@@ -11,22 +11,22 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | measure                            | value |
 |------------------------------------|------:|
 | JSON files scanned                 | 440 |
-| coordinate slots found             | 2213 |
+| coordinate slots found             | 2267 |
 
 ## By value class
 
 | value class | all slots | door slots |
 |---|---:|---:|
-| `above-int32` | 22 | 21 |
-| `below-1` | 20 | 19 |
-| `bool` | 14 | 14 |
-| `float` | 2 | 2 |
-| `in-domain` | 1763 | 958 |
-| `negative` | 23 | 23 |
-| `null` | 229 | 7 |
-| `outside-int64` | 14 | 14 |
-| `string` | 17 | 17 |
-| `zero` | 109 | 25 |
+| `above-int32` | 24 | 24 |
+| `below-1` | 23 | 23 |
+| `bool` | 17 | 17 |
+| `float` | 3 | 3 |
+| `in-domain` | 1799 | 998 |
+| `negative` | 26 | 26 |
+| `null` | 231 | 9 |
+| `outside-int64` | 15 | 15 |
+| `string` | 19 | 19 |
+| `zero` | 110 | 26 |
 
 ## By family and slot
 
@@ -89,6 +89,21 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `(root)` | `cases[].document.functions[].params[].line` | `outside-int64` | yes | 1 | 1 | `9223372036854775808` |
 | `(root)` | `cases[].document.functions[].params[].line` | `string` | yes | 3 | 1 | `'3'` |
 | `(root)` | `cases[].document.functions[].params[].line` | `zero` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.orphaned_awaitables[].column` | `above-int32` | yes | 1 | 1 | `2147483648` |
+| `(root)` | `cases[].document.orphaned_awaitables[].column` | `below-1` | yes | 3 | 1 | `-1`, `0` |
+| `(root)` | `cases[].document.orphaned_awaitables[].column` | `bool` | yes | 2 | 1 | `True` |
+| `(root)` | `cases[].document.orphaned_awaitables[].column` | `in-domain` | yes | 3 | 1 | — |
+| `(root)` | `cases[].document.orphaned_awaitables[].column` | `null` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.orphaned_awaitables[].column` | `string` | yes | 1 | 1 | `'17'` |
+| `(root)` | `cases[].document.orphaned_awaitables[].line` | `above-int32` | yes | 1 | 1 | `2147483648` |
+| `(root)` | `cases[].document.orphaned_awaitables[].line` | `bool` | yes | 1 | 1 | `True` |
+| `(root)` | `cases[].document.orphaned_awaitables[].line` | `float` | yes | 1 | 1 | `1.5` |
+| `(root)` | `cases[].document.orphaned_awaitables[].line` | `in-domain` | yes | 33 | 1 | — |
+| `(root)` | `cases[].document.orphaned_awaitables[].line` | `negative` | yes | 3 | 1 | `-1` |
+| `(root)` | `cases[].document.orphaned_awaitables[].line` | `null` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.orphaned_awaitables[].line` | `outside-int64` | yes | 1 | 1 | `-9223372036854775809` |
+| `(root)` | `cases[].document.orphaned_awaitables[].line` | `string` | yes | 1 | 1 | `'119'` |
+| `(root)` | `cases[].document.orphaned_awaitables[].line` | `zero` | yes | 1 | 1 | — |
 | `(root)` | `cases[].document.protocol_functions[].events[].<nested>[].line` | `in-domain` | yes | 134 | 1 | — |
 | `(root)` | `cases[].document.protocol_functions[].events[].line` | `above-int32` | yes | 1 | 1 | `2147483648` |
 | `(root)` | `cases[].document.protocol_functions[].events[].line` | `bool` | yes | 1 | 1 | `True` |
@@ -210,10 +225,10 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `verdicts` | `functions[].<nested>[].line` | `zero` | yes | 1 | 1 | — |
 | `verdicts` | `functions[].params[].line` | `in-domain` | yes | 3 | 2 | — |
 | `verdicts` | `functions[].params[].line` | `negative` | yes | 1 | 1 | `-1` |
-| `verdicts` | `orphaned_awaitables[].column` | `below-1` | — | 1 | 1 | `0` |
-| `verdicts` | `orphaned_awaitables[].column` | `in-domain` | — | 2 | 1 | — |
-| `verdicts` | `orphaned_awaitables[].line` | `above-int32` | — | 1 | 1 | `2147483648` |
-| `verdicts` | `orphaned_awaitables[].line` | `in-domain` | — | 2 | 1 | — |
+| `verdicts` | `orphaned_awaitables[].column` | `below-1` | yes | 1 | 1 | `0` |
+| `verdicts` | `orphaned_awaitables[].column` | `in-domain` | yes | 2 | 1 | — |
+| `verdicts` | `orphaned_awaitables[].line` | `above-int32` | yes | 1 | 1 | `2147483648` |
+| `verdicts` | `orphaned_awaitables[].line` | `in-domain` | yes | 2 | 1 | — |
 | `verdicts` | `protocol_functions[].events[].<nested>[].line` | `in-domain` | yes | 2 | 2 | — |
 | `verdicts` | `protocol_functions[].events[].line` | `in-domain` | yes | 34 | 7 | — |
 | `verdicts` | `services[].ctor_line` | `in-domain` | yes | 3 | 3 | — |

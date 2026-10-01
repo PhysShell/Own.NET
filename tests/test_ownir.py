@@ -31,6 +31,7 @@ from ownlang.diagnostics import TITLES
 from ownlang.ownir import (
     _FLOW_OPS,
     _KNOWN_RESOURCE_KINDS,
+    _ORPHAN_FAMILIES,
     _PARAM_EFFECTS,
     OWNIR_VERSION,
     Finding,
@@ -529,6 +530,19 @@ def run() -> int:
         if _se != set(_PARAM_EFFECTS):
             fails.append(f"schema paramEffect enum {sorted(_se)} != code "
                          f"_PARAM_EFFECTS {sorted(_PARAM_EFFECTS)}")
+        # 3c) orphanFamily enum == _ORPHAN_FAMILIES (the load() OWN053-family authority,
+        #     P-OWN053-DOOR) — and the entry's `family` must reach it by $ref, so the
+        #     closed set lives in exactly one place of the schema.
+        checks += 1
+        _sf = set(_defs.get("orphanFamily", {}).get("enum", []))
+        if _sf != set(_ORPHAN_FAMILIES):
+            fails.append(f"schema orphanFamily enum {sorted(_sf)} != code "
+                         f"_ORPHAN_FAMILIES {sorted(_ORPHAN_FAMILIES)}")
+        checks += 1
+        _fam_ref = (_defs.get("orphanedAwaitable", {}).get("properties", {})
+                    .get("family", {}).get("$ref"))
+        if _fam_ref != "#/$defs/orphanFamily":
+            fails.append(f"schema orphanedAwaitable.family must $ref orphanFamily, got {_fam_ref!r}")
         # 4) flowOp discriminator consts. `_FLOW_OPS` is the lowerer's authoritative
         #    op set (the _lower_flow `else` rejects anything outside it as vocabulary
         #    skew). Bind the schema to it BOTH ways: (a) the schema's oneOf consts must
