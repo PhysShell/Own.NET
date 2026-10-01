@@ -3153,6 +3153,98 @@ static void H25Classify(VariableDeclaratorSyntax v, BlockSyntax mbody, SemanticM
     }
 }
 
+// ===== ownership-semantics-lab H-26B (registered before this code; h26b-h27-prereg-v1.json): base-typed virtual
+// RESOLVABILITY census, census only. For every invocation in a method body whose resolved method belongs to a type
+// OUTSIDE the compilation and whose (await-unwrapped) return type is a real disposable: the static callable, whether it
+// is a virtual / abstract / interface member, the receiver expression kind and static type, the receiver's construction
+// provenance (a local whose initializer and every write have one concrete type; a field whose every write in its class
+// has one concrete type; a parameter; a property; a call result; other), the concrete type when known, whether a
+// fresh-owned row exists for the concrete override (descriptive, name-based), the result sink and, for a local sink,
+// whether the local is transferred (returned / stored to a field or property / passed as an argument) in the member.
+// Behind OWEN_H26B_CENSUS=<path>. No lowering changes.
+static void H26BClassify(BlockSyntax mbody, SemanticModel model)
+{
+    static ITypeSymbol? Unwrap(ITypeSymbol? t) => t is INamedTypeSymbol n && n.IsGenericType && n.ContainingNamespace?.ToString() == "System.Threading.Tasks" && n.Name is "Task" or "ValueTask" ? n.TypeArguments[0] : t;
+    bool Concrete(ITypeSymbol? t) => t is INamedTypeSymbol n && n.TypeKind == TypeKind.Class && !n.IsAbstract;
+    foreach (var inv in mbody.DescendantNodes().OfType<InvocationExpressionSyntax>())
+    {
+        if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol m) continue;
+        if (SymbolEqualityComparer.Default.Equals(m.ContainingAssembly, model.Compilation.Assembly)) continue;
+        var ret = Unwrap(m.ReturnType);
+        if (ret is null || !ImplementsIDisposable(ret) || IsDisposeOptional(ret) || HasEmptyDisposeBody(ret)) continue;
+        ExpressionSyntax? recv = inv.Expression is MemberAccessExpressionSyntax ma ? ma.Expression : inv.Expression is MemberBindingExpressionSyntax && inv.Parent is ConditionalAccessExpressionSyntax ca ? ca.Expression : null;
+        var rsym = recv is null ? null : model.GetSymbolInfo(recv).Symbol; var rtype = recv is null ? m.ContainingType : model.GetTypeInfo(recv).Type;
+        string prov = "OTHER"; ITypeSymbol? concrete = null; string rkind = recv is null ? (m.IsStatic ? "static" : "this") : recv.Kind().ToString();
+        List<ITypeSymbol?> WriteTypes(ISymbol target, SyntaxNode scope)
+        {
+            var ts = new List<ITypeSymbol?>();
+            foreach (var asg in scope.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+                if (asg.IsKind(SyntaxKind.SimpleAssignmentExpression) && SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(asg.Left).Symbol, target)) ts.Add(model.GetTypeInfo(asg.Right).Type);
+            return ts;
+        }
+        if (rsym is ILocalSymbol ls)
+        {
+            rkind = "local"; var ts = new List<ITypeSymbol?>();
+            foreach (var dr in ls.DeclaringSyntaxReferences) if (dr.GetSyntax() is VariableDeclaratorSyntax vd && vd.Initializer?.Value is { } iv) ts.Add(model.GetTypeInfo(iv).Type);
+            ts.AddRange(WriteTypes(ls, mbody));
+            var cs = ts.Where(Concrete).Select(t => t!.ToDisplayString()).Distinct().ToList();
+            prov = ts.Count == 0 ? "LOCAL_NO_WRITE_SEEN" : ts.All(Concrete) && cs.Count == 1 ? "CONCRETE_LOCAL_CONSTRUCTION" : ts.Any(Concrete) ? "LOCAL_MIXED" : "LOCAL_BASE_TYPED_WRITES";
+            if (cs.Count == 1 && ts.All(Concrete)) concrete = ts[0];
+        }
+        else if (rsym is IParameterSymbol) { rkind = "parameter"; prov = Concrete(rtype) ? "CONCRETE_PARAMETER_TYPE" : "POLYMORPHIC_PARAMETER"; }
+        else if (rsym is IFieldSymbol fs)
+        {
+            rkind = "field"; var ts = new List<ITypeSymbol?>();
+            foreach (var dr in fs.DeclaringSyntaxReferences) if (dr.GetSyntax() is VariableDeclaratorSyntax vd && vd.Initializer?.Value is { } iv) ts.Add(model.GetTypeInfo(iv).Type);
+            var typeDecl = inv.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault();
+            if (typeDecl is not null) ts.AddRange(WriteTypes(fs, typeDecl));
+            var cs = ts.Where(Concrete).Select(t => t!.ToDisplayString()).Distinct().ToList();
+            prov = Concrete(rtype) ? "CONCRETE_FIELD_TYPE" : ts.Count == 0 ? "FIELD_NO_WRITE_IN_THIS_TYPE_DECLARATION" : ts.All(Concrete) && cs.Count == 1 ? "CONCRETE_FIELD" : "UNKNOWN_FIELD";
+            if (cs.Count == 1 && ts.All(Concrete)) concrete = ts[0];
+        }
+        else if (rsym is IPropertySymbol) { rkind = "property"; prov = Concrete(rtype) ? "CONCRETE_PROPERTY_TYPE" : "UNKNOWN_PROPERTY"; }
+        else if (recv is InvocationExpressionSyntax or AwaitExpressionSyntax) { rkind = "call_result"; prov = Concrete(rtype) ? "CONCRETE_CALL_RESULT_TYPE" : "CALL_RESULT_BASE_TYPED"; }
+        else if (recv is null) prov = m.IsStatic ? "STATIC" : "THIS";
+        else if (recv is ThisExpressionSyntax) { rkind = "this"; prov = "THIS"; }
+        else if (recv is ObjectCreationExpressionSyntax) { rkind = "new"; prov = "CONCRETE_NEW"; concrete = rtype; }
+        if (Concrete(rtype) && concrete is null) concrete = rtype;
+        bool? rowOnConcrete = null;
+        if (concrete is INamedTypeSymbol cn && !SymbolEqualityComparer.Default.Equals(cn, m.ContainingType))
+        {
+            var ov = cn.GetMembers(m.Name).OfType<IMethodSymbol>().FirstOrDefault(x => x.Parameters.Length == m.Parameters.Length);
+            rowOnConcrete = ov is not null && ReOracle.HasRow(ov, model.Compilation);
+        }
+        var rowOnStatic = ReOracle.HasRow(m, model.Compilation);
+        // the result sink
+        SyntaxNode top = inv; while (top.Parent is AwaitExpressionSyntax or ParenthesizedExpressionSyntax || (top.Parent is InvocationExpressionSyntax pi && pi.Expression is MemberAccessExpressionSyntax pma && pma.Name.Identifier.Text == "ConfigureAwait") || (top.Parent is MemberAccessExpressionSyntax pm2 && pm2.Name.Identifier.Text == "ConfigureAwait")) top = top.Parent;
+        string sink = "other"; ILocalSymbol? sinkLocal = null; var usingDecl = false;
+        switch (top.Parent)
+        {
+            case EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax vd }: sink = "local_declaration"; sinkLocal = model.GetDeclaredSymbol(vd) as ILocalSymbol; usingDecl = (vd.Parent?.Parent as LocalDeclarationStatementSyntax)?.UsingKeyword.RawKind is > 0; break;
+            case AssignmentExpressionSyntax asg when asg.Right == top: var ts2 = model.GetSymbolInfo(asg.Left).Symbol; sink = ts2 is ILocalSymbol ? "local_assignment" : ts2 is IFieldSymbol or IPropertySymbol ? "field_or_property_store" : "assignment_other"; sinkLocal = ts2 as ILocalSymbol; break;
+            case ArgumentSyntax: sink = "argument"; break;
+            case ReturnStatementSyntax: sink = "return"; break;
+            case ExpressionStatementSyntax: sink = "discarded"; break;
+            case MemberAccessExpressionSyntax: sink = "chained"; break;
+            case UsingStatementSyntax: sink = "using_statement"; usingDecl = true; break;
+        }
+        var transferred = new SortedSet<string>(StringComparer.Ordinal);
+        if (sinkLocal is not null)
+            foreach (var id in mbody.DescendantNodes().OfType<IdentifierNameSyntax>())
+                if (SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, sinkLocal))
+                {
+                    if (id.Parent is ReturnStatementSyntax) transferred.Add("returned");
+                    else if (id.Parent is AssignmentExpressionSyntax a2 && a2.Right == id && model.GetSymbolInfo(a2.Left).Symbol is IFieldSymbol or IPropertySymbol) transferred.Add("stored");
+                    else if (id.Parent is ArgumentSyntax) transferred.Add("passed_as_argument");
+                }
+        var member = inv.Ancestors().OfType<MemberDeclarationSyntax>().FirstOrDefault();
+        H26B.Emit(new { file = inv.SyntaxTree.FilePath, line = LineOf(inv), member = member is MethodDeclarationSyntax md ? md.Identifier.Text : member?.Kind().ToString(),
+            callable = $"{m.ContainingType.ToDisplayString()}.{m.Name}/{m.Parameters.Length}", declaring_assembly = m.ContainingAssembly?.Name, is_virtual_member = m.IsVirtual || m.IsAbstract || m.ContainingType.TypeKind == TypeKind.Interface || m.IsOverride,
+            return_type = ret.ToDisplayString(), awaited = inv.Parent is AwaitExpressionSyntax || top != inv, receiver_kind = rkind, receiver_static_type = rtype?.ToDisplayString(), provenance = prov, concrete_type = concrete?.ToDisplayString(),
+            row_on_static_callable = rowOnStatic, row_on_concrete_override = rowOnConcrete, sink, using_declaration = usingDecl, transferred = transferred.ToArray() });
+    }
+}
+
 static ExpressionSyntax? LabNullInitSingleAssignment(VariableDeclaratorSyntax v, BlockSyntax mbody, SemanticModel model)
 {
     if (model.GetDeclaredSymbol(v) is not ILocalSymbol local)
@@ -8101,6 +8193,8 @@ foreach (var (file, tree) in parsed)
                         foreach (var v in ld.Declaration.Variables)
                             if (model.GetDeclaredSymbol(v) is ILocalSymbol l5 && ImplementsIDisposable(l5.Type) && !IsDisposeOptional(l5.Type) && !HasEmptyDisposeBody(l5.Type))
                                 H25Classify(v, mbody, model);
+                // H-26B (OWEN_H26B_CENSUS=<path>; h26b-h27-prereg-v1.json): base-typed virtual resolvability census, census only
+                if (H26B.Enabled) H26BClassify(mbody, model);
                 // `using (IMemoryOwner owner = MemoryPool.Rent(...)) { … }` STATEMENT form: track the owner
                 // too, so its returned view dangles after the scope-exit dispose (the desugar mirrors the
                 // `using` DECLARATION form handled in the loop above).
@@ -8764,6 +8858,15 @@ partial class Program
         // h25-probe-prereg-v1: OWEN_H25=1 makes `await E` / `await E.ConfigureAwait(b)` ask the oracle about E (ReOracle.ReturnsFreshOwned)
         // and refuses to mint a Task / ValueTask-typed local from a row (the HW1 hazard). Research flag; OFF byte-identical.
         internal static readonly bool Seam = Environment.GetEnvironmentVariable("OWEN_H25") == "1";
+        static readonly object Lock = new();
+        internal static void Emit(object o) { try { lock (Lock) File.AppendAllText(Path!, JsonSerializer.Serialize(o) + "\n"); } catch { } }
+    }
+
+    // ===== ownership-semantics-lab H-26B (registered before this code): the census sink of H26BClassify. Census only.
+    static class H26B
+    {
+        internal static readonly string? Path = Environment.GetEnvironmentVariable("OWEN_H26B_CENSUS");
+        internal static readonly bool Enabled = !string.IsNullOrEmpty(Path);
         static readonly object Lock = new();
         internal static void Emit(object o) { try { lock (Lock) File.AppendAllText(Path!, JsonSerializer.Serialize(o) + "\n"); } catch { } }
     }
