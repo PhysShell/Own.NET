@@ -1,0 +1,442 @@
+{
+  "lowered_version": 2,
+  "module": "TypestateGate",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [],
+  "functions": [
+    {
+      "name": "Reborrow",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_0",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": true
+          },
+          "line": 100,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": []
+    },
+    {
+      "name": "Peek",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_1",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": false
+          },
+          "line": 110,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": []
+    },
+    {
+      "name": "Store",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_2",
+          "type": {
+            "name": "Disposable",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 120,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "release",
+          "handle": "parg_2",
+          "line": 121
+        }
+      ]
+    },
+    {
+      "name": "W.Moved",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_3",
+          "resource": "Disposable",
+          "line": 1
+        },
+        {
+          "stmt": "move",
+          "handle": "loc_4",
+          "src": "loc_3",
+          "line": 2
+        },
+        {
+          "stmt": "use",
+          "handle": "loc_3",
+          "line": 3
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_4",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "W.Consumed",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_5",
+          "resource": "Disposable",
+          "line": 11
+        },
+        {
+          "stmt": "borrow_mut",
+          "owner": "loc_5",
+          "binding": "brw_6",
+          "body": [
+            {
+              "stmt": "call",
+              "callee": "Store",
+              "args": [
+                "loc_5"
+              ],
+              "line": 13
+            }
+          ],
+          "line": 12
+        }
+      ]
+    },
+    {
+      "name": "W.Released",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_7",
+          "resource": "Disposable",
+          "line": 21
+        },
+        {
+          "stmt": "borrow_mut",
+          "owner": "loc_7",
+          "binding": "brw_8",
+          "body": [
+            {
+              "stmt": "release",
+              "handle": "loc_7",
+              "line": 23
+            }
+          ],
+          "line": 22
+        }
+      ]
+    },
+    {
+      "name": "W.Reborrowed",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_9",
+          "resource": "Disposable",
+          "line": 31
+        },
+        {
+          "stmt": "borrow_mut",
+          "owner": "loc_9",
+          "binding": "brw_10",
+          "body": [
+            {
+              "stmt": "call",
+              "callee": "Reborrow",
+              "args": [
+                "loc_9"
+              ],
+              "line": 33
+            }
+          ],
+          "line": 32
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_9",
+          "line": 35
+        }
+      ]
+    },
+    {
+      "name": "W.Shared",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_11",
+          "resource": "Disposable",
+          "line": 41
+        },
+        {
+          "stmt": "borrow_mut",
+          "owner": "loc_11",
+          "binding": "brw_12",
+          "body": [
+            {
+              "stmt": "call",
+              "callee": "Peek",
+              "args": [
+                "loc_11"
+              ],
+              "line": 43
+            }
+          ],
+          "line": 42
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_11",
+          "line": 45
+        }
+      ]
+    },
+    {
+      "name": "W.Used",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_13",
+          "resource": "Disposable",
+          "line": 51
+        },
+        {
+          "stmt": "borrow_mut",
+          "owner": "loc_13",
+          "binding": "brw_14",
+          "body": [
+            {
+              "stmt": "use",
+              "handle": "loc_13",
+              "line": 53
+            }
+          ],
+          "line": 52
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_13",
+          "line": 55
+        }
+      ]
+    }
+  ],
+  "handles": [
+    {
+      "handle": "parg_0",
+      "component": "Reborrow",
+      "file": "Wordings.cs",
+      "line": 100,
+      "event": "o",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    {
+      "handle": "parg_1",
+      "component": "Peek",
+      "file": "Wordings.cs",
+      "line": 110,
+      "event": "o",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    {
+      "handle": "parg_2",
+      "component": "Store",
+      "file": "Wordings.cs",
+      "line": 120,
+      "event": "o",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    {
+      "handle": "loc_3",
+      "component": "W.Moved",
+      "file": "Wordings.cs",
+      "line": 1,
+      "event": "b",
+      "resource": "flow-local",
+      "ever_released": false,
+      "pool": false
+    },
+    {
+      "handle": "loc_4",
+      "component": "W.Moved",
+      "file": "Wordings.cs",
+      "line": 2,
+      "event": "c",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    },
+    {
+      "handle": "loc_5",
+      "component": "W.Consumed",
+      "file": "Wordings.cs",
+      "line": 11,
+      "event": "o",
+      "resource": "flow-local",
+      "ever_released": false,
+      "pool": false
+    },
+    {
+      "handle": "loc_7",
+      "component": "W.Released",
+      "file": "Wordings.cs",
+      "line": 21,
+      "event": "o",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    },
+    {
+      "handle": "loc_9",
+      "component": "W.Reborrowed",
+      "file": "Wordings.cs",
+      "line": 31,
+      "event": "o",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    },
+    {
+      "handle": "loc_11",
+      "component": "W.Shared",
+      "file": "Wordings.cs",
+      "line": 41,
+      "event": "o",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    },
+    {
+      "handle": "loc_13",
+      "component": "W.Used",
+      "file": "Wordings.cs",
+      "line": 51,
+      "event": "o",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    }
+  ]
+}

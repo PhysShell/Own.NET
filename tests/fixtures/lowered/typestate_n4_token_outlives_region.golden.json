@@ -1,0 +1,461 @@
+{
+  "lowered_version": 2,
+  "module": "TypestateGate",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [],
+  "functions": [
+    {
+      "name": "Submit",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_0",
+          "type": {
+            "name": "Disposable",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 100,
+          "lifetime": null
+        },
+        {
+          "handle": "parg_1",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": true
+          },
+          "line": 100,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "release",
+          "handle": "parg_0",
+          "line": 101
+        }
+      ]
+    },
+    {
+      "name": "Approve",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_2",
+          "type": {
+            "name": "Disposable",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 110,
+          "lifetime": null
+        },
+        {
+          "handle": "parg_3",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": true
+          },
+          "line": 110,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "release",
+          "handle": "parg_2",
+          "line": 111
+        }
+      ]
+    },
+    {
+      "name": "Ship",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_4",
+          "type": {
+            "name": "Disposable",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 120,
+          "lifetime": null
+        },
+        {
+          "handle": "parg_5",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": true
+          },
+          "line": 120,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "release",
+          "handle": "parg_4",
+          "line": 121
+        }
+      ]
+    },
+    {
+      "name": "CancelDraft",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_6",
+          "type": {
+            "name": "Disposable",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 130,
+          "lifetime": null
+        },
+        {
+          "handle": "parg_7",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": true
+          },
+          "line": 130,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "release",
+          "handle": "parg_6",
+          "line": 131
+        }
+      ]
+    },
+    {
+      "name": "CancelOrder",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_8",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": true
+          },
+          "line": 140,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": []
+    },
+    {
+      "name": "Peek",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_9",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": false
+          },
+          "line": 150,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": []
+    },
+    {
+      "name": "Store",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_10",
+          "type": {
+            "name": "Disposable",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 160,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "release",
+          "handle": "parg_10",
+          "line": 161
+        }
+      ]
+    },
+    {
+      "name": "Handler.Run",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_11",
+          "resource": "Disposable",
+          "line": 10
+        },
+        {
+          "stmt": "borrow_mut",
+          "owner": "loc_11",
+          "binding": "brw_12",
+          "body": [
+            {
+              "stmt": "acquire",
+              "handle": "loc_13",
+              "resource": "Disposable",
+              "line": 12
+            }
+          ],
+          "line": 11
+        },
+        {
+          "stmt": "call",
+          "callee": "CancelOrder",
+          "args": [
+            "loc_11"
+          ],
+          "line": 14
+        },
+        {
+          "stmt": "call",
+          "callee": "Ship",
+          "args": [
+            "loc_13",
+            "loc_11"
+          ],
+          "line": 15
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_11",
+          "line": 16
+        }
+      ]
+    }
+  ],
+  "handles": [
+    {
+      "handle": "parg_0",
+      "component": "Submit",
+      "file": "Orders.cs",
+      "line": 100,
+      "event": "d",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    {
+      "handle": "parg_1",
+      "component": "Submit",
+      "file": "Orders.cs",
+      "line": 100,
+      "event": "order",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    {
+      "handle": "parg_2",
+      "component": "Approve",
+      "file": "Orders.cs",
+      "line": 110,
+      "event": "s",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    {
+      "handle": "parg_3",
+      "component": "Approve",
+      "file": "Orders.cs",
+      "line": 110,
+      "event": "order",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    {
+      "handle": "parg_4",
+      "component": "Ship",
+      "file": "Orders.cs",
+      "line": 120,
+      "event": "a",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    {
+      "handle": "parg_5",
+      "component": "Ship",
+      "file": "Orders.cs",
+      "line": 120,
+      "event": "order",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    {
+      "handle": "parg_6",
+      "component": "CancelDraft",
+      "file": "Orders.cs",
+      "line": 130,
+      "event": "d",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    {
+      "handle": "parg_7",
+      "component": "CancelDraft",
+      "file": "Orders.cs",
+      "line": 130,
+      "event": "order",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    {
+      "handle": "parg_8",
+      "component": "CancelOrder",
+      "file": "Orders.cs",
+      "line": 140,
+      "event": "order",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    {
+      "handle": "parg_9",
+      "component": "Peek",
+      "file": "Orders.cs",
+      "line": 150,
+      "event": "order",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    {
+      "handle": "parg_10",
+      "component": "Store",
+      "file": "Orders.cs",
+      "line": 160,
+      "event": "order",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    {
+      "handle": "loc_11",
+      "component": "Handler.Run",
+      "file": "Orders.cs",
+      "line": 10,
+      "event": "order",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    },
+    {
+      "handle": "loc_13",
+      "component": "Handler.Run",
+      "file": "Orders.cs",
+      "line": 12,
+      "event": "a",
+      "resource": "flow-local",
+      "ever_released": false,
+      "pool": false
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Orders.cs",
+      "line": 10,
+      "code": "OWN012",
+      "component": "Handler.Run",
+      "event": "order",
+      "handler": "",
+      "message": "IDisposable local 'order' is borrowed while an exclusive borrow of it is live",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

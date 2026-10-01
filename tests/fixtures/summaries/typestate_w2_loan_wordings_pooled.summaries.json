@@ -1,0 +1,119 @@
+{
+  "degraded": null,
+  "module": "TypestateGate",
+  "ownir_version": 1,
+  "summaries": [
+    {
+      "file": "Wordings.cs",
+      "line": 0,
+      "method": "Peek",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "o",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "Wordings.cs",
+      "line": 0,
+      "method": "Reborrow",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "o",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "Wordings.cs",
+      "line": 0,
+      "method": "Store",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "o",
+          "transfer": "must"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "Wordings.cs",
+      "line": 0,
+      "method": "W.Consumed",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "Wordings.cs",
+      "line": 0,
+      "method": "W.Moved",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "Wordings.cs",
+      "line": 0,
+      "method": "W.Reborrowed",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "Wordings.cs",
+      "line": 0,
+      "method": "W.Released",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "Wordings.cs",
+      "line": 0,
+      "method": "W.Shared",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "Wordings.cs",
+      "line": 0,
+      "method": "W.Used",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": []
+}

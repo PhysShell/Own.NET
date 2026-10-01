@@ -59,7 +59,7 @@
                 }
               ],
               "properties": {
-                "ownirSchemaVersion": 0
+                "ownirSchemaVersion": 1
               }
             }
           },
@@ -137,7 +137,7 @@
                 }
               ],
               "properties": {
-                "ownirSchemaVersion": 0
+                "ownirSchemaVersion": 1
               }
             }
           },

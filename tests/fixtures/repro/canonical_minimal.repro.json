@@ -1,20 +1,20 @@
 {
   "repro_version": 3,
   "input": {
-    "ownir_version": 0,
+    "ownir_version": 1,
     "raw": {
       "algorithm": "sha256",
-      "digest": "bc5f3772f24bbbb76ca24828da224d4ab991efe07a87d69db69d0bbef175460a",
+      "digest": "4573241a7888cac6145dd1005623c1edd6573a221d6779515781eb247041ebc7",
       "bytes": 48,
-      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMCwKICAibW9kdWxlIjogIk1pbmltYWwiCn0K"
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMSwKICAibW9kdWxlIjogIk1pbmltYWwiCn0K"
     },
     "canonical": {
       "algorithm": "sha256",
-      "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+      "digest": "0f3af651cbd63f59131e16da784820e334fa68ed69b29fb068076abf4374d319",
       "bytes": 38
     },
     "document": {
-      "ownir_version": 0,
+      "ownir_version": 1,
       "module": "Minimal"
     }
   },
@@ -23,19 +23,19 @@
       "id": "python-ownlang",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "bc5f3772f24bbbb76ca24828da224d4ab991efe07a87d69db69d0bbef175460a",
+        "digest": "4573241a7888cac6145dd1005623c1edd6573a221d6779515781eb247041ebc7",
         "bytes": 48
       },
       "layers": [
         {
           "layer": "lowered",
-          "surface_version": 1,
+          "surface_version": 2,
           "projection": {
             "kind": "full"
           },
           "status": "produced",
           "document": {
-            "lowered_version": 1,
+            "lowered_version": 2,
             "module": "Minimal",
             "resources": [
               {
@@ -139,7 +139,7 @@
           "document": {
             "degraded": null,
             "module": "Minimal",
-            "ownir_version": 0,
+            "ownir_version": 1,
             "summaries": [],
             "unresolved": []
           }
@@ -163,7 +163,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "4757bdfa72fd168dda7a1ad95f5eec18c6d72bf792166227faf83ac1b2e4a393",
+            "digest": "aa7b2312f4da58d124b29b75b86b5f05c767ef43cac802cffa19e566740b3096",
             "bytes": 289
           }
         }
@@ -173,19 +173,19 @@
       "id": "rust-own-bridge",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "bc5f3772f24bbbb76ca24828da224d4ab991efe07a87d69db69d0bbef175460a",
+        "digest": "4573241a7888cac6145dd1005623c1edd6573a221d6779515781eb247041ebc7",
         "bytes": 48
       },
       "layers": [
         {
           "layer": "lowered",
-          "surface_version": 1,
+          "surface_version": 2,
           "projection": {
             "kind": "full"
           },
           "status": "produced",
           "document": {
-            "lowered_version": 1,
+            "lowered_version": 2,
             "module": "Minimal",
             "resources": [
               {
@@ -289,7 +289,7 @@
           "document": {
             "degraded": null,
             "module": "Minimal",
-            "ownir_version": 0,
+            "ownir_version": 1,
             "summaries": [],
             "unresolved": []
           }
@@ -313,7 +313,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "4757bdfa72fd168dda7a1ad95f5eec18c6d72bf792166227faf83ac1b2e4a393",
+            "digest": "aa7b2312f4da58d124b29b75b86b5f05c767ef43cac802cffa19e566740b3096",
             "bytes": 289
           }
         }

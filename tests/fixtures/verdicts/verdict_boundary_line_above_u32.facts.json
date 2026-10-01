@@ -1,5 +1,5 @@
 {
-  "ownir_version": 0,
+  "ownir_version": 1,
   "module": "Bound",
   "_doc": [
     "The upper edge of the same promoted control: an acquire at 2^32 is outside",

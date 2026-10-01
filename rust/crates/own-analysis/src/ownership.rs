@@ -213,8 +213,10 @@ enum Emit<'a> {
 
 impl Emit<'_> {
     /// Emit `code` at `line` with **no** subject — the Python `err(...)` calls
-    /// that pass no `subject=` (the loan/permission codes OWN004/006/007-on-
-    /// consume/011/012/013/034/041).
+    /// that pass no `subject=` (OWN004/034/041). The loan/permission codes on
+    /// an OWNER (OWN006/007/011/012/013) carry one since the `OwnIR` flow
+    /// vocabulary gained `move`/`borrow_mut`: without it the bridge cannot map
+    /// the verdict back to a fact handle (IR5).
     fn push(&mut self, code: &'static str, line: u32) {
         self.push_at(code, line, None);
     }
@@ -302,7 +304,7 @@ fn consume_like(
     }
     let (shared, mutable) = loans_on(st, sym);
     if shared > 0 || mutable {
-        emit.push(code_borrowed, line);
+        emit.push_at(code_borrowed, line, Some(sym));
     }
 }
 
@@ -312,9 +314,9 @@ fn check_mut_borrowable(st: &State, owner: SymId, emit: &mut Emit<'_>, line: u32
     }
     let (shared, mutable) = loans_on(st, owner);
     if shared > 0 {
-        emit.push("OWN006", line);
+        emit.push_at("OWN006", line, Some(owner));
     } else if mutable {
-        emit.push("OWN011", line);
+        emit.push_at("OWN011", line, Some(owner));
     }
 }
 
@@ -324,7 +326,7 @@ fn check_shared_borrowable(st: &State, owner: SymId, emit: &mut Emit<'_>, line: 
     }
     let (_shared, mutable) = loans_on(st, owner);
     if mutable {
-        emit.push("OWN012", line);
+        emit.push_at("OWN012", line, Some(owner));
     }
 }
 
@@ -481,7 +483,7 @@ impl<'a> Ownership<'a> {
                         if !state_problem(st, *sym, emit, *line) {
                             let (_shared, mutable) = loans_on(st, *sym);
                             if mutable {
-                                emit.push("OWN013", *line);
+                                emit.push_at("OWN013", *line, Some(*sym));
                             }
                         }
                     }

@@ -9,7 +9,7 @@
   "expected": {
     "exit": 2,
     "stdout": "",
-    "stderr": "inputs/version_mismatch.facts.json: error: OwnIR facts are schema v99, but this core understands v0. Build the Roslyn extractor and the Python core from the same commit — the OwnIR fact vocabulary changed between the version that produced this file and the one reading it.\n",
+    "stderr": "inputs/version_mismatch.facts.json: error: OwnIR facts are schema v99, but this core understands v1. Build the Roslyn extractor and the Python core from the same commit — the OwnIR fact vocabulary changed between the version that produced this file and the one reading it.\n",
     "os_error_tail": null
   }
 }

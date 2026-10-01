@@ -1,5 +1,5 @@
 {
-  "ownir_version": 0,
+  "ownir_version": 1,
   "module": "DedupNeedsTheMessage",
   "_doc": [
     "BR-V7's `message` member, which cp4 could not carry and argued was",

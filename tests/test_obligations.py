@@ -355,7 +355,7 @@ def run() -> int:
     # exit leak through the bridge: OBL003 anchored at the open site, and the
     # SARIF rules catalogue knows the code.
     leak = check_facts({
-        "ownir_version": 0, "module": "S",
+        "ownir_version": 1, "module": "S",
         "protocols": [{
             "name": "Suppress",
             "opens": {"kind": "assign", "target": "_suppress", "value": True},
@@ -377,7 +377,7 @@ def run() -> int:
 
     # OBL005: a scoped protocol matching no reported method is an advisory.
     dead = check_facts({
-        "ownir_version": 0, "module": "S",
+        "ownir_version": 1, "module": "S",
         "protocols": [{
             "name": "Ghost",
             "opens": {"kind": "assign", "target": "x", "value": False},
@@ -391,10 +391,10 @@ def run() -> int:
 
     # malformed blocks degrade gracefully on the direct check_facts path
     # (load() fail-louds; embedders/tests may skip it).
-    check(check_facts({"ownir_version": 0, "components": [],
+    check(check_facts({"ownir_version": 1, "components": [],
                        "protocols": "nope"}) == [],
           "a malformed protocols block must not crash check_facts")
-    check(check_facts({"ownir_version": 0, "components": [],
+    check(check_facts({"ownir_version": 1, "components": [],
                        "protocols": [{"name": "P"}],
                        "protocol_functions": [{"name": "m"}]}) == [],
           "a malformed protocol entry is skipped on the direct path")
@@ -403,7 +403,7 @@ def run() -> int:
     # On the direct path the first wins deterministically (the second is
     # skipped — never a mixed message or a dedup-collapsed pair of findings)...
     dup = check_facts({
-        "ownir_version": 0, "module": "S",
+        "ownir_version": 1, "module": "S",
         "protocols": [
             {"name": "Dup",
              "opens": {"kind": "assign", "target": "A", "value": False},
@@ -441,14 +441,14 @@ def run() -> int:
         finally:
             os.unlink(tmp)
 
-    load_rejects({"ownir_version": 0, "module": "S",
+    load_rejects({"ownir_version": 1, "module": "S",
                   "protocol_functions": [{"name": "m", "events":
                                           [{"ev": "goto", "line": 1}]}]},
                  "an unknown protocol event")
     _p = {"name": "Dup",
           "opens": {"kind": "assign", "target": "A", "value": False},
           "closes": {"kind": "assign", "target": "A", "value": True}}
-    load_rejects({"ownir_version": 0, "module": "S", "protocols": [_p, dict(_p)]},
+    load_rejects({"ownir_version": 1, "module": "S", "protocols": [_p, dict(_p)]},
                  "a duplicate protocol name")
 
     # both fixtures pass the real load() gate (shape-valid on disk).

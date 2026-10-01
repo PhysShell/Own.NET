@@ -1,5 +1,5 @@
 {
-  "ownir_version": 0,
+  "ownir_version": 1,
   "module": "Skip",
   "_doc": [
     "BR-V2, the CLOSED skip list, one control per member the tree can reach:",

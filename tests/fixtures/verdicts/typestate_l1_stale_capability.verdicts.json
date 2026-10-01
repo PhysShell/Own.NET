@@ -1,0 +1,32 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Orders.cs",
+      "line": 12,
+      "code": "OWN002",
+      "component": "Handler.Run",
+      "event": "d",
+      "handler": "",
+      "message": "IDisposable local 'd' is used after it is disposed",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Orders.cs",
+          12,
+          "acquired 'd' here"
+        ],
+        [
+          "Orders.cs",
+          14,
+          "used here after it was released/returned"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

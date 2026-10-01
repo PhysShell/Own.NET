@@ -534,7 +534,8 @@ class _Analyzer:
                     if mut:
                         self.err("OWN013",
                                  f"cannot use '{ins.sym.name}' directly while it "
-                                 f"is mutably borrowed", ins.line)
+                                 f"is mutably borrowed", ins.line,
+                                 subject=ins.sym.origin)
             elif ins.sym.kind == Kind.BORROW:
                 if not self.binding_live(st, ins.sym):
                     self.err("OWN004",
@@ -641,7 +642,8 @@ class _Analyzer:
         shared, mut = self.loans_on(st, sym)
         if shared or mut:
             self.err(code_borrowed,
-                     f"cannot {verb} '{sym.name}' while it is borrowed", line)
+                     f"cannot {verb} '{sym.name}' while it is borrowed", line,
+                     subject=sym.origin)
 
     def _check_mut_borrowable(self, st: State, owner: Symbol, line: int) -> None:
         if self._state_problem(st, owner, "mutably borrow", line):
@@ -650,11 +652,11 @@ class _Analyzer:
         if shared:
             self.err("OWN006",
                      f"cannot mutably borrow '{owner.name}': a shared borrow is "
-                     f"live", line)
+                     f"live", line, subject=owner.origin)
         elif mut:
             self.err("OWN011",
                      f"cannot mutably borrow '{owner.name}': it is already "
-                     f"mutably borrowed", line)
+                     f"mutably borrowed", line, subject=owner.origin)
 
     def _check_shared_borrowable(self, st: State, owner: Symbol, line: int) -> None:
         if self._state_problem(st, owner, "borrow", line):
@@ -663,7 +665,7 @@ class _Analyzer:
         if mut:
             self.err("OWN012",
                      f"cannot share-borrow '{owner.name}': it is mutably "
-                     f"borrowed", line)
+                     f"borrowed", line, subject=owner.origin)
 
     def _apply_effect(self, st: State, sym: Symbol, eff: Effect,
                       callee: str, line: int) -> None:

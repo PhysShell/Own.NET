@@ -132,7 +132,7 @@ UNREACHABLE_CAPTURE_PHRASE = (
 )
 #: The disposition of the two fallback rows: see `Branch.note`.
 UNIT_PINNED = (
-    "unreachable from any facts document (the nine-op flow vocabulary raises only codes "
+    "unreachable from any facts document (the eleven-op flow vocabulary raises only codes "
     "that HAVE a wording); pinned by a `verdict::tests` control driven through "
     "`map_core`, whose expected text is read from the recorded probe "
     "`tests/fixtures/unreachable_branches.json`. The core message it "
@@ -173,6 +173,23 @@ MESSAGE_BRANCHES: tuple[Branch, ...] = (
     _flow_local("flowlocal_own009_pool", "OWN009", "pooled buffer",
                 "flow-local maybe-use-after-return",
                 r" may be used after being returned on some path"),
+    # the move / loan codes, reachable since the flow vocabulary carries `move`
+    # and `borrow_mut`; one wording per code, per pool split.
+    *(_flow_local(f"flowlocal_{code.lower()}{suffix}", code, kind,
+                  f"flow-local {what}{label}", tail)
+      for kind, suffix, label in (("disposable", "", ""),
+                                  ("pooled buffer", "_pool", " on a pooled buffer"))
+      for code, what, tail in (
+          ("OWN005", "use after move", r" is used after its ownership was moved"),
+          ("OWN007", "consume/return while borrowed",
+           r" is consumed or returned while it is borrowed"),
+          ("OWN008", "release while borrowed", r" is released while it is borrowed"),
+          ("OWN011", "exclusive re-borrow",
+           r" is exclusively borrowed while an exclusive borrow of it is live"),
+          ("OWN012", "shared borrow under an exclusive one",
+           r" is borrowed while an exclusive borrow of it is live"),
+          ("OWN013", "direct use under an exclusive borrow",
+           r" is used directly while an exclusive borrow of it is live"))),
     # the two fallbacks: a flow-local code with no wording of its own keeps the
     # CORE diagnostic's message verbatim after a colon.
     _flow_local("flowlocal_fallback", "", "disposable",

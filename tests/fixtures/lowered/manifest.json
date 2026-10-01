@@ -1,6 +1,6 @@
 {
   "comment": "The frozen Layer 2 case ledger (#259). Hand-maintained: adding or removing a case is a deliberate contract change, and the harness requires manifest == facts == goldens exactly, so a fixture pair cannot silently disappear. rust_replay: false marks a Python-only behavior snapshot pinning an open decision (see 'decision'); the Rust own-bridge replays every rust_replay: true case byte-for-byte.",
-  "lowered_version": 1,
+  "lowered_version": 2,
   "cases": [
     {
       "name": "alias_join_cases",
@@ -197,6 +197,271 @@
       "rules": [
         "BR-D2",
         "OD-2"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_a1_alias_of_entity",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_a2_entity_through_indexer",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_g6_capability_not_spent",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_l10_region_inside_try",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_l11_region_beside_disposable",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_l12_region_beside_leaked_disposable",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_l13_values_captured_into_region",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_l1_stale_capability",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_l2_copied_capability",
+      "rules": [
+        "BR-L12",
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_l3_raw_mutation",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_l4_raw_escape",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_l5_normal_transition",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_l6_two_transitions",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_l6b_chained_transitions",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_l7_read_after_region",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_l8_branch_inside_region",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_l9_opaque_calls_around_region",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_x1_nested_region_same_entity",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_ef_orderbackend",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_g6_capability_not_spent",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_l1_stale_capability",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_l2_copied_capability",
+      "rules": [
+        "BR-L12",
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_l3_raw_entity_mutation",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_l3b_second_region",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_l4_raw_entity_unknown_call",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_l4b_raw_entity_shared_call",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_l4c_raw_entity_consumed",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_l4d_token_unknown_call",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_l5_normal_transition",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_l5b_two_transitions",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_l5c_read_after_region",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_n1_token_spent_on_other_entity",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_n2_two_tokens_one_region",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_n3_raw_mutation_inferred_effect",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_n4_token_outlives_region",
+      "rules": [
+        "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_w1_loan_wordings",
+      "rules": [
+        "BR-L12",
+        "BR-L13",
+        "BR-V4"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_w2_loan_wordings_pooled",
+      "rules": [
+        "BR-L12",
+        "BR-L13",
+        "BR-V4"
       ],
       "rust_replay": true
     },

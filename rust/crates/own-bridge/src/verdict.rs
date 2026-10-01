@@ -166,6 +166,27 @@ fn flow_local_message(
             (false, false) => format!("IDisposable local '{name}' is never disposed (leak)"),
         };
     }
+    // `_FLOW_LOCAL_LOAN_WORDING`: the move / loan codes reachable since the
+    // flow vocabulary gained `move` and `borrow_mut`. They need wordings of
+    // their own — the fallback interpolates the core message, which is not at
+    // parity between the engines.
+    let noun = if pool {
+        "pooled buffer"
+    } else {
+        "IDisposable local"
+    };
+    let loan = match code {
+        "OWN005" => Some("is used after its ownership was moved"),
+        "OWN007" => Some("is consumed or returned while it is borrowed"),
+        "OWN008" => Some("is released while it is borrowed"),
+        "OWN011" => Some("is exclusively borrowed while an exclusive borrow of it is live"),
+        "OWN012" => Some("is borrowed while an exclusive borrow of it is live"),
+        "OWN013" => Some("is used directly while an exclusive borrow of it is live"),
+        _ => None,
+    };
+    if let Some(tail) = loan {
+        return format!("{noun} '{name}' {tail}");
+    }
     if pool {
         return match code {
             "OWN002" => format!("pooled buffer '{name}' is used after it is returned to the pool"),
@@ -1345,9 +1366,10 @@ mod tests {
     /// BR-V4's flow-local FALLBACK: a code with no wording of its own keeps the
     /// core diagnostic's message verbatim after a colon, on both sides of the
     /// pool split. Driven through `map_core` — the production branch — because
-    /// no facts document can reach it: the `OwnIR` flow vocabulary is nine ops,
+    /// no facts document can reach it: the `OwnIR` flow vocabulary is eleven ops,
     /// and the only codes they raise on a flow-local handle are OWN001/002/003/
-    /// 009/025, every one of which HAS a wording. Same shape as the BR-V1
+    /// 009/025 plus the move/loan codes OWN005/007/008/011/012/013, every one
+    /// of which HAS a wording. Same shape as the BR-V1
     /// severity control above: a rule the corpus cannot exercise is proven at
     /// the unit level rather than left unproven or quietly dropped.
     ///
@@ -1374,7 +1396,7 @@ mod tests {
         let diags: Vec<Diagnostic> = ["loc_0", "loc_1"]
             .iter()
             .map(|h| {
-                Diagnostic::new("OWN005", "moved 's' at A.cs:9", 9)
+                Diagnostic::new("OWN015", "moved 's' at A.cs:9", 9)
                     .unwrap()
                     .with_subject(format!("{h}#4"))
             })

@@ -1,5 +1,5 @@
 {
-  "ownir_version": 0,
+  "ownir_version": 1,
   "module": "DegenerateMetadata",
   "_doc": [
     "Metadata that is PRESENT and degenerate, which is not the same as absent.",

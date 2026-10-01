@@ -1,0 +1,149 @@
+{
+  "lowered_version": 2,
+  "module": "Extracted",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [],
+  "functions": [
+    {
+      "name": "Own.Protocols.Cases.G6CapabilityNotSpent.Run",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_0",
+          "resource": "Disposable",
+          "line": 13
+        },
+        {
+          "stmt": "borrow_mut",
+          "owner": "loc_0",
+          "binding": "brw_1",
+          "body": [
+            {
+              "stmt": "acquire",
+              "handle": "loc_2",
+              "resource": "Disposable",
+              "line": 13
+            }
+          ],
+          "line": 13
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_0",
+          "line": 13
+        }
+      ]
+    }
+  ],
+  "handles": [
+    {
+      "handle": "loc_0",
+      "component": "Own.Protocols.Cases.G6CapabilityNotSpent.Run",
+      "file": "frontend/roslyn/protocol-samples/cases/G6_capability_not_spent.cs",
+      "line": 13,
+      "event": "order",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    },
+    {
+      "handle": "loc_2",
+      "component": "Own.Protocols.Cases.G6CapabilityNotSpent.Run",
+      "file": "frontend/roslyn/protocol-samples/cases/G6_capability_not_spent.cs",
+      "line": 13,
+      "event": "approved",
+      "resource": "flow-local",
+      "ever_released": false,
+      "pool": false
+    }
+  ]
+}

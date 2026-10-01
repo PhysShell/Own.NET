@@ -9,7 +9,7 @@ single checker — we do not reimplement it in C# (a second checker would drift)
 OwnIR schema (JSON)::
 
     {
-      "ownir_version": 0,
+      "ownir_version": 1,
       "module": "WpfApp",
       "components": [
         {
@@ -110,6 +110,8 @@ from typing import Any
 from .ast_nodes import (
     Acquire,
     AliasJoin,
+    BorrowBlock,
+    BorrowKind,
     Call,
     Effect,
     EffectParam,
@@ -120,6 +122,7 @@ from .ast_nodes import (
     Let,
     LifetimeDecl,
     Module,
+    Move,
     Overspan,
     Param,
     Release,
@@ -178,7 +181,7 @@ from .ownership import (
 # vocabulary changes incompatibly; the extractor stamps the same number so a
 # mismatched extractor/core pair fails loudly (see load()) instead of silently
 # mis-reading facts.
-OWNIR_VERSION = 0
+OWNIR_VERSION = 1
 
 
 class OwnIRError(ValueError):
@@ -337,6 +340,7 @@ def _route_resource(rkind: str) -> tuple[str, str]:
 _FLOW_OPS = frozenset({
     "acquire", "release", "use", "overspan", "return",
     "alias_join", "call", "if", "while",
+    "move", "borrow_mut",
 })
 
 # The parameter ownership-effect vocabulary (P-006/2b): a method contract's
@@ -1319,7 +1323,7 @@ def to_module(facts: dict[str, Any],
         # silent (honest-skip; TZ D5): record the reason for the caller to surface
         # as an advisory OWN052.
         try:
-            mos: dict[str, Any] = solve(_build_skeletons(raw_fns))
+            mos: dict[str, Any] = solve(_build_skeletons(_inference_view(raw_fns)))
         except Exception as exc:
             mos = {}
             if notes is not None:
@@ -1339,13 +1343,22 @@ def to_module(facts: dict[str, Any],
         # to an overloaded method still matches (CodeRabbit).
         overloaded = frozenset(
             n for n, c in Counter(_canonical_callee_name(x) for x in fp_names).items() if c > 1)
+        region_effects = (_region_param_effects(raw_fns, mos)
+                          if any(isinstance(fn, dict) and _has_region(fn.get("body"))
+                                 for fn in raw_fns) else None)
         for fn in raw_fns:
             if not isinstance(fn, dict):
                 continue
             fname = str(fn.get("name", f"Fn{loc[0]}"))
             ffile = str(fn.get("file", "?"))
-            nodes = fn.get("body", [])
-            nodes = nodes if isinstance(nodes, list) else []
+            flow_nodes = fn.get("body", [])
+            flow_nodes = flow_nodes if isinstance(flow_nodes, list) else []
+            # `nodes` is the INFERENCE view (regions spliced, see `_inline_regions`);
+            # `flow_nodes` keeps the structure and is read by `_lower_flow` alone.
+            # With no region the two are the same object.
+            has_region = _has_region(flow_nodes)
+            nodes = _inline_regions(flow_nodes) if has_region else flow_nodes
+            fn_view = {**fn, "body": nodes} if has_region else fn
             # which locals have ANY release in the body (any branch) — lets the OWN001
             # wording distinguish "never disposed" (no release at all) from "not
             # disposed on every path" (released on some branch, leaked on another).
@@ -1353,7 +1366,7 @@ def to_module(facts: dict[str, Any],
             # ownership contract params first (they seed `localmap` so the body's
             # uses/releases and call arguments resolve to them), then the flow body.
             localmap: dict[str, str] = {}
-            fparams = _lower_fn_params(fn, ffile, fname, handles, loc, localmap,
+            fparams = _lower_fn_params(fn_view, ffile, fname, handles, loc, localmap,
                                        released, mos)
             # The optimistic default (d5 §5), made real: an argument at a call
             # position whose contract resolved `may`/`unknown` means "we cannot
@@ -1373,6 +1386,19 @@ def to_module(facts: dict[str, Any],
             unverified = _unverified_transfer_calls(nodes, mos)
             kill_sites = _kill_sites_for_unverified(nodes, mos)
             untracked = frozenset(a for a, _c, _t, _l in unverified) - kill_sites.keys()
+            if has_region and unverified:
+                # A function that opens an exclusive region must be verified end
+                # to end. The optimistic default ("ownership probably left the
+                # caller", advisory OWN051) would turn an unverifiable handoff
+                # into silence, and silence inside a protocol region reads as a
+                # PASS. Refuse instead — on both engines, identically.
+                arg, callee, transfer, cline = unverified[0]
+                raise OwnIRError(
+                    f"OwnIR function {fname!r} opens a borrow_mut region but hands "
+                    f"{arg!r} to {callee!r} at an unverified position (inferred "
+                    f"contract: {transfer}) ({ffile}:{cline}) — refused: a function "
+                    f"with an exclusive region must not rely on the optimistic "
+                    f"ownership default")
             if advisories is not None and unverified:
                 # OWN051, gated on args that actually carry an obligation here (an
                 # acquired local or a fresh factory result) — a plain value passed
@@ -1412,9 +1438,9 @@ def to_module(facts: dict[str, Any],
                                "ever_released": hname in released, "pool": hpool}
                 hoisted_lets.append(Let(hh, Acquire("Disposable", [], hline), hline))
             fbody = [*hoisted_lets,
-                     *_lower_flow(nodes, ffile, fname, handles, loc, localmap,
+                     *_lower_flow(flow_nodes, ffile, fname, handles, loc, localmap,
                                   released, mos, set(hoist), first_party, overloaded,
-                                  untracked, kill_sites)]
+                                  untracked, kill_sites, False, region_effects)]
             # A body that returns a value gets an owned return type, so the core
             # models `return s` as a valid ESCAPE (the value is discharged to the
             # caller) instead of a void-return mismatch that would leave `s` looking
@@ -1430,6 +1456,75 @@ def to_module(facts: dict[str, Any],
                    functions=functions,
                    lifetimes=list(_CAPTURE_LIFETIMES) if any_capture else []),
             handles)
+
+
+def _has_region(nodes: Any) -> bool:
+    """Whether a flow body contains a `borrow_mut` region at any depth."""
+    if not isinstance(nodes, list):
+        return False
+    for n in nodes:
+        if not isinstance(n, dict):
+            continue
+        op = n.get("op")
+        if op == "borrow_mut":
+            return True
+        if op == "if" and (_has_region(n.get("then")) or _has_region(n.get("else"))):
+            return True
+        if op == "while" and _has_region(n.get("body")):
+            return True
+    return False
+
+
+def _inline_regions(nodes: Any) -> Any:
+    """The INFERENCE view of a flow body: every `borrow_mut` region spliced in
+    place of its block.
+
+    A region is a straight-line sub-body that runs exactly once, so for every
+    question the contract-inference layer asks (is this param released on all
+    paths, which locals are acquired, does the body return a value, which
+    calls are unverified) the region is transparent. Only the flow lowering
+    (`_lower_flow`) needs the structure, because only it emits the loan.
+
+    Identity is load-bearing twice over: a body with no region is returned AS
+    IS (so every pre-existing document takes the pre-existing path, byte for
+    byte), and the leaf op dicts are shared, never copied."""
+    if not isinstance(nodes, list) or not _has_region(nodes):
+        return nodes
+    out: list[Any] = []
+    for n in nodes:
+        if not isinstance(n, dict):
+            out.append(n)
+            continue
+        op = n.get("op")
+        if op == "borrow_mut":
+            sub = _inline_regions(n.get("body"))
+            if isinstance(sub, list):
+                out.extend(sub)
+        elif op == "if" and (_has_region(n.get("then")) or _has_region(n.get("else"))):
+            m = dict(n)
+            m["then"] = _inline_regions(n.get("then"))
+            m["else"] = _inline_regions(n.get("else"))
+            out.append(m)
+        elif op == "while" and _has_region(n.get("body")):
+            m = dict(n)
+            m["body"] = _inline_regions(n.get("body"))
+            out.append(m)
+        else:
+            out.append(n)
+    return out
+
+
+def _inference_view(raw_fns: list[Any]) -> list[Any]:
+    """`functions[]` as the inference layer reads it (see `_inline_regions`).
+    A function with no region is the SAME object, so the common case is free
+    and unchanged."""
+    out: list[Any] = []
+    for fn in raw_fns:
+        if isinstance(fn, dict) and _has_region(fn.get("body")):
+            out.append({**fn, "body": _inline_regions(fn.get("body"))})
+        else:
+            out.append(fn)
+    return out
 
 
 def _released_vars(nodes: list[Any]) -> set[str]:
@@ -2346,6 +2441,45 @@ def _infer_param_effect(pname: str, nodes: Any,
     return None
 
 
+def _region_param_effects(raw_fns: list[Any],
+                          mos: dict[str, Any] | None) -> dict[str, list[str | None]]:
+    """For each function NAME, the effect each parameter resolves to — the
+    explicit `effect` when the fact carries one, the inferred one otherwise,
+    `None` when it resolves to a plain value. Exactly the resolution
+    `_lower_fn_params` applies, over the same inference view.
+
+    Read by one rule only: inside a `borrow_mut` region a tracked local must
+    not land on a parameter that resolved PLAIN. The core does report that
+    shape (OWN041), but OWN041 is filtered as a synthesis artifact, so without
+    this the path is "core raised, bridge filtered, clean" — a mutation the
+    facts cannot see (the callee touches a plain entity, so its flow body is
+    empty and nothing is inferred) passing as verified."""
+    out: dict[str, list[str | None]] = {}
+    for fn in _inference_view(raw_fns):
+        if not isinstance(fn, dict):
+            continue
+        fname = str(fn.get("name", ""))
+        raw = fn.get("params", [])
+        effs: list[str | None] = []
+        if isinstance(raw, list):
+            summ = _mos_lookup(mos, fname, _call_sig(fn))
+            for i, p in enumerate(raw):
+                if not isinstance(p, dict):
+                    continue
+                eff = p.get("effect")
+                if not isinstance(eff, str):
+                    ftrans = None
+                    if summ is not None:
+                        ps = next((q for q in summ.params if q.index == i), None)
+                        if ps is not None:
+                            ftrans = ps.transfer
+                    eff = _infer_param_effect(str(p.get("name", "?")),
+                                              fn.get("body", []), ftrans)
+                effs.append(eff if isinstance(eff, str) and eff != "plain" else None)
+        out[fname] = effs
+    return out
+
+
 def _lower_fn_params(fn: dict[str, Any], ffile: str, fname: str,
                      handles: dict[str, dict[str, Any]], loc: list[int],
                      localmap: dict[str, str],
@@ -2549,7 +2683,10 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 first_party: frozenset[str] = frozenset(),
                 overloaded: frozenset[str] = frozenset(),
                 untracked: frozenset[str] = frozenset(),
-                kill_sites: dict[str, int] | None = None) -> list[Stmt]:
+                kill_sites: dict[str, int] | None = None,
+                in_region: bool = False,
+                param_effects: dict[str, list[str | None]] | None = None,
+                ) -> list[Stmt]:
     """Lower one OwnIR flow body (B0b/B2) into core statements. acquire/use/release/
     return reference a C# local by name (`var`); `if` carries `then`/`else`
     sub-bodies; `while` carries a `body` (a back-edge — the core's worklist fixpoint
@@ -2662,17 +2799,80 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             en = n.get("else", [])
             then_b = _lower_flow(tn if isinstance(tn, list) else [], ffile, fname,
                                  handles, loc, localmap, released_vars, mos, hoisted,
-                                 first_party, overloaded, untracked, kill_sites)
+                                 first_party, overloaded, untracked, kill_sites,
+                                 in_region, param_effects)
             else_b = _lower_flow(en if isinstance(en, list) else [], ffile, fname,
                                  handles, loc, localmap, released_vars, mos, hoisted,
-                                 first_party, overloaded, untracked, kill_sites)
+                                 first_party, overloaded, untracked, kill_sites,
+                                 in_region, param_effects)
             body.append(If("?", then_b, else_b, line))
         elif op == "while":
             bn = n.get("body", [])
             body_b = _lower_flow(bn if isinstance(bn, list) else [], ffile, fname,
                                  handles, loc, localmap, released_vars, mos, hoisted,
-                                 first_party, overloaded, untracked, kill_sites)
+                                 first_party, overloaded, untracked, kill_sites,
+                                 in_region, param_effects)
             body.append(While("?", body_b, line))
+        elif op == "move":
+            # `var` takes OWNERSHIP of `src`'s obligation; `src` is dead after it
+            # (the core's `Let(Move)` — OWN005 on a later use of `src`). Unlike
+            # `alias_join` the source does not stay owning. Shaped exactly like
+            # the alias branch above: the destination's OLD binding dies first,
+            # and an untracked `src` makes no claim.
+            name = str(n.get("var", "?"))
+            src_h = localmap.get(str(n.get("src", "")))
+            if name not in hoisted:
+                localmap.pop(name, None)
+            if src_h is not None and name not in hoisted and name not in untracked:
+                handle = f"loc_{loc[0]}"
+                loc[0] += 1
+                localmap[name] = handle
+                handles[handle] = {"file": ffile, "line": line,
+                   "column": _as_col(n.get("column")), "event": name,
+                                   "component": fname, "resource": "flow-local",
+                                   "ever_released": name in released_vars,
+                                   "pool": False}
+                body.append(Let(handle, Move(src_h, line), line))
+        elif op == "borrow_mut":
+            # A BLOCK-scoped exclusive loan: `owner` is unavailable (and cannot
+            # be re-borrowed, consumed or released) until the block closes. The
+            # op is compound on purpose — the core's loans are block-scoped and
+            # the merge asserts that every predecessor carries the same loan
+            # set, so the fact vocabulary must not be able to say "open a loan"
+            # without also saying where it closes.
+            oname = n.get("owner")
+            bname = n.get("binding")
+            bn = n.get("body")
+            if not (isinstance(oname, str) and oname
+                    and isinstance(bname, str) and bname
+                    and isinstance(bn, list)):
+                raise OwnIRError(
+                    f"OwnIR flow op 'borrow_mut' needs a non-empty string 'owner', "
+                    f"a non-empty string 'binding' and an array 'body' "
+                    f"({ffile}:{line})")
+            owner_h = localmap.get(oname)
+            if owner_h is None:
+                # no owner the core can see => no loan the core can enforce.
+                # Lowering the body anyway would analyse an UNPROTECTED region
+                # and report it clean.
+                raise OwnIRError(
+                    f"OwnIR 'borrow_mut' owner {oname!r} is not a tracked local "
+                    f"({ffile}:{line}) — refused: an exclusive region needs an "
+                    f"owner the core tracks")
+            bsym = f"brw_{loc[0]}"
+            loc[0] += 1
+            shadowed = localmap.get(bname)
+            localmap[bname] = bsym
+            body_b = _lower_flow(bn, ffile, fname,
+                                 handles, loc, localmap, released_vars, mos, hoisted,
+                                 first_party, overloaded, untracked, kill_sites,
+                                 True, param_effects)
+            # the binding dies with its block
+            if shadowed is None:
+                localmap.pop(bname, None)
+            else:
+                localmap[bname] = shadowed
+            body.append(BorrowBlock(owner_h, bsym, BorrowKind.MUT, body_b, line))
         elif op == "call":
             # A call to a CONTRACTED callee (a function/extern whose signature the
             # bridge also lowered). `lower_call` resolves each argument's effect
@@ -2728,9 +2928,37 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             # OWN040. Drop them (no effect, no claim) — precision-safe, never a crash.
             elif (summ is not None or callee in _SINK_EXTERN_NAMES) \
                     and callee and isinstance(raw_args, list):
+                if in_region and summ is not None:
+                    # see `_region_param_effects`: a tracked local on a PLAIN
+                    # position is the core's OWN041, which is filtered below.
+                    effs = (param_effects or {}).get(callee, [])
+                    for j, a in enumerate(raw_args):
+                        if str(a) in localmap and (j >= len(effs) or effs[j] is None):
+                            raise OwnIRError(
+                                f"OwnIR call to {callee!r} inside a borrow_mut "
+                                f"region passes tracked local {str(a)!r} at "
+                                f"position {j}, which carries no ownership effect "
+                                f"({ffile}:{line}) — refused: inside an exclusive "
+                                f"region every position that receives the entity "
+                                f"or a token must state what it does with it")
                 arg_refs: list[Expr] = [VarRef(localmap.get(str(a), str(a)), line)
                                         for a in raw_args]
                 body.append(Call(callee, arg_refs, line))
+            elif in_region and isinstance(raw_args, list):
+                # An UNRESOLVABLE callee is dropped everywhere else ("no effect,
+                # no claim"), and the core's OWN040 for it is filtered as a
+                # synthetic artifact. Inside an exclusive region that default is
+                # a false PASS: the region's entity, its binding or one of its
+                # tokens just left for code nobody analysed. Refuse — the
+                # alternative is "core raised OWN040, bridge filtered it, clean".
+                for a in raw_args:
+                    if str(a) in localmap:
+                        raise OwnIRError(
+                            f"OwnIR call to {callee!r} inside a borrow_mut region "
+                            f"passes tracked local {str(a)!r}, but the callee has "
+                            f"no ownership contract ({ffile}:{line}) — refused: an "
+                            f"exclusive region must not hand its entity or tokens "
+                            f"to unanalysed code")
             # The kill site of a tracked local (Codex P1): THIS top-level call hands
             # it to a may/unknown position, so discharge the obligation here — the
             # optimistic "ownership left the caller" as a real `$consume` on the
@@ -2808,6 +3036,22 @@ def _handle_of(diag: object) -> str | None:
 # the violation-site label per flow-local code, for the 2-step "origin -> manifestation"
 # reachability slice (P-015): the Rent/acquire site is where the resource came from, the
 # diagnostic line is where the obligation is violated.
+# The move / loan codes a flow-local handle can raise once the flow vocabulary
+# carries `move` and `borrow_mut`. Each needs a wording of its OWN: the fallback
+# below interpolates the core diagnostic's message, and message text is not at
+# parity between the two engines, so a code left to the fallback would agree on
+# the verdict and disagree on the bytes. `{noun}` is "pooled buffer" or
+# "IDisposable local", as for the codes above.
+_FLOW_LOCAL_LOAN_WORDING = {
+    "OWN005": "{noun} '{name}' is used after its ownership was moved",
+    "OWN007": "{noun} '{name}' is consumed or returned while it is borrowed",
+    "OWN008": "{noun} '{name}' is released while it is borrowed",
+    "OWN011": "{noun} '{name}' is exclusively borrowed while an exclusive borrow of it is live",
+    "OWN012": "{noun} '{name}' is borrowed while an exclusive borrow of it is live",
+    "OWN013": "{noun} '{name}' is used directly while an exclusive borrow of it is live",
+}
+
+
 _FLOW_LOCAL_VIOLATION = {
     "OWN002": "used here after it was released/returned",
     "OWN003": "released/returned here a second time",
@@ -2864,7 +3108,8 @@ def dump_summaries(facts: dict[str, Any]) -> dict[str, Any]:
     summaries: dict[str, Any] = {}
     unresolved: list[str] = []
     try:
-        summaries, unresolved = solve_with_log(_build_skeletons(raw_fns))
+        summaries, unresolved = solve_with_log(
+            _build_skeletons(_inference_view(raw_fns)))
     except Exception as exc:
         degraded = f"{type(exc).__name__}: {exc}"
     return {
@@ -2992,14 +3237,16 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                            if sub.get("ever_released")
                            else f"IDisposable local '{name}' is never disposed (leak)")
             elif pool:
-                msg = {
+                loan = _FLOW_LOCAL_LOAN_WORDING.get(d.code)
+                msg = loan.format(noun="pooled buffer", name=name) if loan else {
                     "OWN002": f"pooled buffer '{name}' is used after it is returned to the pool",
                     "OWN003": f"pooled buffer '{name}' is returned to the pool more than once",
                     "OWN009": (f"pooled buffer '{name}' may be used after "
                                f"being returned on some path"),
                 }.get(d.code, f"pooled buffer '{name}': {d.message}")
             else:
-                msg = {
+                loan = _FLOW_LOCAL_LOAN_WORDING.get(d.code)
+                msg = loan.format(noun="IDisposable local", name=name) if loan else {
                     "OWN002": f"IDisposable local '{name}' is used after it is disposed",
                     "OWN003": f"IDisposable local '{name}' is disposed more than once",
                     "OWN009": f"IDisposable local '{name}' may be used after disposal on some path",

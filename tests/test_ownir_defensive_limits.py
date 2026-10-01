@@ -90,7 +90,7 @@ def _body(depth: int, key: str = "then") -> dict[str, Any]:
     node: dict[str, Any] = {"op": "acquire", "column": 1}
     for _ in range(depth):
         node = {"op": "if" if key != "body" else "while", key: [node]}
-    return {"ownir_version": 0, "functions": [{"body": [node]}]}
+    return {"ownir_version": 1, "functions": [{"body": [node]}]}
 
 
 def _events(depth: int, key: str = "then") -> dict[str, Any]:
@@ -98,7 +98,7 @@ def _events(depth: int, key: str = "then") -> dict[str, Any]:
     node: dict[str, Any] = {"ev": "return", "line": 1}
     for _ in range(depth):
         node = {"ev": "if" if key != "body" else "while", "line": 1, key: [node]}
-    return {"ownir_version": 0,
+    return {"ownir_version": 1,
             "protocol_functions": [{"name": "M", "events": [node]}]}
 
 
@@ -447,12 +447,12 @@ def run() -> int:
     # Bounding depth is the kind of change that quietly turns that into a
     # rejection, so it is asserted rather than assumed.
     for label, document in (
-        ("non-list body", {"ownir_version": 0, "functions": [{"body": 7}]}),
+        ("non-list body", {"ownir_version": 1, "functions": [{"body": 7}]}),
         ("body of scalars",
-         {"ownir_version": 0, "functions": [{"body": [1, "x", None]}]}),
-        ("absent sections", {"ownir_version": 0}),
+         {"ownir_version": 1, "functions": [{"body": [1, "x", None]}]}),
+        ("absent sections", {"ownir_version": 1}),
         ("null column",
-         {"ownir_version": 0,
+         {"ownir_version": 1,
           "components": [{"subscriptions": [{"column": None}]}]}),
     ):
         err = _load(document)
@@ -468,18 +468,18 @@ def run() -> int:
     # must not become `2^31 - 1` and `-1` must not become `1`, because a
     # clamped anchor points at a REAL line the producer did not mean.
     def _sub(line: Any) -> dict[str, Any]:
-        return {"ownir_version": 0, "module": "X",
+        return {"ownir_version": 1, "module": "X",
                 "components": [{"name": "C", "file": "C.cs", "subscriptions": [
                     {"event": "e", "handler": "h", "line": line,
                      "source": "static"}]}]}
 
     def _acquire(line: Any) -> dict[str, Any]:
-        return {"ownir_version": 0, "module": "X", "functions": [
+        return {"ownir_version": 1, "module": "X", "functions": [
             {"name": "F", "file": "F.cs",
              "body": [{"op": "acquire", "var": "x", "line": line}]}]}
 
     def _event(line: Any) -> dict[str, Any]:
-        return {"ownir_version": 0, "module": "X",
+        return {"ownir_version": 1, "module": "X",
                 "protocols": [{"name": "P",
                                "opens": {"kind": "assign", "target": "f",
                                          "value": True},
@@ -531,7 +531,7 @@ def run() -> int:
     # only thing that pins the tolerant column bound is right here and the one
     # synthetic Layer 3 case written for it.
     def _sub_col(column: Any) -> dict[str, Any]:
-        return {"ownir_version": 0, "module": "X",
+        return {"ownir_version": 1, "module": "X",
                 "components": [{"name": "C", "file": "C.cs", "subscriptions": [
                     {"event": "e", "handler": "h", "line": 7, "column": column,
                      "source": "static"}]}]}

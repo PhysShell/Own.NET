@@ -553,10 +553,15 @@ def run() -> int:
             # lower (unknown-op OR the declared-but-unhandled internal raise) is a
             # phantom authority entry — the set claims an op the lowerer cannot handle.
             _node = {"op": _op, "line": 1}
-            if _op in ("acquire", "release", "use", "overspan", "alias_join"):
+            if _op in ("acquire", "release", "use", "overspan", "alias_join", "move"):
                 _node["var"] = "x"
-            if _op == "alias_join":
+            if _op in ("alias_join", "move"):
                 _node["src"] = "x"
+            if _op == "borrow_mut":
+                # a well-formed region needs a tracked owner; the smoke body
+                # here has none, so the lowerer refuses it — which is a
+                # handled op refusing its input, not an unknown one.
+                _node.update({"owner": "x", "binding": "r", "body": []})
             if _op == "call":
                 _node["callee"] = "f"
             _facts = {"ownir_version": OWNIR_VERSION, "module": "S",
@@ -909,7 +914,7 @@ def run() -> int:
         fails.append(f"DI003 message missing consuming-constructor anchor: "
                      f"{cache3.message if cache3 else None!r}")
     # bridge: DI003 surfaces as a WARNING-severity finding; `disposable` is parsed.
-    di3facts = {"ownir_version": 0, "module": "X", "components": [], "functions": [],
+    di3facts = {"ownir_version": 1, "module": "X", "components": [], "functions": [],
                 "services": [
                     {"name": "Cache", "lifetime": "singleton", "deps": ["Conn"],
                      "file": "S.cs", "line": 7},
@@ -960,7 +965,7 @@ def run() -> int:
     if not di2 or "WeakReference" not in di2[0].message:
         fails.append("DI002 message missing 'WeakReference'")
     # bridge: DI002 surfaces as a WARNING; `weak_deps` is parsed and kept off DI001.
-    di2facts = {"ownir_version": 0, "module": "X", "components": [], "functions": [],
+    di2facts = {"ownir_version": 1, "module": "X", "components": [], "functions": [],
                 "services": [
                     {"name": "WeakCache", "lifetime": "singleton", "deps": [],
                      "weak_deps": ["Db"], "file": "S.cs", "line": 9},
@@ -1032,7 +1037,7 @@ def run() -> int:
     # bridge: DI004 surfaces as a WARNING, anchored at the CALL SITE (R.cs:42) — its real
     # consumer (Codex) — with the REGISTRATION (S.cs:5) as the Finding.related secondary and
     # named in the message tail. (registration site S.cs:5 differs from the call site R.cs:42.)
-    di4facts = {"ownir_version": 0, "module": "X", "components": [], "functions": [],
+    di4facts = {"ownir_version": 1, "module": "X", "components": [], "functions": [],
                 "services": [
                     {"name": "Resolver", "lifetime": "singleton", "deps": [],
                      "root_resolves": ["Conn"], "file": "S.cs", "line": 5,
@@ -1117,7 +1122,7 @@ def run() -> int:
                      f"{(trans5.cached_file, trans5.cached_line) if trans5 else None}")
     # bridge: DI005 surfaces as a WARNING anchored at the STORE site (C.cs:21), with the
     # REGISTRATION (S.cs:7) as the related secondary and named in the message tail.
-    di5facts = {"ownir_version": 0, "module": "X", "components": [], "functions": [],
+    di5facts = {"ownir_version": 1, "module": "X", "components": [], "functions": [],
                 "services": [
                     {"name": "Cacher", "lifetime": "singleton", "deps": [],
                      "scope_cached": ["Db"], "file": "S.cs", "line": 7,
@@ -1217,7 +1222,7 @@ def run() -> int:
         fails.append(f"DI001 ReportService transitive flow wrong: {rs.flow if rs else None!r}")
     checks += 1
     # a DI001 whose ctor location is UNKNOWN degrades cleanly — no suffix, no related.
-    nolocf = check_facts({"ownir_version": 0, "module": "X", "components": [], "functions": [],
+    nolocf = check_facts({"ownir_version": 1, "module": "X", "components": [], "functions": [],
                           "services": [
                               {"name": "Cap", "lifetime": "singleton", "deps": ["Sc"],
                                "file": "S.cs", "line": 3},
@@ -1231,7 +1236,7 @@ def run() -> int:
     # an INTERFACE registration (AddSingleton<IBilling, Billing>): the singleton is 'IBilling'
     # (no ctor) but the consuming ctor is 'Billing's, so the finding must name the IMPL Billing,
     # never the interface (Codex). ctor_type carries the impl through the fact.
-    ifacef = check_facts({"ownir_version": 0, "module": "X", "components": [], "functions": [],
+    ifacef = check_facts({"ownir_version": 1, "module": "X", "components": [], "functions": [],
                           "services": [
                               {"name": "IBilling", "lifetime": "singleton", "deps": ["Db"],
                                "file": "Startup.cs", "line": 8, "ctor_file": "Billing.cs",
@@ -1471,7 +1476,7 @@ def run() -> int:
     # subscribe site -> where the longer-lived source service was registered (its lifetime
     # is *why* the subscriber escapes). The source hop comes from the services graph.
     checks += 1
-    esc = check_facts({"ownir_version": 0, "module": "M", "functions": [],
+    esc = check_facts({"ownir_version": 1, "module": "M", "functions": [],
         "components": [{"name": "Vm", "file": "VM.cs", "subscriptions": [
             {"event": "bus.Tick", "handler": "OnTick", "line": 11, "released": False,
              "resource": "subscription", "source": "injected", "source_type": "IBus"}]}],

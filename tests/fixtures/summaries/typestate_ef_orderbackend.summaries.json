@@ -1,0 +1,165 @@
+{
+  "degraded": null,
+  "module": "Extracted",
+  "ownir_version": 1,
+  "summaries": [
+    {
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/Domain/OrderProtocol.cs",
+      "line": 0,
+      "method": "OrderBackend.Domain.ApprovedOrder.Ship",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "token",
+          "transfer": "must"
+        },
+        {
+          "disposable": true,
+          "index": 1,
+          "name": "entity",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/Domain/OrderProtocol.cs",
+      "line": 0,
+      "method": "OrderBackend.Domain.DraftOrder.Submit",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "token",
+          "transfer": "must"
+        },
+        {
+          "disposable": true,
+          "index": 1,
+          "name": "entity",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/Domain/OrderProtocol.cs",
+      "line": 0,
+      "method": "OrderBackend.Domain.SubmittedOrder.Approve",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "token",
+          "transfer": "must"
+        },
+        {
+          "disposable": true,
+          "index": 1,
+          "name": "entity",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/OrderHandlers.cs",
+      "line": 0,
+      "method": "OrderBackend.OrderHandlers.Create",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "db",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/OrderHandlers.cs",
+      "line": 0,
+      "method": "OrderBackend.OrderHandlers.Get",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "db",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/OrderHandlers.cs",
+      "line": 0,
+      "method": "OrderBackend.OrderHandlers.Ship",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "db",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/OrderHandlers.cs",
+      "line": 0,
+      "method": "OrderBackend.OrderHandlers.Ship$protocol",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/OrderHandlers.cs",
+      "line": 0,
+      "method": "OrderBackend.OrderHandlers.SubmitAndApprove",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "db",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/OrderHandlers.cs",
+      "line": 0,
+      "method": "OrderBackend.OrderHandlers.SubmitAndApprove$protocol",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": []
+}

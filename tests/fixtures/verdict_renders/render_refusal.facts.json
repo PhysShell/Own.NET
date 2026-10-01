@@ -1,5 +1,5 @@
 {
-  "ownir_version": 0,
+  "ownir_version": 1,
   "module": "Refusal",
   "_doc": [
     "A document the bridge refuses has no findings to render, so the rendered",

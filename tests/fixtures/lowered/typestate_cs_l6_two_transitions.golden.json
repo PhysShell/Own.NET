@@ -1,0 +1,287 @@
+{
+  "lowered_version": 2,
+  "module": "Extracted",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [],
+  "functions": [
+    {
+      "name": "Own.Protocols.Cases.L6TwoTransitions.Run",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_0",
+          "resource": "Disposable",
+          "line": 12
+        },
+        {
+          "stmt": "borrow_mut",
+          "owner": "loc_0",
+          "binding": "brw_1",
+          "body": [
+            {
+              "stmt": "acquire",
+              "handle": "loc_2",
+              "resource": "Disposable",
+              "line": 12
+            },
+            {
+              "stmt": "call",
+              "callee": "Own.Protocols.Sample.DraftOrder.Submit",
+              "args": [
+                "loc_2",
+                "brw_1"
+              ],
+              "line": 14
+            },
+            {
+              "stmt": "acquire",
+              "handle": "loc_3",
+              "resource": "Disposable",
+              "line": 14
+            },
+            {
+              "stmt": "call",
+              "callee": "Own.Protocols.Sample.SubmittedOrder.Approve",
+              "args": [
+                "loc_3",
+                "brw_1"
+              ],
+              "line": 15
+            }
+          ],
+          "line": 12
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_0",
+          "line": 12
+        }
+      ]
+    },
+    {
+      "name": "Own.Protocols.Sample.DraftOrder.Submit",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_4",
+          "type": {
+            "name": "Disposable",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 51,
+          "lifetime": null
+        },
+        {
+          "handle": "parg_5",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": true
+          },
+          "line": 51,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "release",
+          "handle": "parg_4",
+          "line": 51
+        }
+      ]
+    },
+    {
+      "name": "Own.Protocols.Sample.SubmittedOrder.Approve",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_6",
+          "type": {
+            "name": "Disposable",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 69,
+          "lifetime": null
+        },
+        {
+          "handle": "parg_7",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": true
+          },
+          "line": 69,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "release",
+          "handle": "parg_6",
+          "line": 69
+        }
+      ]
+    }
+  ],
+  "handles": [
+    {
+      "handle": "loc_0",
+      "component": "Own.Protocols.Cases.L6TwoTransitions.Run",
+      "file": "frontend/roslyn/protocol-samples/cases/L6_two_transitions.cs",
+      "line": 12,
+      "event": "order",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    },
+    {
+      "handle": "loc_2",
+      "component": "Own.Protocols.Cases.L6TwoTransitions.Run",
+      "file": "frontend/roslyn/protocol-samples/cases/L6_two_transitions.cs",
+      "line": 12,
+      "event": "draft",
+      "resource": "flow-local",
+      "ever_released": false,
+      "pool": false
+    },
+    {
+      "handle": "loc_3",
+      "component": "Own.Protocols.Cases.L6TwoTransitions.Run",
+      "file": "frontend/roslyn/protocol-samples/cases/L6_two_transitions.cs",
+      "line": 14,
+      "event": "submitted",
+      "resource": "flow-local",
+      "ever_released": false,
+      "pool": false
+    },
+    {
+      "handle": "parg_4",
+      "component": "Own.Protocols.Sample.DraftOrder.Submit",
+      "file": "frontend/roslyn/protocol-samples/Api/ProtocolApi.cs",
+      "line": 51,
+      "event": "token",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    {
+      "handle": "parg_5",
+      "component": "Own.Protocols.Sample.DraftOrder.Submit",
+      "file": "frontend/roslyn/protocol-samples/Api/ProtocolApi.cs",
+      "line": 51,
+      "event": "entity",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    {
+      "handle": "parg_6",
+      "component": "Own.Protocols.Sample.SubmittedOrder.Approve",
+      "file": "frontend/roslyn/protocol-samples/Api/ProtocolApi.cs",
+      "line": 69,
+      "event": "token",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    {
+      "handle": "parg_7",
+      "component": "Own.Protocols.Sample.SubmittedOrder.Approve",
+      "file": "frontend/roslyn/protocol-samples/Api/ProtocolApi.cs",
+      "line": 69,
+      "event": "entity",
+      "resource": "flow-local",
+      "ever_released": false
+    }
+  ]
+}

@@ -86,13 +86,16 @@ fn origin_is_inherited_across_a_move() {
 }
 
 #[test]
-fn loan_permission_codes_stay_subject_less_like_python() {
+fn loan_permission_codes_on_an_owner_carry_its_origin_like_python() {
     // `borrow b as r { borrow_mut b as m { } }`: a mutable borrow while a shared
-    // one is live is OWN006 — Python's `err(...)` passes no subject there.
+    // one is live is OWN006. It USED to be subject-less on both sides; since the
+    // `OwnIR` flow vocabulary carries `move`/`borrow_mut` the bridge must map a
+    // loan verdict back to a fact handle (IR5), so Python's `err(...)` passes
+    // `subject=owner.origin` there and this core stamps the same.
     let got = subjects(
         "fn f() {\n  let b = acquire Conn(1);\n  borrow b as r {\n    borrow_mut b as m {\n    }\n  }\n  release b;\n}\n",
     );
-    assert_eq!(got, vec![(8, "OWN006".to_owned(), None)]);
+    assert_eq!(got, vec![(8, "OWN006".to_owned(), s("b#6"))]);
 }
 
 #[test]

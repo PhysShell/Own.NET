@@ -19,7 +19,7 @@ A facts document is a single JSON object:
 
 ```json
 {
-  "ownir_version": 0,
+  "ownir_version": 1,
   "module": "WpfApp",
   "components": [ /* §4 owned-resource records, grouped by type */ ],
   "functions":  [ /* §5 flow bodies (intra-procedural CFG facts) */ ],
@@ -45,7 +45,17 @@ producer**: the Python core, the Roslyn extractor (`OwnSharp.Extractor`), and th
 OwnTS frontend. A document whose `ownir_version` differs from the core's raises
 `OwnIRError` at load — a mismatched extractor/core pair fails loudly rather than
 silently mis-reading facts. A document that omits the field is read as the
-current version (legacy v0 producers).
+current version (the producers that omit it predate the field).
+
+The version is currently **1**:
+
+| Version | What it added |
+|---|---|
+| 0 | the initial vocabulary |
+| 1 | two flow ops: `move` ([§5](#5-flow-bodies-functions)) and the compound `borrow_mut` ([§5.3](#53-exclusive-regions-borrow_mut)) |
+
+A document stamped with an older version is refused, not migrated: no core
+reads two versions, and a producer and a core are built from the same commit.
 
 What bumps the version — the rule that keeps the three producers honest:
 
@@ -294,6 +304,8 @@ op vocabulary:
 | `call` | `callee`, `args`, optional `result`, optional `sig` | a `Call` checked against the callee's contract; a `fresh`-returning callee mints an acquire for `result` (D5.2) |
 | `if` | `then`, `else` (sub-bodies) | an `If` with both branches lowered |
 | `while` | `body` (sub-body) | a `While` — a back-edge the core's worklist fixpoint converges over (A1) |
+| `move` | `var`, `src` | a `Let`+`Move`: `var` takes ownership of `src`'s obligation and `src` is dead after it (a later use is **OWN005**) |
+| `borrow_mut` | `owner`, `binding`, `body` (sub-body) | a `BorrowBlock`: an exclusive loan of the local `owner` for the block, visible inside as `binding` (§5.3) |
 
 Anything else is a hard error (§2, fail-loud). Overwriting a tracked local (a
 re-bound `call` result or `alias_join` target) kills its previous ownership
@@ -389,6 +401,39 @@ Both coordinates of a `site` are 1-based, and in A2.1 they are validated
 that registers the sidecar binds them to the shared coordinate domain.
 The producer validates every record against this vocabulary and refuses to
 write a facts file at all if one is malformed (exit 2): fail-loud at the source.
+
+### 5.3 Exclusive regions (`borrow_mut`)
+
+`borrow_mut` is a **compound** op: it carries the loan's whole extent as its
+`body`. There is no `borrow_start`/`borrow_end` pair, and there will not be one —
+the core's loans are block-scoped and its merge requires every predecessor to
+carry the same loan set, so the fact vocabulary must not be able to open a loan
+without also stating where it closes.
+
+While the block is open the owner cannot be re-borrowed (**OWN011**/**OWN012**),
+used directly (**OWN013**), released (**OWN008**), or consumed/returned
+(**OWN007**); these are the core's verdicts, mapped to the owner's fact handle.
+The contract-inference layer reads a region as transparent (its body spliced in
+place): a region runs exactly once, so it changes no inferred contract.
+
+A region is **fail-closed**. Each of the following is refused with an
+`OwnIRError`, never lowered:
+
+- `owner` does not name a tracked local (a missing `owner`/`binding`/`body` is
+  refused as malformed);
+- a `call` inside the block hands a tracked local to a callee that has no
+  ownership contract (elsewhere such a call is dropped: "no effect, no claim");
+- a `call` inside the block puts a tracked local on a position that carries no
+  ownership effect (the core's OWN041, which the bridge filters as an artifact);
+- the function hands **any** argument to a `may`/`unknown` position: the
+  optimistic default (§5, advisory OWN051) is not available to a function that
+  opens a region.
+
+What a region does **not** check is stated as plainly: the core has no relation
+between a token and the region it was minted in. A token acquired outside any
+region, two tokens in one region, and a token spent against a different owner
+are all accepted by the core; a frontend that uses regions for a state protocol
+must make those shapes unrepresentable in what it emits.
 
 ## 6. DI registration graph (`services[]`)
 

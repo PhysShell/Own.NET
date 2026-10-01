@@ -1,0 +1,239 @@
+{
+  "lowered_version": 2,
+  "module": "Extracted",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [],
+  "functions": [
+    {
+      "name": "Own.Protocols.Cases.L12RegionBesideLeakedDisposable.Run",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_0",
+          "resource": "Disposable",
+          "line": 14
+        },
+        {
+          "stmt": "use",
+          "handle": "loc_0",
+          "line": 15
+        }
+      ]
+    },
+    {
+      "name": "Own.Protocols.Cases.L12RegionBesideLeakedDisposable.Run$protocol",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_1",
+          "resource": "Disposable",
+          "line": 16
+        },
+        {
+          "stmt": "borrow_mut",
+          "owner": "loc_1",
+          "binding": "brw_2",
+          "body": [
+            {
+              "stmt": "acquire",
+              "handle": "loc_3",
+              "resource": "Disposable",
+              "line": 16
+            },
+            {
+              "stmt": "call",
+              "callee": "Own.Protocols.Sample.ApprovedOrder.Ship",
+              "args": [
+                "loc_3",
+                "brw_2"
+              ],
+              "line": 18
+            }
+          ],
+          "line": 16
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_1",
+          "line": 16
+        }
+      ]
+    },
+    {
+      "name": "Own.Protocols.Sample.ApprovedOrder.Ship",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_4",
+          "type": {
+            "name": "Disposable",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 80,
+          "lifetime": null
+        },
+        {
+          "handle": "parg_5",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": true
+          },
+          "line": 80,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "release",
+          "handle": "parg_4",
+          "line": 80
+        }
+      ]
+    }
+  ],
+  "handles": [
+    {
+      "handle": "loc_0",
+      "component": "Own.Protocols.Cases.L12RegionBesideLeakedDisposable.Run",
+      "file": "frontend/roslyn/protocol-samples/cases/L12_region_beside_leaked_disposable.cs",
+      "line": 14,
+      "event": "log",
+      "resource": "flow-local",
+      "ever_released": false,
+      "pool": false
+    },
+    {
+      "handle": "loc_1",
+      "component": "Own.Protocols.Cases.L12RegionBesideLeakedDisposable.Run$protocol",
+      "file": "frontend/roslyn/protocol-samples/cases/L12_region_beside_leaked_disposable.cs",
+      "line": 16,
+      "event": "order",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    },
+    {
+      "handle": "loc_3",
+      "component": "Own.Protocols.Cases.L12RegionBesideLeakedDisposable.Run$protocol",
+      "file": "frontend/roslyn/protocol-samples/cases/L12_region_beside_leaked_disposable.cs",
+      "line": 16,
+      "event": "approved",
+      "resource": "flow-local",
+      "ever_released": false,
+      "pool": false
+    },
+    {
+      "handle": "parg_4",
+      "component": "Own.Protocols.Sample.ApprovedOrder.Ship",
+      "file": "frontend/roslyn/protocol-samples/Api/ProtocolApi.cs",
+      "line": 80,
+      "event": "token",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    {
+      "handle": "parg_5",
+      "component": "Own.Protocols.Sample.ApprovedOrder.Ship",
+      "file": "frontend/roslyn/protocol-samples/Api/ProtocolApi.cs",
+      "line": 80,
+      "event": "entity",
+      "resource": "flow-local",
+      "ever_released": false
+    }
+  ]
+}

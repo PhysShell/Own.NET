@@ -159,7 +159,7 @@ def _cfacts(subs: list) -> dict:
     comp = {"name": _CTYPE.rsplit(".", 1)[-1], "qualified_name": _CTYPE, "is_partial": False,
             "is_nested": False, "declaration_count": 1, "is_generated": False,
             "file": _CREL, "subscriptions": subs}
-    return {"ownir_version": 0, "fix_candidates_version": 1, "components": [comp]}
+    return {"ownir_version": 1, "fix_candidates_version": 1, "components": [comp]}
 
 
 def _mk_root(work: str) -> str:

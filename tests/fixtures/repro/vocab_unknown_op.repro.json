@@ -1,20 +1,20 @@
 {
   "repro_version": 3,
   "input": {
-    "ownir_version": 0,
+    "ownir_version": 1,
     "raw": {
       "algorithm": "sha256",
-      "digest": "cdf50bec31cb870daa324b5ee37db4ad504aa499eaa7bafbe8c3c35a5a48eede",
+      "digest": "91e2d42aad1ded1dc0ae052a2dd3b66ab098761709514dd7f7711408015f759d",
       "bytes": 208,
-      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMCwKICAibW9kdWxlIjogIlZvY2FiIiwKICAiZnVuY3Rpb25zIjogWwogICAgewogICAgICAibmFtZSI6ICJNIiwKICAgICAgImZpbGUiOiAiRi5jcyIsCiAgICAgICJib2R5IjogWwogICAgICAgIHsKICAgICAgICAgICJvcCI6ICJ0cnkiLAogICAgICAgICAgImxpbmUiOiAyCiAgICAgICAgfQogICAgICBdCiAgICB9CiAgXQp9Cg=="
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMSwKICAibW9kdWxlIjogIlZvY2FiIiwKICAiZnVuY3Rpb25zIjogWwogICAgewogICAgICAibmFtZSI6ICJNIiwKICAgICAgImZpbGUiOiAiRi5jcyIsCiAgICAgICJib2R5IjogWwogICAgICAgIHsKICAgICAgICAgICJvcCI6ICJ0cnkiLAogICAgICAgICAgImxpbmUiOiAyCiAgICAgICAgfQogICAgICBdCiAgICB9CiAgXQp9Cg=="
     },
     "canonical": {
       "algorithm": "sha256",
-      "digest": "c07494fb952154bcb0f026969754a20bf856c5c12b54a1c9b2aca0468315838d",
+      "digest": "866a9d0b4bf4898bbcb2a52b9522201efea52c0a0ff7a75ee2963ad4c88851a9",
       "bytes": 108
     },
     "document": {
-      "ownir_version": 0,
+      "ownir_version": 1,
       "module": "Vocab",
       "functions": [
         {
@@ -35,13 +35,13 @@
       "id": "python-ownlang",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "cdf50bec31cb870daa324b5ee37db4ad504aa499eaa7bafbe8c3c35a5a48eede",
+        "digest": "91e2d42aad1ded1dc0ae052a2dd3b66ab098761709514dd7f7711408015f759d",
         "bytes": 208
       },
       "layers": [
         {
           "layer": "lowered",
-          "surface_version": 1,
+          "surface_version": 2,
           "projection": {
             "kind": "full"
           },
@@ -58,7 +58,7 @@
           "document": {
             "degraded": null,
             "module": "Vocab",
-            "ownir_version": 0,
+            "ownir_version": 1,
             "summaries": [
               {
                 "file": "F.cs",
@@ -96,13 +96,13 @@
       "id": "rust-own-bridge",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "cdf50bec31cb870daa324b5ee37db4ad504aa499eaa7bafbe8c3c35a5a48eede",
+        "digest": "91e2d42aad1ded1dc0ae052a2dd3b66ab098761709514dd7f7711408015f759d",
         "bytes": 208
       },
       "layers": [
         {
           "layer": "lowered",
-          "surface_version": 1,
+          "surface_version": 2,
           "projection": {
             "kind": "full"
           },
@@ -119,7 +119,7 @@
           "document": {
             "degraded": null,
             "module": "Vocab",
-            "ownir_version": 0,
+            "ownir_version": 1,
             "summaries": [
               {
                 "file": "F.cs",

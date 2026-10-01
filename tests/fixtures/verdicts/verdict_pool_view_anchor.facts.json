@@ -1,5 +1,5 @@
 {
-  "ownir_version": 0,
+  "ownir_version": 1,
   "module": "PoolView",
   "_doc": [
     "OWN025 anchors at the VIEW site (the core's line) with column null ON",

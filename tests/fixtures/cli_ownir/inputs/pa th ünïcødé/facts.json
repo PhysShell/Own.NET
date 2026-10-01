@@ -1,5 +1,5 @@
 {
-  "ownir_version": 0,
+  "ownir_version": 1,
   "module": "SpacedPath",
   "_doc": [
     "Reached through a directory whose name carries a space and non-ASCII:",

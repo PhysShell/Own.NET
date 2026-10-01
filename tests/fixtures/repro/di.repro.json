@@ -1,20 +1,20 @@
 {
   "repro_version": 3,
   "input": {
-    "ownir_version": 0,
+    "ownir_version": 1,
     "raw": {
       "algorithm": "sha256",
-      "digest": "dd16be56d7ba44e9c7720a2a05fc110ed7b6ed0e439825dde28b623a11bcd6c0",
+      "digest": "0d87c5f755986f17d7e7a4e7f5193030113ecd8549049c98b3108696fcf036da",
       "bytes": 884,
-      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMCwKICAibW9kdWxlIjogIkRpRGVtbyIsCiAgImNvbXBvbmVudHMiOiBbXSwKICAic2VydmljZXMiOiBbCiAgICB7Im5hbWUiOiAiRW1haWxTZW5kZXIiLCAibGlmZXRpbWUiOiAic2luZ2xldG9uIiwgImZpbGUiOiAiU3RhcnR1cC5jcyIsICJsaW5lIjogMTIsICJkZXBzIjogWyJBcHBEYkNvbnRleHQiXSwgImN0b3JfZmlsZSI6ICJFbWFpbFNlbmRlci5jcyIsICJjdG9yX2xpbmUiOiA1LCAiY3Rvcl90eXBlIjogIkVtYWlsU2VuZGVyIn0sCiAgICB7Im5hbWUiOiAiQXBwRGJDb250ZXh0IiwgImxpZmV0aW1lIjogInNjb3BlZCIsICJmaWxlIjogIlN0YXJ0dXAuY3MiLCAibGluZSI6IDEzLCAiZGVwcyI6IFtdfSwKICAgIHsibmFtZSI6ICJDbG9jayIsICJsaWZldGltZSI6ICJzaW5nbGV0b24iLCAiZmlsZSI6ICJTdGFydHVwLmNzIiwgImxpbmUiOiAxNCwgImRlcHMiOiBbXX0sCiAgICB7Im5hbWUiOiAiUmVwb3J0U2VydmljZSIsICJsaWZldGltZSI6ICJzaW5nbGV0b24iLCAiZmlsZSI6ICJTdGFydHVwLmNzIiwgImxpbmUiOiAxNSwgImRlcHMiOiBbIlVuaXRPZldvcmsiXSwgImN0b3JfZmlsZSI6ICJSZXBvcnRTZXJ2aWNlLmNzIiwgImN0b3JfbGluZSI6IDcsICJjdG9yX3R5cGUiOiAiUmVwb3J0U2VydmljZSJ9LAogICAgeyJuYW1lIjogIlVuaXRPZldvcmsiLCAibGlmZXRpbWUiOiAidHJhbnNpZW50IiwgImZpbGUiOiAiU3RhcnR1cC5jcyIsICJsaW5lIjogMTYsICJkZXBzIjogWyJBcHBEYkNvbnRleHQiXX0sCiAgICB7Im5hbWUiOiAiUmVxdWVzdExvZyIsICJsaWZldGltZSI6ICJzY29wZWQiLCAiZmlsZSI6ICJTdGFydHVwLmNzIiwgImxpbmUiOiAxNywgImRlcHMiOiBbIkFwcERiQ29udGV4dCJdfQogIF0KfQo="
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMSwKICAibW9kdWxlIjogIkRpRGVtbyIsCiAgImNvbXBvbmVudHMiOiBbXSwKICAic2VydmljZXMiOiBbCiAgICB7Im5hbWUiOiAiRW1haWxTZW5kZXIiLCAibGlmZXRpbWUiOiAic2luZ2xldG9uIiwgImZpbGUiOiAiU3RhcnR1cC5jcyIsICJsaW5lIjogMTIsICJkZXBzIjogWyJBcHBEYkNvbnRleHQiXSwgImN0b3JfZmlsZSI6ICJFbWFpbFNlbmRlci5jcyIsICJjdG9yX2xpbmUiOiA1LCAiY3Rvcl90eXBlIjogIkVtYWlsU2VuZGVyIn0sCiAgICB7Im5hbWUiOiAiQXBwRGJDb250ZXh0IiwgImxpZmV0aW1lIjogInNjb3BlZCIsICJmaWxlIjogIlN0YXJ0dXAuY3MiLCAibGluZSI6IDEzLCAiZGVwcyI6IFtdfSwKICAgIHsibmFtZSI6ICJDbG9jayIsICJsaWZldGltZSI6ICJzaW5nbGV0b24iLCAiZmlsZSI6ICJTdGFydHVwLmNzIiwgImxpbmUiOiAxNCwgImRlcHMiOiBbXX0sCiAgICB7Im5hbWUiOiAiUmVwb3J0U2VydmljZSIsICJsaWZldGltZSI6ICJzaW5nbGV0b24iLCAiZmlsZSI6ICJTdGFydHVwLmNzIiwgImxpbmUiOiAxNSwgImRlcHMiOiBbIlVuaXRPZldvcmsiXSwgImN0b3JfZmlsZSI6ICJSZXBvcnRTZXJ2aWNlLmNzIiwgImN0b3JfbGluZSI6IDcsICJjdG9yX3R5cGUiOiAiUmVwb3J0U2VydmljZSJ9LAogICAgeyJuYW1lIjogIlVuaXRPZldvcmsiLCAibGlmZXRpbWUiOiAidHJhbnNpZW50IiwgImZpbGUiOiAiU3RhcnR1cC5jcyIsICJsaW5lIjogMTYsICJkZXBzIjogWyJBcHBEYkNvbnRleHQiXX0sCiAgICB7Im5hbWUiOiAiUmVxdWVzdExvZyIsICJsaWZldGltZSI6ICJzY29wZWQiLCAiZmlsZSI6ICJTdGFydHVwLmNzIiwgImxpbmUiOiAxNywgImRlcHMiOiBbIkFwcERiQ29udGV4dCJdfQogIF0KfQo="
     },
     "canonical": {
       "algorithm": "sha256",
-      "digest": "1dd40fe8691e32cbab0252b749d17fecfc905382907a1ea48b2a9eae8ae9d929",
+      "digest": "f032d100186d884fc1778e501715e23675460cef64271ddd00525e42f2a88d85",
       "bytes": 767
     },
     "document": {
-      "ownir_version": 0,
+      "ownir_version": 1,
       "module": "DiDemo",
       "components": [],
       "services": [
@@ -82,19 +82,19 @@
       "id": "python-ownlang",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "dd16be56d7ba44e9c7720a2a05fc110ed7b6ed0e439825dde28b623a11bcd6c0",
+        "digest": "0d87c5f755986f17d7e7a4e7f5193030113ecd8549049c98b3108696fcf036da",
         "bytes": 884
       },
       "layers": [
         {
           "layer": "lowered",
-          "surface_version": 1,
+          "surface_version": 2,
           "projection": {
             "kind": "full"
           },
           "status": "produced",
           "document": {
-            "lowered_version": 1,
+            "lowered_version": 2,
             "module": "DiDemo",
             "resources": [
               {
@@ -198,7 +198,7 @@
           "document": {
             "degraded": null,
             "module": "DiDemo",
-            "ownir_version": 0,
+            "ownir_version": 1,
             "summaries": [],
             "unresolved": []
           }
@@ -294,7 +294,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "e231066acedcbd88fff8bb10f2fa7e658f40d09c2a615f0eeb2331f1ed27dd93",
+            "digest": "1dc9b97ea182ba82d79f49123f5e491306bc99e1e5fd33349c1fd369986655d8",
             "bytes": 2564
           }
         }
@@ -304,19 +304,19 @@
       "id": "rust-own-bridge",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "dd16be56d7ba44e9c7720a2a05fc110ed7b6ed0e439825dde28b623a11bcd6c0",
+        "digest": "0d87c5f755986f17d7e7a4e7f5193030113ecd8549049c98b3108696fcf036da",
         "bytes": 884
       },
       "layers": [
         {
           "layer": "lowered",
-          "surface_version": 1,
+          "surface_version": 2,
           "projection": {
             "kind": "full"
           },
           "status": "produced",
           "document": {
-            "lowered_version": 1,
+            "lowered_version": 2,
             "module": "DiDemo",
             "resources": [
               {
@@ -420,7 +420,7 @@
           "document": {
             "degraded": null,
             "module": "DiDemo",
-            "ownir_version": 0,
+            "ownir_version": 1,
             "summaries": [],
             "unresolved": []
           }
@@ -516,7 +516,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "e231066acedcbd88fff8bb10f2fa7e658f40d09c2a615f0eeb2331f1ed27dd93",
+            "digest": "1dc9b97ea182ba82d79f49123f5e491306bc99e1e5fd33349c1fd369986655d8",
             "bytes": 2564
           }
         }

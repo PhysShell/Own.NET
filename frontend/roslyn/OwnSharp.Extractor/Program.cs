@@ -7219,7 +7219,7 @@ var factStats = new
 object facts = emitFixCandidates
     ? new
     {
-        ownir_version = 0,
+        ownir_version = 1,
         fix_candidates_version = 1,
         module = "Extracted",
         components,
@@ -7229,7 +7229,7 @@ object facts = emitFixCandidates
     }
     : new
     {
-        ownir_version = 0,
+        ownir_version = 1,
         module = "Extracted",
         components,
         services = factServices,

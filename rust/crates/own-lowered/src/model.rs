@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 
 /// The Layer 2 surface version — must equal `ownlang/lowered.py`'s
 /// `LOWERED_VERSION` and `manifest.json`'s `lowered_version`.
-pub const LOWERED_VERSION: u32 = 1;
+pub const LOWERED_VERSION: u32 = 2;
 
 /// Three-state presence for the schema-nullable handle keys.
 ///
@@ -208,6 +208,13 @@ pub enum Stmt {
         src: String,
         line: i64,
     },
+    /// `handle` takes ownership of `src`'s obligation; `src` is dead after it
+    /// (unlike `alias_join`, where the source stays owning).
+    Move {
+        handle: String,
+        src: String,
+        line: i64,
+    },
     Call {
         callee: String,
         args: Vec<String>,
@@ -226,6 +233,15 @@ pub enum Stmt {
     },
     While {
         cond: String,
+        body: Vec<Self>,
+        line: i64,
+    },
+    /// A block-scoped exclusive loan of `owner`, visible inside as `binding`.
+    /// Compound on purpose: the core's loans are block-scoped, so the surface
+    /// cannot open a loan without also saying where it closes.
+    BorrowMut {
+        owner: String,
+        binding: String,
         body: Vec<Self>,
         line: i64,
     },

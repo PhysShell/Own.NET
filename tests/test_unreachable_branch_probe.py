@@ -84,7 +84,7 @@ def probe_all() -> dict[str, str]:
         "loc_1": _record(resource="flow-local", event="s", line=4, pool=True,
                          ever_released=False),
     }
-    diags = [Diagnostic("OWN005", "moved 's' at A.cs:9", 9, subject=f"{h}#4")
+    diags = [Diagnostic("OWN015", "moved 's' at A.cs:9", 9, subject=f"{h}#4")
              for h in ("loc_0", "loc_1")]
     plain, pooled = _probe(handles, diags)
     out["flow_local_fallback_plain"] = plain

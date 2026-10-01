@@ -1,0 +1,18 @@
+{
+  "degraded": null,
+  "module": "Extracted",
+  "ownir_version": 1,
+  "summaries": [
+    {
+      "file": "frontend/roslyn/protocol-samples/cases/G6_capability_not_spent.cs",
+      "line": 0,
+      "method": "Own.Protocols.Cases.G6CapabilityNotSpent.Run",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": []
+}

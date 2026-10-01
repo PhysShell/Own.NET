@@ -28,7 +28,7 @@
               "informationUri": "https://github.com/PhysShell/Own.NET",
               "rules": [],
               "properties": {
-                "ownirSchemaVersion": 0
+                "ownirSchemaVersion": 1
               }
             }
           },
@@ -47,7 +47,7 @@
               "informationUri": "https://github.com/PhysShell/Own.NET",
               "rules": [],
               "properties": {
-                "ownirSchemaVersion": 0
+                "ownirSchemaVersion": 1
               }
             }
           },

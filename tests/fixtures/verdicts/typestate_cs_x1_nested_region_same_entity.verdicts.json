@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "frontend/roslyn/protocol-samples/cases/X1_nested_region_same_entity.cs",
+      "line": 13,
+      "code": "OWN011",
+      "component": "Own.Protocols.Cases.X1NestedRegionSameEntity.Run",
+      "event": "order",
+      "handler": "",
+      "message": "IDisposable local 'order' is exclusively borrowed while an exclusive borrow of it is live",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "frontend/roslyn/protocol-samples/cases/G6_capability_not_spent.cs",
+      "line": 13,
+      "code": "OWN001",
+      "component": "Own.Protocols.Cases.G6CapabilityNotSpent.Run",
+      "event": "approved",
+      "handler": "",
+      "message": "IDisposable local 'approved' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

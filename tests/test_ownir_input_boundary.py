@@ -140,7 +140,7 @@ def run() -> int:
     # its offset — rather than in the decoder's voice, which is what lets the
     # port report it identically. Both halves are asserted, because an offset
     # that silently became a character index would still "contain 0xff".
-    invalid_utf8 = b'{"ownir_version": 0, "components": [{"name": "\xff\xfe"}]}'
+    invalid_utf8 = b'{"ownir_version": 1, "components": [{"name": "\xff\xfe"}]}'
     assert invalid_utf8.index(b"\xff") == 46
     failures += _refusal_case(
         invalid_utf8, check="invalid-utf8",
@@ -151,7 +151,7 @@ def run() -> int:
     # This is the case an implementation that indexed past the valid prefix
     # would crash on.
     failures += _refusal_case(
-        b'{"ownir_version": 0}\xc3', check="invalid-utf8",
+        b'{"ownir_version": 1}\xc3', check="invalid-utf8",
         must_contain="is not valid UTF-8: byte 0xc3 at offset 20")
 
     # SCOPE: valid UTF-8 that is invalid JSON must still reach the JSON door,
@@ -188,7 +188,7 @@ def run() -> int:
     # V1 anywhere else in the document is the same refusal: the constants are
     # refused by the PARSER, so the position cannot matter.
     failures += _refusal_case(
-        b'{"ownir_version": 0, "components": [{"line": NaN}]}',
+        b'{"ownir_version": 1, "components": [{"line": NaN}]}',
         check="v1-non-standard-constant",
         must_contain="is not valid JSON: NaN is not a JSON value")
 
@@ -209,7 +209,7 @@ def run() -> int:
 
     # SCOPE 2 — a `-0` on any other field is not V2 at all and must not even
     # be refused: it is an ordinary zero, and the document still analyses.
-    ok_doc = (b'{"ownir_version": 0, "components": [{"name": "C", '
+    ok_doc = (b'{"ownir_version": 1, "components": [{"name": "C", '
               b'"file": "a.cs", "line": -0}]}')
     outcome, _ = _load_bytes(ok_doc)
     if outcome != "ok":
@@ -239,7 +239,7 @@ def run() -> int:
         big = f"{sign}99999999999999999999999999"
         outcome, detail = _load_bytes(
             b'{"ownir_version": ' + big.encode() + b"}")
-        want = f"OwnIR facts are schema v{big}, but this core understands v0"
+        want = f"OwnIR facts are schema v{big}, but this core understands v1"
         if outcome != "refused" or not str(detail).startswith(want):
             failures += _fail(
                 f"an oversized integral version must keep taking the Version "
@@ -253,7 +253,7 @@ def run() -> int:
     # with ordinary integers is checked to still load and still carry them as
     # plain values.
     outcome, doc = _load_bytes(
-        b'{"ownir_version": 0, "components": [{"name": "C", "file": "a.cs", '
+        b'{"ownir_version": 1, "components": [{"name": "C", "file": "a.cs", '
         b'"line": 12, "column": 3}]}')
     if outcome != "ok":
         failures += _fail(f"an ordinary document must load, got {outcome}: "

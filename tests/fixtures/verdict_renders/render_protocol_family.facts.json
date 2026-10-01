@@ -1,5 +1,5 @@
 {
-  "ownir_version": 0,
+  "ownir_version": 1,
   "module": "Protocols",
   "_doc": [
     "BR-V9 over the OBL family (#259 checkpoint 4b), two surfaces in one",

@@ -1,0 +1,197 @@
+{
+  "ownir_version": 1,
+  "module": "TypestateGate",
+  "functions": [
+    {
+      "name": "Submit",
+      "file": "Orders.cs",
+      "params": [
+        {
+          "name": "d",
+          "effect": "consume",
+          "line": 100
+        },
+        {
+          "name": "order",
+          "effect": "borrow_mut",
+          "line": 100
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "d",
+          "line": 101
+        }
+      ]
+    },
+    {
+      "name": "Approve",
+      "file": "Orders.cs",
+      "params": [
+        {
+          "name": "s",
+          "effect": "consume",
+          "line": 110
+        },
+        {
+          "name": "order",
+          "effect": "borrow_mut",
+          "line": 110
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "s",
+          "line": 111
+        }
+      ]
+    },
+    {
+      "name": "Ship",
+      "file": "Orders.cs",
+      "params": [
+        {
+          "name": "a",
+          "effect": "consume",
+          "line": 120
+        },
+        {
+          "name": "order",
+          "effect": "borrow_mut",
+          "line": 120
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "a",
+          "line": 121
+        }
+      ]
+    },
+    {
+      "name": "CancelDraft",
+      "file": "Orders.cs",
+      "params": [
+        {
+          "name": "d",
+          "effect": "consume",
+          "line": 130
+        },
+        {
+          "name": "order",
+          "effect": "borrow_mut",
+          "line": 130
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "d",
+          "line": 131
+        }
+      ]
+    },
+    {
+      "name": "CancelOrder",
+      "file": "Orders.cs",
+      "params": [
+        {
+          "name": "order",
+          "effect": "borrow_mut",
+          "line": 140
+        }
+      ],
+      "body": []
+    },
+    {
+      "name": "Peek",
+      "file": "Orders.cs",
+      "params": [
+        {
+          "name": "order",
+          "effect": "borrow",
+          "line": 150
+        }
+      ],
+      "body": []
+    },
+    {
+      "name": "Store",
+      "file": "Orders.cs",
+      "params": [
+        {
+          "name": "order",
+          "effect": "consume",
+          "line": 160
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "order",
+          "line": 161
+        }
+      ]
+    },
+    {
+      "name": "Touch",
+      "file": "Orders.cs",
+      "params": [
+        {
+          "name": "order",
+          "line": 170
+        }
+      ],
+      "body": []
+    },
+    {
+      "name": "Handler.Run",
+      "file": "Orders.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "order",
+          "line": 10
+        },
+        {
+          "op": "borrow_mut",
+          "owner": "order",
+          "binding": "r",
+          "line": 11,
+          "body": [
+            {
+              "op": "acquire",
+              "var": "a",
+              "line": 12
+            },
+            {
+              "op": "call",
+              "callee": "Touch",
+              "args": [
+                "order"
+              ],
+              "line": 13
+            },
+            {
+              "op": "call",
+              "callee": "Ship",
+              "args": [
+                "a",
+                "r"
+              ],
+              "line": 14
+            }
+          ]
+        },
+        {
+          "op": "release",
+          "var": "order",
+          "line": 16
+        }
+      ]
+    }
+  ]
+}

@@ -12,17 +12,29 @@ Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set ([c
 
 | ledger row | surface | what it is | all goldens | replayed |
 |---|---|---|---:|---:|
-| `flowlocal_own001_never` | bridge | flow-local OWN001, never released | 27 | 27 |
+| `flowlocal_own001_never` | bridge | flow-local OWN001, never released | 30 | 30 |
 | `flowlocal_own001_partial` | bridge | flow-local OWN001, released on some path | 10 | 10 |
 | `flowlocal_own001_pool_partial` | bridge | flow-local OWN001 on a pooled buffer, returned on some path | 2 | 2 |
-| `flowlocal_own002` | bridge | flow-local use-after-dispose | 6 | 6 |
+| `flowlocal_own002` | bridge | flow-local use-after-dispose | 8 | 8 |
 | `flowlocal_own003` | bridge | flow-local double dispose | 1 | 1 |
-| `flowlocal_own009` | bridge | flow-local maybe-use-after-dispose | 1 | 1 |
+| `flowlocal_own009` | bridge | flow-local maybe-use-after-dispose | 2 | 2 |
 | `flowlocal_own002_pool` | bridge | flow-local use-after-return | 1 | 1 |
 | `flowlocal_own003_pool` | bridge | flow-local double return | 1 | 1 |
 | `flowlocal_own009_pool` | bridge | flow-local maybe-use-after-return | 1 | 1 |
-| `flowlocal_fallback` | core-diagnostic | flow-local fallback: the core message, verbatim — **not replayed**: unreachable from any facts document (the nine-op flow vocabulary raises only codes that HAVE a wording); pinned by a `verdict::tests` control driven through `map_core`, whose expected text is read from the recorded probe `tests/fixtures/unreachable_branches.json`. The core message it interpolates is checkpoint 5.2's | 0 | 0 |
-| `flowlocal_fallback_pool` | core-diagnostic | flow-local pooled fallback: the core message, verbatim — **not replayed**: unreachable from any facts document (the nine-op flow vocabulary raises only codes that HAVE a wording); pinned by a `verdict::tests` control driven through `map_core`, whose expected text is read from the recorded probe `tests/fixtures/unreachable_branches.json`. The core message it interpolates is checkpoint 5.2's | 0 | 0 |
+| `flowlocal_own005` | bridge | flow-local use after move | 3 | 3 |
+| `flowlocal_own007` | bridge | flow-local consume/return while borrowed | 2 | 2 |
+| `flowlocal_own008` | bridge | flow-local release while borrowed | 1 | 1 |
+| `flowlocal_own011` | bridge | flow-local exclusive re-borrow | 4 | 4 |
+| `flowlocal_own012` | bridge | flow-local shared borrow under an exclusive one | 2 | 2 |
+| `flowlocal_own013` | bridge | flow-local direct use under an exclusive borrow | 5 | 5 |
+| `flowlocal_own005_pool` | bridge | flow-local use after move on a pooled buffer | 1 | 1 |
+| `flowlocal_own007_pool` | bridge | flow-local consume/return while borrowed on a pooled buffer | 1 | 1 |
+| `flowlocal_own008_pool` | bridge | flow-local release while borrowed on a pooled buffer | 1 | 1 |
+| `flowlocal_own011_pool` | bridge | flow-local exclusive re-borrow on a pooled buffer | 1 | 1 |
+| `flowlocal_own012_pool` | bridge | flow-local shared borrow under an exclusive one on a pooled buffer | 1 | 1 |
+| `flowlocal_own013_pool` | bridge | flow-local direct use under an exclusive borrow on a pooled buffer | 1 | 1 |
+| `flowlocal_fallback` | core-diagnostic | flow-local fallback: the core message, verbatim — **not replayed**: unreachable from any facts document (the eleven-op flow vocabulary raises only codes that HAVE a wording); pinned by a `verdict::tests` control driven through `map_core`, whose expected text is read from the recorded probe `tests/fixtures/unreachable_branches.json`. The core message it interpolates is checkpoint 5.2's | 0 | 0 |
+| `flowlocal_fallback_pool` | core-diagnostic | flow-local pooled fallback: the core message, verbatim — **not replayed**: unreachable from any facts document (the eleven-op flow vocabulary raises only codes that HAVE a wording); pinned by a `verdict::tests` control driven through `map_core`, whose expected text is read from the recorded probe `tests/fixtures/unreachable_branches.json`. The core message it interpolates is checkpoint 5.2's | 0 | 0 |
 | `own025_view` | bridge | OWN025 pooled-view wording | 2 | 2 |
 | `own014_di_singleton` | bridge | OWN014 captive, source registered singleton | 6 | 6 |
 | `own014_di_scoped` | bridge | OWN014 captive, source registered scoped | 1 | 1 |
@@ -88,9 +100,9 @@ One row per `related`/`flow` family; a slice matching no family (or two) fails t
 | `di005_registration_related` | related | DI005 registration beside the store site | 4 | 4 |
 | `capture_escape_flow` | flow | OWN014 subscribe site → source registration site | 5 | 5 |
 | `effect_flow` | flow | EFF001 re-run site → identity-mint site | 5 | 4 |
-| `flowlocal_flow_own002` | flow | flow-local OWN002 origin → violation | 4 | 4 |
+| `flowlocal_flow_own002` | flow | flow-local OWN002 origin → violation | 6 | 6 |
 | `flowlocal_flow_own003` | flow | flow-local OWN003 origin → violation | 1 | 1 |
-| `flowlocal_flow_own009` | flow | flow-local OWN009 origin → violation | 1 | 1 |
+| `flowlocal_flow_own009` | flow | flow-local OWN009 origin → violation | 2 | 2 |
 | `flowlocal_flow_own002_pool` | flow | flow-local OWN002 origin → violation (pooled) | 1 | 1 |
 | `flowlocal_flow_own003_pool` | flow | flow-local OWN003 origin → violation (pooled) | 1 | 1 |
 | `flowlocal_flow_own009_pool` | flow | flow-local OWN009 origin → violation (pooled) | 1 | 1 |
@@ -113,7 +125,7 @@ The rules that produce an EMPTY slice: a step whose line is unknown is omitted, 
 | `capture_escape_flow_dropped` | flow | DI-sourced OWN014 with no escape slice (source registration unknown → < 2 steps) | 3 | 3 |
 | `capture_flow_absent` | flow | OWN014 from the capture route: no escape slice by design (only the DI-sourced branch builds one) | 6 | 6 |
 | `effect_flow_dropped` | flow | EFF001 with no slice (a re-run or mint line < 1) | 3 | 3 |
-| `flowlocal_flow_absent` | flow | OWN001 on a local/pooled record: a single-point finding, no slice by design | 45 | 45 |
+| `flowlocal_flow_absent` | flow | OWN001 on a local/pooled record: a single-point finding, no slice by design | 48 | 48 |
 | `protocol_flow_absent` | flow | an OBL finding with no slice at all: the anchorless OBL005 by design, and a leak whose only step has an unknown line | 4 | 4 |
 
 ## BR-V9 — rendered surfaces

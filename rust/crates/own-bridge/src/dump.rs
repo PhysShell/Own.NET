@@ -23,7 +23,7 @@
 // visibility here (same stance as `mos.rs`).
 #![allow(clippy::redundant_pub_crate)]
 
-use crate::lower::{as_list, build_skeletons, py_str};
+use crate::lower::{as_list, build_skeletons, inference_view, py_str};
 use crate::mos;
 use crate::BridgeError;
 use own_ir::{OwnIr, OWNIR_VERSION};
@@ -62,7 +62,9 @@ pub(crate) fn dump_summaries(facts: &OwnIr) -> Result<String, BridgeError> {
     let mut summaries: Vec<Value> = Vec::new();
     let mut unresolved: Vec<String> = Vec::new();
     let mut degraded = Value::Null;
-    match mos::solve_with_log(build_skeletons(raw_fns)) {
+    let view_store = inference_view(raw_fns);
+    let view_fns: &[Value] = view_store.as_deref().unwrap_or(raw_fns);
+    match mos::solve_with_log(build_skeletons(view_fns)) {
         Ok((mos, log)) => {
             unresolved = log;
             // `sorted(summaries)` — the map key IS `MethodSummary.key` in the
