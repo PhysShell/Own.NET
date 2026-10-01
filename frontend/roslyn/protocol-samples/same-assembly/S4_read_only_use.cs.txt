@@ -1,0 +1,15 @@
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// The control: the same assembly, the same entity, only its PUBLIC surface — reads of the
+// state, the public factory, the public `Annotate`. Nothing to refuse.
+public static class S4ReadOnlyUse
+{
+    public static bool Run(int id)
+    {
+        var order = Order.Load(id);
+        order.Annotate("seen");
+        return order.Status == OrderStatus.Draft && order.Id == id && order.Note == "seen";
+    }
+}

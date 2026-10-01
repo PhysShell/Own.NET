@@ -5629,6 +5629,11 @@ static string? OwnIgnoreReason(SyntaxList<AttributeListSyntax> attrLists, Semant
 var components = new List<object>();
 // P-016 B0b/B2: per-method flow bodies (only when --flow-locals).
 var flowFunctions = new List<object>();
+// The names the IDisposable flow pass emitted a record for. The protocol lowering
+// (ProtocolLowering.cs) reads it so that a method with BOTH readings keeps both under
+// distinct names: the two are not merged, and two records under one name would read
+// as an overload.
+var flowRecordNames = new HashSet<string>(StringComparer.Ordinal);
 
 // Parse every input into a syntax tree first (keeping the file path we report
 // it under), then build ONE compilation over all of them so the SemanticModel
@@ -7175,6 +7180,7 @@ foreach (var (file, tree) in parsed)
                 if (guardedFacts is not null)
                     record["guarded_facts"] = guardedFacts;
                 flowFunctions.Add(record);
+                flowRecordNames.Add(fname);
             }
 
         if (subs.Count > 0)
@@ -7205,6 +7211,22 @@ foreach (var (file, tree) in parsed)
 // `stats` is additive coverage metadata — the core's load() ignores unknown keys.
 // P-006: the DI registration + ctor graph (empty when the scan has no
 // Add{Singleton,Scoped,Transient} calls). ownlang/di.py turns it into DI001.
+// P-010 pillar 9: state-protocol regions -> `borrow_mut` / `move` flow records (OwnIR v1). A
+// lowering, not an analysis (see ProtocolLowering.cs). A shape it cannot lower is a
+// REFUSAL of the whole run (exit 2, the same tier as the guarded-fact self-check below):
+// the alternative is a region that silently drops out of the facts and reads as clean.
+if (flowLocals)
+{
+    var protocol = ProtocolLowering.Lower(compilation, parsed, flowRecordNames);
+    if (protocol.Refusals.Count > 0)
+    {
+        foreach (var refusal in protocol.Refusals)
+            Console.Error.WriteLine($"extractor: protocol lowering refused: {refusal}");
+        return 2;
+    }
+    flowFunctions.AddRange(protocol.Functions);
+}
+
 var factServices = ExtractServices(parsed);
 var factStats = new
 {

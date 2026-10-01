@@ -1,0 +1,24 @@
+{
+  "C1_construct_token": [
+    "CS1729",
+    "CS0122"
+  ],
+  "C2_capture_token_in_nested_lambda": [
+    "CS8175",
+    "CS9108"
+  ],
+  "C3_token_escapes_to_outer_local": [
+    "CS8175",
+    "CS9108",
+    "CS4012"
+  ],
+  "C4_token_in_field": [
+    "CS8345"
+  ],
+  "C5_async_region": [
+    "CS4012",
+    "CS1988",
+    "CS9202",
+    "CS8177"
+  ]
+}

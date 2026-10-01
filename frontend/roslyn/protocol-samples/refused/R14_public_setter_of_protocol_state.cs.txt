@@ -1,0 +1,28 @@
+using System;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// ADMISSION, the plain form: the state a transition writes has a public setter. Nothing in
+// this file even opens a region; the declaration alone is what is refused.
+public sealed class Ticket
+{
+    public int State { get; set; }      // the open door
+}
+
+[ProtocolToken]
+public readonly ref struct OpenTicket
+{
+    private readonly Ticket _ticket;
+    internal OpenTicket(Ticket ticket) => _ticket = ticket;
+
+    public void Close() => _ticket.State = 2;
+}
+
+public delegate void OpenTicketRegion(OpenTicket open);
+
+public static class TicketProtocol
+{
+    [ProtocolRegion]
+    public static void WithOpen(Ticket ticket, OpenTicketRegion body) => body(new OpenTicket(ticket));
+}

@@ -1,0 +1,12 @@
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// An entity born in a state no transition produced.
+public static class S3ObjectInitializer
+{
+    public static Order Run()
+    {
+        return new Order { Status = OrderStatus.Shipped };
+    }
+}

@@ -1,0 +1,27 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Refused;
+
+// Saving from INSIDE the region: `SaveChanges` runs the whole EF pipeline (interceptors,
+// change detection over the entity the region holds exclusively). Nothing states what that
+// does to the entity, so the region is refused; the same call after the region is ordinary.
+public static class SaveInsideRegion
+{
+    public static async Task<IResult> Ship(int id, AppDbContext db, CancellationToken ct)
+    {
+        var order = await db.Orders.SingleAsync(x => x.Id == id, ct);
+        var now = DateTime.UtcNow;
+        OrderProtocol.WithApproved(order, approved =>
+        {
+            approved.Ship(now);
+            db.SaveChanges();
+        });
+        return Results.Ok();
+    }
+}

@@ -1,0 +1,21 @@
+using System.Threading.Tasks;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// `default` compiles for any struct, so the language cannot stop this forgery.
+// The lowering must: a token may only come from a region entry, a transition, or a copy.
+public static class R1DefaultToken
+{
+    public static async Task Run(Db db, int id)
+    {
+        var order = await db.SingleAsync(id);
+        Protocol.WithApproved(order, approved =>
+        {
+            ApprovedOrder forged = default;
+            forged.Ship();
+            approved.Ship();
+        });
+        await db.SaveChangesAsync();
+    }
+}

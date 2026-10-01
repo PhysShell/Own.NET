@@ -1,0 +1,32 @@
+using System;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// A token type that is NOT a ref struct could be captured, stored or awaited across, and so
+// reach another region. The language only forbids that for ref structs; the lowering refuses
+// anything weaker.
+[ProtocolToken]
+public readonly struct LooseToken
+{
+    public void Spend() { }
+}
+
+public delegate void LooseRegion(LooseToken token);
+
+public static class LooseProtocol
+{
+    [ProtocolRegion]
+    public static void With(Order order, LooseRegion body) => body(default);
+}
+
+public static class R8TokenNotARefStruct
+{
+    public static void Run(Order order)
+    {
+        LooseProtocol.With(order, token =>
+        {
+            token.Spend();
+        });
+    }
+}

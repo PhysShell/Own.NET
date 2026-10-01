@@ -1,0 +1,19 @@
+using System;
+using System.IO;
+using System.Threading.Tasks;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// A constructor is a call as well.
+public static class R11ConstructorInsideRegion
+{
+    public static void Run(Order order)
+    {
+        Protocol.WithApproved(order, approved =>
+        {
+            var buffer = new MemoryStream();
+            approved.Ship();
+        });
+    }
+}

@@ -1,0 +1,16 @@
+{
+  "R10_property_getter_inside_region": "property 'UtcNow' inside a protocol region runs code with no stated contract",
+  "R11_constructor_inside_region": "a constructor call inside a protocol region runs code with no stated contract",
+  "R12_default_token_temporary": "a protocol token 'ApprovedOrder' is created outside the protocol's own types",
+  "R13_public_mutator_reaches_protocol_state": "'Doc.Publish' is public and writes 'Published', state the protocol's transitions own",
+  "R14_public_setter_of_protocol_state": "'Ticket.State' is public and writes 'State', state the protocol's transitions own",
+  "R1_default_token": "has no lowerable origin",
+  "R2_token_outside_region": "is declared outside a protocol region",
+  "R3_return_inside_region": "`return` inside a protocol region",
+  "R4_loop_inside_region": "ForStatement inside a protocol region is not modelled",
+  "R5_token_passed_to_helper": "a token does not cross a method boundary",
+  "R6_region_body_not_a_lambda": "must be a lambda written in place",
+  "R7_entity_not_a_local": "must be a local or a parameter",
+  "R8_token_not_a_ref_struct": "must be a ref struct",
+  "R9_opaque_call_inside_region": "a call to 'Own.Protocols.Sample.Backdoor.AnnotateLast' inside a protocol region runs code with no stated contract"
+}

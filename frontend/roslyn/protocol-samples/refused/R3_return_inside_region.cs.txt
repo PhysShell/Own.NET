@@ -1,0 +1,22 @@
+using System.Threading.Tasks;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// `return` inside the callback leaves the region, not the method; not modelled -> refused.
+public static class R3ReturnInsideRegion
+{
+    public static async Task Run(Db db, int id)
+    {
+        var order = await db.SingleAsync(id);
+        Protocol.WithApproved(order, approved =>
+        {
+            if (approved.Id == 0)
+            {
+                return;
+            }
+            approved.Ship();
+        });
+        await db.SaveChangesAsync();
+    }
+}

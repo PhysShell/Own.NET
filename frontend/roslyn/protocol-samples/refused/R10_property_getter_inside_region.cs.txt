@@ -1,0 +1,20 @@
+using System;
+using System.IO;
+using System.Threading.Tasks;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// A property getter is a call too: `DateTime.UtcNow` runs code the lowering cannot read.
+// Compute it BEFORE the region and capture the value.
+public static class R10PropertyGetterInsideRegion
+{
+    public static void Run(Order order)
+    {
+        Protocol.WithApproved(order, approved =>
+        {
+            var now = DateTime.UtcNow;
+            approved.Ship();
+        });
+    }
+}

@@ -1,0 +1,7 @@
+{
+  "DirectMutator": "'MarkShipped' of 'Order' is not public and belongs to a state protocol",
+  "ForgedToken": "a protocol token 'ApprovedOrder' is created outside the protocol's own types",
+  "MutatorAsDelegate": "'MarkShipped' of 'Order' is not public and belongs to a state protocol",
+  "SaveInsideRegion": "a call to 'Microsoft.EntityFrameworkCore.DbContext.SaveChanges' inside a protocol region runs code with no stated contract",
+  "ShipWithLogInsideRegion": "a call to 'Microsoft.Extensions.Logging.LoggerExtensions.LogInformation' inside a protocol region runs code with no stated contract"
+}

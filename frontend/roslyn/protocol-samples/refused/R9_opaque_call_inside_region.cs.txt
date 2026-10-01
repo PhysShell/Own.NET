@@ -1,0 +1,25 @@
+using System;
+using System.IO;
+using System.Threading.Tasks;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// A call inside the region that never mentions the entity, and mutates it anyway.
+// Nothing at the call site can be lowered, so nothing proves the call harmless - and an
+// exclusive region does not analyse unprovable code as safe. REFUSED, never clean.
+// (When effect summaries can prove a callee harmless, this is the rule they relax.)
+public static class R9OpaqueCallInsideRegion
+{
+    public static async Task Run(Db db, int id)
+    {
+        var order = await db.SingleAsync(id);
+        Backdoor.Remember(order);
+        Protocol.WithApproved(order, approved =>
+        {
+            Backdoor.AnnotateLast(); // mutates `order`; nothing here says so
+            approved.Ship();
+        });
+        await db.SaveChangesAsync();
+    }
+}

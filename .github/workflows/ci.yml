@@ -3279,6 +3279,60 @@ jobs:
           fi
           echo "OK: Tier B A/B — external event OWN050 (no ref) -> OWN001 (with --ref-dir)"
 
+  # P-010 pillar 9, first slice: C# state protocols over OwnIR v1 (`move`,
+  # `borrow_mut`). The Layer 2/3 ledgers freeze the FACTS the Roslyn lowering emits,
+  # and both engines replay them with zero dotnet — which proves the engines agree
+  # on those documents and nothing about where the documents came from. This job is
+  # the other half: the real extractor over the real C#, so a frozen fact cannot
+  # drift away from the program it claims to describe.
+  #
+  # It also carries what no frozen fact can: programs the extractor must REFUSE
+  # (code with no contract inside a region, a protocol with a public mutator, a
+  # token made by hand in the protocol's own assembly), programs the C# compiler
+  # must reject, and an ASP.NET Core + EF Core backend driven over real HTTP against
+  # a real SQLite file — the transition has to reach the instance EF tracks and the
+  # row it saves, not merely type-check.
+  #
+  # Both platforms: the fixtures carry repo-relative `file` paths, and a path that
+  # is only right with one separator is the kind of thing a single runner hides.
+  state-protocols:
+    name: state protocols (C# -> OwnIR v1, real ASP.NET Core + EF Core backend)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build own-cli (the second public engine)
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: rust
+        run: cargo build -p own-cli
+      # One script, five questions; see its docstring.
+      - name: The protocol gate (cases, refusals, compiler rejections, one assembly, EF backend)
+        if: matrix.os != 'ubuntu-latest'
+        run: python scripts/protocol_gate.py
+      # On Linux it also compares the two PUBLIC CLIs on every C#-derived document:
+      # exit code, stdout and stderr, byte for byte. Linux only, for the reason
+      # #261 recorded: byte parity with the NATIVE-Windows Python reference is not
+      # claimed (it writes cp1252/CRLF), so that comparison would measure the
+      # console, not the engines.
+      - name: The protocol gate + both public CLIs on the C#-derived documents
+        if: matrix.os == 'ubuntu-latest'
+        run: python scripts/protocol_gate.py --rust "$PWD/rust/target/debug/own-cli"
+
   # P-012 slice 1: score the checker against the labeled corpus on REAL C# — not
   # just the .own reduction tests/test_corpus.py checks. Per case: the bug must be
   # CAUGHT in before.cs (recall) and the fix must be SILENT in after.cs

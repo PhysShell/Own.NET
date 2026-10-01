@@ -1,0 +1,16 @@
+using System.Threading.Tasks;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// The entity must be a local or a parameter: that symbol IS the resource identity.
+public static class R7EntityNotALocal
+{
+    public static void Run(Db db)
+    {
+        Protocol.WithApproved(db.SingleAsync(1).Result, approved =>
+        {
+            approved.Ship();
+        });
+    }
+}

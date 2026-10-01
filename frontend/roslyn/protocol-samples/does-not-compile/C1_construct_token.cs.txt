@@ -1,0 +1,14 @@
+using System.Threading.Tasks;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// N2: a second token cannot be minted - the constructor is internal to the API.
+public static class C1ConstructToken
+{
+    public static void Run(Order order)
+    {
+        var forged = new ApprovedOrder(order);
+        forged.Ship();
+    }
+}
