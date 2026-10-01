@@ -1,0 +1,145 @@
+{
+ "schema": "own.net/h29-rule/scan/v1",
+ "written_at_utc": "2026-10-01T15:23:43Z",
+ "track": "H-29 step 5: OFF/ON scan of the OWN053 prototype over the 8 frozen consumers",
+ "anchors": {
+  "rule_prereg": "paper-eval/h29/h29-rule-prereg-v1.json (5fed286)",
+  "prototype_commit": "100816f7 (extractor + both engines + ledger)",
+  "own_net_head": "100816f78cf1514a4fc589f345b5c67aca92dd51",
+  "own_net_main": "fb06adc2beddd750e99a52ad8c1c8b5905602539 (untouched)",
+  "harness": "lab/sc/e3scan.py H-29 mode (same clones, rows, corrected environment and erratum-3 rows as the H-25 probe); builds ext8u / ext10u; own-cli rebuilt from the patched crates"
+ },
+ "totals": {
+  "consumers": 8,
+  "units": 766,
+  "engine_internal_errors": 0,
+  "new_findings": 4,
+  "new_OWN053": 4,
+  "new_other_codes": 0,
+  "lost_findings": 0,
+  "parity_breaks": 0,
+  "off_identity_vs_h25_probe": {
+   "units_identical": 766,
+   "units_different": 0,
+   "units_not_comparable": 0
+  }
+ },
+ "own053_sites": [
+  {
+   "repo": "JasperFx/wolverine",
+   "file": "src/Persistence/EfCoreTests.MultiTenancy/MultiTenancyDocumentationSamples.cs",
+   "line": 152,
+   "census_kind": "test"
+  },
+  {
+   "repo": "JasperFx/wolverine",
+   "file": "src/Persistence/Wolverine.Postgresql/Transport/PostgresqlQueueSender.cs",
+   "line": 119,
+   "census_kind": "production"
+  }
+ ],
+ "expected_production_sites": [
+  {
+   "repo": "JasperFx/wolverine",
+   "file": "src/Persistence/Wolverine.Postgresql/Transport/PostgresqlQueueSender.cs",
+   "line": 119
+  }
+ ],
+ "outside_primary_test_kind_sites": [
+  {
+   "repo": "JasperFx/wolverine",
+   "file": "src/Persistence/EfCoreTests.MultiTenancy/MultiTenancyDocumentationSamples.cs",
+   "line": 152
+  }
+ ],
+ "sites_not_in_the_census": [],
+ "amendment_1": "paper-eval/h29/h29-rule-amendment-1.json",
+ "deviations": {
+  "other_new": [],
+  "lost": [],
+  "parity_breaks": [],
+  "off_mismatch": []
+ },
+ "per_consumer": {
+  "JasperFx/marten": {
+   "units": 104,
+   "new": 0,
+   "lost": 0,
+   "engine_internal_errors": 0,
+   "seconds": 939,
+   "off_findings": 76,
+   "on_findings": 76
+  },
+  "JasperFx/weasel": {
+   "units": 43,
+   "new": 0,
+   "lost": 0,
+   "engine_internal_errors": 0,
+   "seconds": 447,
+   "off_findings": 220,
+   "on_findings": 220
+  },
+  "JasperFx/wolverine": {
+   "units": 240,
+   "new": 4,
+   "lost": 0,
+   "engine_internal_errors": 0,
+   "seconds": 1864,
+   "off_findings": 161,
+   "on_findings": 165
+  },
+  "NpgsqlRest/NpgsqlRest": {
+   "units": 11,
+   "new": 0,
+   "lost": 0,
+   "engine_internal_errors": 0,
+   "seconds": 169,
+   "off_findings": 54,
+   "on_findings": 54
+  },
+  "erikdarlingdata/PerformanceMonitor": {
+   "units": 15,
+   "new": 0,
+   "lost": 0,
+   "engine_internal_errors": 0,
+   "seconds": 180,
+   "off_findings": 8,
+   "on_findings": 8
+  },
+  "mikependon/RepoDB": {
+   "units": 301,
+   "new": 0,
+   "lost": 0,
+   "engine_internal_errors": 0,
+   "seconds": 3399,
+   "off_findings": 2041,
+   "on_findings": 2041
+  },
+  "quartznet/quartznet": {
+   "units": 38,
+   "new": 0,
+   "lost": 0,
+   "engine_internal_errors": 0,
+   "seconds": 466,
+   "off_findings": 26,
+   "on_findings": 26
+  },
+  "victor-wiki/DatabaseManager": {
+   "units": 14,
+   "new": 0,
+   "lost": 0,
+   "engine_internal_errors": 0,
+   "seconds": 124,
+   "off_findings": 46,
+   "on_findings": 46
+  }
+ },
+ "gate": {
+  "rule": "exactly the expected production site; outside production only census-recorded trigger-true orphans (amendment 1); 0 other new, 0 lost, parity on every unit, 0 engine errors, OFF facts identical to the H-25 probe OFF arm",
+  "decision": "PROTOTYPE_VALID (the rule finds exactly the census primary in production files, only census-recorded trigger-true orphans elsewhere, nothing else; parity; OFF identical)"
+ },
+ "not_done": [
+  "no production promotion (the flag stays research-only)",
+  "no upstream report in this track"
+ ]
+}
