@@ -52,10 +52,13 @@ Run:  python tests/test_repro_fixtures.py            (verify)
 
 from __future__ import annotations
 
+import contextlib
 import copy
+import io
 import json
 import os
 import sys
+import tempfile
 from typing import Any
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -231,12 +234,24 @@ def _plan() -> tuple[dict[str, tuple[str, str]], dict[str, dict[str, Any]],
     return plan, refusal_entries, sorted(artifact_names), problems
 
 
-def _foreign_engines(golden_path: str) -> list[dict[str, Any]]:
+def _foreign_engines(golden_path: str,
+                     rewriting: bytes | None = None) -> list[dict[str, Any]]:
     """The engine captures already committed in an artifact that this side did
     NOT author. `--write` reads them back and carries them through, because an
     engine writes only its own entry: an artifact where one implementation
     authored another's capture would be a comparison of one thing against
-    itself."""
+    itself.
+
+    `rewriting` is the input the artifact is being REWRITTEN for (`--write`
+    only). A committed foreign capture attests the bytes that engine read; when
+    the input has moved since, that capture is of a different document, and
+    carrying it through yields an artifact that cannot verify — so the writer
+    used to refuse, the port's writer refuses until the reference has written
+    (it demands the artifact's bytes equal the file's), and the documented
+    two-pass order could not start. A capture of other bytes is not carried:
+    it is dropped with its reason, exactly like a pre-v3 one, and the port
+    re-runs and authors its own. Verify mode passes nothing and drops nothing,
+    so a stale artifact still reads as stale."""
     if not os.path.exists(golden_path):
         return []
     try:
@@ -245,6 +260,16 @@ def _foreign_engines(golden_path: str) -> list[dict[str, Any]]:
     except (OSError, json.JSONDecodeError):
         return []
     carried, dropped = carry_foreign(committed.get("engines"))
+    if rewriting is not None:
+        identity = hash_bytes(rewriting)
+        fresh = [e for e in carried if e.get("consumed") == identity]
+        dropped += [
+            f"the {e.get('id')!r} entry attests other bytes "
+            f"({str(e['consumed'].get('digest'))[:12]}… ≠ {identity['digest'][:12]}…): "
+            f"the input moved since that engine ran, so its capture is of a "
+            f"different document"
+            for e in carried if e.get("consumed") != identity]
+        carried = fresh
     for reason in dropped:
         print(f"NOTE: {os.path.basename(golden_path)}: {reason}. Regenerate it "
               f"with OWN_SHADOW_WRITE=1 cargo test -p own-shadow --test engine.")
@@ -1081,6 +1106,55 @@ def _carry_controls() -> list[tuple[str, str]]:
                       "this engine's OWN entry was carried forward instead of "
                       "re-authored — an engine writes only its own entry, and "
                       "carrying its own would replay a stale capture"))
+    fails += _moved_input_controls()
+    return fails
+
+
+def _moved_input_controls() -> list[tuple[str, str]]:
+    """The writer meets a committed artifact whose INPUT has moved.
+
+    No committed fixture can reach this: an artifact and its input are always
+    regenerated together, so the state only exists between the two halves of a
+    regeneration — which is exactly when it deadlocked. Driven on a real
+    artifact projected here, with a foreign entry that attests the old bytes."""
+    fails: list[tuple[str, str]] = []
+    before = b'{"module": "Moved", "components": []}'
+    after = b'{"module": "Moved", "components": []}\n'
+    foreign = {"id": "rust-own-bridge", "consumed": hash_bytes(before),
+               "derived": {"sarif": {}}, "layers": []}
+    directory = tempfile.mkdtemp()
+    path = os.path.join(directory, "moved.repro.json")
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"engines": [{"id": ENGINE_PYTHON, "layers": []}, foreign]}, f)
+        with contextlib.redirect_stdout(io.StringIO()) as noted:
+            unchanged = _foreign_engines(path, rewriting=before)
+            moved = _foreign_engines(path, rewriting=after)
+            verifying = _foreign_engines(path)
+    finally:
+        os.unlink(path)
+        os.rmdir(directory)
+    if unchanged != [foreign]:
+        fails.append(("carry-moved-input",
+                      "a foreign capture of the SAME bytes was not carried through "
+                      "a rewrite — an unchanged input must keep the port's entry"))
+    if moved:
+        fails.append(("carry-moved-input",
+                      "a foreign capture of OTHER bytes was carried into a rewritten "
+                      "artifact — it cannot verify there, so the writer refuses and "
+                      "the port cannot write until the reference has: a regeneration "
+                      "that cannot start"))
+    if "attests other bytes" not in noted.getvalue():
+        fails.append(("carry-moved-input",
+                      "a foreign capture was dropped without saying why"))
+    if verifying != [foreign]:
+        fails.append(("carry-moved-input",
+                      "VERIFY dropped a foreign capture — only a rewrite may; in "
+                      "verify a moved input must still read as a stale artifact"))
+    remaining = verify_repro(project_repro(after, moved))
+    if remaining:
+        fails.append(("carry-moved-input",
+                      f"the rewritten artifact does not verify: {remaining}"))
     return fails
 
 
@@ -1532,7 +1606,8 @@ def write() -> int:
     print(f"wrote {DIGESTS} ({len(plan)} documents)")
     for case in artifact_names:
         out = os.path.join(FIXDIR, f"{case}.repro.json")
-        artifact = project_repro(_read(plan[case][1]), _foreign_engines(out))
+        raw = _read(plan[case][1])
+        artifact = project_repro(raw, _foreign_engines(out, rewriting=raw))
         remaining = verify_repro(artifact)
         if remaining:
             print(f"ERROR: {case}: refusing to write an artifact that does not "
