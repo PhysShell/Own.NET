@@ -1,0 +1,6 @@
+Repro.cs(25,28): warning CS0219: The variable 'unused' is assigned but its value is never used 
+Repro.cs(25,28): warning IDE0059: Unnecessary assignment of a value to 'unused' 
+Repro.cs(26,28): warning IDE0059: Unnecessary assignment of a value to 't2' 
+Repro.cs(27,28): warning IDE0059: Unnecessary assignment of a value to 'vt3' 
+Repro.cs(28,49): warning IDE0059: Unnecessary assignment of a value to 'tx' 
+Repro.cs(32,68): warning IDE0059: Unnecessary assignment of a value to 'tx' 

@@ -1,0 +1,7 @@
+F3 control: rows = 1 (expected 1)
+F4 completion: ignored.IsCompleted = True (the state change happened inline?)
+F1 after the orphaned BeginTransactionAsync: rows = 1 (2 = persisted, 1 = the insert was swallowed by the orphaned transaction)
+F1b two inserts after the orphan: rows = 1 (3 = persisted, 1 = both swallowed)
+F2 second BeginTransactionAsync threw InvalidOperationException: A transaction is already in progress; nested/concurrent transactions aren't supported.
+F5 awaited transaction disposed without commit: rows = 1 (unchanged = explicit rollback, as documented)
+F6 exact site shape: incoming rows = 0 (0 = the autocommitted delete persisted), scheduled rows = 1 (unchanged = the scheduled insert was swallowed: the message is gone from both tables)

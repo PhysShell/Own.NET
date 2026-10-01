@@ -3416,6 +3416,56 @@ static void H28Classify(IdentifierNameSyntax idn, string nm, BlockSyntax mbody, 
         callee_class = calleeClass, callee_proof = proof, callee_use_kinds = useKinds.ToArray(), forwarded_to = forwardedTo });
 }
 
+// ===== ownership-semantics-lab H-29 (registered before this code; h29-prereg-v1.json): orphaned async protocol acquisition
+// census, census only. For every local declared with an UN-AWAITED invocation returning Task / Task<T> / ValueTask /
+// ValueTask<T> (through parentheses / ConfigureAwait): the number of later references in the member (0 = never observed,
+// the strict primary), the family (A: the unwrapped result is a real disposable; B: a connection / transaction / persistence
+// lifecycle member name; OTHER), the callee, and whether the declaration sits in an async member / inside a try. The
+// descriptive siblings `_ = <awaitable invocation>` (discard) and `<awaitable invocation>;` (statement) are recorded with
+// form = discard / statement. Behind OWEN_H29_CENSUS=<path>. No lowering changes.
+static void H29Classify(BlockSyntax mbody, SemanticModel model)
+{
+    static bool IsAwaitable(ITypeSymbol? t) => t is INamedTypeSymbol n && ((n.ContainingNamespace?.ToString() == "System.Threading.Tasks" && n.Name is "Task" or "ValueTask") || (n.ContainingNamespace?.ToString() == "System.Runtime.CompilerServices" && n.Name is "ConfiguredTaskAwaitable" or "ConfiguredValueTaskAwaitable"));
+    static ITypeSymbol? Result(ITypeSymbol? t) => t is INamedTypeSymbol { IsGenericType: true } n ? n.TypeArguments[0] : null;
+    static bool Lifecycle(string n) => n is "BeginTransaction" or "BeginTransactionAsync" or "Commit" or "CommitAsync" or "Rollback" or "RollbackAsync" or "Open" or "OpenAsync" or "Close" or "CloseAsync" or "DisposeAsync" or "SaveChangesAsync" or "FlushAsync";
+    static string Key(IMethodSymbol m) => $"{m.ContainingType.ToDisplayString()}.{m.Name}/{m.Parameters.Length}";
+    // the invocation behind an awaitable expression: strip parentheses and a trailing .ConfigureAwait(...)
+    static InvocationExpressionSyntax? Core(ExpressionSyntax e)
+    {
+        while (e is ParenthesizedExpressionSyntax p) e = p.Expression;
+        if (e is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "ConfigureAwait" } cma }) { e = cma.Expression; while (e is ParenthesizedExpressionSyntax p2) e = p2.Expression; }
+        return e as InvocationExpressionSyntax;
+    }
+    void Emit(ExpressionSyntax init, string form, string? local, int refs, SyntaxNode at)
+    {
+        if (!IsAwaitable(model.GetTypeInfo(init).Type)) return;
+        var inv = Core(init); if (inv is null || model.GetSymbolInfo(inv).Symbol is not IMethodSymbol m) return;
+        var ret = m.ReturnType; var res = Result(ret);
+        var fam = res is not null && ImplementsIDisposable(res) && !IsDisposeOptional(res) && !HasEmptyDisposeBody(res) ? "A_owned_result" : Lifecycle(m.Name) ? "B_protocol_lifecycle" : "OTHER";
+        var member = at.Ancestors().OfType<MemberDeclarationSyntax>().FirstOrDefault();
+        var msym = member is BaseMethodDeclarationSyntax bmd0 ? model.GetDeclaredSymbol(bmd0) as IMethodSymbol : null;
+        H29.Emit(new { file = at.SyntaxTree.FilePath, line = LineOf(at), member = member is MethodDeclarationSyntax md ? md.Identifier.Text : member?.Kind().ToString(), method_key = member is BaseMethodDeclarationSyntax bmd ? FlowFunctionName(bmd, "?", model) : null, method_sig = msym is null ? null : CanonicalSig(msym),
+            form, local, later_references = refs, callee = Key(m), callee_assembly = m.ContainingAssembly?.Name, callee_first_party = SymbolEqualityComparer.Default.Equals(m.ContainingAssembly, model.Compilation.Assembly),
+            return_type = ret.ToDisplayString(), result_type = res?.ToDisplayString(), family = fam, lifecycle_member = Lifecycle(m.Name), in_async_member = msym?.IsAsync ?? false, in_try = at.Ancestors().TakeWhile(a => a != mbody).Any(a => a is TryStatementSyntax),
+            in_lambda = at.Ancestors().TakeWhile(a => a != mbody).Any(a => a is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax) });
+    }
+    foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
+    {
+        if (ld.UsingKeyword.RawKind > 0) continue;
+        foreach (var v in ld.Declaration.Variables)
+        {
+            if (v.Initializer?.Value is not { } init || model.GetDeclaredSymbol(v) is not ILocalSymbol ls) continue;
+            var refs = mbody.DescendantNodes().OfType<IdentifierNameSyntax>().Count(id => id.Identifier.Text == ls.Name && SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, ls));
+            Emit(init, "local", ls.Name, refs, v);
+        }
+    }
+    foreach (var es in mbody.DescendantNodes().OfType<ExpressionStatementSyntax>())
+    {
+        if (es.Expression is AssignmentExpressionSyntax { Left: IdentifierNameSyntax { Identifier.Text: "_" } dl } da && model.GetSymbolInfo(dl).Symbol is IDiscardSymbol) Emit(da.Right, "discard", null, 0, es);
+        else if (es.Expression is InvocationExpressionSyntax or ParenthesizedExpressionSyntax) Emit(es.Expression, "statement", null, 0, es);
+    }
+}
+
 static ExpressionSyntax? LabNullInitSingleAssignment(VariableDeclaratorSyntax v, BlockSyntax mbody, SemanticModel model)
 {
     if (model.GetDeclaredSymbol(v) is not ILocalSymbol local)
@@ -8368,6 +8418,8 @@ foreach (var (file, tree) in parsed)
                 if (H26B.Enabled) H26BClassify(mbody, model);
                 // H-27 step 4 (OWEN_H27_CENSUS=<path>; h27-step4-prereg-v1.json): owned-handle release x receiver lifetime census, census only
                 if (H27.Enabled) H27Classify(mbody, model);
+                // H-29 (OWEN_H29_CENSUS=<path>; h29-prereg-v1.json): orphaned async protocol acquisition census, census only
+                if (H29.Enabled) H29Classify(mbody, model);
                 // `using (IMemoryOwner owner = MemoryPool.Rent(...)) { … }` STATEMENT form: track the owner
                 // too, so its returned view dangles after the scope-exit dispose (the desugar mirrors the
                 // `using` DECLARATION form handled in the loop above).
@@ -9065,6 +9117,15 @@ partial class Program
     static class H28
     {
         internal static readonly string? Path = Environment.GetEnvironmentVariable("OWEN_H28_CENSUS");
+        internal static readonly bool Enabled = !string.IsNullOrEmpty(Path);
+        static readonly object Lock = new();
+        internal static void Emit(object o) { try { lock (Lock) File.AppendAllText(Path!, JsonSerializer.Serialize(o) + "\n"); } catch { } }
+    }
+
+    // ===== ownership-semantics-lab H-29 (registered before this code): the census sink of H29Classify. Census only.
+    static class H29
+    {
+        internal static readonly string? Path = Environment.GetEnvironmentVariable("OWEN_H29_CENSUS");
         internal static readonly bool Enabled = !string.IsNullOrEmpty(Path);
         static readonly object Lock = new();
         internal static void Emit(object o) { try { lock (Lock) File.AppendAllText(Path!, JsonSerializer.Serialize(o) + "\n"); } catch { } }
