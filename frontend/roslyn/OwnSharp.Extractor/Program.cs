@@ -3007,6 +3007,92 @@ static List<AssignmentExpressionSyntax>? H23AWrites(VariableDeclaratorSyntax v, 
     return ws;
 }
 
+// ===== ownership-semantics-lab H-24 (registered before this code; h24-prereg-v1.json): the restricted single-obligation
+// merge ADMISSIBILITY census. Census only: nothing is lowered differently. One JSON line per disposable local whose
+// writes are nested in control flow, with the frozen preconditions evaluated: every write a simple-assignment statement,
+// no initializer obligation, all writes inside ONE top-level if-chain / switch, the recursive arm rule (one direct write
+// per arm, or an exiting arm, or exactly one nested construct obeying the same rule), Roslyn definite assignment on exit,
+// the write kinds (one ownership class), references inside the construct. Behind OWEN_H24_CENSUS=<path>.
+static void H24Classify(VariableDeclaratorSyntax v, BlockSyntax mbody, SemanticModel model)
+{
+    if (model.GetDeclaredSymbol(v) is not ILocalSymbol local) return;
+    var writes = new List<ExpressionStatementSyntax>(); var refs = new List<IdentifierNameSyntax>(); var reasons = new SortedSet<string>(StringComparer.Ordinal);
+    foreach (var id in mbody.DescendantNodes().OfType<IdentifierNameSyntax>())
+    {
+        if (!SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, local)) continue;
+        if (id.Parent is AssignmentExpressionSyntax asg && asg.Left == id)
+        {
+            if (!asg.IsKind(SyntaxKind.SimpleAssignmentExpression) || asg.Parent is not ExpressionStatementSyntax es) { reasons.Add("non_simple_write"); continue; }
+            if (id.Ancestors().TakeWhile(x => x != mbody).Any(x => x is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax)) { reasons.Add("write_in_lambda"); continue; }
+            writes.Add(es);
+        }
+        else if (id.Parent is RefExpressionSyntax || id.Parent is ArgumentSyntax { RefKindKeyword.RawKind: not 0 }) reasons.Add("ref_alias");
+        else refs.Add(id);
+    }
+    if (writes.Count == 0) return;
+    StatementSyntax? Top(SyntaxNode n) => n.Ancestors().TakeWhile(x => x != mbody).OfType<StatementSyntax>().LastOrDefault();
+    var tops = writes.Select(Top).ToList();
+    if (tops.All(t => t is null)) return;                                    // straight-line writes: H-23A's class, not H-24's
+    if (tops.Any(t => t is null)) reasons.Add("write_outside_construct");
+    var distinct = tops.Where(t => t is not null).Distinct().ToList();
+    if (distinct.Count > 1) reasons.Add("writes_in_multiple_constructs");
+    var S = distinct.Count == 1 && !tops.Any(t => t is null) ? distinct[0] : null;
+    var ckind = S switch { IfStatementSyntax => "if_chain", SwitchStatementSyntax => "switch", TryStatementSyntax => "try", UsingStatementSyntax => "using", LockStatementSyntax => "lock",
+        WhileStatementSyntax or ForStatementSyntax or ForEachStatementSyntax or DoStatementSyntax => "loop", BlockSyntax => "block", null => "none", _ => "other" };
+    if (S is not null && ckind is not ("if_chain" or "switch")) reasons.Add("construct_" + ckind);
+    var init = v.Initializer?.Value; string initKind;
+    if (init is null || init.IsKind(SyntaxKind.NullLiteralExpression) || init.IsKind(SyntaxKind.DefaultLiteralExpression)) initKind = "none_or_null";
+    else { initKind = H23AAcquireShaped(init, model, "merge_initializer") ? "prior_live_acquire" : "borrowed_or_other"; reasons.Add("initializer_" + initKind); }
+    var W = new HashSet<ExpressionStatementSyntax>(writes); var depth = 0;
+    IEnumerable<StatementSyntax> Stmts(StatementSyntax? a) => a is BlockSyntax b ? b.Statements : a is null ? Array.Empty<StatementSyntax>() : new[] { a };
+    bool ArmsOk(StatementSyntax c, int d)
+    {
+        depth = Math.Max(depth, d); var arms = new List<IEnumerable<StatementSyntax>>();
+        if (c is IfStatementSyntax i0)
+        {
+            for (var i = i0; ;) { arms.Add(Stmts(i.Statement)); if (i.Else?.Statement is IfStatementSyntax ei) { i = ei; continue; } arms.Add(Stmts(i.Else?.Statement)); break; }
+        }
+        else if (c is SwitchStatementSyntax sw) foreach (var sec in sw.Sections) arms.Add(sec.Statements);
+        else return false;
+        foreach (var arm in arms)
+        {
+            var list = arm.ToList();
+            var direct = list.Count(st => st is ExpressionStatementSyntax es && W.Contains(es));
+            var holders = list.Where(st => !(st is ExpressionStatementSyntax es && W.Contains(es)) && st.DescendantNodes().OfType<ExpressionStatementSyntax>().Any(W.Contains)).ToList();
+            if (holders.Count == 0 && direct <= 1) continue;                  // one direct write, or none (the arm must exit: definite assignment decides)
+            if (direct == 0 && holders.Count == 1 && holders[0] is IfStatementSyntax or SwitchStatementSyntax && ArmsOk(holders[0], d + 1)) continue;
+            return false;
+        }
+        return true;
+    }
+    var armsOk = S is not null && ckind is "if_chain" or "switch" && ArmsOk(S, 1);
+    if (S is not null && ckind is "if_chain" or "switch" && !armsOk) reasons.Add("arm_rule");
+    bool? daOnExit = null;
+    if (S is not null) { try { var df = model.AnalyzeDataFlow(S); daOnExit = df.Succeeded && df.DefinitelyAssignedOnExit.Any(x => SymbolEqualityComparer.Default.Equals(x, local)); } catch { } }
+    if (daOnExit != true) reasons.Add("not_definitely_assigned_on_exit");
+    string Kind(ExpressionSyntax rhs) =>
+        rhs.IsKind(SyntaxKind.NullLiteralExpression) || rhs.IsKind(SyntaxKind.DefaultLiteralExpression) ? "null"
+        : rhs is ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax ? (model.GetTypeInfo(rhs).Type is { } t && ImplementsIDisposable(t) && !IsDisposeOptional(t) && !HasEmptyDisposeBody(t) ? "new_disposable" : "new_other")
+        : IsPoolRent(rhs, model) ? "pool_rent" : IsOwningFactory(rhs, model) ? "owning_factory"
+        : ReOracle.ReturnsFreshOwned(rhs, model, "merge") ? "trusted_row"
+        : IsFirstPartyDisposableFactory(rhs, model, out _, out _) ? "first_party_factory" : "other";
+    string Callee(ExpressionSyntax rhs)   // census diagnostic for the non-fresh kinds: what the write's call resolved to
+    {
+        if (rhs is not InvocationExpressionSyntax inv) return rhs.Kind().ToString();
+        var si = model.GetSymbolInfo(inv);
+        return si.Symbol is IMethodSymbol m ? $"{m.ContainingType.ToDisplayString()}.{m.Name}/{m.Parameters.Length}" : $"unresolved:{si.CandidateReason}:{string.Join('|', si.CandidateSymbols.Select(c => c.ToDisplayString()))}";
+    }
+    var wk = writes.Select(w => new { line = LineOf(w), kind = Kind(((AssignmentExpressionSyntax)w.Expression).Right), callee = Callee(((AssignmentExpressionSyntax)w.Expression).Right) }).ToList();
+    var owned = wk.All(x => x.kind is "trusted_row" or "new_disposable" or "owning_factory" or "first_party_factory"); var pool = wk.All(x => x.kind == "pool_rent");
+    var cls = owned ? "owned" : pool ? "pool" : "mixed_or_not_fresh"; if (!owned && !pool) reasons.Add("write_kind_" + string.Join("+", wk.Select(x => x.kind).Distinct().OrderBy(x => x, StringComparer.Ordinal)));
+    var refsIn = S is null ? 0 : refs.Count(r => r.Ancestors().Contains(S)); var refsAfter = refs.Count - refsIn;
+    var relaxed = reasons.Count == 0; var strict = relaxed && refsIn == 0;
+    var member = v.Ancestors().OfType<MemberDeclarationSyntax>().FirstOrDefault();
+    H24.Emit(new { file = v.SyntaxTree.FilePath, line = LineOf(v), local = v.Identifier.Text, type = local.Type.ToDisplayString(), member = member is MethodDeclarationSyntax md ? md.Identifier.Text : member?.Kind().ToString(),
+        construct = ckind, construct_line = S is null ? 0 : LineOf(S), depth, arms_ok = armsOk, definitely_assigned_on_exit = daOnExit, initializer = initKind, writes = wk, write_count = writes.Count,
+        owned_class = cls, trusted_row_writes = wk.Count(x => x.kind == "trusted_row"), refs_inside = refsIn, refs_after = refsAfter, reasons = reasons.ToArray(), admissible_strict = strict, admissible_relaxed = relaxed });
+}
+
 static ExpressionSyntax? LabNullInitSingleAssignment(VariableDeclaratorSyntax v, BlockSyntax mbody, SemanticModel model)
 {
     if (model.GetDeclaredSymbol(v) is not ILocalSymbol local)
@@ -7940,6 +8026,13 @@ foreach (var (file, tree) in parsed)
                                         else if (IsOwningFactory(hAcq[0], model) || ReOracle.ReturnsFreshOwned(hAcq[0], model, "assignment")) mintedFactories.Add(v.Identifier.Text);
                                     }
                                 }
+                // H-24 (OWEN_H24_CENSUS=<path>; h24-prereg-v1.json): admissibility census of the restricted merge, census only
+                if (H24.Enabled)
+                    foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
+                        if (ld.UsingKeyword == default)
+                            foreach (var v in ld.Declaration.Variables)
+                                if (model.GetDeclaredSymbol(v) is ILocalSymbol l4 && ImplementsIDisposable(l4.Type) && !IsDisposeOptional(l4.Type) && !HasEmptyDisposeBody(l4.Type))
+                                    H24Classify(v, mbody, model);
                 // `using (IMemoryOwner owner = MemoryPool.Rent(...)) { … }` STATEMENT form: track the owner
                 // too, so its returned view dangles after the scope-exit dispose (the desugar mirrors the
                 // `using` DECLARATION form handled in the loop above).
@@ -8573,6 +8666,15 @@ partial class Program
                 if (drop) arr.RemoveAt(i--);
             }
         }
+    }
+
+    // ===== ownership-semantics-lab H-24 (registered before this code): the census sink of H24Classify. Census only.
+    static class H24
+    {
+        internal static readonly string? Path = Environment.GetEnvironmentVariable("OWEN_H24_CENSUS");
+        internal static readonly bool Enabled = !string.IsNullOrEmpty(Path);
+        static readonly object Lock = new();
+        internal static void Emit(object o) { try { lock (Lock) File.AppendAllText(Path!, JsonSerializer.Serialize(o) + "\n"); } catch { } }
     }
 
     // ===== ownership-semantics-lab H-19 (registered before this code): a NOT-NULL guard on a tracked local
