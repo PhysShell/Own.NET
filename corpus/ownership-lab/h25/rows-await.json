@@ -1,0 +1,36 @@
+{
+ "schema": "own.net/re-oracle/v1",
+ "label": "H-25 await fixture: three trusted rows (sync Factory, Task<R> FactoryAsync, ValueTask<R> FactoryValueTaskAsync), pinned to the fixture assembly; a row on a Task<T>/ValueTask<T> callable means the LOGICAL result T is fresh owned (h25-prereg-v1)",
+ "entries": [
+  {
+   "callable": "RLibA.FA.Factory",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "RLibA",
+    "mvid": "a972665e-5b5e-420c-806d-90011486d0cb"
+   },
+   "derived_from": "fixture: FA.Factory() => new R()"
+  },
+  {
+   "callable": "RLibA.FA.FactoryAsync",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "RLibA",
+    "mvid": "a972665e-5b5e-420c-806d-90011486d0cb"
+   },
+   "derived_from": "fixture: FA.FactoryAsync() => Task.FromResult(new R()); the logical result is minted"
+  },
+  {
+   "callable": "RLibA.FA.FactoryValueTaskAsync",
+   "effect": "return_fresh_owned",
+   "provenance": "BODY_PROVED",
+   "assembly": {
+    "name": "RLibA",
+    "mvid": "a972665e-5b5e-420c-806d-90011486d0cb"
+   },
+   "derived_from": "fixture: FA.FactoryValueTaskAsync() => new ValueTask<R>(new R()); the logical result is minted"
+  }
+ ]
+}
