@@ -3448,6 +3448,12 @@ static void H29Classify(BlockSyntax mbody, SemanticModel model)
             form, local, later_references = refs, callee = Key(m), callee_assembly = m.ContainingAssembly?.Name, callee_first_party = SymbolEqualityComparer.Default.Equals(m.ContainingAssembly, model.Compilation.Assembly),
             return_type = ret.ToDisplayString(), result_type = res?.ToDisplayString(), family = fam, lifecycle_member = Lifecycle(m.Name), in_async_member = msym?.IsAsync ?? false, in_try = at.Ancestors().TakeWhile(a => a != mbody).Any(a => a is TryStatementSyntax),
             in_lambda = at.Ancestors().TakeWhile(a => a != mbody).Any(a => a is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax) });
+        // the rule prototype: the frozen primary only (h29-rule-prereg-v1.json, trigger_frozen)
+        if (H29.Rule && form == "local" && refs == 0 && fam != "OTHER" && !at.Ancestors().TakeWhile(a => a != mbody).Any(a => a is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
+        {
+            var pos = PosOf(at);
+            lock (H29.Orphans) H29.Orphans.Add(new { file = at.SyntaxTree.FilePath, line = pos.Line, column = pos.Column, method = member is BaseMethodDeclarationSyntax bmd2 ? FlowFunctionName(bmd2, "?", model) : (member?.Kind().ToString() ?? "?"), local, callee = Key(m), family = fam, result_type = res?.ToDisplayString() });
+        }
     }
     foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
     {
@@ -8710,6 +8716,19 @@ object facts = emitFixCandidates
         functions = flowFunctions,
         stats = factStats,
     }
+    // H-29 step 5 (research flag OWEN_H29=1; h29-rule-prereg-v1.json): an ADDITIVE top-level list of orphaned awaitables
+    // from which both engines mint the advisory OWN053; absent (the default, or no site) the object is byte-identical.
+    : H29.Rule && H29.Orphans.Count > 0
+    ? new
+    {
+        ownir_version = 0,
+        module = "Extracted",
+        components,
+        services = factServices,
+        functions = flowFunctions,
+        stats = factStats,
+        orphaned_awaitables = H29.Orphans.OrderBy(o => JsonSerializer.Serialize(o), StringComparer.Ordinal).ToList(),
+    }
     : new
     {
         ownir_version = 0,
@@ -9126,9 +9145,14 @@ partial class Program
     static class H29
     {
         internal static readonly string? Path = Environment.GetEnvironmentVariable("OWEN_H29_CENSUS");
-        internal static readonly bool Enabled = !string.IsNullOrEmpty(Path);
+        // H-29 step 5 (h29-rule-prereg-v1.json): OWEN_H29=1 turns the census classifier into the RULE prototype: every primary site
+        // (form local, zero later references, family A or B, not in a lambda) is collected into the top-level facts list
+        // `orphaned_awaitables`, from which BOTH engines mint the advisory OWN053. Unset, the facts are byte-identical.
+        internal static readonly bool Rule = Environment.GetEnvironmentVariable("OWEN_H29") == "1";
+        internal static readonly bool Enabled = !string.IsNullOrEmpty(Path) || Rule;
+        internal static readonly List<object> Orphans = new();
         static readonly object Lock = new();
-        internal static void Emit(object o) { try { lock (Lock) File.AppendAllText(Path!, JsonSerializer.Serialize(o) + "\n"); } catch { } }
+        internal static void Emit(object o) { if (Path is null) return; try { lock (Lock) File.AppendAllText(Path!, JsonSerializer.Serialize(o) + "\n"); } catch { } }
     }
 
     // ===== ownership-semantics-lab H-19 (registered before this code): a NOT-NULL guard on a tracked local

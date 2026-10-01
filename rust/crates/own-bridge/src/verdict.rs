@@ -889,6 +889,46 @@ fn unresolved_findings(root: &Obj) -> Vec<Finding> {
     out
 }
 
+/// `_orphaned_awaitable_findings` (ownership-semantics-lab H-29 step 5, research flag
+/// OWEN_H29=1 on the extractor): every `orphaned_awaitables` entry as an advisory OWN053
+/// — a local initialised by an un-awaited awaitable invocation of an effectful
+/// operation and never observed again. Absent list = nothing (the default run is unchanged).
+fn orphaned_awaitable_findings(root: &Obj) -> Vec<Finding> {
+    let mut out = Vec::new();
+    let Some(Value::Array(items)) = root.get("orphaned_awaitables") else {
+        return out;
+    };
+    for it in items.iter().filter_map(Value::as_object) {
+        let local = get_or(it, "local", "?");
+        let callee = get_or(it, "callee", "?");
+        // a JSON null (a non-generic Task / ValueTask) reads as "no result", exactly as the Python side
+        let res = it
+            .get("result_type")
+            .and_then(Value::as_str)
+            .unwrap_or("no result")
+            .to_string();
+        let mut f = Finding::new(
+            get_or(it, "file", "?"),
+            as_line(it.get("line")),
+            "OWN053",
+            "orphaned awaitable",
+        );
+        f.column = as_col(it.get("column"));
+        f.component = get_or(it, "method", "?");
+        f.event.clone_from(&local);
+        f.handler.clone_from(&callee);
+        f.message = format!(
+            "orphaned awaitable: '{local}' = {callee}(...) is never awaited or observed -- \
+             the operation runs, its result ({res}) is never released and its failure is lost; \
+             for a transaction / connection lifecycle call the connection is left in a state \
+             nobody can finish"
+        );
+        f.advisory = true;
+        out.push(f);
+    }
+    out
+}
+
 fn transfer_note(a: &Own051) -> Finding {
     let mut f = Finding::new(a.file.clone(), a.line, "OWN051", "ownership transfer");
     f.component.clone_from(&a.component);
@@ -1172,6 +1212,7 @@ pub(crate) fn check_facts(facts: &OwnIr) -> Result<Vec<Finding>, BridgeError> {
     findings.extend(effect_findings(root));
     findings.extend(protocol_findings(root));
     findings.extend(unresolved_findings(root));
+    findings.extend(orphaned_awaitable_findings(root));
     findings.extend(lowering.advisories.iter().map(transfer_note));
     let module_name = root.get("module").map_or_else(|| "?".to_owned(), py_str);
     for reason in &lowering.mos_notes {

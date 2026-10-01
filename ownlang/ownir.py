@@ -3226,6 +3226,13 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     # this side path so it bypasses the ERROR-only diagnostic mapping above.
     findings.extend(_unresolved_findings(facts))
 
+    # OWN053 (ownership-semantics-lab H-29 step 5, research flag OWEN_H29=1 on the
+    # extractor; h29-rule-prereg-v1.json): every `orphaned_awaitables` entry — a local
+    # initialised by an un-awaited awaitable invocation of an effectful operation and
+    # never observed again — as an advisory, through the same side path as OWN050.
+    # The list is absent without the flag, so the default run is unchanged.
+    findings.extend(_orphaned_awaitable_findings(facts))
+
     # OWN051 (d5 §5's advisory channel): each owned local handed to a
     # may/unknown-contract position was optimistically untracked at that call —
     # surface the honest "not checked past here" note minted during lowering.
@@ -3638,6 +3645,37 @@ def _protocol_findings(facts: dict[str, Any]) -> list[Finding]:
             message=(f"protocol '{p.name}' is scoped to "
                      f"{sorted(p.methods)} but no reported method matches — "
                      f"the rule is dead (typo in scope.methods?)")))
+    return out
+
+
+def _orphaned_awaitable_findings(facts: dict[str, Any]) -> list[Finding]:
+    """H-29 step 5 (research): surface every `orphaned_awaitables` entry the extractor
+    collected under OWEN_H29=1 as an advisory OWN053 "orphaned awaitable": a local
+    initialised by an un-awaited Task / ValueTask invocation whose operation is
+    effectful (an owned result or a connection / transaction lifecycle call) and
+    that is never awaited, returned, stored, passed or otherwise observed. The
+    operation still runs (BeginTransactionAsync changes the connection state
+    inline), its result is never released and its failure is lost. Advisory:
+    never a build failure. Absent list = nothing."""
+    out: list[Finding] = []
+    items = facts.get("orphaned_awaitables", [])
+    if not isinstance(items, list):
+        return out
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        local = str(it.get("local", "?"))
+        callee = str(it.get("callee", "?"))
+        res = it.get("result_type") or "no result"
+        out.append(Finding(
+            file=str(it.get("file", "?")), line=_as_line(it.get("line", 0)),
+            column=_as_col(it.get("column")), code="OWN053",
+            component=str(it.get("method", "?")), event=local, handler=callee,
+            message=(f"orphaned awaitable: '{local}' = {callee}(...) is never awaited "
+                     f"or observed -- the operation runs, its result ({res}) is never "
+                     f"released and its failure is lost; for a transaction / connection "
+                     f"lifecycle call the connection is left in a state nobody can finish"),
+            kind="orphaned awaitable", advisory=True))
     return out
 
 
