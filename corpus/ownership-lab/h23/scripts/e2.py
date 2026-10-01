@@ -80,7 +80,13 @@ for f in (f'{S}/lab/sc/witness-results.json.partial.jsonl', f'{S}/lab/sc/witness
         for l in open(f):
             try: j=json.loads(l)
             except Exception: continue
-            WIT[j['id']]=j
+            # harness sanity gate (harness-sanity-gate-v1): the witness key is COMPOSITE (callable, pass id); a truncated-name id
+            # alone collided for NpgsqlDataSource.OpenConnection(Async) vs NpgsqlMultiHostDataSource (erratum 3)
+            WIT[(j.get('callable'), j['id'])]=j
+_ids=collections.defaultdict(set)
+for (_c,_i) in WIT: _ids[_i].add(_c)
+_coll={i:sorted(c) for i,c in _ids.items() if len(c)>1}
+print('harness gate: witness records',len(WIT),'ids shared by several callables (kept apart by the composite key):',len(_coll),file=sys.stderr)
 wit_rows=collections.defaultdict(list)
 UNI={u['callable']:u['package'] for u in json.load(open(f'{S}/lab/sc/stagec-universe.json'))['universe']}
 # the tested PACKAGE binary per (package, tfm): the witness records the returned object's module MVID ('asm'); for rows
