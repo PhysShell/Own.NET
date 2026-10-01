@@ -1,0 +1,258 @@
+{
+ "consumers": 8,
+ "units": 772,
+ "extractor_failures": 0,
+ "passes_raw": 729,
+ "passes_unique": 471,
+ "production_unique": 196,
+ "treatment_production": {
+  "ESCAPE_UNTRACKED": 144,
+  "EXEMPT_CANONICAL_FORWARD": 52
+ },
+ "caller_after_call_production": {
+  "NOTHING": 139,
+  "RETURNED": 30,
+  "RELEASE_CALL": 20,
+  "STORED": 5,
+  "USING": 2
+ },
+ "callee_label_production": {
+  "FORWARD": 69,
+  "EXTERNAL_UNKNOWN": 54,
+  "BORROW": 42,
+  "UNUSED": 16,
+  "ADOPT": 9,
+  "ALIAS_TO_RESULT": 6
+ },
+ "callee_proof_production": {
+  "BODY": 142,
+  "EXTERNAL": 48,
+  "FIRST_PARTY_NO_BODY": 6
+ },
+ "acquire_shape_production": {
+  "other": 97,
+  "new": 89,
+  "minted_factory": 10
+ },
+ "escaped_production": 144,
+ "escaped_caller_nothing": 120,
+ "escaped_caller_nothing_by_callee_label": {
+  "EXTERNAL_UNKNOWN": 45,
+  "FORWARD": 44,
+  "BORROW": 10,
+  "ADOPT": 9,
+  "UNUSED": 9,
+  "ALIAS_TO_RESULT": 3
+ },
+ "escaped_caller_nothing_first_party": 81,
+ "PRIMARY_borrow_candidates": 10,
+ "primary_callee_families": 5,
+ "primary_by_callee": {
+  "Wolverine.Http.Transport.HttpTransportClientResolution.AddressFor/2": 6,
+  "PerformanceMonitor.Darling.Service.DarlingWorker.ProcessServerSweepAsync/8": 1,
+  "RepoDb.ClickHouse.BulkOperations.ClickHouseBulkCopy.EnumerateRows/1": 1,
+  "Quartz.Trimming.Canary.Wire.Program.ApiAddress/1": 1,
+  "Quartz.Trimming.Canary.Wire.WireCheck.Run/2": 1
+ },
+ "primary_by_consumer": {
+  "JasperFx/wolverine": 6,
+  "quartznet/quartznet": 2,
+  "erikdarlingdata/PerformanceMonitor": 1,
+  "mikependon/RepoDB": 1
+ },
+ "external_unknown_candidates": 45,
+ "external_unknown_families": 21,
+ "external_unknown_top_callees": {
+  "Weasel.Postgresql.IGroupedParameterBuilder.AppendParameter/1": 11,
+  "ImTools.ImHashMap.AddOrUpdate/2": 7,
+  "System.Net.Http.HttpClient.PostAsync/2": 6,
+  "System.IO.StreamWriter..ctor/1": 3,
+  "System.Collections.Generic.List<Oracle.ManagedDataAccess.Client.OracleParameter>.Add/1": 2,
+  "Marten.Events.Aggregation.IMessageOutbox.CreateBatch/1": 1,
+  "System.Func<Marten.IDocumentSession, System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<JasperFx.Events.IEvent>>>.Invoke/2": 1,
+  "Marten.IMartenSessionLogger.OnBeforeExecute/1": 1,
+  "Marten.IMartenSessionLogger.LogFailure/2": 1,
+  "Marten.IMartenSessionLogger.LogSuccess/1": 1,
+  "Weasel.Core.Migrator.WriteScript/2": 1,
+  "System.Collections.Generic.List<System.Data.Common.DbCommand>.Add/1": 1,
+  "System.Reflection.MethodBase.Invoke/2": 1,
+  "System.Collections.Concurrent.ConcurrentDictionary<System.Guid, Wolverine.Runtime.RemoteInvocation.IReplyListener>.AddOrUpdate/3": 1,
+  "System.Collections.Generic.List<System.IO.FileSystemWatcher>.Add/1": 1,
+  "PerformanceMonitor.Darling.Service.Hosting.DarlingWebTls.LoadedCertificate..ctor/2": 1,
+  "System.Net.Mail.Attachment..ctor/3": 1,
+  "Oracle.ManagedDataAccess.Client.OracleBulkCopy.WriteToServer/1": 1,
+  "Oracle.ManagedDataAccess.Client.OracleParameterCollection.Add/1": 1,
+  "System.Data.DataColumnCollection.Add/1": 1,
+  "System.Func<Quartz.Impl.AdoJobStore.ConnectionAndTransactionHolder, System.Threading.Tasks.ValueTask<T>>.Invoke/1": 1
+ },
+ "external_unknown_by_consumer": {
+  "JasperFx/marten": 23,
+  "JasperFx/wolverine": 10,
+  "erikdarlingdata/PerformanceMonitor": 3,
+  "mikependon/RepoDB": 3,
+  "JasperFx/weasel": 2,
+  "victor-wiki/DatabaseManager": 2,
+  "NpgsqlRest/NpgsqlRest": 1,
+  "quartznet/quartznet": 1
+ },
+ "escaped_nothing_release_adopt_alias_forward": {
+  "RELEASE_ALL_PATHS": 0,
+  "RELEASE_SOME_PATH": 0,
+  "ADOPT": 9,
+  "ALIAS_TO_RESULT": 3,
+  "FORWARD": 44,
+  "UNUSED": 9,
+  "RELEASE_IF_LAST_RESULT_SET": 0
+ },
+ "exempt_production": {
+  "EXEMPT_CONSUMED": 0,
+  "EXEMPT_CANONICAL_FORWARD": 52,
+  "EXEMPT_ADOPTED_WRAPPER": 0,
+  "EXEMPT_POOL": 0
+ },
+ "pool_rentals_excluded": 6,
+ "pool_rentals_excluded_production": 6,
+ "cross_check": {
+  "records_checked": 729,
+  "mismatches_exact_direction": 0,
+  "verdict": "OK",
+  "examples": [],
+  "exempt_but_absent_escaped_by_another_route": 51,
+  "exempt_but_absent_by_treatment": {
+   "EXEMPT_CANONICAL_FORWARD": 43,
+   "EXEMPT_POOL": 8
+  },
+  "exempt_but_absent_examples": [
+   {
+    "repo": "JasperFx/marten",
+    "file": "src/Marten/DocumentStore.EventStore.cs",
+    "line": 466,
+    "local": "ops",
+    "treatment": "EXEMPT_CANONICAL_FORWARD",
+    "method_key": "Marten.DocumentStore.StartProjectionBatchAsync"
+   },
+   {
+    "repo": "JasperFx/marten",
+    "file": "src/Marten/Internal/Sessions/AutoClosingLifetime.cs",
+    "line": 149,
+    "local": "conn",
+    "treatment": "EXEMPT_CANONICAL_FORWARD",
+    "method_key": "Marten.Internal.Sessions.AutoClosingLifetime.ExecuteReaderAsync"
+   },
+   {
+    "repo": "JasperFx/marten",
+    "file": "src/Marten/Internal/Sessions/AutoClosingLifetime.cs",
+    "line": 198,
+    "local": "conn",
+    "treatment": "EXEMPT_CANONICAL_FORWARD",
+    "method_key": "Marten.Internal.Sessions.AutoClosingLifetime.ExecuteReaderAsync"
+   },
+   {
+    "repo": "JasperFx/marten",
+    "file": "src/Marten/Services/PooledByteBufferWriter.cs",
+    "line": 60,
+    "local": "newer",
+    "treatment": "EXEMPT_POOL",
+    "method_key": "Marten.Services.PooledByteBufferWriter.EnsureCapacity"
+   },
+   {
+    "repo": "JasperFx/marten",
+    "file": "src/Marten/DocumentStore.EventStore.cs",
+    "line": 466,
+    "local": "ops",
+    "treatment": "EXEMPT_CANONICAL_FORWARD",
+    "method_key": "Marten.DocumentStore.StartProjectionBatchAsync"
+   },
+   {
+    "repo": "JasperFx/marten",
+    "file": "src/Marten/Internal/Sessions/AutoClosingLifetime.cs",
+    "line": 149,
+    "local": "conn",
+    "treatment": "EXEMPT_CANONICAL_FORWARD",
+    "method_key": "Marten.Internal.Sessions.AutoClosingLifetime.ExecuteReaderAsync"
+   },
+   {
+    "repo": "JasperFx/marten",
+    "file": "src/Marten/Internal/Sessions/AutoClosingLifetime.cs",
+    "line": 198,
+    "local": "conn",
+    "treatment": "EXEMPT_CANONICAL_FORWARD",
+    "method_key": "Marten.Internal.Sessions.AutoClosingLifetime.ExecuteReaderAsync"
+   },
+   {
+    "repo": "JasperFx/marten",
+    "file": "src/Marten/Services/PooledByteBufferWriter.cs",
+    "line": 60,
+    "local": "newer",
+    "treatment": "EXEMPT_POOL",
+    "method_key": "Marten.Services.PooledByteBufferWriter.EnsureCapacity"
+   },
+   {
+    "repo": "JasperFx/weasel",
+    "file": "src/Weasel.Sqlite/SqliteDataSource.cs",
+    "line": 110,
+    "local": "conn",
+    "treatment": "EXEMPT_CANONICAL_FORWARD",
+    "method_key": "Weasel.Sqlite.SqliteDataSource.OpenDbConnectionAsync"
+   },
+   {
+    "repo": "JasperFx/weasel",
+    "file": "src/Weasel.Sqlite/SqliteDataSource.cs",
+    "line": 111,
+    "local": "conn",
+    "treatment": "EXEMPT_CANONICAL_FORWARD",
+    "method_key": "Weasel.Sqlite.SqliteDataSource.OpenDbConnectionAsync"
+   }
+  ]
+ },
+ "per_consumer": {
+  "JasperFx/marten": {
+   "units": 105,
+   "extractor_failures": 0,
+   "seconds": 481,
+   "passes_raw": 200
+  },
+  "JasperFx/weasel": {
+   "units": 43,
+   "extractor_failures": 0,
+   "seconds": 218,
+   "passes_raw": 46
+  },
+  "JasperFx/wolverine": {
+   "units": 240,
+   "extractor_failures": 0,
+   "seconds": 904,
+   "passes_raw": 130
+  },
+  "NpgsqlRest/NpgsqlRest": {
+   "units": 12,
+   "extractor_failures": 0,
+   "seconds": 76,
+   "passes_raw": 76
+  },
+  "erikdarlingdata/PerformanceMonitor": {
+   "units": 16,
+   "extractor_failures": 0,
+   "seconds": 87,
+   "passes_raw": 9
+  },
+  "mikependon/RepoDB": {
+   "units": 301,
+   "extractor_failures": 0,
+   "seconds": 1646,
+   "passes_raw": 94
+  },
+  "quartznet/quartznet": {
+   "units": 41,
+   "extractor_failures": 0,
+   "seconds": 220,
+   "passes_raw": 156
+  },
+  "victor-wiki/DatabaseManager": {
+   "units": 14,
+   "extractor_failures": 0,
+   "seconds": 52,
+   "passes_raw": 18
+  }
+ }
+}

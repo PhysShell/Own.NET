@@ -1,0 +1,83 @@
+[
+ {
+  "index": 0,
+  "file": "src/Http/Wolverine.Http/Transport/WolverineHttpTransportClient.cs",
+  "line": 60,
+  "verdict": "REFUTED",
+  "reason": "non-owning acquire (IHttpClientFactory-created HttpClient)",
+  "detail": "REFUTED: non-owning acquire: the local is an IHttpClientFactory.CreateClient result (HttpTransportClientResolution.ClientFor), the factory owns the handler and disposal is optional by documentation; the engine would not mint an obligation either (ClientFor is not proven fresh)"
+ },
+ {
+  "index": 1,
+  "file": "src/Http/Wolverine.Http/Transport/WolverineHttpTransportClient.cs",
+  "line": 71,
+  "verdict": "REFUTED",
+  "reason": "non-owning acquire (IHttpClientFactory-created HttpClient)",
+  "detail": "REFUTED: non-owning acquire: the local is an IHttpClientFactory.CreateClient result (HttpTransportClientResolution.ClientFor), the factory owns the handler and disposal is optional by documentation; the engine would not mint an obligation either (ClientFor is not proven fresh)"
+ },
+ {
+  "index": 2,
+  "file": "src/Http/Wolverine.Http/Transport/WolverineHttpTransportClient.cs",
+  "line": 80,
+  "verdict": "REFUTED",
+  "reason": "non-owning acquire (IHttpClientFactory-created HttpClient)",
+  "detail": "REFUTED: non-owning acquire: the local is an IHttpClientFactory.CreateClient result (HttpTransportClientResolution.ClientFor), the factory owns the handler and disposal is optional by documentation; the engine would not mint an obligation either (ClientFor is not proven fresh)"
+ },
+ {
+  "index": 3,
+  "file": "src/Http/Wolverine.Http/Transport/WolverineHttpTransportClient.cs",
+  "line": 93,
+  "verdict": "REFUTED",
+  "reason": "non-owning acquire (IHttpClientFactory-created HttpClient)",
+  "detail": "REFUTED: non-owning acquire: the local is an IHttpClientFactory.CreateClient result (HttpTransportClientResolution.ClientFor), the factory owns the handler and disposal is optional by documentation; the engine would not mint an obligation either (ClientFor is not proven fresh)"
+ },
+ {
+  "index": 4,
+  "file": "src/Http/Wolverine.Http/Transport/WolverineHttpTransportClient.cs",
+  "line": 105,
+  "verdict": "REFUTED",
+  "reason": "non-owning acquire (IHttpClientFactory-created HttpClient)",
+  "detail": "REFUTED: non-owning acquire: the local is an IHttpClientFactory.CreateClient result (HttpTransportClientResolution.ClientFor), the factory owns the handler and disposal is optional by documentation; the engine would not mint an obligation either (ClientFor is not proven fresh)"
+ },
+ {
+  "index": 5,
+  "file": "src/Http/Wolverine.Http/Transport/WolverineHttpTransportClient.cs",
+  "line": 115,
+  "verdict": "REFUTED",
+  "reason": "non-owning acquire (IHttpClientFactory-created HttpClient)",
+  "detail": "REFUTED: non-owning acquire: the local is an IHttpClientFactory.CreateClient result (HttpTransportClientResolution.ClientFor), the factory owns the handler and disposal is optional by documentation; the engine would not mint an obligation either (ClientFor is not proven fresh)"
+ },
+ {
+  "index": 6,
+  "file": "Darling/PerformanceMonitor.Darling.Service/DarlingWorker.cs",
+  "line": 2007,
+  "verdict": "CONFIRMED",
+  "reason": "owned new SemaphoreSlim never disposed, handed to fire-and-track sweeps; formal leak, practically benign; author-suppressed CA2000 at the declaration (#pragma warning disable CA2000, DarlingWorker.cs:1767-1769)",
+  "missed_by_ca2000_and_off": false,
+  "detail": "the gate lives for the collection loop / process lifetime and is shared with sweeps that outlive the iteration; CA2000 reports the `new` (hence the pragma); the OFF scan is silent by construction (ESCAPE_UNTRACKED); no OS handle is held unless AvailableWaitHandle is materialized"
+ },
+ {
+  "index": 7,
+  "file": "src/Providers/RepoDb.ClickHouse.BulkOperations/RepoDb.ClickHouse.BulkOperations/ClickHouseBulkCopy.cs",
+  "line": 78,
+  "verdict": "REFUTED",
+  "reason": "non-owning acquire (a reader view whose Dispose is a no-op; the inner reader belongs to the caller)",
+  "detail": "ColumnFilteredDataReader.Dispose() {} (ClickHouse.BulkOperations/ColumnFilteredDataReader.cs:78); Close forwards to the caller-owned inner reader, so not disposing the wrapper is the correct behaviour"
+ },
+ {
+  "index": 8,
+  "file": "src/Quartz.Trimming.Canary.Wire/Program.cs",
+  "line": 97,
+  "verdict": "REFUTED",
+  "reason": "released by a using form the seam missed (`await using ConfiguredAsyncDisposable d = x.ConfigureAwait(false)`); the project is a trimming canary (a CI check program), a test helper by role",
+  "detail": "Program.cs:93 hostDisposal / :103 clientDisposal"
+ },
+ {
+  "index": 9,
+  "file": "src/Quartz.Trimming.Canary.Wire/Program.cs",
+  "line": 105,
+  "verdict": "REFUTED",
+  "reason": "released by a using form the seam missed (`await using ConfiguredAsyncDisposable d = x.ConfigureAwait(false)`); the project is a trimming canary (a CI check program), a test helper by role",
+  "detail": "Program.cs:93 hostDisposal / :103 clientDisposal"
+ }
+]

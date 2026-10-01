@@ -1,0 +1,553 @@
+{
+ "schema": "own.net/h28/census/v1",
+ "written_at_utc": "2026-10-01T10:54:53Z",
+ "track": "H-28 argument / callee ownership transfer census",
+ "anchors": {
+  "prereg": "paper-eval/h28/h28-prereg-v1.json (f6db975)",
+  "falsifier": "paper-eval/h28/h28-falsifier-v1.json",
+  "fixture": "paper-eval/h28/h28-fixture-v1.json (ANCHORS_PASSED)",
+  "seam_commit": "8e780c3f (93 lines, census only)",
+  "own_net_head": "705c74e015354b8ba4bd4c94a037a0c115a160bb",
+  "own_net_main": "fb06adc2beddd750e99a52ad8c1c8b5905602539 (untouched)"
+ },
+ "population": "the 8 frozen consumers, corrected environment, production units; argument passes of the extractor's own candidate locals, TFM-collapsed per (consumer, file, line, local, callee)",
+ "totals": {
+  "consumers": 8,
+  "units": 772,
+  "extractor_failures": 0,
+  "passes_raw": 729,
+  "passes_unique": 471,
+  "production_unique": 196,
+  "treatment_production": {
+   "ESCAPE_UNTRACKED": 144,
+   "EXEMPT_CANONICAL_FORWARD": 52
+  },
+  "caller_after_call_production": {
+   "NOTHING": 139,
+   "RETURNED": 30,
+   "RELEASE_CALL": 20,
+   "STORED": 5,
+   "USING": 2
+  },
+  "callee_label_production": {
+   "FORWARD": 69,
+   "EXTERNAL_UNKNOWN": 54,
+   "BORROW": 42,
+   "UNUSED": 16,
+   "ADOPT": 9,
+   "ALIAS_TO_RESULT": 6
+  },
+  "callee_proof_production": {
+   "BODY": 142,
+   "EXTERNAL": 48,
+   "FIRST_PARTY_NO_BODY": 6
+  },
+  "acquire_shape_production": {
+   "other": 97,
+   "new": 89,
+   "minted_factory": 10
+  },
+  "escaped_production": 144,
+  "escaped_caller_nothing": 120,
+  "escaped_caller_nothing_by_callee_label": {
+   "EXTERNAL_UNKNOWN": 45,
+   "FORWARD": 44,
+   "BORROW": 10,
+   "ADOPT": 9,
+   "UNUSED": 9,
+   "ALIAS_TO_RESULT": 3
+  },
+  "escaped_caller_nothing_first_party": 81,
+  "PRIMARY_borrow_candidates": 10,
+  "primary_callee_families": 5,
+  "primary_by_callee": {
+   "Wolverine.Http.Transport.HttpTransportClientResolution.AddressFor/2": 6,
+   "PerformanceMonitor.Darling.Service.DarlingWorker.ProcessServerSweepAsync/8": 1,
+   "RepoDb.ClickHouse.BulkOperations.ClickHouseBulkCopy.EnumerateRows/1": 1,
+   "Quartz.Trimming.Canary.Wire.Program.ApiAddress/1": 1,
+   "Quartz.Trimming.Canary.Wire.WireCheck.Run/2": 1
+  },
+  "primary_by_consumer": {
+   "JasperFx/wolverine": 6,
+   "quartznet/quartznet": 2,
+   "erikdarlingdata/PerformanceMonitor": 1,
+   "mikependon/RepoDB": 1
+  },
+  "external_unknown_candidates": 45,
+  "external_unknown_families": 21,
+  "external_unknown_top_callees": {
+   "Weasel.Postgresql.IGroupedParameterBuilder.AppendParameter/1": 11,
+   "ImTools.ImHashMap.AddOrUpdate/2": 7,
+   "System.Net.Http.HttpClient.PostAsync/2": 6,
+   "System.IO.StreamWriter..ctor/1": 3,
+   "System.Collections.Generic.List<Oracle.ManagedDataAccess.Client.OracleParameter>.Add/1": 2,
+   "Marten.Events.Aggregation.IMessageOutbox.CreateBatch/1": 1,
+   "System.Func<Marten.IDocumentSession, System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<JasperFx.Events.IEvent>>>.Invoke/2": 1,
+   "Marten.IMartenSessionLogger.OnBeforeExecute/1": 1,
+   "Marten.IMartenSessionLogger.LogFailure/2": 1,
+   "Marten.IMartenSessionLogger.LogSuccess/1": 1,
+   "Weasel.Core.Migrator.WriteScript/2": 1,
+   "System.Collections.Generic.List<System.Data.Common.DbCommand>.Add/1": 1,
+   "System.Reflection.MethodBase.Invoke/2": 1,
+   "System.Collections.Concurrent.ConcurrentDictionary<System.Guid, Wolverine.Runtime.RemoteInvocation.IReplyListener>.AddOrUpdate/3": 1,
+   "System.Collections.Generic.List<System.IO.FileSystemWatcher>.Add/1": 1,
+   "PerformanceMonitor.Darling.Service.Hosting.DarlingWebTls.LoadedCertificate..ctor/2": 1,
+   "System.Net.Mail.Attachment..ctor/3": 1,
+   "Oracle.ManagedDataAccess.Client.OracleBulkCopy.WriteToServer/1": 1,
+   "Oracle.ManagedDataAccess.Client.OracleParameterCollection.Add/1": 1,
+   "System.Data.DataColumnCollection.Add/1": 1,
+   "System.Func<Quartz.Impl.AdoJobStore.ConnectionAndTransactionHolder, System.Threading.Tasks.ValueTask<T>>.Invoke/1": 1
+  },
+  "external_unknown_by_consumer": {
+   "JasperFx/marten": 23,
+   "JasperFx/wolverine": 10,
+   "erikdarlingdata/PerformanceMonitor": 3,
+   "mikependon/RepoDB": 3,
+   "JasperFx/weasel": 2,
+   "victor-wiki/DatabaseManager": 2,
+   "NpgsqlRest/NpgsqlRest": 1,
+   "quartznet/quartznet": 1
+  },
+  "escaped_nothing_release_adopt_alias_forward": {
+   "RELEASE_ALL_PATHS": 0,
+   "RELEASE_SOME_PATH": 0,
+   "ADOPT": 9,
+   "ALIAS_TO_RESULT": 3,
+   "FORWARD": 44,
+   "UNUSED": 9,
+   "RELEASE_IF_LAST_RESULT_SET": 0
+  },
+  "exempt_production": {
+   "EXEMPT_CONSUMED": 0,
+   "EXEMPT_CANONICAL_FORWARD": 52,
+   "EXEMPT_ADOPTED_WRAPPER": 0,
+   "EXEMPT_POOL": 0
+  },
+  "pool_rentals_excluded": 6,
+  "pool_rentals_excluded_production": 6,
+  "cross_check": {
+   "records_checked": 729,
+   "mismatches_exact_direction": 0,
+   "verdict": "OK",
+   "examples": [],
+   "exempt_but_absent_escaped_by_another_route": 51,
+   "exempt_but_absent_by_treatment": {
+    "EXEMPT_CANONICAL_FORWARD": 43,
+    "EXEMPT_POOL": 8
+   },
+   "exempt_but_absent_examples": [
+    {
+     "repo": "JasperFx/marten",
+     "file": "src/Marten/DocumentStore.EventStore.cs",
+     "line": 466,
+     "local": "ops",
+     "treatment": "EXEMPT_CANONICAL_FORWARD",
+     "method_key": "Marten.DocumentStore.StartProjectionBatchAsync"
+    },
+    {
+     "repo": "JasperFx/marten",
+     "file": "src/Marten/Internal/Sessions/AutoClosingLifetime.cs",
+     "line": 149,
+     "local": "conn",
+     "treatment": "EXEMPT_CANONICAL_FORWARD",
+     "method_key": "Marten.Internal.Sessions.AutoClosingLifetime.ExecuteReaderAsync"
+    },
+    {
+     "repo": "JasperFx/marten",
+     "file": "src/Marten/Internal/Sessions/AutoClosingLifetime.cs",
+     "line": 198,
+     "local": "conn",
+     "treatment": "EXEMPT_CANONICAL_FORWARD",
+     "method_key": "Marten.Internal.Sessions.AutoClosingLifetime.ExecuteReaderAsync"
+    },
+    {
+     "repo": "JasperFx/marten",
+     "file": "src/Marten/Services/PooledByteBufferWriter.cs",
+     "line": 60,
+     "local": "newer",
+     "treatment": "EXEMPT_POOL",
+     "method_key": "Marten.Services.PooledByteBufferWriter.EnsureCapacity"
+    },
+    {
+     "repo": "JasperFx/marten",
+     "file": "src/Marten/DocumentStore.EventStore.cs",
+     "line": 466,
+     "local": "ops",
+     "treatment": "EXEMPT_CANONICAL_FORWARD",
+     "method_key": "Marten.DocumentStore.StartProjectionBatchAsync"
+    },
+    {
+     "repo": "JasperFx/marten",
+     "file": "src/Marten/Internal/Sessions/AutoClosingLifetime.cs",
+     "line": 149,
+     "local": "conn",
+     "treatment": "EXEMPT_CANONICAL_FORWARD",
+     "method_key": "Marten.Internal.Sessions.AutoClosingLifetime.ExecuteReaderAsync"
+    },
+    {
+     "repo": "JasperFx/marten",
+     "file": "src/Marten/Internal/Sessions/AutoClosingLifetime.cs",
+     "line": 198,
+     "local": "conn",
+     "treatment": "EXEMPT_CANONICAL_FORWARD",
+     "method_key": "Marten.Internal.Sessions.AutoClosingLifetime.ExecuteReaderAsync"
+    },
+    {
+     "repo": "JasperFx/marten",
+     "file": "src/Marten/Services/PooledByteBufferWriter.cs",
+     "line": 60,
+     "local": "newer",
+     "treatment": "EXEMPT_POOL",
+     "method_key": "Marten.Services.PooledByteBufferWriter.EnsureCapacity"
+    },
+    {
+     "repo": "JasperFx/weasel",
+     "file": "src/Weasel.Sqlite/SqliteDataSource.cs",
+     "line": 110,
+     "local": "conn",
+     "treatment": "EXEMPT_CANONICAL_FORWARD",
+     "method_key": "Weasel.Sqlite.SqliteDataSource.OpenDbConnectionAsync"
+    },
+    {
+     "repo": "JasperFx/weasel",
+     "file": "src/Weasel.Sqlite/SqliteDataSource.cs",
+     "line": 111,
+     "local": "conn",
+     "treatment": "EXEMPT_CANONICAL_FORWARD",
+     "method_key": "Weasel.Sqlite.SqliteDataSource.OpenDbConnectionAsync"
+    }
+   ]
+  }
+ },
+ "per_consumer": {
+  "JasperFx/marten": {
+   "units": 105,
+   "extractor_failures": 0,
+   "seconds": 481,
+   "passes_raw": 200
+  },
+  "JasperFx/weasel": {
+   "units": 43,
+   "extractor_failures": 0,
+   "seconds": 218,
+   "passes_raw": 46
+  },
+  "JasperFx/wolverine": {
+   "units": 240,
+   "extractor_failures": 0,
+   "seconds": 904,
+   "passes_raw": 130
+  },
+  "NpgsqlRest/NpgsqlRest": {
+   "units": 12,
+   "extractor_failures": 0,
+   "seconds": 76,
+   "passes_raw": 76
+  },
+  "erikdarlingdata/PerformanceMonitor": {
+   "units": 16,
+   "extractor_failures": 0,
+   "seconds": 87,
+   "passes_raw": 9
+  },
+  "mikependon/RepoDB": {
+   "units": 301,
+   "extractor_failures": 0,
+   "seconds": 1646,
+   "passes_raw": 94
+  },
+  "quartznet/quartznet": {
+   "units": 41,
+   "extractor_failures": 0,
+   "seconds": 220,
+   "passes_raw": 156
+  },
+  "victor-wiki/DatabaseManager": {
+   "units": 14,
+   "extractor_failures": 0,
+   "seconds": 52,
+   "passes_raw": 18
+  }
+ },
+ "manual_read": {
+  "sites_read": 10,
+  "confirmed": 1,
+  "refuted": 9,
+  "confirmed_callee_families": [
+   "PerformanceMonitor.Darling.Service.DarlingWorker.ProcessServerSweepAsync/8"
+  ],
+  "refutations_by_reason": {
+   "non-owning acquire (IHttpClientFactory-created HttpClient)": 6,
+   "non-owning acquire (a reader view whose Dispose is a no-op; the inner reader belongs to the caller)": 1,
+   "released by a using form the seam missed (`await using ConfiguredAsyncDisposable d = x.ConfigureAwait(false)`); the project is a trimming canary (a CI check program), a test helper by role": 2
+  },
+  "confirmed_sites": [
+   {
+    "repo": "erikdarlingdata/PerformanceMonitor",
+    "file": "Darling/PerformanceMonitor.Darling.Service/DarlingWorker.cs",
+    "line": 2007,
+    "member": "RunCollectionLoopAsync",
+    "method_key": "PerformanceMonitor.Darling.Service.DarlingWorker.RunCollectionLoopAsync",
+    "local": "serverSweepGate",
+    "local_type": "System.Threading.SemaphoreSlim",
+    "acquire_shape": "new",
+    "callee": "PerformanceMonitor.Darling.Service.DarlingWorker.ProcessServerSweepAsync/8",
+    "callee_assembly": "own",
+    "callee_first_party": true,
+    "parameter": "gate",
+    "parameter_type": "System.Threading.SemaphoreSlim",
+    "call_is_statement": false,
+    "caller_kinds": [],
+    "callee_use_kinds": [
+     "BORROW"
+    ],
+    "forwarded_to": null,
+    "project": "Darling/PerformanceMonitor.Darling.Service/PerformanceMonitor.Darling.Service.csproj",
+    "tfm": "net10.0",
+    "reason": "owned new SemaphoreSlim never disposed, handed to fire-and-track sweeps; formal leak, practically benign; author-suppressed CA2000 at the declaration (#pragma warning disable CA2000, DarlingWorker.cs:1767-1769)",
+    "missed_by_ca2000_and_off": false
+   }
+  ],
+  "refuted_sites": [
+   {
+    "repo": "JasperFx/wolverine",
+    "file": "src/Http/Wolverine.Http/Transport/WolverineHttpTransportClient.cs",
+    "line": 60,
+    "member": "SendBatchAsync",
+    "method_key": "Wolverine.Http.Transport.WolverineHttpTransportClient.SendBatchAsync",
+    "local": "client",
+    "local_type": "System.Net.Http.HttpClient",
+    "acquire_shape": "other",
+    "callee": "Wolverine.Http.Transport.HttpTransportClientResolution.AddressFor/2",
+    "callee_assembly": "own",
+    "callee_first_party": true,
+    "parameter": "client",
+    "parameter_type": "System.Net.Http.HttpClient",
+    "call_is_statement": false,
+    "caller_kinds": [],
+    "callee_use_kinds": [
+     "BORROW"
+    ],
+    "forwarded_to": null,
+    "project": "src/Http/Wolverine.Http/Wolverine.Http.csproj",
+    "tfm": "net10.0",
+    "reason": "non-owning acquire (IHttpClientFactory-created HttpClient)"
+   },
+   {
+    "repo": "JasperFx/wolverine",
+    "file": "src/Http/Wolverine.Http/Transport/WolverineHttpTransportClient.cs",
+    "line": 71,
+    "member": "SendAsync",
+    "method_key": "Wolverine.Http.Transport.WolverineHttpTransportClient.SendAsync",
+    "local": "client",
+    "local_type": "System.Net.Http.HttpClient",
+    "acquire_shape": "other",
+    "callee": "Wolverine.Http.Transport.HttpTransportClientResolution.AddressFor/2",
+    "callee_assembly": "own",
+    "callee_first_party": true,
+    "parameter": "client",
+    "parameter_type": "System.Net.Http.HttpClient",
+    "call_is_statement": false,
+    "caller_kinds": [],
+    "callee_use_kinds": [
+     "BORROW"
+    ],
+    "forwarded_to": null,
+    "project": "src/Http/Wolverine.Http/Wolverine.Http.csproj",
+    "tfm": "net10.0",
+    "reason": "non-owning acquire (IHttpClientFactory-created HttpClient)"
+   },
+   {
+    "repo": "JasperFx/wolverine",
+    "file": "src/Http/Wolverine.Http/Transport/WolverineHttpTransportClient.cs",
+    "line": 80,
+    "member": "InvokeAsync",
+    "method_key": "Wolverine.Http.Transport.WolverineHttpTransportClient.InvokeAsync",
+    "local": "client",
+    "local_type": "System.Net.Http.HttpClient",
+    "acquire_shape": "other",
+    "callee": "Wolverine.Http.Transport.HttpTransportClientResolution.AddressFor/2",
+    "callee_assembly": "own",
+    "callee_first_party": true,
+    "parameter": "client",
+    "parameter_type": "System.Net.Http.HttpClient",
+    "call_is_statement": false,
+    "caller_kinds": [],
+    "callee_use_kinds": [
+     "BORROW"
+    ],
+    "forwarded_to": null,
+    "project": "src/Http/Wolverine.Http/Wolverine.Http.csproj",
+    "tfm": "net10.0",
+    "reason": "non-owning acquire (IHttpClientFactory-created HttpClient)"
+   },
+   {
+    "repo": "JasperFx/wolverine",
+    "file": "src/Http/Wolverine.Http/Transport/WolverineHttpTransportClient.cs",
+    "line": 93,
+    "member": "SendBatchAsync",
+    "method_key": "Wolverine.Http.Transport.WolverineHttpTransportClientCloudEvents.SendBatchAsync",
+    "local": "client",
+    "local_type": "System.Net.Http.HttpClient",
+    "acquire_shape": "other",
+    "callee": "Wolverine.Http.Transport.HttpTransportClientResolution.AddressFor/2",
+    "callee_assembly": "own",
+    "callee_first_party": true,
+    "parameter": "client",
+    "parameter_type": "System.Net.Http.HttpClient",
+    "call_is_statement": false,
+    "caller_kinds": [],
+    "callee_use_kinds": [
+     "BORROW"
+    ],
+    "forwarded_to": null,
+    "project": "src/Http/Wolverine.Http/Wolverine.Http.csproj",
+    "tfm": "net10.0",
+    "reason": "non-owning acquire (IHttpClientFactory-created HttpClient)"
+   },
+   {
+    "repo": "JasperFx/wolverine",
+    "file": "src/Http/Wolverine.Http/Transport/WolverineHttpTransportClient.cs",
+    "line": 105,
+    "member": "SendAsync",
+    "method_key": "Wolverine.Http.Transport.WolverineHttpTransportClientCloudEvents.SendAsync",
+    "local": "client",
+    "local_type": "System.Net.Http.HttpClient",
+    "acquire_shape": "other",
+    "callee": "Wolverine.Http.Transport.HttpTransportClientResolution.AddressFor/2",
+    "callee_assembly": "own",
+    "callee_first_party": true,
+    "parameter": "client",
+    "parameter_type": "System.Net.Http.HttpClient",
+    "call_is_statement": false,
+    "caller_kinds": [],
+    "callee_use_kinds": [
+     "BORROW"
+    ],
+    "forwarded_to": null,
+    "project": "src/Http/Wolverine.Http/Wolverine.Http.csproj",
+    "tfm": "net10.0",
+    "reason": "non-owning acquire (IHttpClientFactory-created HttpClient)"
+   },
+   {
+    "repo": "JasperFx/wolverine",
+    "file": "src/Http/Wolverine.Http/Transport/WolverineHttpTransportClient.cs",
+    "line": 115,
+    "member": "InvokeAsync",
+    "method_key": "Wolverine.Http.Transport.WolverineHttpTransportClientCloudEvents.InvokeAsync",
+    "local": "client",
+    "local_type": "System.Net.Http.HttpClient",
+    "acquire_shape": "other",
+    "callee": "Wolverine.Http.Transport.HttpTransportClientResolution.AddressFor/2",
+    "callee_assembly": "own",
+    "callee_first_party": true,
+    "parameter": "client",
+    "parameter_type": "System.Net.Http.HttpClient",
+    "call_is_statement": false,
+    "caller_kinds": [],
+    "callee_use_kinds": [
+     "BORROW"
+    ],
+    "forwarded_to": null,
+    "project": "src/Http/Wolverine.Http/Wolverine.Http.csproj",
+    "tfm": "net10.0",
+    "reason": "non-owning acquire (IHttpClientFactory-created HttpClient)"
+   },
+   {
+    "repo": "mikependon/RepoDB",
+    "file": "src/Providers/RepoDb.ClickHouse.BulkOperations/RepoDb.ClickHouse.BulkOperations/ClickHouseBulkCopy.cs",
+    "line": 78,
+    "member": "WriteToServerAsync",
+    "method_key": "RepoDb.ClickHouse.BulkOperations.ClickHouseBulkCopy.WriteToServerAsync",
+    "local": "projectedReader",
+    "local_type": "RepoDb.ClickHouse.BulkOperations.ColumnFilteredDataReader",
+    "acquire_shape": "new",
+    "callee": "RepoDb.ClickHouse.BulkOperations.ClickHouseBulkCopy.EnumerateRows/1",
+    "callee_assembly": "own",
+    "callee_first_party": true,
+    "parameter": "reader",
+    "parameter_type": "System.Data.IDataReader",
+    "call_is_statement": false,
+    "caller_kinds": [],
+    "callee_use_kinds": [
+     "BORROW"
+    ],
+    "forwarded_to": null,
+    "project": "src/Providers/RepoDb.ClickHouse.BulkOperations/RepoDb.ClickHouse.BulkOperations/RepoDb.ClickHouse.BulkOperations.csproj",
+    "tfm": "net10.0",
+    "reason": "non-owning acquire (a reader view whose Dispose is a no-op; the inner reader belongs to the caller)"
+   },
+   {
+    "repo": "quartznet/quartznet",
+    "file": "src/Quartz.Trimming.Canary.Wire/Program.cs",
+    "line": 97,
+    "member": "Run",
+    "method_key": "Quartz.Trimming.Canary.Wire.Program.Run",
+    "local": "host",
+    "local_type": "Microsoft.AspNetCore.Builder.WebApplication",
+    "acquire_shape": "other",
+    "callee": "Quartz.Trimming.Canary.Wire.Program.ApiAddress/1",
+    "callee_assembly": "own",
+    "callee_first_party": true,
+    "parameter": "host",
+    "parameter_type": "Microsoft.AspNetCore.Builder.WebApplication",
+    "call_is_statement": false,
+    "caller_kinds": [],
+    "callee_use_kinds": [
+     "BORROW"
+    ],
+    "forwarded_to": null,
+    "project": "src/Quartz.Trimming.Canary.Wire/Quartz.Trimming.Canary.Wire.csproj",
+    "tfm": "net10.0",
+    "reason": "released by a using form the seam missed (`await using ConfiguredAsyncDisposable d = x.ConfigureAwait(false)`); the project is a trimming canary (a CI check program), a test helper by role"
+   },
+   {
+    "repo": "quartznet/quartznet",
+    "file": "src/Quartz.Trimming.Canary.Wire/Program.cs",
+    "line": 105,
+    "member": "Run",
+    "method_key": "Quartz.Trimming.Canary.Wire.Program.Run",
+    "local": "client",
+    "local_type": "Microsoft.Extensions.DependencyInjection.ServiceProvider",
+    "acquire_shape": "other",
+    "callee": "Quartz.Trimming.Canary.Wire.WireCheck.Run/2",
+    "callee_assembly": "own",
+    "callee_first_party": true,
+    "parameter": "client",
+    "parameter_type": "System.IServiceProvider",
+    "call_is_statement": false,
+    "caller_kinds": [],
+    "callee_use_kinds": [
+     "BORROW"
+    ],
+    "forwarded_to": null,
+    "project": "src/Quartz.Trimming.Canary.Wire/Quartz.Trimming.Canary.Wire.csproj",
+    "tfm": "net10.0",
+    "reason": "released by a using form the seam missed (`await using ConfiguredAsyncDisposable d = x.ConfigureAwait(false)`); the project is a trimming canary (a CI check program), a test helper by role"
+   }
+  ]
+ },
+ "gate": {
+  "confirmed_primary": 1,
+  "confirmed_families": 1,
+  "confirmed_missed_by_ca2000_and_off": 0,
+  "rule": "BUILD iff confirmed >= 10 AND families >= 3, OR >= 1 confirmed site missed by CA2000 (default options) and the OFF scan; else RECORD_AND_STOP; cross-check mismatch = EXPERIMENT_INVALID (frozen)",
+  "decision": "RECORD_AND_STOP (the census is the whole result; the conservative default is not built)"
+ },
+ "descriptive_reading_not_in_the_gate": {
+  "what_the_escaped_passes_are": "of the 120 production argument passes that the escape rule drops with the caller doing nothing afterwards: 45 go to EXTERNAL callees (21 families), 44 are depth-1 FORWARDS inside first-party callees (mostly into constructors: Marten BatchExecution / CommandExecution x17, RepoDB type-coercing readers, DbInterpreter.GetDbVersion), 10 BORROW (read by hand above), 9 ADOPT (Marten session constructors storing IConnectionLifetime / MartenDatabase / ProjectionUpdateBatch, an exception transformer recording an NpgsqlBatch, ExplainQueryAsync storing the command), 9 UNUSED (parameters the cheap body-proof does not see used, mostly handed to base constructors through `: base(x)` which the proof does not follow) and 3 ALIAS_TO_RESULT (MemoryStream / BinaryReader wrapped into the result)",
+  "external_exposure_of_the_conservative_default": "the 45 external passes by callee: Weasel IGroupedParameterBuilder.AppendParameter x11 (a PooledList stored by the builder: adopt), ImTools.ImHashMap.AddOrUpdate x7 (MartenDatabase stored in a map: adopt), HttpClient.PostAsync x6 (ByteArrayContent / StringContent: the callee disposes the content after sending: release), StreamWriter constructor x3 (a stream wrapped: alias / adopt), List<OracleParameter>.Add x2 and List<DbCommand>.Add (adopt), Marten session-logger hooks x3 (NpgsqlBatch: borrow), Migrator.WriteScript (borrow) and single others; under the conservative default WITHOUT callee effects every one of them becomes a finding, and by inspection the large families are adopt or release, i.e. false positives; the effects such a default would need first: collection Add / AddOrUpdate (ADOPT), HttpClient.PostAsync / SendAsync content (RELEASE), stream wrapper constructors (ALIAS / ADOPT)",
+  "balance": "1 formal, benign, author-suppressed true positive against roughly 110 sites (45 external + 44 forwards + 9 adopt + 9 unused + 3 alias) that would each need a proven callee effect before the conservative default could be turned on without false positives on this population: on these eight consumers an owned local handed to a callee with nothing done afterwards is overwhelmingly a transfer (adopt / forward into a constructor / release by the callee), not a borrow",
+  "cheap_proof_gaps_seen": [
+   "constructor initializers (`: base(x)`) are not followed: 9 UNUSED are probably adopts",
+   "depth-1 forwards are not resolved: 44 FORWARD; the engine's own call-graph inference (forward_transfer) would settle the first-party ones",
+   "a using form over a projection (`x.ConfigureAwait(false)`) is not a recognised release: 2 refutations"
+  ]
+ },
+ "not_done": [
+  "no engine change",
+  "no conservative default",
+  "no callee effect rows",
+  "no vocabulary change"
+ ]
+}

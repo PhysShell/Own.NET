@@ -1,0 +1,1 @@
+The first census run (build without method_sig) was aborted after two consumers when the harness cross-check collided same-name overloads; its outputs were discarded and the census re-run in full with the build that records the enclosing method sig (Own.NET 705c74e0). See paper-eval/h28/h28-amendment-1.json.
