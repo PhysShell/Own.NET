@@ -3221,7 +3221,7 @@ static void H26BClassify(BlockSyntax mbody, SemanticModel model)
         string sink = "other"; ILocalSymbol? sinkLocal = null; var usingDecl = false;
         switch (top.Parent)
         {
-            case EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax vd }: sink = "local_declaration"; sinkLocal = model.GetDeclaredSymbol(vd) as ILocalSymbol; usingDecl = (vd.Parent?.Parent as LocalDeclarationStatementSyntax)?.UsingKeyword.RawKind is > 0; break;
+            case EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax vd }: sink = "local_declaration"; sinkLocal = model.GetDeclaredSymbol(vd) as ILocalSymbol; usingDecl = (vd.Parent?.Parent as LocalDeclarationStatementSyntax)?.UsingKeyword.RawKind is > 0 || vd.Parent?.Parent is UsingStatementSyntax; break;   // erratum 4: `using (var x = …)` / `await using (var x = …)` is a using form too
             case AssignmentExpressionSyntax asg when asg.Right == top: var ts2 = model.GetSymbolInfo(asg.Left).Symbol; sink = ts2 is ILocalSymbol ? "local_assignment" : ts2 is IFieldSymbol or IPropertySymbol ? "field_or_property_store" : "assignment_other"; sinkLocal = ts2 as ILocalSymbol; break;
             case ArgumentSyntax: sink = "argument"; break;
             case ReturnStatementSyntax: sink = "return"; break;
@@ -3243,6 +3243,100 @@ static void H26BClassify(BlockSyntax mbody, SemanticModel model)
             callable = $"{m.ContainingType.ToDisplayString()}.{m.Name}/{m.Parameters.Length}", declaring_assembly = m.ContainingAssembly?.Name, is_virtual_member = m.IsVirtual || m.IsAbstract || m.ContainingType.TypeKind == TypeKind.Interface || m.IsOverride,
             return_type = ret.ToDisplayString(), awaited = inv.Parent is AwaitExpressionSyntax || top != inv, receiver_kind = rkind, receiver_static_type = rtype?.ToDisplayString(), provenance = prov, concrete_type = concrete?.ToDisplayString(),
             row_on_static_callable = rowOnStatic, row_on_concrete_override = rowOnConcrete, sink, using_declaration = usingDecl, transferred = transferred.ToArray() });
+    }
+}
+
+// ===== ownership-semantics-lab H-27 step 4 (registered before this code; h27-step4-prereg-v1.json): owned-handle (lease)
+// census, census only. For every invocation whose resolved method is named ExecuteReaderAsync or BeginTransactionAsync
+// (the frozen pair, any declaring type; the synchronous twins ExecuteReader / BeginTransaction recorded with
+// sync_twin = true, descriptive) and whose (await-unwrapped) result is a real disposable: the result sink, how the
+// handle is released in the member (USING / EXPLICIT_RELEASE_CALL / TRY_FINALLY_RELEASE / TRANSFERRED / PASSED_TO_CALLEE /
+// NONE), the receiver kind and the receiver's lifetime in the member (RECEIVER_RELEASED_IN_MEMBER /
+// RECEIVER_OUTLIVES_MEMBER / RECEIVER_TEMPORARY / RECEIVER_LOCAL_UNRELEASED / UNKNOWN), the frozen site class, and
+// (descriptive, for the manual read) whether a connection-typed local of the member is released by a using form.
+// Behind OWEN_H27_CENSUS=<path>. No lowering changes.
+static void H27Classify(BlockSyntax mbody, SemanticModel model)
+{
+    static ITypeSymbol? Unwrap(ITypeSymbol? t) => t is INamedTypeSymbol n && n.IsGenericType && n.ContainingNamespace?.ToString() == "System.Threading.Tasks" && n.Name is "Task" or "ValueTask" ? n.TypeArguments[0] : t;
+    static bool HandleRelease(string n) => n is "Dispose" or "DisposeAsync" or "Close" or "CloseAsync" or "Commit" or "CommitAsync" or "Rollback" or "RollbackAsync";
+    static bool ReceiverRelease(string n) => n is "Dispose" or "DisposeAsync" or "Close" or "CloseAsync";
+    static bool UsingForm(ILocalSymbol l) => l.DeclaringSyntaxReferences.Any(dr => dr.GetSyntax() is VariableDeclaratorSyntax vd && (vd.Parent?.Parent is LocalDeclarationStatementSyntax { UsingKeyword.RawKind: > 0 } || vd.Parent?.Parent is UsingStatementSyntax));
+    // every use of a local in the member: a release call (and whether one sits in a finally), an argument pass, a return, a store, `using (x)`
+    (bool release, bool inFinally, bool passed, bool returned, bool stored, bool usingStmt) Uses(ILocalSymbol local, Func<string, bool> isRelease)
+    {
+        bool rel = false, fin = false, passed = false, ret = false, st = false, us = false;
+        foreach (var id in mbody.DescendantNodes().OfType<IdentifierNameSyntax>())
+        {
+            if (!SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, local)) continue;
+            var called = id.Parent is MemberAccessExpressionSyntax { Parent: InvocationExpressionSyntax } ma ? ma.Name.Identifier.Text
+                : id.Parent is ConditionalAccessExpressionSyntax { WhenNotNull: InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax mb } } ? mb.Name.Identifier.Text : null;
+            if (called is not null && isRelease(called)) { rel = true; if (id.Ancestors().Any(a => a is FinallyClauseSyntax)) fin = true; }
+            else if (id.Parent is ArgumentSyntax) passed = true;
+            else if (id.Parent is ReturnStatementSyntax) ret = true;
+            else if (id.Parent is AssignmentExpressionSyntax a2 && a2.Right == id && model.GetSymbolInfo(a2.Left).Symbol is IFieldSymbol or IPropertySymbol) st = true;
+            else if (id.Parent is UsingStatementSyntax) us = true;
+        }
+        return (rel, fin, passed, ret, st, us);
+    }
+    bool? connectionUsing = null;
+    foreach (var inv in mbody.DescendantNodes().OfType<InvocationExpressionSyntax>())
+    {
+        if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol m) continue;
+        bool pair = m.Name is "ExecuteReaderAsync" or "BeginTransactionAsync", twin = m.Name is "ExecuteReader" or "BeginTransaction";
+        if (!pair && !twin) continue;
+        var ret = Unwrap(m.ReturnType);
+        if (ret is null || !ImplementsIDisposable(ret) || IsDisposeOptional(ret) || HasEmptyDisposeBody(ret)) continue;
+        SyntaxNode top = inv; while (top.Parent is AwaitExpressionSyntax or ParenthesizedExpressionSyntax || (top.Parent is InvocationExpressionSyntax pi && pi.Expression is MemberAccessExpressionSyntax pma && pma.Name.Identifier.Text == "ConfigureAwait") || (top.Parent is MemberAccessExpressionSyntax pm2 && pm2.Name.Identifier.Text == "ConfigureAwait")) top = top.Parent;
+        string sink = "other"; ILocalSymbol? handle = null; var usingDecl = false;
+        switch (top.Parent)
+        {
+            case EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax vd }: sink = "local_declaration"; handle = model.GetDeclaredSymbol(vd) as ILocalSymbol; usingDecl = vd.Parent?.Parent is LocalDeclarationStatementSyntax { UsingKeyword.RawKind: > 0 } || vd.Parent?.Parent is UsingStatementSyntax; break;
+            case AssignmentExpressionSyntax asg when asg.Right == top: var ts2 = model.GetSymbolInfo(asg.Left).Symbol; sink = ts2 is ILocalSymbol ? "local_assignment" : ts2 is IFieldSymbol or IPropertySymbol ? "field_or_property_store" : "assignment_other"; handle = ts2 as ILocalSymbol; break;
+            case ArgumentSyntax: sink = "argument"; break;
+            case ReturnStatementSyntax: sink = "return"; break;
+            case ExpressionStatementSyntax: sink = "discarded"; break;
+            case MemberAccessExpressionSyntax: sink = "chained"; break;
+            case UsingStatementSyntax: sink = "using_statement"; usingDecl = true; break;
+        }
+        string handleRelease; var transferred = new SortedSet<string>(StringComparer.Ordinal);
+        if (handle is null) handleRelease = "NOT_A_LOCAL";
+        else
+        {
+            var u = Uses(handle, HandleRelease);
+            if (u.returned) transferred.Add("returned");
+            if (u.stored) transferred.Add("stored");
+            if (u.passed) transferred.Add("passed_as_argument");
+            handleRelease = usingDecl || u.usingStmt || UsingForm(handle) ? "USING" : u.release && u.inFinally ? "TRY_FINALLY_RELEASE" : u.release ? "EXPLICIT_RELEASE_CALL" : u.returned || u.stored ? "TRANSFERRED" : u.passed ? "PASSED_TO_CALLEE" : "NONE";
+        }
+        // the receiver and its lifetime in the member
+        ExpressionSyntax? recv = inv.Expression is MemberAccessExpressionSyntax rma ? rma.Expression : inv.Expression is MemberBindingExpressionSyntax && inv.Parent is ConditionalAccessExpressionSyntax ca ? ca.Expression : null;
+        while (recv is ParenthesizedExpressionSyntax or CastExpressionSyntax) recv = recv is ParenthesizedExpressionSyntax pr ? pr.Expression : ((CastExpressionSyntax)recv).Expression;
+        var rsym = recv is null ? null : model.GetSymbolInfo(recv).Symbol;
+        string rkind, rlife;
+        if (rsym is ILocalSymbol rl)
+        {
+            rkind = "local"; var u = Uses(rl, ReceiverRelease);
+            rlife = UsingForm(rl) || u.usingStmt || u.release ? "RECEIVER_RELEASED_IN_MEMBER" : u.returned || u.stored ? "RECEIVER_OUTLIVES_MEMBER" : "RECEIVER_LOCAL_UNRELEASED";
+        }
+        else if (rsym is IParameterSymbol) { rkind = "parameter"; rlife = "RECEIVER_OUTLIVES_MEMBER"; }
+        else if (rsym is IFieldSymbol) { rkind = "field"; rlife = "RECEIVER_OUTLIVES_MEMBER"; }
+        else if (rsym is IPropertySymbol) { rkind = "property"; rlife = "RECEIVER_OUTLIVES_MEMBER"; }
+        else if (recv is null || recv is ThisExpressionSyntax) { rkind = recv is null ? (m.IsStatic ? "static" : "this") : "this"; rlife = m.IsStatic ? "UNKNOWN" : "RECEIVER_OUTLIVES_MEMBER"; }
+        else if (recv is InvocationExpressionSyntax or AwaitExpressionSyntax or ObjectCreationExpressionSyntax or ConditionalAccessExpressionSyntax) { rkind = "temporary"; rlife = "RECEIVER_TEMPORARY"; }
+        else { rkind = recv.Kind().ToString(); rlife = "UNKNOWN"; }
+        var released = handleRelease is "USING" or "EXPLICIT_RELEASE_CALL" or "TRY_FINALLY_RELEASE";
+        var cls = released ? "RELEASED" : handleRelease is "NONE" or "PASSED_TO_CALLEE" && rlife == "RECEIVER_RELEASED_IN_MEMBER" ? "RECLAIMED_IN_MEMBER" : handleRelease == "NONE" && rlife == "RECEIVER_OUTLIVES_MEMBER" ? "LEAK_CANDIDATE" : handleRelease == "NONE" && rlife == "RECEIVER_TEMPORARY" ? "TEMPORARY_RECEIVER" : "UNCLEAR";
+        if (connectionUsing is null)
+        {
+            connectionUsing = false;
+            foreach (var vd2 in mbody.DescendantNodes().OfType<VariableDeclaratorSyntax>())
+                if (model.GetDeclaredSymbol(vd2) is ILocalSymbol cl && cl.Type.Name.EndsWith("Connection", StringComparison.Ordinal) && UsingForm(cl)) { connectionUsing = true; break; }
+        }
+        var member = inv.Ancestors().OfType<MemberDeclarationSyntax>().FirstOrDefault();
+        H27.Emit(new { file = inv.SyntaxTree.FilePath, line = LineOf(inv), member = member is MethodDeclarationSyntax md ? md.Identifier.Text : member?.Kind().ToString(),
+            callable = $"{m.ContainingType.ToDisplayString()}.{m.Name}/{m.Parameters.Length}", declaring_assembly = m.ContainingAssembly?.Name, sync_twin = twin, awaited = inv.Parent is AwaitExpressionSyntax || top != inv,
+            return_type = ret.ToDisplayString(), sink, using_declaration = usingDecl, handle_release = handleRelease, transferred = transferred.ToArray(),
+            receiver_kind = rkind, receiver_static_type = recv is null ? m.ContainingType.ToDisplayString() : model.GetTypeInfo(recv).Type?.ToDisplayString(), receiver_lifetime = rlife, site_class = cls, connection_local_released_by_using_in_member = connectionUsing });
     }
 }
 
@@ -8196,6 +8290,8 @@ foreach (var (file, tree) in parsed)
                                 H25Classify(v, mbody, model);
                 // H-26B (OWEN_H26B_CENSUS=<path>; h26b-h27-prereg-v1.json): base-typed virtual resolvability census, census only
                 if (H26B.Enabled) H26BClassify(mbody, model);
+                // H-27 step 4 (OWEN_H27_CENSUS=<path>; h27-step4-prereg-v1.json): owned-handle release x receiver lifetime census, census only
+                if (H27.Enabled) H27Classify(mbody, model);
                 // `using (IMemoryOwner owner = MemoryPool.Rent(...)) { … }` STATEMENT form: track the owner
                 // too, so its returned view dangles after the scope-exit dispose (the desugar mirrors the
                 // `using` DECLARATION form handled in the loop above).
@@ -8867,6 +8963,15 @@ partial class Program
     static class H26B
     {
         internal static readonly string? Path = Environment.GetEnvironmentVariable("OWEN_H26B_CENSUS");
+        internal static readonly bool Enabled = !string.IsNullOrEmpty(Path);
+        static readonly object Lock = new();
+        internal static void Emit(object o) { try { lock (Lock) File.AppendAllText(Path!, JsonSerializer.Serialize(o) + "\n"); } catch { } }
+    }
+
+    // ===== ownership-semantics-lab H-27 step 4 (registered before this code): the census sink of H27Classify. Census only.
+    static class H27
+    {
+        internal static readonly string? Path = Environment.GetEnvironmentVariable("OWEN_H27_CENSUS");
         internal static readonly bool Enabled = !string.IsNullOrEmpty(Path);
         static readonly object Lock = new();
         internal static void Emit(object o) { try { lock (Lock) File.AppendAllText(Path!, JsonSerializer.Serialize(o) + "\n"); } catch { } }
