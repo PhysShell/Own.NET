@@ -3406,8 +3406,10 @@ static void H28Classify(IdentifierNameSyntax idn, string nm, BlockSyntax mbody, 
     }
     else if (param is not null && firstParty) proof = "FIRST_PARTY_NO_BODY";
     var member = idn.Ancestors().OfType<MemberDeclarationSyntax>().FirstOrDefault();
+    // the enclosing method's record identity in the unit facts: the same name stamp and the same canonical per-overload sig (harness cross-check)
+    var msym = member is BaseMethodDeclarationSyntax bmd0 ? model.GetDeclaredSymbol(bmd0) as IMethodSymbol : null;
     H28.Emit(new { file = idn.SyntaxTree.FilePath, line = LineOf(idn), member = member is MethodDeclarationSyntax md ? md.Identifier.Text : member?.Kind().ToString(),
-        method_key = member is BaseMethodDeclarationSyntax bmd ? FlowFunctionName(bmd, "?", model) : null, local = nm, local_type = model.GetTypeInfo(idn).Type?.ToDisplayString(), acquire_shape = acquireShape,
+        method_key = member is BaseMethodDeclarationSyntax bmd ? FlowFunctionName(bmd, "?", model) : null, method_sig = msym is null ? null : CanonicalSig(msym), method_line = member is null ? 0 : LineOf(member), local = nm, local_type = model.GetTypeInfo(idn).Type?.ToDisplayString(), acquire_shape = acquireShape,
         callee = Key(callee), callee_assembly = callee.ContainingAssembly?.Name, callee_first_party = firstParty, callee_is_ctor = callee.MethodKind == MethodKind.Constructor, callee_is_extension = callee.ReducedFrom is not null,
         arg_position = pos, arg_named = named, parameter = param?.Name, parameter_type = param?.Type.ToDisplayString(), parameter_ref_kind = param?.RefKind.ToString(),
         call_is_statement = call.Parent is ExpressionStatementSyntax, current_treatment = treatment, caller_after_call = callerAfter, caller_kinds = callerKinds.ToArray(),
