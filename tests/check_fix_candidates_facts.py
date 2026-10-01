@@ -15,7 +15,12 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+from ownlang.ownir import OWNIR_VERSION
 
 _ADDITIVE_COMPONENT_KEYS = (
     "qualified_name",
@@ -65,9 +70,15 @@ def main(on_path: str, off_path: str | None) -> int:
         if not cond:
             fails.append(msg)
 
-    # Top-level: additive version present, ownir_version untouched.
+    # Top-level: additive version present, ownir_version untouched. "Untouched" is a
+    # claim about the FLAG, not about a number: `--fix-candidates` is additive metadata,
+    # so it must stamp the vocabulary version the core currently understands — the same
+    # one a flag-off run stamps (compared below, where the flag-off facts are in hand).
+    # This used to read `== 0`, which held only until the vocabulary first moved.
     check(on.get("fix_candidates_version") == 1, "top-level fix_candidates_version must be 1")
-    check(on.get("ownir_version") == 0, "ownir_version must stay 0")
+    check(on.get("ownir_version") == OWNIR_VERSION,
+          f"--fix-candidates must not move ownir_version: the facts are stamped "
+          f"{on.get('ownir_version')!r}, the core understands {OWNIR_VERSION}")
 
     def only_fix(name: str) -> dict | None:
         fx = _fixes(on, name)
@@ -226,6 +237,9 @@ def main(on_path: str, off_path: str | None) -> int:
     if off_path is not None:
         off = _load(off_path)
         check("fix_candidates_version" not in off, "flag-off: no fix_candidates_version")
+        check(on.get("ownir_version") == off.get("ownir_version"),
+              f"the flag moved ownir_version: {off.get('ownir_version')!r} without it, "
+              f"{on.get('ownir_version')!r} with it")
         for c in off.get("components", []):  # type: ignore[union-attr]
             check("qualified_name" not in c, f"flag-off: {c.get('name')} has qualified_name")
             for s in c.get("subscriptions") or []:
