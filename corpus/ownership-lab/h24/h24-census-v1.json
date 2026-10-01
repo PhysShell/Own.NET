@@ -1,0 +1,768 @@
+{
+ "schema": "own.net/h24/census/v1",
+ "environment": [
+  "?"
+ ],
+ "written_at_utc": "2026-10-01T02:20:05Z",
+ "track": "H-24 restricted single-obligation merge: the census-only admissibility gate (step 2 of the frozen order)",
+ "anchors": {
+  "prereg": "paper-eval/h24/h24-prereg-v1.json (e3298ed)",
+  "own_net_head_with_census_seam": "cbe2fcaaf0d0c0691d306df0fb772efcb466bfba",
+  "own_net_main": "fb06adc2beddd750e99a52ad8c1c8b5905602539 (untouched)",
+  "builds": "ext8m / ext10m from the census-seam commit; OFF facts byte-identical to the previous build on the fixture and the H-23A fixture; census on == census off byte-identical"
+ },
+ "seam": "OWEN_H24_CENSUS=<path>: H24Classify emits one JSON line per disposable local with nested simple-assignment writes; no lowering change; the oracle predicate is evaluated for the write kinds (hit-log shape merge)",
+ "population": "the 8 frozen consumers with trusted rows, the SAME project/TFM units, reference directories and row files as the H-23A OFF/ON scans (751 units); the other 9 frozen consumers have no trusted rows and cannot contribute a trusted-row merge (their H-23A excluded_nested_write counters are listed for the denominator only)",
+ "fixture_classification": "corpus/ownership-lab/h24/out/merge.h24.jsonl: P1 P2 P3 T4 T7 T8 T10 admissible_strict; T6 relaxed only; P4 (borrowed arm), P5 (prior live initializer), T1 (two writes on one arm), T2 (loop), T3 (try), T5 (null arm), T9 (not definitely assigned on exit), T11 (two constructs), T12 (write before the construct) refused with exactly the prereg reasons",
+ "totals": {
+  "consumers_censused": 8,
+  "units": 772,
+  "nested_write_disposable_locals_raw": 95,
+  "nested_write_disposable_locals_unique": 54,
+  "production_unique": 48,
+  "admissible_strict_production_unique": 2,
+  "admissible_relaxed_production_unique": 5,
+  "PRIMARY_admissible_strict_production_with_trusted_row_write_unique": 0,
+  "admissible_relaxed_production_with_trusted_row_write_unique": 0,
+  "admissible_strict_production_new_disposable_only_unique": 1,
+  "admissible_strict_test_unique": 0,
+  "reasons_production_unique": {
+   "construct_try": 30,
+   "non_simple_write": 1,
+   "write_kind_null": 1,
+   "write_kind_other": 30,
+   "not_definitely_assigned_on_exit": 11,
+   "ref_alias": 1,
+   "initializer_borrowed_or_other": 9,
+   "construct_loop": 1,
+   "write_kind_new_disposable+other+trusted_row": 2,
+   "construct_other": 1,
+   "write_kind_new_disposable+other": 1,
+   "arm_rule": 3,
+   "construct_using": 1
+  },
+  "constructs_production_unique": {
+   "try": 30,
+   "if_chain": 15,
+   "loop": 1,
+   "other": 1,
+   "using": 1
+  },
+  "write_kinds_production_unique": {
+   "null": 1,
+   "other": 39,
+   "first_party_factory": 13,
+   "owning_factory": 1,
+   "new_disposable": 12,
+   "trusted_row": 2
+  },
+  "h23a_denominator_excluded_nested_write_sum_17_consumers": 134,
+  "h23a_denominator_8_censused": 39
+ },
+ "per_consumer": {
+  "JasperFx/marten": {
+   "sha": "7a6c9c3bb1",
+   "units": 105,
+   "extractor_failures": 0,
+   "seconds": 430,
+   "nested_write_disposable_locals": {
+    "raw_project_tfm": 12,
+    "unique_locals": 6
+   },
+   "production": {
+    "raw_project_tfm": 12,
+    "unique_locals": 6
+   },
+   "admissible_strict_production": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_relaxed_production": {
+    "raw_project_tfm": 2,
+    "unique_locals": 1
+   },
+   "admissible_strict_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_relaxed_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_all_trusted_row": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_new_disposable_only": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_test": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "reasons_production": {
+    "construct_try": 5,
+    "non_simple_write": 1,
+    "write_kind_null": 1,
+    "write_kind_other": 3
+   },
+   "constructs_production": {
+    "try": 5,
+    "if_chain": 1
+   },
+   "depth_of_admissible_relaxed": {
+    "2": 1
+   },
+   "write_kinds_production": {
+    "null": 1,
+    "other": 3,
+    "first_party_factory": 1,
+    "owning_factory": 1
+   }
+  },
+  "JasperFx/weasel": {
+   "sha": "73b158bf5a",
+   "units": 43,
+   "extractor_failures": 0,
+   "seconds": 200,
+   "nested_write_disposable_locals": {
+    "raw_project_tfm": 4,
+    "unique_locals": 2
+   },
+   "production": {
+    "raw_project_tfm": 4,
+    "unique_locals": 2
+   },
+   "admissible_strict_production": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_relaxed_production": {
+    "raw_project_tfm": 2,
+    "unique_locals": 1
+   },
+   "admissible_strict_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_relaxed_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_all_trusted_row": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_new_disposable_only": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_test": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "reasons_production": {
+    "construct_try": 1,
+    "not_definitely_assigned_on_exit": 1,
+    "ref_alias": 1,
+    "write_kind_other": 1
+   },
+   "constructs_production": {
+    "if_chain": 1,
+    "try": 1
+   },
+   "depth_of_admissible_relaxed": {
+    "1": 1
+   },
+   "write_kinds_production": {
+    "first_party_factory": 1,
+    "other": 1
+   }
+  },
+  "JasperFx/wolverine": {
+   "sha": "7ee3df905e",
+   "units": 240,
+   "extractor_failures": 0,
+   "seconds": 767,
+   "nested_write_disposable_locals": {
+    "raw_project_tfm": 28,
+    "unique_locals": 14
+   },
+   "production": {
+    "raw_project_tfm": 20,
+    "unique_locals": 10
+   },
+   "admissible_strict_production": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_relaxed_production": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_relaxed_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_all_trusted_row": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_new_disposable_only": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_test": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "reasons_production": {
+    "write_kind_other": 10,
+    "construct_try": 5,
+    "initializer_borrowed_or_other": 2,
+    "not_definitely_assigned_on_exit": 2,
+    "construct_loop": 1
+   },
+   "constructs_production": {
+    "if_chain": 4,
+    "try": 5,
+    "loop": 1
+   },
+   "depth_of_admissible_relaxed": {},
+   "write_kinds_production": {
+    "other": 11
+   }
+  },
+  "NpgsqlRest/NpgsqlRest": {
+   "sha": "6cc6f55fa6",
+   "units": 12,
+   "extractor_failures": 0,
+   "seconds": 83,
+   "nested_write_disposable_locals": {
+    "raw_project_tfm": 11,
+    "unique_locals": 8
+   },
+   "production": {
+    "raw_project_tfm": 9,
+    "unique_locals": 7
+   },
+   "admissible_strict_production": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_relaxed_production": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_relaxed_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_all_trusted_row": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_new_disposable_only": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_test": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "reasons_production": {
+    "write_kind_new_disposable+other+trusted_row": 2,
+    "construct_other": 1,
+    "not_definitely_assigned_on_exit": 2,
+    "write_kind_new_disposable+other": 1,
+    "construct_try": 5,
+    "write_kind_other": 3,
+    "initializer_borrowed_or_other": 1
+   },
+   "constructs_production": {
+    "if_chain": 1,
+    "other": 1,
+    "try": 5
+   },
+   "depth_of_admissible_relaxed": {},
+   "write_kinds_production": {
+    "other": 11,
+    "new_disposable": 5,
+    "trusted_row": 2,
+    "first_party_factory": 3
+   }
+  },
+  "erikdarlingdata/PerformanceMonitor": {
+   "sha": "b342229e3c",
+   "units": 16,
+   "extractor_failures": 0,
+   "seconds": 82,
+   "nested_write_disposable_locals": {
+    "raw_project_tfm": 8,
+    "unique_locals": 8
+   },
+   "production": {
+    "raw_project_tfm": 7,
+    "unique_locals": 7
+   },
+   "admissible_strict_production": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_relaxed_production": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_relaxed_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_all_trusted_row": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_new_disposable_only": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_test": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "reasons_production": {
+    "arm_rule": 3,
+    "not_definitely_assigned_on_exit": 4,
+    "write_kind_other": 6,
+    "construct_try": 3,
+    "construct_using": 1
+   },
+   "constructs_production": {
+    "if_chain": 3,
+    "try": 3,
+    "using": 1
+   },
+   "depth_of_admissible_relaxed": {},
+   "write_kinds_production": {
+    "other": 6,
+    "new_disposable": 1
+   }
+  },
+  "mikependon/RepoDB": {
+   "sha": "edabfb2044",
+   "units": 301,
+   "extractor_failures": 0,
+   "seconds": 1507,
+   "nested_write_disposable_locals": {
+    "raw_project_tfm": 23,
+    "unique_locals": 7
+   },
+   "production": {
+    "raw_project_tfm": 23,
+    "unique_locals": 7
+   },
+   "admissible_strict_production": {
+    "raw_project_tfm": 4,
+    "unique_locals": 1
+   },
+   "admissible_relaxed_production": {
+    "raw_project_tfm": 4,
+    "unique_locals": 1
+   },
+   "admissible_strict_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_relaxed_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_all_trusted_row": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_new_disposable_only": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_test": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "reasons_production": {
+    "write_kind_other": 2,
+    "construct_try": 4,
+    "initializer_borrowed_or_other": 5
+   },
+   "constructs_production": {
+    "if_chain": 3,
+    "try": 4
+   },
+   "depth_of_admissible_relaxed": {
+    "1": 1
+   },
+   "write_kinds_production": {
+    "first_party_factory": 5,
+    "other": 2
+   }
+  },
+  "quartznet/quartznet": {
+   "sha": "15d90a9c26",
+   "units": 41,
+   "extractor_failures": 0,
+   "seconds": 226,
+   "nested_write_disposable_locals": {
+    "raw_project_tfm": 5,
+    "unique_locals": 5
+   },
+   "production": {
+    "raw_project_tfm": 5,
+    "unique_locals": 5
+   },
+   "admissible_strict_production": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_relaxed_production": {
+    "raw_project_tfm": 1,
+    "unique_locals": 1
+   },
+   "admissible_strict_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_relaxed_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_all_trusted_row": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_new_disposable_only": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_test": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "reasons_production": {
+    "construct_try": 4,
+    "write_kind_other": 3
+   },
+   "constructs_production": {
+    "try": 4,
+    "if_chain": 1
+   },
+   "depth_of_admissible_relaxed": {
+    "1": 1
+   },
+   "write_kinds_production": {
+    "other": 3,
+    "first_party_factory": 3
+   }
+  },
+  "victor-wiki/DatabaseManager": {
+   "sha": "032506d906",
+   "units": 14,
+   "extractor_failures": 0,
+   "seconds": 67,
+   "nested_write_disposable_locals": {
+    "raw_project_tfm": 4,
+    "unique_locals": 4
+   },
+   "production": {
+    "raw_project_tfm": 4,
+    "unique_locals": 4
+   },
+   "admissible_strict_production": {
+    "raw_project_tfm": 1,
+    "unique_locals": 1
+   },
+   "admissible_relaxed_production": {
+    "raw_project_tfm": 1,
+    "unique_locals": 1
+   },
+   "admissible_strict_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_relaxed_production_with_trusted_row_write": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_all_trusted_row": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "admissible_strict_production_new_disposable_only": {
+    "raw_project_tfm": 1,
+    "unique_locals": 1
+   },
+   "admissible_strict_test": {
+    "raw_project_tfm": 0,
+    "unique_locals": 0
+   },
+   "reasons_production": {
+    "construct_try": 3,
+    "write_kind_other": 2,
+    "initializer_borrowed_or_other": 1,
+    "not_definitely_assigned_on_exit": 2
+   },
+   "constructs_production": {
+    "if_chain": 1,
+    "try": 3
+   },
+   "depth_of_admissible_relaxed": {
+    "1": 1
+   },
+   "write_kinds_production": {
+    "new_disposable": 6,
+    "other": 2
+   }
+  }
+ },
+ "h23a_denominators": {
+  "DuendeSoftware/products": {
+   "excluded_nested_write": 0,
+   "excluded_loop_write": 0,
+   "trusted_rows_in_census": false
+  },
+  "JasperFx/marten": {
+   "excluded_nested_write": 4,
+   "excluded_loop_write": 0,
+   "trusted_rows_in_census": true
+  },
+  "JasperFx/weasel": {
+   "excluded_nested_write": 0,
+   "excluded_loop_write": 0,
+   "trusted_rows_in_census": true
+  },
+  "JasperFx/wolverine": {
+   "excluded_nested_write": 12,
+   "excluded_loop_write": 2,
+   "trusted_rows_in_census": true
+  },
+  "NpgsqlRest/NpgsqlRest": {
+   "excluded_nested_write": 9,
+   "excluded_loop_write": 2,
+   "trusted_rows_in_census": true
+  },
+  "WebVella/WebVella-ERP": {
+   "excluded_nested_write": 19,
+   "excluded_loop_write": 0,
+   "trusted_rows_in_census": false
+  },
+  "dotnet-ad/SkiaSharp.Components": {
+   "excluded_nested_write": 1,
+   "excluded_loop_write": 0,
+   "trusted_rows_in_census": false
+  },
+  "erikdarlingdata/PerformanceMonitor": {
+   "excluded_nested_write": 6,
+   "excluded_loop_write": 2,
+   "trusted_rows_in_census": true
+  },
+  "guitarrapc/FeatherQR": {
+   "excluded_nested_write": 0,
+   "excluded_loop_write": 0,
+   "trusted_rows_in_census": false
+  },
+  "microsoft/aspire": {
+   "excluded_nested_write": 0,
+   "excluded_loop_write": 0,
+   "trusted_rows_in_census": false
+  },
+  "mikependon/RepoDB": {
+   "excluded_nested_write": 3,
+   "excluded_loop_write": 0,
+   "trusted_rows_in_census": true
+  },
+  "npgsql/efcore.pg": {
+   "excluded_nested_write": 0,
+   "excluded_loop_write": 0,
+   "trusted_rows_in_census": false
+  },
+  "potatobeanradio/circuitRF": {
+   "excluded_nested_write": 53,
+   "excluded_loop_write": 2,
+   "trusted_rows_in_census": false
+  },
+  "quartznet/quartznet": {
+   "excluded_nested_write": 1,
+   "excluded_loop_write": 0,
+   "trusted_rows_in_census": true
+  },
+  "seiggy/lucia-dotnet": {
+   "excluded_nested_write": 16,
+   "excluded_loop_write": 1,
+   "trusted_rows_in_census": false
+  },
+  "victor-wiki/DatabaseManager": {
+   "excluded_nested_write": 4,
+   "excluded_loop_write": 0,
+   "trusted_rows_in_census": true
+  },
+  "wieslawsoltes/ProGPU": {
+   "excluded_nested_write": 6,
+   "excluded_loop_write": 1,
+   "trusted_rows_in_census": false
+  }
+ },
+ "gate": {
+  "primary_count": 0,
+  "rule": "< 8 KILL_BEFORE_IMPLEMENTATION; 8-19 CONTINUE_TO_FIXTURE_AND_LOWERING; >= 20 FULL_PATH (frozen in h24-prereg-v1.json before counting)",
+  "decision": "DESCRIPTIVE_ONLY (as-is environment; the gate is evaluated on the corrected census, erratum 2)"
+ },
+ "admissible_sites": [
+  {
+   "repo": "JasperFx/marten",
+   "file": "src/Marten/Events/Fetching/FetchAsyncPlan.ForReading.cs",
+   "line": 106,
+   "local": "rawJsonBuffer",
+   "type": "System.IO.MemoryStream?",
+   "member": "StreamForReading",
+   "construct": "if_chain",
+   "depth": 2,
+   "writes": [
+    {
+     "line": 113,
+     "kind": "first_party_factory"
+    }
+   ],
+   "trusted_row_writes": 0,
+   "refs_inside": 1,
+   "admissible_strict": false,
+   "admissible_relaxed": true,
+   "project": "src/Marten/Marten.csproj",
+   "tfm": "net10.0",
+   "kind": "production"
+  },
+  {
+   "repo": "JasperFx/weasel",
+   "file": "src/Weasel.EntityFrameworkCore/DbContextExtensions.cs",
+   "line": 103,
+   "local": "ownedConn",
+   "type": "System.Data.Common.DbConnection?",
+   "member": "CreateDatabase",
+   "construct": "if_chain",
+   "depth": 1,
+   "writes": [
+    {
+     "line": 111,
+     "kind": "first_party_factory"
+    }
+   ],
+   "trusted_row_writes": 0,
+   "refs_inside": 1,
+   "admissible_strict": false,
+   "admissible_relaxed": true,
+   "project": "src/Weasel.EntityFrameworkCore/Weasel.EntityFrameworkCore.csproj",
+   "tfm": "net10.0",
+   "kind": "production"
+  },
+  {
+   "repo": "mikependon/RepoDB",
+   "file": "src/Providers/RepoDb.Core/RepoDb/Extensions/DbConnectionExtension.cs",
+   "line": 3073,
+   "local": "reader",
+   "type": "System.Data.IDataReader",
+   "member": "ExecuteQueryMultipleInternal",
+   "construct": "if_chain",
+   "depth": 1,
+   "writes": [
+    {
+     "line": 3079,
+     "kind": "first_party_factory"
+    }
+   ],
+   "trusted_row_writes": 0,
+   "refs_inside": 0,
+   "admissible_strict": true,
+   "admissible_relaxed": true,
+   "project": "src/Providers/RepoDb.Core/RepoDb/RepoDb.csproj",
+   "tfm": "netstandard2.0",
+   "kind": "production"
+  },
+  {
+   "repo": "quartznet/quartznet",
+   "file": "src/Quartz/Impl/AdoJobStore/StdAdoDelegate.Schedulers.cs",
+   "line": 57,
+   "local": "cmd",
+   "type": "System.Data.Common.DbCommand",
+   "member": "SelectSchedulerStateRecords",
+   "construct": "if_chain",
+   "depth": 1,
+   "writes": [
+    {
+     "line": 65,
+     "kind": "first_party_factory"
+    },
+    {
+     "line": 71,
+     "kind": "first_party_factory"
+    }
+   ],
+   "trusted_row_writes": 0,
+   "refs_inside": 3,
+   "admissible_strict": false,
+   "admissible_relaxed": true,
+   "project": "src/Quartz/Quartz.csproj",
+   "tfm": "net10.0",
+   "kind": "production"
+  },
+  {
+   "repo": "victor-wiki/DatabaseManager",
+   "file": "DatabaseConverter/SqlAnalyser.Core/ScriptBuildFactory/ScriptBuildFactory.cs",
+   "line": 35,
+   "local": "builder",
+   "type": "SqlAnalyser.Core.StatementScriptBuilder",
+   "member": "GetStatementBuilder",
+   "construct": "if_chain",
+   "depth": 1,
+   "writes": [
+    {
+     "line": 39,
+     "kind": "new_disposable"
+    },
+    {
+     "line": 43,
+     "kind": "new_disposable"
+    },
+    {
+     "line": 47,
+     "kind": "new_disposable"
+    },
+    {
+     "line": 51,
+     "kind": "new_disposable"
+    },
+    {
+     "line": 55,
+     "kind": "new_disposable"
+    }
+   ],
+   "trusted_row_writes": 0,
+   "refs_inside": 0,
+   "admissible_strict": true,
+   "admissible_relaxed": true,
+   "project": "DatabaseConverter/SqlAnalyser.Core/SqlAnalyser.Core.csproj",
+   "tfm": "net10.0",
+   "kind": "production"
+  }
+ ],
+ "textual_count_rule_applied": "no textual count is reported in this record; every number above is a semantically resolved local (type implements IDisposable, writes resolved by symbol, kinds by the oracle / acquire predicates)"
+}

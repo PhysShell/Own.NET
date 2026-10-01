@@ -1,0 +1,53 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "Forms.P5_prior_owned_overwritten",
+      "file": "../../../tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h24/fx/Merge.cs",
+      "sig": "System.Boolean",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "x",
+          "line": 17,
+          "column": 63,
+          "kind": "disposable"
+        },
+        {
+          "op": "if",
+          "line": 17,
+          "then": [],
+          "else": []
+        },
+        {
+          "op": "release",
+          "var": "x",
+          "line": 17
+        }
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 17,
+              "column": 80
+            },
+            "param": 0,
+            "predicate": "truth",
+            "negated": false
+          }
+        ]
+      }
+    }
+  ],
+  "stats": {
+    "methods_with_local": 1,
+    "methods_flow_analysed": 1,
+    "methods_skipped_unmodelled": 0
+  }
+}

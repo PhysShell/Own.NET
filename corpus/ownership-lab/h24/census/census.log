@@ -1,0 +1,9 @@
+H24_DONE NpgsqlRest/NpgsqlRest units 12 fails 0 locals 11 strict/relaxed by kind {('production', False, False): 9, ('test', False, False): 2} trusted-row strict prod 0
+H24_DONE victor-wiki/DatabaseManager units 14 fails 0 locals 4 strict/relaxed by kind {('production', True, True): 1, ('production', False, False): 3} trusted-row strict prod 0
+H24_DONE quartznet/quartznet units 41 fails 0 locals 5 strict/relaxed by kind {('production', False, False): 4, ('production', False, True): 1} trusted-row strict prod 0
+H24_DONE JasperFx/weasel units 43 fails 0 locals 4 strict/relaxed by kind {('production', False, True): 2, ('production', False, False): 2} trusted-row strict prod 0
+H24_DONE erikdarlingdata/PerformanceMonitor units 16 fails 0 locals 8 strict/relaxed by kind {('production', False, False): 7, ('test', False, False): 1} trusted-row strict prod 0
+H24_DONE JasperFx/marten units 105 fails 0 locals 12 strict/relaxed by kind {('production', False, False): 10, ('production', False, True): 2} trusted-row strict prod 0
+H24_DONE JasperFx/wolverine units 240 fails 0 locals 28 strict/relaxed by kind {('production', False, False): 20, ('test', False, False): 8} trusted-row strict prod 0
+H24_DONE mikependon/RepoDB units 301 fails 0 locals 23 strict/relaxed by kind {('production', True, True): 4, ('production', False, False): 19} trusted-row strict prod 0
+H24_CENSUS_DONE
