@@ -30,6 +30,13 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 // update, a change-tracker metadata write, raw SQL, another process. Those belong to
 // concurrency tokens, constraints and transactions.
 //
+// THE TRUST BOUNDARY. The types that DECLARE a protocol (the tokens, the type holding a
+// region entry) are the trusted definition surface: token construction, region entry and
+// transition plumbing live there, and their bodies are not lowered. Everything else is
+// consumer code — the analysed surface. A type is one or the other, never both: consumer code
+// inside a declaring type would simply be absent from the analysed program, so a region
+// opened there is refused rather than guessed about.
+//
 // OUTSIDE a region nothing protocol-relevant is live, and a region lowers to a self-contained
 // unit (the entity is acquired and released around it). So whatever surrounds a region —
 // `try`/`catch`, `using`, a loop, a branch, `await` — is walked through and ignored.
@@ -118,10 +125,11 @@ internal static class ProtocolLowering
                     continue;
                 if (IsApiType(msym.ContainingType))
                 {
-                    // The protocol's own types are TRUSTED: their bodies implement the
-                    // protocol and are not lowered. So a region OPENED in one of them — a
-                    // handler written next to the region entry it calls — would never be
-                    // analysed and would read as clean. Trusted is not the same as checked.
+                    // The trust boundary (see the header): a declaring type's bodies
+                    // implement the protocol and are not lowered. So a region OPENED in one
+                    // of them — a handler written next to the region entry it calls — would
+                    // not be a violation the core missed but a program it never saw, and
+                    // would read as clean. Trusted is not the same as checked.
                     foreach (var opened in method.DescendantNodes().OfType<InvocationExpressionSyntax>()
                                  .Where(i => IsRegionEntry(MethodOf(model, i))))
                         refusals.Add(At(file, opened,

@@ -118,6 +118,16 @@ SQL, another process. Those belong to concurrency tokens, constraints and
 transactions (two of them are pinned as stated limits under
 `protocol-samples/efcore/known-gaps`).
 
+**The trust boundary.** The types that DECLARE a protocol — the tokens, and the
+type holding a region entry — are its trusted definition surface: they construct
+tokens, enter regions and implement transitions, and their bodies are not
+lowered. Everything else is consumer code, and consumer code is what the profile
+analyses. A type is one or the other, never both. A handler written inside a
+declaring type would not be a violation the core missed; it would be a program
+the core never saw, and it would read as clean. So a region opened inside a
+declaring type is refused, and the profile does not try to guess which method of
+such a type is plumbing and which is a business handler.
+
 **Refusals.** A recognised protocol construct that cannot be lowered safely is
 not skipped: the extractor exits `2` and writes no facts, for the whole scan.
 
@@ -135,10 +145,9 @@ not skipped: the extractor exits `2` and writes no facts, for the whole scan.
   `nameof`, `typeof` and reads are mentions, not operations.
 - *Source.* The protocol and its entity must be in the scan as source; one that
   arrives only as a compiled reference cannot be admitted.
-- *Trusted types.* The types that declare a protocol (the tokens, the class
-  holding a region entry) implement it and are not analysed as user code. A
-  region opened inside one of them is refused rather than skipped: write the
-  code that uses a protocol outside the types that declare it.
+- *Trust boundary.* A region opened inside a type that declares the protocol
+  (see above): write the code that uses a protocol outside the types that
+  declare it.
 - *Binding.* The scan does not read `obj/`, so usings a project only gets
   **implicitly** are not there. A region whose entity does not bind is refused;
   write the usings out in the files that open regions (or qualify the names).
