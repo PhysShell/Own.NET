@@ -298,7 +298,7 @@ def _pfn(**kw: Any) -> dict[str, Any]:
 
 def _ev(*events: Any) -> dict[str, Any]:
     """A document carrying one protocol function with the given event list."""
-    return {"ownir_version": 0, "protocol_functions": [_pfn(events=list(events))]}
+    return {"ownir_version": OWNIR_VERSION, "protocol_functions": [_pfn(events=list(events))]}
 
 
 def _nest_flow(depth: int, key: str) -> dict[str, Any]:
@@ -339,20 +339,20 @@ def _controls() -> list[dict[str, Any]]:
            "the current version stated explicitly", {"ownir_version": OWNIR_VERSION}, None),
         _c("accept-all-sections-empty", "root",
            "every known section present but empty — shape-valid, nothing to check",
-           {"ownir_version": 0, "components": [], "services": [], "effects": [],
+           {"ownir_version": OWNIR_VERSION, "components": [], "services": [], "effects": [],
             "functions": [], "protocols": [], "protocol_functions": []}, None),
         _c("accept-unknown-top-level-key", "root",
            "an unrecognised TOP-LEVEL key is additive and accepted; the strict "
            "door gates known vocabulary, it is not a closed-world schema",
-           {"ownir_version": 0, "future_section": [{"whatever": 1}]}, None),
+           {"ownir_version": OWNIR_VERSION, "future_section": [{"whatever": 1}]}, None),
         _c("accept-subscription-defaults", "components",
            "a subscription with no `resource` defaults to 'subscription', which "
            "is a known kind",
-           {"ownir_version": 0, "components": [{"subscriptions": [{}]}]}, None),
+           {"ownir_version": OWNIR_VERSION, "components": [{"subscriptions": [{}]}]}, None),
         _c("accept-every-known-resource-kind", "components",
            "all eight known kinds in one document — the acceptance side of the "
            "closed vocabulary",
-           {"ownir_version": 0, "components": [{"subscriptions": [
+           {"ownir_version": OWNIR_VERSION, "components": [{"subscriptions": [
                {"resource": k} for k in
                ("capture", "disposable", "local-disposable", "pool",
                 "subscribe", "subscription", "timer", "unresolved-subscription")
@@ -360,23 +360,23 @@ def _controls() -> list[dict[str, Any]]:
         _c("accept-column-one", "components",
            "column 1 is the smallest legal column — the boundary just inside the "
            "1-based contract",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"column": 1}]}]}, None),
         _c("accept-every-lifetime", "services",
            "all three DI lifetimes accepted",
-           {"ownir_version": 0, "services": [
+           {"ownir_version": OWNIR_VERSION, "services": [
                _svc(name="A", lifetime="singleton"),
                _svc(name="B", lifetime="scoped"),
                _svc(name="C", lifetime="transient")]}, None),
         _c("accept-every-param-effect", "functions",
            "all four parameter effects accepted",
-           {"ownir_version": 0, "functions": [{"params": [
+           {"ownir_version": OWNIR_VERSION, "functions": [{"params": [
                {"name": "a", "effect": "plain"}, {"name": "b", "effect": "borrow"},
                {"name": "c", "effect": "borrow_mut"},
                {"name": "d", "effect": "consume"}]}]}, None),
         _c("accept-param-effect-absent", "functions",
            "`effect` is optional — absent is not the same as an unknown value",
-           {"ownir_version": 0, "functions": [{"params": [{"name": "a"}]}]}, None),
+           {"ownir_version": OWNIR_VERSION, "functions": [{"params": [{"name": "a"}]}]}, None),
 
         # ---- json ------------------------------------------------------------
         _c("json-not-parseable", "json",
@@ -407,168 +407,168 @@ def _controls() -> list[dict[str, Any]]:
 
         # ---- components / subscriptions -------------------------------------
         _c("components-object", "components",
-           "`components` must be an array", {"ownir_version": 0,
+           "`components` must be an array", {"ownir_version": OWNIR_VERSION,
                                              "components": {"a": 1}}, "shape"),
         _c("components-of-scalars", "components",
            "an array, but not of objects",
-           {"ownir_version": 0, "components": [1, 2]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "components": [1, 2]}, "shape"),
         _c("subscriptions-not-array", "components",
            "each component's `subscriptions` must be an array of objects",
-           {"ownir_version": 0, "components": [{"subscriptions": 7}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "components": [{"subscriptions": 7}]}, "shape"),
         _c("subscriptions-of-scalars", "components",
            "…of OBJECTS, not scalars",
-           {"ownir_version": 0, "components": [{"subscriptions": ["x"]}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "components": [{"subscriptions": ["x"]}]}, "shape"),
         _c("resource-not-string", "components",
            "`resource` must be a string before its value can be checked",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"resource": 7}]}]}, "shape"),
         _c("resource-unknown", "components",
            "IR4: a present-but-unknown kind changes routing, so it is rejected "
            "at the door rather than mis-routed. A new kind must bump "
            "OWNIR_VERSION",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"resource": "bogus"}]}]}, "vocabulary"),
         _c("resource-empty-string", "components",
            "the empty string is present-but-unknown, not absent",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"resource": ""}]}]}, "vocabulary"),
         _c("subscription-type-not-string", "components",
            "optional `type`, present ⇒ string",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"type": 7}]}]}, "shape"),
         _c("subscription-source-type-not-string", "components",
            "optional `source_type`, present ⇒ string",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"source_type": 7}]}]}, "shape"),
         _c("subscription-source-provenance-not-string", "components",
            "optional `source_provenance`, present ⇒ string",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"source_provenance": 7}]}]}, "shape"),
         _c("subscription-ignore-reason-not-string", "components",
            "optional `ignore_reason`, present ⇒ string",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"ignore_reason": 7}]}]}, "shape"),
         _c("column-zero", "components",
            "#317: a column is 1-based or absent. `0` is a producer bug, and "
            "reading it as 'unknown' would hide the bug while looking correct",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"column": 0}]}]}, "location"),
         _c("column-negative", "components", "…and so is a negative column",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"column": -1}]}]}, "location"),
         _c("column-bool", "components",
            "the bool-is-int trap again: `True` would otherwise be accepted as "
            "column 1 — a fabricated coordinate. `shape`, not `location`: a "
            "bool has no integer form, so the 1-based rule never gets a value "
            "to judge",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"column": True}]}]}, "shape"),
         _c("column-string", "components",
            "a string column has no integer form either — same axis, and the "
            "reference funnels it through the same message",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"column": "3"}]}]}, "shape"),
 
         # ---- services --------------------------------------------------------
         _c("services-not-array", "services", "`services` must be an array of objects",
-           {"ownir_version": 0, "services": {"a": 1}}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": {"a": 1}}, "shape"),
         _c("service-lifetime-unknown", "services",
            "the DI lifetime is a closed set",
-           {"ownir_version": 0, "services": [_svc(lifetime="eternal")]}, "vocabulary"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(lifetime="eternal")]}, "vocabulary"),
         _c("service-name-empty", "services",
            "the service name is the identity the DI graph joins on",
-           {"ownir_version": 0, "services": [_svc(name="")]}, "identity"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(name="")]}, "identity"),
         _c("service-name-not-string", "services", "…and it must be a string",
-           {"ownir_version": 0, "services": [_svc(name=7)]}, "identity"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(name=7)]}, "identity"),
         _c("service-deps-not-array", "services", "`deps` is an array of strings",
-           {"ownir_version": 0, "services": [_svc(deps="a")]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(deps="a")]}, "shape"),
         _c("service-deps-of-ints", "services", "…of STRINGS",
-           {"ownir_version": 0, "services": [_svc(deps=[1])]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(deps=[1])]}, "shape"),
         _c("service-weak-deps-of-ints", "services", "same for `weak_deps`",
-           {"ownir_version": 0, "services": [_svc(weak_deps=[1])]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(weak_deps=[1])]}, "shape"),
         _c("service-root-resolves-of-ints", "services", "same for `root_resolves`",
-           {"ownir_version": 0, "services": [_svc(root_resolves=[1])]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(root_resolves=[1])]}, "shape"),
         _c("service-scope-cached-of-ints", "services", "same for `scope_cached`",
-           {"ownir_version": 0, "services": [_svc(scope_cached=[1])]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(scope_cached=[1])]}, "shape"),
         _c("service-file-not-string", "services", "`file` is a string",
-           {"ownir_version": 0, "services": [_svc(file=7)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(file=7)]}, "shape"),
         _c("service-line-not-int", "services", "`line` is an integer",
-           {"ownir_version": 0, "services": [_svc(line="3")]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(line="3")]}, "shape"),
         _c("service-line-bool", "services", "…and a bool is not an integer",
-           {"ownir_version": 0, "services": [_svc(line=True)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(line=True)]}, "shape"),
         _c("service-ctor-file-not-string", "services", "`ctor_file` is a string",
-           {"ownir_version": 0, "services": [_svc(ctor_file=7)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(ctor_file=7)]}, "shape"),
         _c("service-ctor-line-not-int", "services", "`ctor_line` is an integer",
-           {"ownir_version": 0, "services": [_svc(ctor_line="3")]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(ctor_line="3")]}, "shape"),
         _c("service-ctor-type-not-string", "services", "`ctor_type` is a string",
-           {"ownir_version": 0, "services": [_svc(ctor_type=7)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(ctor_type=7)]}, "shape"),
         _c("service-root-resolve-sites-not-objects", "services",
            "`root_resolve_sites` is an array of {type,file,line} objects",
-           {"ownir_version": 0, "services": [_svc(root_resolve_sites=["x"])]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(root_resolve_sites=["x"])]}, "shape"),
         _c("service-scope-cache-sites-not-objects", "services",
            "same for `scope_cache_sites`",
-           {"ownir_version": 0, "services": [_svc(scope_cache_sites=["x"])]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(scope_cache_sites=["x"])]}, "shape"),
 
         # ---- effects ---------------------------------------------------------
         _c("effects-not-array", "effects", "`effects` must be an array of objects",
-           {"ownir_version": 0, "effects": {"a": 1}}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "effects": {"a": 1}}, "shape"),
         _c("effect-deps-of-ints", "effects", "`deps` is an array of strings",
-           {"ownir_version": 0, "effects": [{"deps": [1]}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "effects": [{"deps": [1]}]}, "shape"),
         _c("effect-io-not-bool", "effects", "`io` is a boolean",
-           {"ownir_version": 0, "effects": [{"io": "yes"}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "effects": [{"io": "yes"}]}, "shape"),
         _c("effect-line-not-int", "effects", "`line` is an integer",
-           {"ownir_version": 0, "effects": [{"line": "3"}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "effects": [{"line": "3"}]}, "shape"),
         _c("effect-bindings-not-objects", "effects",
            "`bindings` is an array of objects",
-           {"ownir_version": 0, "effects": [{"bindings": ["x"]}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "effects": [{"bindings": ["x"]}]}, "shape"),
         _c("binding-name-not-string", "effects", "binding `name` is a string",
-           {"ownir_version": 0, "effects": [{"bindings": [{"name": 7}]}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "effects": [{"bindings": [{"name": 7}]}]}, "shape"),
         _c("binding-init-not-string", "effects", "binding `init` is a string",
-           {"ownir_version": 0, "effects": [{"bindings": [{"init": 7}]}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "effects": [{"bindings": [{"init": 7}]}]}, "shape"),
         _c("binding-refs-of-ints", "effects", "binding `refs` is string array",
-           {"ownir_version": 0, "effects": [{"bindings": [{"refs": [1]}]}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "effects": [{"bindings": [{"refs": [1]}]}]}, "shape"),
         _c("binding-line-not-int", "effects", "binding `line` is an integer",
-           {"ownir_version": 0, "effects": [{"bindings": [{"line": "3"}]}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "effects": [{"bindings": [{"line": "3"}]}]}, "shape"),
 
         # ---- functions / params ---------------------------------------------
         _c("functions-not-array", "functions", "`functions` must be an array of objects",
-           {"ownir_version": 0, "functions": {"a": 1}}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "functions": {"a": 1}}, "shape"),
         _c("function-sig-not-string", "functions",
            "`sig` present ⇒ string. It is the overload key MOS resolution joins "
            "on, so a non-string is not a cosmetic problem",
-           {"ownir_version": 0, "functions": [{"sig": 7}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "functions": [{"sig": 7}]}, "shape"),
         _c("params-not-array", "functions", "`params` is an array of objects",
-           {"ownir_version": 0, "functions": [{"params": "x"}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "functions": [{"params": "x"}]}, "shape"),
         _c("params-of-scalars", "functions", "…of OBJECTS",
-           {"ownir_version": 0, "functions": [{"params": ["x"]}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "functions": [{"params": ["x"]}]}, "shape"),
         _c("param-name-empty", "functions",
            "the parameter name is the identity effects attach to",
-           {"ownir_version": 0, "functions": [{"params": [{"name": ""}]}]}, "identity"),
+           {"ownir_version": OWNIR_VERSION, "functions": [{"params": [{"name": ""}]}]}, "identity"),
         _c("param-name-not-string", "functions", "…and it must be a string",
-           {"ownir_version": 0, "functions": [{"params": [{"name": 7}]}]}, "identity"),
+           {"ownir_version": OWNIR_VERSION, "functions": [{"params": [{"name": 7}]}]}, "identity"),
         _c("param-line-not-int", "functions", "param `line` is an integer",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"params": [{"name": "p", "line": "3"}]}]}, "shape"),
         _c("param-effect-unknown", "functions",
            "the parameter effect is a closed set",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"params": [{"name": "p", "effect": "teleport"}]}]},
            "vocabulary"),
 
         # ---- protocols -------------------------------------------------------
         _c("protocols-not-array", "protocols", "`protocols` must be an array of objects",
-           {"ownir_version": 0, "protocols": {"a": 1}}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "protocols": {"a": 1}}, "shape"),
         _c("protocol-duplicate-name", "protocols",
            "the protocol name is the identity verdicts map back by, so a "
            "duplicate is an identity collision, not a harmless repeat. Both "
            "records are individually VALID — the older version of this control "
            "used records with no `opens`/`closes`, which the reference refused "
            "for record shape long before it compared any names",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "protocols": [_proto(name="P"), _proto(name="P")]}, "identity"),
         _c("protocol-functions-not-array", "protocols",
            "`protocol_functions` must be an array of objects",
-           {"ownir_version": 0, "protocol_functions": {"a": 1}}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "protocol_functions": {"a": 1}}, "shape"),
 
         # ---- order discrimination -------------------------------------------
         # BR-D1 fixes the ORDER of checks and says it "is observable through
@@ -594,13 +594,13 @@ def _controls() -> list[dict[str, Any]]:
         _c("order-resource-shape-before-vocabulary", "order",
            "`resource` must be a STRING before its value can be tested against "
            "the closed set — a shape failure, not a vocabulary one",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"resource": 7, "column": 0}]}]},
            "shape"),
         _c("order-components-before-services", "order",
            "sections are validated in declaration order: `components` before "
            "`services`, so a document breaking both reports components",
-           {"ownir_version": 0, "components": {"a": 1},
+           {"ownir_version": OWNIR_VERSION, "components": {"a": 1},
             "services": {"b": 2}}, "shape"),
 
         # ==== second census ===================================================
@@ -615,19 +615,19 @@ def _controls() -> list[dict[str, Any]]:
            "there is no default lifetime: an absent one is `None`, which is "
            "outside the closed set exactly like a misspelt one. This is the "
            "case `_svc()` could not express, and the port accepted it",
-           {"ownir_version": 0, "services": [{"name": "S"}]}, "vocabulary"),
+           {"ownir_version": OWNIR_VERSION, "services": [{"name": "S"}]}, "vocabulary"),
         _c("service-empty-record", "services",
            "a service record with nothing in it: the lifetime gate fires first, "
            "so this is a vocabulary failure and not a missing-name one",
-           {"ownir_version": 0, "services": [{}]}, "vocabulary"),
+           {"ownir_version": OWNIR_VERSION, "services": [{}]}, "vocabulary"),
         _c("service-lifetime-null", "services",
            "an explicit null is the same as absent here — both are `None`, and "
            "neither is in the closed set",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "services": [{"name": "S", "lifetime": None}]}, "vocabulary"),
         _c("service-name-absent", "services",
            "with a valid lifetime, an absent name reaches the identity check",
-           {"ownir_version": 0, "services": [{"lifetime": "singleton"}]},
+           {"ownir_version": OWNIR_VERSION, "services": [{"lifetime": "singleton"}]},
            "identity"),
 
         # ---- ordering WITHIN a section --------------------------------------
@@ -637,44 +637,44 @@ def _controls() -> list[dict[str, Any]]:
            "the reference checks `lifetime` BEFORE `name`, so a record that "
            "breaks both is a vocabulary failure. A port that validates identity "
            "first reports `identity` and is wrong about which rule fired",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "services": [{"name": "", "lifetime": "eternal"}]}, "vocabulary"),
         _c("order-name-before-deps", "order",
            "…and `name` before the remaining service fields",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "services": [{"lifetime": "singleton", "name": "", "deps": 7}]},
            "identity"),
         _c("order-resource-vocabulary-before-column", "order",
            "within one subscription, the resource vocabulary precedes the "
            "column contract",
-           {"ownir_version": 0, "components": [{"subscriptions": [
+           {"ownir_version": OWNIR_VERSION, "components": [{"subscriptions": [
                {"resource": "bogus", "column": 0}]}]}, "vocabulary"),
         _c("order-column-before-subscription-type", "order",
            "…and the column precedes the optional `type`",
-           {"ownir_version": 0, "components": [{"subscriptions": [
+           {"ownir_version": OWNIR_VERSION, "components": [{"subscriptions": [
                {"column": 0, "type": 7}]}]}, "location"),
         _c("order-sig-before-body-column", "order",
            "inside a function, `sig` is checked before the body's columns",
-           {"ownir_version": 0, "functions": [
+           {"ownir_version": OWNIR_VERSION, "functions": [
                {"sig": 7, "body": [{"op": "x", "column": 0}]}]}, "shape"),
         _c("order-body-column-before-param-name", "order",
            "and the BODY's columns are checked before `params` — the least "
            "obvious edge in the whole door, because params read like the more "
            "primitive thing",
-           {"ownir_version": 0, "functions": [
+           {"ownir_version": OWNIR_VERSION, "functions": [
                {"body": [{"op": "x", "column": 0}],
                 "params": [{"name": ""}]}]}, "location"),
         _c("order-param-name-before-param-line", "order",
            "within a param, identity precedes the line",
-           {"ownir_version": 0, "functions": [
+           {"ownir_version": OWNIR_VERSION, "functions": [
                {"params": [{"name": "", "line": "3"}]}]}, "identity"),
         _c("order-param-line-before-param-column", "order",
            "…the line precedes the column",
-           {"ownir_version": 0, "functions": [
+           {"ownir_version": OWNIR_VERSION, "functions": [
                {"params": [{"name": "p", "line": "3", "column": 0}]}]}, "shape"),
         _c("order-param-column-before-effect", "order",
            "…and the column precedes the effect vocabulary",
-           {"ownir_version": 0, "functions": [
+           {"ownir_version": OWNIR_VERSION, "functions": [
                {"params": [{"name": "p", "column": 0, "effect": "teleport"}]}]},
            "location"),
 
@@ -687,28 +687,28 @@ def _controls() -> list[dict[str, Any]]:
            "because components is validated first — completely. A door that "
            "runs all semantic gates before any shape check reports the "
            "vocabulary error and inverts the contract",
-           {"ownir_version": 0, "components": {"a": 1},
+           {"ownir_version": OWNIR_VERSION, "components": {"a": 1},
             "services": [{"lifetime": "bad"}]}, "shape"),
         _c("order-components-location-before-services-vocabulary", "order",
            "same precedence with a column failure standing in for the shape one",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"column": 0}]}],
             "services": [{"lifetime": "bad"}]}, "location"),
         _c("order-services-vocabulary-before-effects-shape", "order",
            "and the same one section later: services before effects",
-           {"ownir_version": 0, "services": [{"lifetime": "bad"}],
+           {"ownir_version": OWNIR_VERSION, "services": [{"lifetime": "bad"}],
             "effects": {"a": 1}}, "vocabulary"),
         _c("order-effects-shape-before-functions-identity", "order",
            "effects before functions",
-           {"ownir_version": 0, "effects": {"a": 1},
+           {"ownir_version": OWNIR_VERSION, "effects": {"a": 1},
             "functions": [{"params": [{"name": ""}]}]}, "shape"),
         _c("order-functions-identity-before-protocols-shape", "order",
            "functions before protocols",
-           {"ownir_version": 0, "functions": [{"params": [{"name": ""}]}],
+           {"ownir_version": OWNIR_VERSION, "functions": [{"params": [{"name": ""}]}],
             "protocols": 7}, "identity"),
         _c("order-protocols-identity-before-protocol-functions-shape", "order",
            "protocols before protocol_functions — the last edge in the chain",
-           {"ownir_version": 0, "protocols": [{"name": ""}],
+           {"ownir_version": OWNIR_VERSION, "protocols": [{"name": ""}],
             "protocol_functions": 7}, "identity"),
 
         # ---- flow columns, including nested bodies ---------------------------
@@ -718,7 +718,7 @@ def _controls() -> list[dict[str, Any]]:
         _c("accept-flow-column-one", "functions",
            "column 1 on a flow op, nested and not — the acceptance twin the "
            "rejections below need",
-           {"ownir_version": 0, "functions": [{"body": [
+           {"ownir_version": OWNIR_VERSION, "functions": [{"body": [
                {"op": "acquire", "column": 1},
                {"op": "if", "then": [{"op": "release", "column": 1}],
                 "else": [{"op": "call", "column": 1}]},
@@ -728,41 +728,41 @@ def _controls() -> list[dict[str, Any]]:
            "a non-array `body` is SKIPPED, not rejected: the reference returns "
            "early rather than raising. Pinned because it is the kind of "
            "tolerance a port silently tightens",
-           {"ownir_version": 0, "functions": [{"body": 7}]}, None),
+           {"ownir_version": OWNIR_VERSION, "functions": [{"body": 7}]}, None),
         _c("accept-flow-body-of-scalars", "functions",
            "…and a non-object op inside the body is skipped the same way",
-           {"ownir_version": 0, "functions": [{"body": [1, "x", None]}]}, None),
+           {"ownir_version": OWNIR_VERSION, "functions": [{"body": [1, "x", None]}]}, None),
         _c("flow-column-zero", "functions",
            "the 1-based contract reaches flow ops, not just subscriptions",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"body": [{"op": "acquire", "column": 0}]}]},
            "location"),
         _c("flow-column-negative", "functions", "…negative likewise",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"body": [{"op": "acquire", "column": -2}]}]},
            "location"),
         _c("flow-column-bool", "functions",
            "…and the bool-is-int trap, which is a representability failure "
            "wherever it appears",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"body": [{"op": "acquire", "column": True}]}]},
            "shape"),
         _c("flow-column-in-if-then", "functions",
            "recursion into `then` — a hoisted branch acquire",
-           {"ownir_version": 0, "functions": [{"body": [
+           {"ownir_version": OWNIR_VERSION, "functions": [{"body": [
                {"op": "if", "then": [{"op": "acquire", "column": 0}]}]}]},
            "location"),
         _c("flow-column-in-if-else", "functions", "…into `else`",
-           {"ownir_version": 0, "functions": [{"body": [
+           {"ownir_version": OWNIR_VERSION, "functions": [{"body": [
                {"op": "if", "else": [{"op": "acquire", "column": 0}]}]}]},
            "location"),
         _c("flow-column-in-while-body", "functions", "…into a loop `body`",
-           {"ownir_version": 0, "functions": [{"body": [
+           {"ownir_version": OWNIR_VERSION, "functions": [{"body": [
                {"op": "while", "body": [{"op": "acquire", "column": 0}]}]}]},
            "location"),
         _c("flow-column-deeply-nested", "functions",
            "…and through three levels, so a one-level-deep port fails here",
-           {"ownir_version": 0, "functions": [{"body": [
+           {"ownir_version": OWNIR_VERSION, "functions": [{"body": [
                {"op": "if", "then": [{"op": "while", "body": [
                    {"op": "if", "else": [{"op": "acquire", "column": 0}]}]}]}]}]},
            "location"),
@@ -770,26 +770,26 @@ def _controls() -> list[dict[str, Any]]:
         # ---- params[].column -------------------------------------------------
         _c("accept-param-column-one", "functions",
            "the 1-based boundary on a parameter coordinate",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"params": [{"name": "p", "column": 1}]}]}, None),
         _c("param-column-zero", "functions",
            "the same contract on `params[].column` — a separate call site in "
            "the reference, and one the port did not have at all",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"params": [{"name": "p", "column": 0}]}]},
            "location"),
         _c("param-column-negative", "functions", "…negative likewise",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"params": [{"name": "p", "column": -1}]}]},
            "location"),
         _c("param-column-bool", "functions",
            "…and the bool-is-int trap on the third call site",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"params": [{"name": "p", "column": True}]}]},
            "shape"),
         _c("param-column-string", "functions",
            "…and a string, which has no integer form to be 1-based about",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"params": [{"name": "p", "column": "3"}]}]},
            "shape"),
 
@@ -802,12 +802,12 @@ def _controls() -> list[dict[str, Any]]:
         # not in this checkpoint and no control below reaches it.
         _c("accept-protocol-minimal", "protocols",
            "a name plus an opens/closes pair is a complete protocol",
-           {"ownir_version": 0, "protocols": [_proto()]}, None),
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto()]}, None),
         _c("accept-protocol-full", "protocols",
            "every optional key at once: barriers, allow with narrowed args, an "
            "explicit scope, a description, and `exit_barriers` false — legal "
            "only BECAUSE a barrier is present",
-           {"ownir_version": 0, "protocols": [_proto(
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto(
                barriers=[{"kind": "call", "callee": "Barrier"}],
                allow=[{"kind": "call", "callee": "Allowed", "args": ["x"]}],
                exit_barriers=False,
@@ -815,7 +815,7 @@ def _controls() -> list[dict[str, Any]]:
                description="d")]}, None),
         _c("accept-protocol-call-matchers", "protocols",
            "the other matcher kind: `call`, with and without narrowed args",
-           {"ownir_version": 0, "protocols": [_proto(
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto(
                opens={"kind": "call", "callee": "Begin"},
                closes={"kind": "call", "callee": "End", "args": ["a", "b"]})]},
            None),
@@ -823,127 +823,127 @@ def _controls() -> list[dict[str, Any]]:
            "two protocols with DIFFERENT names — the twin that makes the "
            "duplicate-name rejection discriminating rather than a test of "
            "'more than one protocol is refused'",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "protocols": [_proto(name="A"), _proto(name="B")]}, None),
         _c("protocol-not-object", "protocols",
            "`protocols` is checked only for LIST-ness at the top; a scalar "
            "entry is refused by the record parser",
-           {"ownir_version": 0, "protocols": [7]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "protocols": [7]}, "shape"),
         _c("protocol-null-entry", "protocols", "…and null is not a record",
-           {"ownir_version": 0, "protocols": [None]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "protocols": [None]}, "shape"),
         _c("protocol-name-absent", "protocols",
            "the protocol name is required, not defaulted",
-           {"ownir_version": 0, "protocols": [{"opens": {}, "closes": {}}]},
+           {"ownir_version": OWNIR_VERSION, "protocols": [{"opens": {}, "closes": {}}]},
            "identity"),
         _c("protocol-name-empty", "protocols", "…and must be non-empty",
-           {"ownir_version": 0, "protocols": [_proto(name="")]}, "identity"),
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto(name="")]}, "identity"),
         _c("protocol-name-not-string", "protocols", "…and a string",
-           {"ownir_version": 0, "protocols": [_proto(name=7)]}, "identity"),
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto(name=7)]}, "identity"),
         _c("protocol-missing-opens", "protocols",
            "a protocol without `opens` cannot state what it is tracking",
-           {"ownir_version": 0, "protocols": [
+           {"ownir_version": OWNIR_VERSION, "protocols": [
                {"name": "P", "closes": {"kind": "call", "callee": "E"}}]},
            "shape"),
         _c("protocol-missing-closes", "protocols", "…and likewise `closes`",
-           {"ownir_version": 0, "protocols": [
+           {"ownir_version": OWNIR_VERSION, "protocols": [
                {"name": "P", "opens": {"kind": "call", "callee": "B"}}]},
            "shape"),
         _c("protocol-opens-not-object", "protocols", "a matcher is an object",
-           {"ownir_version": 0, "protocols": [_proto(opens=7)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto(opens=7)]}, "shape"),
         _c("protocol-matcher-unknown-kind", "protocols",
            "the matcher kind is a closed vocabulary (assign | call), fail-loud "
            "like a flow op",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "protocols": [_open(kind="teleport", target="f")]}, "vocabulary"),
         _c("protocol-matcher-kind-absent", "protocols",
            "…and absent is outside that set too",
-           {"ownir_version": 0, "protocols": [_open(target="f")]}, "vocabulary"),
+           {"ownir_version": OWNIR_VERSION, "protocols": [_open(target="f")]}, "vocabulary"),
         _c("protocol-assign-matcher-target-empty", "protocols",
            "the assign target is the member name the rule joins events by",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "protocols": [_open(kind="assign", target="", value=True)]},
            "identity"),
         _c("protocol-assign-matcher-without-value", "protocols",
            "an opens/closes assign matcher must state the written boolean — "
            "'any write opens' is not a checkable protocol",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "protocols": [_open(kind="assign", target="f")]}, "shape"),
         _c("protocol-assign-matcher-value-not-bool", "protocols",
            "…and that value is a boolean",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "protocols": [_open(kind="assign", target="f", value="yes")]},
            "shape"),
         _c("protocol-call-matcher-callee-empty", "protocols",
            "the callee is the name a call event joins by",
-           {"ownir_version": 0, "protocols": [_open(kind="call", callee="")]},
+           {"ownir_version": OWNIR_VERSION, "protocols": [_open(kind="call", callee="")]},
            "identity"),
         _c("protocol-call-matcher-args-not-strings", "protocols",
            "narrowed args are strings",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "protocols": [_open(kind="call", callee="C", args=[1])]}, "shape"),
         _c("protocol-barriers-not-array", "protocols", "`barriers` is an array",
-           {"ownir_version": 0, "protocols": [_proto(barriers=7)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto(barriers=7)]}, "shape"),
         _c("protocol-allow-not-array", "protocols", "`allow` is an array",
-           {"ownir_version": 0, "protocols": [_proto(allow=7)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto(allow=7)]}, "shape"),
         _c("protocol-exit-barriers-not-bool", "protocols",
            "`exit_barriers` is a boolean",
-           {"ownir_version": 0, "protocols": [_proto(exit_barriers="no")]},
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto(exit_barriers="no")]},
            "shape"),
         _c("protocol-never-fires", "protocols",
            "no barriers AND no exit barriers: the rule can structurally never "
            "fire, which the reference refuses as decoration. Every value here "
            "is correctly typed and in vocabulary — what fails is meaning, so "
            "the category is `well_formedness`",
-           {"ownir_version": 0, "protocols": [_proto(exit_barriers=False)]},
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto(exit_barriers=False)]},
            "well_formedness"),
         _c("protocol-barrier-equals-opens", "protocols",
            "a barrier identical to `opens` is dead — the walk checks opens "
            "first, so the barrier can never fire. Same category, different "
            "mechanism: the record is well-typed and means nothing",
-           {"ownir_version": 0, "protocols": [_proto(
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto(
                barriers=[{"kind": "assign", "target": "flag", "value": True}])]},
            "well_formedness"),
         _c("accept-protocol-fires-via-barrier", "protocols",
            "`exit_barriers: false` is legal WITH a barrier — the twin that "
            "makes `protocol-never-fires` a rejection about meaning rather than "
            "a rejection of the field",
-           {"ownir_version": 0, "protocols": [_proto(
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto(
                exit_barriers=False,
                barriers=[{"kind": "call", "callee": "Barrier"}])]}, None),
         _c("accept-protocol-barrier-differs-from-opens", "protocols",
            "…and a barrier that is not `opens` is legal, which is what makes "
            "the equality the defect rather than the presence",
-           {"ownir_version": 0, "protocols": [_proto(
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto(
                barriers=[{"kind": "assign", "target": "flag", "value": False}])]},
            None),
         _c("protocol-scope-not-object", "protocols", "`scope` is an object",
-           {"ownir_version": 0, "protocols": [_proto(scope=7)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto(scope=7)]}, "shape"),
         _c("protocol-scope-methods-not-array", "protocols",
            "`scope.methods` is an array — a CONTAINER failure",
-           {"ownir_version": 0, "protocols": [_proto(scope={"methods": 7})]},
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto(scope={"methods": 7})]},
            "shape"),
         _c("protocol-scope-methods-empty-entry", "protocols",
            "…of non-empty method names. The reference raises one message for "
            "this and the case above; the ledger separates them because a "
            "missing container and an unusable name are different defects",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "protocols": [_proto(scope={"methods": [""]})]}, "identity"),
         _c("protocol-description-not-string", "protocols",
            "`description` is a string",
-           {"ownir_version": 0, "protocols": [_proto(description=7)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "protocols": [_proto(description=7)]}, "shape"),
         _c("order-protocol-name-before-opens", "order",
            "the name is read before `opens`/`closes` are required, so a record "
            "missing everything reports identity",
-           {"ownir_version": 0, "protocols": [{"name": ""}]}, "identity"),
+           {"ownir_version": OWNIR_VERSION, "protocols": [{"name": ""}]}, "identity"),
         _c("order-protocol-opens-before-closes", "order",
            "`opens` is parsed before `closes`",
-           {"ownir_version": 0, "protocols": [
+           {"ownir_version": OWNIR_VERSION, "protocols": [
                _proto(opens=7, closes={"kind": "teleport"})]}, "shape"),
 
         # ---- protocol_functions: the event tree ------------------------------
         _c("accept-protocol-function-minimal", "protocol_functions",
            "`events` defaults to empty, so a name alone is a valid record",
-           {"ownir_version": 0, "protocol_functions": [_pfn()]}, None),
+           {"ownir_version": OWNIR_VERSION, "protocol_functions": [_pfn()]}, None),
         _c("accept-protocol-function-every-event-kind", "protocol_functions",
            "all six event kinds including the two recursive ones — the "
            "acceptance side of the closed `ev` vocabulary",
@@ -959,24 +959,24 @@ def _controls() -> list[dict[str, Any]]:
                 "body": [{"ev": "call", "callee": "E", "line": 11}]}), None),
         _c("protocol-function-not-object", "protocol_functions",
            "like `protocols`, only list-ness is checked at the top",
-           {"ownir_version": 0, "protocol_functions": [7]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "protocol_functions": [7]}, "shape"),
         _c("protocol-function-null-entry", "protocol_functions",
            "…and null is not a record",
-           {"ownir_version": 0, "protocol_functions": [None]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "protocol_functions": [None]}, "shape"),
         _c("protocol-function-name-empty", "protocol_functions",
            "the method name is what a protocol's scope matches against",
-           {"ownir_version": 0, "protocol_functions": [_pfn(name="")]},
+           {"ownir_version": OWNIR_VERSION, "protocol_functions": [_pfn(name="")]},
            "identity"),
         _c("protocol-function-name-absent", "protocol_functions",
            "…and it is required",
-           {"ownir_version": 0, "protocol_functions": [{"file": "a.cs"}]},
+           {"ownir_version": OWNIR_VERSION, "protocol_functions": [{"file": "a.cs"}]},
            "identity"),
         _c("protocol-function-file-not-string", "protocol_functions",
            "`file` is optional but, present, a string",
-           {"ownir_version": 0, "protocol_functions": [_pfn(file=7)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "protocol_functions": [_pfn(file=7)]}, "shape"),
         _c("protocol-function-events-not-array", "protocol_functions",
            "`events` is an ordered array",
-           {"ownir_version": 0, "protocol_functions": [_pfn(events=7)]},
+           {"ownir_version": OWNIR_VERSION, "protocol_functions": [_pfn(events=7)]},
            "shape"),
         _c("protocol-function-event-not-object", "protocol_functions",
            "…of objects",
@@ -1030,70 +1030,70 @@ def _controls() -> list[dict[str, Any]]:
         # `d.get(k, [])` returns None for a PRESENT null, so every one of these
         # is a rejection — absent and null are not the same document.
         _c("components-null", "root", "a present null is not an absent section",
-           {"ownir_version": 0, "components": None}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "components": None}, "shape"),
         _c("services-null", "root", "…same for services",
-           {"ownir_version": 0, "services": None}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": None}, "shape"),
         _c("effects-null", "root", "…effects",
-           {"ownir_version": 0, "effects": None}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "effects": None}, "shape"),
         _c("functions-null", "root", "…functions",
-           {"ownir_version": 0, "functions": None}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "functions": None}, "shape"),
         _c("protocols-null", "root", "…protocols",
-           {"ownir_version": 0, "protocols": None}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "protocols": None}, "shape"),
         _c("protocol-functions-null", "root", "…and protocol_functions",
-           {"ownir_version": 0, "protocol_functions": None}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "protocol_functions": None}, "shape"),
         _c("subscriptions-null", "components", "…and one level down",
-           {"ownir_version": 0, "components": [{"subscriptions": None}]},
+           {"ownir_version": OWNIR_VERSION, "components": [{"subscriptions": None}]},
            "shape"),
         _c("params-null", "functions", "…likewise params",
-           {"ownir_version": 0, "functions": [{"params": None}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "functions": [{"params": None}]}, "shape"),
         _c("service-deps-null", "services", "…and a null string array",
-           {"ownir_version": 0, "services": [_svc(deps=None)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(deps=None)]}, "shape"),
         _c("effect-bindings-null", "effects", "…and null bindings",
-           {"ownir_version": 0, "effects": [{"bindings": None}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "effects": [{"bindings": None}]}, "shape"),
         _c("service-line-null", "services",
            "a null scalar is not an absent scalar either",
-           {"ownir_version": 0, "services": [_svc(line=None)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(line=None)]}, "shape"),
         _c("service-file-null", "services", "…same for a string scalar",
-           {"ownir_version": 0, "services": [_svc(file=None)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(file=None)]}, "shape"),
         _c("subscription-resource-null", "components",
            "…and `resource` null fails the string check before the vocabulary",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"resource": None}]}]}, "shape"),
         _c("accept-column-null", "components",
            "the column is the exception: the reference returns early on None, "
            "so an explicit null IS accepted where a null line is not",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"column": None}]}]}, None),
         _c("accept-param-effect-null", "functions",
            "…and a null effect is read as absent, not as an unknown value",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"params": [{"name": "p", "effect": None}]}]}, None),
         _c("accept-function-sig-null", "functions",
            "…and a null `sig` is accepted, because the check is `is not None`",
-           {"ownir_version": 0, "functions": [{"sig": None}]}, None),
+           {"ownir_version": OWNIR_VERSION, "functions": [{"sig": None}]}, None),
 
         # ---- site records ----------------------------------------------------
         _c("accept-service-sites-full", "services",
            "well-formed DI004/DI005 call-site metadata",
-           {"ownir_version": 0, "services": [_svc(
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(
                root_resolve_sites=[{"type": "T", "file": "a.cs", "line": 3}],
                scope_cache_sites=[{"type": "U", "file": "b.cs", "line": 4}])]},
            None),
         _c("accept-service-site-empty-object", "services",
            "every site field is defaulted, so `{}` is a legal site",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "services": [_svc(root_resolve_sites=[{}])]}, None),
         _c("service-site-line-bool", "services",
            "the bool-is-int trap inside a site record",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "services": [_svc(root_resolve_sites=[{"line": True}])]}, "shape"),
         _c("service-site-type-not-string", "services",
            "…and a site `type` is a string",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "services": [_svc(root_resolve_sites=[{"type": 7}])]}, "shape"),
         _c("service-scope-cache-site-line-bool", "services",
            "…both site arrays carry the same contract",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "services": [_svc(scope_cache_sites=[{"line": True}])]}, "shape"),
 
         # ---- coordinate representability (spec/OwnIR.md §4.2) ----------------
@@ -1115,28 +1115,28 @@ def _controls() -> list[dict[str, Any]]:
            "domain existed, now outside it. Representability and domain are "
            "two axes: this value still HAS a signed-64 form, which is exactly "
            "why it is `location` and not `shape`",
-           {"ownir_version": 0, "services": [_svc(line=I64_MAX)]}, "location"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(line=I64_MAX)]}, "location"),
         _c("accept-line-at-i64-min", "services",
            "…and the smallest. The range is still closed at BOTH ends and a "
            "port that bounded only the top would pass a one-sided test — the "
            "ends have simply moved from the form to the domain",
-           {"ownir_version": 0, "services": [_svc(line=I64_MIN)]}, "location"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(line=I64_MIN)]}, "location"),
         _c("accept-column-at-i64-max", "components",
            "…and the largest column, which now carries the same upper bound a "
            "line does",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"column": I64_MAX}]}]},
            "location"),
         _c("accept-negative-line", "services",
            "a negative line is REJECTED: it is not the 1-based column rule "
            "borrowed, it is the line's own domain — no producer emits one and "
            "nothing downstream can point at it (spec/OwnIR.md §4.2)",
-           {"ownir_version": 0, "services": [_svc(line=-5)]}, "location"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(line=-5)]}, "location"),
         _c("accept-zero-line", "services",
            "…and zero is still the line default, unchanged: it means "
            "'unknown / file-level' and is the bottom of the domain, not an "
            "edge case that survived",
-           {"ownir_version": 0, "services": [_svc(line=0)]}, None),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(line=0)]}, None),
 
         # One step past each end, and both ends of the u64 band. The four
         # values reach a `serde_json::Value` by two different routes (see
@@ -1144,56 +1144,56 @@ def _controls() -> list[dict[str, Any]]:
         # contract violation.
         _c("line-below-i64", "services",
            "one below the range: no representable signed-64 form",
-           {"ownir_version": 0, "services": [_svc(line=BELOW_I64)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(line=BELOW_I64)]}, "shape"),
         _c("line-above-i64", "services",
            "…and one above. This is the value that used to escape into serde: "
            "it is still an integer to the parser, so a raw-layer check written "
            "as 'is it an integer' waves it through and the typed model refuses "
            "it afterwards — a rule living in the model instead of the door",
-           {"ownir_version": 0, "services": [_svc(line=ABOVE_I64)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(line=ABOVE_I64)]}, "shape"),
         _c("line-at-u64-max", "services",
            "…the top of the band that is still integer-shaped to the parser",
-           {"ownir_version": 0, "services": [_svc(line=U64_MAX)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(line=U64_MAX)]}, "shape"),
         _c("line-above-u64", "services",
            "…and past it, where the parser gives up on integer-ness entirely. "
            "Same verdict, same category, different route: the taxonomy must "
            "not be able to tell these apart",
-           {"ownir_version": 0, "services": [_svc(line=ABOVE_U64)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(line=ABOVE_U64)]}, "shape"),
         _c("line-float", "services",
            "a float is not a representable coordinate even when it is whole — "
            "and it lands in the same branch as `line-above-u64`, which is why "
            "one category over both is the honest reading rather than a "
            "convenience",
-           {"ownir_version": 0, "services": [_svc(line=1.0)]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(line=1.0)]}, "shape"),
 
         # Every other validated `line`, at the value that used to escape into
         # serde. One control per call site, because a shared primitive is only
         # shared if every site actually calls it.
         _c("ctor-line-above-i64", "services", "the constructor coordinate",
-           {"ownir_version": 0, "services": [_svc(ctor_line=ABOVE_I64)]},
+           {"ownir_version": OWNIR_VERSION, "services": [_svc(ctor_line=ABOVE_I64)]},
            "shape"),
         _c("site-line-above-i64", "services", "a root-resolve site coordinate",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "services": [_svc(root_resolve_sites=[{"line": ABOVE_I64}])]},
            "shape"),
         _c("scope-cache-site-line-above-i64", "services",
            "…and the second site array, a separate loop in the reference",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "services": [_svc(scope_cache_sites=[{"line": ABOVE_I64}])]},
            "shape"),
         _c("effect-line-above-i64", "effects", "an effect coordinate",
-           {"ownir_version": 0, "effects": [{"line": ABOVE_I64}]}, "shape"),
+           {"ownir_version": OWNIR_VERSION, "effects": [{"line": ABOVE_I64}]}, "shape"),
         _c("binding-line-above-i64", "effects", "…and a binding coordinate",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "effects": [{"bindings": [{"line": ABOVE_I64}]}]}, "shape"),
         _c("param-line-above-i64", "functions", "a parameter coordinate",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"params": [{"name": "p", "line": ABOVE_I64}]}]},
            "shape"),
         _c("event-line-above-i64", "protocol_functions",
            "…and an event coordinate, which reaches the bound through the "
            "shared obligation parser rather than through `load()` directly",
-           {"ownir_version": 0, "protocol_functions": [
+           {"ownir_version": OWNIR_VERSION, "protocol_functions": [
                {"name": "M", "events": [{"ev": "return", "line": ABOVE_I64}]}]},
            "shape"),
 
@@ -1202,11 +1202,11 @@ def _controls() -> list[dict[str, Any]]:
         # `location`. Same field, same reference message, two mechanisms.
         _c("column-above-i64", "components",
            "an unrepresentable column is a representability failure…",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"column": ABOVE_I64}]}]},
            "shape"),
         _c("column-above-u64", "components", "…by either parser route…",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"column": ABOVE_U64}]}]},
            "shape"),
         _c("column-float", "components",
@@ -1215,12 +1215,12 @@ def _controls() -> list[dict[str, Any]]:
            "the difference intentional — the same violation classified two "
            "ways because the reference raises one message for both and the "
            "category had been read off the message instead of the mechanism",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"column": 1.0}]}]}, "shape"),
         _c("accept-column-at-one-still", "components",
            "…and the 1-based rule still fires for a value that IS "
            "representable, so the new axis did not swallow the old one",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"column": 1}]}]}, None),
 
         # ---- nesting depth (spec/OwnIR.md §4.2) ------------------------------
@@ -1231,36 +1231,36 @@ def _controls() -> list[dict[str, Any]]:
         _c("accept-flow-body-at-limit", "functions",
            f"a flow body nested exactly {MAX_NESTING} levels is accepted — the "
            f"boundary case that caught the reference's own off-by-one",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"body": [_nest_flow(MAX_NESTING, "then")]}]}, None),
         _c("flow-body-past-limit", "functions",
            "…and one level further is refused",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"body": [_nest_flow(MAX_NESTING + 1, "then")]}]},
            "shape"),
         _c("flow-body-past-limit-else", "functions", "…through `else` as well",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"body": [_nest_flow(MAX_NESTING + 1, "else")]}]},
            "shape"),
         _c("flow-body-past-limit-while", "functions", "…and through a loop body",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "functions": [{"body": [_nest_flow(MAX_NESTING + 1, "body")]}]},
            "shape"),
         _c("accept-events-at-limit", "protocol_functions",
            f"an event tree nested exactly {MAX_NESTING} levels is accepted",
-           {"ownir_version": 0, "protocol_functions": [
+           {"ownir_version": OWNIR_VERSION, "protocol_functions": [
                {"name": "M", "events": [_nest_ev(MAX_NESTING, "then")]}]}, None),
         _c("events-past-limit", "protocol_functions",
            "…and one level further is refused",
-           {"ownir_version": 0, "protocol_functions": [
+           {"ownir_version": OWNIR_VERSION, "protocol_functions": [
                {"name": "M", "events": [_nest_ev(MAX_NESTING + 1, "then")]}]},
            "shape"),
         _c("events-past-limit-else", "protocol_functions", "…through `else`…",
-           {"ownir_version": 0, "protocol_functions": [
+           {"ownir_version": OWNIR_VERSION, "protocol_functions": [
                {"name": "M", "events": [_nest_ev(MAX_NESTING + 1, "else")]}]},
            "shape"),
         _c("events-past-limit-while", "protocol_functions", "…and a loop body",
-           {"ownir_version": 0, "protocol_functions": [
+           {"ownir_version": OWNIR_VERSION, "protocol_functions": [
                {"name": "M", "events": [_nest_ev(MAX_NESTING + 1, "body")]}]},
            "shape"),
         # …and the coordinate-domain family, appended (insertion-stable).
@@ -1283,40 +1283,40 @@ def _line_slots() -> tuple[tuple[str, str, Any], ...]:
     """
     return (
         ("service-line", "services",
-         lambda v: {"ownir_version": 0, "services": [_svc(line=v)]}),
+         lambda v: {"ownir_version": OWNIR_VERSION, "services": [_svc(line=v)]}),
         ("service-ctor-line", "services",
-         lambda v: {"ownir_version": 0, "services": [_svc(ctor_line=v)]}),
+         lambda v: {"ownir_version": OWNIR_VERSION, "services": [_svc(ctor_line=v)]}),
         ("service-site-line", "services",
-         lambda v: {"ownir_version": 0,
+         lambda v: {"ownir_version": OWNIR_VERSION,
                     "services": [_svc(root_resolve_sites=[{"line": v}])]}),
         ("service-scope-cache-site-line", "services",
-         lambda v: {"ownir_version": 0,
+         lambda v: {"ownir_version": OWNIR_VERSION,
                     "services": [_svc(scope_cache_sites=[{"line": v}])]}),
         ("effect-line", "effects",
-         lambda v: {"ownir_version": 0, "effects": [{"line": v}]}),
+         lambda v: {"ownir_version": OWNIR_VERSION, "effects": [{"line": v}]}),
         ("binding-line", "effects",
-         lambda v: {"ownir_version": 0,
+         lambda v: {"ownir_version": OWNIR_VERSION,
                     "effects": [{"bindings": [{"line": v}]}]}),
         ("param-line", "functions",
-         lambda v: {"ownir_version": 0,
+         lambda v: {"ownir_version": OWNIR_VERSION,
                     "functions": [{"params": [{"name": "p", "line": v}]}]}),
         ("event-line", "protocol_functions",
-         lambda v: {"ownir_version": 0, "protocol_functions": [
+         lambda v: {"ownir_version": OWNIR_VERSION, "protocol_functions": [
              {"name": "M", "events": [{"ev": "return", "line": v}]}]}),
         ("subscription-line", "components",
-         lambda v: {"ownir_version": 0,
+         lambda v: {"ownir_version": OWNIR_VERSION,
                     "components": [{"subscriptions": [{"line": v}]}]}),
         ("flow-op-line", "functions",
-         lambda v: {"ownir_version": 0,
+         lambda v: {"ownir_version": OWNIR_VERSION,
                     "functions": [{"body": [{"op": "acquire", "line": v}]}]}),
         ("flow-op-line-then", "functions",
-         lambda v: {"ownir_version": 0, "functions": [{"body": [
+         lambda v: {"ownir_version": OWNIR_VERSION, "functions": [{"body": [
              {"op": "if", "then": [{"op": "acquire", "line": v}]}]}]}),
         ("flow-op-line-else", "functions",
-         lambda v: {"ownir_version": 0, "functions": [{"body": [
+         lambda v: {"ownir_version": OWNIR_VERSION, "functions": [{"body": [
              {"op": "if", "else": [{"op": "acquire", "line": v}]}]}]}),
         ("flow-op-line-body", "functions",
-         lambda v: {"ownir_version": 0, "functions": [{"body": [
+         lambda v: {"ownir_version": OWNIR_VERSION, "functions": [{"body": [
              {"op": "while", "body": [{"op": "acquire", "line": v}]}]}]}),
     )
 
@@ -1324,13 +1324,13 @@ def _line_slots() -> tuple[tuple[str, str, Any], ...]:
 def _column_slots() -> tuple[tuple[str, str, Any], ...]:
     return (
         ("subscription-column", "components",
-         lambda v: {"ownir_version": 0,
+         lambda v: {"ownir_version": OWNIR_VERSION,
                     "components": [{"subscriptions": [{"column": v}]}]}),
         ("param-column", "functions",
-         lambda v: {"ownir_version": 0,
+         lambda v: {"ownir_version": OWNIR_VERSION,
                     "functions": [{"params": [{"name": "p", "column": v}]}]}),
         ("flow-op-column", "functions",
-         lambda v: {"ownir_version": 0,
+         lambda v: {"ownir_version": OWNIR_VERSION,
                     "functions": [{"body": [{"op": "acquire", "column": v}]}]}),
     )
 
@@ -1410,7 +1410,7 @@ def _domain_controls() -> list[dict[str, Any]]:
            "rule, because it tests `v < 1` before the form. The category is "
            "read off the mechanism, which is this ledger's rule and the "
            "reason the taxonomy has two axes at all",
-           {"ownir_version": 0,
+           {"ownir_version": OWNIR_VERSION,
             "components": [{"subscriptions": [{"column": BELOW_I64}]}]},
            "shape"),
         # Order, which BR-D1 makes observable. Each pair breaks two rules whose
@@ -1418,23 +1418,23 @@ def _domain_controls() -> list[dict[str, Any]]:
         _c("order-subscription-kind-before-line", "components",
            "an unknown resource kind and an out-of-domain line in one record: "
            "the kind is checked first, so this is `vocabulary`",
-           {"ownir_version": 0, "components": [{"subscriptions": [
+           {"ownir_version": OWNIR_VERSION, "components": [{"subscriptions": [
                {"resource": "nope", "line": -1}]}]}, "vocabulary"),
         _c("order-subscription-line-before-column", "components",
            "…and the line precedes the column of the same node (§4.1), so a "
            "record breaking both reports the line's domain, not the column's "
            "type",
-           {"ownir_version": 0, "components": [{"subscriptions": [
+           {"ownir_version": OWNIR_VERSION, "components": [{"subscriptions": [
                {"line": -1, "column": True}]}]}, "location"),
         _c("order-flow-op-line-before-column", "functions",
            "…and the same order inside a flow op",
-           {"ownir_version": 0, "functions": [{"body": [
+           {"ownir_version": OWNIR_VERSION, "functions": [{"body": [
                {"op": "acquire", "line": -1, "column": True}]}]}, "location"),
         _c("order-flow-op-body-before-params", "functions",
            "the BODY's coordinates still precede `params` — the least obvious "
            "edge in the door, and now observable through a line as well as a "
            "column",
-           {"ownir_version": 0, "functions": [{
+           {"ownir_version": OWNIR_VERSION, "functions": [{
                "body": [{"op": "acquire", "line": -1}],
                "params": [{"name": ""}]}]}, "location"),
     ]
@@ -1521,6 +1521,64 @@ def _render_json(data: dict[str, Any]) -> str:
     return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
 
 
+def _invariant_problem(data: dict[str, Any]) -> str | None:
+    """What makes a ledger worthless as a control, or None.
+
+    One function for both directions: verify reports it, and `--write` refuses
+    to commit a ledger that has it. The second half is the point — a writer that
+    exits 0 after producing a ledger its own verify rejects turns "regenerate"
+    into a way to commit the failure."""
+    # A rejection control with no category, or an acceptance control carrying
+    # one, would make the Rust comparison vacuous for that case.
+    for case in data["cases"]:
+        if case["verdict"] == "reject" and not case["category"]:
+            return f"FAIL[ledger-category]: {case['name']}: rejected with no category"
+        if case["verdict"] == "accept" and case["category"]:
+            return f"FAIL[ledger-category]: {case['name']}: accepted but carries a category"
+
+    # Every declared category must be exercised. An unused category is a claim
+    # about the taxonomy that no control backs.
+    used = {c["category"] for c in data["cases"] if c["category"]}
+    unused = sorted(set(data["categories"]) - used)
+    if unused:
+        return (f"FAIL[ledger-coverage]: declared categories with no control: {unused}. "
+                f"A category is only worth having if a case exercises it")
+
+    # The acceptance twins are what make the rejections discriminating: without
+    # them the ledger would pass against a loader that rejects everything.
+    accepted = data["totals"]["accepted"]
+    if accepted < 5:
+        return (f"FAIL[ledger-discriminating]: only {accepted} acceptance "
+                f"control(s); the rejections are not discriminating without "
+                f"valid twins")
+    return None
+
+
+def _version_shift_problem(fresh: dict[str, Any]) -> str | None:
+    """Rebuild the ledger with `OWNIR_VERSION` moved by one, on the controls and
+    on the strict door together, and require every control to keep its verdict
+    and category. None when they do."""
+    import ownlang.ownir as core
+
+    here = globals()
+    kept = (core.OWNIR_VERSION, here["OWNIR_VERSION"])
+    core.OWNIR_VERSION = here["OWNIR_VERSION"] = kept[0] + 1
+    try:
+        shifted = build()
+    finally:
+        core.OWNIR_VERSION, here["OWNIR_VERSION"] = kept
+    moved = [
+        f"{a['name']}: {a['verdict']}/{a['category']} -> {b['verdict']}/{b['category']}"
+        for a, b in zip(fresh["cases"], shifted["cases"], strict=True)
+        if (a["verdict"], a["category"]) != (b["verdict"], b["category"])
+    ]
+    if moved:
+        return (f"FAIL[version-agnostic]: {len(moved)} control(s) change their verdict "
+                f"when OWNIR_VERSION moves, so they pin a literal version rather than "
+                f"the current one (first: {moved[0]})")
+    return None
+
+
 def run() -> int:
     fresh = build()
     expected = _render_json(fresh)
@@ -1547,32 +1605,29 @@ def run() -> int:
                   f"!= {sorted(CASE_KEYS)}")
             return 1
 
-    # A rejection control with no category, or an acceptance control carrying
-    # one, would make the Rust comparison vacuous for that case.
-    for case in data["cases"]:
-        if case["verdict"] == "reject" and not case["category"]:
-            print(f"FAIL[ledger-category]: {case['name']}: rejected with no category")
-            return 1
-        if case["verdict"] == "accept" and case["category"]:
-            print(f"FAIL[ledger-category]: {case['name']}: accepted but carries a category")
-            return 1
-
-    # Every declared category must be exercised. An unused category is a claim
-    # about the taxonomy that no control backs.
-    used = {c["category"] for c in data["cases"] if c["category"]}
-    unused = sorted(set(data["categories"]) - used)
-    if unused:
-        print(f"FAIL[ledger-coverage]: declared categories with no control: {unused}. A category "
-              f"is only worth having if a case exercises it")
+    problem = _invariant_problem(data)
+    if problem is not None:
+        print(problem)
         return 1
 
-    # The acceptance twins are what make the rejections discriminating: without
-    # them the ledger would pass against a loader that rejects everything.
-    accepted = data["totals"]["accepted"]
-    if accepted < 5:
-        print(f"FAIL[ledger-discriminating]: only {accepted} acceptance "
-              f"control(s); the rejections are not discriminating without "
-              f"valid twins")
+    # The controls must say "the current version", never a literal. A control
+    # that hard-codes one is correct only until `OWNIR_VERSION` moves; on that
+    # day every such document is refused at the version gate before the rule it
+    # exists to exercise can run. Driven rather than read: rebuild the ledger
+    # with the version shifted on BOTH sides (the controls and the door) and
+    # require the same verdict and category for every control.
+    drift = _version_shift_problem(fresh)
+    if drift is not None:
+        print(drift)
+        return 1
+
+    # `--write` must refuse a ledger its own verify rejects. Driven on a
+    # deliberately broken ledger, because the committed one never is.
+    broken = json.loads(expected)
+    broken["cases"][0] = {**broken["cases"][0], "verdict": "reject", "category": None}
+    if _invariant_problem(broken) is None:
+        print("FAIL[ledger-write-guard]: the invariants accept a rejection "
+              "control with no category, so --write would commit one")
         return 1
 
     # The oracle must be a pure function of the control. It was not, on the
@@ -1593,9 +1648,14 @@ def run() -> int:
 
 if __name__ == "__main__":
     if "--write" in sys.argv[1:]:
+        ledger = build()
+        refusal = _invariant_problem(ledger)
+        if refusal is not None:
+            print(f"ERROR: refusing to write a ledger its own verify rejects: {refusal}")
+            raise SystemExit(1)
         os.makedirs(os.path.dirname(FIXTURE), exist_ok=True)
         with open(FIXTURE, "w", encoding="utf-8") as f:
-            f.write(_render_json(build()))
+            f.write(_render_json(ledger))
         print(f"wrote {FIXTURE}")
         raise SystemExit(0)
     raise SystemExit(run())
