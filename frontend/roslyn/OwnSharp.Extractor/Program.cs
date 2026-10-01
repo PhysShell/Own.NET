@@ -3340,6 +3340,80 @@ static void H27Classify(BlockSyntax mbody, SemanticModel model)
     }
 }
 
+// ===== ownership-semantics-lab H-28 (registered before this code; h28-prereg-v1.json): argument / callee ownership
+// transfer census, census only. Called from the escape loop for every argument occurrence of a candidate local with the
+// treatment the escape rule gives it. Records the callee (key, assembly, first-party), the argument position and parameter,
+// what the CALLER does with the local anywhere in the member (release call / using / returned / stored / nothing), and a
+// cheap syntactic body-proof of what the CALLEE does with the parameter when its body is in the compilation:
+// RELEASE_ALL_PATHS (disposed / closed / using'd at the top level of the body or in a finally) / RELEASE_SOME_PATH / ADOPT
+// (stored to a field or property) / ALIAS_TO_RESULT (returned bare or inside an object creation / call) / FORWARD (passed
+// to another call, depth 1) / BORROW (otherwise used) / UNUSED; EXTERNAL_UNKNOWN when there is no body. No lowering changes.
+static void H28Classify(IdentifierNameSyntax idn, string nm, BlockSyntax mbody, SemanticModel model, string treatment, string acquireShape)
+{
+    static bool IsRelease(string n) => n is "Dispose" or "DisposeAsync" or "Close" or "CloseAsync";
+    SemanticModel ModelFor(SyntaxTree tree) => tree == model.SyntaxTree ? model : model.Compilation.GetSemanticModel(tree);
+    static string? CalledName(IdentifierNameSyntax id) => id.Parent is MemberAccessExpressionSyntax { Parent: InvocationExpressionSyntax } ma && ma.Expression == id ? ma.Name.Identifier.Text
+        : id.Parent is ConditionalAccessExpressionSyntax { WhenNotNull: InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax mb } } ? mb.Name.Identifier.Text : null;
+    static string Key(IMethodSymbol m) => $"{m.ContainingType.ToDisplayString()}.{(m.MethodKind == MethodKind.Constructor ? ".ctor" : m.Name)}/{m.Parameters.Length}";
+    if (idn.Parent is not ArgumentSyntax arg || arg.Parent is not ArgumentListSyntax argList) return;
+    var call = argList.Parent; if (call is null) return;
+    if (model.GetSymbolInfo(call).Symbol is not IMethodSymbol callee) return;
+    var pos = argList.Arguments.IndexOf(arg); var named = arg.NameColon?.Name.Identifier.Text;
+    var ps = callee.Parameters; IParameterSymbol? param = named is not null ? ps.FirstOrDefault(q => q.Name == named) : pos < ps.Length ? ps[pos] : ps.LastOrDefault(q => q.IsParams);
+    var firstParty = SymbolEqualityComparer.Default.Equals(callee.ContainingAssembly, model.Compilation.Assembly);
+    // the caller side: what happens to the local anywhere in the member
+    var callerKinds = new SortedSet<string>(StringComparer.Ordinal);
+    foreach (var id in mbody.DescendantNodes().OfType<IdentifierNameSyntax>())
+    {
+        if (id.Identifier.Text != nm || !SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, model.GetSymbolInfo(idn).Symbol)) continue;
+        var cn = CalledName(id);
+        if (cn is not null && IsRelease(cn)) callerKinds.Add("RELEASE_CALL");
+        else if (id.Parent is UsingStatementSyntax) callerKinds.Add("USING");
+        else if (id.Parent is ReturnStatementSyntax) callerKinds.Add("RETURNED");
+        else if (id.Parent is AssignmentExpressionSyntax a2 && a2.Right == id && model.GetSymbolInfo(a2.Left).Symbol is IFieldSymbol or IPropertySymbol) callerKinds.Add("STORED");
+    }
+    var callerAfter = callerKinds.Contains("RELEASE_CALL") ? "RELEASE_CALL" : callerKinds.Contains("USING") ? "USING" : callerKinds.Contains("RETURNED") ? "RETURNED" : callerKinds.Contains("STORED") ? "STORED" : "NOTHING";
+    // the callee side: a cheap syntactic body-proof when the body is in the compilation
+    string calleeClass = "EXTERNAL_UNKNOWN", proof = "EXTERNAL"; var useKinds = new SortedSet<string>(StringComparer.Ordinal); string? forwardedTo = null;
+    var declared = (callee.ReducedFrom ?? callee).OriginalDefinition; var declSyntax = declared.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
+    SyntaxNode? body = declSyntax switch { BaseMethodDeclarationSyntax bm => (SyntaxNode?)bm.Body ?? bm.ExpressionBody, LocalFunctionStatementSyntax lf => (SyntaxNode?)lf.Body ?? lf.ExpressionBody, _ => null };
+    if (param is not null && body is not null)
+    {
+        proof = "BODY"; var cm = ModelFor(body.SyntaxTree); var pname = param.Name; var seen = false;
+        foreach (var id in body.DescendantNodes().OfType<IdentifierNameSyntax>())
+        {
+            if (id.Identifier.Text != pname || cm.GetSymbolInfo(id).Symbol is not IParameterSymbol pp || !SymbolEqualityComparer.Default.Equals(pp.ContainingSymbol.OriginalDefinition, declared)) continue;
+            seen = true; var cn = CalledName(id);
+            if ((cn is not null && IsRelease(cn)) || id.Parent is UsingStatementSyntax || (id.Parent is EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax { Parent.Parent: LocalDeclarationStatementSyntax { UsingKeyword.RawKind: > 0 } } }))
+            {
+                var stmt = id.Ancestors().OfType<StatementSyntax>().FirstOrDefault();
+                var top = body is ArrowExpressionClauseSyntax || (stmt is not null && (stmt.Parent == body || stmt.Parent is BlockSyntax { Parent: FinallyClauseSyntax } || stmt.Parent is FinallyClauseSyntax));
+                useKinds.Add(top ? "RELEASE_ALL_PATHS" : "RELEASE_SOME_PATH");
+            }
+            else if (id.Parent is AssignmentExpressionSyntax a3 && a3.Right == id && cm.GetSymbolInfo(a3.Left).Symbol is IFieldSymbol or IPropertySymbol) useKinds.Add("ADOPT");
+            else if (id.Parent is ReturnStatementSyntax || (id.Parent is ArrowExpressionClauseSyntax && !declared.ReturnsVoid)) useKinds.Add("ALIAS_TO_RESULT");
+            else if (id.Parent is ArgumentSyntax { Parent: ArgumentListSyntax { Parent: { } inner } })
+            {
+                var returnedWrapped = inner.Parent is ReturnStatementSyntax || (inner.Parent is ArrowExpressionClauseSyntax && !declared.ReturnsVoid);   // `=> Close(s)` on a void callee is a FORWARD, not an alias
+                var storedWrapped = inner.Parent is AssignmentExpressionSyntax a4 && a4.Right == inner && cm.GetSymbolInfo(a4.Left).Symbol is IFieldSymbol or IPropertySymbol;
+                if (returnedWrapped) useKinds.Add("ALIAS_TO_RESULT");
+                else if (storedWrapped) useKinds.Add("ADOPT");
+                else { useKinds.Add("FORWARD"); forwardedTo ??= cm.GetSymbolInfo(inner).Symbol is IMethodSymbol fm ? Key(fm) : inner.Kind().ToString(); }
+            }
+            else useKinds.Add("BORROW");
+        }
+        calleeClass = !seen ? "UNUSED" : useKinds.Contains("RELEASE_ALL_PATHS") ? "RELEASE_ALL_PATHS" : useKinds.Contains("RELEASE_SOME_PATH") ? "RELEASE_SOME_PATH" : useKinds.Contains("ADOPT") ? "ADOPT" : useKinds.Contains("ALIAS_TO_RESULT") ? "ALIAS_TO_RESULT" : useKinds.Contains("FORWARD") ? "FORWARD" : "BORROW";
+    }
+    else if (param is not null && firstParty) proof = "FIRST_PARTY_NO_BODY";
+    var member = idn.Ancestors().OfType<MemberDeclarationSyntax>().FirstOrDefault();
+    H28.Emit(new { file = idn.SyntaxTree.FilePath, line = LineOf(idn), member = member is MethodDeclarationSyntax md ? md.Identifier.Text : member?.Kind().ToString(),
+        method_key = member is BaseMethodDeclarationSyntax bmd ? FlowFunctionName(bmd, "?", model) : null, local = nm, local_type = model.GetTypeInfo(idn).Type?.ToDisplayString(), acquire_shape = acquireShape,
+        callee = Key(callee), callee_assembly = callee.ContainingAssembly?.Name, callee_first_party = firstParty, callee_is_ctor = callee.MethodKind == MethodKind.Constructor, callee_is_extension = callee.ReducedFrom is not null,
+        arg_position = pos, arg_named = named, parameter = param?.Name, parameter_type = param?.Type.ToDisplayString(), parameter_ref_kind = param?.RefKind.ToString(),
+        call_is_statement = call.Parent is ExpressionStatementSyntax, current_treatment = treatment, caller_after_call = callerAfter, caller_kinds = callerKinds.ToArray(),
+        callee_class = calleeClass, callee_proof = proof, callee_use_kinds = useKinds.ToArray(), forwarded_to = forwardedTo });
+}
+
 static ExpressionSyntax? LabNullInitSingleAssignment(VariableDeclaratorSyntax v, BlockSyntax mbody, SemanticModel model)
 {
     if (model.GetDeclaredSymbol(v) is not ILocalSymbol local)
@@ -8401,6 +8475,14 @@ foreach (var (file, tree) in parsed)
                     // the SAME predicate the lowering uses (CanonicalForwardSlots).
                     bool canonicalArg = !consumedArg && idn.Parent is ArgumentSyntax
                         && IsCanonicalForwardArg(idn, model, forwardHandles);
+                    // H-28 (OWEN_H28_CENSUS=<path>; h28-prereg-v1.json): argument-pass census, census only, recorded with the SAME
+                    // predicates that decide the escape below (consumedArg / canonicalArg / pool / adopted wrapper), so the
+                    // recorded current treatment is the real one. Closure captures and nameof operands were skipped above.
+                    if (H28.Enabled && idn.Parent is ArgumentSyntax)
+                        H28Classify(idn, nm, mbody, model,
+                            consumedArg ? "EXEMPT_CONSUMED" : canonicalArg ? "EXEMPT_CANONICAL_FORWARD" : poolBuffers.Contains(nm) ? "EXEMPT_POOL"
+                            : IsAdoptedArgOfBoundedWrapper(idn, model, candidates, mbody) ? "EXEMPT_ADOPTED_WRAPPER" : "ESCAPE_UNTRACKED",
+                            newedDisposables.Contains(nm) ? "new" : mintedFactories.Contains(nm) ? "minted_factory" : poolBuffers.Contains(nm) ? "pool" : usingMemoryOwners.Contains(nm) ? "using_memory_owner" : "other");
                     // A `using`-declared MemoryPool owner RETURNED bare (`using owner = …; return owner;`)
                     // is NOT a real ownership transfer: the implicit scope-exit dispose runs as the method
                     // returns, so the caller receives an already-disposed owner. Keep it TRACKED (do not
@@ -8972,6 +9054,15 @@ partial class Program
     static class H27
     {
         internal static readonly string? Path = Environment.GetEnvironmentVariable("OWEN_H27_CENSUS");
+        internal static readonly bool Enabled = !string.IsNullOrEmpty(Path);
+        static readonly object Lock = new();
+        internal static void Emit(object o) { try { lock (Lock) File.AppendAllText(Path!, JsonSerializer.Serialize(o) + "\n"); } catch { } }
+    }
+
+    // ===== ownership-semantics-lab H-28 (registered before this code): the census sink of H28Classify. Census only.
+    static class H28
+    {
+        internal static readonly string? Path = Environment.GetEnvironmentVariable("OWEN_H28_CENSUS");
         internal static readonly bool Enabled = !string.IsNullOrEmpty(Path);
         static readonly object Lock = new();
         internal static void Emit(object o) { try { lock (Lock) File.AppendAllText(Path!, JsonSerializer.Serialize(o) + "\n"); } catch { } }

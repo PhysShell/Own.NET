@@ -1,0 +1,4 @@
+Repro2.cs(14,27): warning CA2000: Call System.IDisposable.Dispose on object created by 'new DataSet()' before all references to it are out o
+Repro2.cs(24,31): warning CA2000: Call System.IDisposable.Dispose on object created by 'new System.Net.Sockets.TcpClient()' before all refer
+Repro2.cs(25,32): warning CA2000: Call System.IDisposable.Dispose on object created by 'new StreamWriter("x")' before all references to it a
+Repro2.cs(26,33): warning CA2000: Call System.IDisposable.Dispose on object created by 'new FileStream("x", FileMode.Open)' before all refer

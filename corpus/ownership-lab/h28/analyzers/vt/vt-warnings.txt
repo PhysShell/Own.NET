@@ -1,0 +1,13 @@
+Repro.cs(10,89): warning MA0004: Use Task.ConfigureAwait
+Repro.cs(10,95): warning CA2007: Consider calling ConfigureAwait on the awaited task 
+Repro.cs(14,13): warning MA0004: Use Task.ConfigureAwait
+Repro.cs(14,19): warning CA2007: Consider calling ConfigureAwait on the awaited task 
+Repro.cs(18,13): warning MA0004: Use Task.ConfigureAwait
+Repro.cs(18,19): warning CA2007: Consider calling ConfigureAwait on the awaited task 
+Repro.cs(21,17): warning CA1068: Method 'Repro.scheduleMessageAsync
+Repro.cs(3,14): warning CA1050: Declare types in namespaces 
+Repro.cs(3,14): warning MA0047: Declare type 'Repro' in a namespace 
+Repro.cs(9,25): warning MA0004: Use Task.ConfigureAwait
+Repro.cs(9,32): warning CA2007: Consider calling ConfigureAwait on the awaited task 
+Repro.cs(9,32): warning MA0004: Use Task.ConfigureAwait
+Repro.cs(9,38): warning CA2007: Consider calling ConfigureAwait on the awaited task 

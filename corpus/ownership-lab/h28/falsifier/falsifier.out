@@ -1,0 +1,12 @@
+sqlite rows loaded = 2
+sqlite F1 reader.IsClosed after Load = True
+sqlite F2 Read after Load threw InvalidOperationException: Invalid attempt to call Read when reader is closed.
+sqlite F3 second command with the un-closed reader alive = OK (42)
+sqlite F3b after reader.Close the second command = OK (42)
+sqlite F4 after connection dispose: reader.IsClosed = True
+npgsql rows loaded = 3
+npgsql F1 reader.IsClosed after Load = True
+npgsql F2 Read after Load threw InvalidOperationException: The reader is closed
+npgsql F3 second command with the un-closed reader alive = OK (42)
+npgsql F3b after reader.Close the second command = OK (42)
+npgsql F4 after connection dispose: reader.IsClosed = True
