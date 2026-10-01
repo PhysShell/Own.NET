@@ -1,0 +1,9 @@
+[
+ {
+  "index": 0,
+  "file": "src/Persistence/Wolverine.Postgresql/Transport/PostgresqlQueueSender.cs",
+  "line": 119,
+  "verdict": "HARMFUL_CONFIRMED",
+  "reason": "runtime witness on the exact shape (h29-falsifier-v1.json F6): the orphaned BeginTransactionAsync starts a transaction inline, scheduleMessageAsync inserts on the same connection inside it, CloseAsync in finally rolls it back; the autocommitted delete before the try persists: a message scheduled for retry is deleted from the incoming table and never written to the scheduled table (message loss)"
+ }
+]

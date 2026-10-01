@@ -1,0 +1,21 @@
+[
+ {
+  "repo": "JasperFx/wolverine",
+  "file": "src/Persistence/Wolverine.Postgresql/Transport/PostgresqlQueueSender.cs",
+  "line": 119,
+  "member": "ScheduleRetryAsync",
+  "method_key": "Wolverine.Postgresql.Transport.PostgresqlQueueSender.ScheduleRetryAsync",
+  "local": "tx",
+  "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+  "callee_assembly": "Npgsql",
+  "callee_first_party": false,
+  "return_type": "System.Threading.Tasks.ValueTask<Npgsql.NpgsqlTransaction>",
+  "result_type": "Npgsql.NpgsqlTransaction",
+  "family": "A_owned_result",
+  "lifecycle_member": true,
+  "in_async_member": true,
+  "in_try": true,
+  "project": "src/Persistence/Wolverine.Postgresql/Wolverine.Postgresql.csproj",
+  "tfm": "net10.0"
+ }
+]

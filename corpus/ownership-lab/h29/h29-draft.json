@@ -1,0 +1,128 @@
+{
+ "consumers": 8,
+ "units": 772,
+ "extractor_failures": 0,
+ "records_raw": 353,
+ "records_unique": 221,
+ "production_unique": 89,
+ "awaitable_locals_production": 50,
+ "awaitable_locals_by_family": {
+  "OTHER": 44,
+  "B_protocol_lifecycle": 5,
+  "A_owned_result": 1
+ },
+ "awaitable_locals_refs_distribution": {
+  "1": 30,
+  "4": 6,
+  "0": 1,
+  "5": 3,
+  "2": 7,
+  "3": 3
+ },
+ "ORPHANS_zero_references": 1,
+ "orphans_by_family": {
+  "A_owned_result": 1
+ },
+ "orphans_by_callee": {
+  "Npgsql.NpgsqlConnection.BeginTransactionAsync/1": 1
+ },
+ "orphans_by_consumer": {
+  "JasperFx/wolverine": 1
+ },
+ "orphans_in_lambda": 0,
+ "orphans_in_try": 1,
+ "orphans_in_async_member": 1,
+ "PRIMARY_family_A_or_B_not_lambda": 1,
+ "primary_by_family": {
+  "A_owned_result": 1
+ },
+ "primary_lifecycle_members": 1,
+ "primary_by_callee": {
+  "Npgsql.NpgsqlConnection.BeginTransactionAsync/1": 1
+ },
+ "primary_by_consumer": {
+  "JasperFx/wolverine": 1
+ },
+ "discards_production": 34,
+ "discards_by_family": {
+  "OTHER": 34
+ },
+ "discards_top_callees": {
+  "System.Threading.Tasks.Task.ContinueWith/4": 7,
+  "System.Threading.Tasks.Task.Run/2": 6,
+  "System.Threading.Tasks.Task.Run/1": 4,
+  "System.Threading.Tasks.ValueTask.AsTask/0": 2,
+  "Wolverine.RabbitMQ.Internal.RabbitMqChannelAgent.teardownChannel/0": 1,
+  "Wolverine.Persistence.ThrottledTenantRefresh.refreshAsync/1": 1,
+  "Wolverine.IWireTap.RecordSuccessAsync/1": 1,
+  "Wolverine.IWireTap.RecordFailureAsync/2": 1,
+  "System.Threading.Tasks.Task.ContinueWith/2": 1,
+  "PerformanceMonitor.Collectors.StallProbeArm.RunAsync/7": 1,
+  "System.Func<PerformanceMonitor.Collectors.StallProbeObservation, System.Threading.Tasks.Task>.Invoke/1": 1,
+  "System.Threading.Tasks.Task.ContinueWith/5": 1,
+  "System.Collections.Concurrent.ConcurrentDictionary<string, System.Threading.Tasks.Task>.GetOrAdd/2": 1,
+  "Quartz.Dashboard.Services.ToastService.RemoveAfterDelay/2": 1,
+  "Quartz.Configuration.AttachedStoreDiscovery.Rediscover/1": 1
+ },
+ "statements_production": 5,
+ "statements_by_family": {
+  "OTHER": 5
+ },
+ "statements_top_callees": {
+  "System.Threading.Tasks.Task.Run/1": 2,
+  "Spectre.Console.Status.StartAsync/2": 1,
+  "System.Threading.Tasks.TaskFactory.StartNew/4": 1,
+  "System.Threading.Tasks.Task.Run/2": 1
+ },
+ "other_family_orphans_top_callees": {},
+ "per_consumer": {
+  "JasperFx/marten": {
+   "units": 105,
+   "extractor_failures": 0,
+   "seconds": 452,
+   "records_raw": 92
+  },
+  "JasperFx/weasel": {
+   "units": 43,
+   "extractor_failures": 0,
+   "seconds": 217,
+   "records_raw": 6
+  },
+  "JasperFx/wolverine": {
+   "units": 240,
+   "extractor_failures": 0,
+   "seconds": 918,
+   "records_raw": 159
+  },
+  "NpgsqlRest/NpgsqlRest": {
+   "units": 12,
+   "extractor_failures": 0,
+   "seconds": 77,
+   "records_raw": 16
+  },
+  "erikdarlingdata/PerformanceMonitor": {
+   "units": 16,
+   "extractor_failures": 0,
+   "seconds": 87,
+   "records_raw": 9
+  },
+  "mikependon/RepoDB": {
+   "units": 301,
+   "extractor_failures": 0,
+   "seconds": 1822,
+   "records_raw": 0
+  },
+  "quartznet/quartznet": {
+   "units": 41,
+   "extractor_failures": 0,
+   "seconds": 218,
+   "records_raw": 71
+  },
+  "victor-wiki/DatabaseManager": {
+   "units": 14,
+   "extractor_failures": 0,
+   "seconds": 57,
+   "records_raw": 0
+  }
+ }
+}

@@ -1,0 +1,9 @@
+H29_DONE NpgsqlRest/NpgsqlRest units 12 fails 0 disposable-returning library calls 16 production never-observed / discard / statement awaitables by form and family {('production', 'discard', 'OTHER'): 2}
+H29_DONE victor-wiki/DatabaseManager units 14 fails 0 disposable-returning library calls 0 production never-observed / discard / statement awaitables by form and family {}
+H29_DONE quartznet/quartznet units 41 fails 0 disposable-returning library calls 71 production never-observed / discard / statement awaitables by form and family {('production', 'discard', 'OTHER'): 8, ('production', 'statement', 'OTHER'): 1}
+H29_DONE JasperFx/weasel units 43 fails 0 disposable-returning library calls 6 production never-observed / discard / statement awaitables by form and family {}
+H29_DONE erikdarlingdata/PerformanceMonitor units 16 fails 0 disposable-returning library calls 9 production never-observed / discard / statement awaitables by form and family {('production', 'discard', 'OTHER'): 4}
+H29_DONE JasperFx/marten units 105 fails 0 disposable-returning library calls 92 production never-observed / discard / statement awaitables by form and family {('production', 'statement', 'OTHER'): 2, ('production', 'discard', 'OTHER'): 2}
+H29_DONE JasperFx/wolverine units 240 fails 0 disposable-returning library calls 159 production never-observed / discard / statement awaitables by form and family {('production', 'discard', 'OTHER'): 40, ('production', 'local', 'A_owned_result'): 2, ('production', 'statement', 'OTHER'): 6}
+H29_DONE mikependon/RepoDB units 301 fails 0 disposable-returning library calls 0 production never-observed / discard / statement awaitables by form and family {}
+H29_CENSUS_DONE

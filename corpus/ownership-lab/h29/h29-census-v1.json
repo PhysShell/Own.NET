@@ -1,0 +1,183 @@
+{
+ "schema": "own.net/h29/census/v1",
+ "written_at_utc": "2026-10-01T12:17:17Z",
+ "track": "H-29 orphaned async protocol acquisition: census and triage",
+ "anchors": {
+  "prereg": "paper-eval/h29/h29-prereg-v1.json (932a970)",
+  "falsifier": "paper-eval/h29/h29-falsifier-v1.json (c1ee26a)",
+  "seam_commit": "bad93eff (61 lines, census only)",
+  "own_net_head": "bad93eff64cfa7a351cfea3e96f2657d4bd62e6a",
+  "own_net_main": "fb06adc2beddd750e99a52ad8c1c8b5905602539 (untouched)"
+ },
+ "population": "the 8 frozen consumers, corrected environment, production units; every local initialised by an un-awaited awaitable-returning invocation, TFM-collapsed per (consumer, file, line, form, local)",
+ "totals": {
+  "consumers": 8,
+  "units": 772,
+  "extractor_failures": 0,
+  "records_raw": 353,
+  "records_unique": 221,
+  "production_unique": 89,
+  "awaitable_locals_production": 50,
+  "awaitable_locals_by_family": {
+   "OTHER": 44,
+   "B_protocol_lifecycle": 5,
+   "A_owned_result": 1
+  },
+  "awaitable_locals_refs_distribution": {
+   "1": 30,
+   "4": 6,
+   "0": 1,
+   "5": 3,
+   "2": 7,
+   "3": 3
+  },
+  "ORPHANS_zero_references": 1,
+  "orphans_by_family": {
+   "A_owned_result": 1
+  },
+  "orphans_by_callee": {
+   "Npgsql.NpgsqlConnection.BeginTransactionAsync/1": 1
+  },
+  "orphans_by_consumer": {
+   "JasperFx/wolverine": 1
+  },
+  "orphans_in_lambda": 0,
+  "orphans_in_try": 1,
+  "orphans_in_async_member": 1,
+  "PRIMARY_family_A_or_B_not_lambda": 1,
+  "primary_by_family": {
+   "A_owned_result": 1
+  },
+  "primary_lifecycle_members": 1,
+  "primary_by_callee": {
+   "Npgsql.NpgsqlConnection.BeginTransactionAsync/1": 1
+  },
+  "primary_by_consumer": {
+   "JasperFx/wolverine": 1
+  },
+  "discards_production": 34,
+  "discards_by_family": {
+   "OTHER": 34
+  },
+  "discards_top_callees": {
+   "System.Threading.Tasks.Task.ContinueWith/4": 7,
+   "System.Threading.Tasks.Task.Run/2": 6,
+   "System.Threading.Tasks.Task.Run/1": 4,
+   "System.Threading.Tasks.ValueTask.AsTask/0": 2,
+   "Wolverine.RabbitMQ.Internal.RabbitMqChannelAgent.teardownChannel/0": 1,
+   "Wolverine.Persistence.ThrottledTenantRefresh.refreshAsync/1": 1,
+   "Wolverine.IWireTap.RecordSuccessAsync/1": 1,
+   "Wolverine.IWireTap.RecordFailureAsync/2": 1,
+   "System.Threading.Tasks.Task.ContinueWith/2": 1,
+   "PerformanceMonitor.Collectors.StallProbeArm.RunAsync/7": 1,
+   "System.Func<PerformanceMonitor.Collectors.StallProbeObservation, System.Threading.Tasks.Task>.Invoke/1": 1,
+   "System.Threading.Tasks.Task.ContinueWith/5": 1,
+   "System.Collections.Concurrent.ConcurrentDictionary<string, System.Threading.Tasks.Task>.GetOrAdd/2": 1,
+   "Quartz.Dashboard.Services.ToastService.RemoveAfterDelay/2": 1,
+   "Quartz.Configuration.AttachedStoreDiscovery.Rediscover/1": 1
+  },
+  "statements_production": 5,
+  "statements_by_family": {
+   "OTHER": 5
+  },
+  "statements_top_callees": {
+   "System.Threading.Tasks.Task.Run/1": 2,
+   "Spectre.Console.Status.StartAsync/2": 1,
+   "System.Threading.Tasks.TaskFactory.StartNew/4": 1,
+   "System.Threading.Tasks.Task.Run/2": 1
+  },
+  "other_family_orphans_top_callees": {}
+ },
+ "per_consumer": {
+  "JasperFx/marten": {
+   "units": 105,
+   "extractor_failures": 0,
+   "seconds": 452,
+   "records_raw": 92
+  },
+  "JasperFx/weasel": {
+   "units": 43,
+   "extractor_failures": 0,
+   "seconds": 217,
+   "records_raw": 6
+  },
+  "JasperFx/wolverine": {
+   "units": 240,
+   "extractor_failures": 0,
+   "seconds": 918,
+   "records_raw": 159
+  },
+  "NpgsqlRest/NpgsqlRest": {
+   "units": 12,
+   "extractor_failures": 0,
+   "seconds": 77,
+   "records_raw": 16
+  },
+  "erikdarlingdata/PerformanceMonitor": {
+   "units": 16,
+   "extractor_failures": 0,
+   "seconds": 87,
+   "records_raw": 9
+  },
+  "mikependon/RepoDB": {
+   "units": 301,
+   "extractor_failures": 0,
+   "seconds": 1822,
+   "records_raw": 0
+  },
+  "quartznet/quartznet": {
+   "units": 41,
+   "extractor_failures": 0,
+   "seconds": 218,
+   "records_raw": 71
+  },
+  "victor-wiki/DatabaseManager": {
+   "units": 14,
+   "extractor_failures": 0,
+   "seconds": 57,
+   "records_raw": 0
+  }
+ },
+ "triage": {
+  "sites": 1,
+  "by_verdict": {
+   "HARMFUL_CONFIRMED": 1
+  },
+  "harmful_confirmed_cases_distinct_api": 1,
+  "rows": [
+   {
+    "repo": "JasperFx/wolverine",
+    "file": "src/Persistence/Wolverine.Postgresql/Transport/PostgresqlQueueSender.cs",
+    "line": 119,
+    "member": "ScheduleRetryAsync",
+    "method_key": "Wolverine.Postgresql.Transport.PostgresqlQueueSender.ScheduleRetryAsync",
+    "local": "tx",
+    "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+    "callee_assembly": "Npgsql",
+    "callee_first_party": false,
+    "return_type": "System.Threading.Tasks.ValueTask<Npgsql.NpgsqlTransaction>",
+    "result_type": "Npgsql.NpgsqlTransaction",
+    "family": "A_owned_result",
+    "lifecycle_member": true,
+    "in_async_member": true,
+    "in_try": true,
+    "project": "src/Persistence/Wolverine.Postgresql/Wolverine.Postgresql.csproj",
+    "tfm": "net10.0",
+    "verdict": "HARMFUL_CONFIRMED",
+    "reason": "runtime witness on the exact shape (h29-falsifier-v1.json F6): the orphaned BeginTransactionAsync starts a transaction inline, scheduleMessageAsync inserts on the same connection inside it, CloseAsync in finally rolls it back; the autocommitted delete before the try persists: a message scheduled for retry is deleted from the incoming table and never written to the scheduled table (message loss)"
+   }
+  ]
+ },
+ "gate": {
+  "primary_sites": 1,
+  "harmful_cases": 1,
+  "heavy_production_bugs_witnessed": 1,
+  "rule": "CONTINUE iff primary >= 10 OR harmful cases >= 2 OR heavy production bug >= 1; else RECORD_AND_STOP (frozen)",
+  "decision": "CONTINUE (a tiny OWN rule, separate rule family, gets its own prereg)"
+ },
+ "not_done": [
+  "no rule implemented",
+  "no engine change",
+  "no upstream report in this track"
+ ]
+}
