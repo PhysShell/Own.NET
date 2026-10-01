@@ -1,0 +1,26 @@
+{
+ "schema": "own.net/h25/probe-triage/v1",
+ "basis": "OFF (rows, no seam) versus ON (rows + OWEN_H25=1) over the 8 frozen consumers in the corrected environment with the erratum-3 rows; FINAL: all 8 consumers scanned",
+ "new": [],
+ "lost": [],
+ "applied_site_readings": [
+  {
+   "repo": "JasperFx/marten",
+   "file": "src/Marten/Events/Daemon/HighWater/PostgresqlListenWakeup.cs",
+   "line": 82,
+   "callable": "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+   "shape": "declaration+await",
+   "reading": "the predicate fired (hit log) and the awaited connection is then stored into the field `_connection` (`_connection = conn;`): an ownership transfer to the object; the escape pass untracks the local, no function is emitted, OFF == ON facts; correct behaviour, no finding"
+  },
+  {
+   "repo": "mikependon/RepoDB",
+   "file": "src/Providers/RepoDb.PostgreSql.BulkOperations/RepoDb.PostgreSql.BulkOperations/Extensions/NpgsqlConnectionExtension.cs",
+   "line": 303,
+   "callable": "Npgsql.NpgsqlConnection.BeginBinaryImportAsync",
+   "shape": "declaration+await",
+   "reading": "the awaited importer is returned (`return importer;`) from a private async factory: an ownership transfer out; expected no finding"
+  }
+ ],
+ "count_correction": "h25-probe-amendment-1 wrote 'expected 4 (declarations)'; the five non-using trusted sites are 2 declarations + 3 assignments (the marten BulkEventAppender writes inside try, excluded by the H-23A narrowing and not enabled in the scan), so the applicable set is 2",
+ "note": "no finding changed on any of the 772 units; both applicable sites are ownership transfers (field adoption, return), which is exactly the escape class the semantic-coverage track named as the next bottleneck after resolution"
+}

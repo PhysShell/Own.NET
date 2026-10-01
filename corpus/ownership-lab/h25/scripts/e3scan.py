@@ -21,6 +21,13 @@ if H25:
     H23=True; E2=f'{S}/lab/sc/e2h23'; W=f'{S}/lab/sc/e3h23/{tag}'; E=f'{S}/lab/sc/e3h25'; os.makedirs(E,exist_ok=True)
     XDN=_j.load(open(f'{S}/lab/sc/xd-h25.json'))
     sys.path.insert(0,f'{S}/lab/h24'); from implicit_usings import implicit_usings
+    E3MV={rp:v['mvid'] for rp,v in _j.load(open(f'{S}/lab/h25/npgsql-unit-mvids.json')).items()}
+    E3FRESH=collections.defaultdict(set)
+    for wf in glob.glob(f'{S}/lab/sc/witness-results*.partial.jsonl'):
+        for wl in open(wf):
+            try: wj=_j.loads(wl)
+            except Exception: continue
+            if wj.get('verdict')=='fresh' and wj.get('asm') and wj.get('callable') in ('Npgsql.NpgsqlDataSource.OpenConnectionAsync','Npgsql.NpgsqlDataSource.OpenConnection'): E3FRESH[wj['callable']].add(wj['asm'])
 EXCL=re.compile(r'(^|/)(tests?|testing|samples?|benchmarks?|examples?|docs?|demo)(/|\.|$)',re.I)
 t0=time.time()
 if not os.path.isdir(f'{W}/.git'):
@@ -110,6 +117,12 @@ for p in prod:
                     if r['package']!=name or r['version']!=ver or r['status'] not in TR: continue
                     base=lib['rows'].get((r['callable'],'return_fresh_owned')) or lib['rows'].get((r['callable'],'receiver_terminal_release')) or {'callable':r['callable'],'effect':'return_fresh_owned','provenance':'WITNESSED'}
                     rows.append({**base,'assembly':{'name':lib['assembly'],'mvid':mv},'row_class':r['status']})
+        if H25 and os.path.exists(f'{refdir}/Npgsql.dll'):   # erratum 3: the dropped NpgsqlDataSource.OpenConnection(Async) witnesses, exact tested binary only
+            mvu=E3MV.get(os.path.realpath(f'{refdir}/Npgsql.dll'))
+            have={r['callable'] for r in rows}
+            for c in ('Npgsql.NpgsqlDataSource.OpenConnection','Npgsql.NpgsqlDataSource.OpenConnectionAsync'):
+                if c not in have and mvu and mvu in E3FRESH.get(c,set()):
+                    rows.append({'callable':c,'effect':'return_fresh_owned','provenance':'WITNESSED','derived_from':'stage-d-witness (erratum-3 re-admission: exact tested binary)','assembly':{'name':'Npgsql','mvid':mvu},'row_class':'witnessed_exact_binary'})
         keyf=f'{refdir}/rows.json'; json.dump({'schema':'own.net/re-oracle/v1','label':f'E3 {repo} {rel} {tfm0}','entries':rows},open(keyf,'w'))
         srcs=sorted(x for x in glob.glob(os.path.join(os.path.dirname(p),'**','*.cs'),recursive=True) if '/obj/' not in x and '/bin/' not in x)
         if not srcs: continue
@@ -133,10 +146,10 @@ for p in prod:
                 else: e.pop('OWEN_H23A',None)
             elif arm=='on': e['OWEN_RE_ORACLE']=keyf
             facts=f'{refdir}/{"h25" if H25 else ""}{arm}.facts.json'; t1=time.time()
+            if H25: e['OWEN_RE_ORACLE_HITLOG']=f'{refdir}/h25{arm}.hits.jsonl'; open(e['OWEN_RE_ORACLE_HITLOG'],'w').close()
             XD=XDN.get('net10',f'{S}/ext10/ownsharp-extract.dll') if major>=9 else DLL
             try: pr=subprocess.run(['dotnet',XD,'--flow-locals',*srcs,*extra,'--ref-dir',refdir,'-o',facts],cwd=R,capture_output=True,text=True,env=e,timeout=1500); rc=pr.returncode; census=re.findall(r'(re-oracle[^\n]*)',pr.stderr)
             except subprocess.TimeoutExpired: rc='timeout'; census=[]
-            if H25: e['OWEN_RE_ORACLE_HITLOG']=f'{refdir}/h25{arm}.hits.jsonl'; open(e['OWEN_RE_ORACLE_HITLOG'],'w').close()
             f,par=engines(facts,e) if os.path.exists(facts) else ([],None)
             # facts hash with the clone directory normalised, so an OFF arm can be compared with the frozen run's facts
             fh=hashlib.sha256(open(facts,'rb').read().replace(W.encode(),b'<W>')).hexdigest() if os.path.exists(facts) else None

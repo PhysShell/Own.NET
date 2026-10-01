@@ -1,0 +1,190 @@
+{
+ "schema": "own.net/h25/probe/v1",
+ "written_at_utc": "2026-10-01T05:59:08Z",
+ "track": "H-25 await-wrapped acquire: the predicate probe and the OFF/ON scan",
+ "anchors": {
+  "probe_prereg": "paper-eval/h25/h25-probe-prereg-v1.json (8283aef)",
+  "amendment_1": "paper-eval/h25/h25-probe-amendment-1.json (e4a5b7c, before the scan)",
+  "seam_commit": "8b921a1d (13 non-comment lines: await / ConfigureAwait unwrap inside ReOracle.ReturnsFreshOwned; the Task-local guard at the declaration minting site)",
+  "own_net_head": "8b921a1d1ae40a24c1f20addc1ee3c3e8c78cf3d",
+  "own_net_main": "fb06adc2beddd750e99a52ad8c1c8b5905602539 (untouched)"
+ },
+ "environment": "corrected (invariant 0) on the e3h23 clones; unit row files rebuilt per unit with the erratum-3 rows (NpgsqlDataSource.OpenConnection / OpenConnectionAsync, exact tested binary only); OFF = rows without the seam, ON = rows + OWEN_H25=1; NOTE: the OFF arm of this scan is NOT the frozen E3 ON arm (different environment, erratum 2 + 3), so only within-run comparisons are made",
+ "off_identity": {
+  "fixtures": "no-oracle OFF and rows-without-seam byte-identical to the previous build (ext8m2) on the H-23, H-24 and H-25 fixtures",
+  "consumer_units": {
+   "identical": 52,
+   "of": 52
+  }
+ },
+ "fixture": "corpus/ownership-lab/h25/out/H25_ON.result.json, H25_ON_H23A.result.json, H25_OFF_ROWS.result.json: AW4 clean, AW5 OWN001, HW8 untracked (using declaration by design), HW1 Task local not minted under the seam (and FALSELY charged by the rows-without-seam arm: the pre-existing hazard), HW2 / HW3 / HW5 / HW6 silent, AW1-AW3 clean with OWEN_H23A=1, AW6 silent (nested write)",
+ "summary": {
+  "consumers": 8,
+  "units": 766,
+  "applied_await_hits_raw": 5,
+  "applied_await_sites_unique": 2,
+  "applied_await_sites_production_unique": 2,
+  "applied_by_shape_production": {
+   "declaration+await": 2
+  },
+  "applied_by_callable_production": {
+   "OpenConnectionAsync": 1,
+   "BeginBinaryImportAsync": 1
+  },
+  "new_raw": 0,
+  "new_unique": 0,
+  "lost_raw": 0,
+  "lost_unique": 0,
+  "engine_error_units_on_only": 0,
+  "parity_failures": 0,
+  "facts_identical_units": 766,
+  "off_findings_total": 2632,
+  "on_findings_total": 2632
+ },
+ "per_consumer": [
+  {
+   "repo": "JasperFx/marten",
+   "sha": "7a6c9c3bb1",
+   "units": 104,
+   "engine_internal_errors": 0,
+   "new_raw": 0,
+   "lost_raw": 0,
+   "facts_identical_units": 104,
+   "off_findings": 76,
+   "on_findings": 76
+  },
+  {
+   "repo": "JasperFx/weasel",
+   "sha": "73b158bf5a",
+   "units": 43,
+   "engine_internal_errors": 0,
+   "new_raw": 0,
+   "lost_raw": 0,
+   "facts_identical_units": 43,
+   "off_findings": 220,
+   "on_findings": 220
+  },
+  {
+   "repo": "JasperFx/wolverine",
+   "sha": "7ee3df905e",
+   "units": 240,
+   "engine_internal_errors": 0,
+   "new_raw": 0,
+   "lost_raw": 0,
+   "facts_identical_units": 240,
+   "off_findings": 161,
+   "on_findings": 161
+  },
+  {
+   "repo": "NpgsqlRest/NpgsqlRest",
+   "sha": "6cc6f55fa6",
+   "units": 11,
+   "engine_internal_errors": 0,
+   "new_raw": 0,
+   "lost_raw": 0,
+   "facts_identical_units": 11,
+   "off_findings": 54,
+   "on_findings": 54
+  },
+  {
+   "repo": "erikdarlingdata/PerformanceMonitor",
+   "sha": "b342229e3c",
+   "units": 15,
+   "engine_internal_errors": 0,
+   "new_raw": 0,
+   "lost_raw": 0,
+   "facts_identical_units": 15,
+   "off_findings": 8,
+   "on_findings": 8
+  },
+  {
+   "repo": "mikependon/RepoDB",
+   "sha": "edabfb2044",
+   "units": 301,
+   "engine_internal_errors": 0,
+   "new_raw": 0,
+   "lost_raw": 0,
+   "facts_identical_units": 301,
+   "off_findings": 2041,
+   "on_findings": 2041
+  },
+  {
+   "repo": "quartznet/quartznet",
+   "sha": "15d90a9c26",
+   "units": 38,
+   "engine_internal_errors": 0,
+   "new_raw": 0,
+   "lost_raw": 0,
+   "facts_identical_units": 38,
+   "off_findings": 26,
+   "on_findings": 26
+  },
+  {
+   "repo": "victor-wiki/DatabaseManager",
+   "sha": "032506d906",
+   "units": 14,
+   "engine_internal_errors": 0,
+   "new_raw": 0,
+   "lost_raw": 0,
+   "facts_identical_units": 14,
+   "off_findings": 46,
+   "on_findings": 46
+  }
+ ],
+ "applied_sites": [
+  {
+   "repo": "JasperFx/marten",
+   "file": "src/Marten/Events/Daemon/HighWater/PostgresqlListenWakeup.cs",
+   "line": 82,
+   "callable": "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+   "shape": "declaration+await",
+   "kind": "production",
+   "project": "src/Marten/Marten.csproj"
+  },
+  {
+   "repo": "mikependon/RepoDB",
+   "file": "src/Providers/RepoDb.PostgreSql.BulkOperations/RepoDb.PostgreSql.BulkOperations/Extensions/NpgsqlConnectionExtension.cs",
+   "line": 303,
+   "callable": "Npgsql.NpgsqlConnection.BeginBinaryImportAsync",
+   "shape": "declaration+await",
+   "kind": "production",
+   "project": "src/Providers/RepoDb.PostgreSql.BulkOperations/RepoDb.PostgreSql.BulkOperations/RepoDb.PostgreSql.BulkOperations.csproj"
+  }
+ ],
+ "engine_error_audit": [],
+ "parity_failures": [],
+ "new_findings": [],
+ "lost_findings": [],
+ "triage": {
+  "schema": "own.net/h25/probe-triage/v1",
+  "basis": "OFF (rows, no seam) versus ON (rows + OWEN_H25=1) over the 8 frozen consumers in the corrected environment with the erratum-3 rows; FINAL: all 8 consumers scanned",
+  "new": [],
+  "lost": [],
+  "applied_site_readings": [
+   {
+    "repo": "JasperFx/marten",
+    "file": "src/Marten/Events/Daemon/HighWater/PostgresqlListenWakeup.cs",
+    "line": 82,
+    "callable": "Npgsql.NpgsqlDataSource.OpenConnectionAsync",
+    "shape": "declaration+await",
+    "reading": "the predicate fired (hit log) and the awaited connection is then stored into the field `_connection` (`_connection = conn;`): an ownership transfer to the object; the escape pass untracks the local, no function is emitted, OFF == ON facts; correct behaviour, no finding"
+   },
+   {
+    "repo": "mikependon/RepoDB",
+    "file": "src/Providers/RepoDb.PostgreSql.BulkOperations/RepoDb.PostgreSql.BulkOperations/Extensions/NpgsqlConnectionExtension.cs",
+    "line": 303,
+    "callable": "Npgsql.NpgsqlConnection.BeginBinaryImportAsync",
+    "shape": "declaration+await",
+    "reading": "the awaited importer is returned (`return importer;`) from a private async factory: an ownership transfer out; expected no finding"
+   }
+  ],
+  "count_correction": "h25-probe-amendment-1 wrote 'expected 4 (declarations)'; the five non-using trusted sites are 2 declarations + 3 assignments (the marten BulkEventAppender writes inside try, excluded by the H-23A narrowing and not enabled in the scan), so the applicable set is 2",
+  "note": "no finding changed on any of the 772 units; both applicable sites are ownership transfers (field adoption, return), which is exactly the escape class the semantic-coverage track named as the next bottleneck after resolution"
+ },
+ "decision": {
+  "primary": "NARROW",
+  "alternative_reading": "the amended class KEEP_AS_ANALYSIS_SUBSTRATE asked for applied == the non-using trusted sites and wrote that count as 4-5; the triage count correction shows the applicable set is 2 declarations (the 3 marten assignments are nested in try and excluded by the H-23A narrowing, which the scan does not enable), and both were applied with 0 lost, 0 engine errors, parity on every unit and OFF identity; under the corrected count the mechanism qualifies as an analysis substrate; the primary decision keeps the letter of the frozen threshold (NARROW) because the population value is 2 sites, both ownership transfers, 0 findings",
+  "rule": "amended classes (h25-probe-amendment-1): KILL on a lost real finding / engine error / parity failure; KEEP_FOR_PRODUCTION_EXPERIMENT on >= 1 TRUE_PRODUCTION unique finding competitors miss; KEEP_AS_ANALYSIS_SUBSTRATE when the non-using trusted sites (expected 4-5; 2 declarations without H-23A) are applied with 0 lost / 0 errors; NARROW otherwise",
+  "not_production_ready": true
+ }
+}
