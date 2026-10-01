@@ -422,7 +422,8 @@ pub(crate) fn validate_document(obj: &Map<String, Value>, source: Option<&str>) 
     effects(obj)?;
     functions(obj)?;
     protocols(obj)?;
-    protocol_functions(obj)
+    protocol_functions(obj)?;
+    orphaned_awaitables(obj)
 }
 
 /// The version gate, first: a vocabulary mismatch makes every later shape check
@@ -694,6 +695,74 @@ fn protocol_functions(obj: &Map<String, Value>) -> Checked {
     )?;
     for raw in pfns {
         crate::protocol::parse_method(raw, crate::protocol::Door::Strict)?;
+    }
+    Ok(())
+}
+
+/// The closed set of OWN053 site families (`spec/OwnIR.md` §9), pinned to
+/// `ownlang/ownir.py::_ORPHAN_FAMILIES` through the schema's `orphanFamily`
+/// enum exactly as `PARAM_EFFECTS` is through `paramEffect`.
+const ORPHAN_FAMILIES: [&str; 2] = ["A_owned_result", "B_protocol_lifecycle"];
+
+/// `orphaned_awaitables[]` — the OWN053 site list (`spec/OwnIR.md` §9),
+/// validated LAST because it was the last section to join the door
+/// (P-OWN053-DOOR): the list shipped unbound with the promotion, read by both
+/// bridges through the tolerant coercions only, and is bound here because a
+/// default-on advisory is minted from every entry — a malformed entry must be
+/// refused at the door, never rendered as a finding built from the
+/// stringification of garbage. The two name slots first (`identity` — the
+/// finding's event and handler), then the anchor under the same §4.2 rules as
+/// every other coordinate, then the typed optionals; `family` is a closed
+/// vocabulary, treated exactly as a parameter's `effect`.
+fn orphaned_awaitables(obj: &Map<String, Value>) -> Checked {
+    let items = objects(
+        obj,
+        "orphaned_awaitables",
+        "OwnIR 'orphaned_awaitables' must be a JSON array of objects",
+    )?;
+    for it in items {
+        name_slot(it, "local", "orphaned awaitable")?;
+        name_slot(it, "callee", "orphaned awaitable")?;
+        match it.get("file") {
+            Some(Value::String(_)) => {}
+            Some(other) => {
+                return Err(shape(format!(
+                    "orphaned awaitable 'file' must be a string, got {other}"
+                )))
+            }
+            None => {
+                return Err(shape(
+                    "orphaned awaitable 'file' must be a string, got absent",
+                ))
+            }
+        }
+        match it.get("line") {
+            Some(v) if is_representable_int(v) => {
+                line_domain(v.as_i64().unwrap_or(0), "orphaned awaitable", "line")?;
+            }
+            Some(other) => {
+                return Err(shape(format!(
+                    "orphaned awaitable 'line' must be an integer, got {other}"
+                )))
+            }
+            None => {
+                return Err(shape(
+                    "orphaned awaitable 'line' must be an integer, got absent",
+                ))
+            }
+        }
+        column(it.get("column"), "orphaned awaitable")?;
+        optional_string(it, "method", "orphaned awaitable")?;
+        match it.get("family") {
+            None | Some(Value::Null) => {}
+            Some(v) if v.as_str().is_some_and(|f| ORPHAN_FAMILIES.contains(&f)) => {}
+            Some(other) => {
+                return Err(vocabulary(format!(
+                    "orphaned awaitable 'family' must be one of {ORPHAN_FAMILIES:?}, got {other}"
+                )))
+            }
+        }
+        optional_string(it, "result_type", "orphaned awaitable")?;
     }
     Ok(())
 }

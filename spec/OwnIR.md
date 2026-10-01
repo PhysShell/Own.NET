@@ -2,7 +2,7 @@
 
 > **Status: normative, descriptive.** This document specifies the OwnIR fact
 > contract *as it is today*, derived from the working bridge
-> (`ownlang/ownir.py`) and pinned by tests (see [§10 Conformance](#10-conformance)).
+> (`ownlang/ownir.py`) and pinned by tests (see [§11 Conformance](#11-conformance)).
 > Forward-looking ideas live in [`docs/proposals/`](../docs/proposals/), never
 > here.
 
@@ -235,6 +235,11 @@ so a domain the door does not check is not stated by the schema either
 the type); the producer refuses to write a record whose line or column is
 below 1. The instrument step that registers the sidecar at the doors binds
 both coordinates to the domain above, at which point this paragraph goes.
+(The orphaned-awaitable site list of §9 was a second such path for exactly one
+commit — it shipped read through the tolerant coercions only — and was bound
+at both doors by P-OWN053-DOOR once a default-on advisory was minted from it:
+a list a user-facing diagnostic is built from is not inert, and the sidecar
+exception above is the only one left.)
 
 **Flow bodies and protocol event trees nest at most 32 levels.**
 
@@ -514,7 +519,44 @@ the barrier)*. Messages are deliberately line-free so baseline ratchets and
 FP-judge overlays that fingerprint on (path, rule, message) survive unrelated
 edits.
 
-## 9. Rules
+## 9. Orphaned awaitables (`orphaned_awaitables[]`)
+
+An optional, additive top-level array feeding the **OWN053** orphaned-awaitable
+advisory ([Diagnostics.md](Diagnostics.md)). The C# extractor emits one entry per
+local that is initialised by an un-awaited `Task` / `ValueTask` invocation of an
+effectful operation and is never referenced again in its member; a document
+whose extractor saw no such site carries no array at all, so it stays
+byte-identical to the pre-OWN053 shape (`ownir_version` unchanged — the field is
+additive, like `fix_candidates_version`):
+
+```json
+"orphaned_awaitables": [
+  {"file": "Q.cs", "line": 119, "column": 17, "method": "Q.ScheduleRetryAsync",
+   "local": "tx", "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+   "family": "A_owned_result", "result_type": "Npgsql.NpgsqlTransaction"}
+]
+```
+
+Each entry carries `file`, `line`, `column` (the declarator), `method` (the
+enclosing method's canonical name), `local`, `callee` (`Type.Member/arity`),
+`family` (`A_owned_result` — the unwrapped result is a real disposable;
+`B_protocol_lifecycle` — a connection / transaction lifecycle member name) and
+`result_type` (the unwrapped result type, or `null` for a non-generic awaitable).
+The bridge turns every entry into one advisory finding; it never lowers them and
+never makes a verdict out of them. The decision of which sites qualify is the
+frontend's (it owns the syntax and the reference count); the engines only render.
+Both strict doors validate the list, last in BR-D1 order (after
+`protocol_functions`; P-OWN053-DOOR): it must be an array of objects; each entry
+carries non-empty `local` and `callee` (name slots), a string `file`, a `line`
+in the §4.2 domain, an optional `column` under the same rules as every other
+column, `method` and `result_type` as string-or-null, and `family` from the
+closed set `A_owned_result` / `B_protocol_lifecycle` when present. The tolerant
+door (`check_facts` on an un-validated document) keeps degrading: an
+out-of-domain line reads as 0, an out-of-domain column as absent, and an entry
+that is not an object is skipped — two entry points, two contracts, as for
+every other coordinate.
+
+## 10. Rules
 
 - **IR1.** `ownir_version` must equal the core's `OWNIR_VERSION` (or be absent);
   otherwise `load()` raises `OwnIRError`.
@@ -528,7 +570,7 @@ edits.
   never a silently dropped verdict.
 - **IR6.** A frontend emits facts only; all verdicts come from the core.
 
-## 10. Conformance
+## 11. Conformance
 
 Pinned by [`tests/test_ownir.py`](../tests/test_ownir.py) (the bridge suite,
 `python tests/test_ownir.py`), not `test_spec.py` (OwnIR is a bridge contract,

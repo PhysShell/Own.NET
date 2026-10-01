@@ -31,6 +31,7 @@ from ownlang.diagnostics import TITLES
 from ownlang.ownir import (
     _FLOW_OPS,
     _KNOWN_RESOURCE_KINDS,
+    _ORPHAN_FAMILIES,
     _PARAM_EFFECTS,
     OWNIR_VERSION,
     Finding,
@@ -529,6 +530,20 @@ def run() -> int:
         if _se != set(_PARAM_EFFECTS):
             fails.append(f"schema paramEffect enum {sorted(_se)} != code "
                          f"_PARAM_EFFECTS {sorted(_PARAM_EFFECTS)}")
+        # 3c) orphanFamily enum == _ORPHAN_FAMILIES (the load() OWN053-family authority,
+        #     P-OWN053-DOOR) — and the entry's `family` must reach it by $ref, so the
+        #     closed set lives in exactly one place of the schema.
+        checks += 1
+        _sf = set(_defs.get("orphanFamily", {}).get("enum", []))
+        if _sf != set(_ORPHAN_FAMILIES):
+            fails.append(f"schema orphanFamily enum {sorted(_sf)} != code "
+                         f"_ORPHAN_FAMILIES {sorted(_ORPHAN_FAMILIES)}")
+        checks += 1
+        _fam_ref = (_defs.get("orphanedAwaitable", {}).get("properties", {})
+                    .get("family", {}).get("$ref"))
+        if _fam_ref != "#/$defs/orphanFamily":
+            fails.append("schema orphanedAwaitable.family must $ref orphanFamily, "
+                         f"got {_fam_ref!r}")
         # 4) flowOp discriminator consts. `_FLOW_OPS` is the lowerer's authoritative
         #    op set (the _lower_flow `else` rejects anything outside it as vocabulary
         #    skew). Bind the schema to it BOTH ways: (a) the schema's oneOf consts must
@@ -2000,9 +2015,63 @@ def run() -> int:
     # OWN052) must be registered in the catalogue — a spec that references an
     # unregistered code, or a dropped code, is drift the build must catch.
     checks += 1
-    missing = [c for c in ("OWN051", "OWN052") if c not in TITLES]
+    missing = [c for c in ("OWN051", "OWN052", "OWN053") if c not in TITLES]
     if missing:
-        fails.append(f"Inference.md names unregistered code(s): {missing}")
+        fails.append(f"Inference.md / Diagnostics.md name unregistered code(s): {missing}")
+    # OWN053 "orphaned awaitable" (ownership-semantics-lab H-29, promoted): the
+    # extractor's additive top-level `orphaned_awaitables` list is surfaced as ONE
+    # advisory per entry through the OWN050 side path — never a verdict, never the
+    # exit code — and a document without the list (the extractor saw no site, or a
+    # pre-OWN053 producer) carries none. The message tells the author what to do
+    # (await / return / store and observe, or express fire-and-forget) and offers no
+    # automatic fix.
+    checks += 1
+    orphan_facts = {"module": "M", "functions": [], "orphaned_awaitables": [
+        {"file": "Q.cs", "line": 119, "column": 17, "method": "Q.ScheduleRetryAsync",
+         "local": "tx", "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+         "family": "A_owned_result", "result_type": "Npgsql.NpgsqlTransaction"}]}
+    o53 = check_facts(orphan_facts)
+    got53 = [(x.file, x.line, x.column, x.code, x.advisory, x.component, x.event,
+              x.handler) for x in o53]
+    if got53 != [("Q.cs", 119, 17, "OWN053", True, "Q.ScheduleRetryAsync", "tx",
+                  "Npgsql.NpgsqlConnection.BeginTransactionAsync/1")]:
+        fails.append(f"OWN053: one advisory per orphaned_awaitables entry, got {got53}")
+    elif ("obtained and lost" not in o53[0].message
+          or "its result Npgsql.NpgsqlTransaction is never released" not in o53[0].message
+          or "express fire-and-forget explicitly" not in o53[0].message):
+        fails.append(f"OWN053 message drifted: {o53[0].message!r}")
+    checks += 1
+    bare = check_facts({"module": "M", "functions": []})
+    if any(x.code == "OWN053" for x in bare):
+        fails.append("OWN053 must not fire without an orphaned_awaitables list")
+    checks += 1
+    nores = check_facts({"module": "M", "functions": [], "orphaned_awaitables": [
+        {"file": "Q.cs", "line": 5, "method": "Q.M", "local": "c",
+         "callee": "Npgsql.NpgsqlTransaction.CommitAsync/1", "family": "B_protocol_lifecycle",
+         "result_type": None}]})
+    if len(nores) != 1 or "there is no result to release" not in nores[0].message:
+        fails.append("OWN053 on a non-generic awaitable must say there is no result: "
+                     f"{[x.message for x in nores]}")
+    # `check_facts` on a dict is the TOLERANT entry: it never runs the strict door, so
+    # the coercions are its only guard on these coordinates — an out-of-domain line
+    # degrades to 0 (file-level, never clamped to a real line) and an out-of-domain
+    # column to absent; an entry that is not an object is skipped, and a list that is
+    # not a list reads as no list. The strict door's refusal of exactly these
+    # documents is pinned by the cp1 ledger (tests/test_ownir_validation_fixtures.py,
+    # section orphaned_awaitables), which is why the schema def is BOUND there.
+    checks += 1
+    degraded = check_facts({"module": "M", "functions": [], "orphaned_awaitables": [
+        {"file": "Q.cs", "line": 2 ** 31, "column": 0, "local": "a", "callee": "T.A/0"},
+        {"file": "Q.cs", "line": -1, "column": 2 ** 31, "local": "b", "callee": "T.B/0"},
+        "not an entry",
+        {"file": "Q.cs", "line": True, "column": True, "local": "c", "callee": "T.C/0"}]})
+    gotd = sorted((x.event, x.line, x.column) for x in degraded if x.code == "OWN053")
+    if gotd != [("a", 0, None), ("b", 0, None), ("c", 0, None)]:
+        fails.append(f"OWN053 coordinates must degrade, never clamp or raise: {gotd}")
+    checks += 1
+    notlist = check_facts({"module": "M", "functions": [], "orphaned_awaitables": {"x": 1}})
+    if any(x.code == "OWN053" for x in notlist):
+        fails.append("OWN053: a non-list orphaned_awaitables must read as no list")
     # (§10 q2) same-name OVERLOADS are merged, not dropped: when EVERY overload of a
     # name consumes the forwarded arg, a forward to that name resolves to `must`, so a
     # caller using the local after the handoff is OWN002. Before the merge the name was

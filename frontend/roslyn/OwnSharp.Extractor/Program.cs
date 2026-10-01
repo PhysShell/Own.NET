@@ -486,6 +486,49 @@ static IEnumerable<string> Expand(IEnumerable<string> roots)
 // A finding's file is reported relative to the current directory (the repo root
 // in CI / under the Action), with forward slashes — so a GitHub annotation or an
 // MSBuild diagnostic points at the right file even when two files share a name.
+// ===== OWN053 "orphaned awaitable" (promoted from ownership-semantics-lab H-29; Own.NET-paperwork h29-prereg-v1.json,
+// h29-rule-prereg-v1.json, h29-promotion-v1.json, p-own053-door-v1.json). For every local declared with an UN-AWAITED
+// invocation returning Task / Task<T> / ValueTask / ValueTask<T> (through parentheses / ConfigureAwait) whose operation
+// is effectful — the unwrapped result is a real disposable (family A) or the member is a connection / transaction /
+// persistence lifecycle call (family B) — and that is never referenced again in its member, nor declared inside a
+// lambda / local function, one entry goes into the ADDITIVE top-level facts list `orphaned_awaitables`, from which
+// both engines mint the advisory OWN053. The scope is frozen as measured: discards (`_ = …`), bare statements and
+// stored / passed / returned awaitables stay out, the family vocabulary grows only by witnesses, nothing is lowered.
+static void CollectOrphanedAwaitables(BlockSyntax mbody, SemanticModel model)
+{
+    static bool IsAwaitable(ITypeSymbol? t) => t is INamedTypeSymbol n && ((n.ContainingNamespace?.ToString() == "System.Threading.Tasks" && n.Name is "Task" or "ValueTask") || (n.ContainingNamespace?.ToString() == "System.Runtime.CompilerServices" && n.Name is "ConfiguredTaskAwaitable" or "ConfiguredValueTaskAwaitable"));
+    static ITypeSymbol? Result(ITypeSymbol? t) => t is INamedTypeSymbol { IsGenericType: true } n ? n.TypeArguments[0] : null;
+    static bool Lifecycle(string n) => n is "BeginTransaction" or "BeginTransactionAsync" or "Commit" or "CommitAsync" or "Rollback" or "RollbackAsync" or "Open" or "OpenAsync" or "Close" or "CloseAsync" or "DisposeAsync" or "SaveChangesAsync" or "FlushAsync";
+    static string Key(IMethodSymbol m) => $"{m.ContainingType.ToDisplayString()}.{m.Name}/{m.Parameters.Length}";
+    // the invocation behind an awaitable expression: strip parentheses and a trailing .ConfigureAwait(...)
+    static InvocationExpressionSyntax? Core(ExpressionSyntax e)
+    {
+        while (e is ParenthesizedExpressionSyntax p) e = p.Expression;
+        if (e is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "ConfigureAwait" } cma }) { e = cma.Expression; while (e is ParenthesizedExpressionSyntax p2) e = p2.Expression; }
+        return e as InvocationExpressionSyntax;
+    }
+    foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
+    {
+        if (ld.UsingKeyword.RawKind > 0) continue;
+        foreach (var v in ld.Declaration.Variables)
+        {
+            if (v.Initializer?.Value is not { } init || model.GetDeclaredSymbol(v) is not ILocalSymbol ls) continue;
+            if (!IsAwaitable(model.GetTypeInfo(init).Type)) continue;
+            var inv = Core(init); if (inv is null || model.GetSymbolInfo(inv).Symbol is not IMethodSymbol m) continue;
+            var res = Result(m.ReturnType);
+            var fam = res is not null && ImplementsIDisposable(res) && !IsDisposeOptional(res) && !HasEmptyDisposeBody(res) ? "A_owned_result" : Lifecycle(m.Name) ? "B_protocol_lifecycle" : null;
+            if (fam is null) continue;
+            // zero later references in the member: the strict primary of the frozen scope
+            var refs = mbody.DescendantNodes().OfType<IdentifierNameSyntax>().Count(id => id.Identifier.Text == ls.Name && SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, ls));
+            if (refs != 0) continue;
+            if (v.Ancestors().TakeWhile(a => a != mbody).Any(a => a is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax)) continue;
+            var member = v.Ancestors().OfType<MemberDeclarationSyntax>().FirstOrDefault();
+            var pos = PosOf(v);
+            lock (OrphanedAwaitables.Sites) OrphanedAwaitables.Sites.Add(new { file = Rel(v.SyntaxTree.FilePath), line = pos.Line, column = pos.Column, method = member is BaseMethodDeclarationSyntax bmd ? FlowFunctionName(bmd, "?", model) : (member?.Kind().ToString() ?? "?"), local = ls.Name, callee = Key(m), family = fam, result_type = res?.ToDisplayString() });
+        }
+    }
+}
+
 static string Rel(string path) =>
     Path.GetRelativePath(Directory.GetCurrentDirectory(), path).Replace('\\', '/');
 
@@ -6991,6 +7034,9 @@ foreach (var (file, tree) in parsed)
                             // pool / BCL-factory initializers keep their existing classification.
                             candidates.Add(v.Identifier.Text);
                 }
+                // OWN053 (promoted from ownership-semantics-lab H-29): the orphaned-awaitable sites of this body,
+                // always on under --flow-locals (the own-check default); the frozen scope is the detector's own comment.
+                CollectOrphanedAwaitables(mbody, model);
                 // `using (IMemoryOwner owner = MemoryPool.Rent(...)) { … }` STATEMENT form: track the owner
                 // too, so its returned view dangles after the scope-exit dispose (the desugar mirrors the
                 // `using` DECLARATION form handled in the loop above).
@@ -7227,6 +7273,20 @@ object facts = emitFixCandidates
         functions = flowFunctions,
         stats = factStats,
     }
+    // OWN053 (promoted from ownership-semantics-lab H-29): an ADDITIVE top-level list of orphaned awaitables from which
+    // both engines mint the advisory; absent when there is no site, so such a document stays byte-identical to the
+    // pre-OWN053 shape (and `ownir_version` stays 0: the field is additive, like `fix_candidates_version`).
+    : OrphanedAwaitables.Sites.Count > 0
+    ? new
+    {
+        ownir_version = 0,
+        module = "Extracted",
+        components,
+        services = factServices,
+        functions = flowFunctions,
+        stats = factStats,
+        orphaned_awaitables = OrphanedAwaitables.Sites.OrderBy(o => JsonSerializer.Serialize(o), StringComparer.Ordinal).ToList(),
+    }
     : new
     {
         ownir_version = 0,
@@ -7294,6 +7354,14 @@ partial class Program
     // which also serializes `end_line`/`end_column`. Two types rather than one so the fix
     // block and the anchors keep sharing one definition instead of forking a second
     // "compute the position of a node" path — which is precisely what this change removes.
+    // OWN053 (promoted from ownership-semantics-lab H-29): the orphaned-awaitable sites of a run, collected by
+    // CollectOrphanedAwaitables under --flow-locals and serialized as the ADDITIVE top-level facts list
+    // `orphaned_awaitables` (absent when empty, so such a document is byte-identical to the pre-OWN053 shape).
+    static class OrphanedAwaitables
+    {
+        internal static readonly List<object> Sites = new();
+    }
+
     internal readonly record struct SourcePos(int Line, int Column);
 
     internal readonly record struct SourceRange(SourcePos Start, SourcePos End);

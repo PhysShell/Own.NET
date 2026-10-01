@@ -78,7 +78,7 @@
 | Behavior | Source | Rule | Pinned by | Layer |
 |---|---|---|---|---|
 | DI graph finders' verdict sets + messages + anchor metadata (DI001/002/003/004/005 unit layer) | `ownlang/di.py` (not the bridge) | BR-B1, BR-P1 | L805–L1048 (18) | (core suite) |
-| advisory codes OWN051/OWN052 registered in `TITLES` (spec↔code drift guard) | `diagnostics.TITLES` | INF-P2/P3 | L1937 | — |
+| advisory codes OWN051/OWN052/OWN053 registered in `TITLES` (spec↔code drift guard) | `diagnostics.TITLES` | INF-P2/P3 | L1937 | — |
 | effects re-validation skip-not-coerce; protocol first-wins on tolerant door | `_effect_findings`, `_protocol_findings` | BR-D2, BR-P2/P3 | (pinned in `test_effects.py` / `test_obligations.py`) | L3 ✅ |
 | obligation protocols: the lattice, the leaf order, the exits, the loop's single emission, the evidence and the sort key | `ownlang/obligations.py` (not the bridge) | BR-B1, BR-P3 | `test_obligations.py` §1 + `tests/test_obligation_fact_parity.py` | (core suite) |
 | protocol verdict mapping: `(kind, definite)` → OBL001–004, the four line-free wordings, component/handler, the opened→barrier(→late-close) slice, the anchorless OBL005 | `_protocol_findings`, `_protocol_message` | BR-P3, BR-V4/V5/V6 | `test_obligations.py` §3 + the `verdict_protocol_*` Layer 3 cases | L3 ✅ |

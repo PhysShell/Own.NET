@@ -11,17 +11,17 @@
     "well_formedness": "right types, legal vocabulary, and the record still cannot mean anything"
   },
   "totals": {
-    "cases": 294,
-    "accepted": 60,
-    "rejected": 234,
+    "cases": 344,
+    "accepted": 69,
+    "rejected": 275,
     "by_category": {
-      "accepted": 60,
-      "identity": 22,
+      "accepted": 69,
+      "identity": 33,
       "json": 2,
-      "location": 50,
-      "shape": 132,
+      "location": 57,
+      "shape": 151,
       "version": 7,
-      "vocabulary": 19,
+      "vocabulary": 23,
       "well_formedness": 2
     }
   },
@@ -7887,6 +7887,1010 @@
       "verdict": "reject",
       "category": "location",
       "message": "function body op 'acquire' 'line' must be a source line in [0, 2147483647], got -1 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "accept-orphaned-empty-list",
+      "why": "the list present and empty: nothing to check",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": []
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-orphaned-minimal",
+      "why": "the four required fields alone (local, callee, file, line) — the optionals are optional",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-orphaned-full-family-a",
+      "why": "a complete family-A entry as the extractor writes it: column, method, family and the unwrapped result type",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "column": 17,
+            "method": "Q.ScheduleRetryAsync",
+            "family": "A_owned_result",
+            "result_type": "Npgsql.NpgsqlTransaction"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-orphaned-family-b-null-result",
+      "why": "a family-B entry: a non-generic awaitable has no result type, so `result_type` is an explicit null, and `method` / `column` may be null too",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "c",
+            "callee": "Npgsql.NpgsqlTransaction.CommitAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "family": "B_protocol_lifecycle",
+            "result_type": null,
+            "method": null,
+            "column": null
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-orphaned-two-entries",
+      "why": "entries are independent records; two valid ones are two sites",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119
+          },
+          {
+            "local": "r",
+            "callee": "Npgsql.NpgsqlCommand.ExecuteReaderAsync/1",
+            "file": "Q.cs",
+            "line": 120
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "orphaned-not-array",
+      "why": "the section must be an array of objects",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": {
+          "local": "tx"
+        }
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "OwnIR 'orphaned_awaitables' must be a JSON array of objects"
+    },
+    {
+      "name": "orphaned-null-section",
+      "why": "…and a PRESENT null is not absent",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": null
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "OwnIR 'orphaned_awaitables' must be a JSON array of objects"
+    },
+    {
+      "name": "orphaned-entry-not-object",
+      "why": "an entry that is a scalar",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          7
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "OwnIR 'orphaned_awaitables' must be a JSON array of objects"
+    },
+    {
+      "name": "orphaned-entry-null",
+      "why": "…and null is not a record",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          null
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "OwnIR 'orphaned_awaitables' must be a JSON array of objects"
+    },
+    {
+      "name": "orphaned-entry-string",
+      "why": "…nor is a bare string, however much it looks like a local",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          "tx"
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "OwnIR 'orphaned_awaitables' must be a JSON array of objects"
+    },
+    {
+      "name": "orphaned-local-empty",
+      "why": "`local` is the finding's event slot — a name slot, so empty is `identity`",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "orphaned awaitable 'local' must be a non-empty string, got ''"
+    },
+    {
+      "name": "orphaned-local-absent",
+      "why": "…and it is required",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "orphaned awaitable 'local' must be a non-empty string, got None"
+    },
+    {
+      "name": "orphaned-local-not-string",
+      "why": "…and a list is not a name — the exact shape the unbound list rendered as a finding",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": [
+              "what",
+              "is",
+              "this"
+            ],
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "orphaned awaitable 'local' must be a non-empty string, got ['what', 'is', 'this']"
+    },
+    {
+      "name": "orphaned-local-null",
+      "why": "…and null is not a name either",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": null,
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "orphaned awaitable 'local' must be a non-empty string, got None"
+    },
+    {
+      "name": "orphaned-callee-empty",
+      "why": "`callee` is the finding's handler slot (Type.Member/arity) — a name slot",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "",
+            "file": "Q.cs",
+            "line": 119
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "orphaned awaitable 'callee' must be a non-empty string, got ''"
+    },
+    {
+      "name": "orphaned-callee-absent",
+      "why": "…and it is required",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "file": "Q.cs",
+            "line": 119
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "orphaned awaitable 'callee' must be a non-empty string, got None"
+    },
+    {
+      "name": "orphaned-callee-not-string",
+      "why": "…and an object is not a name",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": {
+              "oops": 1
+            },
+            "file": "Q.cs",
+            "line": 119
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "orphaned awaitable 'callee' must be a non-empty string, got {'oops': 1}"
+    },
+    {
+      "name": "orphaned-file-absent",
+      "why": "`file` is required (the anchor's file)",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "line": 119
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "orphaned awaitable 'file' must be a string, got None"
+    },
+    {
+      "name": "orphaned-file-not-string",
+      "why": "…and it must be a string",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": 7,
+            "line": 119
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "orphaned awaitable 'file' must be a string, got 7"
+    },
+    {
+      "name": "orphaned-file-null",
+      "why": "…a present null included",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": null,
+            "line": 119
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "orphaned awaitable 'file' must be a string, got None"
+    },
+    {
+      "name": "orphaned-line-absent",
+      "why": "`line` is required — unlike the defaulted lines elsewhere, an entry with no line is not a site",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "orphaned awaitable 'line' must be an integer, got None"
+    },
+    {
+      "name": "orphaned-line-string",
+      "why": "a string line has no integer form",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": "119"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "orphaned awaitable 'line' must be an integer, got '119'"
+    },
+    {
+      "name": "orphaned-line-bool",
+      "why": "…and the bool-is-int trap",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": true
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "orphaned awaitable 'line' must be an integer, got True"
+    },
+    {
+      "name": "orphaned-line-null",
+      "why": "…and a present null",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": null
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "orphaned awaitable 'line' must be an integer, got None"
+    },
+    {
+      "name": "orphaned-line-float",
+      "why": "…and a float, which is not a coordinate",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 1.5
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "orphaned awaitable 'line' must be an integer, got 1.5"
+    },
+    {
+      "name": "orphaned-line-below-i64",
+      "why": "a line with no signed-64 form: `shape` by mechanism, on the other axis from the domain controls below",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": -9223372036854775809
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "orphaned awaitable 'line' must fit a signed 64-bit integer, got -9223372036854775809 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "accept-orphaned-column-one",
+      "why": "the 1-based boundary on the site column",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "column": 1
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "orphaned-column-zero",
+      "why": "the same column contract as every other column: 0 is a producer bug, not 'unknown'",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "column": 0
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "orphaned awaitable 'column' must be a 1-based integer or absent, got 0"
+    },
+    {
+      "name": "orphaned-column-negative",
+      "why": "…negative likewise",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "column": -1
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "orphaned awaitable 'column' must be a 1-based integer or absent, got -1"
+    },
+    {
+      "name": "orphaned-column-bool",
+      "why": "…and the bool-is-int trap on the column",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "column": true
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "orphaned awaitable 'column' must be a 1-based integer or absent, got True"
+    },
+    {
+      "name": "orphaned-column-string",
+      "why": "…and a string, which has no integer form to be 1-based about",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "column": "17"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "orphaned awaitable 'column' must be a 1-based integer or absent, got '17'"
+    },
+    {
+      "name": "orphaned-method-not-string",
+      "why": "`method` is a string or null",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "method": 7
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "orphaned awaitable 'method' must be a string or null, got 7"
+    },
+    {
+      "name": "orphaned-family-unknown",
+      "why": "`family` is a closed set: a third family does not exist until a witness earns it",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "family": "C_whatever"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "orphaned awaitable 'family' must be one of ['A_owned_result', 'B_protocol_lifecycle'], got 'C_whatever'"
+    },
+    {
+      "name": "orphaned-family-not-string",
+      "why": "…and a non-string is outside the set the same way a non-string parameter effect is",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "family": 7
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "orphaned awaitable 'family' must be one of ['A_owned_result', 'B_protocol_lifecycle'], got 7"
+    },
+    {
+      "name": "orphaned-family-empty",
+      "why": "…and so is the empty string",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "family": ""
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "orphaned awaitable 'family' must be one of ['A_owned_result', 'B_protocol_lifecycle'], got ''"
+    },
+    {
+      "name": "orphaned-result-type-not-string",
+      "why": "`result_type` is a string or null — the number the unbound list would have rendered as a type name",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "result_type": 12345
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "orphaned awaitable 'result_type' must be a string or null, got 12345"
+    },
+    {
+      "name": "orphaned-order-local-before-callee",
+      "why": "both name slots broken: `local` is checked first — observable only through the message, so the control pins the identity category and the pair is kept for a reader",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "",
+            "callee": 7,
+            "file": "Q.cs",
+            "line": 119
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "orphaned awaitable 'local' must be a non-empty string, got ''"
+    },
+    {
+      "name": "orphaned-order-callee-before-file",
+      "why": "identity precedes the anchor: a broken callee outranks a missing file",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "",
+            "line": 119
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "orphaned awaitable 'callee' must be a non-empty string, got ''"
+    },
+    {
+      "name": "orphaned-order-file-before-line",
+      "why": "…and the file precedes the line",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": 7,
+            "line": -1
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "orphaned awaitable 'file' must be a string, got 7"
+    },
+    {
+      "name": "orphaned-order-line-before-column",
+      "why": "…the line's domain precedes the column's type (§4.1 order)",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": -1,
+            "column": true
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "orphaned awaitable 'line' must be a source line in [0, 2147483647], got -1 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "orphaned-order-column-before-family",
+      "why": "…and the column precedes the family vocabulary",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "column": 0,
+            "family": "C_whatever"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "orphaned awaitable 'column' must be a 1-based integer or absent, got 0"
+    },
+    {
+      "name": "orphaned-order-family-before-result-type",
+      "why": "…and the family precedes the result type",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "family": "C_whatever",
+            "result_type": 7
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "orphaned awaitable 'family' must be one of ['A_owned_result', 'B_protocol_lifecycle'], got 'C_whatever'"
+    },
+    {
+      "name": "order-protocol-functions-before-orphaned",
+      "why": "across sections: `protocol_functions` is validated before `orphaned_awaitables`, so a protocol function without a name (identity) outranks a non-array site list (shape)",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "file": "a.cs"
+          }
+        ],
+        "orphaned_awaitables": {
+          "a": 1
+        }
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "protocol function: 'name' must be a non-empty string, got None"
+    },
+    {
+      "name": "order-orphaned-is-last",
+      "why": "…and nothing is validated after it: a document whose only defect is in the site list reports that defect",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "components": [],
+        "services": [],
+        "effects": [],
+        "functions": [],
+        "protocols": [],
+        "protocol_functions": [],
+        "orphaned_awaitables": [
+          {
+            "local": "",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "orphaned awaitable 'local' must be a non-empty string, got ''"
+    },
+    {
+      "name": "accept-orphaned-line-zero",
+      "why": "`0` is the bottom of the domain and means 'unknown / file-level'",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 0
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-orphaned-line-at-int32-max",
+      "why": "…and 2147483647 is the top, accepted exactly",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 2147483647
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "orphaned-line-negative",
+      "why": "one below the bottom: a representable coordinate outside its domain, so `location` rather than `shape`",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": -1
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "orphaned awaitable 'line' must be a source line in [0, 2147483647], got -1 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "orphaned-line-above-int32",
+      "why": "…and one above the top — the value the unbound list degraded to 0 and the strict door now refuses",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 2147483648
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "orphaned awaitable 'line' must be a source line in [0, 2147483647], got 2147483648 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "accept-orphaned-column-at-int32-max",
+      "why": "the top of the column domain, accepted exactly",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "column": 2147483647
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "orphaned-column-above-int32",
+      "why": "…and one past it: representable, positive, and outside the domain — `location`, the same axis the 1-based rule is on",
+      "section": "orphaned_awaitables",
+      "document": {
+        "ownir_version": 0,
+        "orphaned_awaitables": [
+          {
+            "local": "tx",
+            "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+            "file": "Q.cs",
+            "line": 119,
+            "column": 2147483648
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "orphaned awaitable 'column' must be a source column in [1, 2147483647], got 2147483648 (spec/OwnIR.md §4.2)"
     }
   ]
 }

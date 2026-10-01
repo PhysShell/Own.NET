@@ -70,7 +70,11 @@ array) → `effects[]` (`deps` strings, `io` bool, `line` int, `bindings`
 non-empty `name`, `line` int, `effect` ∈ `_PARAM_EFFECTS` when present) →
 `protocols[]` via the shared obligation parser (fail-loud; **duplicate protocol
 names rejected** — the name is the identity verdicts map back by) →
-`protocol_functions[]` via the shared method parser. Every violation raises
+`protocol_functions[]` via the shared method parser → `orphaned_awaitables[]`
+(the OWN053 site list, [OwnIR.md §9](OwnIR.md); array of objects; each entry:
+non-empty `local` and `callee`, `file` string, `line` int-not-bool in the §4.2
+domain, `column`, `method` / `result_type` string-or-null, `family` ∈
+`_ORPHAN_FAMILIES` when present). Every violation raises
 `OwnIRError` with an actionable message, never a bare traceback.
 
 **BR-D2 (the tolerant door).** `check_facts(facts)` (and `to_module`/`to_own`)
@@ -271,7 +275,8 @@ OBL005 (dead rule) is advisory and anchorless.
 **BR-V1 (the pipeline).** `check_facts` = `to_module` → `check_module(mod)` →
 map **ERROR-severity core diagnostics only** (sub-error core diagnostics are
 not mapped) → append, in order: DI findings, effect findings, protocol
-findings, OWN050 advisories, OWN051 notes (minted during lowering), OWN052
+findings, OWN050 advisories, OWN053 orphaned-awaitable notes (one per
+`orphaned_awaitables[]` entry), OWN051 notes (minted during lowering), OWN052
 notes (one per solve-failure reason; anchorless: `file="?"`, `line=0`) →
 dedup (BR-V7) → sort (BR-V8).
 
@@ -335,7 +340,7 @@ divergence collapsing is OD-5.)
 
 **BR-V8 (ordering).** The final list is stably sorted by
 `(file, line, code)`; ties keep pre-sort insertion order (core → DI → effects
-→ protocols → OWN050 → OWN051 → OWN052, each in its own construction order).
+→ protocols → OWN050 → OWN053 → OWN051 → OWN052, each in its own construction order).
 
 **BR-V9 (rendering).** `render`/`render_github`/`render_msbuild`/`build_sarif`
 are pure functions of the finding list (plus the host severity choice):
