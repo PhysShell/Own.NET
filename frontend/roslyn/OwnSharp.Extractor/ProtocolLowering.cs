@@ -117,7 +117,17 @@ internal static class ProtocolLowering
                 if (model.GetDeclaredSymbol(method) is not IMethodSymbol msym)
                     continue;
                 if (IsApiType(msym.ContainingType))
-                    continue;   // the protocol API itself: its tokens' own bodies are not user code
+                {
+                    // The protocol's own types are TRUSTED: their bodies implement the
+                    // protocol and are not lowered. So a region OPENED in one of them — a
+                    // handler written next to the region entry it calls — would never be
+                    // analysed and would read as clean. Trusted is not the same as checked.
+                    foreach (var opened in method.DescendantNodes().OfType<InvocationExpressionSyntax>()
+                                 .Where(i => IsRegionEntry(MethodOf(model, i))))
+                        refusals.Add(At(file, opened,
+                            $"a protocol region is opened inside '{msym.ContainingType.Name}', one of the protocol's own types: code there implements the protocol and is not analysed, so this region would read as clean. Use the protocol from outside the types that declare it"));
+                    continue;
+                }
                 try
                 {
                     foreach (var p in msym.Parameters)

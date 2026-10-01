@@ -135,6 +135,10 @@ not skipped: the extractor exits `2` and writes no facts, for the whole scan.
   `nameof`, `typeof` and reads are mentions, not operations.
 - *Source.* The protocol and its entity must be in the scan as source; one that
   arrives only as a compiled reference cannot be admitted.
+- *Trusted types.* The types that declare a protocol (the tokens, the class
+  holding a region entry) implement it and are not analysed as user code. A
+  region opened inside one of them is refused rather than skipped: write the
+  code that uses a protocol outside the types that declare it.
 - *Binding.* The scan does not read `obj/`, so usings a project only gets
   **implicitly** are not there. A region whose entity does not bind is refused;
   write the usings out in the files that open regions (or qualify the names).

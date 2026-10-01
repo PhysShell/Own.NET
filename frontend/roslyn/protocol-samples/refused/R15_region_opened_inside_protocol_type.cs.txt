@@ -1,0 +1,41 @@
+using System;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// The types that DECLARE a protocol are trusted: their bodies are the protocol, and the
+// lowering does not read them as user code. A handler written in the same class as the
+// region entry it calls would therefore never be analysed — and this one spends a token
+// twice. It is refused, not skipped: an unanalysed region must not read as a clean one.
+public sealed class Parcel
+{
+    public bool Sent { get; private set; }
+
+    internal void MarkSent() => Sent = true;
+}
+
+[ProtocolToken]
+public readonly ref struct PackedParcel
+{
+    private readonly Parcel _parcel;
+    internal PackedParcel(Parcel parcel) => _parcel = parcel;
+
+    public void Send() => _parcel.MarkSent();
+}
+
+public delegate void PackedParcelRegion(PackedParcel packed);
+
+public static class ParcelHandlers
+{
+    [ProtocolRegion]
+    public static void WithPacked(Parcel parcel, PackedParcelRegion body) => body(new PackedParcel(parcel));
+
+    public static void Dispatch(Parcel parcel)
+    {
+        WithPacked(parcel, packed =>
+        {
+            packed.Send();
+            packed.Send();           // a stale token: OWN002 anywhere else
+        });
+    }
+}
