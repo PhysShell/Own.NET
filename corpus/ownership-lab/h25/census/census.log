@@ -1,0 +1,9 @@
+H25_DONE NpgsqlRest/NpgsqlRest units 12 fails 0 await writes 1576 by kind/awaited/trusted {('test', 'invocation', False): 1539, ('production', 'invocation', False): 36, ('test', 'local_or_name', False): 1} production trusted 0
+H25_DONE victor-wiki/DatabaseManager units 14 fails 0 await writes 15 by kind/awaited/trusted {('production', 'invocation', False): 15} production trusted 0
+H25_DONE quartznet/quartznet units 41 fails 0 await writes 253 by kind/awaited/trusted {('test', 'invocation', False): 183, ('production', 'invocation', False): 68, ('test', 'local_or_name', False): 2} production trusted 0
+H25_DONE JasperFx/weasel units 43 fails 0 await writes 574 by kind/awaited/trusted {('test', 'invocation', False): 482, ('production', 'invocation', False): 92} production trusted 0
+H25_DONE erikdarlingdata/PerformanceMonitor units 16 fails 0 await writes 428 by kind/awaited/trusted {('production', 'invocation', False): 408, ('test', 'invocation', False): 20} production trusted 0
+H25_DONE JasperFx/marten units 105 fails 0 await writes 652 by kind/awaited/trusted {('test', 'invocation', False): 425, ('production', 'invocation', False): 217, ('production', 'invocation', True): 10} production trusted 10
+H25_DONE JasperFx/wolverine units 240 fails 0 await writes 1421 by kind/awaited/trusted {('test', 'invocation', False): 763, ('production', 'invocation', False): 656, ('test', 'local_or_name', False): 2} production trusted 0
+H25_DONE mikependon/RepoDB units 301 fails 0 await writes 81 by kind/awaited/trusted {('production', 'invocation', False): 72, ('production', 'invocation', True): 3, ('test', 'invocation', False): 6} production trusted 3
+H25_CENSUS_DONE

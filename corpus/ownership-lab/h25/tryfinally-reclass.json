@@ -1,0 +1,1190 @@
+{
+ "schema": "own.net/h25/tryfinally-reclass/v1",
+ "try_class_production_locals": 36,
+ "ownership_readings": {
+  "no await write (sync kinds only)": 23,
+  "clean: awaited value disposed in finally": 3,
+  "disposed elsewhere in the member": 3,
+  "NOT disposed in the member (candidate for a finding, needs triage)": 7
+ },
+ "write_class_combinations": {
+  "null": 1,
+  "trusted": 3,
+  "owning_factory": 1,
+  "other": 8,
+  "first_party": 5,
+  "library_no_row": 5,
+  "new_disposable+other+trusted_row": 1,
+  "first_party_factory": 8,
+  "new_disposable": 4
+ },
+ "single_write_null_init": 24,
+ "rows": [
+  {
+   "repo": "JasperFx/marten",
+   "file": "src/Marten/Events/BulkEventAppender.cs",
+   "line": 130,
+   "local": "writer",
+   "type": "Npgsql.NpgsqlBinaryImporter?",
+   "member": "BulkInsertEventStreamAsync",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 162,
+     "h24_kind": "null",
+     "await": false,
+     "callable": "NullLiteralExpression",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "null"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "JasperFx/marten",
+   "file": "src/Marten/Events/BulkEventAppender.cs",
+   "line": 266,
+   "local": "writer",
+   "type": "Npgsql.NpgsqlBinaryImporter?",
+   "member": "copyStreamHeaders",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 280,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "Npgsql.NpgsqlConnection.BeginBinaryImportAsync/2",
+     "trusted_row": true,
+     "first_party": false,
+     "logical_disposable": true,
+     "callable_assembly": "Npgsql"
+    }
+   ],
+   "write_classes": [
+    "trusted"
+   ],
+   "any_await": true,
+   "disposed_in_finally": true,
+   "disposed_somewhere": true,
+   "ownership_reading": "clean: awaited value disposed in finally"
+  },
+  {
+   "repo": "JasperFx/marten",
+   "file": "src/Marten/Events/BulkEventAppender.cs",
+   "line": 477,
+   "local": "writer",
+   "type": "Npgsql.NpgsqlBinaryImporter?",
+   "member": "copyStreams",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 491,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "Npgsql.NpgsqlConnection.BeginBinaryImportAsync/2",
+     "trusted_row": true,
+     "first_party": false,
+     "logical_disposable": true,
+     "callable_assembly": "Npgsql"
+    }
+   ],
+   "write_classes": [
+    "trusted"
+   ],
+   "any_await": true,
+   "disposed_in_finally": true,
+   "disposed_somewhere": true,
+   "ownership_reading": "clean: awaited value disposed in finally"
+  },
+  {
+   "repo": "JasperFx/marten",
+   "file": "src/Marten/Events/BulkEventAppender.cs",
+   "line": 596,
+   "local": "writer",
+   "type": "Npgsql.NpgsqlBinaryImporter?",
+   "member": "copyEvents",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 612,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "Npgsql.NpgsqlConnection.BeginBinaryImportAsync/2",
+     "trusted_row": true,
+     "first_party": false,
+     "logical_disposable": true,
+     "callable_assembly": "Npgsql"
+    }
+   ],
+   "write_classes": [
+    "trusted"
+   ],
+   "any_await": true,
+   "disposed_in_finally": true,
+   "disposed_somewhere": true,
+   "ownership_reading": "clean: awaited value disposed in finally"
+  },
+  {
+   "repo": "JasperFx/marten",
+   "file": "src/Marten/Linq/CursorPaging/CursorPagination.cs",
+   "line": 279,
+   "local": "document",
+   "type": "System.Text.Json.JsonDocument",
+   "member": "DecodeCursor",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 282,
+     "h24_kind": "owning_factory",
+     "await": false,
+     "callable": "System.Text.Json.JsonDocument.Parse/2",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "owning_factory"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "JasperFx/weasel",
+   "file": "src/Weasel.Postgresql/AdvisoryLock.cs",
+   "line": 123,
+   "local": "orphaned",
+   "type": "Medallion.Threading.Postgres.PostgresDistributedLockHandle?",
+   "member": "TryAttainLockAsync",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 130,
+     "h24_kind": "other",
+     "await": false,
+     "callable": "IdentifierName",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "other"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "JasperFx/wolverine",
+   "file": "src/Persistence/Oracle/Wolverine.Oracle/OracleAdvisoryLock.cs",
+   "line": 185,
+   "local": "conn",
+   "type": "Oracle.ManagedDataAccess.Client.OracleConnection?",
+   "member": "TryAttainLockAsync",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 208,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "Wolverine.Oracle.OracleDataSource.OpenConnectionAsync/1",
+     "trusted_row": false,
+     "first_party": true,
+     "logical_disposable": true,
+     "callable_assembly": "own"
+    }
+   ],
+   "write_classes": [
+    "first_party"
+   ],
+   "any_await": true,
+   "disposed_in_finally": false,
+   "disposed_somewhere": true,
+   "ownership_reading": "disposed elsewhere in the member"
+  },
+  {
+   "repo": "JasperFx/wolverine",
+   "file": "src/Persistence/Oracle/Wolverine.Oracle/OracleAdvisoryLock.cs",
+   "line": 186,
+   "local": "tx",
+   "type": "Oracle.ManagedDataAccess.Client.OracleTransaction?",
+   "member": "TryAttainLockAsync",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 227,
+     "h24_kind": "other",
+     "await": false,
+     "callable": "CastExpression",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "other"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "JasperFx/wolverine",
+   "file": "src/Persistence/Wolverine.RDBMS/Polling/DatabaseOperationBatch.cs",
+   "line": 90,
+   "local": "current",
+   "type": "System.Data.Common.DbCommand?",
+   "member": "ExecuteAsync",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 97,
+     "h24_kind": "other",
+     "await": false,
+     "callable": "ElementAccessExpression",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "other"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "JasperFx/wolverine",
+   "file": "src/Persistence/Wolverine.Sqlite/Sagas/DatabaseSagaSchema.cs",
+   "line": 92,
+   "local": "ownedConnection",
+   "type": "Microsoft.Data.Sqlite.SqliteConnection?",
+   "member": "ensureStorageExistsAsync",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 105,
+     "h24_kind": "other",
+     "await": false,
+     "callable": "CastExpression",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "other"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "JasperFx/wolverine",
+   "file": "src/Transports/Azure/Wolverine.AzureServiceBus/Internal/AzureServiceBusSenderProtocol.cs",
+   "line": 62,
+   "local": "serviceBusMessageBatch",
+   "type": "Azure.Messaging.ServiceBus.ServiceBusMessageBatch",
+   "member": "sendBatches",
+   "write_count": 1,
+   "initializer": "borrowed_or_other",
+   "writes": [
+    {
+     "line": 88,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "Azure.Messaging.ServiceBus.ServiceBusSender.CreateMessageBatchAsync/1",
+     "trusted_row": false,
+     "first_party": false,
+     "logical_disposable": true,
+     "callable_assembly": "Azure.Messaging.ServiceBus"
+    }
+   ],
+   "write_classes": [
+    "library_no_row"
+   ],
+   "any_await": true,
+   "disposed_in_finally": false,
+   "disposed_somewhere": true,
+   "ownership_reading": "disposed elsewhere in the member"
+  },
+  {
+   "repo": "NpgsqlRest/NpgsqlRest",
+   "file": "NpgsqlRest/NpgsqlRestEndpoint.cs",
+   "line": 69,
+   "local": "connection",
+   "type": "Npgsql.NpgsqlConnection?",
+   "member": "InvokeAsync",
+   "write_count": 7,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 112,
+     "h24_kind": "other",
+     "await": false,
+     "callable": "IdentifierName",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    },
+    {
+     "line": 120,
+     "h24_kind": "trusted_row",
+     "await": false,
+     "callable": "Npgsql.NpgsqlDataSource.CreateConnection/0",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    },
+    {
+     "line": 124,
+     "h24_kind": "new_disposable",
+     "await": false,
+     "callable": "ImplicitObjectCreationExpression",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    },
+    {
+     "line": 141,
+     "h24_kind": "trusted_row",
+     "await": false,
+     "callable": "Npgsql.NpgsqlDataSource.CreateConnection/0",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    },
+    {
+     "line": 147,
+     "h24_kind": "other",
+     "await": false,
+     "callable": "Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService/0",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    },
+    {
+     "line": 154,
+     "h24_kind": "trusted_row",
+     "await": false,
+     "callable": "Npgsql.NpgsqlDataSource.CreateConnection/0",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    },
+    {
+     "line": 158,
+     "h24_kind": "new_disposable",
+     "await": false,
+     "callable": "ImplicitObjectCreationExpression",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "new_disposable",
+    "other",
+    "trusted_row"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "NpgsqlRest/NpgsqlRest",
+   "file": "NpgsqlRest/NpgsqlRestEndpoint.cs",
+   "line": 70,
+   "local": "transaction",
+   "type": "Npgsql.NpgsqlTransaction?",
+   "member": "InvokeAsync",
+   "write_count": 2,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 1894,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+     "trusted_row": false,
+     "first_party": false,
+     "logical_disposable": true,
+     "callable_assembly": "Npgsql"
+    },
+    {
+     "line": 1990,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+     "trusted_row": false,
+     "first_party": false,
+     "logical_disposable": true,
+     "callable_assembly": "Npgsql"
+    }
+   ],
+   "write_classes": [
+    "library_no_row"
+   ],
+   "any_await": true,
+   "disposed_in_finally": false,
+   "disposed_somewhere": false,
+   "ownership_reading": "NOT disposed in the member (candidate for a finding, needs triage)"
+  },
+  {
+   "repo": "NpgsqlRest/NpgsqlRest",
+   "file": "NpgsqlRest/NpgsqlRestEndpoint.cs",
+   "line": 78,
+   "local": "recordCacheGate",
+   "type": "System.Threading.SemaphoreSlim?",
+   "member": "InvokeAsync",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 2651,
+     "h24_kind": "first_party_factory",
+     "await": false,
+     "callable": "NpgsqlRest.NpgsqlRestEndpoint.GetRecordCacheGate/2",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "first_party_factory"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "NpgsqlRest/NpgsqlRest",
+   "file": "NpgsqlRest/NpgsqlRestEndpoint.cs",
+   "line": 2673,
+   "local": "reader",
+   "type": "Npgsql.NpgsqlDataReader",
+   "member": "InvokeAsync",
+   "write_count": 2,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 2692,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "NpgsqlRest.NpgsqlRetryExtensions.ExecuteBatchReaderWithRetryAsync/5",
+     "trusted_row": false,
+     "first_party": true,
+     "logical_disposable": true,
+     "callable_assembly": "own"
+    },
+    {
+     "line": 2709,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "NpgsqlRest.NpgsqlRetryExtensions.ExecuteReaderWithRetryAsync/5",
+     "trusted_row": false,
+     "first_party": true,
+     "logical_disposable": true,
+     "callable_assembly": "own"
+    }
+   ],
+   "write_classes": [
+    "first_party"
+   ],
+   "any_await": true,
+   "disposed_in_finally": false,
+   "disposed_somewhere": false,
+   "ownership_reading": "NOT disposed in the member (candidate for a finding, needs triage)"
+  },
+  {
+   "repo": "NpgsqlRest/NpgsqlRest",
+   "file": "NpgsqlRestClient/RedisCache.cs",
+   "line": 23,
+   "local": "redis",
+   "type": "StackExchange.Redis.ConnectionMultiplexer?",
+   "member": "ConstructorDeclaration",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 28,
+     "h24_kind": "other",
+     "await": false,
+     "callable": "StackExchange.Redis.ConnectionMultiplexer.Connect/2",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "other"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "NpgsqlRest/NpgsqlRest",
+   "file": "NpgsqlRestClient/WatchSupervisor.cs",
+   "line": 197,
+   "local": "child",
+   "type": "System.Diagnostics.Process",
+   "member": "RunAsync",
+   "write_count": 3,
+   "initializer": "borrowed_or_other",
+   "writes": [
+    {
+     "line": 222,
+     "h24_kind": "first_party_factory",
+     "await": false,
+     "callable": "NpgsqlRestClient.WatchSupervisor.Spawn/1",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    },
+    {
+     "line": 241,
+     "h24_kind": "first_party_factory",
+     "await": false,
+     "callable": "NpgsqlRestClient.WatchSupervisor.Spawn/1",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    },
+    {
+     "line": 258,
+     "h24_kind": "first_party_factory",
+     "await": false,
+     "callable": "NpgsqlRestClient.WatchSupervisor.Spawn/1",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "first_party_factory"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "erikdarlingdata/PerformanceMonitor",
+   "file": "Darling/PerformanceMonitor.Darling.Service/DarlingWorker.cs",
+   "line": 5634,
+   "local": "passCts",
+   "type": "System.Threading.CancellationTokenSource?",
+   "member": "RunAnalysisPassAsync",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 5653,
+     "h24_kind": "other",
+     "await": false,
+     "callable": "System.Threading.CancellationTokenSource.CreateLinkedTokenSource/1",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "other"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "erikdarlingdata/PerformanceMonitor",
+   "file": "Darling/PerformanceMonitor.Darling.Service/Hosting/DarlingWebTls.cs",
+   "line": 286,
+   "local": "fromPem",
+   "type": "System.Security.Cryptography.X509Certificates.X509Certificate2",
+   "member": "LoadPem",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 290,
+     "h24_kind": "other",
+     "await": false,
+     "callable": "System.Security.Cryptography.X509Certificates.X509Certificate2.CreateFromPemFile/2",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "other"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "erikdarlingdata/PerformanceMonitor",
+   "file": "Darling/PerformanceMonitor.Darling.Service/Mcp/DarlingWebHostService.cs",
+   "line": 413,
+   "local": "oidcClient",
+   "type": "PerformanceMonitor.Darling.Service.Hosting.DarlingWebOidcClient?",
+   "member": "TryStartServerAsync",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 443,
+     "h24_kind": "new_disposable",
+     "await": false,
+     "callable": "ObjectCreationExpression",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "new_disposable"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "mikependon/RepoDB",
+   "file": "src/Providers/RepoDb.Firebird.BulkOperations/RepoDb.Firebird.BulkOperations/FirebirdCommandBatcher.cs",
+   "line": 161,
+   "local": "batch",
+   "type": "FirebirdSql.Data.FirebirdClient.FbBatchCommand",
+   "member": "WriteToServer",
+   "write_count": 1,
+   "initializer": "borrowed_or_other",
+   "writes": [
+    {
+     "line": 180,
+     "h24_kind": "first_party_factory",
+     "await": false,
+     "callable": "RepoDb.Firebird.BulkOperations.FirebirdCommandBatcher.CreateBatch/1",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "first_party_factory"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "mikependon/RepoDB",
+   "file": "src/Providers/RepoDb.Firebird.BulkOperations/RepoDb.Firebird.BulkOperations/FirebirdCommandBatcher.cs",
+   "line": 267,
+   "local": "batch",
+   "type": "FirebirdSql.Data.FirebirdClient.FbBatchCommand",
+   "member": "WriteToServerAsync",
+   "write_count": 1,
+   "initializer": "borrowed_or_other",
+   "writes": [
+    {
+     "line": 286,
+     "h24_kind": "first_party_factory",
+     "await": false,
+     "callable": "RepoDb.Firebird.BulkOperations.FirebirdCommandBatcher.CreateBatch/1",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "first_party_factory"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "mikependon/RepoDB",
+   "file": "src/Providers/RepoDb.SapHana.BulkOperations/RepoDb.SapHana.BulkOperations/SapHanaCommandBatcher.cs",
+   "line": 258,
+   "local": "command",
+   "type": "Sap.Data.Hana.HanaCommand",
+   "member": "WriteToServer",
+   "write_count": 1,
+   "initializer": "borrowed_or_other",
+   "writes": [
+    {
+     "line": 278,
+     "h24_kind": "first_party_factory",
+     "await": false,
+     "callable": "RepoDb.SapHana.BulkOperations.SapHanaCommandBatcher.CreateCommand/1",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "first_party_factory"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "mikependon/RepoDB",
+   "file": "src/Providers/RepoDb.SapHana.BulkOperations/RepoDb.SapHana.BulkOperations/SapHanaCommandBatcher.cs",
+   "line": 361,
+   "local": "command",
+   "type": "Sap.Data.Hana.HanaCommand",
+   "member": "WriteToServerAsync",
+   "write_count": 1,
+   "initializer": "borrowed_or_other",
+   "writes": [
+    {
+     "line": 381,
+     "h24_kind": "first_party_factory",
+     "await": false,
+     "callable": "RepoDb.SapHana.BulkOperations.SapHanaCommandBatcher.CreateCommand/1",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "first_party_factory"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "quartznet/quartznet",
+   "file": "src/Quartz.Extensions.Redis/RedisLockHandler.cs",
+   "line": 322,
+   "local": "opened",
+   "type": "StackExchange.Redis.IConnectionMultiplexer?",
+   "member": "Shutdown",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 325,
+     "h24_kind": "other",
+     "await": false,
+     "callable": "IdentifierName",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "other"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "quartznet/quartznet",
+   "file": "src/Quartz.Plugins/Plugins/Json/JsonSchedulingDataProcessorPlugin.cs",
+   "line": 308,
+   "local": "f",
+   "type": "System.IO.Stream?",
+   "member": "Initialize",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 316,
+     "h24_kind": "new_disposable",
+     "await": false,
+     "callable": "ObjectCreationExpression",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "new_disposable"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "quartznet/quartznet",
+   "file": "src/Quartz.Plugins/Plugins/Xml/XmlSchedulingDataProcessorPlugin.cs",
+   "line": 387,
+   "local": "f",
+   "type": "System.IO.Stream?",
+   "member": "Initialize",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 401,
+     "h24_kind": "new_disposable",
+     "await": false,
+     "callable": "ObjectCreationExpression",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "new_disposable"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "quartznet/quartznet",
+   "file": "src/Quartz/Core/JobRunShell.cs",
+   "line": 187,
+   "local": "ambient",
+   "type": "System.IDisposable?",
+   "member": "Run",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 206,
+     "h24_kind": "first_party_factory",
+     "await": false,
+     "callable": "Quartz.Core.AmbientJobExecution.Holder.Enter/1",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "first_party_factory"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "quartznet/quartznet",
+   "file": "src/Quartz/Impl/AdoJobStore/AdoJobStoreBase.Execution.cs",
+   "line": 180,
+   "local": "conn",
+   "type": "System.Data.Common.DbConnection",
+   "member": "GetConnection",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 184,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "Quartz.Impl.AdoJobStore.AdoJobStoreBase.OpenOwnConnection/1",
+     "trusted_row": false,
+     "first_party": true,
+     "logical_disposable": true,
+     "callable_assembly": "own"
+    }
+   ],
+   "write_classes": [
+    "first_party"
+   ],
+   "any_await": true,
+   "disposed_in_finally": false,
+   "disposed_somewhere": true,
+   "ownership_reading": "disposed elsewhere in the member"
+  },
+  {
+   "repo": "quartznet/quartznet",
+   "file": "src/Quartz/Impl/AdoJobStore/AdoJobStoreBase.Execution.cs",
+   "line": 181,
+   "local": "tx",
+   "type": "System.Data.Common.DbTransaction",
+   "member": "GetConnection",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 197,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "System.Data.Common.DbConnection.BeginTransactionAsync/2",
+     "trusted_row": false,
+     "first_party": false,
+     "logical_disposable": true,
+     "callable_assembly": "System.Data.Common"
+    }
+   ],
+   "write_classes": [
+    "library_no_row"
+   ],
+   "any_await": true,
+   "disposed_in_finally": false,
+   "disposed_somewhere": false,
+   "ownership_reading": "NOT disposed in the member (candidate for a finding, needs triage)"
+  },
+  {
+   "repo": "quartznet/quartznet",
+   "file": "src/Quartz/Impl/AdoJobStore/AdoJobStoreBase.Misfire.cs",
+   "line": 364,
+   "local": "conn",
+   "type": "Quartz.Impl.AdoJobStore.ConnectionAndTransactionHolder?",
+   "member": "RecoverMisfires",
+   "write_count": 2,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 383,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "Quartz.Impl.AdoJobStore.AdoJobStoreBase.GetLocalTransactionConnection/1",
+     "trusted_row": false,
+     "first_party": true,
+     "logical_disposable": true,
+     "callable_assembly": "own"
+    },
+    {
+     "line": 389,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "Quartz.Impl.AdoJobStore.AdoJobStoreBase.GetLocalTransactionConnection/1",
+     "trusted_row": false,
+     "first_party": true,
+     "logical_disposable": true,
+     "callable_assembly": "own"
+    }
+   ],
+   "write_classes": [
+    "first_party"
+   ],
+   "any_await": true,
+   "disposed_in_finally": false,
+   "disposed_somewhere": false,
+   "ownership_reading": "NOT disposed in the member (candidate for a finding, needs triage)"
+  },
+  {
+   "repo": "quartznet/quartznet",
+   "file": "src/Quartz/Impl/AdoJobStore/ExternalTransactionJobStore.cs",
+   "line": 113,
+   "local": "conn",
+   "type": "System.Data.Common.DbConnection",
+   "member": "GetLocalTransactionConnection",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 119,
+     "h24_kind": "first_party_factory",
+     "await": false,
+     "callable": "Quartz.Impl.AdoJobStore.Common.IDbProvider.CreateConnection/0",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "first_party_factory"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "quartznet/quartznet",
+   "file": "src/Quartz/Impl/AdoJobStore/ExternalTransactionJobStore.cs",
+   "line": 155,
+   "local": "conn",
+   "type": "Quartz.Impl.AdoJobStore.ConnectionAndTransactionHolder?",
+   "member": "ExecuteInLock",
+   "write_count": 2,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 171,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "Quartz.Impl.AdoJobStore.ExternalTransactionJobStore.GetLocalTransactionConnection/1",
+     "trusted_row": false,
+     "first_party": true,
+     "logical_disposable": true,
+     "callable_assembly": "own"
+    },
+    {
+     "line": 179,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "Quartz.Impl.AdoJobStore.ExternalTransactionJobStore.GetLocalTransactionConnection/1",
+     "trusted_row": false,
+     "first_party": true,
+     "logical_disposable": true,
+     "callable_assembly": "own"
+    }
+   ],
+   "write_classes": [
+    "first_party"
+   ],
+   "any_await": true,
+   "disposed_in_finally": false,
+   "disposed_somewhere": false,
+   "ownership_reading": "NOT disposed in the member (candidate for a finding, needs triage)"
+  },
+  {
+   "repo": "victor-wiki/DatabaseManager",
+   "file": "DatabaseManager/DatabaseManager.Core/Manager/DbManager.cs",
+   "line": 49,
+   "local": "transaction",
+   "type": "System.Data.Common.DbTransaction",
+   "member": "ClearData",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 61,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "System.Data.Common.DbConnection.BeginTransactionAsync/1",
+     "trusted_row": false,
+     "first_party": false,
+     "logical_disposable": true,
+     "callable_assembly": "System.Data.Common"
+    }
+   ],
+   "write_classes": [
+    "library_no_row"
+   ],
+   "any_await": true,
+   "disposed_in_finally": false,
+   "disposed_somewhere": false,
+   "ownership_reading": "NOT disposed in the member (candidate for a finding, needs triage)"
+  },
+  {
+   "repo": "victor-wiki/DatabaseManager",
+   "file": "DatabaseManager/DatabaseManager.Core/Script/ScriptRunner.cs",
+   "line": 80,
+   "local": "dbConnection",
+   "type": "System.Data.Common.DbConnection",
+   "member": "Run",
+   "write_count": 1,
+   "initializer": "borrowed_or_other",
+   "writes": [
+    {
+     "line": 86,
+     "h24_kind": "new_disposable",
+     "await": false,
+     "callable": "ObjectCreationExpression",
+     "trusted_row": null,
+     "first_party": null,
+     "logical_disposable": null,
+     "callable_assembly": null
+    }
+   ],
+   "write_classes": [
+    "new_disposable"
+   ],
+   "any_await": false,
+   "disposed_in_finally": null,
+   "disposed_somewhere": null,
+   "ownership_reading": "no await write (sync kinds only)"
+  },
+  {
+   "repo": "victor-wiki/DatabaseManager",
+   "file": "DatabaseManager/DatabaseManager.Core/Script/ScriptRunner.cs",
+   "line": 137,
+   "local": "transaction",
+   "type": "System.Data.Common.DbTransaction",
+   "member": "Run",
+   "write_count": 1,
+   "initializer": "none_or_null",
+   "writes": [
+    {
+     "line": 141,
+     "h24_kind": "other",
+     "await": true,
+     "callable": "System.Data.Common.DbConnection.BeginTransactionAsync/1",
+     "trusted_row": false,
+     "first_party": false,
+     "logical_disposable": true,
+     "callable_assembly": "System.Data.Common"
+    }
+   ],
+   "write_classes": [
+    "library_no_row"
+   ],
+   "any_await": true,
+   "disposed_in_finally": false,
+   "disposed_somewhere": false,
+   "ownership_reading": "NOT disposed in the member (candidate for a finding, needs triage)"
+  }
+ ]
+}
