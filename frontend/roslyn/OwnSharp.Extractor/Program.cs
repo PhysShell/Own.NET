@@ -3166,6 +3166,7 @@ static void H26BClassify(BlockSyntax mbody, SemanticModel model)
 {
     static ITypeSymbol? Unwrap(ITypeSymbol? t) => t is INamedTypeSymbol n && n.IsGenericType && n.ContainingNamespace?.ToString() == "System.Threading.Tasks" && n.Name is "Task" or "ValueTask" ? n.TypeArguments[0] : t;
     bool Concrete(ITypeSymbol? t) => t is INamedTypeSymbol n && n.TypeKind == TypeKind.Class && !n.IsAbstract;
+    SemanticModel ModelFor(SyntaxTree tree) => tree == model.SyntaxTree ? model : model.Compilation.GetSemanticModel(tree);
     foreach (var inv in mbody.DescendantNodes().OfType<InvocationExpressionSyntax>())
     {
         if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol m) continue;
@@ -3185,7 +3186,7 @@ static void H26BClassify(BlockSyntax mbody, SemanticModel model)
         if (rsym is ILocalSymbol ls)
         {
             rkind = "local"; var ts = new List<ITypeSymbol?>();
-            foreach (var dr in ls.DeclaringSyntaxReferences) if (dr.GetSyntax() is VariableDeclaratorSyntax vd && vd.Initializer?.Value is { } iv) ts.Add(model.GetTypeInfo(iv).Type);
+            foreach (var dr in ls.DeclaringSyntaxReferences) if (dr.GetSyntax() is VariableDeclaratorSyntax vd && vd.Initializer?.Value is { } iv) ts.Add(ModelFor(dr.SyntaxTree).GetTypeInfo(iv).Type);
             ts.AddRange(WriteTypes(ls, mbody));
             var cs = ts.Where(Concrete).Select(t => t!.ToDisplayString()).Distinct().ToList();
             prov = ts.Count == 0 ? "LOCAL_NO_WRITE_SEEN" : ts.All(Concrete) && cs.Count == 1 ? "CONCRETE_LOCAL_CONSTRUCTION" : ts.Any(Concrete) ? "LOCAL_MIXED" : "LOCAL_BASE_TYPED_WRITES";
@@ -3195,7 +3196,7 @@ static void H26BClassify(BlockSyntax mbody, SemanticModel model)
         else if (rsym is IFieldSymbol fs)
         {
             rkind = "field"; var ts = new List<ITypeSymbol?>();
-            foreach (var dr in fs.DeclaringSyntaxReferences) if (dr.GetSyntax() is VariableDeclaratorSyntax vd && vd.Initializer?.Value is { } iv) ts.Add(model.GetTypeInfo(iv).Type);
+            foreach (var dr in fs.DeclaringSyntaxReferences) if (dr.GetSyntax() is VariableDeclaratorSyntax vd && vd.Initializer?.Value is { } iv) ts.Add(ModelFor(dr.SyntaxTree).GetTypeInfo(iv).Type);   // a field declared in another file (partial / base class) needs that file's model
             var typeDecl = inv.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault();
             if (typeDecl is not null) ts.AddRange(WriteTypes(fs, typeDecl));
             var cs = ts.Where(Concrete).Select(t => t!.ToDisplayString()).Distinct().ToList();
