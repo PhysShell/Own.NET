@@ -3093,6 +3093,66 @@ static void H24Classify(VariableDeclaratorSyntax v, BlockSyntax mbody, SemanticM
         owned_class = cls, trusted_row_writes = wk.Count(x => x.kind == "trusted_row"), refs_inside = refsIn, refs_after = refsAfter, reasons = reasons.ToArray(), admissible_strict = strict, admissible_relaxed = relaxed });
 }
 
+// ===== ownership-semantics-lab H-25 (registered before this code; h25-prereg-v1.json): the await-wrapped acquire CENSUS.
+// Census only: one JSON line per write of a disposable local (declaration initializer or simple assignment, any nesting)
+// whose right-hand side is `await E`: what E is (an invocation, ConfigureAwait on an invocation, a local, other), the
+// resolved callable and its return kind (Task<T> / ValueTask<T> / Task / ValueTask / other), whether the logical result
+// is disposable, whether the callable carries a trusted row (the oracle; hit-log shape "await"), the name-based sync
+// twin (descriptive only, never an effect), first-party or library, the write form, nesting, try / finally and disposal
+// context. Behind OWEN_H25_CENSUS=<path>. No lowering changes.
+static void H25Classify(VariableDeclaratorSyntax v, BlockSyntax mbody, SemanticModel model)
+{
+    if (model.GetDeclaredSymbol(v) is not ILocalSymbol local) return;
+    var writes = new List<(ExpressionSyntax rhs, SyntaxNode at, string form)>();
+    if (v.Initializer?.Value is { } iv) writes.Add((iv, v, "declaration"));
+    foreach (var id in mbody.DescendantNodes().OfType<IdentifierNameSyntax>())
+        if (id.Parent is AssignmentExpressionSyntax asg && asg.Left == id && asg.IsKind(SyntaxKind.SimpleAssignmentExpression)
+            && SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, local))
+            writes.Add((asg.Right, asg, asg.Parent is ExpressionStatementSyntax ? "assignment" : "assignment_in_expression"));
+    bool DisposesLocal(InvocationExpressionSyntax inv)
+    {
+        ExpressionSyntax? recv = null; string? name = null;
+        if (inv.Expression is MemberAccessExpressionSyntax ma) { recv = ma.Expression; name = ma.Name.Identifier.Text; }
+        else if (inv.Expression is MemberBindingExpressionSyntax mb && inv.Parent is ConditionalAccessExpressionSyntax ca) { recv = ca.Expression; name = mb.Name.Identifier.Text; }
+        return name is "Dispose" or "DisposeAsync" or "Close" or "CloseAsync" && recv is IdentifierNameSyntax rid && SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(rid).Symbol, local);
+    }
+    var disposals = mbody.DescendantNodes().OfType<InvocationExpressionSyntax>().Where(DisposesLocal).ToList();
+    var ld = v.Parent?.Parent as LocalDeclarationStatementSyntax;
+    var member = v.Ancestors().OfType<MemberDeclarationSyntax>().FirstOrDefault();
+    foreach (var (rhs0, at, form) in writes)
+    {
+        var rhs = rhs0; while (rhs is ParenthesizedExpressionSyntax pe) rhs = pe.Expression;
+        if (rhs is not AwaitExpressionSyntax aw) continue;
+        var e = aw.Expression; while (e is ParenthesizedExpressionSyntax pe2) e = pe2.Expression;
+        var configureAwait = false;
+        if (e is InvocationExpressionSyntax ci && ci.Expression is MemberAccessExpressionSyntax cma && cma.Name.Identifier.Text == "ConfigureAwait")
+        { configureAwait = true; e = cma.Expression; while (e is ParenthesizedExpressionSyntax pe3) e = pe3.Expression; }
+        var awaited = e switch { InvocationExpressionSyntax => "invocation", IdentifierNameSyntax => "local_or_name", MemberAccessExpressionSyntax => "member", ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax => "new", _ => e.Kind().ToString() };
+        var m = e is InvocationExpressionSyntax inv ? model.GetSymbolInfo(inv).Symbol as IMethodSymbol : null;
+        string retKind = "none"; ITypeSymbol? logical = null;
+        if (m?.ReturnType is INamedTypeSymbol nt)
+        {
+            if (nt.ContainingNamespace?.ToString() == "System.Threading.Tasks" && nt.Name is "Task" or "ValueTask") { retKind = nt.IsGenericType ? nt.Name + "<T>" : nt.Name; if (nt.IsGenericType) logical = nt.TypeArguments[0]; }
+            else retKind = "other:" + nt.ToDisplayString();
+        }
+        var logicalDisposable = logical is not null && ImplementsIDisposable(logical) && !IsDisposeOptional(logical) && !HasEmptyDisposeBody(logical);
+        var trusted = e is InvocationExpressionSyntax inv2 && ReOracle.ReturnsFreshOwned(inv2, model, "await");
+        bool? twin = null;
+        if (m is not null && m.Name.EndsWith("Async", StringComparison.Ordinal))
+        {
+            var tw = m.ContainingType.GetMembers(m.Name[..^5]).OfType<IMethodSymbol>().FirstOrDefault();
+            twin = tw is not null && ReOracle.HasRow(tw, model.Compilation);
+        }
+        var nesting = at.Ancestors().TakeWhile(x => x != mbody).OfType<StatementSyntax>().Where(x => x is not ExpressionStatementSyntax and not LocalDeclarationStatementSyntax).Select(x => x.Kind().ToString()).ToList();
+        H25.Emit(new { file = v.SyntaxTree.FilePath, line = LineOf(at), local = v.Identifier.Text, local_type = local.Type.ToDisplayString(), member = member is MethodDeclarationSyntax md ? md.Identifier.Text : member?.Kind().ToString(),
+            form, declared_using = ld is not null && ld.UsingKeyword.RawKind != 0, declared_await_using = ld is not null && ld.AwaitKeyword.RawKind != 0,
+            awaited, configure_await = configureAwait, callable = m is null ? null : $"{m.ContainingType.ToDisplayString()}.{m.Name}/{m.Parameters.Length}", callable_assembly = m?.ContainingAssembly?.Name,
+            first_party = m is not null && SymbolEqualityComparer.Default.Equals(m.ContainingAssembly, model.Compilation.Assembly), return_kind = retKind, logical_result = logical?.ToDisplayString(), logical_disposable = logicalDisposable,
+            trusted_row = trusted, sync_twin_row = twin, nesting, in_try = nesting.Contains("TryStatement"),
+            initializer = v.Initializer is null ? "none" : IsNullLiteral(v.Initializer.Value) ? "null" : "value", disposed_somewhere = disposals.Count > 0, disposed_in_finally = disposals.Any(d => d.Ancestors().Any(x => x is FinallyClauseSyntax)) });
+    }
+}
+
 static ExpressionSyntax? LabNullInitSingleAssignment(VariableDeclaratorSyntax v, BlockSyntax mbody, SemanticModel model)
 {
     if (model.GetDeclaredSymbol(v) is not ILocalSymbol local)
@@ -8033,6 +8093,12 @@ foreach (var (file, tree) in parsed)
                             foreach (var v in ld.Declaration.Variables)
                                 if (model.GetDeclaredSymbol(v) is ILocalSymbol l4 && ImplementsIDisposable(l4.Type) && !IsDisposeOptional(l4.Type) && !HasEmptyDisposeBody(l4.Type))
                                     H24Classify(v, mbody, model);
+                // H-25 (OWEN_H25_CENSUS=<path>; h25-prereg-v1.json): await-wrapped acquire census, census only (using declarations included, classified)
+                if (H25.Enabled)
+                    foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
+                        foreach (var v in ld.Declaration.Variables)
+                            if (model.GetDeclaredSymbol(v) is ILocalSymbol l5 && ImplementsIDisposable(l5.Type) && !IsDisposeOptional(l5.Type) && !HasEmptyDisposeBody(l5.Type))
+                                H25Classify(v, mbody, model);
                 // `using (IMemoryOwner owner = MemoryPool.Rent(...)) { … }` STATEMENT form: track the owner
                 // too, so its returned view dangles after the scope-exit dispose (the desugar mirrors the
                 // `using` DECLARATION form handled in the loop above).
@@ -8555,6 +8621,9 @@ partial class Program
             return false;
         }
 
+        // H-25 census: does a resolved method carry a fresh-owned row (no syntax, no hit log; descriptive twin lookups only).
+        internal static bool HasRow(IMethodSymbol m, Compilation comp) => Enabled && Has(m, "return_fresh_owned", comp);
+
         // `var x = M(...)` where the resolved M is a return_fresh_owned entry.
         internal static bool ReturnsFreshOwned(ExpressionSyntax? e, SemanticModel model, string shape = "declaration")
         {
@@ -8672,6 +8741,15 @@ partial class Program
     static class H24
     {
         internal static readonly string? Path = Environment.GetEnvironmentVariable("OWEN_H24_CENSUS");
+        internal static readonly bool Enabled = !string.IsNullOrEmpty(Path);
+        static readonly object Lock = new();
+        internal static void Emit(object o) { try { lock (Lock) File.AppendAllText(Path!, JsonSerializer.Serialize(o) + "\n"); } catch { } }
+    }
+
+    // ===== ownership-semantics-lab H-25 (registered before this code): the census sink of H25Classify. Census only.
+    static class H25
+    {
+        internal static readonly string? Path = Environment.GetEnvironmentVariable("OWEN_H25_CENSUS");
         internal static readonly bool Enabled = !string.IsNullOrEmpty(Path);
         static readonly object Lock = new();
         internal static void Emit(object o) { try { lock (Lock) File.AppendAllText(Path!, JsonSerializer.Serialize(o) + "\n"); } catch { } }

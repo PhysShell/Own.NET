@@ -1,0 +1,27 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "Hostile.HW1_deferred_await",
+      "file": "../../../tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h25/fx/Await.cs",
+      "sig": "",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "task",
+          "line": 25,
+          "column": 57,
+          "kind": "disposable"
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "methods_with_local": 1,
+    "methods_flow_analysed": 1,
+    "methods_skipped_unmodelled": 0
+  }
+}
