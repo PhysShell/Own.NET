@@ -8026,7 +8026,9 @@ foreach (var (file, tree) in parsed)
                             poolBuffers.Add(v.Identifier.Text);
                         }
                         else if (IsOwningFactory(v.Initializer?.Value, model)   // File / crypto Create* factory
-                                 || ReOracle.ReturnsFreshOwned(v.Initializer?.Value, model))   // resource-effects Stage 1: answer-key arm
+                                 || (ReOracle.ReturnsFreshOwned(v.Initializer?.Value, model)   // resource-effects Stage 1: answer-key arm
+                                     // H-25 guard (OWEN_H25=1): a row on a Task<T>-returning callable never mints the Task-typed local itself
+                                     && !(H25.Seam && model.GetDeclaredSymbol(v) is ILocalSymbol tl && IsDisposeOptional(tl.Type))))
                         {
                             candidates.Add(v.Identifier.Text);
                             mintedFactories.Add(v.Identifier.Text);
@@ -8627,9 +8629,17 @@ partial class Program
         // `var x = M(...)` where the resolved M is a return_fresh_owned entry.
         internal static bool ReturnsFreshOwned(ExpressionSyntax? e, SemanticModel model, string shape = "declaration")
         {
-            if (!Enabled || e is not InvocationExpressionSyntax i || model.GetSymbolInfo(i).Symbol is not IMethodSymbol m || m.ReturnsVoid) return false;
+            if (!Enabled) return false;
+            var awaited = false;
+            if (H25.Seam && e is AwaitExpressionSyntax aw)   // H-25: the row belongs to the LOGICAL result of a Task<T> / ValueTask<T> factory
+            {
+                var x = aw.Expression; while (x is ParenthesizedExpressionSyntax p) x = p.Expression;
+                if (x is InvocationExpressionSyntax ci && ci.Expression is MemberAccessExpressionSyntax cma && cma.Name.Identifier.Text == "ConfigureAwait") { x = cma.Expression; while (x is ParenthesizedExpressionSyntax p2) x = p2.Expression; }
+                e = x; awaited = true;
+            }
+            if (e is not InvocationExpressionSyntax i || model.GetSymbolInfo(i).Symbol is not IMethodSymbol m || m.ReturnsVoid) return false;
             var hit = Has(m, "return_fresh_owned", model.Compilation);
-            if (hit) HitLog(i, m, "return_fresh_owned", shape);
+            if (hit) HitLog(i, m, "return_fresh_owned", awaited ? shape + "+await" : shape);
             return hit;
         }
 
@@ -8751,6 +8761,9 @@ partial class Program
     {
         internal static readonly string? Path = Environment.GetEnvironmentVariable("OWEN_H25_CENSUS");
         internal static readonly bool Enabled = !string.IsNullOrEmpty(Path);
+        // h25-probe-prereg-v1: OWEN_H25=1 makes `await E` / `await E.ConfigureAwait(b)` ask the oracle about E (ReOracle.ReturnsFreshOwned)
+        // and refuses to mint a Task / ValueTask-typed local from a row (the HW1 hazard). Research flag; OFF byte-identical.
+        internal static readonly bool Seam = Environment.GetEnvironmentVariable("OWEN_H25") == "1";
         static readonly object Lock = new();
         internal static void Emit(object o) { try { lock (Lock) File.AppendAllText(Path!, JsonSerializer.Serialize(o) + "\n"); } catch { } }
     }

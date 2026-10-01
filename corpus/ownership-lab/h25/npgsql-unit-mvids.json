@@ -1,0 +1,52 @@
+{
+ "/root/.nuget/packages/npgsql/9.0.4/lib/net8.0/Npgsql.dll": {
+  "mvid": "d4412a3b-219a-481c-a2f1-52c8b0c69ec1",
+  "units": 179,
+  "exists": true
+ },
+ "/root/.nuget/packages/npgsql/9.0.3/lib/net8.0/Npgsql.dll": {
+  "mvid": "63bcd64b-0f01-4a37-9d5c-e40f4970d196",
+  "units": 5,
+  "exists": true
+ },
+ "/root/.nuget/packages/npgsql/10.0.3/lib/net10.0/Npgsql.dll": {
+  "mvid": "17117c68-915d-4f9d-bd8a-a7ba49d89b03",
+  "units": 54,
+  "exists": true
+ },
+ "/root/.nuget/packages/npgsql/9.0.0/lib/net8.0/Npgsql.dll": {
+  "mvid": "61d6f010-cfcd-4410-b5e0-9b430755bc80",
+  "units": 2,
+  "exists": true
+ },
+ "/root/.nuget/packages/npgsql/10.0.0/lib/net10.0/Npgsql.dll": {
+  "mvid": "c06eae91-4966-4055-bcdc-5660914fd15d",
+  "units": 5,
+  "exists": true
+ },
+ "/root/.nuget/packages/npgsql/10.0.2/lib/net10.0/Npgsql.dll": {
+  "mvid": "3e131d78-e396-4c05-8e2e-57a2ff0ec560",
+  "units": 1,
+  "exists": true
+ },
+ "/root/.nuget/packages/npgsql/8.0.3/lib/net8.0/Npgsql.dll": {
+  "mvid": "94000967-eb33-43f5-a99c-6081eb64a838",
+  "units": 1,
+  "exists": true
+ },
+ "/root/.nuget/packages/npgsql/10.0.0/lib/net9.0/Npgsql.dll": {
+  "mvid": "6a042dcf-1ad9-4beb-9b6b-1720f37f8b19",
+  "units": 1,
+  "exists": true
+ },
+ "/root/.nuget/packages/npgsql/10.0.3/lib/net8.0/Npgsql.dll": {
+  "mvid": "a8d2544f-8092-4b08-8016-a6f476ff57f9",
+  "units": 17,
+  "exists": true
+ },
+ "/root/.nuget/packages/npgsql/10.0.3/lib/net9.0/Npgsql.dll": {
+  "mvid": "d458c3c0-7904-413c-9a56-85c36f63bc84",
+  "units": 14,
+  "exists": true
+ }
+}

@@ -1,0 +1,131 @@
+{
+ "config": "H25_ON_H23A",
+ "env": {
+  "OWEN_RE_ORACLE": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h25/rows-await.json",
+  "SRC": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h25/fx/Await.cs",
+  "REFDIR": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h25/RLibA/bin/Release/net8.0",
+  "XD": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/ext8p/ownsharp-extract.dll",
+  "OWEN_H25": "1",
+  "OWEN_H23A": "1"
+ },
+ "engine_internal_error": [],
+ "extractor_rc": 0,
+ "stderr_tail": "extractor: +1 references from --ref-dir /tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h25/RLibA/bin/Release/net8.0 (recursive)\np037x: canonical=0 degraded={}\nre-oracle: return_fresh_owned=18\nh23a: candidate_by_assignment=3 excluded_nested_write=1 write_acquire=3\n",
+ "parity": true,
+ "findings_rust": [
+  [
+   18,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ]
+ ],
+ "findings_python": [
+  [
+   18,
+   "OWN001",
+   "IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+  ]
+ ],
+ "per_method": {
+  "null": {
+   "rust": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ],
+   "python": [
+    "OWN001 IDisposable local 'x' is never disposed (leak) [resource: disposable]"
+   ]
+  }
+ },
+ "oracle_hits": [
+  [
+   10,
+   "assignment+await",
+   "RLibA.FA.FactoryAsync"
+  ],
+  [
+   10,
+   "assignment+await",
+   "RLibA.FA.FactoryAsync"
+  ],
+  [
+   10,
+   "assignment+await",
+   "RLibA.FA.FactoryAsync"
+  ],
+  [
+   10,
+   "assignment+await",
+   "RLibA.FA.FactoryAsync"
+  ],
+  [
+   12,
+   "assignment+await",
+   "RLibA.FA.FactoryAsync"
+  ],
+  [
+   12,
+   "assignment+await",
+   "RLibA.FA.FactoryAsync"
+  ],
+  [
+   12,
+   "assignment+await",
+   "RLibA.FA.FactoryAsync"
+  ],
+  [
+   12,
+   "assignment+await",
+   "RLibA.FA.FactoryAsync"
+  ],
+  [
+   14,
+   "assignment+await",
+   "RLibA.FA.FactoryValueTaskAsync"
+  ],
+  [
+   14,
+   "assignment+await",
+   "RLibA.FA.FactoryValueTaskAsync"
+  ],
+  [
+   14,
+   "assignment+await",
+   "RLibA.FA.FactoryValueTaskAsync"
+  ],
+  [
+   14,
+   "assignment+await",
+   "RLibA.FA.FactoryValueTaskAsync"
+  ],
+  [
+   16,
+   "declaration+await",
+   "RLibA.FA.FactoryAsync"
+  ],
+  [
+   16,
+   "declaration+await",
+   "RLibA.FA.FactoryAsync"
+  ],
+  [
+   18,
+   "declaration+await",
+   "RLibA.FA.FactoryAsync"
+  ],
+  [
+   18,
+   "declaration+await",
+   "RLibA.FA.FactoryAsync"
+  ],
+  [
+   20,
+   "assignment_nested+await",
+   "RLibA.FA.FactoryAsync"
+  ],
+  [
+   25,
+   "declaration",
+   "RLibA.FA.FactoryAsync"
+  ]
+ ]
+}
