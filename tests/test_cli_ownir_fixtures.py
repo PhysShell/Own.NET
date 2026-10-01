@@ -156,7 +156,7 @@ Options:
   --severity {error|warning}             how the host shows a finding; it never
                                          changes the exit code
   --verbosity {quiet|normal|verbose}     quiet hides the advisory notes
-                                         (OWN050/051/052, OBL005); verbose adds
+                                         (OWN050/051/052/053, OBL005); verbose adds
                                          a per-code breakdown over every
                                          finding, suppressed ones included
 

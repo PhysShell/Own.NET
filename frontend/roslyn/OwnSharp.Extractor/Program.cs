@@ -3416,8 +3416,8 @@ static void H28Classify(IdentifierNameSyntax idn, string nm, BlockSyntax mbody, 
         callee_class = calleeClass, callee_proof = proof, callee_use_kinds = useKinds.ToArray(), forwarded_to = forwardedTo });
 }
 
-// ===== ownership-semantics-lab H-29 (registered before this code; h29-prereg-v1.json): orphaned async protocol acquisition
-// census, census only. For every local declared with an UN-AWAITED invocation returning Task / Task<T> / ValueTask /
+// ===== OWN053 "orphaned awaitable" (ownership-semantics-lab H-29, registered before this code; h29-prereg-v1.json and
+// h29-rule-prereg-v1.json; promoted by the owner's GO after the 8-consumer OFF/ON scan): the detector, plus the census seam. For every local declared with an UN-AWAITED invocation returning Task / Task<T> / ValueTask /
 // ValueTask<T> (through parentheses / ConfigureAwait): the number of later references in the member (0 = never observed,
 // the strict primary), the family (A: the unwrapped result is a real disposable; B: a connection / transaction / persistence
 // lifecycle member name; OTHER), the callee, and whether the declaration sits in an async member / inside a try. The
@@ -3452,7 +3452,7 @@ static void H29Classify(BlockSyntax mbody, SemanticModel model)
         if (H29.Rule && form == "local" && refs == 0 && fam != "OTHER" && !at.Ancestors().TakeWhile(a => a != mbody).Any(a => a is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
         {
             var pos = PosOf(at);
-            lock (H29.Orphans) H29.Orphans.Add(new { file = at.SyntaxTree.FilePath, line = pos.Line, column = pos.Column, method = member is BaseMethodDeclarationSyntax bmd2 ? FlowFunctionName(bmd2, "?", model) : (member?.Kind().ToString() ?? "?"), local, callee = Key(m), family = fam, result_type = res?.ToDisplayString() });
+            lock (H29.Orphans) H29.Orphans.Add(new { file = Rel(at.SyntaxTree.FilePath), line = pos.Line, column = pos.Column, method = member is BaseMethodDeclarationSyntax bmd2 ? FlowFunctionName(bmd2, "?", model) : (member?.Kind().ToString() ?? "?"), local, callee = Key(m), family = fam, result_type = res?.ToDisplayString() });
         }
     }
     foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
@@ -8424,7 +8424,7 @@ foreach (var (file, tree) in parsed)
                 if (H26B.Enabled) H26BClassify(mbody, model);
                 // H-27 step 4 (OWEN_H27_CENSUS=<path>; h27-step4-prereg-v1.json): owned-handle release x receiver lifetime census, census only
                 if (H27.Enabled) H27Classify(mbody, model);
-                // H-29 (OWEN_H29_CENSUS=<path>; h29-prereg-v1.json): orphaned async protocol acquisition census, census only
+                // OWN053 orphaned-awaitable detection (always on; OWEN_H29_CENSUS=<path> additionally writes the research census)
                 if (H29.Enabled) H29Classify(mbody, model);
                 // `using (IMemoryOwner owner = MemoryPool.Rent(...)) { … }` STATEMENT form: track the owner
                 // too, so its returned view dangles after the scope-exit dispose (the desugar mirrors the
@@ -8716,8 +8716,8 @@ object facts = emitFixCandidates
         functions = flowFunctions,
         stats = factStats,
     }
-    // H-29 step 5 (research flag OWEN_H29=1; h29-rule-prereg-v1.json): an ADDITIVE top-level list of orphaned awaitables
-    // from which both engines mint the advisory OWN053; absent (the default, or no site) the object is byte-identical.
+    // OWN053 (ownership-semantics-lab H-29, promoted): an ADDITIVE top-level list of orphaned awaitables from which both
+    // engines mint the advisory; absent when there is no site, so such a document stays byte-identical to the pre-OWN053 shape.
     : H29.Rule && H29.Orphans.Count > 0
     ? new
     {
@@ -8888,32 +8888,32 @@ partial class Program
         static readonly Dictionary<string, string?> s_mvidByPath = new(StringComparer.Ordinal);
         static string? MvidOfReference(IAssemblySymbol asm, Compilation comp)
         {
-            if (comp.GetMetadataReference(asm) is not PortableExecutableReference { FilePath: { } path })
+            if (comp.GetMetadataReference(asm) is not PortableExecutableReference { FilePath: { } refPath })
                 return null;   // a source assembly, or a reference without a file
-            if (s_mvidByPath.TryGetValue(path, out var known))
+            if (s_mvidByPath.TryGetValue(refPath, out var known))
                 return known;
             string? mvid = null;
             try
             {
-                using var fs = System.IO.File.OpenRead(path);
+                using var fs = System.IO.File.OpenRead(refPath);
                 using var pe = new System.Reflection.PortableExecutable.PEReader(fs);
                 var md = System.Reflection.Metadata.PEReaderExtensions.GetMetadataReader(pe);
                 mvid = md.GetGuid(md.GetModuleDefinition().Mvid).ToString();
             }
             catch (Exception) { mvid = null; }
-            s_mvidByPath[path] = mvid;
+            s_mvidByPath[refPath] = mvid;
             return mvid;
         }
 
         static Dictionary<string, List<ReEntry>> Load()
         {
             var map = new Dictionary<string, List<ReEntry>>(StringComparer.Ordinal);
-            var path = Environment.GetEnvironmentVariable("OWEN_RE_ORACLE");
-            if (string.IsNullOrEmpty(path))
+            var oraclePath = Environment.GetEnvironmentVariable("OWEN_RE_ORACLE");
+            if (string.IsNullOrEmpty(oraclePath))
                 return map;
-            using var doc = System.Text.Json.JsonDocument.Parse(System.IO.File.ReadAllText(path));
+            using var doc = System.Text.Json.JsonDocument.Parse(System.IO.File.ReadAllText(oraclePath));
             if (doc.RootElement.GetProperty("schema").GetString() != "own.net/re-oracle/v1")
-                throw new InvalidOperationException($"OWEN_RE_ORACLE: unknown schema in {path}");
+                throw new InvalidOperationException($"OWEN_RE_ORACLE: unknown schema in {oraclePath}");
             foreach (var e in doc.RootElement.GetProperty("entries").EnumerateArray())
             {
                 var callable = e.GetProperty("callable").GetString() ?? "";
@@ -9145,11 +9145,13 @@ partial class Program
     static class H29
     {
         internal static readonly string? Path = Environment.GetEnvironmentVariable("OWEN_H29_CENSUS");
-        // H-29 step 5 (h29-rule-prereg-v1.json): OWEN_H29=1 turns the census classifier into the RULE prototype: every primary site
-        // (form local, zero later references, family A or B, not in a lambda) is collected into the top-level facts list
-        // `orphaned_awaitables`, from which BOTH engines mint the advisory OWN053. Unset, the facts are byte-identical.
-        internal static readonly bool Rule = Environment.GetEnvironmentVariable("OWEN_H29") == "1";
-        internal static readonly bool Enabled = !string.IsNullOrEmpty(Path) || Rule;
+        // OWN053 "orphaned awaitable" (promoted from ownership-semantics-lab H-29; h29-rule-prereg-v1.json, the owner's GO):
+        // every primary site (a local initialised by an un-awaited awaitable invocation of an effectful operation, zero later
+        // references, family A or B, not in a lambda) is collected into the ADDITIVE top-level facts list `orphaned_awaitables`,
+        // from which both engines mint the advisory. Always on under --flow-locals (the own-check default); the list is absent
+        // when there is no site, so a document without one is byte-identical to the pre-OWN053 shape.
+        internal static readonly bool Rule = true;
+        internal static readonly bool Enabled = true;
         internal static readonly List<object> Orphans = new();
         static readonly object Lock = new();
         internal static void Emit(object o) { if (Path is null) return; try { lock (Lock) File.AppendAllText(Path!, JsonSerializer.Serialize(o) + "\n"); } catch { } }

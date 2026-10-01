@@ -1,0 +1,46 @@
+{
+  "ownir_version": 0,
+  "module": "Orphans",
+  "_doc": [
+    "BR-V1 / BR-V4 / BR-V8: the OWN053 orphaned-awaitable advisory, promoted from",
+    "ownership-semantics-lab H-29. Every `orphaned_awaitables` entry becomes ONE",
+    "advisory finding through the OWN050 side path — never a verdict, never the",
+    "exit code — with the entry's file/line/column as the anchor, its method as the",
+    "component, the local as the event and the callee as the handler.",
+    "Both BR-V4 wording tails are reached: a generic awaitable names the result",
+    "that is never released (`result_type`), a non-generic one (`result_type`",
+    "null) says there is no result to release. The entries are given out of",
+    "source order and beside an OWN050 in the same file, so the BR-V8 sort —",
+    "(file, line, column, code) — is what the golden shows, not insertion order.",
+    "Neither door validates the list (spec/OwnIR.md §4.2): the two coordinates",
+    "reach the finding through the tolerant coercions only; the third entry's",
+    "out-of-domain line degrades to 0 (file-level, never clamped) and its",
+    "out-of-domain column to absent, which is why it sorts FIRST."
+  ],
+  "components": [
+    {
+      "name": "QueueView",
+      "file": "Queue.cs",
+      "subscriptions": [
+        {
+          "event": "grid.CellValueChanged",
+          "handler": "OnCellChanged",
+          "line": 119,
+          "resource": "unresolved-subscription"
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "orphaned_awaitables": [
+    {"file": "Queue.cs", "line": 119, "column": 17, "method": "Queue.PostgresqlQueueSender.ScheduleRetryAsync",
+     "local": "tx", "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+     "family": "A_owned_result", "result_type": "Npgsql.NpgsqlTransaction"},
+    {"file": "Queue.cs", "line": 42, "column": 13, "method": "Queue.PostgresqlQueueSender.FlushAsync",
+     "local": "commit", "callee": "Npgsql.NpgsqlTransaction.CommitAsync/1",
+     "family": "B_protocol_lifecycle", "result_type": null},
+    {"file": "Queue.cs", "line": 2147483648, "column": 0, "method": "Queue.PostgresqlQueueSender.OpenAsync",
+     "local": "open", "callee": "Npgsql.NpgsqlConnection.OpenAsync/1",
+     "family": "B_protocol_lifecycle", "result_type": null}
+  ]
+}

@@ -43,6 +43,11 @@
       "description": "Per-method ordered obligation-event trees the protocols are checked against (spec/OwnIR.md §8) — the fact side of the pair.",
       "type": "array",
       "items": { "$ref": "#/$defs/protocolFunction" }
+    },
+    "orphaned_awaitables": {
+      "description": "Optional, additive: the orphaned-awaitable sites feeding the OWN053 advisory (spec/OwnIR.md §9); absent when the extractor saw no site. Each entry's line/column are read through the tolerant coercions only (§4.2).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/orphanedAwaitable" }
     }
   },
   "$defs": {
@@ -780,6 +785,22 @@
             "description": "`!p` (truth only). A negated null test is not a predicate here: it degrades to absence."
           }
         }
+      },
+    "orphanedAwaitable": {
+      "description": "One OWN053 orphaned-awaitable site (spec/OwnIR.md §9): a local initialised by an un-awaited Task / ValueTask invocation of an effectful operation and never referenced again in its member. `line` and `column` are the declarator's coordinates. Deliberately NOT bound to sourceLine/sourceColumn: neither door validates this list (`load()` never reads the key and the Rust door carries it as an unknown field); both bridges render an entry through the tolerant coercions only, which degrade an out-of-domain line to 0 and an out-of-domain column to absent, so §4.2 forbids a schema narrower than the door here. Binding both coordinates to the shared domain is the step that registers the list at the doors.",
+      "type": "object",
+      "required": ["file", "line", "local", "callee"],
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string" },
+        "line": { "type": "integer" },
+        "column": { "type": ["integer", "null"] },
+        "method": { "type": ["string", "null"] },
+        "local": { "type": "string" },
+        "callee": { "type": "string" },
+        "family": { "type": "string", "enum": ["A_owned_result", "B_protocol_lifecycle"] },
+        "result_type": { "type": ["string", "null"] }
       }
+    }
   }
 }

@@ -271,7 +271,8 @@ OBL005 (dead rule) is advisory and anchorless.
 **BR-V1 (the pipeline).** `check_facts` = `to_module` → `check_module(mod)` →
 map **ERROR-severity core diagnostics only** (sub-error core diagnostics are
 not mapped) → append, in order: DI findings, effect findings, protocol
-findings, OWN050 advisories, OWN051 notes (minted during lowering), OWN052
+findings, OWN050 advisories, OWN053 orphaned-awaitable notes (one per
+`orphaned_awaitables[]` entry), OWN051 notes (minted during lowering), OWN052
 notes (one per solve-failure reason; anchorless: `file="?"`, `line=0`) →
 dedup (BR-V7) → sort (BR-V8).
 
@@ -335,7 +336,7 @@ divergence collapsing is OD-5.)
 
 **BR-V8 (ordering).** The final list is stably sorted by
 `(file, line, code)`; ties keep pre-sort insertion order (core → DI → effects
-→ protocols → OWN050 → OWN051 → OWN052, each in its own construction order).
+→ protocols → OWN050 → OWN053 → OWN051 → OWN052, each in its own construction order).
 
 **BR-V9 (rendering).** `render`/`render_github`/`render_msbuild`/`build_sarif`
 are pure functions of the finding list (plus the host severity choice):

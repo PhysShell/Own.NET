@@ -508,6 +508,12 @@
       "bytes": 1262
     },
     {
+      "case": "verdict_own053_orphaned_awaitable",
+      "corpus": "verdicts",
+      "digest": "749bd19c7f9d55daf062a251fa21bb64de3abc5614809d562856a8ee457abc00",
+      "bytes": 1980
+    },
+    {
       "case": "verdict_pool_view_anchor",
       "corpus": "verdicts",
       "digest": "67a62185aec92d3afdd043816def76b1d69fce13a3fa5339c61cefb69c823504",

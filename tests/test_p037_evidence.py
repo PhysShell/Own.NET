@@ -90,6 +90,14 @@ EXTRACTOR_FS_SITES: dict[tuple[str, str, str], tuple[str, int]] = {
     ("<top-level>", "File.ReadAllText", "xamlPath"): ("explicit-file:sibling-xaml", 1),
     ("<top-level>", "Directory.Exists", "dir"): ("reference-environment", 2),
     ("<top-level>", "Directory.EnumerateFiles", "dir"): ("reference-environment", 2),
+    # research/ownership-semantics-lab-v1 seams, both environment-gated and
+    # neither an explicit-file input: the RE oracle file named by
+    # OWEN_RE_ORACLE (its rows), and the MVID of a metadata reference's PE
+    # file (ownership-semantics-lab H-09, the assembly pin of a row). Their
+    # locals are named distinctly from the explicit-input `path` on purpose,
+    # so the mechanism pins above keep counting exactly one site each.
+    ("<top-level>", "File.ReadAllText", "oraclePath"): ("research-seam:re-oracle", 1),
+    ("<top-level>", "File.OpenRead", "refPath"): ("research-seam:h09-reference-mvid", 1),
 }
 
 

@@ -2,7 +2,7 @@
 
 > **Status: normative, descriptive.** This document specifies the OwnIR fact
 > contract *as it is today*, derived from the working bridge
-> (`ownlang/ownir.py`) and pinned by tests (see [§10 Conformance](#10-conformance)).
+> (`ownlang/ownir.py`) and pinned by tests (see [§11 Conformance](#11-conformance)).
 > Forward-looking ideas live in [`docs/proposals/`](../docs/proposals/), never
 > here.
 
@@ -226,8 +226,8 @@ contract question that recorded ("whether a coordinate no rule reads should
 nevertheless be well-formed") is answered **yes**, because the tolerant door
 does read it and anchors findings on it.
 
-One line-bearing path is, deliberately, validated by **neither door** for now:
-the `site` of a guarded-fact sidecar entry (`functions[].guarded_facts`, §5.2).
+Two line-bearing paths are, deliberately, validated by **neither door** for now.
+The first is the `site` of a guarded-fact sidecar entry (`functions[].guarded_facts`, §5.2).
 The P-037 A2 staging contract makes that sidecar inert at both doors in A2.1 —
 `load()` never reads the key and the Rust door carries it as an unknown field —
 so a domain the door does not check is not stated by the schema either
@@ -235,6 +235,15 @@ so a domain the door does not check is not stated by the schema either
 the type); the producer refuses to write a record whose line or column is
 below 1. The instrument step that registers the sidecar at the doors binds
 both coordinates to the domain above, at which point this paragraph goes.
+The second is the `line` / `column` of an orphaned-awaitable site
+(`orphaned_awaitables[]`, §9): the same door status (`load()` never reads the
+key, the Rust door carries it unknown; `orphanedAwaitable` states only the
+type), but unlike the sidecar the list **is** consumed — each entry becomes one
+OWN053 advisory — and only through the tolerant coercions (`_as_line` /
+`_as_col` and their Rust twins), which degrade an out-of-domain line to 0 and
+an out-of-domain column to absent, so the strict door's silence cannot produce
+a coordinate this section forbids. Registering the list at the doors binds both
+coordinates to the domain above.
 
 **Flow bodies and protocol event trees nest at most 32 levels.**
 
@@ -543,7 +552,37 @@ the barrier)*. Messages are deliberately line-free so baseline ratchets and
 FP-judge overlays that fingerprint on (path, rule, message) survive unrelated
 edits.
 
-## 9. Rules
+## 9. Orphaned awaitables (`orphaned_awaitables[]`)
+
+An optional, additive top-level array feeding the **OWN053** orphaned-awaitable
+advisory ([Diagnostics.md](Diagnostics.md)). The C# extractor emits one entry per
+local that is initialised by an un-awaited `Task` / `ValueTask` invocation of an
+effectful operation and is never referenced again in its member; a document
+whose extractor saw no such site carries no array at all, so it stays
+byte-identical to the pre-OWN053 shape (`ownir_version` unchanged — the field is
+additive, like `fix_candidates_version`):
+
+```json
+"orphaned_awaitables": [
+  {"file": "Q.cs", "line": 119, "column": 17, "method": "Q.ScheduleRetryAsync",
+   "local": "tx", "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+   "family": "A_owned_result", "result_type": "Npgsql.NpgsqlTransaction"}
+]
+```
+
+Each entry carries `file`, `line`, `column` (the declarator), `method` (the
+enclosing method's canonical name), `local`, `callee` (`Type.Member/arity`),
+`family` (`A_owned_result` — the unwrapped result is a real disposable;
+`B_protocol_lifecycle` — a connection / transaction lifecycle member name) and
+`result_type` (the unwrapped result type, or `null` for a non-generic awaitable).
+The bridge turns every entry into one advisory finding; it never lowers them and
+never makes a verdict out of them. The decision of which sites qualify is the
+frontend's (it owns the syntax and the reference count); the engines only render.
+Neither door validates the list (§4.2): `line` and `column` reach the finding
+through the tolerant coercions only, an out-of-domain line reads as 0 and an
+out-of-domain column as absent, and an entry that is not an object is skipped.
+
+## 10. Rules
 
 - **IR1.** `ownir_version` must equal the core's `OWNIR_VERSION` (or be absent);
   otherwise `load()` raises `OwnIRError`.
@@ -557,7 +596,7 @@ edits.
   never a silently dropped verdict.
 - **IR6.** A frontend emits facts only; all verdicts come from the core.
 
-## 10. Conformance
+## 11. Conformance
 
 Pinned by [`tests/test_ownir.py`](../tests/test_ownir.py) (the bridge suite,
 `python tests/test_ownir.py`), not `test_spec.py` (OwnIR is a bridge contract,

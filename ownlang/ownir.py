@@ -3226,11 +3226,10 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     # this side path so it bypasses the ERROR-only diagnostic mapping above.
     findings.extend(_unresolved_findings(facts))
 
-    # OWN053 (ownership-semantics-lab H-29 step 5, research flag OWEN_H29=1 on the
-    # extractor; h29-rule-prereg-v1.json): every `orphaned_awaitables` entry — a local
-    # initialised by an un-awaited awaitable invocation of an effectful operation and
-    # never observed again — as an advisory, through the same side path as OWN050.
-    # The list is absent without the flag, so the default run is unchanged.
+    # OWN053 (ownership-semantics-lab H-29, promoted): every `orphaned_awaitables`
+    # entry — a local initialised by an un-awaited awaitable invocation of an effectful
+    # operation and never observed again — as an advisory, through the same side path
+    # as OWN050. The list is absent when the extractor saw no site.
     findings.extend(_orphaned_awaitable_findings(facts))
 
     # OWN051 (d5 §5's advisory channel): each owned local handed to a
@@ -3649,8 +3648,8 @@ def _protocol_findings(facts: dict[str, Any]) -> list[Finding]:
 
 
 def _orphaned_awaitable_findings(facts: dict[str, Any]) -> list[Finding]:
-    """H-29 step 5 (research): surface every `orphaned_awaitables` entry the extractor
-    collected under OWEN_H29=1 as an advisory OWN053 "orphaned awaitable": a local
+    """OWN053 "orphaned awaitable" (promoted from ownership-semantics-lab H-29): surface
+    every `orphaned_awaitables` entry the extractor collected as an advisory: a local
     initialised by an un-awaited Task / ValueTask invocation whose operation is
     effectful (an owned result or a connection / transaction lifecycle call) and
     that is never awaited, returned, stored, passed or otherwise observed. The
@@ -3666,15 +3665,18 @@ def _orphaned_awaitable_findings(facts: dict[str, Any]) -> list[Finding]:
             continue
         local = str(it.get("local", "?"))
         callee = str(it.get("callee", "?"))
-        res = it.get("result_type") or "no result"
+        rt = it.get("result_type")
+        res = f"its result {rt} is never released" if rt else "there is no result to release"
         out.append(Finding(
             file=str(it.get("file", "?")), line=_as_line(it.get("line", 0)),
             column=_as_col(it.get("column")), code="OWN053",
             component=str(it.get("method", "?")), event=local, handler=callee,
-            message=(f"orphaned awaitable: '{local}' = {callee}(...) is never awaited "
-                     f"or observed -- the operation runs, its result ({res}) is never "
-                     f"released and its failure is lost; for a transaction / connection "
-                     f"lifecycle call the connection is left in a state nobody can finish"),
+            message=(f"orphaned awaitable: '{local}' = {callee}(...) is obtained and lost -- "
+                     f"never awaited, returned, stored or otherwise observed; the operation "
+                     f"still runs ({res}), its failure is lost, and a transaction / connection "
+                     f"lifecycle call leaves the connection in a state nobody can finish. Await "
+                     f"it and keep the result, return or store it where it is observed, or "
+                     f"express fire-and-forget explicitly"),
             kind="orphaned awaitable", advisory=True))
     return out
 

@@ -184,15 +184,17 @@ EXPLANATIONS = {
         "facts, and report the message's inner error if it persists."
     ),
     "OWN053": (
-        "Advisory (research prototype, H-29): a local was initialised by an un-awaited Task / "
-        "ValueTask invocation of an effectful operation (an owned result such as a reader or a "
-        "transaction, or a connection / transaction lifecycle call such as BeginTransactionAsync) "
-        "and is never awaited, returned, stored, passed or otherwise observed. The operation still "
-        "runs: BeginTransactionAsync changes the connection state inline, so every later command "
-        "runs inside a transaction nobody can commit and closing the connection rolls the work "
-        "back; the result is never released and a failure is lost. It never fails a build.\n"
+        "Advisory, not a leak verdict: a local was initialised by an un-awaited Task / ValueTask "
+        "invocation of an effectful operation (an owned result such as a reader or a transaction, "
+        "or a connection / transaction lifecycle call such as BeginTransactionAsync) and is never "
+        "awaited, returned, stored, passed or otherwise observed. The operation still runs — "
+        "BeginTransactionAsync changes the connection state inline, so every later command runs "
+        "inside a transaction nobody can commit and closing the connection rolls that work back; "
+        "the result is never released and a failure is lost. Standard async analyzers treat the "
+        "assignment itself as observing the task, so they stay silent here. It never fails a build.\n"
         "Fix: await the call and keep the result (`await using var tx = await conn.BeginTransactionAsync()`), "
-        "or remove the call if the operation was not meant to happen."
+        "return or store it where it is observed, or express fire-and-forget explicitly (`_ = ...`); "
+        "no automatic fix is offered — only the author knows which of the three was meant."
     ),
     "DI002": (
         "A singleton captures a scoped service: the scoped instance is pinned to the singleton "

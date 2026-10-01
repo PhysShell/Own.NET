@@ -259,11 +259,24 @@ def run() -> int:
     # registers the sidecar at the doors moves this entry to BOUND; until then
     # the machinery is doing what it was kept for: the next unbound path is
     # declared here, not discovered by nobody.
+    #
+    # The second UNBOUND entry is the OWN053 site list (`orphaned_awaitables[]`,
+    # §9, promoted from ownership-semantics-lab H-29). It is the same contract
+    # as the sidecar's, for the same reason: `load()` never reads the key and
+    # the Rust door carries it as an unknown field, so the schema states the
+    # type and nothing narrower. Unlike the sidecar the list IS consumed — both
+    # bridges mint one advisory per entry — but only through the tolerant
+    # coercions (`_as_line` / `_as_col` and their Rust twins), which degrade an
+    # out-of-domain line to 0 and an out-of-domain column to absent, so the
+    # strict door's silence cannot produce a coordinate the domain forbids
+    # (tests/test_ownir.py pins the degradation). Registering the list at the
+    # doors moves this entry to BOUND.
     BOUND = {"service": ["line", "ctor_line"], "site": ["line"],
              "effect": ["line"], "binding": ["line"], "param": ["line"],
              "protocolEvent": ["line"], "resourceRecord": ["line"],
              "flowOp": ["line"]}
-    UNBOUND: dict[str, list[str]] = {"sourceSite": ["line"]}
+    UNBOUND: dict[str, list[str]] = {"sourceSite": ["line"],
+                                     "orphanedAwaitable": ["line"]}
 
     # …and the map is CLOSED over the schema, which the per-member checks below
     # cannot establish on their own.
