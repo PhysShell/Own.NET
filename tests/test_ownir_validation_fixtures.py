@@ -1265,6 +1265,205 @@ def _controls() -> list[dict[str, Any]]:
            "shape"),
         # …and the coordinate-domain family, appended (insertion-stable).
         *_domain_controls(),
+        # …and the OWN053 site list, the last section to join the door
+        # (P-OWN053-DOOR), appended after everything for the same reason —
+        # including its own line / column domain controls, which would
+        # otherwise interleave with the slot tables' output above.
+        *_orphaned_awaitable_controls(),
+    ]
+
+
+_ABSENT = object()
+
+
+def _orph(**kw: Any) -> dict[str, Any]:
+    """A MINIMAL orphaned-awaitable entry: the four required fields, so a
+    control that drops or breaks one isolates that field. `_ABSENT` removes."""
+    rec: dict[str, Any] = {"local": "tx",
+                           "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+                           "file": "Q.cs", "line": 119}
+    for k, v in kw.items():
+        if v is _ABSENT:
+            rec.pop(k, None)
+        else:
+            rec[k] = v
+    return rec
+
+
+def _orphaned_awaitable_controls() -> list[dict[str, Any]]:
+    """`orphaned_awaitables[]` — the OWN053 site list (spec/OwnIR.md §9), the
+    LAST section in BR-D1 order (P-OWN053-DOOR).
+
+    The list shipped UNBOUND with the OWN053 promotion: both engines read it
+    through the tolerant coercions only, and a default-on advisory was minted
+    from every entry — so a local that was a list, a callee that was an
+    object, or a result type that was a number rendered as a real OWN053 built
+    from the stringification of garbage. These controls are the door that
+    refuses that. Written, as this file's rule says, from the frozen contract
+    (paper-eval/h29/p-own053-door-prereg-v1.json) before looking at what the
+    port does with them. Appended after every existing control so the ledger
+    stays insertion-stable; for the same reason the line / column DOMAIN
+    controls of this slot are generated here, in the slot tables' own
+    below/at/past pattern, rather than by adding a row to those tables.
+    """
+    def D(*entries: Any) -> dict[str, Any]:
+        return {"ownir_version": OWNIR_VERSION, "orphaned_awaitables": list(entries)}
+    return [
+        # ---- accept twins -------------------------------------------------
+        _c("accept-orphaned-empty-list", "orphaned_awaitables",
+           "the list present and empty: nothing to check", D(), None),
+        _c("accept-orphaned-minimal", "orphaned_awaitables",
+           "the four required fields alone (local, callee, file, line) — the "
+           "optionals are optional", D(_orph()), None),
+        _c("accept-orphaned-full-family-a", "orphaned_awaitables",
+           "a complete family-A entry as the extractor writes it: column, "
+           "method, family and the unwrapped result type",
+           D(_orph(column=17, method="Q.ScheduleRetryAsync", family="A_owned_result",
+                   result_type="Npgsql.NpgsqlTransaction")), None),
+        _c("accept-orphaned-family-b-null-result", "orphaned_awaitables",
+           "a family-B entry: a non-generic awaitable has no result type, so "
+           "`result_type` is an explicit null, and `method` / `column` may be "
+           "null too",
+           D(_orph(local="c", callee="Npgsql.NpgsqlTransaction.CommitAsync/1",
+                   family="B_protocol_lifecycle", result_type=None, method=None,
+                   column=None)), None),
+        _c("accept-orphaned-two-entries", "orphaned_awaitables",
+           "entries are independent records; two valid ones are two sites",
+           D(_orph(), _orph(local="r", callee="Npgsql.NpgsqlCommand.ExecuteReaderAsync/1",
+                            line=120)), None),
+        # ---- the list -----------------------------------------------------
+        _c("orphaned-not-array", "orphaned_awaitables",
+           "the section must be an array of objects",
+           {"ownir_version": OWNIR_VERSION, "orphaned_awaitables": {"local": "tx"}}, "shape"),
+        _c("orphaned-null-section", "orphaned_awaitables",
+           "…and a PRESENT null is not absent",
+           {"ownir_version": OWNIR_VERSION, "orphaned_awaitables": None}, "shape"),
+        _c("orphaned-entry-not-object", "orphaned_awaitables",
+           "an entry that is a scalar", D(7), "shape"),
+        _c("orphaned-entry-null", "orphaned_awaitables",
+           "…and null is not a record", D(None), "shape"),
+        _c("orphaned-entry-string", "orphaned_awaitables",
+           "…nor is a bare string, however much it looks like a local",
+           D("tx"), "shape"),
+        # ---- the two name slots (identity) ----------------------------------
+        _c("orphaned-local-empty", "orphaned_awaitables",
+           "`local` is the finding's event slot — a name slot, so empty is "
+           "`identity`", D(_orph(local="")), "identity"),
+        _c("orphaned-local-absent", "orphaned_awaitables",
+           "…and it is required", D(_orph(local=_ABSENT)), "identity"),
+        _c("orphaned-local-not-string", "orphaned_awaitables",
+           "…and a list is not a name — the exact shape the unbound list "
+           "rendered as a finding", D(_orph(local=["what", "is", "this"])), "identity"),
+        _c("orphaned-local-null", "orphaned_awaitables",
+           "…and null is not a name either", D(_orph(local=None)), "identity"),
+        _c("orphaned-callee-empty", "orphaned_awaitables",
+           "`callee` is the finding's handler slot (Type.Member/arity) — a "
+           "name slot", D(_orph(callee="")), "identity"),
+        _c("orphaned-callee-absent", "orphaned_awaitables",
+           "…and it is required", D(_orph(callee=_ABSENT)), "identity"),
+        _c("orphaned-callee-not-string", "orphaned_awaitables",
+           "…and an object is not a name", D(_orph(callee={"oops": 1})), "identity"),
+        # ---- the anchor ---------------------------------------------------
+        _c("orphaned-file-absent", "orphaned_awaitables",
+           "`file` is required (the anchor's file)", D(_orph(file=_ABSENT)), "shape"),
+        _c("orphaned-file-not-string", "orphaned_awaitables",
+           "…and it must be a string", D(_orph(file=7)), "shape"),
+        _c("orphaned-file-null", "orphaned_awaitables",
+           "…a present null included", D(_orph(file=None)), "shape"),
+        _c("orphaned-line-absent", "orphaned_awaitables",
+           "`line` is required — unlike the defaulted lines elsewhere, an entry "
+           "with no line is not a site", D(_orph(line=_ABSENT)), "shape"),
+        _c("orphaned-line-string", "orphaned_awaitables",
+           "a string line has no integer form", D(_orph(line="119")), "shape"),
+        _c("orphaned-line-bool", "orphaned_awaitables",
+           "…and the bool-is-int trap", D(_orph(line=True)), "shape"),
+        _c("orphaned-line-null", "orphaned_awaitables",
+           "…and a present null", D(_orph(line=None)), "shape"),
+        _c("orphaned-line-float", "orphaned_awaitables",
+           "…and a float, which is not a coordinate", D(_orph(line=1.5)), "shape"),
+        _c("orphaned-line-below-i64", "orphaned_awaitables",
+           "a line with no signed-64 form: `shape` by mechanism, on the other "
+           "axis from the domain controls below", D(_orph(line=BELOW_I64)), "shape"),
+        _c("accept-orphaned-column-one", "orphaned_awaitables",
+           "the 1-based boundary on the site column", D(_orph(column=1)), None),
+        _c("orphaned-column-zero", "orphaned_awaitables",
+           "the same column contract as every other column: 0 is a producer "
+           "bug, not 'unknown'", D(_orph(column=0)), "location"),
+        _c("orphaned-column-negative", "orphaned_awaitables",
+           "…negative likewise", D(_orph(column=-1)), "location"),
+        _c("orphaned-column-bool", "orphaned_awaitables",
+           "…and the bool-is-int trap on the column", D(_orph(column=True)), "shape"),
+        _c("orphaned-column-string", "orphaned_awaitables",
+           "…and a string, which has no integer form to be 1-based about",
+           D(_orph(column="17")), "shape"),
+        # ---- the typed optionals ------------------------------------------
+        _c("orphaned-method-not-string", "orphaned_awaitables",
+           "`method` is a string or null", D(_orph(method=7)), "shape"),
+        _c("orphaned-family-unknown", "orphaned_awaitables",
+           "`family` is a closed set: a third family does not exist until a "
+           "witness earns it", D(_orph(family="C_whatever")), "vocabulary"),
+        _c("orphaned-family-not-string", "orphaned_awaitables",
+           "…and a non-string is outside the set the same way a non-string "
+           "parameter effect is", D(_orph(family=7)), "vocabulary"),
+        _c("orphaned-family-empty", "orphaned_awaitables",
+           "…and so is the empty string", D(_orph(family="")), "vocabulary"),
+        _c("orphaned-result-type-not-string", "orphaned_awaitables",
+           "`result_type` is a string or null — the number the unbound list "
+           "would have rendered as a type name", D(_orph(result_type=12345)), "shape"),
+        # ---- order, within an entry and across sections --------------------
+        _c("orphaned-order-local-before-callee", "orphaned_awaitables",
+           "both name slots broken: `local` is checked first — observable only "
+           "through the message, so the control pins the identity category and "
+           "the pair is kept for a reader", D(_orph(local="", callee=7)), "identity"),
+        _c("orphaned-order-callee-before-file", "orphaned_awaitables",
+           "identity precedes the anchor: a broken callee outranks a missing file",
+           D(_orph(callee="", file=_ABSENT)), "identity"),
+        _c("orphaned-order-file-before-line", "orphaned_awaitables",
+           "…and the file precedes the line",
+           D(_orph(file=7, line=-1)), "shape"),
+        _c("orphaned-order-line-before-column", "orphaned_awaitables",
+           "…the line's domain precedes the column's type (§4.1 order)",
+           D(_orph(line=-1, column=True)), "location"),
+        _c("orphaned-order-column-before-family", "orphaned_awaitables",
+           "…and the column precedes the family vocabulary",
+           D(_orph(column=0, family="C_whatever")), "location"),
+        _c("orphaned-order-family-before-result-type", "orphaned_awaitables",
+           "…and the family precedes the result type",
+           D(_orph(family="C_whatever", result_type=7)), "vocabulary"),
+        _c("order-protocol-functions-before-orphaned", "order",
+           "across sections: `protocol_functions` is validated before "
+           "`orphaned_awaitables`, so a protocol function without a name "
+           "(identity) outranks a non-array site list (shape)",
+           {"ownir_version": OWNIR_VERSION, "protocol_functions": [{"file": "a.cs"}],
+            "orphaned_awaitables": {"a": 1}}, "identity"),
+        _c("order-orphaned-is-last", "order",
+           "…and nothing is validated after it: a document whose only defect "
+           "is in the site list reports that defect",
+           {"ownir_version": OWNIR_VERSION, "components": [], "services": [], "effects": [],
+            "functions": [], "protocols": [], "protocol_functions": [],
+            "orphaned_awaitables": [_orph(local="")]}, "identity"),
+        # ---- the line / column domain, in the slot tables' own pattern -------
+        _c("accept-orphaned-line-zero", "orphaned_awaitables",
+           "`0` is the bottom of the domain and means 'unknown / file-level'",
+           D(_orph(line=LINE_MIN)), None),
+        _c("accept-orphaned-line-at-int32-max", "orphaned_awaitables",
+           "…and 2147483647 is the top, accepted exactly",
+           D(_orph(line=LINE_MAX)), None),
+        _c("orphaned-line-negative", "orphaned_awaitables",
+           "one below the bottom: a representable coordinate outside its "
+           "domain, so `location` rather than `shape`",
+           D(_orph(line=LINE_MIN - 1)), "location"),
+        _c("orphaned-line-above-int32", "orphaned_awaitables",
+           "…and one above the top — the value the unbound list degraded to 0 "
+           "and the strict door now refuses",
+           D(_orph(line=ABOVE_LINE_MAX)), "location"),
+        _c("accept-orphaned-column-at-int32-max", "orphaned_awaitables",
+           "the top of the column domain, accepted exactly",
+           D(_orph(column=COLUMN_MAX)), None),
+        _c("orphaned-column-above-int32", "orphaned_awaitables",
+           "…and one past it: representable, positive, and outside the "
+           "domain — `location`, the same axis the 1-based rule is on",
+           D(_orph(column=COLUMN_MAX + 1)), "location"),
     ]
 
 

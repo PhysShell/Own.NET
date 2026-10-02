@@ -43,6 +43,11 @@
       "description": "Per-method ordered obligation-event trees the protocols are checked against (spec/OwnIR.md §8) — the fact side of the pair.",
       "type": "array",
       "items": { "$ref": "#/$defs/protocolFunction" }
+    },
+    "orphaned_awaitables": {
+      "description": "Optional, additive: the orphaned-awaitable sites feeding the OWN053 advisory (spec/OwnIR.md §9); absent when the extractor saw no site. Validated LAST by both strict doors (P-OWN053-DOOR); the tolerant coercions remain the contract for check_facts on an un-validated document.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/orphanedAwaitable" }
     }
   },
   "$defs": {
@@ -787,6 +792,27 @@
             "description": "`!p` (truth only). A negated null test is not a predicate here: it degrades to absence."
           }
         }
+      },
+    "orphanedAwaitable": {
+      "description": "One OWN053 orphaned-awaitable site (spec/OwnIR.md §9): a local initialised by an un-awaited Task / ValueTask invocation of an effectful operation and never referenced again in its member. `line` and `column` are the declarator's coordinates, bound to the shared §4.2 domain because both strict doors validate every entry (P-OWN053-DOOR; the list shipped unbound with the promotion and was bound once a default-on advisory was minted from it). `local` and `callee` are name slots (the finding's event and handler), `family` a closed vocabulary pinned to ownlang/ownir.py::_ORPHAN_FAMILIES, `method` and `result_type` string-or-null.",
+      "type": "object",
+      "required": ["file", "line", "local", "callee"],
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string" },
+        "line": { "$ref": "#/$defs/sourceLine" },
+        "column": { "$ref": "#/$defs/sourceColumn" },
+        "method": { "type": ["string", "null"] },
+        "local": { "type": "string", "minLength": 1 },
+        "callee": { "type": "string", "minLength": 1 },
+        "family": { "$ref": "#/$defs/orphanFamily" },
+        "result_type": { "type": ["string", "null"] }
       }
+    },
+    "orphanFamily": {
+      "description": "The OWN053 site family (spec/OwnIR.md §9): A_owned_result — the unwrapped awaitable result is a real disposable; B_protocol_lifecycle — the member is a connection / transaction lifecycle call. Pinned to the set in ownlang/ownir.py::load() (_ORPHAN_FAMILIES).",
+      "type": "string",
+      "enum": ["A_owned_result", "B_protocol_lifecycle"]
+    }
   }
 }

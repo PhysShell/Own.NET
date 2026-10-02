@@ -101,6 +101,35 @@ of `--severity`, excluded from the exit code, hidden at `--verbosity quiet`.
 - **OWN052** is module-level (no single site): the summary solve failed and the
   bridge degraded to intraprocedural-only checking ([Inference §F6](Inference.md)).
 
+## Orphaned awaitables (H-29)
+
+Advisory only — a *lost-acquisition note*, never a verdict. Emitted by the OwnIR
+bridge from the extractor's additive `orphaned_awaitables[]` list
+([OwnIR.md §9](OwnIR.md)) when a local is initialised by an **un-awaited**
+`Task` / `ValueTask` invocation of an effectful operation and is **never
+referenced again** in its member — not awaited, returned, stored, passed or
+otherwise observed. Effectful means: the unwrapped result is a real disposable
+(a reader, a transaction, a response), or the member is a connection /
+transaction lifecycle call (`BeginTransaction(Async)`, `Commit(Async)`,
+`Rollback(Async)`, `Open(Async)`, `Close(Async)`, `DisposeAsync`,
+`SaveChangesAsync`, `FlushAsync`). The operation still runs — `BeginTransactionAsync`
+changes the connection state inline, so every later command runs inside a
+transaction nobody can commit and closing the connection rolls that work back;
+the result is never released and a failure is lost. Standard async analyzers
+(CA2012, VSTHRD110, MA0134, CS4014) treat the assignment itself as observing
+the task and stay silent; IDE0059 goes silent for this shape inside `try` /
+`finally`. Rendered as a `warning` regardless of `--severity`, excluded from the
+exit code, hidden at `--verbosity quiet`. Deliberately narrow: `_ = X()` discards
+and bare `X();` statements are other rules' territory, non-effectful awaitables
+(`Task.Delay`, pure computations) are out of scope, and new lifecycle names
+enter the list only with a runtime witness. No automatic fix is offered — only
+the author knows whether the call should be awaited, kept, or explicitly
+fire-and-forget.
+
+| Code | Title |
+|------|-------|
+| OWN053 | orphaned awaitable — effectful async operation assigned but never observed |
+
 ## Rendering
 
 The CLI renders rustc-style: `file:line:col`, the source line, and a caret under

@@ -1,0 +1,1 @@
+{"ownir_version": 1, "module": "M", "orphaned_awaitables": [{"local": ["what", "is", "this"], "callee": {"oops": 1}, "file": "Q.cs", "line": 119, "result_type": 12345}]}

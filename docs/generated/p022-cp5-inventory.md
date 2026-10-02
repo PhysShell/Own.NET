@@ -56,9 +56,10 @@ Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set ([c
 | `token_subscription_injected_lambda` | bridge | plain `+=` subscription, injected source, inline lambda | 1 | 1 |
 | `token_subscription_other` | bridge | plain `+=` subscription, any other source | 17 | 17 |
 | `token_subscription_other_lambda` | bridge | plain `+=` subscription, any other source, inline lambda | 1 | 1 |
-| `advisory_own050` | bridge | OWN050 unresolved-reference note | 5 | 5 |
+| `advisory_own050` | bridge | OWN050 unresolved-reference note | 6 | 6 |
 | `advisory_own051` | bridge | OWN051 unverified-transfer note | 6 | 6 |
 | `advisory_own052` | bridge | OWN052 degraded-inference note | 1 | 1 |
+| `advisory_own053` | bridge | OWN053 orphaned-awaitable note | 3 | 3 |
 | `di001_message` | core-analysis | DI001 captive message (di.py) | 12 | 11 |
 | `di002_message` | core-analysis | DI002 weak-captive message (di.py) | 2 | 2 |
 | `di003_message` | core-analysis | DI003 captured-transient message (di.py) | 1 | 1 |

@@ -347,6 +347,10 @@ _FLOW_OPS = frozenset({
 # per-parameter effect. Like `_FLOW_OPS`, a closed enum the schema and the Rust
 # `ParamEffect` are bound to; an absent effect is inferred from the body.
 _PARAM_EFFECTS = frozenset({"consume", "borrow", "borrow_mut", "plain"})
+# OWN053 site families (spec/OwnIR.md §9): the closed set the strict door gates
+# `orphaned_awaitables[].family` against; the schema's `orphanFamily` enum is
+# pinned to it by tests/test_ownir.py exactly as `paramEffect` is to the set above.
+_ORPHAN_FAMILIES = frozenset({"A_owned_result", "B_protocol_lifecycle"})
 
 # --- P-004 region escape (the `capture` resource kind) ----------------------
 # A `capture` is a tokenless strong subscription routed NOT through the
@@ -773,7 +777,7 @@ def load(path: str) -> dict[str, Any]:
     # version gate first: a vocabulary mismatch makes every later shape-check
     # meaningless, so reject it up front with an actionable message. An absent
     # field is treated as the current version (the only producers that omit it
-    # predate versioning, i.e. are v0 by definition).
+    # predate the field, and every version since has only ADDED vocabulary).
     ver = result.get("ownir_version", OWNIR_VERSION)
     # V2, and scoped exactly as #262 ratified it: the TOP-LEVEL SCALAR value
     # the type check below reads, and nothing else. `type(...) is` rather than
@@ -1028,6 +1032,45 @@ def load(path: str) -> dict[str, Any]:
             parse_method(fraw)
         except ProtocolFactsError as e:
             raise OwnIRError(str(e)) from e
+    # OWN053 sites (spec/OwnIR.md §9; P-OWN053-DOOR). Validated LAST because it
+    # was the last section to join the door: the list shipped UNBOUND with the
+    # promotion (read by both engines through the tolerant coercions only) and
+    # is bound here because a default-on diagnostic is minted from every entry,
+    # so a malformed entry must fail loud at the door rather than render as an
+    # OWN053 built from the stringification of garbage. The two name slots
+    # first (identity — the finding's event and handler), then the anchor
+    # (`file`, `line`, `column` under the same §4.2 rules as every other
+    # coordinate), then the typed optionals; `family` is a closed vocabulary.
+    orphans = result.get("orphaned_awaitables", [])
+    if not isinstance(orphans, list) or not all(isinstance(o, dict) for o in orphans):
+        raise OwnIRError("OwnIR 'orphaned_awaitables' must be a JSON array of objects")
+    for o in orphans:
+        for slot in ("local", "callee"):
+            sv = o.get(slot)
+            if not isinstance(sv, str) or not sv:
+                raise OwnIRError(
+                    f"orphaned awaitable '{slot}' must be a non-empty string, got {sv!r}")
+        fv = o.get("file")
+        if not isinstance(fv, str):
+            raise OwnIRError(f"orphaned awaitable 'file' must be a string, got {fv!r}")
+        oln = o.get("line")
+        if not isinstance(oln, int) or isinstance(oln, bool):
+            raise OwnIRError(f"orphaned awaitable 'line' must be an integer, got {oln!r}")
+        _check_line_domain(oln, "orphaned awaitable")
+        _check_column(o.get("column"), "orphaned awaitable")
+        mv = o.get("method")
+        if mv is not None and not isinstance(mv, str):
+            raise OwnIRError(
+                f"orphaned awaitable 'method' must be a string or null, got {mv!r}")
+        fam = o.get("family")
+        if fam is not None and (not isinstance(fam, str) or fam not in _ORPHAN_FAMILIES):
+            raise OwnIRError(
+                f"orphaned awaitable 'family' must be one of {sorted(_ORPHAN_FAMILIES)}, "
+                f"got {fam!r}")
+        rtv = o.get("result_type")
+        if rtv is not None and not isinstance(rtv, str):
+            raise OwnIRError(
+                f"orphaned awaitable 'result_type' must be a string or null, got {rtv!r}")
     return result
 
 
@@ -3420,6 +3463,12 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     # this side path so it bypasses the ERROR-only diagnostic mapping above.
     findings.extend(_unresolved_findings(facts))
 
+    # OWN053 (ownership-semantics-lab H-29, promoted): every `orphaned_awaitables`
+    # entry — a local initialised by an un-awaited awaitable invocation of an effectful
+    # operation and never observed again — as an advisory, through the same side path
+    # as OWN050. The list is absent when the extractor saw no site.
+    findings.extend(_orphaned_awaitable_findings(facts))
+
     # OWN051 (d5 §5's advisory channel): each owned local handed to a
     # may/unknown-contract position was optimistically untracked at that call —
     # surface the honest "not checked past here" note minted during lowering.
@@ -3832,6 +3881,40 @@ def _protocol_findings(facts: dict[str, Any]) -> list[Finding]:
             message=(f"protocol '{p.name}' is scoped to "
                      f"{sorted(p.methods)} but no reported method matches — "
                      f"the rule is dead (typo in scope.methods?)")))
+    return out
+
+
+def _orphaned_awaitable_findings(facts: dict[str, Any]) -> list[Finding]:
+    """OWN053 "orphaned awaitable" (promoted from ownership-semantics-lab H-29): surface
+    every `orphaned_awaitables` entry the extractor collected as an advisory: a local
+    initialised by an un-awaited Task / ValueTask invocation whose operation is
+    effectful (an owned result or a connection / transaction lifecycle call) and
+    that is never awaited, returned, stored, passed or otherwise observed. The
+    operation still runs (BeginTransactionAsync changes the connection state
+    inline), its result is never released and its failure is lost. Advisory:
+    never a build failure. Absent list = nothing."""
+    out: list[Finding] = []
+    items = facts.get("orphaned_awaitables", [])
+    if not isinstance(items, list):
+        return out
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        local = str(it.get("local", "?"))
+        callee = str(it.get("callee", "?"))
+        rt = it.get("result_type")
+        res = f"its result {rt} is never released" if rt else "there is no result to release"
+        out.append(Finding(
+            file=str(it.get("file", "?")), line=_as_line(it.get("line", 0)),
+            column=_as_col(it.get("column")), code="OWN053",
+            component=str(it.get("method", "?")), event=local, handler=callee,
+            message=(f"orphaned awaitable: '{local}' = {callee}(...) is obtained and lost -- "
+                     f"never awaited, returned, stored or otherwise observed; the operation "
+                     f"still runs ({res}), its failure is lost, and a transaction / connection "
+                     f"lifecycle call leaves the connection in a state nobody can finish. Await "
+                     f"it and keep the result, return or store it where it is observed, or "
+                     f"express fire-and-forget explicitly"),
+            kind="orphaned awaitable", advisory=True))
     return out
 
 

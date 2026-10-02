@@ -371,6 +371,10 @@ pub static TITLES: &[(&str, &str)] = &[
         "OWN052",
         "interprocedural summary inference failed -- method summaries skipped",
     ),
+    (
+        "OWN053",
+        "orphaned awaitable -- effectful async operation assigned but never observed",
+    ),
 ];
 
 #[cfg(test)]
@@ -394,7 +398,7 @@ mod tests {
     fn titles_count_matches_python_reference() {
         // Locked to `len(ownlang.diagnostics.TITLES)` — a drift on either side is
         // a real vocabulary change and must be made on both, together.
-        assert_eq!(TITLES.len(), 47);
+        assert_eq!(TITLES.len(), 48);
     }
 
     #[test]

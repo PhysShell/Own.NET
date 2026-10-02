@@ -288,6 +288,14 @@
         "BR-V4",
         "BR-V5"
       ]
+    },
+    {
+      "name": "verdict_own053_orphaned_awaitable",
+      "rules": [
+        "BR-V1",
+        "BR-V4",
+        "BR-V8"
+      ]
     }
   ]
 }

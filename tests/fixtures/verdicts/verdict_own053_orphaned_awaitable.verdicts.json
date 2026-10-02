@@ -1,0 +1,69 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Queue.cs",
+      "line": 0,
+      "code": "OWN053",
+      "component": "Queue.PostgresqlQueueSender.OpenAsync",
+      "event": "open",
+      "handler": "Npgsql.NpgsqlConnection.OpenAsync/1",
+      "message": "orphaned awaitable: 'open' = Npgsql.NpgsqlConnection.OpenAsync/1(...) is obtained and lost -- never awaited, returned, stored or otherwise observed; the operation still runs (there is no result to release), its failure is lost, and a transaction / connection lifecycle call leaves the connection in a state nobody can finish. Await it and keep the result, return or store it where it is observed, or express fire-and-forget explicitly",
+      "kind": "orphaned awaitable",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Queue.cs",
+      "line": 42,
+      "code": "OWN053",
+      "component": "Queue.PostgresqlQueueSender.FlushAsync",
+      "event": "commit",
+      "handler": "Npgsql.NpgsqlTransaction.CommitAsync/1",
+      "message": "orphaned awaitable: 'commit' = Npgsql.NpgsqlTransaction.CommitAsync/1(...) is obtained and lost -- never awaited, returned, stored or otherwise observed; the operation still runs (there is no result to release), its failure is lost, and a transaction / connection lifecycle call leaves the connection in a state nobody can finish. Await it and keep the result, return or store it where it is observed, or express fire-and-forget explicitly",
+      "kind": "orphaned awaitable",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": 13
+    },
+    {
+      "file": "Queue.cs",
+      "line": 119,
+      "code": "OWN050",
+      "component": "QueueView",
+      "event": "grid.CellValueChanged",
+      "handler": "OnCellChanged",
+      "message": "cannot verify 'grid.CellValueChanged' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped",
+      "kind": "unresolved reference",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Queue.cs",
+      "line": 119,
+      "code": "OWN053",
+      "component": "Queue.PostgresqlQueueSender.ScheduleRetryAsync",
+      "event": "tx",
+      "handler": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+      "message": "orphaned awaitable: 'tx' = Npgsql.NpgsqlConnection.BeginTransactionAsync/1(...) is obtained and lost -- never awaited, returned, stored or otherwise observed; the operation still runs (its result Npgsql.NpgsqlTransaction is never released), its failure is lost, and a transaction / connection lifecycle call leaves the connection in a state nobody can finish. Await it and keep the result, return or store it where it is observed, or express fire-and-forget explicitly",
+      "kind": "orphaned awaitable",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": 17
+    }
+  ]
+}
