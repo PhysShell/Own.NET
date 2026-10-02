@@ -139,6 +139,12 @@ LINE_PATHS: list[tuple[str, Any]] = [
     ("functions[].body[].body[].line",
      lambda v: {"functions": [{"body": [
          {"op": "while", "body": [{"op": "acquire", "line": v}]}]}]}),
+    # The OWN053 site anchor (P-OWN053-DOOR): the newest door slot, validated
+    # last. An entry carries its two name slots so the line is the only thing
+    # the control can fail on.
+    ("orphaned_awaitables[].line",
+     lambda v: {"orphaned_awaitables": [
+         {"local": "t", "callee": "T.M/0", "file": "a.cs", "line": v}]}),
 ]
 
 # The same paths, for the TYPE rule. Every line field rejects a non-integer;
@@ -153,6 +159,9 @@ COLUMN_PATHS: list[tuple[str, Any]] = [
      lambda v: {"functions": [{"params": [{"name": "p", "column": v}]}]}),
     ("functions[].body[].column",
      lambda v: {"functions": [{"body": [{"op": "a", "column": v}]}]}),
+    ("orphaned_awaitables[].column",
+     lambda v: {"orphaned_awaitables": [
+         {"local": "t", "callee": "T.M/0", "file": "a.cs", "line": 1, "column": v}]}),
 ]
 
 
@@ -259,10 +268,19 @@ def run() -> int:
     # registers the sidecar at the doors moves this entry to BOUND; until then
     # the machinery is doing what it was kept for: the next unbound path is
     # declared here, not discovered by nobody.
+    #
+    # `orphanedAwaitable` (the OWN053 site list, `orphaned_awaitables[]`, §9,
+    # promoted from ownership-semantics-lab H-29) sat in UNBOUND for exactly one
+    # commit: the list shipped read by both engines through the tolerant
+    # coercions only, which was honest about the door that existed. A default-on
+    # advisory minted from an unvalidated entry is the situation this map
+    # exists to name, so P-OWN053-DOOR registered the list at both strict doors
+    # (validated last, after `protocol_functions`) and the entry moved here —
+    # wiring first, BOUND after, never the other way round.
     BOUND = {"service": ["line", "ctor_line"], "site": ["line"],
              "effect": ["line"], "binding": ["line"], "param": ["line"],
              "protocolEvent": ["line"], "resourceRecord": ["line"],
-             "flowOp": ["line"]}
+             "flowOp": ["line"], "orphanedAwaitable": ["line"]}
     UNBOUND: dict[str, list[str]] = {"sourceSite": ["line"]}
 
     # …and the map is CLOSED over the schema, which the per-member checks below

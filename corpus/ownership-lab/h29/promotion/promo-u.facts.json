@@ -1,0 +1,153 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "Orphan.O06_discard",
+      "file": "corpus/ownership-lab/h29/fx/Orphan.cs",
+      "sig": "Npgsql.NpgsqlConnection,System.Threading.CancellationToken",
+      "params": [
+        {
+          "name": "conn",
+          "line": 16
+        }
+      ],
+      "body": [
+        {
+          "op": "use",
+          "var": "conn",
+          "line": 16
+        }
+      ]
+    },
+    {
+      "name": "Orphan.O07_statement",
+      "file": "corpus/ownership-lab/h29/fx/Orphan.cs",
+      "sig": "Npgsql.NpgsqlConnection,System.Threading.CancellationToken",
+      "params": [
+        {
+          "name": "conn",
+          "line": 17
+        }
+      ],
+      "body": [
+        {
+          "op": "use",
+          "var": "conn",
+          "line": 17
+        }
+      ]
+    },
+    {
+      "name": "Orphan.O12_in_try",
+      "file": "corpus/ownership-lab/h29/fx/Orphan.cs",
+      "sig": "Npgsql.NpgsqlConnection,System.Threading.CancellationToken",
+      "params": [
+        {
+          "name": "conn",
+          "line": 22
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 22,
+          "then": [
+            {
+              "op": "use",
+              "var": "conn",
+              "line": 22
+            },
+            {
+              "op": "return",
+              "var": null,
+              "line": 22
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 22,
+          "then": [
+            {
+              "op": "use",
+              "var": "conn",
+              "line": 22
+            },
+            {
+              "op": "return",
+              "var": null,
+              "line": 22
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "use",
+          "var": "conn",
+          "line": 22
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "methods_with_local": 15,
+    "methods_flow_analysed": 3,
+    "methods_skipped_unmodelled": 12
+  },
+  "orphaned_awaitables": [
+    {
+      "file": "corpus/ownership-lab/h29/fx/Orphan.cs",
+      "line": 11,
+      "column": 87,
+      "method": "Orphan.O01_B_orphan",
+      "local": "tx",
+      "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+      "family": "A_owned_result",
+      "result_type": "Npgsql.NpgsqlTransaction"
+    },
+    {
+      "file": "corpus/ownership-lab/h29/fx/Orphan.cs",
+      "line": 12,
+      "column": 61,
+      "method": "Orphan.O02_A_orphan",
+      "local": "r",
+      "callee": "Npgsql.NpgsqlCommand.ExecuteReaderAsync/1",
+      "family": "A_owned_result",
+      "result_type": "Npgsql.NpgsqlDataReader"
+    },
+    {
+      "file": "corpus/ownership-lab/h29/fx/Orphan.cs",
+      "line": 21,
+      "column": 95,
+      "method": "Orphan.O11_B_configureawait",
+      "local": "tx",
+      "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+      "family": "A_owned_result",
+      "result_type": "Npgsql.NpgsqlTransaction"
+    },
+    {
+      "file": "corpus/ownership-lab/h29/fx/Orphan.cs",
+      "line": 22,
+      "column": 91,
+      "method": "Orphan.O12_in_try",
+      "local": "tx",
+      "callee": "Npgsql.NpgsqlConnection.BeginTransactionAsync/1",
+      "family": "A_owned_result",
+      "result_type": "Npgsql.NpgsqlTransaction"
+    },
+    {
+      "file": "corpus/ownership-lab/h29/fx/Orphan.cs",
+      "line": 23,
+      "column": 62,
+      "method": "Orphan.O13_B_sync_commit",
+      "local": "c",
+      "callee": "Npgsql.NpgsqlTransaction.CommitAsync/1",
+      "family": "B_protocol_lifecycle",
+      "result_type": null
+    }
+  ]
+}

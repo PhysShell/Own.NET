@@ -30,8 +30,8 @@ fails a build / red check) or `warning` (advisory). It is a presentation choice;
 the finding is still the core's verdict.
 `--verbosity` (ownir only) is `quiet` (errors only — hide the advisory notes:
 OWN050 "leakage analysis skipped", OWN051 "ownership transfer unverified",
-OWN052 "summaries skipped"), `normal` (default), or `verbose` (also print a
-per-code breakdown).
+OWN052 "summaries skipped", OWN053 "orphaned awaitable"), `normal` (default), or
+`verbose` (also print a per-code breakdown).
 
 Exit code is non-zero if any error-level diagnostic was produced.
 """

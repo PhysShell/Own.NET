@@ -296,6 +296,13 @@ MESSAGE_BRANCHES: tuple[Branch, ...] = (
            rf"interprocedural summary inference failed \({N}\); method summaries "
            rf"skipped — cross-method ownership transfer was not checked this run",
            ("OWN052",)),
+    Branch("advisory_own053", "BR-V4", BRIDGE, "OWN053 orphaned-awaitable note",
+           rf"orphaned awaitable: '{N}' = {N}\(\.\.\.\) is obtained and lost -- never awaited, "
+           rf"returned, stored or otherwise observed; the operation still runs \({N}\), its "
+           rf"failure is lost, and a transaction / connection lifecycle call leaves the "
+           rf"connection in a state nobody can finish\. Await it and keep the result, return "
+           rf"or store it where it is observed, or express fire-and-forget explicitly",
+           ("OWN053",)),
     # the messages the bridge does NOT synthesize: the DI and effect finders'
     # own `message` property (ownlang/di.py, ownlang/effects.py).
     Branch("di001_message", "BR-V4", CORE_ANALYSIS, "DI001 captive message (di.py)",

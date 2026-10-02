@@ -1,0 +1,20 @@
+106c106
+<       "file": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h29/fx/Orphan.cs",
+---
+>       "file": "../../../tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h29/fx/Orphan.cs",
+116c116
+<       "file": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h29/fx/Orphan.cs",
+---
+>       "file": "../../../tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h29/fx/Orphan.cs",
+126c126
+<       "file": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h29/fx/Orphan.cs",
+---
+>       "file": "../../../tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h29/fx/Orphan.cs",
+136c136
+<       "file": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h29/fx/Orphan.cs",
+---
+>       "file": "../../../tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h29/fx/Orphan.cs",
+146c146
+<       "file": "/tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h29/fx/Orphan.cs",
+---
+>       "file": "../../../tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h29/fx/Orphan.cs",

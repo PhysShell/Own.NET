@@ -85,6 +85,7 @@ TITLES = {
     "OWN050": "declaring type unresolved -- leakage analysis skipped",
     "OWN051": "ownership transfer unverified -- local not checked past this call",
     "OWN052": "interprocedural summary inference failed -- method summaries skipped",
+    "OWN053": "orphaned awaitable -- effectful async operation assigned but never observed",
     # ---- DI container lifetimes (P-006; emitted by the OwnIR bridge) ----
     "DI001": "captive dependency: a shorter-lived service is captured by a longer-lived one",
     "DI002": "singleton captures a scoped service (captive dependency)",
@@ -181,6 +182,21 @@ EXPLANATIONS = {
         "consume/borrow/fresh contract was skipped, not guessed. It never fails a build.\n"
         "Fix: this indicates malformed `functions[]` facts or a bridge bug — re-extract the "
         "facts, and report the message's inner error if it persists."
+    ),
+    "OWN053": (
+        "Advisory, not a leak verdict: a local was initialised by an un-awaited Task / ValueTask "
+        "invocation of an effectful operation (an owned result such as a reader or a transaction, "
+        "or a connection / transaction lifecycle call such as BeginTransactionAsync) and is never "
+        "awaited, returned, stored, passed or otherwise observed. The operation still runs — "
+        "BeginTransactionAsync changes the connection state inline, so every later command runs "
+        "inside a transaction nobody can commit and closing the connection rolls that work back; "
+        "the result is never released and a failure is lost. Standard async analyzers treat the "
+        "assignment itself as observing the task, so they stay silent here. It never fails a "
+        "build.\n"
+        "Fix: await the call and keep the result "
+        "(`await using var tx = await conn.BeginTransactionAsync()`), return or store it where "
+        "it is observed, or express fire-and-forget explicitly (`_ = ...`); "
+        "no automatic fix is offered — only the author knows which of the three was meant."
     ),
     "DI002": (
         "A singleton captures a scoped service: the scoped instance is pinned to the singleton "

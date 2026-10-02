@@ -1,0 +1,1 @@
+extractor: +4 references from --ref-dir /tmp/claude-0/-home-user/8a9da608-aa27-5449-8306-1fae9426f9b9/scratchpad/lab/h29/falsifier/bin/Release/net8.0 (recursive)
