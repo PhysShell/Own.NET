@@ -13,6 +13,12 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 //   [ProtocolToken]   a ref struct: every instance METHOD is a transition that consumes the
 //                     token (and borrows the entity for the call); a PROPERTY is a read.
 //
+// RESERVED NAMES. Matching by name makes the two names a convention the profile owns, but only
+// in those shapes: a method marked [ProtocolRegion] that takes a delegate, a ref struct marked
+// [ProtocolToken]. An attribute of the same name on anything else (a class, a plain struct, a
+// method with no callback) belongs to somebody else's code and is ignored — a scan of a
+// codebase that declares no state protocol is never refused over a name.
+//
 // This is a LOWERING, not an analysis. It reads the syntax of one method at a time and looks
 // symbols up; it never tracks state across statements, never follows aliases, and never
 // decides whether a program is right. Everything it emits is checked by the core:
@@ -511,7 +517,7 @@ internal static class ProtocolLowering
                         ? info.ConvertedType : info.Type ?? info.ConvertedType)?.OriginalDefinition;
                     if (IsToken(made) && !Within(api))
                         refusals.Add(At(file, node,
-                            $"a protocol token '{made!.Name}' is created outside the protocol's own types: a token comes only from a region entry or a transition"));
+                            $"a protocol token '{made!.Name}' is created outside the protocol's own types: a token comes only from a region entry or a transition" + ReservedNames));
                     else if (node is BaseObjectCreationExpressionSyntax
                              && Bound(model.GetSymbolInfo(node)) is IMethodSymbol
                                  { DeclaredAccessibility: not Accessibility.Public } ctor
@@ -613,11 +619,37 @@ internal static class ProtocolLowering
         symbol is not null && symbol.GetAttributes().Any(a =>
             a.AttributeClass?.Name == name || a.AttributeClass?.Name == name + "Attribute");
 
-    private static bool IsToken(ITypeSymbol? type) => HasAttribute(type, "ProtocolToken");
+    // The two attributes are matched by NAME, so the names are reserved — but only in the
+    // SHAPE the profile gives them. A codebase that never declared a state protocol can own an
+    // attribute called ProtocolToken (a wire-protocol token class, say), and a name alone must
+    // not turn its scan into a refusal. So:
+    //
+    //   a state token   is a REF STRUCT marked [ProtocolToken];
+    //   a region entry  is a method marked [ProtocolRegion] that TAKES A DELEGATE.
+    //
+    // Anything else carrying one of the names is not part of a protocol and is left alone.
+    // The shapes are deliberately the widest ones that still catch a protocol declared wrongly:
+    // a marked region entry whose callback does not take a token, or takes a marked type that
+    // is not a ref struct, is still a region entry and is refused where it is used.
 
-    private static bool IsRegionEntry(IMethodSymbol? method) =>
-        method is not null && HasAttribute((method.ReducedFrom ?? method).OriginalDefinition,
-                                           "ProtocolRegion");
+    /// Marked [ProtocolToken], whatever it is. Only for saying WHY a marked type is not a token.
+    private static bool HasTokenName(ITypeSymbol? type) => HasAttribute(type, "ProtocolToken");
+
+    private static bool IsToken(ITypeSymbol? type) =>
+        type is { IsRefLikeType: true } && HasTokenName(type);
+
+    private static bool IsRegionEntry(IMethodSymbol? method)
+    {
+        if (method is null)
+            return false;
+        var declared = (method.ReducedFrom ?? method).OriginalDefinition;
+        // an UNRESOLVED parameter type may be the callback of a degraded scan: keep it in
+        return HasAttribute(declared, "ProtocolRegion")
+            && declared.Parameters.Any(p => p.Type.TypeKind is TypeKind.Delegate or TypeKind.Error);
+    }
+
+    private const string ReservedNames =
+        " (the attribute names ProtocolRegion and ProtocolToken are reserved in these shapes: a method marked [ProtocolRegion] that takes a delegate is a region entry, a ref struct marked [ProtocolToken] is a state token)";
 
     private static bool IsApiType(INamedTypeSymbol? type) =>
         type is not null && (IsToken(type)
@@ -789,7 +821,7 @@ internal static class ProtocolLowering
     {
         var args = entry.ArgumentList.Arguments;
         if (args.Count != 2)
-            throw Refuse(ctx, entry, "a protocol region entry takes (entity, callback)");
+            throw Refuse(ctx, entry, "a protocol region entry takes (entity, callback)" + ReservedNames);
         var entityExpr = Unparen(args[0].Expression);
         var entity = ctx.Model.GetSymbolInfo(entityExpr).Symbol;
         if (entityExpr is not IdentifierNameSyntax || entity is not (ILocalSymbol or IParameterSymbol))
@@ -809,9 +841,9 @@ internal static class ProtocolLowering
         };
         if (parameter is null
             || ctx.Model.GetDeclaredSymbol(parameter) is not IParameterSymbol token
-            || !IsToken(token.Type))
+            || !HasTokenName(token.Type))
             throw Refuse(ctx, entry,
-                "the callback of a protocol region takes exactly one protocol token");
+                "the callback of a protocol region takes exactly one protocol token" + ReservedNames);
         // A token that is not a ref struct can be captured by a nested lambda, stored in a
         // field, or carried across an await — every one of which lets it reach ANOTHER
         // region, the shape the core cannot check. The language forbids all three for a

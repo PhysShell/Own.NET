@@ -1,0 +1,20 @@
+namespace Net.Wire;
+
+// THE OTHER RESIDUAL, pinned. A REF STRUCT marked [ProtocolToken] is exactly what a state
+// token is. Creating one by hand is the forgery the boundary exists to refuse, and the
+// profile cannot know that this one belongs to somebody else. Still refused, with the
+// reserved-name note.
+[ProtocolToken]
+public ref struct Cursor
+{
+    public int Position;
+}
+
+public static class U4TokenNameOnARefStruct
+{
+    public static int Run()
+    {
+        var cursor = new Cursor { Position = 3 };
+        return cursor.Position;
+    }
+}

@@ -118,6 +118,18 @@ SQL, another process. Those belong to concurrency tokens, constraints and
 transactions (two of them are pinned as stated limits under
 `protocol-samples/efcore/known-gaps`).
 
+**Reserved names.** Matching by name makes `ProtocolToken` and `ProtocolRegion`
+names the profile owns — but only in its own shapes: a **ref struct** marked
+`[ProtocolToken]` is a state token, a method marked `[ProtocolRegion]` **that
+takes a delegate** is a region entry. An attribute with one of these names on
+anything else (a class, a plain struct, a record, a method with no callback)
+belongs to somebody else's code and is ignored, so a codebase that declares no
+state protocol is not refused over a name. The two shapes themselves stay
+reserved: an unrelated attribute of the same name on a ref struct, or on a method
+that takes a delegate, is read as a protocol declared wrongly and refused — the
+profile cannot tell the two apart, and a mis-declared protocol must not go
+unanalysed.
+
 **The trust boundary.** The types that DECLARE a protocol — the tokens, and the
 type holding a region entry — are its trusted definition surface: they construct
 tokens, enter regions and implement transitions, and their bodies are not

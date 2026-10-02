@@ -1,0 +1,29 @@
+using System;
+
+namespace Net.Wire;
+
+// THE RESIDUAL, pinned. [ProtocolRegion] on a method that DOES take a delegate has exactly the
+// shape of a region entry, and the profile cannot tell it from a protocol whose author forgot
+// to mark the token — which must stay a refusal, or a mis-declared protocol would go
+// unanalysed in silence. So this collision is still refused; the message says which names are
+// reserved and in which shapes.
+public static class Bytes
+{
+    [ProtocolRegion]
+    public static void Each(byte[] frame, Action<byte> body)
+    {
+        foreach (var b in frame)
+            body(b);
+    }
+}
+
+public static class U3RegionNameWithACallback
+{
+    public static int Run()
+    {
+        var frame = new byte[4];
+        var sum = 0;
+        Bytes.Each(frame, b => { sum += b; });
+        return sum;
+    }
+}

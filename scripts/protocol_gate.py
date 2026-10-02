@@ -4,7 +4,7 @@
 The Layer 2/3 ledgers freeze the facts the Roslyn lowering emits for the state-protocol
 surface, and both engines replay them with zero `dotnet`. This script is the other half: it
 runs the REAL extractor over the C# those facts came from, so a frozen fact can never drift
-away from the program it claims to describe. Five questions (needs `dotnet` on PATH; zero
+away from the program it claims to describe. Six questions (needs `dotnet` on PATH; zero
 Python dependencies). Every path below is under `frontend/roslyn/protocol-samples/`:
 
 1. **cases** — every `cases/<Case>.cs` is run through the extractor (with the sample API
@@ -26,7 +26,15 @@ Python dependencies). Every path below is under `frontend/roslyn/protocol-sample
    it all the same: a token made by hand, the protocol's state written past every token. A
    control with a null expectation must be ACCEPTED: a mention is not an operation.
 
-5. **efcore** — `efcore/` is an ordinary ASP.NET Core + EF Core backend. It must run (its
+5. **unrelated** — every `unrelated/<Case>.cs.txt` is a program from a codebase that declares
+   NO state protocol and happens to own attributes named `ProtocolToken` / `ProtocolRegion`
+   (`unrelated/WireAttributes.cs.txt`). The names are reserved only in the profile's shapes —
+   a ref struct, a method that takes a delegate — so a case with a null expectation must be
+   ACCEPTED, with not one region lowered, alone and beside the sample protocol. The two
+   cases that do have the reserved shape are pinned as refusals: the residual is stated, not
+   discovered.
+
+6. **efcore** — `efcore/` is an ordinary ASP.NET Core + EF Core backend. It must run (its
    acceptance runner drives real HTTP against real SQLite); the extractor must lower its
    handlers to the committed `tests/fixtures/lowered/typestate_ef_orderbackend.facts.json`
    with a clean verdict, from the project file alone; a copy whose handlers rely on IMPLICIT
@@ -273,6 +281,78 @@ def same_assembly(dll: str, fails: list[str]) -> int:
     return len(on_disk)
 
 
+def _lowers_a_region(facts: dict[str, object]) -> bool:
+    def walk(nodes: object) -> bool:
+        return isinstance(nodes, list) and any(
+            isinstance(n, dict) and (n.get("op") == "borrow_mut" or walk(n.get("body"))
+                                     or walk(n.get("then")) or walk(n.get("else")))
+            for n in nodes)
+    functions = facts.get("functions")
+    return isinstance(functions, list) and any(
+        isinstance(fn, dict) and walk(fn.get("body")) for fn in functions)
+
+
+def unrelated(dll: str, fails: list[str]) -> int:
+    """A codebase with no state protocol, and attributes that share the profile's names.
+
+    The programs compile on their own (with `WireAttributes.cs.txt`). A null expectation
+    means the scan must ACCEPT the program — exit 0, a clean verdict, no region lowered —
+    both alone and with the sample protocol in the same scan; a text means the program has
+    the reserved shape and the refusal carrying that text is the pinned residual."""
+    here = os.path.join(PROTO, "unrelated")
+    with open(os.path.join(here, "expected.json"), encoding="utf-8") as f:
+        expected = json.load(f)
+    shared = "WireAttributes"
+    on_disk = sorted(n[:-7] for n in os.listdir(here) if n.endswith(".cs.txt") and n[:-7] != shared)
+    if on_disk != sorted(expected):
+        fails.append(f"unrelated: expected.json {sorted(expected)} != sources {on_disk}")
+        return 0
+    with tempfile.TemporaryDirectory() as tmp:
+        one = os.path.join(tmp, "Wire")
+        os.makedirs(one)
+        for case in [shared, *on_disk]:
+            shutil.copyfile(os.path.join(here, f"{case}.cs.txt"), os.path.join(one, f"{case}.cs"))
+        with open(os.path.join(one, "Wire.csproj"), "w", encoding="utf-8") as f:
+            f.write(_PROJECT.format(items='<Compile Include="*.cs" />'))
+        built = _run(["dotnet", "build", one, "-nologo", "-v", "q"], cwd=tmp)
+        if built.returncode != 0:
+            codes = sorted(set(re.findall(r"error (CS\d+)", built.stdout)))
+            fails.append(f"unrelated: the programs do not build: {codes}")
+        attributes = os.path.join(one, f"{shared}.cs")
+        for case in on_disk:
+            src = os.path.join(one, f"{case}.cs")
+            want = expected[case]
+            scans = [("alone", [attributes, src])]
+            if want is None:
+                scans.append(("beside the sample protocol", [API_REL, attributes, src]))
+            for label, inputs in scans:
+                out = os.path.join(tmp, f"{case}.json")
+                if os.path.exists(out):
+                    os.remove(out)
+                done = _run(["dotnet", dll, *inputs, "--flow-locals", "-o", out])
+                where = f"unrelated/{case} ({label})"
+                if want is None:
+                    if done.returncode != 0:
+                        fails.append(f"{where}: a codebase with no state protocol was not "
+                                     f"accepted (exit {done.returncode}): "
+                                     f"{done.stderr.strip()[-300:]}")
+                        continue
+                    with open(out, encoding="utf-8") as f:
+                        facts = json.load(f)
+                    got = _verdict(facts)
+                    if got != []:
+                        fails.append(f"{where}: verdict {got!r}, expected clean")
+                    if _lowers_a_region(facts):
+                        fails.append(f"{where}: a region was lowered from a name alone")
+                elif done.returncode != 2:
+                    fails.append(f"{where}: the extractor exited {done.returncode}; the "
+                                 f"reserved shape is pinned as a refusal (2)")
+                elif want not in done.stderr:
+                    fails.append(f"{where}: refusal text lacks {want!r}: "
+                                 f"{done.stderr.strip()[-300:]}")
+    return len(on_disk)
+
+
 EF = os.path.join(PROTO, "efcore")
 EF_REL = f"{SAMPLES_REL}/efcore/OrderBackend"
 EF_PROJECT = f"{EF_REL}/OrderBackend.csproj"
@@ -502,13 +582,15 @@ def main() -> int:
     n_refused = refused(dll, fails)
     n_nocompile = does_not_compile(fails)
     n_same = same_assembly(dll, fails)
+    n_unrelated = unrelated(dll, fails)
     n_ef = efcore(dll, write, fails)
     n_rust = rust_cli(rust, fails) if rust is not None else 0
     for f in fails:
         print(f"FAIL: {f}")
     print(f"protocol gate: {n_cases} cases lowered from C# and judged, {n_refused} refused by "
           f"the lowering, {n_nocompile} rejected by the C# compiler, {n_same} same-assembly "
-          f"programs held to the boundary, {n_ef} checks on the real "
+          f"programs held to the boundary, {n_unrelated} programs with the reserved names and "
+          f"no protocol, {n_ef} checks on the real "
           f"ASP.NET Core + EF Core backend"
           + (f", {n_rust} documents byte-identical on both CLIs" if rust else "")
           + f"; {len(fails)} failure(s)" + (" [fixtures written]" if write else ""))
