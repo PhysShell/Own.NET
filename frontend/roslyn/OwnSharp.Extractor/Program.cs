@@ -7280,47 +7280,39 @@ var factStats = new
     methods_flow_analysed = statMethodsAnalysed,
     methods_skipped_unmodelled = statMethodsSkipped,
 };
-// `fix_candidates_version` is a top-level ADDITIVE metadata field, present ONLY under
-// --fix-candidates; it does not move `ownir_version` (the fact-schema vocabulary is
-// unchanged — no new resource-kind or analysis-routing value). Without the flag the
-// object is byte-for-byte the pre-S0 shape.
+// ONE envelope, built once, in the key order the facts have always been written. A section
+// that is not always there is ONE conditional line here — never a second envelope. There
+// used to be three, picked by a nested conditional (`--fix-candidates` ? A : orphans ? B : C),
+// and each additive section had to be remembered in every one of them: the `--fix-candidates`
+// envelope was written before `orphaned_awaitables` existed and never got it, so the flag
+// that only ADDS fix metadata silently removed every OWN053 site from the facts.
 //
-// Every envelope below stamps the SAME `ownir_version`, the core's current one
-// (ownlang/ownir.py OWNIR_VERSION; tests/test_ownir.py reads every stamp in this file).
-object facts = emitFixCandidates
-    ? new
-    {
-        ownir_version = 1,
-        fix_candidates_version = 1,
-        module = "Extracted",
-        components,
-        services = factServices,
-        functions = flowFunctions,
-        stats = factStats,
-    }
-    // OWN053 (promoted from ownership-semantics-lab H-29): an ADDITIVE top-level list of orphaned awaitables from which
-    // both engines mint the advisory; absent when there is no site, so such a document stays byte-identical to the
-    // pre-OWN053 shape (and `ownir_version` does not move: the field is additive, like `fix_candidates_version`).
-    : OrphanedAwaitables.Sites.Count > 0
-    ? new
-    {
-        ownir_version = 1,
-        module = "Extracted",
-        components,
-        services = factServices,
-        functions = flowFunctions,
-        stats = factStats,
-        orphaned_awaitables = OrphanedAwaitables.Sites.OrderBy(o => JsonSerializer.Serialize(o), StringComparer.Ordinal).ToList(),
-    }
-    : new
-    {
-        ownir_version = 1,
-        module = "Extracted",
-        components,
-        services = factServices,
-        functions = flowFunctions,
-        stats = factStats,
-    };
+// Every section is written as `facts["<key>"] = ...` and nowhere else: the S0 additivity
+// check (tests/check_fix_candidates_facts.py) reads the section list off these lines, so a
+// section added here is one its fixture must exercise.
+//
+// `ownir_version` is the core's current one (ownlang/ownir.py OWNIR_VERSION). It is spelled
+// as this one literal on purpose: tests/test_ownir.py (IR2) reads every stamp in this file.
+const int ownir_version = 1;
+var facts = new Dictionary<string, object?>();
+facts["ownir_version"] = ownir_version;
+// S0: ADDITIVE metadata, present ONLY under --fix-candidates. It does not move the version
+// (no new resource-kind or analysis-routing value), and removing the S0 fields from a
+// flag-on document gives the flag-off document — every other section included
+// (tests/check_fix_candidates_facts.py holds exactly that).
+if (emitFixCandidates)
+    facts["fix_candidates_version"] = 1;
+facts["module"] = "Extracted";
+facts["components"] = components;
+facts["services"] = factServices;
+facts["functions"] = flowFunctions;
+facts["stats"] = factStats;
+// OWN053 (promoted from ownership-semantics-lab H-29): an ADDITIVE top-level list of orphaned
+// awaitables from which both engines mint the advisory. Absent when there is no site, so such
+// a document stays byte-identical to the pre-OWN053 shape.
+if (OrphanedAwaitables.Sites.Count > 0)
+    facts["orphaned_awaitables"] = OrphanedAwaitables.Sites
+        .OrderBy(o => JsonSerializer.Serialize(o), StringComparer.Ordinal).ToList();
 // P-037 A2.1: a sidecar record that does not satisfy its own vocabulary is a producer
 // defect, and a producer defect must not become a facts file. Refuse the whole run
 // (exit 2, the launcher's "extraction failed, no verdict was produced" tier) rather
