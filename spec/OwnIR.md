@@ -89,6 +89,16 @@ A newer extractor that introduces either against an un-bumped core therefore fai
 the run instead of mis-analyzing it — which is why both **must** bump
 `OWNIR_VERSION` per the table above.
 
+**Additive is a promise about the producer too.** A producer option that adds
+metadata must change nothing else in the document it writes. The extractor's
+`--fix-candidates` adds `fix_candidates_version`, the component shape fields and
+a `fix` block per subscription; take those out of a flag-on document and what is
+left **is** the flag-off document — every section, `orphaned_awaitables` (§9)
+included. The extractor builds its envelope once for that reason (one conditional
+line per optional section, never a second envelope), and
+`tests/check_fix_candidates_facts.py --additive-sections` holds the equality on a
+fixture that exercises every top-level section the extractor can write.
+
 ## 3. What OwnIR is not
 
 Verdict logic never lives in a frontend. The core's diagnostics (OWN0xx) come
