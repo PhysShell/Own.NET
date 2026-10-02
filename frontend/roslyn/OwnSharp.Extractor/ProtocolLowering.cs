@@ -13,6 +13,12 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 //   [ProtocolToken]   a ref struct: every instance METHOD is a transition that consumes the
 //                     token (and borrows the entity for the call); a PROPERTY is a read.
 //
+// RESERVED NAMES. Matching by name makes the two names a convention the profile owns, but only
+// in those shapes: a method marked [ProtocolRegion] that takes a delegate, a ref struct marked
+// [ProtocolToken]. An attribute of the same name on anything else (a class, a plain struct, a
+// method with no callback) belongs to somebody else's code and is ignored — a scan of a
+// codebase that declares no state protocol is never refused over a name.
+//
 // This is a LOWERING, not an analysis. It reads the syntax of one method at a time and looks
 // symbols up; it never tracks state across statements, never follows aliases, and never
 // decides whether a program is right. Everything it emits is checked by the core:
@@ -93,6 +99,9 @@ internal static class ProtocolLowering
         public Dictionary<ISymbol, (string Name, Region Region)> Tokens { get; } =
             new(SymbolEqualityComparer.Default);
         public HashSet<SyntaxNode> LoweredEntries { get; } = new();
+        /// The lambdas that were lowered as region bodies: the only callables in consumer
+        /// code that may take a token.
+        public HashSet<SyntaxNode> LoweredBodies { get; } = new();
         public int Counter;
         /// How many times the scan has lowered a mention of a borrowed entity. A construct
         /// that runs unknown code is refused UNLESS it moved this counter: then the core
@@ -118,6 +127,8 @@ internal static class ProtocolLowering
             var model = compilation.GetSemanticModel(tree);
             var root = tree.GetRoot();
             var loweredEntries = new HashSet<SyntaxNode>();
+            var loweredBodies = new HashSet<SyntaxNode>();
+            var refusedMethods = new List<SyntaxNode>();
 
             foreach (var method in root.DescendantNodes().OfType<BaseMethodDeclarationSyntax>())
             {
@@ -189,6 +200,7 @@ internal static class ProtocolLowering
                             throw new Refused(At(file, v,
                                 $"protocol token '{l.Name}' is declared outside a protocol region"));
                     loweredEntries.UnionWith(ctx.LoweredEntries);
+                    loweredBodies.UnionWith(ctx.LoweredBodies);
 
                     if (ops.Count > 0)
                         functions.Add(new Dictionary<string, object?>
@@ -199,7 +211,31 @@ internal static class ProtocolLowering
                 catch (Refused r)
                 {
                     refusals.Add(r.Message);
+                    refusedMethods.Add(method);
                 }
+            }
+
+            // A token exists only inside a region. A method cannot take one (refused above),
+            // and a lambda or local function may take one only as the in-place body of a
+            // region entry that was lowered. Any other callable with a token parameter is
+            // consumer code that receives a token some other way — from a method of the
+            // protocol's own type that is not marked as a region entry, typically — and that
+            // nothing reads: without this it is simply absent from the facts, and a token
+            // spent twice in it is clean.
+            foreach (var callable in root.DescendantNodes().Where(n =>
+                         n is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
+            {
+                if (loweredBodies.Contains(callable)
+                    || refusedMethods.Any(m => m.Span.Contains(callable.Span)))
+                    continue;   // a lowered region body, or inside a method already refused
+                var symbol = callable is LocalFunctionStatementSyntax
+                    ? model.GetDeclaredSymbol(callable) as IMethodSymbol
+                    : model.GetSymbolInfo(callable).Symbol as IMethodSymbol;
+                var taken = symbol?.Parameters.FirstOrDefault(p => IsToken(p.Type));
+                if (taken is null || Enclosing(model, callable).Any(IsApiType))
+                    continue;   // no token; or the protocol's own types, which hand tokens out
+                refusals.Add(At(file, callable,
+                    $"a callback that takes protocol token '{taken.Type.Name}' is not the in-place body of a region entry: a token exists only inside a region, and code that receives one any other way is not analysed"));
             }
 
             // A region entry outside any method body (an accessor, a field initializer, a
@@ -481,7 +517,7 @@ internal static class ProtocolLowering
                         ? info.ConvertedType : info.Type ?? info.ConvertedType)?.OriginalDefinition;
                     if (IsToken(made) && !Within(api))
                         refusals.Add(At(file, node,
-                            $"a protocol token '{made!.Name}' is created outside the protocol's own types: a token comes only from a region entry or a transition"));
+                            $"a protocol token '{made!.Name}' is created outside the protocol's own types: a token comes only from a region entry or a transition" + ReservedNames));
                     else if (node is BaseObjectCreationExpressionSyntax
                              && Bound(model.GetSymbolInfo(node)) is IMethodSymbol
                                  { DeclaredAccessibility: not Accessibility.Public } ctor
@@ -583,11 +619,37 @@ internal static class ProtocolLowering
         symbol is not null && symbol.GetAttributes().Any(a =>
             a.AttributeClass?.Name == name || a.AttributeClass?.Name == name + "Attribute");
 
-    private static bool IsToken(ITypeSymbol? type) => HasAttribute(type, "ProtocolToken");
+    // The two attributes are matched by NAME, so the names are reserved — but only in the
+    // SHAPE the profile gives them. A codebase that never declared a state protocol can own an
+    // attribute called ProtocolToken (a wire-protocol token class, say), and a name alone must
+    // not turn its scan into a refusal. So:
+    //
+    //   a state token   is a REF STRUCT marked [ProtocolToken];
+    //   a region entry  is a method marked [ProtocolRegion] that TAKES A DELEGATE.
+    //
+    // Anything else carrying one of the names is not part of a protocol and is left alone.
+    // The shapes are deliberately the widest ones that still catch a protocol declared wrongly:
+    // a marked region entry whose callback does not take a token, or takes a marked type that
+    // is not a ref struct, is still a region entry and is refused where it is used.
 
-    private static bool IsRegionEntry(IMethodSymbol? method) =>
-        method is not null && HasAttribute((method.ReducedFrom ?? method).OriginalDefinition,
-                                           "ProtocolRegion");
+    /// Marked [ProtocolToken], whatever it is. Only for saying WHY a marked type is not a token.
+    private static bool HasTokenName(ITypeSymbol? type) => HasAttribute(type, "ProtocolToken");
+
+    private static bool IsToken(ITypeSymbol? type) =>
+        type is { IsRefLikeType: true } && HasTokenName(type);
+
+    private static bool IsRegionEntry(IMethodSymbol? method)
+    {
+        if (method is null)
+            return false;
+        var declared = (method.ReducedFrom ?? method).OriginalDefinition;
+        // an UNRESOLVED parameter type may be the callback of a degraded scan: keep it in
+        return HasAttribute(declared, "ProtocolRegion")
+            && declared.Parameters.Any(p => p.Type.TypeKind is TypeKind.Delegate or TypeKind.Error);
+    }
+
+    private const string ReservedNames =
+        " (the attribute names ProtocolRegion and ProtocolToken are reserved in these shapes: a method marked [ProtocolRegion] that takes a delegate is a region entry, a ref struct marked [ProtocolToken] is a state token)";
 
     private static bool IsApiType(INamedTypeSymbol? type) =>
         type is not null && (IsToken(type)
@@ -759,7 +821,7 @@ internal static class ProtocolLowering
     {
         var args = entry.ArgumentList.Arguments;
         if (args.Count != 2)
-            throw Refuse(ctx, entry, "a protocol region entry takes (entity, callback)");
+            throw Refuse(ctx, entry, "a protocol region entry takes (entity, callback)" + ReservedNames);
         var entityExpr = Unparen(args[0].Expression);
         var entity = ctx.Model.GetSymbolInfo(entityExpr).Symbol;
         if (entityExpr is not IdentifierNameSyntax || entity is not (ILocalSymbol or IParameterSymbol))
@@ -779,9 +841,9 @@ internal static class ProtocolLowering
         };
         if (parameter is null
             || ctx.Model.GetDeclaredSymbol(parameter) is not IParameterSymbol token
-            || !IsToken(token.Type))
+            || !HasTokenName(token.Type))
             throw Refuse(ctx, entry,
-                "the callback of a protocol region takes exactly one protocol token");
+                "the callback of a protocol region takes exactly one protocol token" + ReservedNames);
         // A token that is not a ref struct can be captured by a nested lambda, stored in a
         // field, or carried across an await — every one of which lets it reach ANOTHER
         // region, the shape the core cannot check. The language forbids all three for a
@@ -831,6 +893,7 @@ internal static class ProtocolLowering
         if (existing is null)
             ops.Add(Release(owner, line));
         ctx.LoweredEntries.Add(entry);
+        ctx.LoweredBodies.Add(lambda);
     }
 
     private static void LowerTokenLocal(Ctx ctx, ILocalSymbol local, ExpressionSyntax? init,

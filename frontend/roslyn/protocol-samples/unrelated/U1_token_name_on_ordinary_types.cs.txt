@@ -1,0 +1,42 @@
+namespace Net.Wire;
+
+// [ProtocolToken] on everything a state token is NOT: a class, a plain struct, a record, an
+// enum, an interface. They are created, copied and passed around like any other value. A
+// state token is a REF STRUCT, so none of these is one, and the scan has nothing to say.
+[ProtocolToken]
+public sealed class SessionToken
+{
+    public string Value = "";
+}
+
+[ProtocolToken]
+public struct Ticket
+{
+    public int Id;
+}
+
+[ProtocolToken]
+public sealed record Hello(int Version);
+
+[ProtocolToken]
+public enum FrameKind { Data, Control }
+
+[ProtocolToken]
+public interface IFrame
+{
+    int Size { get; }
+}
+
+public static class U1TokenNameOnOrdinaryTypes
+{
+    public static int Read(Ticket ticket) => ticket.Id;
+
+    public static int Run(FrameKind kind)
+    {
+        var session = new SessionToken { Value = "x" };
+        var hello = new Hello((int)kind);
+        var copy = new Ticket { Id = hello.Version };
+        var again = copy;
+        return Read(again) + session.Value.Length;
+    }
+}

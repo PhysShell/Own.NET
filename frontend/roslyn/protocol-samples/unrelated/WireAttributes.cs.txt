@@ -1,0 +1,13 @@
+using System;
+
+namespace Net.Wire;
+
+// Somebody else's attributes, with the profile's names. A networking library that talks about
+// "protocol tokens" and "protocol regions" has every right to them, and has never heard of
+// Own.NET. Every program in this directory is scanned WITH this file and WITHOUT the sample
+// protocol: it is a codebase that declares no state protocol at all.
+[AttributeUsage(AttributeTargets.All)]
+public sealed class ProtocolTokenAttribute : Attribute { }
+
+[AttributeUsage(AttributeTargets.All)]
+public sealed class ProtocolRegionAttribute : Attribute { }

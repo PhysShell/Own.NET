@@ -1,0 +1,47 @@
+using System;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// The same escape with no lambda at all: a LOCAL FUNCTION that takes the token, passed as a
+// method group to a hand-out that is not a region entry. A method may not take a token; a
+// local function is a method the consumer can write inside a handler.
+public sealed class Crate
+{
+    public bool Shipped { get; private set; }
+
+    internal void MarkShipped() => Shipped = true;
+}
+
+[ProtocolToken]
+public readonly ref struct PackedCrate
+{
+    private readonly Crate _crate;
+    internal PackedCrate(Crate crate) => _crate = crate;
+
+    public void Ship() => _crate.MarkShipped();
+}
+
+public delegate void PackedCrateRegion(PackedCrate packed);
+
+public static class CrateProtocol
+{
+    [ProtocolRegion]
+    public static void WithPacked(Crate crate, PackedCrateRegion body) => body(new PackedCrate(crate));
+
+    public static void Borrow(Crate crate, PackedCrateRegion body) => body(new PackedCrate(crate));
+}
+
+public static class R17TokenTakenByALocalFunction
+{
+    public static void Run(Crate crate)
+    {
+        void Twice(PackedCrate packed)
+        {
+            packed.Ship();
+            packed.Ship();
+        }
+
+        CrateProtocol.Borrow(crate, Twice);
+    }
+}

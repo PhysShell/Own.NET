@@ -1,0 +1,6 @@
+{
+  "U1_token_name_on_ordinary_types": null,
+  "U2_region_name_without_a_callback": null,
+  "U3_region_name_with_a_callback": "the callback of a protocol region takes exactly one protocol token (the attribute names ProtocolRegion and ProtocolToken are reserved in these shapes",
+  "U4_token_name_on_a_ref_struct": "a protocol token 'Cursor' is created outside the protocol's own types"
+}

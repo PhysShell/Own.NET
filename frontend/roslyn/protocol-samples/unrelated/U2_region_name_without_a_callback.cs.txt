@@ -1,0 +1,28 @@
+namespace Net.Wire;
+
+// [ProtocolRegion] on methods that take no delegate: there is no callback, so there is no
+// region body and nothing a region entry could mean. Called from their own class and from
+// another one, as a statement and inside an expression.
+public static class Frames
+{
+    [ProtocolRegion]
+    public static int Parse(byte[] frame) => frame.Length;
+
+    [ProtocolRegion]
+    public static void Reset(byte[] frame, int offset)
+    {
+        frame[offset] = 0;
+    }
+
+    public static int Own() => Parse(new byte[4]);
+}
+
+public static class U2RegionNameWithoutACallback
+{
+    public static int Run()
+    {
+        var frame = new byte[8];
+        Frames.Reset(frame, 0);
+        return Frames.Parse(frame) + Frames.Own();
+    }
+}
