@@ -59,7 +59,7 @@ use serde_json::{Map, Value};
 
 /// The schema version this crate understands. Bump only on an incompatible
 /// vocabulary change — additive optional fields are NOT a version bump.
-pub const OWNIR_VERSION: i64 = 0;
+pub const OWNIR_VERSION: i64 = 1;
 
 /// Why a document was rejected.
 ///

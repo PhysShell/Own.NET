@@ -1,0 +1,32 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "frontend/roslyn/protocol-samples/cases/L8_branch_inside_region.cs",
+      "line": 12,
+      "code": "OWN009",
+      "component": "Own.Protocols.Cases.L8BranchInsideRegion.Run",
+      "event": "approved",
+      "handler": "",
+      "message": "IDisposable local 'approved' may be used after disposal on some path",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "frontend/roslyn/protocol-samples/cases/L8_branch_inside_region.cs",
+          12,
+          "acquired 'approved' here"
+        ],
+        [
+          "frontend/roslyn/protocol-samples/cases/L8_branch_inside_region.cs",
+          18,
+          "may be used here after release on some path"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "degraded": null,
   "module": "HoistNeg3",
-  "ownir_version": 0,
+  "ownir_version": 1,
   "summaries": [
     {
       "file": "F.cs",

@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Orders.cs",
+      "line": 10,
+      "code": "OWN007",
+      "component": "Handler.Run",
+      "event": "order",
+      "handler": "",
+      "message": "IDisposable local 'order' is consumed or returned while it is borrowed",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

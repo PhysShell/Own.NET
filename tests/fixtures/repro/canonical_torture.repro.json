@@ -1,20 +1,20 @@
 {
   "repro_version": 3,
   "input": {
-    "ownir_version": 0,
+    "ownir_version": 1,
     "raw": {
       "algorithm": "sha256",
-      "digest": "93ef10f5f3541d1abc5fb75a4ffe74c26a764484b7505ab9039ab151e3883e99",
+      "digest": "a1c896ce83130584dcbb113c751547e4b488fae6798b00fcc919c8a1cdd8a170",
       "bytes": 1049,
-      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMCwKICAibW9kdWxlIjogIlRvcnR1cmXDqea8ouWtl/CfmIAiLAogICJjYW5vbmljYWxfcHJvYmUiOiB7CiAgICAiaTY0X21heCI6IDkyMjMzNzIwMzY4NTQ3NzU4MDcsCiAgICAiaTY0X21pbiI6IC05MjIzMzcyMDM2ODU0Nzc1ODA4LAogICAgInplcm8iOiAwLAogICAgImJvb2xlYW5zIjogW3RydWUsIGZhbHNlXSwKICAgICJudWxsIjogbnVsbCwKICAgICJlbXB0eV9vYmplY3QiOiB7fSwKICAgICJlbXB0eV9hcnJheSI6IFtdLAogICAgImVtcHR5X3N0cmluZyI6ICIiLAogICAgInR3b19jaGFyX2VzY2FwZXMiOiAiXGJcdFxuXGZcciIsCiAgICAib3RoZXJfYzBfY29udHJvbHMiOiAiXHUwMDAwXHUwMDAxXHUwMDFmIiwKICAgICJkZWxldGVfaXNfbm90X2VzY2FwZWQiOiAiXHUwMDdmIiwKICAgICJxdW90ZV9hbmRfYmFja3NsYXNoIjogImhlIHNhaWQgXCJoaVwiIFxcIGJhY2siLAogICAgIm5ic3AiOiAiwqAiLAogICAgImxpbmVfYW5kX3BhcmFncmFwaF9zZXBhcmF0b3JzIjogIuKAqOKAqSIsCiAgICAiYnl0ZV9vcmRlcl9tYXJrIjogIu+7vyIsCiAgICAiYXN0cmFsIjogIvCfmIAiLAogICAgIvCfmIAiOiAiYW4gYXN0cmFsIGtleSBzb3J0cyBhZnRlciBldmVyeSBBU0NJSSBrZXkiLAogICAgIsOpIjogImFuIGFjY2VudGVkIGtleSBzb3J0cyBhZnRlciBldmVyeSBBU0NJSSBrZXkiLAogICAgIiI6ICJ0aGUgZW1wdHkga2V5IHNvcnRzIGZpcnN0IiwKICAgICJaIjogInVwcGVyY2FzZSBaIHNvcnRzIGJlZm9yZSBsb3dlcmNhc2UgYSIsCiAgICAiYSI6ICJsb3dlcmNhc2UgYSIKICB9LAogICJjb21wb25lbnRzIjogWwogICAgewogICAgICAibmFtZSI6ICJUb3J0dXJlVmlldyIsCiAgICAgICJmaWxlIjogIlTDtnJ0dXJlLmNzIiwKICAgICAgInN1YnNjcmlwdGlvbnMiOiBbCiAgICAgICAgeyJldmVudCI6ICJidXMuU3Vic2NyaWJlIiwgImhhbmRsZXIiOiAiT27mvKIiLCAibGluZSI6IDcsICJyZWxlYXNlZCI6IGZhbHNlLCAicmVzb3VyY2UiOiAic3Vic2NyaWJlIn0KICAgICAgXQogICAgfQogIF0KfQo="
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMSwKICAibW9kdWxlIjogIlRvcnR1cmXDqea8ouWtl/CfmIAiLAogICJjYW5vbmljYWxfcHJvYmUiOiB7CiAgICAiaTY0X21heCI6IDkyMjMzNzIwMzY4NTQ3NzU4MDcsCiAgICAiaTY0X21pbiI6IC05MjIzMzcyMDM2ODU0Nzc1ODA4LAogICAgInplcm8iOiAwLAogICAgImJvb2xlYW5zIjogW3RydWUsIGZhbHNlXSwKICAgICJudWxsIjogbnVsbCwKICAgICJlbXB0eV9vYmplY3QiOiB7fSwKICAgICJlbXB0eV9hcnJheSI6IFtdLAogICAgImVtcHR5X3N0cmluZyI6ICIiLAogICAgInR3b19jaGFyX2VzY2FwZXMiOiAiXGJcdFxuXGZcciIsCiAgICAib3RoZXJfYzBfY29udHJvbHMiOiAiXHUwMDAwXHUwMDAxXHUwMDFmIiwKICAgICJkZWxldGVfaXNfbm90X2VzY2FwZWQiOiAiXHUwMDdmIiwKICAgICJxdW90ZV9hbmRfYmFja3NsYXNoIjogImhlIHNhaWQgXCJoaVwiIFxcIGJhY2siLAogICAgIm5ic3AiOiAiwqAiLAogICAgImxpbmVfYW5kX3BhcmFncmFwaF9zZXBhcmF0b3JzIjogIuKAqOKAqSIsCiAgICAiYnl0ZV9vcmRlcl9tYXJrIjogIu+7vyIsCiAgICAiYXN0cmFsIjogIvCfmIAiLAogICAgIvCfmIAiOiAiYW4gYXN0cmFsIGtleSBzb3J0cyBhZnRlciBldmVyeSBBU0NJSSBrZXkiLAogICAgIsOpIjogImFuIGFjY2VudGVkIGtleSBzb3J0cyBhZnRlciBldmVyeSBBU0NJSSBrZXkiLAogICAgIiI6ICJ0aGUgZW1wdHkga2V5IHNvcnRzIGZpcnN0IiwKICAgICJaIjogInVwcGVyY2FzZSBaIHNvcnRzIGJlZm9yZSBsb3dlcmNhc2UgYSIsCiAgICAiYSI6ICJsb3dlcmNhc2UgYSIKICB9LAogICJjb21wb25lbnRzIjogWwogICAgewogICAgICAibmFtZSI6ICJUb3J0dXJlVmlldyIsCiAgICAgICJmaWxlIjogIlTDtnJ0dXJlLmNzIiwKICAgICAgInN1YnNjcmlwdGlvbnMiOiBbCiAgICAgICAgeyJldmVudCI6ICJidXMuU3Vic2NyaWJlIiwgImhhbmRsZXIiOiAiT27mvKIiLCAibGluZSI6IDcsICJyZWxlYXNlZCI6IGZhbHNlLCAicmVzb3VyY2UiOiAic3Vic2NyaWJlIn0KICAgICAgXQogICAgfQogIF0KfQo="
     },
     "canonical": {
       "algorithm": "sha256",
-      "digest": "239383fae8175fd42dc773922af7e3dcf26c2148f99a365f8e4404db58224edd",
+      "digest": "abe4b1afa5a4f287401f9b50c1dec00c57588ab6baabc77968f3f1af232b49f2",
       "bytes": 834
     },
     "document": {
-      "ownir_version": 0,
+      "ownir_version": 1,
       "module": "Tortureé漢字😀",
       "canonical_probe": {
         "i64_max": 9223372036854775807,
@@ -64,19 +64,19 @@
       "id": "python-ownlang",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "93ef10f5f3541d1abc5fb75a4ffe74c26a764484b7505ab9039ab151e3883e99",
+        "digest": "a1c896ce83130584dcbb113c751547e4b488fae6798b00fcc919c8a1cdd8a170",
         "bytes": 1049
       },
       "layers": [
         {
           "layer": "lowered",
-          "surface_version": 1,
+          "surface_version": 2,
           "projection": {
             "kind": "full"
           },
           "status": "produced",
           "document": {
-            "lowered_version": 1,
+            "lowered_version": 2,
             "module": "Tortureé漢字😀",
             "resources": [
               {
@@ -206,7 +206,7 @@
           "document": {
             "degraded": null,
             "module": "Tortureé漢字😀",
-            "ownir_version": 0,
+            "ownir_version": 1,
             "summaries": [],
             "unresolved": []
           }
@@ -247,7 +247,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "f9cd8d129d9b8cb698602b840fe50bd8313891ed814b96a20f97fce78b50632a",
+            "digest": "78ece332c38aa64e10136c8a809552dc47aafaa5bede557d020be4090fe689da",
             "bytes": 822
           }
         }
@@ -257,19 +257,19 @@
       "id": "rust-own-bridge",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "93ef10f5f3541d1abc5fb75a4ffe74c26a764484b7505ab9039ab151e3883e99",
+        "digest": "a1c896ce83130584dcbb113c751547e4b488fae6798b00fcc919c8a1cdd8a170",
         "bytes": 1049
       },
       "layers": [
         {
           "layer": "lowered",
-          "surface_version": 1,
+          "surface_version": 2,
           "projection": {
             "kind": "full"
           },
           "status": "produced",
           "document": {
-            "lowered_version": 1,
+            "lowered_version": 2,
             "module": "Tortureé漢字😀",
             "resources": [
               {
@@ -399,7 +399,7 @@
           "document": {
             "degraded": null,
             "module": "Tortureé漢字😀",
-            "ownir_version": 0,
+            "ownir_version": 1,
             "summaries": [],
             "unresolved": []
           }
@@ -440,7 +440,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "f9cd8d129d9b8cb698602b840fe50bd8313891ed814b96a20f97fce78b50632a",
+            "digest": "78ece332c38aa64e10136c8a809552dc47aafaa5bede557d020be4090fe689da",
             "bytes": 822
           }
         }

@@ -63,7 +63,7 @@ def _facts(subs: list[dict], qn: str = "N.C", file: str = "N/C.cs",
     comp = {"name": qn.rsplit(".", 1)[-1], "qualified_name": qn, "is_partial": is_partial,
             "is_nested": is_nested, "declaration_count": 1, "is_generated": is_generated,
             "file": file, "subscriptions": subs}
-    facts: dict = {"ownir_version": 0, "components": [comp, *(extra or [])]}
+    facts: dict = {"ownir_version": 1, "components": [comp, *(extra or [])]}
     if version is not _OMIT:
         facts["fix_candidates_version"] = version
     return facts

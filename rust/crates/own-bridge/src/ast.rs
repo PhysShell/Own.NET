@@ -34,9 +34,9 @@
 use crate::BridgeError;
 use own_lowered::{Function, LoweredDocument, Param, Stmt, TypeShape};
 use own_syntax::ast::{
-    Acquire, AliasJoin, Call, Effect, EffectParam, Expr, ExternDecl, FnDecl, If, Let, LifetimeDecl,
-    MemberRole, Module, Overspan, Release, ResourceDecl, ResourceMember, Return, Stmt as AstStmt,
-    Subscribe, TypeRef, Use, VarRef, While,
+    Acquire, AliasJoin, BorrowBlock, BorrowKind, Call, Effect, EffectParam, Expr, ExternDecl,
+    FnDecl, If, Let, LifetimeDecl, MemberRole, Module, Move, Overspan, Release, ResourceDecl,
+    ResourceMember, Return, Stmt as AstStmt, Subscribe, TypeRef, Use, VarRef, While,
 };
 
 /// A fact coordinate as a core line: in the §4.2 domain, or degraded to `0`.
@@ -151,6 +151,31 @@ fn stmt(s: &Stmt) -> Result<AstStmt, BridgeError> {
         Stmt::AliasJoin { handle, src, line } => AstStmt::AliasJoin(AliasJoin {
             name: handle.clone(),
             src: src.clone(),
+            line: core_line(*line),
+        }),
+        Stmt::Move { handle, src, line } => {
+            // Python: `Let(handle, Move(src_h, line), line)` — the move
+            // expression and the `let` carry the same line.
+            let line = core_line(*line);
+            AstStmt::Let(Let {
+                name: handle.clone(),
+                rhs: Expr::Move(Move {
+                    var: src.clone(),
+                    line,
+                }),
+                line,
+            })
+        }
+        Stmt::BorrowMut {
+            owner,
+            binding,
+            body,
+            line,
+        } => AstStmt::BorrowBlock(BorrowBlock {
+            owner: owner.clone(),
+            binding: binding.clone(),
+            kind: BorrowKind::Mut,
+            body: stmts(body)?,
             line: core_line(*line),
         }),
         Stmt::Call { callee, args, line } => {

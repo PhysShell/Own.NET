@@ -31,7 +31,7 @@ proposal is marked `done` with a pointer.
 | [P-007](P-007-arraypool-span.md) | ArrayPool / Span borrow-view | in progress (POOL001–003 built; 004/005 first slices) |
 | [P-008](P-008-effects-and-resources.md) | Effects & resources (`Own.Effects`) | draft |
 | [P-009](P-009-nogc-regions.md) | No-GC / allocation-free regions | draft |
-| [P-010](P-010-type-disciplines.md) | Richer type disciplines (`Own.Types`) | draft |
+| [P-010](P-010-type-disciplines.md) | Richer type disciplines (`Own.Types`) | draft; pillar 9 first slice built (C# state protocols over OwnIR v1) |
 | [P-011](P-011-editor-tooling.md) | Editor tooling & syntax highlighting | draft |
 | [P-012](P-012-bug-corpus-mining.md) | Real-world bug corpus & mining | in progress (corpus benchmark + real-world cases, CI-gated) |
 | [P-013](P-013-distribution-surface.md) | Distribution surface (how people run Own.NET) | v0 built (CI/Action + dotnet tool) |

@@ -1,5 +1,5 @@
 {
-  "ownir_version": 0,
+  "ownir_version": 1,
   "module": "Extracted",
   "comment": "Pool buffers on the FLOW path must read as a 'pooled buffer' (Return wording / [resource: pooled buffer]), not the generic 'disposable' — the extractor stamps the acquire kind 'pool' for an ArrayPool Rent so the bridge words it right. (1) PartialPoolLeak: a Rent returned on the fall-through but NOT on the throw edge -> 'may not be returned to the pool on every path'. (2) NeverReturnedPool: a Rent never returned -> 'rented but never returned to the pool'. (3) DisposableControl: a plain disposable on the same partial shape keeps the IDisposable wording. Regression for the flow-path pool mislabel surfaced by the --body-throw-edges Npgsql capstone (CompositeBuilder/BitStringConverters ArrayPool rents).",
   "components": [],

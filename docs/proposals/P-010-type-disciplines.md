@@ -1,6 +1,8 @@
 # P-010 — Richer type disciplines (`Own.Types`)
 
-- **Status:** draft (horizon)
+- **Status:** draft (horizon); pillar 9 (typestate / protocols) has a first slice built —
+  the C# state-protocol profile over OwnIR v1 (`move`, `borrow_mut`), see
+  [the extractor's README](../../frontend/roslyn/README.md#state-protocols---flow-locals-ownir-v1)
 - **Depends on:** `spec/OwnCore.md` (the ownership/affine core and its fact
   vocabulary), `spec/Lifetimes.md`; relates to P-005 (`IDisposable` typestate —
   the first concrete protocol), P-006 (DI lifetimes — a region contract, not a
@@ -172,6 +174,20 @@ directly, rather than making every call site spell out a bespoke `union`.
    reject — rollback-after-commit is not a runtime guard, it is a use-after-move.
    Typestate is also the generalization that subsumes **session types** (typed
    message-ordering protocols) as the special case where the object is a channel.
+
+   **First slice, built.** Not the `protocol` declaration above but its C#
+   surface: a state is a `[ProtocolToken]` ref struct over an ordinary entity, a
+   `[ProtocolRegion]` method opens an exclusive region and hands out the token,
+   and a transition is a method on the token. The Roslyn frontend lowers a
+   region to `borrow_mut` and a token copy to `move` (OwnIR v1,
+   [`spec/OwnIR.md` §5.3](../../spec/OwnIR.md)); the existing ownership core
+   gives the verdicts — a stale token is OWN002, a copied one OWN005, a raw
+   touch of the entity inside the region OWN013 — on both engines. It works on
+   the instance an ORM tracks, with no base class, repository or custom LINQ
+   (`frontend/roslyn/protocol-samples/efcore`). What the slice does **not** have: a declared
+   state graph (the transitions are whatever the tokens' methods are), a
+   generator for the tokens, the affine view of a token (an unspent one is
+   OWN001 today), and any claim over writes that bypass the entity's C# surface.
 
 10. **Owned / borrowed / must-dispose.** Already built as a standalone
     diagnostic in [P-005](P-005-idisposable-ownership.md) — Own.NET already

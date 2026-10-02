@@ -1,0 +1,44 @@
+using System;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// ADMISSION. The token's transition and a PUBLIC method of the entity reach the same write.
+// The public one needs no token, so every guarantee of the region is optional: the protocol
+// is refused as declared, wherever it is (or is not) used.
+public sealed class Doc
+{
+    public bool Published { get; private set; }
+
+    internal void PublishCore() => Published = true;
+
+    public void Publish() => PublishCore();     // the open door
+}
+
+[ProtocolToken]
+public readonly ref struct DraftDoc
+{
+    private readonly Doc _doc;
+    internal DraftDoc(Doc doc) => _doc = doc;
+
+    public void Publish() => _doc.PublishCore();
+}
+
+public delegate void DraftDocRegion(DraftDoc draft);
+
+public static class DocProtocol
+{
+    [ProtocolRegion]
+    public static void WithDraft(Doc doc, DraftDocRegion body) => body(new DraftDoc(doc));
+}
+
+public static class R13PublicMutatorReachesProtocolState
+{
+    public static void Run(Doc doc)
+    {
+        DocProtocol.WithDraft(doc, draft =>
+        {
+            draft.Publish();
+        });
+    }
+}

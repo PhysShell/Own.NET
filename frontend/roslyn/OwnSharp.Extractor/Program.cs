@@ -5672,6 +5672,11 @@ static string? OwnIgnoreReason(SyntaxList<AttributeListSyntax> attrLists, Semant
 var components = new List<object>();
 // P-016 B0b/B2: per-method flow bodies (only when --flow-locals).
 var flowFunctions = new List<object>();
+// The names the IDisposable flow pass emitted a record for. The protocol lowering
+// (ProtocolLowering.cs) reads it so that a method with BOTH readings keeps both under
+// distinct names: the two are not merged, and two records under one name would read
+// as an overload.
+var flowRecordNames = new HashSet<string>(StringComparer.Ordinal);
 
 // Parse every input into a syntax tree first (keeping the file path we report
 // it under), then build ONE compilation over all of them so the SemanticModel
@@ -7221,6 +7226,7 @@ foreach (var (file, tree) in parsed)
                 if (guardedFacts is not null)
                     record["guarded_facts"] = guardedFacts;
                 flowFunctions.Add(record);
+                flowRecordNames.Add(fname);
             }
 
         if (subs.Count > 0)
@@ -7251,6 +7257,22 @@ foreach (var (file, tree) in parsed)
 // `stats` is additive coverage metadata — the core's load() ignores unknown keys.
 // P-006: the DI registration + ctor graph (empty when the scan has no
 // Add{Singleton,Scoped,Transient} calls). ownlang/di.py turns it into DI001.
+// P-010 pillar 9: state-protocol regions -> `borrow_mut` / `move` flow records (OwnIR v1). A
+// lowering, not an analysis (see ProtocolLowering.cs). A shape it cannot lower is a
+// REFUSAL of the whole run (exit 2, the same tier as the guarded-fact self-check below):
+// the alternative is a region that silently drops out of the facts and reads as clean.
+if (flowLocals)
+{
+    var protocol = ProtocolLowering.Lower(compilation, parsed, flowRecordNames);
+    if (protocol.Refusals.Count > 0)
+    {
+        foreach (var refusal in protocol.Refusals)
+            Console.Error.WriteLine($"extractor: protocol lowering refused: {refusal}");
+        return 2;
+    }
+    flowFunctions.AddRange(protocol.Functions);
+}
+
 var factServices = ExtractServices(parsed);
 var factStats = new
 {
@@ -7259,13 +7281,16 @@ var factStats = new
     methods_skipped_unmodelled = statMethodsSkipped,
 };
 // `fix_candidates_version` is a top-level ADDITIVE metadata field, present ONLY under
-// --fix-candidates; `ownir_version` stays 0 (the fact-schema vocabulary is unchanged —
-// no new resource-kind or analysis-routing value). Without the flag the object is
-// byte-for-byte the pre-S0 shape.
+// --fix-candidates; it does not move `ownir_version` (the fact-schema vocabulary is
+// unchanged — no new resource-kind or analysis-routing value). Without the flag the
+// object is byte-for-byte the pre-S0 shape.
+//
+// Every envelope below stamps the SAME `ownir_version`, the core's current one
+// (ownlang/ownir.py OWNIR_VERSION; tests/test_ownir.py reads every stamp in this file).
 object facts = emitFixCandidates
     ? new
     {
-        ownir_version = 0,
+        ownir_version = 1,
         fix_candidates_version = 1,
         module = "Extracted",
         components,
@@ -7275,11 +7300,11 @@ object facts = emitFixCandidates
     }
     // OWN053 (promoted from ownership-semantics-lab H-29): an ADDITIVE top-level list of orphaned awaitables from which
     // both engines mint the advisory; absent when there is no site, so such a document stays byte-identical to the
-    // pre-OWN053 shape (and `ownir_version` stays 0: the field is additive, like `fix_candidates_version`).
+    // pre-OWN053 shape (and `ownir_version` does not move: the field is additive, like `fix_candidates_version`).
     : OrphanedAwaitables.Sites.Count > 0
     ? new
     {
-        ownir_version = 0,
+        ownir_version = 1,
         module = "Extracted",
         components,
         services = factServices,
@@ -7289,7 +7314,7 @@ object facts = emitFixCandidates
     }
     : new
     {
-        ownir_version = 0,
+        ownir_version = 1,
         module = "Extracted",
         components,
         services = factServices,

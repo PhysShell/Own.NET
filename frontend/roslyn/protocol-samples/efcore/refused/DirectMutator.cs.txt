@@ -1,0 +1,22 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Refused;
+
+// The transition's own implementation, called past every token: `internal` is open inside
+// the project. A Draft becomes Shipped and EF saves it.
+public static class DirectMutator
+{
+    public static async Task<IResult> Ship(int id, AppDbContext db, CancellationToken ct)
+    {
+        var order = await db.Orders.SingleAsync(x => x.Id == id, ct);
+        order.MarkShipped(DateTime.UtcNow);
+        await db.SaveChangesAsync(ct);
+        return Results.Ok();
+    }
+}

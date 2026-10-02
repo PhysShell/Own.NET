@@ -1,0 +1,96 @@
+{
+  "ownir_version": 1,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "Own.Protocols.Cases.L13ValuesCapturedIntoRegion.Run",
+      "file": "frontend/roslyn/protocol-samples/cases/L13_values_captured_into_region.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "order",
+          "line": 15
+        },
+        {
+          "op": "borrow_mut",
+          "owner": "order",
+          "binding": "order.region1",
+          "line": 15,
+          "body": [
+            {
+              "op": "acquire",
+              "var": "approved",
+              "line": 15
+            },
+            {
+              "op": "use",
+              "var": "approved",
+              "line": 17
+            },
+            {
+              "op": "if",
+              "line": 18,
+              "then": [
+                {
+                  "op": "call",
+                  "callee": "Own.Protocols.Sample.ApprovedOrder.Ship",
+                  "args": [
+                    "approved",
+                    "order.region1"
+                  ],
+                  "line": 20
+                }
+              ],
+              "else": [
+                {
+                  "op": "call",
+                  "callee": "Own.Protocols.Sample.ApprovedOrder.Ship",
+                  "args": [
+                    "approved",
+                    "order.region1"
+                  ],
+                  "line": 24
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "op": "release",
+          "var": "order",
+          "line": 15
+        }
+      ]
+    },
+    {
+      "name": "Own.Protocols.Sample.ApprovedOrder.Ship",
+      "file": "frontend/roslyn/protocol-samples/Api/ProtocolApi.cs",
+      "params": [
+        {
+          "name": "token",
+          "effect": "consume",
+          "line": 80
+        },
+        {
+          "name": "entity",
+          "effect": "borrow_mut",
+          "line": 80
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "token",
+          "line": 80
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "methods_with_local": 0,
+    "methods_flow_analysed": 0,
+    "methods_skipped_unmodelled": 0
+  }
+}

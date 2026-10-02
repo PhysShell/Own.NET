@@ -1,0 +1,40 @@
+{
+  "A1_alias_of_entity": [
+    "OWN013"
+  ],
+  "A2_entity_through_indexer": [
+    "OWN013"
+  ],
+  "G6_capability_not_spent": [
+    "OWN001"
+  ],
+  "L10_region_inside_try": [],
+  "L11_region_beside_disposable": [],
+  "L12_region_beside_leaked_disposable": [
+    "OWN001"
+  ],
+  "L13_values_captured_into_region": [],
+  "L1_stale_capability": [
+    "OWN002"
+  ],
+  "L2_copied_capability": [
+    "OWN005"
+  ],
+  "L3_raw_mutation": [
+    "OWN013"
+  ],
+  "L4_raw_escape": [
+    "OWN013"
+  ],
+  "L5_normal_transition": [],
+  "L6_two_transitions": [],
+  "L6b_chained_transitions": [],
+  "L7_read_after_region": [],
+  "L8_branch_inside_region": [
+    "OWN009"
+  ],
+  "L9_opaque_calls_around_region": [],
+  "X1_nested_region_same_entity": [
+    "OWN011"
+  ]
+}

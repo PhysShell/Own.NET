@@ -1,0 +1,7 @@
+{
+  "S1_forged_token": "a protocol token 'ApprovedOrder' is created outside the protocol's own types",
+  "S2_internal_setter": "'Status' of 'Order' is not public and belongs to a state protocol",
+  "S3_object_initializer": "'Status' of 'Order' is not public and belongs to a state protocol",
+  "S4_read_only_use": null,
+  "S5_mentions_are_not_operations": null
+}

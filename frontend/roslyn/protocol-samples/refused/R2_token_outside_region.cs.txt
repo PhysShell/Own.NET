@@ -1,0 +1,14 @@
+using System.Threading.Tasks;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// A token-typed local outside any region has no region to belong to.
+public static class R2TokenOutsideRegion
+{
+    public static void Run(Order order)
+    {
+        ApprovedOrder forged = default;
+        forged.Ship();
+    }
+}

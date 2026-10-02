@@ -1,0 +1,22 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Accepted;
+
+// The boundary refuses OPERATIONS, not mentions. Naming the internal mutator, naming the
+// token type and reading the state change nothing, so nothing here is refused.
+public static class MentionsOnly
+{
+    public static async Task<IResult> Describe(int id, AppDbContext db, CancellationToken ct)
+    {
+        var order = await db.Orders.AsNoTracking().SingleAsync(x => x.Id == id, ct);
+        var transition = nameof(Order.MarkShipped);
+        var token = typeof(ApprovedOrder).Name;
+        return Results.Ok(new { order.Id, order.Status, transition, token });
+    }
+}

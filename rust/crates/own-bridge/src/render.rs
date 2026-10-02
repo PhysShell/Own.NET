@@ -38,7 +38,7 @@ const SARIF_VERSION: &str = "2.1.0";
 const TOOL_NAME: &str = "Owen";
 /// `OWNIR_VERSION` — the schema stamp the driver carries so a consumer can tell
 /// which fact vocabulary produced the log.
-const OWNIR_VERSION: u32 = 0;
+const OWNIR_VERSION: u32 = 1;
 
 /// `_esc_data`: a GitHub workflow-command MESSAGE escapes only `%`, CR and LF.
 fn esc_data(s: &str) -> String {

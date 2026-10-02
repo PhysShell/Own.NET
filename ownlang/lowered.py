@@ -67,6 +67,8 @@ from typing import Any
 from .ast_nodes import (
     Acquire,
     AliasJoin,
+    BorrowBlock,
+    BorrowKind,
     Call,
     ExternDecl,
     FnDecl,
@@ -74,6 +76,7 @@ from .ast_nodes import (
     Let,
     LifetimeDecl,
     Module,
+    Move,
     Overspan,
     Param,
     Release,
@@ -90,7 +93,7 @@ from .ownir import OwnIRError, to_module
 
 # The Layer 2 surface version. Bump on ANY normalization change above — the
 # committed goldens and the Rust replay are both keyed to it.
-LOWERED_VERSION = 1
+LOWERED_VERSION = 2
 
 # The handle-map key allowlist, in serialization order (see the docstring).
 _HANDLE_KEYS = (
@@ -114,6 +117,16 @@ def _arg(a: Any) -> str:
 
 
 def _stmt(s: Stmt) -> dict[str, Any]:
+    if isinstance(s, Let) and isinstance(s.rhs, Move):
+        return {"stmt": "move", "handle": s.name, "src": s.rhs.var,
+                "line": s.line}
+    if isinstance(s, BorrowBlock):
+        if s.kind is not BorrowKind.MUT:
+            raise ValueError(
+                "unprojectable shared BorrowBlock — the bridge lowers only "
+                "`borrow_mut`; a new shape must extend the Layer 2 contract")
+        return {"stmt": "borrow_mut", "owner": s.owner, "binding": s.binding,
+                "body": [_stmt(x) for x in s.body], "line": s.line}
     if isinstance(s, Let):
         if not isinstance(s.rhs, Acquire):
             raise ValueError(

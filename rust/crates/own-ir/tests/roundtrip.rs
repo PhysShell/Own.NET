@@ -45,9 +45,9 @@ fn round_trips_every_python_fixture() {
 
 #[test]
 fn version_gate_rejects_future_schema() {
-    let err = OwnIr::from_json(r#"{"ownir_version": 1}"#).expect_err("v1 must be rejected");
+    let err = OwnIr::from_json(r#"{"ownir_version": 2}"#).expect_err("v2 must be rejected");
     assert!(
-        err.message.contains("schema v1") && err.message.contains(&format!("v{OWNIR_VERSION}")),
+        err.message.contains("schema v2") && err.message.contains(&format!("v{OWNIR_VERSION}")),
         "gate message must name both versions: {err}"
     );
 }

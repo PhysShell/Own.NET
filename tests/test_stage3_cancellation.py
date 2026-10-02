@@ -101,7 +101,7 @@ def _write_workload(path: str, components: int) -> None:
     """A large but entirely ORDINARY document. Nothing hostile: the point is a
     run long enough to interrupt, not a parser stress case."""
     with open(path, "w", encoding="utf-8") as f:
-        f.write('{"ownir_version": 0, "components": [')
+        f.write('{"ownir_version": 1, "components": [')
         for i in range(components):
             if i:
                 f.write(",")

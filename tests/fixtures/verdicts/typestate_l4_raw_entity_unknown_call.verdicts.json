@@ -1,0 +1,4 @@
+{
+  "verdicts_version": 1,
+  "error": "OwnIR call to 'Unknown' inside a borrow_mut region passes tracked local 'order', but the callee has no ownership contract (Orders.cs:13) — refused: an exclusive region must not hand its entity or tokens to unanalysed code"
+}

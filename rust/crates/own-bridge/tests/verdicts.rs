@@ -366,6 +366,7 @@ fn lowered_lines(doc: &own_lowered::LoweredDocument) -> Vec<i64> {
                 | Stmt::Overspan { line, .. }
                 | Stmt::Return { line, .. }
                 | Stmt::AliasJoin { line, .. }
+                | Stmt::Move { line, .. }
                 | Stmt::Call { line, .. }
                 | Stmt::Subscribe { line, .. } => out.push(*line),
                 Stmt::If {
@@ -375,7 +376,7 @@ fn lowered_lines(doc: &own_lowered::LoweredDocument) -> Vec<i64> {
                     walk(then, out);
                     walk(r#else, out);
                 }
-                Stmt::While { body, line, .. } => {
+                Stmt::While { body, line, .. } | Stmt::BorrowMut { body, line, .. } => {
                     out.push(*line);
                     walk(body, out);
                 }

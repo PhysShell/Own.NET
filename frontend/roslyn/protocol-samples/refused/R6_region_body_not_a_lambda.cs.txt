@@ -1,0 +1,15 @@
+using System.Threading.Tasks;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// The region body must be written in place, or there is no block to lower.
+public static class R6RegionBodyNotALambda
+{
+    private static void Body(ApprovedOrder approved) => approved.Ship();
+
+    public static void Run(Order order)
+    {
+        Protocol.WithApproved(order, Body);
+    }
+}

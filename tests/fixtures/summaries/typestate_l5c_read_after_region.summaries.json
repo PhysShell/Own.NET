@@ -1,0 +1,161 @@
+{
+  "degraded": null,
+  "module": "TypestateGate",
+  "ownir_version": 1,
+  "summaries": [
+    {
+      "file": "Orders.cs",
+      "line": 0,
+      "method": "Approve",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "s",
+          "transfer": "must"
+        },
+        {
+          "disposable": true,
+          "index": 1,
+          "name": "order",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "Orders.cs",
+      "line": 0,
+      "method": "CancelDraft",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "d",
+          "transfer": "must"
+        },
+        {
+          "disposable": true,
+          "index": 1,
+          "name": "order",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "Orders.cs",
+      "line": 0,
+      "method": "CancelOrder",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "order",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "Orders.cs",
+      "line": 0,
+      "method": "Handler.Run",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "Orders.cs",
+      "line": 0,
+      "method": "Peek",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "order",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "Orders.cs",
+      "line": 0,
+      "method": "Ship",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "a",
+          "transfer": "must"
+        },
+        {
+          "disposable": true,
+          "index": 1,
+          "name": "order",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "Orders.cs",
+      "line": 0,
+      "method": "Store",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "order",
+          "transfer": "must"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "Orders.cs",
+      "line": 0,
+      "method": "Submit",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "d",
+          "transfer": "must"
+        },
+        {
+          "disposable": true,
+          "index": 1,
+          "name": "order",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": []
+}

@@ -365,6 +365,133 @@ fn callee_returns_fresh(
 // --- flow-body walks (the `_*` helpers of ownir.py) --------------------------
 
 /// `_released_vars`.
+/// Python `{s!r}` for a plain name — the only strings the region refusals
+/// interpolate.
+fn repr_str(s: &str) -> String {
+    format!("'{s}'")
+}
+
+// --- the inference view (`_has_region` / `_inline_regions`) -------------------
+
+/// `_has_region`: whether a flow body contains a `borrow_mut` region at any
+/// depth.
+pub(crate) fn has_region(nodes: &[Value]) -> bool {
+    nodes
+        .iter()
+        .filter_map(Value::as_object)
+        .any(|n| match get_str(n, "op") {
+            Some("borrow_mut") => true,
+            Some("if") => has_region(as_list(n.get("then"))) || has_region(as_list(n.get("else"))),
+            Some("while") => has_region(as_list(n.get("body"))),
+            _ => false,
+        })
+}
+
+/// `_inline_regions`: the INFERENCE view of a flow body — every `borrow_mut`
+/// region spliced in place of its block.
+///
+/// A region is a straight-line sub-body that runs exactly once, so it is
+/// transparent to every question the contract-inference layer asks. Only
+/// [`lower_flow`] needs the structure, because only it emits the loan. Callers
+/// take this path ONLY for a body [`has_region`] accepts, so a document
+/// without regions never sees a copy.
+fn inline_regions(nodes: &[Value]) -> Vec<Value> {
+    let mut out: Vec<Value> = Vec::new();
+    for n_v in nodes {
+        let Some(n) = n_v.as_object() else {
+            out.push(n_v.clone());
+            continue;
+        };
+        let splice = |key: &str, m: &mut Obj| {
+            if let Some(Value::Array(sub)) = n.get(key) {
+                m.insert(key.to_owned(), Value::Array(inline_regions(sub)));
+            }
+        };
+        match get_str(n, "op") {
+            Some("borrow_mut") => {
+                if let Some(Value::Array(sub)) = n.get("body") {
+                    out.extend(inline_regions(sub));
+                }
+            }
+            Some("if")
+                if has_region(as_list(n.get("then"))) || has_region(as_list(n.get("else"))) =>
+            {
+                let mut m = n.clone();
+                splice("then", &mut m);
+                splice("else", &mut m);
+                out.push(Value::Object(m));
+            }
+            Some("while") if has_region(as_list(n.get("body"))) => {
+                let mut m = n.clone();
+                splice("body", &mut m);
+                out.push(Value::Object(m));
+            }
+            _ => out.push(n_v.clone()),
+        }
+    }
+    out
+}
+
+/// `_inference_view`: `functions[]` as the inference layer reads it, or `None`
+/// when no function opens a region (the common case: nothing is copied and
+/// the caller keeps reading the original slice).
+pub(crate) fn inference_view(raw_fns: &[Value]) -> Option<Vec<Value>> {
+    let regional = |f: &Obj| has_region(as_list(f.get("body")));
+    if !raw_fns.iter().filter_map(Value::as_object).any(regional) {
+        return None;
+    }
+    Some(
+        raw_fns
+            .iter()
+            .map(|fv| match fv.as_object() {
+                Some(f) if regional(f) => {
+                    let mut m = f.clone();
+                    m.insert(
+                        "body".to_owned(),
+                        Value::Array(inline_regions(as_list(f.get("body")))),
+                    );
+                    Value::Object(m)
+                }
+                _ => fv.clone(),
+            })
+            .collect(),
+    )
+}
+
+/// `_region_param_effects`: for each function NAME, whether each parameter
+/// resolves to an ownership effect (`true`) or to a plain value (`false`) —
+/// the resolution [`lower_fn_params`] applies, over the same inference view.
+///
+/// Read by one rule: inside a `borrow_mut` region a tracked local must not
+/// land on a PLAIN position. The core reports that shape as OWN041, which the
+/// verdict layer filters as a synthesis artifact — so without the rule the
+/// path is "core raised, bridge filtered, clean".
+fn region_param_effects(view_fns: &[Value], mos: &Mos) -> HashMap<String, Vec<bool>> {
+    let mut out: HashMap<String, Vec<bool>> = HashMap::new();
+    for f in view_fns.iter().filter_map(Value::as_object) {
+        let fname = str_or(f, "name", "");
+        let mut effs: Vec<bool> = Vec::new();
+        if let Some(raw) = f.get("params").and_then(Value::as_array) {
+            let summ = mos_lookup(mos, &fname, call_sig(f));
+            for (i, p) in raw.iter().enumerate() {
+                let Some(p) = p.as_object() else { continue };
+                let eff: Option<&str> = p.get("effect").and_then(Value::as_str).or_else(|| {
+                    let ftrans = summ.and_then(|s| {
+                        s.params
+                            .iter()
+                            .find(|q| q.index == i64::try_from(i).unwrap_or(i64::MAX))
+                            .map(|q| q.transfer)
+                    });
+                    infer_param_effect(&str_or(p, "name", "?"), as_list(f.get("body")), ftrans)
+                });
+                effs.push(eff.is_some_and(|e| e != "plain"));
+            }
+        }
+        out.insert(fname, effs);
+    }
+    out
+}
+
 fn released_vars(nodes: &[Value]) -> HashSet<String> {
     let mut out = HashSet::new();
     fn walk(nodes: &[Value], out: &mut HashSet<String>) {
@@ -1477,6 +1604,11 @@ struct FnCtx<'v, 'a> {
     overloaded: &'a HashSet<String>,
     untracked: &'a HashSet<String>,
     kill_sites: &'a HashMap<String, &'v Value>,
+    /// Inside a `borrow_mut` region: an unverifiable handoff refuses instead
+    /// of dropping to "no effect, no claim".
+    in_region: bool,
+    /// `_region_param_effects`, present iff some function opens a region.
+    param_effects: Option<&'a HashMap<String, Vec<bool>>>,
 }
 
 fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stmt>, BridgeError> {
@@ -1599,6 +1731,87 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                     line,
                 });
             }
+            Some("move") => {
+                // `var` takes OWNERSHIP of `src`'s obligation; `src` is dead
+                // after it. Shaped like `alias_join`: the destination's old
+                // binding dies first, and an untracked `src` makes no claim.
+                let name = str_or(n, "var", "?");
+                let src_h = ctx.localmap.get(&str_or(n, "src", "")).cloned();
+                if !ctx.hoisted.contains(&name) {
+                    ctx.localmap.remove(&name);
+                }
+                if let Some(src_h) = src_h {
+                    if !ctx.hoisted.contains(&name) && !ctx.untracked.contains(&name) {
+                        let handle = format!("loc_{}", ctx.loc);
+                        *ctx.loc = ctx.loc.saturating_add(1);
+                        ctx.localmap.insert(name.clone(), handle.clone());
+                        ctx.handles.push(
+                            &handle,
+                            flow_local_record(
+                                ctx.ffile,
+                                line,
+                                n.get("column"),
+                                &name,
+                                ctx.fname,
+                                ctx.released.contains(&name),
+                                Some(false),
+                            ),
+                        )?;
+                        body.push(Stmt::Move {
+                            handle,
+                            src: src_h,
+                            line,
+                        });
+                    }
+                }
+            }
+            Some("borrow_mut") => {
+                // A BLOCK-scoped exclusive loan. Compound on purpose: the
+                // core's loans are block-scoped and its merge requires every
+                // predecessor to carry the same loan set.
+                let oname = get_str(n, "owner").filter(|s| !s.is_empty());
+                let bname = get_str(n, "binding").filter(|s| !s.is_empty());
+                let bn = n.get("body").and_then(Value::as_array);
+                let (Some(oname), Some(bname), Some(bn)) = (oname, bname, bn) else {
+                    return Err(BridgeError(format!(
+                        "OwnIR flow op 'borrow_mut' needs a non-empty string 'owner', \
+                         a non-empty string 'binding' and an array 'body' ({}:{line})",
+                        ctx.ffile,
+                    )));
+                };
+                // no owner the core can see => no loan the core can enforce.
+                let Some(owner_h) = ctx.localmap.get(oname).cloned() else {
+                    return Err(BridgeError(format!(
+                        "OwnIR 'borrow_mut' owner {} is not a tracked local \
+                         ({}:{line}) — refused: an exclusive region needs an \
+                         owner the core tracks",
+                        repr_str(oname),
+                        ctx.ffile,
+                    )));
+                };
+                let bsym = format!("brw_{}", ctx.loc);
+                *ctx.loc = ctx.loc.saturating_add(1);
+                let shadowed = ctx.localmap.insert(bname.to_owned(), bsym.clone());
+                let outer = ctx.in_region;
+                ctx.in_region = true;
+                let body_b = lower_flow(ctx, bn)?;
+                ctx.in_region = outer;
+                // the binding dies with its block
+                match shadowed {
+                    Some(prev) => {
+                        ctx.localmap.insert(bname.to_owned(), prev);
+                    }
+                    None => {
+                        ctx.localmap.remove(bname);
+                    }
+                }
+                body.push(Stmt::BorrowMut {
+                    owner: owner_h,
+                    binding: bsym,
+                    body: body_b,
+                    line,
+                });
+            }
             Some("call") => {
                 let callee = str_or(n, "callee", "");
                 let identity = canonical(&callee);
@@ -1648,6 +1861,29 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                     && !callee.is_empty()
                 {
                     if let Some(args) = args {
+                        if ctx.in_region && summ_raw.is_some() {
+                            // a tracked local on a PLAIN position is the core's
+                            // OWN041, which the verdict layer filters.
+                            let effs = ctx.param_effects.and_then(|m| m.get(&callee));
+                            for (j, a) in args.iter().enumerate() {
+                                let aname = py_str(a);
+                                let has_effect =
+                                    effs.and_then(|e| e.get(j)).copied().unwrap_or(false);
+                                if ctx.localmap.contains_key(&aname) && !has_effect {
+                                    return Err(BridgeError(format!(
+                                        "OwnIR call to {} inside a borrow_mut region \
+                                         passes tracked local {} at position {j}, which \
+                                         carries no ownership effect ({}:{line}) — \
+                                         refused: inside an exclusive region every \
+                                         position that receives the entity or a token \
+                                         must state what it does with it",
+                                        repr_str(&callee),
+                                        repr_str(&aname),
+                                        ctx.ffile,
+                                    )));
+                                }
+                            }
+                        }
                         let arg_refs = args
                             .iter()
                             .map(|a| {
@@ -1660,6 +1896,27 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                             args: arg_refs,
                             line,
                         });
+                    }
+                } else if ctx.in_region {
+                    // An UNRESOLVABLE callee is dropped everywhere else, and
+                    // the core's OWN040 for it is filtered. Inside an
+                    // exclusive region that default is a false PASS.
+                    if let Some(args) = args {
+                        for a in args {
+                            let aname = py_str(a);
+                            if ctx.localmap.contains_key(&aname) {
+                                return Err(BridgeError(format!(
+                                    "OwnIR call to {} inside a borrow_mut region \
+                                     passes tracked local {}, but the callee has no \
+                                     ownership contract ({}:{line}) — refused: an \
+                                     exclusive region must not hand its entity or \
+                                     tokens to unanalysed code",
+                                    repr_str(&callee),
+                                    repr_str(&aname),
+                                    ctx.ffile,
+                                )));
+                            }
+                        }
                     }
                 }
                 // the kill site of a tracked local: discharge here, unmap after.
@@ -1917,7 +2174,10 @@ pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
     // notes.append(f"{type(exc).__name__}: {exc}")`; the only failure a facts
     // document can reach is the duplicate-key guard, a `ValueError` there.
     let mut mos_notes: Vec<String> = Vec::new();
-    let mos_map: Mos = match mos::solve(build_skeletons(raw_fns)) {
+    // the INFERENCE view (regions spliced); `None` when no function opens one.
+    let view_store = inference_view(raw_fns);
+    let view_fns: &[Value] = view_store.as_deref().unwrap_or(raw_fns);
+    let mos_map: Mos = match mos::solve(build_skeletons(view_fns)) {
         Ok(m) => m,
         Err(e) => {
             mos_notes.push(format!("ValueError: {e}"));
@@ -1944,15 +2204,28 @@ pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
             .map(|(n, _)| n.to_owned())
             .collect()
     };
+    let region_effects: Option<HashMap<String, Vec<bool>>> = view_store
+        .is_some()
+        .then(|| region_param_effects(view_fns, &mos_map));
     for fn_v in raw_fns {
         let Some(f) = fn_v.as_object() else { continue };
         let fname = f.get("name").map_or_else(|| format!("Fn{loc}"), py_str);
         let ffile = str_or(f, "file", "?");
-        let nodes: &[Value] = as_list(f.get("body"));
+        // `flow_nodes` keeps the structure and is read by `lower_flow` alone;
+        // `nodes` is the inference view. With no region they are one slice.
+        let flow_nodes: &[Value] = as_list(f.get("body"));
+        let f_view_store: Option<Obj> = has_region(flow_nodes).then(|| {
+            let mut m = f.clone();
+            m.insert("body".to_owned(), Value::Array(inline_regions(flow_nodes)));
+            m
+        });
+        let regional = f_view_store.is_some();
+        let f_view: &Obj = f_view_store.as_ref().unwrap_or(f);
+        let nodes: &[Value] = as_list(f_view.get("body"));
         let released = released_vars(nodes);
         let mut localmap: HashMap<String, String> = HashMap::new();
         let fparams = lower_fn_params(
-            f,
+            f_view,
             &ffile,
             &fname,
             &mut handles,
@@ -1970,6 +2243,23 @@ pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
             .map(|(a, _, _, _)| a.clone())
             .filter(|a| !kill_sites.contains_key(a))
             .collect();
+        if regional {
+            // A function that opens an exclusive region must be verified end
+            // to end: the optimistic default (advisory OWN051) would turn an
+            // unverifiable handoff into silence, and silence inside a
+            // protocol region reads as a PASS.
+            if let Some((arg, callee, transfer, cline)) = unverified.first() {
+                return Err(BridgeError(format!(
+                    "OwnIR function {} opens a borrow_mut region but hands {} to {} \
+                     at an unverified position (inferred contract: {transfer}) \
+                     ({ffile}:{cline}) — refused: a function with an exclusive \
+                     region must not rely on the optimistic ownership default",
+                    repr_str(&fname),
+                    repr_str(arg),
+                    repr_str(callee),
+                )));
+            }
+        }
         // OWN051, gated on args that actually carry an obligation here (an
         // acquired local or a fresh factory result) — a plain value passed to
         // a may-position is not a gap worth a note (BR-L8).
@@ -2040,8 +2330,10 @@ pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
             overloaded: &overloaded,
             untracked: &untracked,
             kill_sites: &kill_sites,
+            in_region: false,
+            param_effects: region_effects.as_ref(),
         };
-        fbody.extend(lower_flow(&mut ctx, nodes)?);
+        fbody.extend(lower_flow(&mut ctx, flow_nodes)?);
         // a value-returning body gets an owned return type so `return s`
         // models a valid escape (discharge), not a void-return mismatch.
         let fret = returns_value(nodes).then(|| TypeShape {

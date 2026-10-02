@@ -56,7 +56,7 @@ fn rejects_wrong_version_on_a_rejection_document() {
 
 #[test]
 fn accepts_the_current_version_on_a_rejection_document() {
-    let text = "{\n  \"lowered_version\": 1,\n  \"error\": \"boom\"\n}\n";
+    let text = "{\n  \"lowered_version\": 2,\n  \"error\": \"boom\"\n}\n";
     let surface = parse_document(text).expect("a current-version rejection parses");
     let emitted = to_canonical_json(&surface).expect("canonical emit");
     assert_eq!(
@@ -71,7 +71,7 @@ fn rejects_a_null_parameter_type() {
     // never write `"type": null` on a parameter, so the typed model must not
     // accept it either.
     let text = r#"{
-  "lowered_version": 1,
+  "lowered_version": 2,
   "module": "m",
   "resources": [],
   "externs": [],
@@ -102,7 +102,7 @@ fn rejects_a_null_parameter_type() {
 fn rejects_explicit_null_on_a_non_nullable_handle_key() {
     // `released` is optional-but-boolean on the record; an explicit null must
     // fail the parse, not decay to "missing" and vanish on re-emit.
-    let text = doc(1, r#"[{"handle": "sub_0", "released": null}]"#);
+    let text = doc(2, r#"[{"handle": "sub_0", "released": null}]"#);
     parse_document(&text).expect_err("\"released\": null must be rejected, not deleted");
 }
 
@@ -112,7 +112,7 @@ fn preserves_explicit_null_metadata_through_a_round_trip() {
     // membership) explicit `null` for `type`, `source`, and `source_type` —
     // `{}` and `{"source_type": null}` are DIFFERENT Layer 2 documents.
     let text = doc(
-        1,
+        2,
         r#"[
     {
       "handle": "sub_0",

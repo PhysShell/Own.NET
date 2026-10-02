@@ -1,0 +1,32 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "frontend/roslyn/protocol-samples/cases/L1_stale_capability.cs",
+      "line": 13,
+      "code": "OWN002",
+      "component": "Own.Protocols.Cases.L1StaleCapability.Run",
+      "event": "draft",
+      "handler": "",
+      "message": "IDisposable local 'draft' is used after it is disposed",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "frontend/roslyn/protocol-samples/cases/L1_stale_capability.cs",
+          13,
+          "acquired 'draft' here"
+        ],
+        [
+          "frontend/roslyn/protocol-samples/cases/L1_stale_capability.cs",
+          16,
+          "used here after it was released/returned"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

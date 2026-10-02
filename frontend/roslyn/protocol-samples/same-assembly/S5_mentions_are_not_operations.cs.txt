@@ -1,0 +1,14 @@
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// The control for the other direction: the same assembly, and the protocol's non-public
+// surface only MENTIONED — a name, a type, a read. Nothing changes state, nothing is refused.
+public static class S5MentionsAreNotOperations
+{
+    public static string Run(Order order)
+    {
+        var state = order.Status;
+        return nameof(Order.Status) + nameof(ApprovedOrder) + typeof(DraftOrder).Name + state;
+    }
+}

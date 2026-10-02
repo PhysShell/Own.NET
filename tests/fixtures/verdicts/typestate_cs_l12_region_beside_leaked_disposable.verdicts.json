@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "frontend/roslyn/protocol-samples/cases/L12_region_beside_leaked_disposable.cs",
+      "line": 14,
+      "code": "OWN001",
+      "component": "Own.Protocols.Cases.L12RegionBesideLeakedDisposable.Run",
+      "event": "log",
+      "handler": "",
+      "message": "IDisposable local 'log' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": 13
+    }
+  ]
+}

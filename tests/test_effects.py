@@ -99,7 +99,7 @@ def run() -> int:
 
     # ---- the OwnIR bridge ----
     facts = {
-        "ownir_version": 0, "module": "D", "components": [],
+        "ownir_version": 1, "module": "D", "components": [],
         "effects": [
             {"component": "Dashboard", "file": "Dashboard.tsx", "line": 33, "io": True,
              "deps": ["filters"],
@@ -123,11 +123,11 @@ def run() -> int:
     check("EFF001" in rules and "storm" in rules["EFF001"], "EFF001 must appear in the SARIF rules")
 
     # malformed effects degrade gracefully (additive/optional, never a crash).
-    check(check_facts({"ownir_version": 0, "components": [], "effects": "nope"}) == [],
+    check(check_facts({"ownir_version": 1, "components": [], "effects": "nope"}) == [],
           "a malformed effects block must not crash check_facts")
     # a per-entry malformed effect is SKIPPED, not coerced: `deps: "a"` must NOT
     # become `("a",)` and emit a spurious EFF001 on the direct check_facts() path.
-    coerce = check_facts({"ownir_version": 0, "components": [], "effects": [
+    coerce = check_facts({"ownir_version": 1, "components": [], "effects": [
         {"component": "X", "file": "X.tsx", "line": 1, "io": True, "deps": "a",
          "bindings": [{"name": "a", "init": "object", "refs": [], "line": 1}]}]})
     check(coerce == [], f"a malformed deps='a' entry must be skipped, got {coerce}")

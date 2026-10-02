@@ -1,0 +1,89 @@
+{
+  "ownir_version": 1,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "Own.Protocols.Cases.L2CopiedCapability.Run",
+      "file": "frontend/roslyn/protocol-samples/cases/L2_copied_capability.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "order",
+          "line": 13
+        },
+        {
+          "op": "borrow_mut",
+          "owner": "order",
+          "binding": "order.region1",
+          "line": 13,
+          "body": [
+            {
+              "op": "acquire",
+              "var": "draft",
+              "line": 13
+            },
+            {
+              "op": "move",
+              "var": "copy",
+              "src": "draft",
+              "line": 15
+            },
+            {
+              "op": "call",
+              "callee": "Own.Protocols.Sample.DraftOrder.Cancel",
+              "args": [
+                "draft",
+                "order.region1"
+              ],
+              "line": 16
+            },
+            {
+              "op": "call",
+              "callee": "Own.Protocols.Sample.DraftOrder.Cancel",
+              "args": [
+                "copy",
+                "order.region1"
+              ],
+              "line": 17
+            }
+          ]
+        },
+        {
+          "op": "release",
+          "var": "order",
+          "line": 13
+        }
+      ]
+    },
+    {
+      "name": "Own.Protocols.Sample.DraftOrder.Cancel",
+      "file": "frontend/roslyn/protocol-samples/Api/ProtocolApi.cs",
+      "params": [
+        {
+          "name": "token",
+          "effect": "consume",
+          "line": 57
+        },
+        {
+          "name": "entity",
+          "effect": "borrow_mut",
+          "line": 57
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "token",
+          "line": 57
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "methods_with_local": 0,
+    "methods_flow_analysed": 0,
+    "methods_skipped_unmodelled": 0
+  }
+}

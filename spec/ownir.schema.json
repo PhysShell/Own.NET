@@ -8,7 +8,7 @@
   "properties": {
     "ownir_version": {
       "description": "OwnIR fact-vocabulary version. Every producer stamps the same integer (OWNIR_VERSION in ownlang/ownir.py); a document whose version differs from the core's is rejected at load (spec/OwnIR.md IR1/IR2). An absent field is read as the current version by the core, but this schema requires it.",
-      "const": 0
+      "const": 1
     },
     "module": {
       "description": "The extracted module/assembly name.",
@@ -298,6 +298,31 @@
             "body": { "type": "array", "items": { "$ref": "#/$defs/flowOp" } }
           },
           "required": ["op"]
+        },
+        {
+          "title": "move",
+          "description": "`var` takes ownership of `src`'s obligation (Let+Move); `src` is dead after it. Unlike alias_join the source does not stay owning.",
+          "properties": {
+            "op": { "const": "move" },
+            "line": { "$ref": "#/$defs/sourceLine" },
+            "column": { "$ref": "#/$defs/sourceColumn" },
+            "var": { "type": "string" },
+            "src": { "type": "string" }
+          },
+          "required": ["op", "var", "src"]
+        },
+        {
+          "title": "borrow_mut",
+          "description": "A block-scoped exclusive loan of the local `owner`, visible inside `body` as `binding` (a BorrowBlock). Compound on purpose: the vocabulary cannot open a loan without saying where it closes. Inside the block an unverifiable handoff of a tracked local is refused, not dropped.",
+          "properties": {
+            "op": { "const": "borrow_mut" },
+            "line": { "$ref": "#/$defs/sourceLine" },
+            "column": { "$ref": "#/$defs/sourceColumn" },
+            "owner": { "type": "string", "minLength": 1 },
+            "binding": { "type": "string", "minLength": 1 },
+            "body": { "type": "array", "items": { "$ref": "#/$defs/flowOp" } }
+          },
+          "required": ["op", "owner", "binding", "body"]
         }
       ]
     },

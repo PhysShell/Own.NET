@@ -7,6 +7,7 @@ exercising the mechanism rather than by reading its comments:
 
     perf-firewall-decisive     a decisive workload cannot reach a clock pre-D7
     perf-firewall-calibration  a calibration workload can (or the instrument is inert)
+    perf-calibration-facts-current  the reference analyses what the generator writes
     perf-reference-boundary    the Python reference reads nothing its identity misses
     perf-d7-phase-universe     D7's metrics are not the attribution taxonomy
     perf-gate-dormant          the C1/C2 gate exists, is unarmed, and fails closed
@@ -1498,8 +1499,58 @@ def control_digest_platform_stable() -> None:
                                           "binary is still hashed byte for byte")
 
 
+def control_calibration_facts_current() -> None:
+    """A generated facts workload is a document the reference ANALYSES.
+
+    The generator stamps `ownir_version`, and the reference refuses any other
+    version at its door (spec/OwnIR.md §2). A stamp left behind by a vocabulary
+    bump turns every `facts` rung into the refusal path: the cells would still
+    be produced, on both engines, and would time the version gate. The
+    instrument has a workload for that path on purpose (`refused`), so the two
+    generators must land on OPPOSITE sides of the door.
+
+    Observed by running the reference on what the generator wrote, not by
+    comparing two integers: the first OwnIR vocabulary bump (v0 -> v1) left the
+    generator on v0 with every other control in this suite green.
+    """
+    import subprocess
+    problems = []
+    seen = {"facts": 0, "refused": 0}
+    with tempfile.TemporaryDirectory(prefix="perf-facts-") as td:
+        tmp = Path(td)
+        workloads, _ = pb.load_manifest()
+        env = dict(os.environ)
+        env["PYTHONPATH"] = str(ROOT)
+        for w in workloads:
+            gen = str(w.spec.get("generator"))
+            if w.decisive or gen not in seen:
+                continue
+            seen[gen] += 1
+            target = pb.materialize_calibration(w, tmp)
+            r = subprocess.run([sys.executable, "-m", "ownlang", "ownir", str(target)],
+                               capture_output=True, env=env, cwd=str(ROOT), check=False)
+            said = r.stderr.decode("utf-8", "replace").strip()[:160]
+            if gen == "facts" and r.returncode != 0:
+                problems.append(f"{w.id}: the reference does not analyse the generated facts "
+                                f"(exit {r.returncode}: {said}) — the rung would time a refusal")
+            if gen == "refused" and r.returncode != 2:
+                problems.append(f"{w.id}: the refusal workload is not refused (exit "
+                                f"{r.returncode}), so nothing measures the refusal path")
+    missing = [g for g, n in seen.items() if n == 0]
+    if missing:
+        problems.append(f"the manifest has no {missing} calibration workload; this control "
+                        "exercised nothing for it")
+    if problems:
+        fail("perf-calibration-facts-current", "; ".join(problems))
+    else:
+        ok("perf-calibration-facts-current",
+           f"the reference analyses all {seen['facts']} generated facts workload(s) and "
+           f"refuses the {seen['refused']} built to be refused")
+
+
 def run() -> int:
     control_firewall()
+    control_calibration_facts_current()
     control_reference_boundary()
     control_d7_phase_universe()
     control_gate_dormant()

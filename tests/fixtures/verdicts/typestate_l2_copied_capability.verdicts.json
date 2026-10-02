@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Orders.cs",
+      "line": 12,
+      "code": "OWN005",
+      "component": "Handler.Run",
+      "event": "d1",
+      "handler": "",
+      "message": "IDisposable local 'd1' is used after its ownership was moved",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

@@ -1,20 +1,20 @@
 {
   "repro_version": 3,
   "input": {
-    "ownir_version": 0,
+    "ownir_version": 1,
     "raw": {
       "algorithm": "sha256",
-      "digest": "a8f0744b8bdbf9b5cdbbd55b381a44b53d49345f915b852b2019e9cb9aeb2d5a",
+      "digest": "60debca1e8aede04c2048c023af7f29a7af41131d9b081abaace6d40761bfae5",
       "bytes": 747,
-      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMCwKICAibW9kdWxlIjogIkRlZ3JhZGVkIiwKICAiZnVuY3Rpb25zIjogWwogICAgewogICAgICAibmFtZSI6ICJUYWtlIiwKICAgICAgInNpZyI6ICJTeXN0ZW0uSU8uU3RyZWFtIiwKICAgICAgImZpbGUiOiAidDEuY3MiLAogICAgICAicGFyYW1zIjogWwogICAgICAgIHsKICAgICAgICAgICJuYW1lIjogInAiLAogICAgICAgICAgImxpbmUiOiAxCiAgICAgICAgfQogICAgICBdLAogICAgICAiYm9keSI6IFsKICAgICAgICB7CiAgICAgICAgICAib3AiOiAicmVsZWFzZSIsCiAgICAgICAgICAidmFyIjogInAiLAogICAgICAgICAgImxpbmUiOiAyCiAgICAgICAgfQogICAgICBdCiAgICB9LAogICAgewogICAgICAibmFtZSI6ICJUYWtlIiwKICAgICAgInNpZyI6ICJTeXN0ZW0uU3RyaW5nIiwKICAgICAgImZpbGUiOiAidDIuY3MiLAogICAgICAicGFyYW1zIjogWwogICAgICAgIHsKICAgICAgICAgICJuYW1lIjogInAiLAogICAgICAgICAgImxpbmUiOiA1CiAgICAgICAgfQogICAgICBdLAogICAgICAiYm9keSI6IFsKICAgICAgICB7CiAgICAgICAgICAib3AiOiAidXNlIiwKICAgICAgICAgICJ2YXIiOiAicCIsCiAgICAgICAgICAibGluZSI6IDYKICAgICAgICB9CiAgICAgIF0KICAgIH0sCiAgICB7CiAgICAgICJuYW1lIjogIlRha2UoU3lzdGVtLklPLlN0cmVhbSkiLAogICAgICAiZmlsZSI6ICJjbGFzaC5jcyIsCiAgICAgICJib2R5IjogW10KICAgIH0KICBdCn0K"
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMSwKICAibW9kdWxlIjogIkRlZ3JhZGVkIiwKICAiZnVuY3Rpb25zIjogWwogICAgewogICAgICAibmFtZSI6ICJUYWtlIiwKICAgICAgInNpZyI6ICJTeXN0ZW0uSU8uU3RyZWFtIiwKICAgICAgImZpbGUiOiAidDEuY3MiLAogICAgICAicGFyYW1zIjogWwogICAgICAgIHsKICAgICAgICAgICJuYW1lIjogInAiLAogICAgICAgICAgImxpbmUiOiAxCiAgICAgICAgfQogICAgICBdLAogICAgICAiYm9keSI6IFsKICAgICAgICB7CiAgICAgICAgICAib3AiOiAicmVsZWFzZSIsCiAgICAgICAgICAidmFyIjogInAiLAogICAgICAgICAgImxpbmUiOiAyCiAgICAgICAgfQogICAgICBdCiAgICB9LAogICAgewogICAgICAibmFtZSI6ICJUYWtlIiwKICAgICAgInNpZyI6ICJTeXN0ZW0uU3RyaW5nIiwKICAgICAgImZpbGUiOiAidDIuY3MiLAogICAgICAicGFyYW1zIjogWwogICAgICAgIHsKICAgICAgICAgICJuYW1lIjogInAiLAogICAgICAgICAgImxpbmUiOiA1CiAgICAgICAgfQogICAgICBdLAogICAgICAiYm9keSI6IFsKICAgICAgICB7CiAgICAgICAgICAib3AiOiAidXNlIiwKICAgICAgICAgICJ2YXIiOiAicCIsCiAgICAgICAgICAibGluZSI6IDYKICAgICAgICB9CiAgICAgIF0KICAgIH0sCiAgICB7CiAgICAgICJuYW1lIjogIlRha2UoU3lzdGVtLklPLlN0cmVhbSkiLAogICAgICAiZmlsZSI6ICJjbGFzaC5jcyIsCiAgICAgICJib2R5IjogW10KICAgIH0KICBdCn0K"
     },
     "canonical": {
       "algorithm": "sha256",
-      "digest": "92f052ccef71d87b1b80ff9e9bcd9c74ec9db30b7ad34c883af0096a83088fdd",
+      "digest": "5d67d6918c18d93df76a29b2d58f50202444d3b95e2a7de6cca64541bb71e06d",
       "bytes": 376
     },
     "document": {
-      "ownir_version": 0,
+      "ownir_version": 1,
       "module": "Degraded",
       "functions": [
         {
@@ -66,19 +66,19 @@
       "id": "python-ownlang",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "a8f0744b8bdbf9b5cdbbd55b381a44b53d49345f915b852b2019e9cb9aeb2d5a",
+        "digest": "60debca1e8aede04c2048c023af7f29a7af41131d9b081abaace6d40761bfae5",
         "bytes": 747
       },
       "layers": [
         {
           "layer": "lowered",
-          "surface_version": 1,
+          "surface_version": 2,
           "projection": {
             "kind": "full"
           },
           "status": "produced",
           "document": {
-            "lowered_version": 1,
+            "lowered_version": 2,
             "module": "Degraded",
             "resources": [
               {
@@ -257,7 +257,7 @@
           "document": {
             "degraded": "ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)",
             "module": "Degraded",
-            "ownir_version": 0,
+            "ownir_version": 1,
             "summaries": [],
             "unresolved": []
           }
@@ -298,7 +298,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "4e4a0768c50f8218e945ee0ed0801127681eca2fea72f4d7bdfbe3fd63a2d9f6",
+            "digest": "11420b28e02f7d9cf9e1ba3791c8420f1565f9f25f0c8e57fb43eac932a2f152",
             "bytes": 822
           }
         }
@@ -308,19 +308,19 @@
       "id": "rust-own-bridge",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "a8f0744b8bdbf9b5cdbbd55b381a44b53d49345f915b852b2019e9cb9aeb2d5a",
+        "digest": "60debca1e8aede04c2048c023af7f29a7af41131d9b081abaace6d40761bfae5",
         "bytes": 747
       },
       "layers": [
         {
           "layer": "lowered",
-          "surface_version": 1,
+          "surface_version": 2,
           "projection": {
             "kind": "full"
           },
           "status": "produced",
           "document": {
-            "lowered_version": 1,
+            "lowered_version": 2,
             "module": "Degraded",
             "resources": [
               {
@@ -499,7 +499,7 @@
           "document": {
             "degraded": "ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)",
             "module": "Degraded",
-            "ownir_version": 0,
+            "ownir_version": 1,
             "summaries": [],
             "unresolved": []
           }
@@ -540,7 +540,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "4e4a0768c50f8218e945ee0ed0801127681eca2fea72f4d7bdfbe3fd63a2d9f6",
+            "digest": "11420b28e02f7d9cf9e1ba3791c8420f1565f9f25f0c8e57fb43eac932a2f152",
             "bytes": 822
           }
         }

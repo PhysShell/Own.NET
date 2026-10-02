@@ -1,16 +1,16 @@
 {
   "repro_version": 3,
   "input": {
-    "ownir_version": 0,
+    "ownir_version": 1,
     "raw": {
       "algorithm": "sha256",
-      "digest": "ab2653de96439e538502e2689ddd93fdf8fd6a8956190320245653af75ea0790",
+      "digest": "fbb8fcbd328fd7ccc555d9f41d3878991ce628f92e3642091b4218eacb6ad3dc",
       "bytes": 377,
-      "base64": "ewogICJtb2R1bGUiOiAiS2V5T3JkZXIiLAogICJjb21wb25lbnRzIjogWwogICAgewogICAgICAic3Vic2NyaXB0aW9ucyI6IFsKICAgICAgICB7InJlbGVhc2VkIjogZmFsc2UsICJyZXNvdXJjZSI6ICJzdWJzY3JpYmUiLCAibGluZSI6IDMsICJldmVudCI6ICJiLlpldGEiLCAiaGFuZGxlciI6ICJPblpldGEifSwKICAgICAgICB7ImV2ZW50IjogImEuQWxwaGEiLCAibGluZSI6IDQsICJyZXNvdXJjZSI6ICJzdWJzY3JpYmUiLCAicmVsZWFzZWQiOiB0cnVlLCAiaGFuZGxlciI6ICJPbkFscGhhIn0KICAgICAgXSwKICAgICAgImZpbGUiOiAiS2V5T3JkZXIuY3MiLAogICAgICAibmFtZSI6ICJaZWQiCiAgICB9CiAgXSwKICAib3duaXJfdmVyc2lvbiI6IDAKfQo="
+      "base64": "ewogICJtb2R1bGUiOiAiS2V5T3JkZXIiLAogICJjb21wb25lbnRzIjogWwogICAgewogICAgICAic3Vic2NyaXB0aW9ucyI6IFsKICAgICAgICB7InJlbGVhc2VkIjogZmFsc2UsICJyZXNvdXJjZSI6ICJzdWJzY3JpYmUiLCAibGluZSI6IDMsICJldmVudCI6ICJiLlpldGEiLCAiaGFuZGxlciI6ICJPblpldGEifSwKICAgICAgICB7ImV2ZW50IjogImEuQWxwaGEiLCAibGluZSI6IDQsICJyZXNvdXJjZSI6ICJzdWJzY3JpYmUiLCAicmVsZWFzZWQiOiB0cnVlLCAiaGFuZGxlciI6ICJPbkFscGhhIn0KICAgICAgXSwKICAgICAgImZpbGUiOiAiS2V5T3JkZXIuY3MiLAogICAgICAibmFtZSI6ICJaZWQiCiAgICB9CiAgXSwKICAib3duaXJfdmVyc2lvbiI6IDEKfQo="
     },
     "canonical": {
       "algorithm": "sha256",
-      "digest": "e48d4893337f2a3180388946f64524119451eecf4b55c84b9d1cdd6ede17e0cb",
+      "digest": "84301b7dadc06e52b558b3da71322a8f1d863d45694e9ebe7647c9dce5ebb049",
       "bytes": 283
     },
     "document": {
@@ -37,7 +37,7 @@
           "name": "Zed"
         }
       ],
-      "ownir_version": 0
+      "ownir_version": 1
     }
   },
   "engines": [
@@ -45,19 +45,19 @@
       "id": "python-ownlang",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "ab2653de96439e538502e2689ddd93fdf8fd6a8956190320245653af75ea0790",
+        "digest": "fbb8fcbd328fd7ccc555d9f41d3878991ce628f92e3642091b4218eacb6ad3dc",
         "bytes": 377
       },
       "layers": [
         {
           "layer": "lowered",
-          "surface_version": 1,
+          "surface_version": 2,
           "projection": {
             "kind": "full"
           },
           "status": "produced",
           "document": {
-            "lowered_version": 1,
+            "lowered_version": 2,
             "module": "KeyOrder",
             "resources": [
               {
@@ -208,7 +208,7 @@
           "document": {
             "degraded": null,
             "module": "KeyOrder",
-            "ownir_version": 0,
+            "ownir_version": 1,
             "summaries": [],
             "unresolved": []
           }
@@ -249,7 +249,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "635f4f6808ead896f8e16de2a44bbbfb04410e66bd8fc3326eb9c5d98062424f",
+            "digest": "d41ab0ff6d94e1967ac19effc4eaf992fc23821d1f2d52f5fba79ccb934f5fe4",
             "bytes": 793
           }
         }
@@ -259,19 +259,19 @@
       "id": "rust-own-bridge",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "ab2653de96439e538502e2689ddd93fdf8fd6a8956190320245653af75ea0790",
+        "digest": "fbb8fcbd328fd7ccc555d9f41d3878991ce628f92e3642091b4218eacb6ad3dc",
         "bytes": 377
       },
       "layers": [
         {
           "layer": "lowered",
-          "surface_version": 1,
+          "surface_version": 2,
           "projection": {
             "kind": "full"
           },
           "status": "produced",
           "document": {
-            "lowered_version": 1,
+            "lowered_version": 2,
             "module": "KeyOrder",
             "resources": [
               {
@@ -422,7 +422,7 @@
           "document": {
             "degraded": null,
             "module": "KeyOrder",
-            "ownir_version": 0,
+            "ownir_version": 1,
             "summaries": [],
             "unresolved": []
           }
@@ -463,7 +463,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "635f4f6808ead896f8e16de2a44bbbfb04410e66bd8fc3326eb9c5d98062424f",
+            "digest": "d41ab0ff6d94e1967ac19effc4eaf992fc23821d1f2d52f5fba79ccb934f5fe4",
             "bytes": 793
           }
         }

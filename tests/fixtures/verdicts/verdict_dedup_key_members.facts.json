@@ -1,5 +1,5 @@
 {
-  "ownir_version": 0,
+  "ownir_version": 1,
   "module": "DedupKeyMembers",
   "_doc": [
     "BR-V7 key members that survive only because they are IN the key, now that",

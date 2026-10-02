@@ -1,0 +1,225 @@
+{
+  "ownir_version": 1,
+  "module": "TypestateGate",
+  "functions": [
+    {
+      "name": "Reborrow",
+      "file": "Wordings.cs",
+      "params": [
+        {
+          "name": "o",
+          "effect": "borrow_mut",
+          "line": 100
+        }
+      ],
+      "body": []
+    },
+    {
+      "name": "Peek",
+      "file": "Wordings.cs",
+      "params": [
+        {
+          "name": "o",
+          "effect": "borrow",
+          "line": 110
+        }
+      ],
+      "body": []
+    },
+    {
+      "name": "Store",
+      "file": "Wordings.cs",
+      "params": [
+        {
+          "name": "o",
+          "effect": "consume",
+          "line": 120
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "o",
+          "line": 121
+        }
+      ]
+    },
+    {
+      "name": "W.Moved",
+      "file": "Wordings.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "b",
+          "line": 1,
+          "kind": "pool"
+        },
+        {
+          "op": "move",
+          "var": "c",
+          "src": "b",
+          "line": 2
+        },
+        {
+          "op": "use",
+          "var": "b",
+          "line": 3
+        },
+        {
+          "op": "release",
+          "var": "c",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "W.Consumed",
+      "file": "Wordings.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "o",
+          "line": 11,
+          "kind": "pool"
+        },
+        {
+          "op": "borrow_mut",
+          "owner": "o",
+          "binding": "r",
+          "line": 12,
+          "body": [
+            {
+              "op": "call",
+              "callee": "Store",
+              "args": [
+                "o"
+              ],
+              "line": 13
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "W.Released",
+      "file": "Wordings.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "o",
+          "line": 21,
+          "kind": "pool"
+        },
+        {
+          "op": "borrow_mut",
+          "owner": "o",
+          "binding": "r",
+          "line": 22,
+          "body": [
+            {
+              "op": "release",
+              "var": "o",
+              "line": 23
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "W.Reborrowed",
+      "file": "Wordings.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "o",
+          "line": 31,
+          "kind": "pool"
+        },
+        {
+          "op": "borrow_mut",
+          "owner": "o",
+          "binding": "r",
+          "line": 32,
+          "body": [
+            {
+              "op": "call",
+              "callee": "Reborrow",
+              "args": [
+                "o"
+              ],
+              "line": 33
+            }
+          ]
+        },
+        {
+          "op": "release",
+          "var": "o",
+          "line": 35
+        }
+      ]
+    },
+    {
+      "name": "W.Shared",
+      "file": "Wordings.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "o",
+          "line": 41,
+          "kind": "pool"
+        },
+        {
+          "op": "borrow_mut",
+          "owner": "o",
+          "binding": "r",
+          "line": 42,
+          "body": [
+            {
+              "op": "call",
+              "callee": "Peek",
+              "args": [
+                "o"
+              ],
+              "line": 43
+            }
+          ]
+        },
+        {
+          "op": "release",
+          "var": "o",
+          "line": 45
+        }
+      ]
+    },
+    {
+      "name": "W.Used",
+      "file": "Wordings.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "o",
+          "line": 51,
+          "kind": "pool"
+        },
+        {
+          "op": "borrow_mut",
+          "owner": "o",
+          "binding": "r",
+          "line": 52,
+          "body": [
+            {
+              "op": "use",
+              "var": "o",
+              "line": 53
+            }
+          ]
+        },
+        {
+          "op": "release",
+          "var": "o",
+          "line": 55
+        }
+      ]
+    }
+  ]
+}

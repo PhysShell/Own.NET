@@ -31,6 +31,19 @@ The remaining 11 followed the same derivation, and run 30443181114 (job
 values are what the extractor actually emits, not just the dozen that had been read
 off a log. The file is a measured artifact again.
 
+**Amended a second time, by OwnIR v1.** The flow vocabulary gained `move` and
+`borrow_mut`, `OWNIR_VERSION` moved 0 → 1, and every producer stamps it. One line
+of this file changed — `"ownir_version": 0` became `"ownir_version": 1` — and
+nothing else: no record, no key, no order. That is again the "intentional
+alteration by an unrelated extractor change" case, and again the file is the
+`ff21d4a` output plus documented deltas rather than a re-recording.
+
+The same bump found a control that had confused the two things this gate keeps
+apart. `tests/check_fix_candidates_facts.py` asserted `ownir_version == 0` under
+the message "must stay 0", meaning "the flag does not move the version" but
+checking a literal. It now checks what it meant: the flag-on facts carry the
+core's current `OWNIR_VERSION`, and the same one as the flag-off facts.
+
 ### Regenerating (only when an unrelated extractor change intentionally alters this sample's facts)
 
 ```bash

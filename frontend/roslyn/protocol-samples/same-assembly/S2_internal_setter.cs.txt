@@ -1,0 +1,15 @@
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// The state itself, written past every token: `internal set` is open inside the assembly.
+// Reading the same property stays ordinary.
+public static class S2InternalSetter
+{
+    public static bool Run(Order order)
+    {
+        var wasDraft = order.Status == OrderStatus.Draft;
+        order.Status = OrderStatus.Shipped;
+        return wasDraft;
+    }
+}

@@ -363,7 +363,7 @@ def _selftest() -> int:
 
     def _fake_own_check(target_, out_dir_, severity_, root=None):
         facts = Path(out_dir_) / "own-check.facts.json"
-        facts.write_text(json.dumps({"ownir_version": 0, "module": "App", "components": [
+        facts.write_text(json.dumps({"ownir_version": 1, "module": "App", "components": [
             {"name": "CustomerView", "file": "Views/CustomerView.xaml.cs", "subscriptions": [
                 {"event": "_bus.Changed", "handler": "OnChanged", "line": 21,
                  "released": False}]}]}), encoding="utf-8")
@@ -419,7 +419,7 @@ def _selftest() -> int:
             '             x:Class="App.Views.CustomerView" Loaded="OnLoaded" />\n',
             encoding="utf-8")
         (out5 / "own-check.facts.json").write_text(json.dumps({
-            "ownir_version": 0, "module": "Stale", "components": [
+            "ownir_version": 1, "module": "Stale", "components": [
                 {"name": "CustomerView", "file": "Views/CustomerView.xaml.cs",
                  "subscriptions": [{"event": "_bus.Changed", "handler": "OnChanged",
                                     "line": 21, "released": False}]}]}), encoding="utf-8")

@@ -1,0 +1,4 @@
+{
+  "StateWrittenByBulkUpdate": "ExecuteUpdate: no entity instance exists for a token to guard",
+  "StateWrittenThroughChangeTracker": "EF metadata API writes the state property by name through public surface"
+}

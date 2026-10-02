@@ -1,0 +1,23 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.KnownGaps;
+
+// KNOWN GAP, pinned: a set-based UPDATE never materializes an Order at all, so there is no
+// instance for a token to guard. The row changes state in the database.
+public static class StateWrittenByBulkUpdate
+{
+    public static async Task<IResult> Ship(int id, AppDbContext db, CancellationToken ct)
+    {
+        await db.Orders
+            .Where(o => o.Id == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(o => o.Status, OrderStatus.Shipped), ct);
+        return Results.Ok();
+    }
+}

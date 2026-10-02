@@ -1,0 +1,605 @@
+{
+  "lowered_version": 2,
+  "module": "Extracted",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [],
+  "functions": [
+    {
+      "name": "OrderBackend.OrderHandlers.Create",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_0",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": false
+          },
+          "line": 16,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "use",
+          "handle": "parg_0",
+          "line": 19
+        },
+        {
+          "stmt": "use",
+          "handle": "parg_0",
+          "line": 20
+        },
+        {
+          "stmt": "return",
+          "handle": null,
+          "line": 21
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.OrderHandlers.Ship",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_1",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": false
+          },
+          "line": 26,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "if",
+          "cond": "?",
+          "then": [
+            {
+              "stmt": "return",
+              "handle": null,
+              "line": 34
+            }
+          ],
+          "else": [],
+          "line": 33
+        },
+        {
+          "stmt": "if",
+          "cond": "?",
+          "then": [
+            {
+              "stmt": "return",
+              "handle": null,
+              "line": 40
+            }
+          ],
+          "else": [],
+          "line": 42
+        },
+        {
+          "stmt": "use",
+          "handle": "parg_1",
+          "line": 52
+        },
+        {
+          "stmt": "return",
+          "handle": null,
+          "line": 56
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.OrderHandlers.SubmitAndApprove",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_2",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": false
+          },
+          "line": 59,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "if",
+          "cond": "?",
+          "then": [
+            {
+              "stmt": "return",
+              "handle": null,
+              "line": 63
+            }
+          ],
+          "else": [],
+          "line": 62
+        },
+        {
+          "stmt": "if",
+          "cond": "?",
+          "then": [
+            {
+              "stmt": "return",
+              "handle": null,
+              "line": 66
+            }
+          ],
+          "else": [],
+          "line": 69
+        },
+        {
+          "stmt": "use",
+          "handle": "parg_2",
+          "line": 80
+        },
+        {
+          "stmt": "return",
+          "handle": null,
+          "line": 81
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.OrderHandlers.Get",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_3",
+          "type": {
+            "name": "int",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 84,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "return",
+          "handle": null,
+          "line": 87
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.OrderHandlers.Ship$protocol",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_4",
+          "resource": "Disposable",
+          "line": 42
+        },
+        {
+          "stmt": "borrow_mut",
+          "owner": "loc_4",
+          "binding": "brw_5",
+          "body": [
+            {
+              "stmt": "acquire",
+              "handle": "loc_6",
+              "resource": "Disposable",
+              "line": 42
+            },
+            {
+              "stmt": "call",
+              "callee": "OrderBackend.Domain.ApprovedOrder.Ship",
+              "args": [
+                "loc_6",
+                "brw_5"
+              ],
+              "line": 44
+            }
+          ],
+          "line": 42
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_4",
+          "line": 42
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.OrderHandlers.SubmitAndApprove$protocol",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_7",
+          "resource": "Disposable",
+          "line": 69
+        },
+        {
+          "stmt": "borrow_mut",
+          "owner": "loc_7",
+          "binding": "brw_8",
+          "body": [
+            {
+              "stmt": "acquire",
+              "handle": "loc_9",
+              "resource": "Disposable",
+              "line": 69
+            },
+            {
+              "stmt": "call",
+              "callee": "OrderBackend.Domain.DraftOrder.Submit",
+              "args": [
+                "loc_9",
+                "brw_8"
+              ],
+              "line": 71
+            },
+            {
+              "stmt": "acquire",
+              "handle": "loc_10",
+              "resource": "Disposable",
+              "line": 71
+            },
+            {
+              "stmt": "call",
+              "callee": "OrderBackend.Domain.SubmittedOrder.Approve",
+              "args": [
+                "loc_10",
+                "brw_8"
+              ],
+              "line": 72
+            }
+          ],
+          "line": 69
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_7",
+          "line": 69
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.Domain.ApprovedOrder.Ship",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_11",
+          "type": {
+            "name": "Disposable",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 65,
+          "lifetime": null
+        },
+        {
+          "handle": "parg_12",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": true
+          },
+          "line": 65,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "release",
+          "handle": "parg_11",
+          "line": 65
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.Domain.DraftOrder.Submit",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_13",
+          "type": {
+            "name": "Disposable",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 37,
+          "lifetime": null
+        },
+        {
+          "handle": "parg_14",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": true
+          },
+          "line": 37,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "release",
+          "handle": "parg_13",
+          "line": 37
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.Domain.SubmittedOrder.Approve",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_15",
+          "type": {
+            "name": "Disposable",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 53,
+          "lifetime": null
+        },
+        {
+          "handle": "parg_16",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": true
+          },
+          "line": 53,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "release",
+          "handle": "parg_15",
+          "line": 53
+        }
+      ]
+    }
+  ],
+  "handles": [
+    {
+      "handle": "parg_0",
+      "component": "OrderBackend.OrderHandlers.Create",
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/OrderHandlers.cs",
+      "line": 16,
+      "event": "db",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    {
+      "handle": "parg_1",
+      "component": "OrderBackend.OrderHandlers.Ship",
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/OrderHandlers.cs",
+      "line": 26,
+      "event": "db",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    {
+      "handle": "parg_2",
+      "component": "OrderBackend.OrderHandlers.SubmitAndApprove",
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/OrderHandlers.cs",
+      "line": 59,
+      "event": "db",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    {
+      "handle": "parg_3",
+      "component": "OrderBackend.OrderHandlers.Get",
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/OrderHandlers.cs",
+      "line": 84,
+      "event": "db",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    {
+      "handle": "loc_4",
+      "component": "OrderBackend.OrderHandlers.Ship$protocol",
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/OrderHandlers.cs",
+      "line": 42,
+      "event": "order",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    },
+    {
+      "handle": "loc_6",
+      "component": "OrderBackend.OrderHandlers.Ship$protocol",
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/OrderHandlers.cs",
+      "line": 42,
+      "event": "approved",
+      "resource": "flow-local",
+      "ever_released": false,
+      "pool": false
+    },
+    {
+      "handle": "loc_7",
+      "component": "OrderBackend.OrderHandlers.SubmitAndApprove$protocol",
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/OrderHandlers.cs",
+      "line": 69,
+      "event": "order",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    },
+    {
+      "handle": "loc_9",
+      "component": "OrderBackend.OrderHandlers.SubmitAndApprove$protocol",
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/OrderHandlers.cs",
+      "line": 69,
+      "event": "draft",
+      "resource": "flow-local",
+      "ever_released": false,
+      "pool": false
+    },
+    {
+      "handle": "loc_10",
+      "component": "OrderBackend.OrderHandlers.SubmitAndApprove$protocol",
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/OrderHandlers.cs",
+      "line": 71,
+      "event": "submitted",
+      "resource": "flow-local",
+      "ever_released": false,
+      "pool": false
+    },
+    {
+      "handle": "parg_11",
+      "component": "OrderBackend.Domain.ApprovedOrder.Ship",
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/Domain/OrderProtocol.cs",
+      "line": 65,
+      "event": "token",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    {
+      "handle": "parg_12",
+      "component": "OrderBackend.Domain.ApprovedOrder.Ship",
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/Domain/OrderProtocol.cs",
+      "line": 65,
+      "event": "entity",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    {
+      "handle": "parg_13",
+      "component": "OrderBackend.Domain.DraftOrder.Submit",
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/Domain/OrderProtocol.cs",
+      "line": 37,
+      "event": "token",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    {
+      "handle": "parg_14",
+      "component": "OrderBackend.Domain.DraftOrder.Submit",
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/Domain/OrderProtocol.cs",
+      "line": 37,
+      "event": "entity",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    {
+      "handle": "parg_15",
+      "component": "OrderBackend.Domain.SubmittedOrder.Approve",
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/Domain/OrderProtocol.cs",
+      "line": 53,
+      "event": "token",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    {
+      "handle": "parg_16",
+      "component": "OrderBackend.Domain.SubmittedOrder.Approve",
+      "file": "frontend/roslyn/protocol-samples/efcore/OrderBackend/Domain/OrderProtocol.cs",
+      "line": 53,
+      "event": "entity",
+      "resource": "flow-local",
+      "ever_released": false
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.KnownGaps;
+
+// KNOWN GAP, pinned so it cannot be forgotten: EF Core's own metadata API writes the state
+// property by NAME, through its public surface. No member of Order is touched in source, no
+// token exists, no region is open — and a Draft is saved as Shipped. The protocol constrains
+// the entity's C# API, not every path to the row.
+public static class StateWrittenThroughChangeTracker
+{
+    public static async Task<IResult> Ship(int id, AppDbContext db, CancellationToken ct)
+    {
+        var order = await db.Orders.SingleAsync(x => x.Id == id, ct);
+        db.Entry(order).Property(o => o.Status).CurrentValue = OrderStatus.Shipped;
+        await db.SaveChangesAsync(ct);
+        return Results.Ok();
+    }
+}

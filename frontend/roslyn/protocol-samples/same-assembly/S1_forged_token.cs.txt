@@ -1,0 +1,13 @@
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// In the protocol's OWN assembly the `internal` constructor is reachable: a token for a state
+// nobody checked, spent in a method with no region at all.
+public static class S1ForgedToken
+{
+    public static void Run(Order order)
+    {
+        new ApprovedOrder(order).Ship();
+    }
+}

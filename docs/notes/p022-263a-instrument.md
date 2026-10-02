@@ -266,6 +266,16 @@ commit; the committed evidence of runs that already happened was **not** rewritt
 and still carries the old field name, because it records what the old instrument
 produced.
 
+The identity moved a second time, from `104c384d01bf` to `1a26aa63fd5f`, when
+OwnIR's vocabulary moved to v1: the `facts` generator stamps `ownir_version` on
+every document it writes, and a generator left on v0 would have handed both
+engines a document they refuse at the door. One literal changed, steps 4, 5 and 6
+were re-bound again, and the frozen T0 records it as its Amendment 1
+([the T0 contract](p022-263-t0-protocol-freeze.md)). The control that would have
+caught it is `perf-calibration-facts-current`: it runs the reference on the
+generator's output and requires the `facts` workloads to be analysed and the
+`refused` one to be refused.
+
 On POSIX the same `wait4` call also carries the child's CPU split, fault counts
 and context-switch counts. Those are now kept rather than discarded — see *The
 interval kept its meaning and gave up its secrets* — under the same rule: off

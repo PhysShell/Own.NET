@@ -1,0 +1,18 @@
+using System.Threading.Tasks;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// A token handed to another method: tokens do not cross method boundaries in this profile.
+public static class R5TokenPassedToHelper
+{
+    private static void Finish(ApprovedOrder approved) => approved.Ship();
+
+    public static void Run(Order order)
+    {
+        Protocol.WithApproved(order, approved =>
+        {
+            Finish(approved);
+        });
+    }
+}

@@ -70,6 +70,88 @@ symbols instead of surfacing as OWN050. `--no-project-refs` opts out; an unbuilt
 project just contributes nothing. Run `dotnet run --project OwnSharp.Extractor -- --help`
 for the full option list.
 
+## State protocols (`--flow-locals`, OwnIR v1)
+
+With `--flow-locals` the extractor also lowers a **state-protocol surface** — the
+first slice of [P-010](../../docs/proposals/P-010-type-disciplines.md) pillar 9 —
+into the OwnIR v1 ops `move` and `borrow_mut` ([OwnIR.md §5.3](../../spec/OwnIR.md)).
+(These are *state* protocols — which state an entity is in. The *obligation*
+protocols of P-025 / OwnIR §8 are a different mechanism with a similar name.)
+It is recognised by two attributes matched by **name**, so a domain carries no
+dependency on Own.NET:
+
+```csharp
+[ProtocolToken]                                   // a state: a ref struct over the entity
+public readonly ref struct ApprovedOrder
+{
+    private readonly Order _order;
+    internal ApprovedOrder(Order order) => _order = order;
+    public void Ship(DateTime at) => _order.MarkShipped(at);   // a transition: spends the token
+}
+
+public static class OrderProtocol
+{
+    [ProtocolRegion]                              // a region entry: (entity, callback)
+    public static void WithApproved(Order order, ApprovedRegion body) { /* check, then */ body(new ApprovedOrder(order)); }
+}
+
+// a handler: no attribute, no base class, no repository — the entity EF tracks
+OrderProtocol.WithApproved(order, approved =>
+{
+    approved.Ship(now);
+});
+```
+
+Inside the callback the entity is **exclusively borrowed**: only its token may
+change it, a token is spent once (use after a transition is OWN002, a copy is a
+move — OWN005), and any other mention of the entity is OWN013. The verdicts are
+the core's; the extractor only lowers. A complete backend — ASP.NET Core minimal
+API, EF Core, SQLite — is in
+[`protocol-samples/efcore`](protocol-samples/efcore), and
+`python scripts/protocol_gate.py` ties every committed fact back to the C# it came
+from.
+
+**What is claimed.** The profile protects the local C# capabilities and aliases of
+an entity that already exists. It does **not** protect the persisted row from
+other ways of changing it: `ExecuteUpdate`, a change-tracker metadata write, raw
+SQL, another process. Those belong to concurrency tokens, constraints and
+transactions (two of them are pinned as stated limits under
+`protocol-samples/efcore/known-gaps`).
+
+**The trust boundary.** The types that DECLARE a protocol — the tokens, and the
+type holding a region entry — are its trusted definition surface: they construct
+tokens, enter regions and implement transitions, and their bodies are not
+lowered. Everything else is consumer code, and consumer code is what the profile
+analyses. A type is one or the other, never both. A handler written inside a
+declaring type would not be a violation the core missed; it would be a program
+the core never saw, and it would read as clean. So a region opened inside a
+declaring type is refused, and the profile does not try to guess which method of
+such a type is plumbing and which is a business handler.
+
+**Refusals.** A recognised protocol construct that cannot be lowered safely is
+not skipped: the extractor exits `2` and writes no facts, for the whole scan.
+
+- *Inside a region the rule is default-deny.* Transitions, token reads, `if`,
+  locals and built-in operators are read; a call, a constructor, a property
+  getter, an indexer, a loop, `return` are refused — nothing states what such code
+  does to the entity. Read what you need (`DateTime.UtcNow`, a logger call) before
+  the region. Around a region anything goes: `try`/`catch`, `await using`, loops.
+- *Admission.* The state a transition writes must have no **public** mutator on
+  the entity (a public setter, or a public method reaching the same write): that
+  would be a transition nobody declared.
+- *Boundary.* Outside the protocol's own types, creating a token (`new`,
+  `default`), calling a non-public method of the entity or the protocol, and
+  writing their non-publicly-writable state are refused — one assembly or two.
+  `nameof`, `typeof` and reads are mentions, not operations.
+- *Source.* The protocol and its entity must be in the scan as source; one that
+  arrives only as a compiled reference cannot be admitted.
+- *Trust boundary.* A region opened inside a type that declares the protocol
+  (see above): write the code that uses a protocol outside the types that
+  declare it.
+- *Binding.* The scan does not read `obj/`, so usings a project only gets
+  **implicitly** are not there. A region whose entity does not bind is refused;
+  write the usings out in the files that open regions (or qualify the names).
+
 ## Use it on a real repo / in CI (P-013)
 
 The two stages are chained by one orchestrator script, so you don't run them by

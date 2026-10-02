@@ -1,0 +1,18 @@
+using System.Threading.Tasks;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// A token cannot outlive its region through an outer variable.
+public static class C3TokenEscapes
+{
+    public static void Run(Order order)
+    {
+        ApprovedOrder saved = default;
+        Protocol.WithApproved(order, approved =>
+        {
+            saved = approved;
+        });
+        saved.Ship();
+    }
+}

@@ -217,6 +217,32 @@ through `_as_line` — a non-integer, or one outside the [§4.2](OwnIR.md)
 coordinate domain, reads as `0`. The bridge never invents lines and never
 clamps one; the anchor policy for *findings* is BR-V5's.
 
+**BR-L12 (`move`).** `move src -> var` lowers to `Let(var', Move(src_h))`:
+`var` takes the obligation, `src` is dead after it (the core's OWN005 on a later
+use). Shaped like the alias branch: the destination's old binding dies first
+(BR-L6), a hoisted or untracked destination mints nothing, and an untracked
+`src` makes no claim.
+
+**BR-L13 (`borrow_mut` — the exclusive region, and its admission rules).**
+`borrow_mut owner as binding { body }` lowers to one `BorrowBlock(owner_h,
+brw_<n>, MUT, body')` — the op is compound because the core's loans are
+block-scoped; `binding` is in scope for `body` only and restores what it
+shadowed. Inference reads the region as transparent (its body spliced in
+place), so a region never changes a summary. Four shapes are **refused**
+(`OwnIRError`, file:line) rather than lowered, because each would otherwise
+reach the verdict as "the core raised, the bridge filtered it, clean":
+(a) an `owner` that is not a tracked local — there would be no loan to enforce;
+(b) inside a region, a call to an unresolvable callee that passes a tracked
+local — the default "drop it: no effect, no claim" (BR-L9b) would hand the
+entity or a token to unanalysed code, and the core's OWN040 for it is filtered;
+(c) inside a region, a tracked local on a position that resolved **plain** —
+the core's OWN041, filtered as a synthesis artifact;
+(d) any `may`/`unknown` position (BR-L8) in a function that contains a region —
+the optimistic untrack would silently drop the region's owner or a token.
+A frontend must therefore not emit a region it cannot prove closed over
+contracted calls; what it may put inside one is the frontend's rule, not the
+bridge's (the Roslyn lowering is default-deny: transitions and what it reads).
+
 ## 3. Interprocedural MOS
 
 Normatively specified in [Inference.md](Inference.md) (INF-L/S/R/M/F/A/P +

@@ -1,5 +1,5 @@
 {
-  "ownir_version": 0,
+  "ownir_version": 1,
   "module": "NonAscii",
   "_doc": [
     "A component whose FILE carries non-ASCII (and an astral character):",

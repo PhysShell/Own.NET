@@ -1,0 +1,4 @@
+{
+  "verdicts_version": 1,
+  "error": "OwnIR call to 'Touch' inside a borrow_mut region passes tracked local 'order' at position 0, which carries no ownership effect (Orders.cs:13) — refused: inside an exclusive region every position that receives the entity or a token must state what it does with it"
+}

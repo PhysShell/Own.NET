@@ -1,0 +1,235 @@
+{
+  "lowered_version": 2,
+  "module": "Extracted",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [],
+  "functions": [
+    {
+      "name": "Own.Protocols.Cases.L2CopiedCapability.Run",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_0",
+          "resource": "Disposable",
+          "line": 13
+        },
+        {
+          "stmt": "borrow_mut",
+          "owner": "loc_0",
+          "binding": "brw_1",
+          "body": [
+            {
+              "stmt": "acquire",
+              "handle": "loc_2",
+              "resource": "Disposable",
+              "line": 13
+            },
+            {
+              "stmt": "move",
+              "handle": "loc_3",
+              "src": "loc_2",
+              "line": 15
+            },
+            {
+              "stmt": "call",
+              "callee": "Own.Protocols.Sample.DraftOrder.Cancel",
+              "args": [
+                "loc_2",
+                "brw_1"
+              ],
+              "line": 16
+            },
+            {
+              "stmt": "call",
+              "callee": "Own.Protocols.Sample.DraftOrder.Cancel",
+              "args": [
+                "loc_3",
+                "brw_1"
+              ],
+              "line": 17
+            }
+          ],
+          "line": 13
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_0",
+          "line": 13
+        }
+      ]
+    },
+    {
+      "name": "Own.Protocols.Sample.DraftOrder.Cancel",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_4",
+          "type": {
+            "name": "Disposable",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 57,
+          "lifetime": null
+        },
+        {
+          "handle": "parg_5",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": true
+          },
+          "line": 57,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "release",
+          "handle": "parg_4",
+          "line": 57
+        }
+      ]
+    }
+  ],
+  "handles": [
+    {
+      "handle": "loc_0",
+      "component": "Own.Protocols.Cases.L2CopiedCapability.Run",
+      "file": "frontend/roslyn/protocol-samples/cases/L2_copied_capability.cs",
+      "line": 13,
+      "event": "order",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    },
+    {
+      "handle": "loc_2",
+      "component": "Own.Protocols.Cases.L2CopiedCapability.Run",
+      "file": "frontend/roslyn/protocol-samples/cases/L2_copied_capability.cs",
+      "line": 13,
+      "event": "draft",
+      "resource": "flow-local",
+      "ever_released": false,
+      "pool": false
+    },
+    {
+      "handle": "loc_3",
+      "component": "Own.Protocols.Cases.L2CopiedCapability.Run",
+      "file": "frontend/roslyn/protocol-samples/cases/L2_copied_capability.cs",
+      "line": 15,
+      "event": "copy",
+      "resource": "flow-local",
+      "ever_released": false,
+      "pool": false
+    },
+    {
+      "handle": "parg_4",
+      "component": "Own.Protocols.Sample.DraftOrder.Cancel",
+      "file": "frontend/roslyn/protocol-samples/Api/ProtocolApi.cs",
+      "line": 57,
+      "event": "token",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    {
+      "handle": "parg_5",
+      "component": "Own.Protocols.Sample.DraftOrder.Cancel",
+      "file": "frontend/roslyn/protocol-samples/Api/ProtocolApi.cs",
+      "line": 57,
+      "event": "entity",
+      "resource": "flow-local",
+      "ever_released": false
+    }
+  ]
+}
