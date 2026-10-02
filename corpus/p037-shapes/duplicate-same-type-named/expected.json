@@ -1,0 +1,95 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "duplicate-same-type-named",
+  "status": "anchored",
+  "why": "Negative control for symbolic named-argument binding: two parameters of the same type passed by name in reversed order, so positional or type-based guessing is wrong.",
+  "a2_contract": "Already correct at A2.1 and must stay so: `Pair(b: p, a: q)` binds param 0 -> param{source_param 1}, param 1 -> param{source_param 0}.",
+  "a2_expect": [
+    {
+      "function": "ShapeDuplicateNamed.Caller",
+      "call": {
+        "callee": "ShapeDuplicateNamed.Pair",
+        "args": [
+          {
+            "param": 0,
+            "kind": "param",
+            "source_param": 1
+          },
+          {
+            "param": 1,
+            "kind": "param",
+            "source_param": 0
+          }
+        ]
+      }
+    }
+  ],
+  "measured_at": "23e3203",
+  "facts": {
+    "ShapeDuplicateNamed.Pair": {
+      "params": [
+        {
+          "name": "a",
+          "line": 9
+        },
+        {
+          "name": "b",
+          "line": 9
+        }
+      ],
+      "body": [
+        "release:a@11"
+      ],
+      "guarded_facts": null
+    },
+    "ShapeDuplicateNamed.Caller": {
+      "params": [
+        {
+          "name": "p",
+          "line": 14
+        },
+        {
+          "name": "q",
+          "line": 14
+        }
+      ],
+      "body": [
+        "release:q@16",
+        "use:p@16"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 16,
+              "column": 9
+            },
+            "statement_line": 16,
+            "form": "statement",
+            "callee": "ShapeDuplicateNamed.Pair",
+            "sig": "System.IO.Stream,System.IO.Stream",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 1
+              },
+              {
+                "param": 1,
+                "kind": "param",
+                "source_param": 0
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  }
+}

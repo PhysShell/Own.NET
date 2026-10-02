@@ -1,0 +1,226 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "arg-compound-relevance",
+  "status": "anchored",
+  "why": "A2.2 G-D. `p as Stream`, `c ? p : q`, `p ?? q` carry a handle into the call but cannot be represented precisely; A2.1 drops the whole record.",
+  "a2_contract": "A2.2 records each call with the compound slot `opaque` (relevance = a value operand is a handle after unwrapping): opaque, not absent — the rule A' applied to params/ref/out slots.",
+  "measured_at": "23e3203",
+  "facts": {
+    "ShapeCompound.Keep": {
+      "params": [
+        {
+          "name": "s",
+          "line": 9
+        }
+      ],
+      "body": [
+        "if:None@11",
+        "then:release:s@13"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 11,
+              "column": 9
+            },
+            "param": 1,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    "ShapeCompound.As": {
+      "params": [
+        {
+          "name": "p",
+          "line": 17
+        }
+      ],
+      "body": [
+        "use:p@19"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 19,
+              "column": 9
+            },
+            "statement_line": 19,
+            "form": "statement",
+            "callee": "ShapeCompound.Keep",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "opaque"
+              },
+              {
+                "param": 1,
+                "kind": "param",
+                "source_param": 1
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    "ShapeCompound.Conditional": {
+      "params": [
+        {
+          "name": "p",
+          "line": 22
+        },
+        {
+          "name": "q",
+          "line": 22
+        }
+      ],
+      "body": [
+        "use:p@24",
+        "use:q@24"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 24,
+              "column": 9
+            },
+            "statement_line": 24,
+            "form": "statement",
+            "callee": "ShapeCompound.Keep",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "opaque"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    "ShapeCompound.Coalesce": {
+      "params": [
+        {
+          "name": "p",
+          "line": 27
+        },
+        {
+          "name": "q",
+          "line": 27
+        }
+      ],
+      "body": [
+        "use:p@29",
+        "use:q@29"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 29,
+              "column": 9
+            },
+            "statement_line": 29,
+            "form": "statement",
+            "callee": "ShapeCompound.Keep",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "opaque"
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": false
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  },
+  "a2_landed": "A2.2 landed: object creations and constructor initializers are calls, value-preserving wrappers (parentheses, `!`, identity/non-user-defined reference casts) are looked through, and a handle inside `as`/`?:`/`??`/a non-preserving cast keeps the record with an opaque slot (docs/notes/p037-a2.2-call-facts.md §4). Body, params and verdicts unchanged; the sidecar stays inert.",
+  "a2_expect": [
+    {
+      "function": "ShapeCompound.As",
+      "call": {
+        "callee": "ShapeCompound.Keep",
+        "args": [
+          {
+            "param": 0,
+            "kind": "opaque"
+          },
+          {
+            "param": 1,
+            "kind": "param",
+            "source_param": 1
+          }
+        ]
+      }
+    },
+    {
+      "function": "ShapeCompound.Conditional",
+      "call": {
+        "callee": "ShapeCompound.Keep",
+        "args": [
+          {
+            "param": 0,
+            "kind": "opaque"
+          },
+          {
+            "param": 1,
+            "kind": "bool_const",
+            "value": true
+          }
+        ]
+      }
+    },
+    {
+      "function": "ShapeCompound.Coalesce",
+      "call": {
+        "callee": "ShapeCompound.Keep",
+        "args": [
+          {
+            "param": 0,
+            "kind": "opaque"
+          },
+          {
+            "param": 1,
+            "kind": "bool_const",
+            "value": false
+          }
+        ]
+      }
+    }
+  ],
+  "status_history": [
+    "pending_a2 (recorded at 23e3203, base of A2.2)",
+    "anchored (A2.2)"
+  ]
+}

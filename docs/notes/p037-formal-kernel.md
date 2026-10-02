@@ -747,3 +747,129 @@ After the semantic cut, a separate C+ checkpoint canonicalizes the temporary
 double representation of call facts. A stable call-site identity is introduced
 in A2 so the legacy and sidecar views cannot silently drift before that
 canonicalization.
+
+### 10.6 Owner ruling on R, the record-level absence boundary (A2.2, #371)
+
+A2.2 (`docs/notes/p037-a2.2-call-facts.md`) measured one boundary it did not
+close. A source method that gets no `functions[]` record has no carrier for
+`guarded_facts`. It escalated this as a case-5 item (§10.1). The owner ruled:
+
+```text
+OWNER RULING — R / record-level absence (2026-09-28)
+
+Decision: accept R as an explicit out-of-A2 precision boundary. Do not add a
+new carrier and do not create new "functions[]" records in A2.
+
+A2.2's completeness claim is henceforth scoped as follows:
+
+«Roslyn emits honest "guarded_facts" for every relevant call inside every
+emitted "functions[]" record.»
+
+This is a scope clarification required by the measured record-level
+boundary, not authorization to weaken the per-record contract. For every
+emitted function record, the existing A2.2 rule remains absolute: every
+relevant call must appear, and absence is a defect.
+
+R boundary
+
+A source method for which the frontend emits no "functions[]" record has no
+"guarded_facts" carrier in A2.
+
+Examples currently include:
+
+- methods whose disposable locals all escape and that have no owned
+  parameter;
+- methods whose lowered body is empty;
+- expression-bodied members not represented by the flow-function surface.
+
+A2 does not create a flow record merely to host guarded facts, because that
+would change the MOS population and violate A2's zero-semantic-cut contract.
+
+A2 also does not introduce a second top-level method/sidecar carrier. Doing
+so would change the frozen OwnIR layout and create two representations that
+Phase B/C+ would later have to reconcile.
+
+"record-absence-boundary" remains an executable census boundary.
+
+Phase B semantics
+
+Record absence is fail-closed.
+
+If no emitted "functions[]" record exists, the guarded engine has no
+evidence for that method. Absence must never be interpreted as:
+
+- "must";
+- "no" / definite borrow;
+- an unconditional summary;
+- an eligible guard;
+- an "id" / "neg" transform;
+- proof that a call has no ownership effect.
+
+It is simply outside the guarded fact domain.
+
+Any implementation that converts record absence into a positive semantic
+claim is a defect.
+
+What this decision does and does not claim
+
+This ruling accepts a precision / recall boundary, not semantic completeness
+over arbitrary C# methods.
+
+In particular, expression-bodied wrappers and other record-less methods may
+hide useful guarded-summary information. That is a known gap, not evidence
+that such methods are semantically irrelevant.
+
+No claim is made that R is permanently acceptable.
+
+Reopen condition
+
+Do not expand the carrier pre-emptively.
+
+Reopen R only when a bounded experiment demonstrates practical value that
+cannot be obtained through the existing "functions[]" surface, for example:
+
+- a real or corpus-derived P-037 case whose required summary path crosses a
+  record-less method;
+- a material missed finding / unresolved summary attributable specifically
+  to R;
+- Phase B coverage showing that record absence forms a significant fraction
+  of otherwise eligible guarded paths.
+
+At that point run a separate kill-first experiment comparing:
+
+1. extending the existing flow-function population; versus
+2. introducing a distinct fact-only method carrier.
+
+Neither design is authorized by this ruling.
+
+Acceptance consequence for #371
+
+#371 may close A2.2 with R recorded as this boundary if all existing A2.2
+gates remain green:
+
+- per-emitted-record call completeness;
+- sidecar inertness;
+- whole MOS unchanged;
+- public verdicts unchanged;
+- "record-absence-boundary" pinned.
+
+After this ruling, Phase B may start from the #371 fact surface.
+
+R is not to be silently removed from the census when Phase B begins.
+```
+
+Consequences for Phase B (OWNER RULING, from the same decision):
+
+- **Guardrail.** Phase B never reads a missing record or a missing sidecar as
+  "no effects", borrow, unconditional, or "guard irrelevant". It means
+  unknown: no guarded evidence.
+- **Negative control.** `record-absence-boundary` stops being a temporary A2
+  boundary. It becomes a permanent Phase-B negative control: any mutant that
+  draws a positive conclusion from absence must turn it red.
+- **Future kill-gate (not now).** After the first Phase-B shadow run, measure
+  how many potential guarded paths break specifically because a
+  `functions[]` record is missing:
+  - near zero (0, or a handful in 10 000): the carrier stays as it is;
+  - a material share (for example 15–20 % of real wrapper chains breaking
+    at expression-bodied members): that is the basis for paying for an IR
+    extension, through the kill-first comparison above.

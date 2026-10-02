@@ -2920,7 +2920,11 @@ static string CanonicalTypeName(ITypeSymbol t) => t switch
 // A call is RELEVANT when a disposable local (any candidate, escaped or not: the legacy
 // escape-by-argument is the approximation a summary will refine) or an owned parameter of
 // this method flows into it, as an argument or as the receiver of a reduced extension
-// method (declared parameter 0).
+// method (declared parameter 0). A2.2: a call is an invocation, an object creation (callee
+// = the constructor, keyed `T..ctor` like its own record), or a constructor initializer;
+// an argument is classified after looking through value-preserving wrappers (parentheses,
+// `!`, identity/reference casts), and a handle inside `as`/`?:`/`??`/another cast keeps
+// the call relevant with an opaque slot.
 // Arguments bind BY DECLARED PARAMETER ORDINAL: a named argument resolves to its parameter,
 // a reduced extension's receiver to ordinal 0, anything bound to a `params` array collapses
 // to one `opaque` fact for that slot, an omitted optional argument has no fact, a `ref`/`out`
@@ -3013,10 +3017,43 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
         return known;
     }
 
+    // A2.2: a VALUE-PRESERVING wrapper is the same value as its operand, so it is looked
+    // through before classifying — parentheses, the null-forgiving `!` (no runtime effect),
+    // and a cast whose conversion is identity or a non-user-defined reference conversion
+    // (the same object, only a different static type). Any other cast (boxing, unboxing,
+    // numeric, user-defined) produces a different value and is left in place.
+    ExpressionSyntax? Unwrap(ExpressionSyntax? e)
+    {
+        while (true)
+        {
+            e = StripParens(e);
+            switch (e)
+            {
+                case PostfixUnaryExpressionSyntax bang
+                    when bang.IsKind(SyntaxKind.SuppressNullableWarningExpression):
+                    e = bang.Operand;
+                    continue;
+                // The cast's OWN conversion (operand -> cast type). `GetConversion(cast)`
+                // would answer the contextual conversion of the cast node instead — for
+                // `Sink((object)h)` that is object -> object, identity, and a boxing cast
+                // would pass as value-preserving (caught by corpus/p037-shapes/arg-cast-and-bang).
+                case CastExpressionSyntax cast
+                    when model.GetTypeInfo(cast.Type).Type is { } castTo
+                         && model.ClassifyConversion(cast.Expression, castTo, isExplicitInSource: true)
+                             is var conv
+                         && (conv.IsIdentity || (conv.IsReference && !conv.IsUserDefined)):
+                    e = cast.Expression;
+                    continue;
+                default:
+                    return e;
+            }
+        }
+    }
+
     // One argument expression -> one raw fact, plus whether a HANDLE of this method flowed.
     (Dictionary<string, object?> fact, bool handle) ArgFact(ExpressionSyntax? raw)
     {
-        var e = StripParens(raw);
+        var e = Unwrap(raw);
         switch (e)
         {
             case LiteralExpressionSyntax lit when lit.IsKind(SyntaxKind.TrueLiteralExpression):
@@ -3057,6 +3094,19 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
                                     ["callee"] = $"{cm.ContainingType.ToDisplayString()}.{cm.Name}",
                                     ["sig"] = CanonicalSig(cm) }, false);
                 return (new() { ["kind"] = "opaque" }, false);
+            // A2.2: a handle INSIDE a compound argument still flows into the call, so the
+            // record must exist; the slot itself cannot be represented precisely and is
+            // opaque (the rule A' applied to params/ref/out slots: opaque, not absent).
+            case BinaryExpressionSyntax asx when asx.IsKind(SyntaxKind.AsExpression):
+                return (new() { ["kind"] = "opaque" }, ArgFact(asx.Left).handle);
+            case BinaryExpressionSyntax co when co.IsKind(SyntaxKind.CoalesceExpression):
+                return (new() { ["kind"] = "opaque" },
+                        ArgFact(co.Left).handle || ArgFact(co.Right).handle);
+            case ConditionalExpressionSyntax ce:
+                return (new() { ["kind"] = "opaque" },
+                        ArgFact(ce.WhenTrue).handle || ArgFact(ce.WhenFalse).handle);
+            case CastExpressionSyntax other:   // not value-preserving (see Unwrap)
+                return (new() { ["kind"] = "opaque" }, ArgFact(other.Expression).handle);
             default:
                 return (new() { ["kind"] = "opaque" }, false);
         }
@@ -3068,12 +3118,14 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
         n is not (AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax);
 
     var calls = new List<Dictionary<string, object?>>();
-    foreach (var inv in mbody.DescendantNodes(InThisMethod).OfType<InvocationExpressionSyntax>())
+
+    // One call site -> one record when a handle of this method flows into it. Invocations,
+    // object creations (the constructor is the callee, keyed exactly like its own
+    // functions[] record, `T..ctor`) and a constructor initializer (`: base(...)` /
+    // `: this(...)`) are all calls; `site` is the expression's own coordinate.
+    void RecordCall(SyntaxNode siteNode, IMethodSymbol? sym, ArgumentListSyntax? argList,
+                    ExpressionSyntax? reducedReceiver, string form, int statementLine)
     {
-        if (inv.Expression is IdentifierNameSyntax { Identifier.Text: "nameof" }
-            && model.GetSymbolInfo(inv).Symbol is null)
-            continue;   // `nameof(s)` is not a call
-        var sym = model.GetSymbolInfo(inv).Symbol as IMethodSymbol;
         var decl = sym is null ? null : (sym.ReducedFrom ?? sym);
         var reduced = sym?.ReducedFrom is not null;
         var facts = new SortedDictionary<int, Dictionary<string, object?>>();
@@ -3088,12 +3140,12 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
             relevant |= handle;
         }
 
-        if (reduced && inv.Expression is MemberAccessExpressionSyntax ma)
+        if (reduced && reducedReceiver is not null)
         {
-            var (rf, rh) = ArgFact(ma.Expression);
+            var (rf, rh) = ArgFact(reducedReceiver);
             Bind(0, rf, rh);
         }
-        var args = inv.ArgumentList.Arguments;
+        var args = argList?.Arguments ?? default;
         for (var i = 0; i < args.Count; i++)
         {
             int ordinal;
@@ -3127,21 +3179,13 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
                 Bind(ordinal, af, ah);
         }
         if (!relevant)
-            continue;
+            return;
 
-        var target = inv.Parent is AwaitExpressionSyntax aw ? (SyntaxNode)aw : inv;
-        var form = target.Parent switch
-        {
-            ExpressionStatementSyntax => "statement",
-            EqualsValueClauseSyntax => "initializer",
-            _ => "expression",
-        };
-        var pos0 = PosOf(inv);
-        var statement = inv.FirstAncestorOrSelf<StatementSyntax>();
-        var record = new Dictionary<string, object?>
+        var pos0 = PosOf(siteNode);
+        calls.Add(new Dictionary<string, object?>
         {
             ["site"] = new Dictionary<string, object?> { ["line"] = pos0.Line, ["column"] = pos0.Column },
-            ["statement_line"] = statement is null ? pos0.Line : LineOf(statement),
+            ["statement_line"] = statementLine,
             ["form"] = form,
             ["callee"] = sym is null ? null : $"{sym.ContainingType.ToDisplayString()}.{sym.Name}",
             ["sig"] = sym is null ? null : CanonicalSig(sym),
@@ -3153,8 +3197,46 @@ static object? BuildGuardedFacts(BaseMethodDeclarationSyntax method, BlockSyntax
                     f[k] = v;
                 return f;
             }).ToList(),
+        });
+    }
+
+    string FormOf(ExpressionSyntax call)
+    {
+        var target = call.Parent is AwaitExpressionSyntax aw ? (SyntaxNode)aw : call;
+        return target.Parent switch
+        {
+            ExpressionStatementSyntax => "statement",
+            EqualsValueClauseSyntax => "initializer",
+            _ => "expression",
         };
-        calls.Add(record);
+    }
+
+    int StatementLineOf(SyntaxNode call) =>
+        call.FirstAncestorOrSelf<StatementSyntax>() is { } st ? LineOf(st) : PosOf(call).Line;
+
+    // A constructor initializer runs before the body as a statement whose result is discarded.
+    if (method is ConstructorDeclarationSyntax { Initializer: { } init })
+        RecordCall(init, model.GetSymbolInfo(init).Symbol as IMethodSymbol, init.ArgumentList,
+                   null, "statement", PosOf(init).Line);
+
+    foreach (var node in mbody.DescendantNodes(InThisMethod))
+    {
+        switch (node)
+        {
+            case InvocationExpressionSyntax inv:
+                if (inv.Expression is IdentifierNameSyntax { Identifier.Text: "nameof" }
+                    && model.GetSymbolInfo(inv).Symbol is null)
+                    continue;   // `nameof(s)` is not a call
+                var isym = model.GetSymbolInfo(inv).Symbol as IMethodSymbol;
+                RecordCall(inv, isym, inv.ArgumentList,
+                           inv.Expression is MemberAccessExpressionSyntax ma ? ma.Expression : null,
+                           FormOf(inv), StatementLineOf(inv));
+                break;
+            case BaseObjectCreationExpressionSyntax oc when oc.ArgumentList is not null:
+                RecordCall(oc, model.GetSymbolInfo(oc).Symbol as IMethodSymbol, oc.ArgumentList,
+                           null, FormOf(oc), StatementLineOf(oc));
+                break;
+        }
     }
 
     var guards = new List<Dictionary<string, object?>>();
