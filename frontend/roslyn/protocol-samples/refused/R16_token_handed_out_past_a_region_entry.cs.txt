@@ -1,0 +1,48 @@
+using System;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// A token exists only inside a region. Here the protocol's own type hands one out through a
+// method that is NOT marked as a region entry, so the consumer's callback is not a region
+// body: nothing lowers it, and before this was refused it was simply absent from the facts —
+// a token spent twice, clean. The declaring type is trusted; the callback is consumer code,
+// and consumer code that receives a token is either a lowered region or a refusal.
+public sealed class Letter
+{
+    public bool Sealed { get; private set; }
+
+    internal void MarkSealed() => Sealed = true;
+}
+
+[ProtocolToken]
+public readonly ref struct OpenLetter
+{
+    private readonly Letter _letter;
+    internal OpenLetter(Letter letter) => _letter = letter;
+
+    public void Seal() => _letter.MarkSealed();
+}
+
+public delegate void OpenLetterRegion(OpenLetter open);
+
+public static class LetterProtocol
+{
+    [ProtocolRegion]
+    public static void WithOpen(Letter letter, OpenLetterRegion body) => body(new OpenLetter(letter));
+
+    // the same hand-out, without the mark
+    public static void Peek(Letter letter, OpenLetterRegion body) => body(new OpenLetter(letter));
+}
+
+public static class R16TokenHandedOutPastARegionEntry
+{
+    public static void Run(Letter letter)
+    {
+        LetterProtocol.Peek(letter, open =>
+        {
+            open.Seal();
+            open.Seal();             // a stale token: OWN002 inside a region
+        });
+    }
+}

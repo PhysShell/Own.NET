@@ -93,6 +93,9 @@ internal static class ProtocolLowering
         public Dictionary<ISymbol, (string Name, Region Region)> Tokens { get; } =
             new(SymbolEqualityComparer.Default);
         public HashSet<SyntaxNode> LoweredEntries { get; } = new();
+        /// The lambdas that were lowered as region bodies: the only callables in consumer
+        /// code that may take a token.
+        public HashSet<SyntaxNode> LoweredBodies { get; } = new();
         public int Counter;
         /// How many times the scan has lowered a mention of a borrowed entity. A construct
         /// that runs unknown code is refused UNLESS it moved this counter: then the core
@@ -118,6 +121,8 @@ internal static class ProtocolLowering
             var model = compilation.GetSemanticModel(tree);
             var root = tree.GetRoot();
             var loweredEntries = new HashSet<SyntaxNode>();
+            var loweredBodies = new HashSet<SyntaxNode>();
+            var refusedMethods = new List<SyntaxNode>();
 
             foreach (var method in root.DescendantNodes().OfType<BaseMethodDeclarationSyntax>())
             {
@@ -189,6 +194,7 @@ internal static class ProtocolLowering
                             throw new Refused(At(file, v,
                                 $"protocol token '{l.Name}' is declared outside a protocol region"));
                     loweredEntries.UnionWith(ctx.LoweredEntries);
+                    loweredBodies.UnionWith(ctx.LoweredBodies);
 
                     if (ops.Count > 0)
                         functions.Add(new Dictionary<string, object?>
@@ -199,7 +205,31 @@ internal static class ProtocolLowering
                 catch (Refused r)
                 {
                     refusals.Add(r.Message);
+                    refusedMethods.Add(method);
                 }
+            }
+
+            // A token exists only inside a region. A method cannot take one (refused above),
+            // and a lambda or local function may take one only as the in-place body of a
+            // region entry that was lowered. Any other callable with a token parameter is
+            // consumer code that receives a token some other way — from a method of the
+            // protocol's own type that is not marked as a region entry, typically — and that
+            // nothing reads: without this it is simply absent from the facts, and a token
+            // spent twice in it is clean.
+            foreach (var callable in root.DescendantNodes().Where(n =>
+                         n is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
+            {
+                if (loweredBodies.Contains(callable)
+                    || refusedMethods.Any(m => m.Span.Contains(callable.Span)))
+                    continue;   // a lowered region body, or inside a method already refused
+                var symbol = callable is LocalFunctionStatementSyntax
+                    ? model.GetDeclaredSymbol(callable) as IMethodSymbol
+                    : model.GetSymbolInfo(callable).Symbol as IMethodSymbol;
+                var taken = symbol?.Parameters.FirstOrDefault(p => IsToken(p.Type));
+                if (taken is null || Enclosing(model, callable).Any(IsApiType))
+                    continue;   // no token; or the protocol's own types, which hand tokens out
+                refusals.Add(At(file, callable,
+                    $"a callback that takes protocol token '{taken.Type.Name}' is not the in-place body of a region entry: a token exists only inside a region, and code that receives one any other way is not analysed"));
             }
 
             // A region entry outside any method body (an accessor, a field initializer, a
@@ -831,6 +861,7 @@ internal static class ProtocolLowering
         if (existing is null)
             ops.Add(Release(owner, line));
         ctx.LoweredEntries.Add(entry);
+        ctx.LoweredBodies.Add(lambda);
     }
 
     private static void LowerTokenLocal(Ctx ctx, ILocalSymbol local, ExpressionSyntax? init,
