@@ -370,8 +370,11 @@ def clean_checkout(runs: int, rust: str | None) -> int:
                 print(f"FAIL: clean-checkout/run{n}: git worktree add: {added.stderr.strip()}")
                 return 1
             try:
-                leftovers = [d for _, dirs, _ in os.walk(tree) for d in dirs
-                             if d in ("bin", "obj")]
+                # .NET build output: a bin/ or obj/ beside a project file (a tracked
+                # directory that merely has the name, like a Rust `src/bin`, is source)
+                leftovers = [os.path.relpath(os.path.join(base, d), tree)
+                             for base, dirs, names in os.walk(tree) for d in dirs
+                             if d in ("bin", "obj") and any(n.endswith(".csproj") for n in names)]
                 if leftovers:
                     print(f"FAIL: clean-checkout/run{n}: the worktree has build output: "
                           f"{leftovers}")
