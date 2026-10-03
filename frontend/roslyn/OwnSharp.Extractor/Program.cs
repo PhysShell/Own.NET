@@ -52,6 +52,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 var rawInputs = new List<string>();
 string? outPath = null;
+// H0 heap-effect source facts: written to THIS file, never into the facts document.
+string? heapEffectsPath = null;
 // --ref-dir <dir> (repeatable, P-014 Tier B): widen the compilation's reference set with the
 // DLLs under <dir>, searched RECURSIVELY — point it at a project's built `bin/` output (or a
 // restored package's `lib/`) and the SemanticModel can then bind events on third-party types
@@ -152,6 +154,8 @@ Options:
   --flow-locals      path-sensitive flow analysis of non-escaping local IDisposables
   --stats            print flow-locals coverage (requires --flow-locals)
   --body-throw-edges treat escaping body-level may-throw as a dispose-on-throw point (needs --flow-locals)
+  --heap-effects FILE  also write heap-effect source facts (H0, inert) to FILE; the facts
+                     document is byte-identical with or without it
   -h, --help         show this help and exit
 """;
 if (args0.Contains("-h") || args0.Contains("--help"))
@@ -184,6 +188,7 @@ for (int i = 0; i < args0.Length; i++)
     else if (args0[i] == "--flow-locals") flowLocals = true;
     else if (args0[i] == "--body-throw-edges") BodyThrowEdges = true;
     else if (args0[i] == "--stats") reportStats = true;
+    else if (args0[i] == "--heap-effects" && i + 1 < args0.Length) heapEffectsPath = args0[++i];
     else rawInputs.Add(args0[i]);
 }
 
@@ -7332,6 +7337,13 @@ if (reportStats)
 
 if (outPath is null) Console.WriteLine(json);
 else File.WriteAllText(outPath, json);
+// H0 (docs/notes/heap-effect-summaries.md): heap-effect source facts for the core's summary
+// solver. A separate file, produced after the facts are final, so no flag spelling can move a
+// byte of the facts document; nothing in the core reads it for a verdict.
+if (heapEffectsPath is not null)
+    File.WriteAllText(heapEffectsPath, JsonSerializer.Serialize(
+        HeapEffectFacts.Extract(compilation, parsed),
+        new JsonSerializerOptions { WriteIndented = true }));
 return 0;
 
 // Opt-in recall knob for the flow pass, read deep in InjectThrowEdge (a static field rather than

@@ -1,0 +1,91 @@
+{
+  "heap_effects_version": 1,
+  "summaries": [
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "R(Order)",
+      "params": [
+        {
+          "effect": "plain",
+          "index": 0,
+          "name": "x"
+        }
+      ],
+      "receiver": null,
+      "returns": [
+        "param:0"
+      ],
+      "unresolved": [],
+      "writes": {
+        "indirect": "none",
+        "instance": "none",
+        "static": "none"
+      }
+    },
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "S(Order)",
+      "params": [
+        {
+          "effect": "plain",
+          "index": 0,
+          "name": "x"
+        }
+      ],
+      "receiver": null,
+      "returns": [
+        "param:0"
+      ],
+      "unresolved": [],
+      "writes": {
+        "indirect": "none",
+        "instance": "none",
+        "static": "none"
+      }
+    },
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "T(Order)",
+      "params": [
+        {
+          "effect": "plain",
+          "index": 0,
+          "name": "x"
+        }
+      ],
+      "receiver": null,
+      "returns": [
+        "param:0"
+      ],
+      "unresolved": [],
+      "writes": {
+        "indirect": "none",
+        "instance": "none",
+        "static": "none"
+      }
+    },
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "U(Order)",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "index": 0,
+          "name": "y"
+        }
+      ],
+      "receiver": null,
+      "returns": [],
+      "unresolved": [],
+      "writes": {
+        "indirect": "none",
+        "instance": "none",
+        "static": "none"
+      }
+    }
+  ]
+}

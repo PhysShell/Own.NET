@@ -1,0 +1,56 @@
+{
+  "heap_effects_version": 1,
+  "summaries": [
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "Opaque(int, Order)",
+      "params": [
+        {
+          "effect": "plain",
+          "index": 0,
+          "name": "n"
+        },
+        {
+          "effect": "unknown",
+          "index": 1,
+          "name": "o"
+        }
+      ],
+      "receiver": null,
+      "returns": [],
+      "unresolved": [
+        "expression Await"
+      ],
+      "writes": {
+        "indirect": "unknown",
+        "instance": "unknown",
+        "static": "unknown"
+      }
+    },
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "OpaqueReturn(Order)",
+      "params": [
+        {
+          "effect": "unknown",
+          "index": 0,
+          "name": "o"
+        }
+      ],
+      "receiver": "unknown",
+      "returns": [
+        "unknown"
+      ],
+      "unresolved": [
+        "dynamic"
+      ],
+      "writes": {
+        "indirect": "unknown",
+        "instance": "unknown",
+        "static": "unknown"
+      }
+    }
+  ]
+}

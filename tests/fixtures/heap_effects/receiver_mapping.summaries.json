@@ -1,0 +1,72 @@
+{
+  "heap_effects_version": 1,
+  "summaries": [
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "C.Both()",
+      "params": [],
+      "receiver": "borrow_mut",
+      "returns": [],
+      "unresolved": [],
+      "writes": {
+        "indirect": "none",
+        "instance": "none",
+        "static": "none"
+      }
+    },
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "C.Get()",
+      "params": [],
+      "receiver": "borrow",
+      "returns": [],
+      "unresolved": [],
+      "writes": {
+        "indirect": "none",
+        "instance": "none",
+        "static": "none"
+      }
+    },
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "C.Set()",
+      "params": [],
+      "receiver": "borrow_mut",
+      "returns": [],
+      "unresolved": [],
+      "writes": {
+        "indirect": "none",
+        "instance": "none",
+        "static": "none"
+      }
+    },
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "Drive(C, C)",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "index": 0,
+          "name": "x"
+        },
+        {
+          "effect": "borrow",
+          "index": 1,
+          "name": "y"
+        }
+      ],
+      "receiver": null,
+      "returns": [],
+      "unresolved": [],
+      "writes": {
+        "indirect": "none",
+        "instance": "none",
+        "static": "none"
+      }
+    }
+  ]
+}

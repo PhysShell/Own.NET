@@ -1,0 +1,28 @@
+{
+  "heap_effects_version": 1,
+  "methods": [
+    {
+      "key": "A(Order)",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [
+        "param:01"
+      ],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    }
+  ]
+}

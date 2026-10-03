@@ -1,0 +1,56 @@
+{
+  "heap_effects_version": 1,
+  "methods": [
+    {
+      "key": "Opaque(int, Order)",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "n",
+          "inert": true
+        },
+        {
+          "index": 1,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": [
+        "expression Await"
+      ]
+    },
+    {
+      "key": "OpaqueReturn(Order)",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": true,
+      "return_inert": false,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": [
+        "dynamic"
+      ]
+    }
+  ]
+}

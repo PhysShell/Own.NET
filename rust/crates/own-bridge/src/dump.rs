@@ -153,7 +153,7 @@ fn escape_py(s: &str, out: &mut String) {
 
 /// `json.dumps(value, indent=2, sort_keys=True)`: 2-space indent, `": "` /
 /// `","` separators, keys sorted at every level, empty containers inline.
-fn emit(v: &Value, indent: usize, out: &mut String) {
+pub(crate) fn emit(v: &Value, indent: usize, out: &mut String) {
     match v {
         Value::Null => out.push_str("null"),
         Value::Bool(true) => out.push_str("true"),

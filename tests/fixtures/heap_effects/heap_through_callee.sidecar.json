@@ -1,0 +1,109 @@
+{
+  "heap_effects_version": 1,
+  "methods": [
+    {
+      "key": "Keep(Order)",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "static",
+          "target": []
+        }
+      ],
+      "stores": [
+        "param:0"
+      ],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Mut(Order)",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "instance",
+          "target": [
+            "param:0"
+          ]
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "FromStatic()",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": true,
+      "params": [],
+      "locals": [
+        {
+          "id": 0,
+          "name": "s",
+          "sources": [
+            "heap"
+          ]
+        }
+      ],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Keep(Order)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            [
+              "local:0"
+            ]
+          ],
+          "line": 1
+        },
+        {
+          "id": 1,
+          "callee": "Mut(Order)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            [
+              "local:0"
+            ]
+          ],
+          "line": 1
+        }
+      ],
+      "unknown": []
+    }
+  ]
+}

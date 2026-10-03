@@ -10,8 +10,8 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 
 | measure                            | value |
 |------------------------------------|------:|
-| JSON files scanned                 | 588 |
-| coordinate slots found             | 4013 |
+| JSON files scanned                 | 625 |
+| coordinate slots found             | 4175 |
 
 ## By value class
 
@@ -19,9 +19,9 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 |---|---:|---:|
 | `above-int32` | 24 | 24 |
 | `below-1` | 23 | 23 |
-| `bool` | 17 | 17 |
+| `bool` | 18 | 17 |
 | `float` | 3 | 3 |
-| `in-domain` | 3319 | 2193 |
+| `in-domain` | 3480 | 2193 |
 | `negative` | 26 | 26 |
 | `null` | 259 | 9 |
 | `outside-int64` | 15 | 15 |
@@ -156,6 +156,10 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `(root)` | `render_cases[].diagnostic.line` | `in-domain` | — | 26 | 1 | — |
 | `cli_ownir/inputs` | `components[].subscriptions[].line` | `in-domain` | yes | 3 | 3 | — |
 | `cli_ownir/inputs/pa th ünïcødé` | `components[].subscriptions[].line` | `in-domain` | yes | 1 | 1 | — |
+| `heap_effects` | `methods[].calls[].line` | `in-domain` | — | 37 | 10 | — |
+| `heap_effects` | `methods[].line` | `bool` | — | 1 | 1 | `True` |
+| `heap_effects` | `methods[].line` | `in-domain` | — | 68 | 20 | — |
+| `heap_effects` | `summaries[].line` | `in-domain` | — | 56 | 10 | — |
 | `lowered` | `components[].subscriptions[].line` | `in-domain` | yes | 24 | 10 | — |
 | `lowered` | `functions[].<nested>[].column` | `in-domain` | yes | 2 | 2 | — |
 | `lowered` | `functions[].<nested>[].line` | `in-domain` | yes | 903 | 112 | — |

@@ -1,0 +1,44 @@
+{
+  "heap_effects_version": 1,
+  "methods": [
+    {
+      "key": "WritesThroughExtern()",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": true,
+      "params": [],
+      "locals": [
+        {
+          "id": 0,
+          "name": "x",
+          "sources": [
+            "call:0"
+          ]
+        }
+      ],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "instance",
+          "target": [
+            "local:0"
+          ]
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Ext.Get()",
+          "dispatch": "extern",
+          "receiver": null,
+          "args": [],
+          "line": 1
+        }
+      ],
+      "unknown": []
+    }
+  ]
+}

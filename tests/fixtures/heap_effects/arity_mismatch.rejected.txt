@@ -1,0 +1,1 @@
+heap-effect facts: method #1: calls[0] has 0 argument slots, its callee takes 1

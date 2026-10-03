@@ -38,6 +38,7 @@
 
 mod ast;
 mod dump;
+mod heap_effects;
 mod lower;
 mod mos;
 mod render;
@@ -94,6 +95,21 @@ pub fn lower(facts: &OwnIr) -> Result<LoweredDocument, BridgeError> {
 /// (not reachable for a document [`OwnIr::from_json`] accepted).
 pub fn dump_summaries(facts: &OwnIr) -> Result<String, BridgeError> {
     dump::dump_summaries(facts)
+}
+
+/// Solve the heap-effect summaries (H0, inert) of one heap-effect SOURCE
+/// FACTS document — the extractor's `--heap-effects` sidecar, not `OwnIR`.
+///
+/// Byte-identical to `python -m ownlang.heap_effects` over the parity domain
+/// (RFC 8259 JSON whose integers fit 64 bits): the solved document as
+/// `json.dumps(indent=2, sort_keys=True)` plus a newline. Nothing in the
+/// verdict path reads it.
+///
+/// # Errors
+/// [`BridgeError`] when the text is not JSON or the document violates the
+/// sidecar vocabulary; the message text is the reference's, byte-for-byte.
+pub fn dump_heap_effects(text: &str) -> Result<String, BridgeError> {
+    heap_effects::dump_heap_effects(text)
 }
 
 /// Run the core over one `OwnIR` facts document and return its findings.

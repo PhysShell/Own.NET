@@ -1,0 +1,25 @@
+{
+  "heap_effects_version": 1,
+  "summaries": [
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "Cycle(Order)",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "index": 0,
+          "name": "o"
+        }
+      ],
+      "receiver": null,
+      "returns": [],
+      "unresolved": [],
+      "writes": {
+        "indirect": "none",
+        "instance": "none",
+        "static": "none"
+      }
+    }
+  ]
+}

@@ -1,0 +1,155 @@
+{
+  "heap_effects_version": 1,
+  "methods": [
+    {
+      "key": "R(Order)",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": false,
+      "params": [
+        {
+          "index": 0,
+          "name": "x",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [
+        "call:0"
+      ],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "S(Order)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            [
+              "param:0"
+            ]
+          ],
+          "line": 1
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "S(Order)",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": false,
+      "params": [
+        {
+          "index": 0,
+          "name": "x",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [
+        "call:0"
+      ],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "T(Order)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            [
+              "param:0"
+            ]
+          ],
+          "line": 1
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "T(Order)",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": false,
+      "params": [
+        {
+          "index": 0,
+          "name": "x",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [
+        "param:0",
+        "call:0"
+      ],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "R(Order)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            [
+              "param:0"
+            ]
+          ],
+          "line": 1
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "U(Order)",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "y",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "instance",
+          "target": [
+            "call:0"
+          ]
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "R(Order)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            [
+              "param:0"
+            ]
+          ],
+          "line": 1
+        }
+      ],
+      "unknown": []
+    }
+  ]
+}

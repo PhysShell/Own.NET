@@ -1,0 +1,1 @@
+heap-effect facts: heap_effects_version must be 1

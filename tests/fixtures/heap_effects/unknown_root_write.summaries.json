@@ -1,0 +1,21 @@
+{
+  "heap_effects_version": 1,
+  "summaries": [
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "WritesThroughExtern()",
+      "params": [],
+      "receiver": null,
+      "returns": [],
+      "unresolved": [
+        "Ext.Get() (extern)"
+      ],
+      "writes": {
+        "indirect": "unknown",
+        "instance": "unknown",
+        "static": "unknown"
+      }
+    }
+  ]
+}

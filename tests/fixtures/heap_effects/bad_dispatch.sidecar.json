@@ -1,0 +1,29 @@
+{
+  "heap_effects_version": 1,
+  "methods": [
+    {
+      "key": "A()",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": true,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "X()",
+          "dispatch": "inline",
+          "receiver": null,
+          "args": [],
+          "line": 1
+        }
+      ],
+      "unknown": []
+    }
+  ]
+}
