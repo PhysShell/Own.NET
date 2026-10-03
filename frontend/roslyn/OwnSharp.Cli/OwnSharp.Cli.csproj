@@ -119,20 +119,18 @@
        is a file or a folder by whether it looks like it has an extension, so
        `own-cli.exe` behaved differently from `own-cli`, and the extensionless
        Unix binary is the one that had to be right. -->
+  <!-- The platform inventory and the staging rule are shared with Owen.Build (the build host
+       packs this project's publish closure): ../OwenRustCore.props, the one source of truth. -->
+  <Import Project="..\OwenRustCore.props" />
   <ItemGroup Condition="'$(OwenRustCoreDir)' != ''">
-    <OwenRustCoreFiles Include="$(OwenRustCoreDir)/**/own-cli;$(OwenRustCoreDir)/**/own-cli.exe" />
     <None Include="@(OwenRustCoreFiles)"
           CopyToOutputDirectory="PreserveNewest"
           Link="rust-core\%(RecursiveDir)%(Filename)%(Extension)"
           Visible="false" />
   </ItemGroup>
 
-  <Target Name="OwenRustCorePacked" BeforeTargets="GenerateNuspec"
-          Condition="'$(OwenRustCoreDir)' != ''">
-    <Error Condition="'@(OwenRustCoreFiles)' == ''"
-           Text="OwenRustCoreDir was set to '$(OwenRustCoreDir)' but no own-cli binary was found under it. Stage 3 makes Rust the default engine, so a package without one would install an Owen whose default engine is missing. Stage the binaries as &lt;platform-key&gt;/own-cli[.exe] first." />
-    <Message Importance="high" Text="Owen.Cli: packing Rust core(s): @(OwenRustCoreFiles->'%(RecursiveDir)%(Filename)%(Extension)', ', ')" />
-  </Target>
+  <Target Name="OwenRustCorePacked" BeforeTargets="GenerateNuspec" DependsOnTargets="OwenRustCoreInventory"
+          Condition="'$(OwenRustCoreDir)' != ''" />
 
   <ItemGroup>
     <!-- Vendor the Python core's source as-is (no build step needed — it is

@@ -1,0 +1,15 @@
+<Project>
+  <!-- Owen.Build, the generic Owen build host (spec/OwenExtension.md). Defaults only; the work
+       is in Owen.Build.targets. Nothing here names an extension. -->
+  <PropertyGroup>
+    <!-- false switches the host off for this project -->
+    <OwenEnabled Condition="'$(OwenEnabled)' == ''">true</OwenEnabled>
+    <!-- how a finding is SHOWN: warning (default — installing Owen never turns a legacy build
+         red) or error. It never changes what is found. Refusals (OWENB010/011) are errors
+         either way: a declared protocol that cannot be checked must not read as clean. -->
+    <OwenSeverity Condition="'$(OwenSeverity)' == ''">warning</OwenSeverity>
+    <!-- Extension generators' output must reach the scan AS SOURCE (the extractor reads files,
+         and an extension's protocol lives in generated code), so the compiler writes it out. -->
+    <EmitCompilerGeneratedFiles Condition="'$(OwenEnabled)' == 'true' and '$(EmitCompilerGeneratedFiles)' == ''">true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+</Project>

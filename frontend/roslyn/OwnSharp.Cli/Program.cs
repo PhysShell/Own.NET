@@ -23,6 +23,21 @@ if (args[0] is "--version")
     return 0;
 }
 
+// The generic Owen build host's entry point (Owen.Build's MSBuild targets call it after a
+// build; OX-01, spec/OwenExtension.md). Not a user verb, so not in the help text.
+if (args[0] == "build-check")
+{
+    try
+    {
+        return await BuildCheckCommand.RunAsync(args[1..]).ConfigureAwait(false);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"owen: error OWENB012: the build host failed internally: {ex.GetType().Name}: {ex.Message}");
+        return CrashReport.Handle(ex, args);
+    }
+}
+
 if (args[0] != "check")
 {
     Console.Error.WriteLine($"owen: unknown command '{args[0]}'");

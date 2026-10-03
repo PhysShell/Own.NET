@@ -3455,6 +3455,38 @@ jobs:
           path: ${{ runner.temp }}/benchmark-scorecard.json
           retention-days: 90
 
+  # OX-01 (docs/notes/owen-extension-alpha-preregistration.md): the Owen extension substrate,
+  # with Typed Builder as extension #1. The gate packs Owen.Build (the generic host, with this
+  # platform's natively built Rust core) and Owen.TypedBuilder, then proves in a project OUTSIDE
+  # the checkout, with no Python / cargo / rustc / owen on PATH, that one PackageReference gives
+  # the generated API, CS errors, and OWN findings from `dotnet build` with canonical MSBuild
+  # coordinates; it replays the whole TB-MVP corpus and acceptance through the package, adds a
+  # second (synthetic) extension, and mutates the installed packages (M1-M7). Both platforms:
+  # MSBuild's Exec, the packed core and the paths all differ between them.
+  owen-extension:
+    name: Owen extension substrate (Owen.Build + Owen.TypedBuilder, isolated consumer)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: The extension gate (pack, isolated consumer A-H, mutations M1-M7)
+        run: python scripts/owen_extension_gate.py
+
   # Alpha gate A (issue #202): the single delightful command, proven end-to-end
   # on a clean runner — install -> check -> findings. Packaging only, no
   # analysis-behaviour change: the underlying project stays OwnSharp.Cli

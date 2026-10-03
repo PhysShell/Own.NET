@@ -68,6 +68,39 @@ None of those is research; all are the difference between "interesting PoC" and
 standing between here and the day 1–30 milestone being *literally* copy-paste
 for a stranger.
 
+## Update 2026-10-03: the extension path (OX-01)
+
+**A second install path now exists beside A.** No `dotnet tool` and no command: a
+`PackageReference`.
+
+```
+dotnet add package Owen.TypedBuilder
+dotnet build
+```
+
+**What it does.**
+- The package depends on **`Owen.Build`**, the generic build host. `Owen.Build` carries the same program as `Owen.Cli` (`owen`), its bundled extractor, and the Rust core for `linux-x64` and `win-x64`.
+- On every build it runs Owen once for every active Owen extension.
+- Findings are ordinary MSBuild diagnostics, so `dotnet build`, CI logs and Visual Studio's Error List all show them. They are `warning` by default and `OwenSeverity=error` to fail the build.
+
+The machine needs no Python, no Rust toolchain, no global tool and no checkout. The isolated
+consumer gate proves it on Linux and Windows CI (`scripts/owen_extension_gate.py`).
+
+**Extension #1 is the Typed Builder:**
+- typed states and a typed builder generated from one annotated EF entity;
+- illegal transitions are compiler errors;
+- stale or copied states are `OWN` findings on build.
+
+The contract a second extension uses is in [`spec/OwenExtension.md`](../../spec/OwenExtension.md). See
+[`owen-extension-alpha-report.md`](owen-extension-alpha-report.md) for the evidence, and
+[`owen-extension-ide-feasibility.md`](owen-extension-ide-feasibility.md) for live IDE diagnostics:
+- E1 (one generic VSIX host) is the direction, not built here;
+- E2 (a native Roslyn analyzer) was rejected.
+
+**Still open.** Exactly the items that already gated A: nothing is published to nuget.org
+yet, and there is no license. `Owen.Build` and `Owen.TypedBuilder` are 0.1.0 candidates packed
+from source.
+
 ## The 20% rule (other stacks)
 
 Other stacks are **proof of portability, not a second product.** Sanctioned now:

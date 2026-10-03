@@ -1,0 +1,8 @@
+<Project>
+  <!-- Owen.TypedBuilder declares itself to the generic Owen host (Owen.Build). This item is
+       the whole contract: the host reads the descriptor, checks it against what it supports,
+       and analyses the project once for every active extension (spec/OwenExtension.md). -->
+  <ItemGroup>
+    <OwenExtensionDescriptor Include="$(MSBuildThisFileDirectory)owen-extension.json" />
+  </ItemGroup>
+</Project>

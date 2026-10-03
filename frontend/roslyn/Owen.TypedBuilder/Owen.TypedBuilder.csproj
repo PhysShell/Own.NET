@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Owen extension #1 (OX-01, docs/notes/owen-extension-alpha-preregistration.md).
+
+       The package a consumer references: `dotnet add package Owen.TypedBuilder`. It carries
+         * analyzers/dotnet/cs/Owen.TypedBuilder.Generator.dll — the Roslyn incremental
+           generator (this project's output), which renders the protocol with the SAME model
+           and renderer as the CLI (../Own.TypedBuilder/TypedBuilderCore.cs, linked below);
+         * buildTransitive/Owen.TypedBuilder.props + owen-extension.json — the extension's
+           declaration to the generic host;
+         * a dependency on Owen.Build (the generic host: extractor + Rust core + targets).
+       Nothing here analyses anything: the verdicts are the Rust core's, run by Owen.Build. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Owen.TypedBuilder.Generator</AssemblyName>
+    <RootNamespace>Own.TypedBuilder</RootNamespace>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <IsPackable>true</IsPackable>
+    <PackageId>Owen.TypedBuilder</PackageId>
+    <Version>0.1.0</Version>
+    <Description>Owen extension: typed states and a typed builder generated from one annotated entity, checked on every build by Owen (ownership, state protocols, proven harmless calls).</Description>
+    <Authors>PhysShell</Authors>
+    <PackageProjectUrl>https://github.com/PhysShell/Own.NET</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/PhysShell/Own.NET</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>roslyn;source-generator;typestate;ef-core;owen</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- an analyzer package: the generator goes to analyzers/, never to lib/ -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <DevelopmentDependency>false</DevelopmentDependency>
+    <SuppressDependenciesWhenPacking>false</SuppressDependenciesWhenPacking>
+    <!-- NU5128: an analyzer package has no lib/. RS2008: OWENTB001 is the generator's only
+         rule and is documented in spec/OwenExtension.md, not in Roslyn release-tracking files. -->
+    <NoWarn>$(NoWarn);NU5128;RS2008</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 4.8.0: the Roslyn of the oldest .NET 8 SDK (8.0.1xx), so the generator loads in every
+         .NET 8 compiler. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+    <Compile Include="..\Own.TypedBuilder\TypedBuilderCore.cs" Link="TypedBuilderCore.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The generic host, as a package DEPENDENCY with every asset flowing (its build
+         targets are the whole point). The host does not know this package exists. -->
+    <ProjectReference Include="..\Owen.Build\Owen.Build.csproj" PrivateAssets="none" IncludeAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="buildTransitive\Owen.TypedBuilder.props" Pack="true" PackagePath="buildTransitive" />
+    <None Include="buildTransitive\owen-extension.json" Pack="true" PackagePath="buildTransitive" />
+    <None Include="buildTransitive\Owen.TypedBuilder.props" Pack="true" PackagePath="build" />
+    <None Include="buildTransitive\owen-extension.json" Pack="true" PackagePath="build" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

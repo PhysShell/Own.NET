@@ -1,0 +1,40 @@
+<Project>
+  <!-- The ONE inventory of the platforms Owen ships a Rust core for, and the one rule that
+       stages them. Imported by every package that carries the core: Owen.Cli (the dotnet
+       tool, OwnSharp.Cli/OwnSharp.Cli.csproj) and Owen.Build (the build host,
+       Owen.Build/Owen.Build.csproj, which packs Owen.Cli's own publish closure).
+
+       The binaries are staged EXPLICITLY, never picked up from the tree: pass
+         -p:OwenRustCoreDir=/abs/path/to/staged
+       laid out as <platform-key>/own-cli[.exe]. A package's contents must not be a function of
+       whether someone ran cargo in this checkout (see OwnSharp.Cli.csproj for the history).
+       The platform key is the one RustCoreLocator.PlatformKey() computes at run time.
+
+       Supported platforms (OX-01 / Owen.Cli D6): linux-x64, win-x64. The release workflow's
+       build legs must stay this list. -->
+  <PropertyGroup>
+    <OwenRustCorePlatforms>linux-x64;win-x64</OwenRustCorePlatforms>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(OwenRustCoreDir)' != ''">
+    <OwenRustCoreFiles Include="$(OwenRustCoreDir)/**/own-cli;$(OwenRustCoreDir)/**/own-cli.exe" />
+  </ItemGroup>
+
+  <!-- A staged binary outside the inventory, or under the wrong name for its platform, is a
+       packaging error: the locator would never find it, and a package would claim a platform
+       it cannot serve. -->
+  <Target Name="OwenRustCoreInventory" Condition="'$(OwenRustCoreDir)' != ''">
+    <ItemGroup>
+      <_OwenRustCoreStaged Include="@(OwenRustCoreFiles->'%(RecursiveDir)%(Filename)%(Extension)'->Replace('\', '/'))" />
+      <_OwenRustCoreExpected Include="$(OwenRustCorePlatforms)" />
+      <_OwenRustCoreAllowed Include="@(_OwenRustCoreExpected->'%(Identity)/own-cli')" Condition="!$([System.String]::Copy('%(Identity)').StartsWith('win-'))" />
+      <_OwenRustCoreAllowed Include="@(_OwenRustCoreExpected->'%(Identity)/own-cli.exe')" Condition="$([System.String]::Copy('%(Identity)').StartsWith('win-'))" />
+      <_OwenRustCoreUnknown Include="@(_OwenRustCoreStaged)" Exclude="@(_OwenRustCoreAllowed)" />
+    </ItemGroup>
+    <Error Condition="'@(OwenRustCoreFiles)' == ''"
+           Text="OwenRustCoreDir was set to '$(OwenRustCoreDir)' but no own-cli binary was found under it. Rust is Owen's default engine, so a package without one would ship an Owen whose engine is missing. Stage the binaries as &lt;platform-key&gt;/own-cli[.exe] first (platforms: $(OwenRustCorePlatforms))." />
+    <Error Condition="'@(_OwenRustCoreUnknown)' != ''"
+           Text="Staged Rust core(s) outside the supported inventory ($(OwenRustCorePlatforms)): @(_OwenRustCoreUnknown). Each must be &lt;platform-key&gt;/own-cli (own-cli.exe on win-*)." />
+    <Message Importance="high" Text="$(PackageId): packing Rust core(s): @(_OwenRustCoreStaged, ', ')" />
+  </Target>
+</Project>
