@@ -34,16 +34,39 @@ $major = $ver.Split('.')[0]
 $t0 = Get-Date
 $p = Start-Process $devenv -ArgumentList "/rootsuffix", "Exp", "`"$sln`"" -PassThru
 Log "devenv pid $($p.Id)"
+Add-Type -AssemblyName System.Windows.Forms, System.Drawing, UIAutomationClient, UIAutomationTypes
+$shot = 0
+function Shot($name) {
+  try {
+    $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+    $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+    $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+    $bmp.Save((Join-Path $out "$name.png")); $g.Dispose(); $bmp.Dispose()
+  } catch { Log "screenshot failed: $_" }
+}
+function Windows($procId) {
+  $root = [System.Windows.Automation.AutomationElement]::RootElement
+  $cond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty, $procId)
+  foreach ($w in $root.FindAll([System.Windows.Automation.TreeScope]::Children, $cond)) {
+    Log "  window: '$($w.Current.Name)' class=$($w.Current.ClassName)"
+    foreach ($c in $w.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)) {
+      $n = $c.Current.Name
+      if ($n -and $c.Current.ControlType.ProgrammaticName -match 'Button|Hyperlink|Text|Window') { Log "    $($c.Current.ControlType.ProgrammaticName) '$n'" }
+    }
+  }
+}
 $dte = $null
 for ($k = 0; $k -lt 120 -and -not $dte; $k++) {
   Start-Sleep -Seconds 2
+  if ($k % 15 -eq 0) { Shot ("start-{0:D3}" -f $k); Log "t=$($k*2)s"; Windows $p.Id }
   try { $dte = [System.Runtime.InteropServices.Marshal]::GetActiveObject("VisualStudio.DTE.$major.0") } catch { }
 }
+Shot "dte"; Windows $p.Id
 if (-not $dte) { Log "NO DTE after 240 s"; }
 else {
   Log "DTE after $([int]((Get-Date) - $t0).TotalSeconds) s: $($dte.Version) $($dte.Edition)"
   function Retry([scriptblock]$b) { for ($r = 0; $r -lt 60; $r++) { try { return & $b } catch { Start-Sleep -Milliseconds 1000 } } ; throw "gave up" }
-  for ($k = 0; $k -lt 60; $k++) { try { if ($dte.Solution.IsOpen -and $dte.Solution.Projects.Count -gt 0) { break } } catch { } ; Start-Sleep 2 }
+  for ($k = 0; $k -lt 60; $k++) { try { if ($dte.Solution.IsOpen -and $dte.Solution.Projects.Count -gt 0) { break } } catch { Log "dte call: $($_.Exception.Message)" } ; Start-Sleep 2; if ($k % 10 -eq 0) { Shot ("wait-{0:D3}" -f $k); Windows $p.Id } }
   Log "solution: $(Retry { $dte.Solution.FullName }) projects=$(Retry { $dte.Solution.Projects.Count })"
   $win = Retry { $dte.ItemOperations.OpenFile($cs) }
   $doc = Retry { $dte.ActiveDocument }
