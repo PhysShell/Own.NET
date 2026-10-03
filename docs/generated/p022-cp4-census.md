@@ -8,18 +8,18 @@ Computed by `tests/verdict_census.py` and `tests/verdict_render_census.py` (the 
 
 | measure                                                                 | value |
 |-------------------------------------------------------------------------|------:|
-| goldens — Python's complete truth, one per planned case                 | 133 |
+| goldens — Python's complete truth, one per planned case                 | 154 |
 | … swept from `tests/fixtures/ownir`                                     | 22 |
-| … swept from `tests/fixtures/lowered`                                   | 64 |
+| … swept from `tests/fixtures/lowered`                                   | 85 |
 | … swept from `tests/fixtures/summaries`                                 | 9 |
 | … synthetic controls (`manifest.json` cases)                            | 38 |
-| reference refusals over all goldens                                     | 9 |
-| reference findings over all goldens                                     | 215 |
+| reference refusals over all goldens                                     | 25 |
+| reference findings over all goldens                                     | 217 |
 | declared Rust exclusions — the executable ledger `rust_replay_excluded` | 2 |
 | … refused at the typed `OwnIr` door (#294 OD-1)                         | 2 |
-| replayed by Rust (goldens minus exclusions)                             | 131 |
-| … reference refusals among them (compared in full)                      | 9 |
-| … findings among them (compared on every `Finding` member)              | 213 |
+| replayed by Rust (goldens minus exclusions)                             | 152 |
+| … reference refusals among them (compared in full)                      | 25 |
+| … findings among them (compared on every `Finding` member)              | 215 |
 
 The differential counts over the replayed set — Python-only, Rust-only, changed, ordering-only, unexplained — are asserted, not measured here: the Rust replay compares every replayed case's full ordered verdict list (or its refusal text) against the golden on every member, collects every divergence without fail-fast, and fails if one exists. A green `cargo test -p own-bridge --test verdicts` is 0 / 0 / 0 / 0 / 0 by construction; a non-zero count is a red build.
 

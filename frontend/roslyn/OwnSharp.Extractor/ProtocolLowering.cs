@@ -1,9 +1,11 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 
 // State protocols (P-010, pillar 9): lowering a C# state-protocol surface into OwnIR `move` /
-// `borrow_mut` (OwnIR v1, spec/OwnIR.md §5.3; the bridge's side is spec/Bridge.md BR-L12/L13).
+// `borrow_mut` / `proven_call` (OwnIR v2, spec/OwnIR.md §5.3-5.4; the bridge's side is
+// spec/Bridge.md BR-L12/L13/L14).
 //
 // The surface is recognised by two attributes, matched by NAME (so an API carries no
 // dependency on this project):
@@ -55,8 +57,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 // no stated contract: a call, a constructor, a property getter or setter, an indexer, a
 // user-defined operator or conversion. The one exception is a construct that visibly touches
 // the entity: that is lowered as a use of it, and the core rejects it with a verdict rather
-// than a refusal. When effect summaries (P-036/P-037) can prove a call harmless, this rule is
-// the one to relax; until then an unprovable call is not analysed as safe.
+// than a refusal. The rule is relaxed in exactly one place, and not by this lowering: a call
+// that touches nothing and is dispatched `direct` is lowered as an OwnIR v2 `proven_call`, and
+// the CORE admits it only when the shared heap-effect summaries prove it harmless
+// (docs/notes/h1-proven-call.md). An unprovable call is still not analysed as safe.
 //
 // Also refused, anywhere: a token with no lowerable origin (`default`, `new`), a token
 // parameter or return type, a token type that is not a ref struct, a region whose body is not
@@ -76,7 +80,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 // skipped; a project that relies on implicit usings writes them out (or qualifies the API).
 internal static class ProtocolLowering
 {
-    internal sealed record Result(List<object> Functions, List<string> Refusals);
+    internal sealed record Result(List<object> Functions, List<string> Refusals,
+                                  List<(string Key, string File, InvocationExpressionSyntax Call)> Sites);
 
     private sealed class Refused(string message) : Exception(message);
 
@@ -95,6 +100,9 @@ internal static class ProtocolLowering
         public required Dictionary<SyntaxTree, string> Files { get; init; }
         public required SortedDictionary<string, object> Contracts { get; init; }
         public required ISet<string> LegacyNames { get; init; }
+        /// OwnIR v2 `proven_call` sites, shared by the whole scan (Program.cs turns them
+        /// into the document's `heap_effects` section).
+        public required List<(string Key, string File, InvocationExpressionSyntax Call)> Sites { get; init; }
         public List<Region> Regions { get; } = new();
         public Dictionary<ISymbol, (string Name, Region Region)> Tokens { get; } =
             new(SymbolEqualityComparer.Default);
@@ -115,6 +123,7 @@ internal static class ProtocolLowering
     {
         var functions = new List<object>();
         var refusals = new List<string>();
+        var sites = new List<(string Key, string File, InvocationExpressionSyntax Call)>();
         var contracts = new SortedDictionary<string, object>(StringComparer.Ordinal);
         var files = new Dictionary<SyntaxTree, string>();
         foreach (var (file, tree) in parsed)
@@ -183,7 +192,7 @@ internal static class ProtocolLowering
                     var ctx = new Ctx
                     {
                         Model = model, File = file, Files = files, Contracts = contracts,
-                        LegacyNames = legacyNames,
+                        LegacyNames = legacyNames, Sites = sites,
                     };
                     var ops = new List<object>();
                     foreach (var st in method.Body.Statements)
@@ -252,7 +261,7 @@ internal static class ProtocolLowering
         }
 
         functions.AddRange(contracts.Values);
-        return new Result(functions, refusals);
+        return new Result(functions, refusals, sites);
     }
 
     // ---- the protocol boundary -------------------------------------------------------------
@@ -1158,6 +1167,24 @@ internal static class ProtocolLowering
                 if (inv.Expression is MemberAccessExpressionSyntax target)
                     Scan(ctx, target.Expression, ops);
                 NoteEntityTyped(ctx, inv, ops);
+                // OwnIR v2 (H1): a call that touched nothing protocol-relevant and that the
+                // shared summary layer COULD prove harmless (a `direct` call, the H0
+                // classification) is handed to the core as a `proven_call`. The core proves
+                // it or refuses the document; this lowering decides nothing about it.
+                // Everything else keeps today's answer: a touch is a `use` the core judges,
+                // and a call no summary can cover is refused here, word for word as before.
+                if (ctx.EntityTouches == before && HeapEffectFacts.Provable(ctx.Model, inv))
+                {
+                    var site = HeapEffectFacts.SiteKey(ctx.File, inv);
+                    ctx.Sites.Add((site, ctx.File, inv));
+                    ops.Add(new Dictionary<string, object?>
+                    {
+                        ["op"] = "proven_call", ["site"] = site,
+                        ["callee"] = HeapEffectFacts.Key(((IInvocationOperation)ctx.Model.GetOperation(inv)!).TargetMethod),
+                        ["line"] = Line(inv),
+                    });
+                    return;
+                }
                 var name = method is null
                     ? inv.Expression.ToString()
                     : $"{method.ContainingType.ToDisplayString()}.{method.Name}";

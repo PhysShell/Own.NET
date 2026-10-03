@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "Gates",
   "_doc": [
     "BR-L8 / INF-A5 advisories: an owned local dropped after a may-call is silent",

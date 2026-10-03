@@ -1,7 +1,7 @@
 {
   "degraded": null,
   "module": "Extracted",
-  "ownir_version": 1,
+  "ownir_version": 2,
   "summaries": [
     {
       "file": "frontend/roslyn/protocol-samples/cases/L6b_chained_transitions.cs",

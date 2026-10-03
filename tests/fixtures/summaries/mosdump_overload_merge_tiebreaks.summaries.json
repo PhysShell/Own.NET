@@ -1,7 +1,7 @@
 {
   "degraded": null,
   "module": "MergeTie",
-  "ownir_version": 1,
+  "ownir_version": 2,
   "summaries": [
     {
       "file": "a.cs",

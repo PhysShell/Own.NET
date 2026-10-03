@@ -7,7 +7,7 @@
       "engine": "python-ownlang",
       "input": {
         "algorithm": "sha256",
-        "digest": "5d67d6918c18d93df76a29b2d58f50202444d3b95e2a7de6cca64541bb71e06d",
+        "digest": "07fc35882106a66285295b99374c3ed00e030cda1836bedbed07eae187733788",
         "bytes": 376
       },
       "layers": [
@@ -238,7 +238,7 @@
             },
             {
               "id": "ownir_version",
-              "value": 1
+              "value": 2
             },
             {
               "id": "degraded",
@@ -286,7 +286,7 @@
       "engine": "rust-own-bridge",
       "input": {
         "algorithm": "sha256",
-        "digest": "5d67d6918c18d93df76a29b2d58f50202444d3b95e2a7de6cca64541bb71e06d",
+        "digest": "07fc35882106a66285295b99374c3ed00e030cda1836bedbed07eae187733788",
         "bytes": 376
       },
       "layers": [
@@ -517,7 +517,7 @@
             },
             {
               "id": "ownir_version",
-              "value": 1
+              "value": 2
             },
             {
               "id": "degraded",

@@ -1973,6 +1973,10 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                     }
                 }
             }
+            // Admitted by `proven::admit` before lowering began (it refuses the
+            // document otherwise): a call the effect summaries proved harmless
+            // touches nothing the core tracks, so it lowers to nothing.
+            Some("proven_call") => {}
             _ => {
                 return Err(BridgeError(format!(
                     "unknown OwnIR flow op {} ({}:{line}) — extractor/core \
@@ -1998,6 +2002,11 @@ pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
     let root = root_value
         .as_object()
         .expect("a struct serializes to an object");
+
+    // OwnIR v2 (H1): every `proven_call` is admitted or refused before anything
+    // is lowered (the reference's `_admit_proven_calls` at the head of
+    // `to_module`).
+    crate::proven::admit(root)?;
 
     let mut handles = HandleStore::default();
     let mut functions: Vec<Function> = Vec::new();

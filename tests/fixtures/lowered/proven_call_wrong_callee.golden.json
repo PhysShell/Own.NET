@@ -1,0 +1,4 @@
+{
+  "lowered_version": 2,
+  "error": "OwnIR 'proven_call' to 'Own.Protocols.Cases.H1aHarmlessCall.Thrice(int)' is not proven harmless: the site does not call 'Own.Protocols.Cases.H1aHarmlessCall.Thrice(int)' directly (frontend/roslyn/protocol-samples/cases/H1a_harmless_call.cs:18) — refused: an exclusive region admits only calls the effect summaries prove harmless"
+}

@@ -26,7 +26,7 @@ Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set ([c
 | `flowlocal_own008` | bridge | flow-local release while borrowed | 1 | 1 |
 | `flowlocal_own011` | bridge | flow-local exclusive re-borrow | 4 | 4 |
 | `flowlocal_own012` | bridge | flow-local shared borrow under an exclusive one | 2 | 2 |
-| `flowlocal_own013` | bridge | flow-local direct use under an exclusive borrow | 5 | 5 |
+| `flowlocal_own013` | bridge | flow-local direct use under an exclusive borrow | 7 | 7 |
 | `flowlocal_own005_pool` | bridge | flow-local use after move on a pooled buffer | 1 | 1 |
 | `flowlocal_own007_pool` | bridge | flow-local consume/return while borrowed on a pooled buffer | 1 | 1 |
 | `flowlocal_own008_pool` | bridge | flow-local release while borrowed on a pooled buffer | 1 | 1 |

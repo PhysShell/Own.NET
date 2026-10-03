@@ -1,20 +1,20 @@
 {
   "repro_version": 3,
   "input": {
-    "ownir_version": 1,
+    "ownir_version": 2,
     "raw": {
       "algorithm": "sha256",
-      "digest": "91e2d42aad1ded1dc0ae052a2dd3b66ab098761709514dd7f7711408015f759d",
+      "digest": "f82b725252700044c739adfd9a1c11bf2a1758f276851e56dc70cfd84713cbeb",
       "bytes": 208,
-      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMSwKICAibW9kdWxlIjogIlZvY2FiIiwKICAiZnVuY3Rpb25zIjogWwogICAgewogICAgICAibmFtZSI6ICJNIiwKICAgICAgImZpbGUiOiAiRi5jcyIsCiAgICAgICJib2R5IjogWwogICAgICAgIHsKICAgICAgICAgICJvcCI6ICJ0cnkiLAogICAgICAgICAgImxpbmUiOiAyCiAgICAgICAgfQogICAgICBdCiAgICB9CiAgXQp9Cg=="
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMiwKICAibW9kdWxlIjogIlZvY2FiIiwKICAiZnVuY3Rpb25zIjogWwogICAgewogICAgICAibmFtZSI6ICJNIiwKICAgICAgImZpbGUiOiAiRi5jcyIsCiAgICAgICJib2R5IjogWwogICAgICAgIHsKICAgICAgICAgICJvcCI6ICJ0cnkiLAogICAgICAgICAgImxpbmUiOiAyCiAgICAgICAgfQogICAgICBdCiAgICB9CiAgXQp9Cg=="
     },
     "canonical": {
       "algorithm": "sha256",
-      "digest": "866a9d0b4bf4898bbcb2a52b9522201efea52c0a0ff7a75ee2963ad4c88851a9",
+      "digest": "4d49f08eed0965cb7176da0b9ceb5273d9383cfa6da0bc685a3e7f530a6a23e2",
       "bytes": 108
     },
     "document": {
-      "ownir_version": 1,
+      "ownir_version": 2,
       "module": "Vocab",
       "functions": [
         {
@@ -35,7 +35,7 @@
       "id": "python-ownlang",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "91e2d42aad1ded1dc0ae052a2dd3b66ab098761709514dd7f7711408015f759d",
+        "digest": "f82b725252700044c739adfd9a1c11bf2a1758f276851e56dc70cfd84713cbeb",
         "bytes": 208
       },
       "layers": [
@@ -58,7 +58,7 @@
           "document": {
             "degraded": null,
             "module": "Vocab",
-            "ownir_version": 1,
+            "ownir_version": 2,
             "summaries": [
               {
                 "file": "F.cs",
@@ -96,7 +96,7 @@
       "id": "rust-own-bridge",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "91e2d42aad1ded1dc0ae052a2dd3b66ab098761709514dd7f7711408015f759d",
+        "digest": "f82b725252700044c739adfd9a1c11bf2a1758f276851e56dc70cfd84713cbeb",
         "bytes": 208
       },
       "layers": [
@@ -119,7 +119,7 @@
           "document": {
             "degraded": null,
             "module": "Vocab",
-            "ownir_version": 1,
+            "ownir_version": 2,
             "summaries": [
               {
                 "file": "F.cs",

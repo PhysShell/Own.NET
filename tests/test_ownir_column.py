@@ -105,7 +105,7 @@ def _subscription_facts(column: int | None = None) -> dict:
                  "line": 12, "released": False}
     if column is not None:
         sub["column"] = column
-    return {"ownir_version": 1, "module": "WpfApp",
+    return {"ownir_version": 2, "module": "WpfApp",
             "components": [{"name": "CustomerViewModel", "file": "CustomerViewModel.cs",
                             "subscriptions": [sub]}]}
 
@@ -120,7 +120,7 @@ def _flow_acquire_facts(column: int | None = None) -> dict:
     acquire: dict = {"op": "acquire", "var": "tfLeak", "line": 105}
     if column is not None:
         acquire["column"] = column
-    return {"ownir_version": 1, "module": "Extracted", "components": [],
+    return {"ownir_version": 2, "module": "Extracted", "components": [],
             "functions": [{"name": "FlowLocalsSample.TryNeverDisposed",
                            "file": "FlowLocalsSample.cs",
                            "body": [acquire,
@@ -223,11 +223,11 @@ def run() -> int:
     #      the direct `acquire` would leave whole categories line-only, so each path
     #      is exercised here rather than assumed from the code reading.
     def _fn(body):
-        return {"ownir_version": 1, "module": "M", "components": [],
+        return {"ownir_version": 2, "module": "M", "components": [],
                 "functions": [{"name": "F.G", "file": "F.cs", "body": body}]}
 
     # a contract param that became an owned obligation (`_lower_fn_params`)
-    prm = check_facts({"ownir_version": 1, "module": "M", "components": [],
+    prm = check_facts({"ownir_version": 2, "module": "M", "components": [],
                        "functions": [{"name": "F.G", "file": "F.cs",
                                       "params": [{"name": "owned", "line": 30,
                                                   "column": 26, "effect": "consume"}],
@@ -307,8 +307,8 @@ def run() -> int:
               "a re-indented construct must carry ITS column, not a remembered one")
 
     # ---- 8. THINGS THAT MUST NOT MOVE --------------------------------------
-    check(OWNIR_VERSION == 1,
-          f"OWNIR_VERSION must stay 1 (the move/borrow_mut vocabulary) - an "
+    check(OWNIR_VERSION == 2,
+          f"OWNIR_VERSION must stay 2 (the proven_call vocabulary) - an "
           f"optional field with a safe default is "
           f"additive (spec/OwnIR.md §2), got {OWNIR_VERSION}")
     if old and new:

@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "Extracted",
   "comment": "IR the extractor now emits for finally-before-return and switch lowering. (1) FinallyReturnClean: a `return` inside try-with-finally runs the finally (release r) FIRST, so r is released on the return path -> silent (was bailed before). (2) FinallyReturnLeak: an early return with the dispose AFTER the try (empty finally) leaks on that path. (3) SwitchAllDispose: a no-default switch where every case disposes — modelled with the last case as the tail (no empty no-match branch), so it stays silent (Model A: no phantom-leak FP on an exhaustive switch). (4) SwitchOneLeak: a switch whose default/else branch leaks.",
   "components": [],

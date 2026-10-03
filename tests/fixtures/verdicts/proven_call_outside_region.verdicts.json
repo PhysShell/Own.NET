@@ -1,0 +1,4 @@
+{
+  "verdicts_version": 1,
+  "error": "OwnIR 'proven_call' outside a borrow_mut region (frontend/roslyn/protocol-samples/cases/H1a_harmless_call.cs:18) — refused: the op admits a call only inside an exclusive region"
+}

@@ -87,7 +87,7 @@ def main() -> int:
         target = os.environ.get("OWN_FAKE_ENGINE_REWRITE")
         if target:
             with open(target, "wb") as f:
-                f.write(b'{"ownir_version": 1, "module": "RewrittenUnderneath"}\n')
+                f.write(b'{"ownir_version": 2, "module": "RewrittenUnderneath"}\n')
 
     entry = _recorded_entry()
     entry["consumed"] = hash_bytes(raw)

@@ -70,11 +70,15 @@ symbols instead of surfacing as OWN050. `--no-project-refs` opts out; an unbuilt
 project just contributes nothing. Run `dotnet run --project OwnSharp.Extractor -- --help`
 for the full option list.
 
-## State protocols (`--flow-locals`, OwnIR v1)
+## State protocols (`--flow-locals`, OwnIR v2)
 
 With `--flow-locals` the extractor also lowers a **state-protocol surface** — the
 first slice of [P-010](../../docs/proposals/P-010-type-disciplines.md) pillar 9 —
-into the OwnIR v1 ops `move` and `borrow_mut` ([OwnIR.md §5.3](../../spec/OwnIR.md)).
+into the OwnIR ops `move` and `borrow_mut` ([OwnIR.md §5.3](../../spec/OwnIR.md)),
+and, since OwnIR v2, `proven_call`: a call inside a region that touches neither the
+entity nor the token and is dispatched `direct` is handed to the core, which admits it
+only when the shared heap-effect summaries prove it harmless ([OwnIR.md §5.4](../../spec/OwnIR.md),
+[H1](../../docs/notes/h1-proven-call.md)).
 (These are *state* protocols — which state an entity is in. The *obligation*
 protocols of P-025 / OwnIR §8 are a different mechanism with a similar name.)
 It is recognised by two attributes matched by **name**, so a domain carries no

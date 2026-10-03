@@ -1,20 +1,20 @@
 {
   "repro_version": 3,
   "input": {
-    "ownir_version": 1,
+    "ownir_version": 2,
     "raw": {
       "algorithm": "sha256",
-      "digest": "0d87c5f755986f17d7e7a4e7f5193030113ecd8549049c98b3108696fcf036da",
+      "digest": "6283c93c414316a2aed82484f1818c3049e1acd92fcb451dfc8c7e3b9be170cd",
       "bytes": 884,
-      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMSwKICAibW9kdWxlIjogIkRpRGVtbyIsCiAgImNvbXBvbmVudHMiOiBbXSwKICAic2VydmljZXMiOiBbCiAgICB7Im5hbWUiOiAiRW1haWxTZW5kZXIiLCAibGlmZXRpbWUiOiAic2luZ2xldG9uIiwgImZpbGUiOiAiU3RhcnR1cC5jcyIsICJsaW5lIjogMTIsICJkZXBzIjogWyJBcHBEYkNvbnRleHQiXSwgImN0b3JfZmlsZSI6ICJFbWFpbFNlbmRlci5jcyIsICJjdG9yX2xpbmUiOiA1LCAiY3Rvcl90eXBlIjogIkVtYWlsU2VuZGVyIn0sCiAgICB7Im5hbWUiOiAiQXBwRGJDb250ZXh0IiwgImxpZmV0aW1lIjogInNjb3BlZCIsICJmaWxlIjogIlN0YXJ0dXAuY3MiLCAibGluZSI6IDEzLCAiZGVwcyI6IFtdfSwKICAgIHsibmFtZSI6ICJDbG9jayIsICJsaWZldGltZSI6ICJzaW5nbGV0b24iLCAiZmlsZSI6ICJTdGFydHVwLmNzIiwgImxpbmUiOiAxNCwgImRlcHMiOiBbXX0sCiAgICB7Im5hbWUiOiAiUmVwb3J0U2VydmljZSIsICJsaWZldGltZSI6ICJzaW5nbGV0b24iLCAiZmlsZSI6ICJTdGFydHVwLmNzIiwgImxpbmUiOiAxNSwgImRlcHMiOiBbIlVuaXRPZldvcmsiXSwgImN0b3JfZmlsZSI6ICJSZXBvcnRTZXJ2aWNlLmNzIiwgImN0b3JfbGluZSI6IDcsICJjdG9yX3R5cGUiOiAiUmVwb3J0U2VydmljZSJ9LAogICAgeyJuYW1lIjogIlVuaXRPZldvcmsiLCAibGlmZXRpbWUiOiAidHJhbnNpZW50IiwgImZpbGUiOiAiU3RhcnR1cC5jcyIsICJsaW5lIjogMTYsICJkZXBzIjogWyJBcHBEYkNvbnRleHQiXX0sCiAgICB7Im5hbWUiOiAiUmVxdWVzdExvZyIsICJsaWZldGltZSI6ICJzY29wZWQiLCAiZmlsZSI6ICJTdGFydHVwLmNzIiwgImxpbmUiOiAxNywgImRlcHMiOiBbIkFwcERiQ29udGV4dCJdfQogIF0KfQo="
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMiwKICAibW9kdWxlIjogIkRpRGVtbyIsCiAgImNvbXBvbmVudHMiOiBbXSwKICAic2VydmljZXMiOiBbCiAgICB7Im5hbWUiOiAiRW1haWxTZW5kZXIiLCAibGlmZXRpbWUiOiAic2luZ2xldG9uIiwgImZpbGUiOiAiU3RhcnR1cC5jcyIsICJsaW5lIjogMTIsICJkZXBzIjogWyJBcHBEYkNvbnRleHQiXSwgImN0b3JfZmlsZSI6ICJFbWFpbFNlbmRlci5jcyIsICJjdG9yX2xpbmUiOiA1LCAiY3Rvcl90eXBlIjogIkVtYWlsU2VuZGVyIn0sCiAgICB7Im5hbWUiOiAiQXBwRGJDb250ZXh0IiwgImxpZmV0aW1lIjogInNjb3BlZCIsICJmaWxlIjogIlN0YXJ0dXAuY3MiLCAibGluZSI6IDEzLCAiZGVwcyI6IFtdfSwKICAgIHsibmFtZSI6ICJDbG9jayIsICJsaWZldGltZSI6ICJzaW5nbGV0b24iLCAiZmlsZSI6ICJTdGFydHVwLmNzIiwgImxpbmUiOiAxNCwgImRlcHMiOiBbXX0sCiAgICB7Im5hbWUiOiAiUmVwb3J0U2VydmljZSIsICJsaWZldGltZSI6ICJzaW5nbGV0b24iLCAiZmlsZSI6ICJTdGFydHVwLmNzIiwgImxpbmUiOiAxNSwgImRlcHMiOiBbIlVuaXRPZldvcmsiXSwgImN0b3JfZmlsZSI6ICJSZXBvcnRTZXJ2aWNlLmNzIiwgImN0b3JfbGluZSI6IDcsICJjdG9yX3R5cGUiOiAiUmVwb3J0U2VydmljZSJ9LAogICAgeyJuYW1lIjogIlVuaXRPZldvcmsiLCAibGlmZXRpbWUiOiAidHJhbnNpZW50IiwgImZpbGUiOiAiU3RhcnR1cC5jcyIsICJsaW5lIjogMTYsICJkZXBzIjogWyJBcHBEYkNvbnRleHQiXX0sCiAgICB7Im5hbWUiOiAiUmVxdWVzdExvZyIsICJsaWZldGltZSI6ICJzY29wZWQiLCAiZmlsZSI6ICJTdGFydHVwLmNzIiwgImxpbmUiOiAxNywgImRlcHMiOiBbIkFwcERiQ29udGV4dCJdfQogIF0KfQo="
     },
     "canonical": {
       "algorithm": "sha256",
-      "digest": "f032d100186d884fc1778e501715e23675460cef64271ddd00525e42f2a88d85",
+      "digest": "fe713a6d2482c003b5ea8897b893587205a9b763a351d1616f3e71e4c6c1deb9",
       "bytes": 767
     },
     "document": {
-      "ownir_version": 1,
+      "ownir_version": 2,
       "module": "DiDemo",
       "components": [],
       "services": [
@@ -82,7 +82,7 @@
       "id": "python-ownlang",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "0d87c5f755986f17d7e7a4e7f5193030113ecd8549049c98b3108696fcf036da",
+        "digest": "6283c93c414316a2aed82484f1818c3049e1acd92fcb451dfc8c7e3b9be170cd",
         "bytes": 884
       },
       "layers": [
@@ -198,7 +198,7 @@
           "document": {
             "degraded": null,
             "module": "DiDemo",
-            "ownir_version": 1,
+            "ownir_version": 2,
             "summaries": [],
             "unresolved": []
           }
@@ -294,7 +294,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "1dc9b97ea182ba82d79f49123f5e491306bc99e1e5fd33349c1fd369986655d8",
+            "digest": "dfa029cd93a66e1e149d70180aa209ea74dc6e51d4186ec898022ef23d7aaa47",
             "bytes": 2564
           }
         }
@@ -304,7 +304,7 @@
       "id": "rust-own-bridge",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "0d87c5f755986f17d7e7a4e7f5193030113ecd8549049c98b3108696fcf036da",
+        "digest": "6283c93c414316a2aed82484f1818c3049e1acd92fcb451dfc8c7e3b9be170cd",
         "bytes": 884
       },
       "layers": [
@@ -420,7 +420,7 @@
           "document": {
             "degraded": null,
             "module": "DiDemo",
-            "ownir_version": 1,
+            "ownir_version": 2,
             "summaries": [],
             "unresolved": []
           }
@@ -516,7 +516,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "1dc9b97ea182ba82d79f49123f5e491306bc99e1e5fd33349c1fd369986655d8",
+            "digest": "dfa029cd93a66e1e149d70180aa209ea74dc6e51d4186ec898022ef23d7aaa47",
             "bytes": 2564
           }
         }

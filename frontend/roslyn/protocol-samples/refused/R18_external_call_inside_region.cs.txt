@@ -1,0 +1,22 @@
+using System;
+using System.Threading.Tasks;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// H1 does not reach this one: a call to a method with no source (Console.WriteLine) can never
+// be proven harmless, so the lowering refuses it exactly as it did before OwnIR v2. No
+// allowlist: an external call is code with no stated contract.
+public static class R18ExternalCallInsideRegion
+{
+    public static async Task Run(Db db, int id)
+    {
+        var order = await db.SingleAsync(id);
+        Protocol.WithApproved(order, approved =>
+        {
+            Console.WriteLine("x");
+            approved.Ship();
+        });
+        await db.SaveChangesAsync();
+    }
+}

@@ -8,7 +8,7 @@
   "properties": {
     "ownir_version": {
       "description": "OwnIR fact-vocabulary version. Every producer stamps the same integer (OWNIR_VERSION in ownlang/ownir.py); a document whose version differs from the core's is rejected at load (spec/OwnIR.md IR1/IR2). An absent field is read as the current version by the core, but this schema requires it.",
-      "const": 1
+      "const": 2
     },
     "module": {
       "description": "The extracted module/assembly name.",
@@ -43,6 +43,15 @@
       "description": "Per-method ordered obligation-event trees the protocols are checked against (spec/OwnIR.md §8) — the fact side of the pair.",
       "type": "array",
       "items": { "$ref": "#/$defs/protocolFunction" }
+    },
+    "heap_effects": {
+      "description": "OwnIR v2 (H1): the heap-effect SOURCE FACTS a `proven_call` is judged against, in the H0 vocabulary (docs/notes/heap-effect-summaries.md; validated record by record by ownlang/heap_effects.py `load`): the call-site records and the method records they reach. Required when any `proven_call` is present; a document with one and without this section is refused. Facts only — the core solves them.",
+      "type": "object",
+      "required": ["heap_effects_version", "methods"],
+      "properties": {
+        "heap_effects_version": { "const": 1 },
+        "methods": { "type": "array", "items": { "type": "object" } }
+      }
     },
     "orphaned_awaitables": {
       "description": "Optional, additive: the orphaned-awaitable sites feeding the OWN053 advisory (spec/OwnIR.md §9); absent when the extractor saw no site. Validated LAST by both strict doors (P-OWN053-DOOR); the tolerant coercions remain the contract for check_facts on an un-validated document.",
@@ -323,6 +332,18 @@
             "body": { "type": "array", "items": { "$ref": "#/$defs/flowOp" } }
           },
           "required": ["op", "owner", "binding", "body"]
+        },
+        {
+          "title": "proven_call",
+          "description": "OwnIR v2 (H1). A call inside a `borrow_mut` body that touches nothing the core tracks and that the frontend did not refuse, because the heap-effect summaries might prove it harmless. MUST-UNDERSTAND: the core admits it only when the shared summary layer proves the `site` record (and every method it calls) harmless over the document's `heap_effects` section, and refuses the whole document otherwise. An admitted call lowers to nothing (spec/Bridge.md BR-L14).",
+          "properties": {
+            "op": { "const": "proven_call" },
+            "line": { "$ref": "#/$defs/sourceLine" },
+            "column": { "$ref": "#/$defs/sourceColumn" },
+            "site": { "type": "string", "minLength": 1 },
+            "callee": { "type": "string", "minLength": 1 }
+          },
+          "required": ["op", "site", "callee"]
         }
       ]
     },

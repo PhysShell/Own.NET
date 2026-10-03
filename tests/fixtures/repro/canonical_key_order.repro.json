@@ -1,16 +1,16 @@
 {
   "repro_version": 3,
   "input": {
-    "ownir_version": 1,
+    "ownir_version": 2,
     "raw": {
       "algorithm": "sha256",
-      "digest": "fbb8fcbd328fd7ccc555d9f41d3878991ce628f92e3642091b4218eacb6ad3dc",
+      "digest": "576a0b7b733b157fe13aedd58b8417a8413cb5caa5af89c838755d2f8bf9730e",
       "bytes": 377,
-      "base64": "ewogICJtb2R1bGUiOiAiS2V5T3JkZXIiLAogICJjb21wb25lbnRzIjogWwogICAgewogICAgICAic3Vic2NyaXB0aW9ucyI6IFsKICAgICAgICB7InJlbGVhc2VkIjogZmFsc2UsICJyZXNvdXJjZSI6ICJzdWJzY3JpYmUiLCAibGluZSI6IDMsICJldmVudCI6ICJiLlpldGEiLCAiaGFuZGxlciI6ICJPblpldGEifSwKICAgICAgICB7ImV2ZW50IjogImEuQWxwaGEiLCAibGluZSI6IDQsICJyZXNvdXJjZSI6ICJzdWJzY3JpYmUiLCAicmVsZWFzZWQiOiB0cnVlLCAiaGFuZGxlciI6ICJPbkFscGhhIn0KICAgICAgXSwKICAgICAgImZpbGUiOiAiS2V5T3JkZXIuY3MiLAogICAgICAibmFtZSI6ICJaZWQiCiAgICB9CiAgXSwKICAib3duaXJfdmVyc2lvbiI6IDEKfQo="
+      "base64": "ewogICJtb2R1bGUiOiAiS2V5T3JkZXIiLAogICJjb21wb25lbnRzIjogWwogICAgewogICAgICAic3Vic2NyaXB0aW9ucyI6IFsKICAgICAgICB7InJlbGVhc2VkIjogZmFsc2UsICJyZXNvdXJjZSI6ICJzdWJzY3JpYmUiLCAibGluZSI6IDMsICJldmVudCI6ICJiLlpldGEiLCAiaGFuZGxlciI6ICJPblpldGEifSwKICAgICAgICB7ImV2ZW50IjogImEuQWxwaGEiLCAibGluZSI6IDQsICJyZXNvdXJjZSI6ICJzdWJzY3JpYmUiLCAicmVsZWFzZWQiOiB0cnVlLCAiaGFuZGxlciI6ICJPbkFscGhhIn0KICAgICAgXSwKICAgICAgImZpbGUiOiAiS2V5T3JkZXIuY3MiLAogICAgICAibmFtZSI6ICJaZWQiCiAgICB9CiAgXSwKICAib3duaXJfdmVyc2lvbiI6IDIKfQo="
     },
     "canonical": {
       "algorithm": "sha256",
-      "digest": "84301b7dadc06e52b558b3da71322a8f1d863d45694e9ebe7647c9dce5ebb049",
+      "digest": "8b620e3fb1ad221a7468dee4968fd32303378983b292c9bcfe17eec55126ebbb",
       "bytes": 283
     },
     "document": {
@@ -37,7 +37,7 @@
           "name": "Zed"
         }
       ],
-      "ownir_version": 1
+      "ownir_version": 2
     }
   },
   "engines": [
@@ -45,7 +45,7 @@
       "id": "python-ownlang",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "fbb8fcbd328fd7ccc555d9f41d3878991ce628f92e3642091b4218eacb6ad3dc",
+        "digest": "576a0b7b733b157fe13aedd58b8417a8413cb5caa5af89c838755d2f8bf9730e",
         "bytes": 377
       },
       "layers": [
@@ -208,7 +208,7 @@
           "document": {
             "degraded": null,
             "module": "KeyOrder",
-            "ownir_version": 1,
+            "ownir_version": 2,
             "summaries": [],
             "unresolved": []
           }
@@ -249,7 +249,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "d41ab0ff6d94e1967ac19effc4eaf992fc23821d1f2d52f5fba79ccb934f5fe4",
+            "digest": "d9515ded12e0f0737b51347f7fba046ab64ea368af56dfb205afc97425977163",
             "bytes": 793
           }
         }
@@ -259,7 +259,7 @@
       "id": "rust-own-bridge",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "fbb8fcbd328fd7ccc555d9f41d3878991ce628f92e3642091b4218eacb6ad3dc",
+        "digest": "576a0b7b733b157fe13aedd58b8417a8413cb5caa5af89c838755d2f8bf9730e",
         "bytes": 377
       },
       "layers": [
@@ -422,7 +422,7 @@
           "document": {
             "degraded": null,
             "module": "KeyOrder",
-            "ownir_version": 1,
+            "ownir_version": 2,
             "summaries": [],
             "unresolved": []
           }
@@ -463,7 +463,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "d41ab0ff6d94e1967ac19effc4eaf992fc23821d1f2d52f5fba79ccb934f5fe4",
+            "digest": "d9515ded12e0f0737b51347f7fba046ab64ea368af56dfb205afc97425977163",
             "bytes": 793
           }
         }

@@ -7,6 +7,8 @@
   "R15_region_opened_inside_protocol_type": "a protocol region is opened inside 'ParcelHandlers', one of the protocol's own types",
   "R16_token_handed_out_past_a_region_entry": "a callback that takes protocol token 'OpenLetter' is not the in-place body of a region entry",
   "R17_token_taken_by_a_local_function": "a callback that takes protocol token 'PackedCrate' is not the in-place body of a region entry",
+  "R18_external_call_inside_region": "a call to 'System.Console.WriteLine' inside a protocol region runs code with no stated contract",
+  "R19_virtual_call_inside_region": "a call to 'Own.Protocols.Cases.IClock.Ticks' inside a protocol region runs code with no stated contract",
   "R1_default_token": "has no lowerable origin",
   "R2_token_outside_region": "is declared outside a protocol region",
   "R3_return_inside_region": "`return` inside a protocol region",
@@ -15,5 +17,8 @@
   "R6_region_body_not_a_lambda": "must be a lambda written in place",
   "R7_entity_not_a_local": "must be a local or a parameter",
   "R8_token_not_a_ref_struct": "must be a ref struct",
-  "R9_opaque_call_inside_region": "a call to 'Own.Protocols.Sample.Backdoor.AnnotateLast' inside a protocol region runs code with no stated contract"
+  "R9_opaque_call_inside_region": {
+    "stage": "core",
+    "text": "OwnIR 'proven_call' to 'Own.Protocols.Sample.Backdoor.AnnotateLast()' is not proven harmless: 'Own.Protocols.Sample.Backdoor.AnnotateLast()': writes.instance is may"
+  }
 }

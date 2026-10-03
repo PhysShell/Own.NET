@@ -19,14 +19,15 @@ A facts document is a single JSON object:
 
 ```json
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "WpfApp",
   "components": [ /* §4 owned-resource records, grouped by type */ ],
   "functions":  [ /* §5 flow bodies (intra-procedural CFG facts) */ ],
   "services":   [ /* §6 DI registration graph */ ],
   "effects":    [ /* §7 reactive-effect graph (EFF001) */ ],
   "protocols":  [ /* §8 obligation protocols (OBL001-005): rules */ ],
-  "protocol_functions": [ /* §8 obligation protocols: per-method events */ ]
+  "protocol_functions": [ /* §8 obligation protocols: per-method events */ ],
+  "heap_effects": { /* §5.4 the facts a `proven_call` is judged against (v2) */ }
 }
 ```
 
@@ -47,12 +48,13 @@ OwnTS frontend. A document whose `ownir_version` differs from the core's raises
 silently mis-reading facts. A document that omits the field is read as the
 current version (the producers that omit it predate the field).
 
-The version is currently **1**:
+The version is currently **2**:
 
 | Version | What it added |
 |---|---|
 | 0 | the initial vocabulary |
 | 1 | two flow ops: `move` ([§5](#5-flow-bodies-functions)) and the compound `borrow_mut` ([§5.3](#53-exclusive-regions-borrow_mut)) |
+| 2 | the must-understand flow op `proven_call` and the `heap_effects` section it is judged against ([§5.4](#54-proven-calls-proven_call-v2)) |
 
 A document stamped with an older version is refused, not migrated: no core
 reads two versions, and a producer and a core are built from the same commit.
@@ -325,6 +327,7 @@ op vocabulary:
 | `while` | `body` (sub-body) | a `While` — a back-edge the core's worklist fixpoint converges over (A1) |
 | `move` | `var`, `src` | a `Let`+`Move`: `var` takes ownership of `src`'s obligation and `src` is dead after it (a later use is **OWN005**) |
 | `borrow_mut` | `owner`, `binding`, `body` (sub-body) | a `BorrowBlock`: an exclusive loan of the local `owner` for the block, visible inside as `binding` (§5.3) |
+| `proven_call` | `site`, `callee` | nothing, once ADMITTED: a call inside a region the shared heap-effect summaries prove harmless; refused otherwise (§5.4) |
 
 Anything else is a hard error (§2, fail-loud). Overwriting a tracked local (a
 re-bound `call` result or `alias_join` target) kills its previous ownership
@@ -453,6 +456,44 @@ between a token and the region it was minted in. A token acquired outside any
 region, two tokens in one region, and a token spent against a different owner
 are all accepted by the core; a frontend that uses regions for a state protocol
 must make those shapes unrepresentable in what it emits.
+
+### 5.4 Proven calls (`proven_call`, v2)
+
+A region is default-deny: a call inside it that touches neither the owner nor a
+token, and has no ownership contract, used to be refused by the frontend. OwnIR v2
+lets such a call through **only when it is proven harmless**, and moves that proof
+out of the frontend into the core's shared heap-effect summary layer
+([`docs/notes/h1-proven-call.md`](../docs/notes/h1-proven-call.md)).
+
+```json
+{"op": "proven_call", "site": "site:Handlers.cs:42:21",
+ "callee": "Shop.Pricing.Twice(int)", "line": 42}
+```
+
+The op is **must-understand**, which is why it moved the version (§2): a core that
+does not know it refuses the document (IR1 on the stamp, IR4 on the op), so no core
+can read an unproven call as nothing. Its judge is the top-level `heap_effects`
+section, in the H0 vocabulary ([`heap-effect-summaries.md`](../docs/notes/heap-effect-summaries.md)):
+the record of the call `site` (the call expression, walked like a body, every
+variable from outside it reading as `heap`) and the records of every method it
+reaches through `direct` calls. The section carries **facts only**; the core solves
+it.
+
+Before anything is lowered, every `proven_call` in the document is admitted or the
+document is refused (`OwnIRError`, [Bridge.md](Bridge.md) BR-L14):
+
+- `site` and `callee` must be non-empty strings, and the op must sit inside a
+  `borrow_mut` body;
+- the section must be present and valid, and must hold a record for `site`;
+- every call in the site must be `direct`, to a method the section summarizes, and
+  the site must call `callee` directly;
+- every one of those methods, and the site itself, must solve to **harmless**: every
+  parameter and the receiver at most `borrow`, no instance, static or indirect write,
+  nothing returned, and so no Unknown anywhere.
+
+An admitted `proven_call` lowers to nothing; inference and the MOS dump ignore it.
+What the frontend still refuses is unchanged: a call it can see is virtual, external,
+through a delegate, or a local function, and anything else no summary can describe.
 
 ## 6. DI registration graph (`services[]`)
 

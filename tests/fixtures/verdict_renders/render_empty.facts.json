@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "Empty",
   "_doc": [
     "A clean document: every line-per-finding surface is an empty list and the",

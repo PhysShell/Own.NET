@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "Own014NoSlice",
   "_doc": [
     "BR-V5's 'a slice shorter than two steps is dropped', on the OWN014 escape",

@@ -1,20 +1,20 @@
 {
   "repro_version": 3,
   "input": {
-    "ownir_version": 1,
+    "ownir_version": 2,
     "raw": {
       "algorithm": "sha256",
-      "digest": "c28447881206b741a6c80335c945308cbbf16b8eb7a44e6490a44e1c17a9ab05",
+      "digest": "0cf753e1fd3d1ad9630128fc387a96d00b15bc8e97105c732b0348e17cb58b9a",
       "bytes": 948,
-      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMSwKICAibW9kdWxlIjogIkRvb3IiLAogICJjb21wb25lbnRzIjogW10sCiAgIl9kb2MiOiBbCiAgICAiIzI5NCBPRC0xOiBCUi1EMidzIHNraXAtbm90LWNvZXJjZSBvbiB0aGUgdG9sZXJhbnQgZG9vci4gVGhlIHJlZmVyZW5jZSBTS0lQUyIsCiAgICAidGhlIGVmZmVjdCB3aG9zZSBkZXBzIGlzIGEgYmFyZSBzdHJpbmcgKG5vIHNwdXJpb3VzIEVGRjAwMSkgYW5kIHJlcG9ydHMgdGhlIiwKICAgICJ3ZWxsLWZvcm1lZCBzaWJsaW5nOyB0aGUgUnVzdCB0b2xlcmFudCBlbnRyeSBpcyB0aGUgdHlwZWQgY29uc3RydWN0b3IsIHdoaWNoIiwKICAgICJyZWZ1c2VzIHRoZSBkb2N1bWVudCBiZWZvcmUgdGhlIGJyaWRnZSdzIHNraXAgcnVsZSBjYW4gcnVuLiIKICBdLAogICJlZmZlY3RzIjogWwogICAgewogICAgICAiY29tcG9uZW50IjogIlgiLAogICAgICAiZmlsZSI6ICJYLnRzeCIsCiAgICAgICJsaW5lIjogMSwKICAgICAgImlvIjogdHJ1ZSwKICAgICAgImRlcHMiOiAiYSIsCiAgICAgICJiaW5kaW5ncyI6IFsKICAgICAgICB7CiAgICAgICAgICAibmFtZSI6ICJhIiwKICAgICAgICAgICJpbml0IjogIm9iamVjdCIsCiAgICAgICAgICAicmVmcyI6IFtdLAogICAgICAgICAgImxpbmUiOiAxCiAgICAgICAgfQogICAgICBdCiAgICB9LAogICAgewogICAgICAiY29tcG9uZW50IjogIk9rIiwKICAgICAgImZpbGUiOiAiT2sudHN4IiwKICAgICAgImxpbmUiOiA5LAogICAgICAiaW8iOiB0cnVlLAogICAgICAiZGVwcyI6IFsKICAgICAgICAibyIKICAgICAgXSwKICAgICAgImJpbmRpbmdzIjogWwogICAgICAgIHsKICAgICAgICAgICJuYW1lIjogIm8iLAogICAgICAgICAgImluaXQiOiAib2JqZWN0IiwKICAgICAgICAgICJyZWZzIjogW10sCiAgICAgICAgICAibGluZSI6IDgKICAgICAgICB9CiAgICAgIF0KICAgIH0KICBdCn0K"
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMiwKICAibW9kdWxlIjogIkRvb3IiLAogICJjb21wb25lbnRzIjogW10sCiAgIl9kb2MiOiBbCiAgICAiIzI5NCBPRC0xOiBCUi1EMidzIHNraXAtbm90LWNvZXJjZSBvbiB0aGUgdG9sZXJhbnQgZG9vci4gVGhlIHJlZmVyZW5jZSBTS0lQUyIsCiAgICAidGhlIGVmZmVjdCB3aG9zZSBkZXBzIGlzIGEgYmFyZSBzdHJpbmcgKG5vIHNwdXJpb3VzIEVGRjAwMSkgYW5kIHJlcG9ydHMgdGhlIiwKICAgICJ3ZWxsLWZvcm1lZCBzaWJsaW5nOyB0aGUgUnVzdCB0b2xlcmFudCBlbnRyeSBpcyB0aGUgdHlwZWQgY29uc3RydWN0b3IsIHdoaWNoIiwKICAgICJyZWZ1c2VzIHRoZSBkb2N1bWVudCBiZWZvcmUgdGhlIGJyaWRnZSdzIHNraXAgcnVsZSBjYW4gcnVuLiIKICBdLAogICJlZmZlY3RzIjogWwogICAgewogICAgICAiY29tcG9uZW50IjogIlgiLAogICAgICAiZmlsZSI6ICJYLnRzeCIsCiAgICAgICJsaW5lIjogMSwKICAgICAgImlvIjogdHJ1ZSwKICAgICAgImRlcHMiOiAiYSIsCiAgICAgICJiaW5kaW5ncyI6IFsKICAgICAgICB7CiAgICAgICAgICAibmFtZSI6ICJhIiwKICAgICAgICAgICJpbml0IjogIm9iamVjdCIsCiAgICAgICAgICAicmVmcyI6IFtdLAogICAgICAgICAgImxpbmUiOiAxCiAgICAgICAgfQogICAgICBdCiAgICB9LAogICAgewogICAgICAiY29tcG9uZW50IjogIk9rIiwKICAgICAgImZpbGUiOiAiT2sudHN4IiwKICAgICAgImxpbmUiOiA5LAogICAgICAiaW8iOiB0cnVlLAogICAgICAiZGVwcyI6IFsKICAgICAgICAibyIKICAgICAgXSwKICAgICAgImJpbmRpbmdzIjogWwogICAgICAgIHsKICAgICAgICAgICJuYW1lIjogIm8iLAogICAgICAgICAgImluaXQiOiAib2JqZWN0IiwKICAgICAgICAgICJyZWZzIjogW10sCiAgICAgICAgICAibGluZSI6IDgKICAgICAgICB9CiAgICAgIF0KICAgIH0KICBdCn0K"
     },
     "canonical": {
       "algorithm": "sha256",
-      "digest": "b85df11e6d8bd400d38b209009a3517bce2bce543e65fd2faac863dcfd057cf1",
+      "digest": "3e2c8ccf546f0722262d8783368939732046902c669d6ad2db6ab9ca71880d8c",
       "bytes": 622
     },
     "document": {
-      "ownir_version": 1,
+      "ownir_version": 2,
       "module": "Door",
       "components": [],
       "_doc": [
@@ -64,7 +64,7 @@
       "id": "python-ownlang",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "c28447881206b741a6c80335c945308cbbf16b8eb7a44e6490a44e1c17a9ab05",
+        "digest": "0cf753e1fd3d1ad9630128fc387a96d00b15bc8e97105c732b0348e17cb58b9a",
         "bytes": 948
       },
       "layers": [
@@ -180,7 +180,7 @@
           "document": {
             "degraded": null,
             "module": "Door",
-            "ownir_version": 1,
+            "ownir_version": 2,
             "summaries": [],
             "unresolved": []
           }
@@ -232,7 +232,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "77b36d9af18fb0d999b5c37a36ea82da135413dddb3f4a1ae9cda738736e46fc",
+            "digest": "af6e42e52310d88da1c4d586919ce3282ed3dc312a751c5fc85e6118ff93d67d",
             "bytes": 1299
           }
         }
@@ -242,7 +242,7 @@
       "id": "rust-own-bridge",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "c28447881206b741a6c80335c945308cbbf16b8eb7a44e6490a44e1c17a9ab05",
+        "digest": "0cf753e1fd3d1ad9630128fc387a96d00b15bc8e97105c732b0348e17cb58b9a",
         "bytes": 948
       },
       "layers": [

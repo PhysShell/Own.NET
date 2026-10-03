@@ -19,7 +19,8 @@ byte, every rejection text, with zero Python.
 
 Beyond the bytes this pins the MEANING of the kill fixtures (a golden alone would
 happily freeze a wrong answer), the order-independence of the solve, and that H0 is
-inert: no module of the checker imports the summary domain.
+inert except through one door: only the OwnIR v2 `proven_call` admission (ownir.py)
+reads the summary domain, and only through the names it needs.
 
 Run:  python tests/test_heap_effects_fixtures.py            (verify)
       python tests/test_heap_effects_fixtures.py --write    (regenerate)
@@ -195,21 +196,44 @@ def _semantics() -> list[str]:
     return fails
 
 
+# H1 (OwnIR v2 `proven_call`) is the ONE consumer allowed to read the summary domain,
+# and only through these names: the admission in ownir.py. Any other checker module
+# reaching into it would be a second, unreviewed way for summaries to move a verdict.
+_CONSUMER = "ownir.py"
+_CONSUMED = {"HeapEffectsError", "load", "site_verdict", "solve"}
+
+
 def _inert() -> list[str]:
-    """H0 is inert: no checker module imports the summary domain."""
+    """The summary domain moves a verdict through exactly one door: ownir.py's
+    `proven_call` admission, importing exactly `_CONSUMED`. Nothing else imports it."""
     fails: list[str] = []
     pkg = os.path.join(ROOT, "ownlang")
+    seen: set[str] = set()
     for name in sorted(os.listdir(pkg)):
         if not name.endswith(".py") or name == "heap_effects.py":
             continue
         with open(os.path.join(pkg, name), encoding="utf-8") as f:
             tree = ast.parse(f.read())
         for node in ast.walk(tree):
-            mods = ([a.name for a in node.names] if isinstance(node, ast.Import)
-                    else [node.module or ""] if isinstance(node, ast.ImportFrom) else [])
-            names = [a.name for a in node.names] if isinstance(node, ast.ImportFrom) else []
-            if any(m.endswith("heap_effects") for m in mods) or "heap_effects" in names:
-                fails.append(f"ownlang/{name} imports heap_effects: H0 must stay inert")
+            if isinstance(node, ast.Import) and any(
+                    a.name.endswith("heap_effects") for a in node.names):
+                fails.append(f"ownlang/{name} imports heap_effects as a module")
+            elif isinstance(node, ast.ImportFrom) and (node.module or "").endswith(
+                    "heap_effects"):
+                names = {a.name for a in node.names}
+                if name != _CONSUMER:
+                    fails.append(f"ownlang/{name} imports heap_effects: only the "
+                                 f"proven_call admission ({_CONSUMER}) may")
+                elif not names <= _CONSUMED:
+                    fails.append(f"ownlang/{name} imports {sorted(names - _CONSUMED)} from "
+                                 f"heap_effects: the admission reads only {sorted(_CONSUMED)}")
+                seen |= names
+            elif isinstance(node, ast.ImportFrom) and node.module is None and any(
+                    a.name == "heap_effects" for a in node.names):
+                fails.append(f"ownlang/{name} imports heap_effects as a module")
+    if seen != _CONSUMED:
+        fails.append(f"the proven_call admission imports {sorted(seen)} from heap_effects, "
+                     f"expected {sorted(_CONSUMED)}")
     return fails
 
 

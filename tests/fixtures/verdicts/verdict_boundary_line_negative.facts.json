@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "Bound",
   "_doc": [
     "A promoted #259 coordinate-domain control: a negative param line. Before",

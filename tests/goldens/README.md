@@ -44,6 +44,15 @@ the message "must stay 0", meaning "the flag does not move the version" but
 checking a literal. It now checks what it meant: the flag-on facts carry the
 core's current `OWNIR_VERSION`, and the same one as the flag-off facts.
 
+**Amended a third time, by OwnIR v2.** The flow vocabulary gained the
+must-understand `proven_call` (H1, `docs/notes/h1-proven-call.md`), and
+`OWNIR_VERSION` moved 1 → 2. One line of this file changed — `"ownir_version": 1`
+became `"ownir_version": 2` — and nothing else: no record, no key, no order. The
+sample has no protocol region, so the extractor writes no `proven_call` and no
+`heap_effects` section for it; the new section is exercised by
+`tests/fixtures/fix_candidates/AdditiveSections.cs` instead, whose checker reads the
+section list off the extractor's envelope.
+
 ### Regenerating (only when an unrelated extractor change intentionally alters this sample's facts)
 
 ```bash

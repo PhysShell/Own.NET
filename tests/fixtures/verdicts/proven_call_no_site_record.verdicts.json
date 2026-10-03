@@ -1,0 +1,4 @@
+{
+  "verdicts_version": 1,
+  "error": "OwnIR 'proven_call' site 'site:frontend/roslyn/protocol-samples/cases/H1a_harmless_call.cs:18:21' has no record in 'heap_effects' (frontend/roslyn/protocol-samples/cases/H1a_harmless_call.cs:18) — refused: no evidence is not harmless"
+}

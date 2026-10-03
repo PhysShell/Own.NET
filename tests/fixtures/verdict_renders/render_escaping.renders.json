@@ -51,7 +51,7 @@
                 }
               ],
               "properties": {
-                "ownirSchemaVersion": 1
+                "ownirSchemaVersion": 2
               }
             }
           },
@@ -103,7 +103,7 @@
                 }
               ],
               "properties": {
-                "ownirSchemaVersion": 1
+                "ownirSchemaVersion": 2
               }
             }
           },

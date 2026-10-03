@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "Tiers",
   "_doc": [
     "BR-V6: an injected-source `+=` or ignored `.Subscribe()` is the warning tier;",
