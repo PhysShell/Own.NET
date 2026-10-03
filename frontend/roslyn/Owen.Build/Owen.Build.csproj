@@ -1,0 +1,75 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Owen.Build: the GENERIC Owen build host (OX-01, docs/notes/owen-extension-alpha-preregistration.md,
+       spec/OwenExtension.md).
+
+       It exists because the host has to be a PackageReference (Owen.Cli is a DotnetTool
+       package and NuGet refuses one as a reference, NU1212) and because every extension must
+       share ONE copy of the extractor and the Rust core. It knows no extension: extensions
+       declare themselves with an <OwenExtensionDescriptor> item and depend on this package.
+
+       Payload: tools/net8.0/any/ is the publish closure of OwnSharp.Cli — the very program the
+       Owen.Cli tool is (`owen`), with the bundled extractor and rust-core/<platform>/own-cli —
+       minus the vendored Python core, which the Rust engine never touches. build/ and
+       buildTransitive/ carry the targets that run `owen build-check` after every build.
+
+       Pack it with the platform cores staged exactly as for Owen.Cli:
+         dotnet pack frontend/roslyn/Owen.Build -c Release -p:OwenRustCoreDir=/abs/staged -->
+  <PropertyGroup>
+    <!-- no assembly of its own: the TFM only lets an extension project reference this one -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <NoWarn>$(NoWarn);NU5128;NU5100</NoWarn>
+    <IsPackable>true</IsPackable>
+    <PackageId>Owen.Build</PackageId>
+    <!-- the host version an extension's `requires.host` is checked against; it is the
+         version of the program it packs (OwnSharp.Cli <Version>) and must stay equal to it -->
+    <Version>0.1.0</Version>
+    <Description>Owen build host: runs Owen (the Roslyn extractor and the Rust analysis core it ships) on every build for the Owen extensions a project references, and reports findings as ordinary build diagnostics.</Description>
+    <Authors>PhysShell</Authors>
+    <PackageProjectUrl>https://github.com/PhysShell/Own.NET</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/PhysShell/Own.NET</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>owen;static-analysis;msbuild;ownership;lifetime</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <DevelopmentDependency>false</DevelopmentDependency>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <Import Project="..\OwenRustCore.props" />
+
+  <ItemGroup>
+    <None Include="build\Owen.Build.props" Pack="true" PackagePath="build" />
+    <None Include="build\Owen.Build.targets" Pack="true" PackagePath="build" />
+    <None Include="build\Owen.Build.props" Pack="true" PackagePath="buildTransitive" />
+    <None Include="build\Owen.Build.targets" Pack="true" PackagePath="buildTransitive" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <_OwenHostStage>$(MSBuildProjectDirectory)/$(BaseIntermediateOutputPath)host-stage/</_OwenHostStage>
+  </PropertyGroup>
+
+  <!-- A host package without the engine would install an Owen that cannot analyse. -->
+  <Target Name="OwenBuildNeedsCore" BeforeTargets="GenerateNuspec">
+    <Error Condition="'$(OwenRustCoreDir)' == ''"
+           Text="Owen.Build must be packed with -p:OwenRustCoreDir=&lt;staged platform cores&gt;: the host runs the Rust core and has no other engine." />
+  </Target>
+
+  <Target Name="OwenBuildPayload" BeforeTargets="_GetPackageFiles" DependsOnTargets="OwenRustCoreInventory"
+          Condition="'$(OwenRustCoreDir)' != ''">
+    <RemoveDir Directories="$(_OwenHostStage)" />
+    <MSBuild Projects="..\OwnSharp.Cli\OwnSharp.Cli.csproj" Targets="Restore;Publish"
+             Properties="Configuration=$(Configuration);PublishDir=$(_OwenHostStage);OwenRustCoreDir=$(OwenRustCoreDir);_OwenRestoreNonce=host" />
+    <ItemGroup>
+      <!-- minus the vendored Python core (Owen.Cli's publish puts its *.py at the root) and
+           the symbols. NuGet appends each file's RecursiveDir to a folder PackagePath, so the
+           layout under tools/ is the publish layout, rust-core/<platform>/ included. -->
+      <_OwenHostFiles Include="$(_OwenHostStage)**/*" Exclude="$(_OwenHostStage)*.py;$(_OwenHostStage)**/*.pdb;$(_OwenHostStage)ownsharp;$(_OwenHostStage)ownsharp-extract;$(_OwenHostStage)*.exe" />
+      <None Include="@(_OwenHostFiles)" Pack="true" PackagePath="tools/net8.0/any/" Visible="false" />
+    </ItemGroup>
+    <Error Condition="!Exists('$(_OwenHostStage)ownsharp.dll') or !Exists('$(_OwenHostStage)ownsharp-extract.dll')"
+           Text="Owen.Build: the host publish closure is incomplete (no ownsharp.dll / ownsharp-extract.dll under $(_OwenHostStage))." />
+  </Target>
+
+</Project>

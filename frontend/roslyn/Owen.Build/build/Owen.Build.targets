@@ -1,0 +1,60 @@
+<Project>
+  <!-- Owen.Build, the generic Owen build host (spec/OwenExtension.md).
+
+       After a project has been compiled and copied to its output, run `owen build-check` —
+       the program packed in this package's tools/ — once, for every active Owen extension:
+         * every <OwenExtensionDescriptor> item is validated against what this host supports
+           (fail loud: OWENB002/003/004), and the active set is written to
+           obj/owen/extensions.json;
+         * the generated C# of the generators the descriptors name is handed to the extractor
+           explicitly, next to the project itself;
+         * the Rust core judges the facts and prints canonical MSBuild diagnostics
+           (`file(line): warning|error OWNxxx: …`), which the Exec task below logs as real
+           build warnings/errors — Visual Studio's Error List included.
+       No analysis happens here and no extension is named here. -->
+
+  <PropertyGroup>
+    <_OwenHostDir>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'tools', 'net8.0', 'any'))</_OwenHostDir>
+    <_OwenObjDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(BaseIntermediateOutputPath)', 'owen'))</_OwenObjDir>
+  </PropertyGroup>
+
+  <Target Name="OwenBuildCheck"
+          AfterTargets="CopyFilesToOutputDirectory"
+          Condition="'$(OwenEnabled)' == 'true' and '$(DesignTimeBuild)' != 'true' and '$(BuildingProject)' != 'false'">
+    <PropertyGroup>
+      <!-- the muxer already running this build; never a PATH search for anything of ours -->
+      <_OwenDotnet>$(DOTNET_HOST_PATH)</_OwenDotnet>
+      <_OwenDotnet Condition="'$(_OwenDotnet)' == ''">dotnet</_OwenDotnet>
+      <_OwenGeneratedRoot>$(CompilerGeneratedFilesOutputPath)</_OwenGeneratedRoot>
+      <_OwenGeneratedRoot Condition="'$(_OwenGeneratedRoot)' != '' and !$([System.IO.Path]::IsPathRooted('$(_OwenGeneratedRoot)'))">$(MSBuildProjectDirectory)/$(_OwenGeneratedRoot)</_OwenGeneratedRoot>
+      <_OwenRequest>$(_OwenObjDir)request.txt</_OwenRequest>
+    </PropertyGroup>
+    <ItemGroup>
+      <_OwenRequestLine Include="project&#9;$(MSBuildProjectFullPath)" />
+      <_OwenRequestLine Include="@(OwenExtensionDescriptor->'descriptor&#9;%(FullPath)')" />
+      <_OwenRequestLine Include="generated-root&#9;$(_OwenGeneratedRoot)" Condition="'$(_OwenGeneratedRoot)' != ''" />
+      <_OwenRequestLine Include="severity&#9;$(OwenSeverity)" />
+      <_OwenRequestLine Include="manifest&#9;$(_OwenObjDir)extensions.json" />
+      <_OwenRequestLine Include="emit-facts&#9;$(OwenEmitFacts)" Condition="'$(OwenEmitFacts)' != ''" />
+    </ItemGroup>
+    <MakeDir Directories="$(_OwenObjDir)" />
+    <WriteLinesToFile File="$(_OwenRequest)" Lines="@(_OwenRequestLine)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <!-- DOTNET_ROLL_FORWARD: the host is built for .NET 8 and must run on whatever newer
+         runtime the build machine has (a .NET 9-only machine has no 8 runtime). Exec kills the
+         whole child tree when the build is cancelled. -->
+    <Exec Command="&quot;$(_OwenDotnet)&quot; exec &quot;$(_OwenHostDir)ownsharp.dll&quot; build-check --request &quot;$(_OwenRequest)&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          IgnoreExitCode="true"
+          StandardOutputImportance="normal"
+          StandardErrorImportance="normal"
+          EnvironmentVariables="DOTNET_ROLL_FORWARD=Major">
+      <Output TaskParameter="ExitCode" PropertyName="_OwenExit" />
+    </Exec>
+    <!-- build-check prints a canonical OWENB/OWN line for everything it fails on, and Exec
+         turns those into errors. An exit code with nothing canonical behind it (a crash before
+         any line) must still fail the build: never a silent clean. -->
+    <Error Condition="'$(_OwenExit)' != '0' and '$(_OwenExit)' != '1' and '$(_OwenExit)' != '2'"
+           Code="OWENB012"
+           Text="Owen: the build host exited $(_OwenExit) without completing the analysis; the project was not checked." />
+  </Target>
+</Project>

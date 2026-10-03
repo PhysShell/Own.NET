@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- A SYNTHETIC second Owen extension, for the OX-01 gate only (scripts/owen_extension_gate.py).
+       Never shipped. It declares itself to the generic host exactly as a real extension does
+       and analyses nothing: its only job is to prove that two extensions coexist with no
+       change to the host. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IsPackable>true</IsPackable>
+    <PackageId>Owen.TestExtension</PackageId>
+    <Version>0.1.0</Version>
+    <Description>Test fixture: a synthetic Owen extension (descriptor only). Not published.</Description>
+    <Authors>PhysShell</Authors>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\frontend\roslyn\Owen.Build\Owen.Build.csproj" PrivateAssets="none" IncludeAssets="all" />
+    <None Include="buildTransitive\Owen.TestExtension.props" Pack="true" PackagePath="build;buildTransitive" />
+    <None Include="buildTransitive\owen-extension.json" Pack="true" PackagePath="build;buildTransitive" />
+  </ItemGroup>
+</Project>

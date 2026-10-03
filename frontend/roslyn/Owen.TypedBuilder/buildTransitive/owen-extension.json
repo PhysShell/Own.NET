@@ -1,0 +1,13 @@
+{
+  "owen_extension": 1,
+  "id": "Owen.TypedBuilder",
+  "version": "0.1.0",
+  "requires": {
+    "host": "0.1.0",
+    "ownir": 2,
+    "capabilities": ["ownership", "state-protocol", "heap-effects", "proven-call"]
+  },
+  "frontend": {
+    "generators": ["Owen.TypedBuilder.Generator"]
+  }
+}

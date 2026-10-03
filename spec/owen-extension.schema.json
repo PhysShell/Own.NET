@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/PhysShell/Own.NET/spec/owen-extension.schema.json",
+  "title": "Owen extension descriptor, schema 1 (spec/OwenExtension.md)",
+  "type": "object",
+  "required": ["owen_extension", "id", "version", "requires"],
+  "properties": {
+    "owen_extension": { "const": 1, "description": "descriptor schema version; a host refuses any other (OWENB002)" },
+    "id": { "type": "string", "minLength": 1, "description": "the extension's package id, e.g. Owen.TypedBuilder; unique among a project's active extensions" },
+    "version": { "type": "string", "minLength": 1 },
+    "requires": {
+      "type": "object",
+      "required": ["host", "ownir", "capabilities"],
+      "properties": {
+        "host": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+){1,3}$", "description": "the lowest Owen host version that serves this extension (OWENB003 when newer than the host)" },
+        "ownir": { "type": "integer", "description": "the OwnIR version the extension's facts assume; must equal the host core's (OWENB003)" },
+        "capabilities": {
+          "type": "array",
+          "items": { "enum": ["ownership", "state-protocol", "heap-effects", "proven-call"] },
+          "description": "what the extension needs the analysis to do; an unknown one is OWENB004 (the enum is host 0.1.0's set)"
+        }
+      },
+      "additionalProperties": true
+    },
+    "frontend": {
+      "type": "object",
+      "properties": {
+        "generators": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "assembly names of Roslyn generators whose output the host must scan as source"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

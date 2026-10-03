@@ -378,7 +378,7 @@ internal static class CheckCommand
     /// is CAPTURED and returned; the caller decides what reaches OUR stderr
     /// (everything for the contract codes, report-only for a crash — A1),
     /// keeping stdout clean for stage 2 like own-check.sh's `1>&amp;2`.</summary>
-    private static async Task<(int Rc, string Output)> RunExtractorAsync(
+    internal static async Task<(int Rc, string Output)> RunExtractorAsync(
         IReadOnlyList<string> paths, string factsPath, bool legacy, bool stats, bool bodyThrowEdges)
     {
         // "ownsharp-extract.dll" is OwnSharp.Extractor's own real AssemblyName/output
@@ -440,6 +440,13 @@ internal static class CheckCommand
     /// (the ToolCommandName-based shim), not the dotnet muxer.</summary>
     private static string ResolveDotnetMuxer()
     {
+        // Under MSBuild (the Owen.Build host) the muxer running the build is named exactly:
+        // use it, so a build never depends on what `dotnet` a PATH search would find.
+        var host = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH");
+        if (!string.IsNullOrEmpty(host) && File.Exists(host))
+        {
+            return host;
+        }
         var root = Environment.GetEnvironmentVariable("DOTNET_ROOT");
         if (!string.IsNullOrEmpty(root))
         {

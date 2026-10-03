@@ -266,6 +266,30 @@ package cannot run without a global Owen install, the verdict is NO_GO.
 - a second aggregate;
 - a repo-wide rename.
 
+## Amendment 1 (before the official run)
+
+These are corrections found while building the gate. They were committed before any official
+run.
+
+1. **M1 splits in two.**
+   - **M1a:** delete `owen-extension.json` from the installed `Owen.TypedBuilder`, but keep its props, which still declares the descriptor. Expect **error `OWENB002`** ("the extension descriptor cannot be read"), not the registered `OWENB001`.
+   - **M1b:** remove the extension's whole declaration (props and descriptor). Expect warning `OWENB001` and no `OWN002`.
+   - **Why:** treating a declared but missing descriptor as "no extension" would be fail-open, so it is an error. The contract (§ *Extension discovery*) already says a descriptor that cannot be read is `OWENB002`; the registered M1 expectation contradicted it.
+2. **The `Owen.Cli` payload criterion is restated.** "File-for-file identical" is not achievable for the two assemblies built from this repository. `ownsharp.dll` gains `build-check` by design. `ownsharp-extract.dll` carries commit-stamped build metadata although its source is unchanged: the bytes differed between two packs of the same extractor source from two commits, even under `ContinuousIntegrationBuild`.
+
+   The criterion is now:
+   - an **identical file list**;
+   - **every other payload file byte-identical**: Roslyn, `deps.json`/`runtimeconfig.json`, vendored `.py`, Rust core;
+   - `git diff 88cb8cc3..HEAD -- frontend/roslyn/OwnSharp.Extractor` **empty**;
+   - gate A (install → `owen check` → `OWN001`) passing on the head.
+3. **G: the acceptance runner builds with `-p:OwenEnabled=false`.**
+   - **Why the host runs there at all:** the runner references the consumer project, so the host reaches it through `buildTransitive`, as it reaches any dependent project.
+   - **What the host does there:** the runner opens a protocol region in **top-level statements**, which the extractor does not model, so the host refuses it with `OWENB010`. That is fail-closed behaviour, not a defect.
+   - **Why switching it off is acceptable:** the runner is a test harness, not the product under test. The consumer itself is analysed by A–F and H.
+
+   The registered criterion (44/44, transcript byte-identical) is unchanged.
+4. **The host runs with `DOTNET_ROLL_FORWARD=Major`,** set on the Exec. The host payload targets .NET 8, and a machine with only a newer SDK has no .NET 8 runtime. The isolated consumer keeps the registered `--framework net8.0`.
+
 ## P0 results
 
 Run on `88cb8cc31c49d730290613208947102d0737cad2`, a clean tree except for the two documents of this commit:
