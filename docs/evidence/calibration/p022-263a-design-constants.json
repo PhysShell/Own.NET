@@ -1,6 +1,6 @@
 {
   "artifact": "p022-263a-calibration-design-constants",
-  "bound_measurement_harness_digest": "1a26aa63fd5fbbe06e7ae72dd5e1c8f2d611bff8856af4a5b93ae36d2d23a9b1",
+  "bound_measurement_harness_digest": "b92f08c990fcf6d74df29aad333b330b6c3c4f9e1c1bad55efe8164c39dea57c",
   "bound_policy_implementation_digest": "c3068ed7fa880a7083866ead25fe8bf65c87889d242d8af1f7eee01582cd5cbf",
   "constants": {
     "G": [

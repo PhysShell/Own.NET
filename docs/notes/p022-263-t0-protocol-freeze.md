@@ -34,6 +34,13 @@ Status:
     instrument's generated facts moved to OwnIR v1, and steps 4, 5 and 6 were
     re-bound to it. The freeze and the authorisation above are unchanged, and so
     is every rule, budget, population and predicate below.
+
+  AMENDMENT 2 (2026-10-03) is the next such state, on the same principle:
+    the accepted harness identity moved 1a26aa63fd5f -> b92f08c990fc when the
+    instrument's generated facts moved to OwnIR v2 (the `proven_call` transport
+    of H1), and steps 4, 5 and 6 were re-bound to it. The freeze and the
+    authorisation above are unchanged, and so is every rule, budget, population
+    and predicate below.
 ```
 
 **What this is.** The contract that fixes *how numbers will be judged*, before any
@@ -170,13 +177,14 @@ Doing so edits `scripts/perf_baseline.py`, which is one of the two files in the
 harness source set, so it moves the harness identity
 
     measurement_harness_digest
-    1a26aa63fd5fbbe06e7ae72dd5e1c8f2d611bff8856af4a5b93ae36d2d23a9b1
+    b92f08c990fcf6d74df29aad333b330b6c3c4f9e1c1bad55efe8164c39dea57c
 
-to which steps 4, 5 and 6 are bound. The identity has moved twice, each time by
-a recorded act and never as a side effect: steps 4, 5 and 6 were **re-bound**
-after the S8 memory-semantics repair (`562a7f7232da` → `104c384d01bf`), and
-re-bound again by Amendment 1, when the instrument's generated facts moved to
-OwnIR v1 (`104c384d01bf` → `1a26aa63fd5f`).
+to which steps 4, 5 and 6 are bound. The identity has moved three times, each
+time by a recorded act and never as a side effect: steps 4, 5 and 6 were
+**re-bound** after the S8 memory-semantics repair (`562a7f7232da` →
+`104c384d01bf`), re-bound again by Amendment 1, when the instrument's generated
+facts moved to OwnIR v1 (`104c384d01bf` → `1a26aa63fd5f`), and re-bound a third
+time by Amendment 2, when they moved to OwnIR v2 (`1a26aa63fd5f` → `b92f08c990fc`).
 Moving it again is a new instrument and a re-evaluation of accepted
 instrumentation evidence, not a T0 detail.
 
@@ -1326,3 +1334,64 @@ qualification, an exact execution binding, the campaign link and the session
 preflight are still required, and each may still refuse. It changes no number a
 verdict is computed from. And it is not a precedent for moving the identity as a
 side effect: the next move is a new amendment or it is a defect.
+
+### Amendment 2 — the harness identity follows OwnIR v2 (2026-10-03)
+
+```text
+Status after this amendment:
+  FROZEN, collection_authorized: true        unchanged
+  accepted harness identity                  1a26aa63fd5f -> b92f08c990fc
+  rules, budgets, populations, statistic,
+  roll-ups, host predicate, retry budget     unchanged, every one of them
+```
+
+**The owner's ruling.** H1 connects state protocols to the interprocedural
+heap-effect summaries through a must-understand flow op, `proven_call`, so that
+an older core cannot read an unproven call as clean. A new flow op is a
+vocabulary change, so `OWNIR_VERSION` moved 1 → 2
+([OwnIR.md §2, §5.4](../../spec/OwnIR.md), [H1](h1-proven-call.md)). The owner
+approved the version move and this amendment for exactly that reason, on the
+Amendment 1 principle — a minimal re-binding forced by the version literal — and
+for nothing else: no other change to T0, its budgets, populations, predicates or
+measurement semantics is authorised by it. As in Amendment 1, a compatibility
+shim on either side (a v2 core that also accepts v1) is ruled out.
+
+**What changed in the instrument.** One literal in the `facts` generator of
+`scripts/perf_baseline.py`: `"ownir_version": 1` became `"ownir_version": 2`.
+Nothing else in the harness source set moved: the workload manifest, the rung
+ladder, the clock, the memory accounting, the identity gate and
+`HARNESS_VERSION` are byte-for-byte what they were. This is a schema-transport
+change carried by the generated calibration documents, not a change to the
+measurement experiment: the generated `facts` workloads have the same shape and
+scale and do the same work, and the `refused` workload is refused at the same
+door.
+
+    harness identity before   1a26aa63fd5fbbe06e7ae72dd5e1c8f2d611bff8856af4a5b93ae36d2d23a9b1
+    harness identity after    b92f08c990fcf6d74df29aad333b330b6c3c4f9e1c1bad55efe8164c39dea57c
+
+**What was re-bound**, in the order the chain runs: the policy freeze (step 4),
+the ratified design constants (step 5), and the training preregistration's
+bindings (step 6) — and with the last, `design_constants_blob_sha1`
+(`0ff316d5aea6` → `1059a69fe53f`), which moved because the design-constants
+artifact itself was re-bound. T0-1 above names the new identity; the merge gate
+reads it there and recomputes it from the instrument sources of the tree being
+merged. With the literal moved and nothing re-bound, the gate refused
+(`instrument_matches_t0`: the instrument hashed to `b92f08c990fc`, T0 named
+`1a26aa63fd5f`); after the re-binding it allows.
+
+**What was not touched.** The committed evidence of runs that actually
+happened, for the same reason as in Amendment 1. No T0-governed clock has run
+under any identity, so there is no training or decisive observation for this
+amendment to re-evaluate, keep or discard.
+
+**The re-evaluation T0-1 says a moved identity owes.** The instrumentation
+controls were re-run on the amended tree, all of them as part of
+`tests/run_tests.py`, and all hold; `perf-calibration-facts-current` — the
+control Amendment 1 added for exactly this defect — was red between the version
+move and the instrument literal (the reference refused the generator's v1
+documents at the door) and holds after it.
+
+**What this amendment does not do.** It authorises nothing new and changes no
+number a verdict is computed from. FROZEN and `collection_authorized` stay as
+they were. It is not a precedent for moving the identity as a side effect: the
+next move is a new amendment or it is a defect.

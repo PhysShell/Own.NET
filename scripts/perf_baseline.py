@@ -1272,7 +1272,7 @@ def materialize_calibration(w: Workload, tmp: Path) -> Path:
     if gen == "facts":
         scale = _as_int(w.spec.get("scale", 1), 1)
         doc = {
-            "ownir_version": 1,
+            "ownir_version": 2,
             "module": w.id,
             "components": [{"name": f"C{i}", "kind": "class", "file": f"gen/{i}.cs", "line": i + 1}
                            for i in range(scale)],
