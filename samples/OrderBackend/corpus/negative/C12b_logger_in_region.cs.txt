@@ -1,0 +1,25 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// C12b: a logger call inside the region: an external call with no stated contract.
+public static class C12bLoggerInRegion
+{
+    public static async Task Run(OrdersDb db, int id, Microsoft.Extensions.Logging.ILogger log, CancellationToken ct)
+    {
+        var order = await db.Orders.SingleAsync(o => o.Id == id, ct);
+        var now = DateTime.UnixEpoch;
+        OrderProtocol.WithApproved(order, approved =>
+        {
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(log, "shipping");
+            approved.Ship(now, 1);
+        });
+        await db.SaveChangesAsync(ct);
+    }
+}

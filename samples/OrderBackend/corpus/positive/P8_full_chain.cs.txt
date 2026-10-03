@@ -1,0 +1,26 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// P8: the full chain in one region; every named token is spent.
+public static class P8FullChain
+{
+    public static async Task Run(OrdersDb db, int id, CancellationToken ct)
+    {
+        var order = await db.Orders.SingleAsync(o => o.Id == id, ct);
+        var now = DateTime.UnixEpoch;
+        OrderProtocol.WithDraft(order, draft =>
+        {
+            var submitted = draft.Submit(now);
+            var approved = submitted.Approve(now);
+            approved.Ship(now, Shipping.TrackingNumber(id));
+        });
+        await db.SaveChangesAsync(ct);
+    }
+}

@@ -1,0 +1,20 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// C14: a token made by hand, outside the protocol's own types.
+public static class C14ForgedToken
+{
+    public static async Task Run(OrdersDb db, int id, CancellationToken ct)
+    {
+        var order = await db.Orders.SingleAsync(o => o.Id == id, ct);
+        new ApprovedOrder(order).Ship(DateTime.UnixEpoch, 1);
+        await db.SaveChangesAsync(ct);
+    }
+}

@@ -1,0 +1,15 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// C13: Build() does not exist before the required Customer was given.
+public static class C13BuilderWithoutCustomer
+{
+    public static Order Run() => Order.Create().Build();
+}

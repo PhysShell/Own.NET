@@ -23,3 +23,10 @@
 # hashed 79ad1476f219 on Linux and 3dda13ce16d6 on Windows, and a run that
 # measured exactly the right tree was rejected as evidence for another tree.
 docs/evidence/*.json text eol=lf
+
+# TB-MVP-01: the generated protocol surface is compared BY BYTE with what
+# `frontend/roslyn/Own.TypedBuilder` writes (`\n`, no BOM), and the Typed Builder
+# gate's evidence is the same bytes on every platform. A Windows checkout with
+# `core.autocrlf=true` would make a correct generator look stale.
+samples/OrderBackend/OrderBackend/Domain/Order.Protocol.cs text eol=lf
+samples/OrderBackend/evidence/* text eol=lf

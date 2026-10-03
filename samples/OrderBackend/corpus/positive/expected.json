@@ -1,0 +1,36 @@
+{
+  "P1_create_draft": {
+    "stage": "core",
+    "verdict": []
+  },
+  "P2_draft_submit": {
+    "stage": "core",
+    "verdict": []
+  },
+  "P3_submitted_approve": {
+    "stage": "core",
+    "verdict": []
+  },
+  "P4_approved_ship": {
+    "stage": "core",
+    "verdict": []
+  },
+  "P5_harmless_helper": {
+    "stage": "core",
+    "verdict": [],
+    "proven_call": "OrderBackend.Shipping.TrackingNumber(int)"
+  },
+  "P6_load_refine_transition": {
+    "stage": "core",
+    "verdict": []
+  },
+  "P7_linq_before_refinement": {
+    "stage": "core",
+    "verdict": []
+  },
+  "P8_full_chain": {
+    "stage": "core",
+    "verdict": [],
+    "proven_call": "OrderBackend.Shipping.TrackingNumber(int)"
+  }
+}

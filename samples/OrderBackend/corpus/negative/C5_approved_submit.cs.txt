@@ -1,0 +1,24 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// C5: Approved has no Submit.
+public static class C5ApprovedSubmit
+{
+    public static async Task Run(OrdersDb db, int id, CancellationToken ct)
+    {
+        var order = await db.Orders.SingleAsync(o => o.Id == id, ct);
+        var now = DateTime.UnixEpoch;
+        OrderProtocol.WithApproved(order, approved =>
+        {
+            approved.Submit(now);
+        });
+        await db.SaveChangesAsync(ct);
+    }
+}

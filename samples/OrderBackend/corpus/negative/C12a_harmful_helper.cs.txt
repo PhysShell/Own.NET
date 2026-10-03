@@ -1,0 +1,31 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// C12a: a direct helper that writes a static, inside the region.
+public static class C12aHarmfulHelper
+{
+    public static async Task Run(OrdersDb db, int id, CancellationToken ct)
+    {
+        var order = await db.Orders.SingleAsync(o => o.Id == id, ct);
+        var now = DateTime.UnixEpoch;
+        OrderProtocol.WithApproved(order, approved =>
+        {
+            approved.Ship(now, Counter.Next());
+        });
+        await db.SaveChangesAsync(ct);
+    }
+
+    private static class Counter
+    {
+        private static int _last;
+
+        public static int Next() => ++_last;
+    }
+}

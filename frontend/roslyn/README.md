@@ -114,6 +114,11 @@ API, EF Core, SQLite — is in
 [`protocol-samples/efcore`](protocol-samples/efcore), and
 `python scripts/protocol_gate.py` ties every committed fact back to the C# it came
 from.
+The product-shaped version of the same backend, with the protocol **generated**
+from one annotated declaration (`frontend/roslyn/Own.TypedBuilder`), a typed
+builder, and every transition over HTTP, is
+[`samples/OrderBackend`](../../samples/OrderBackend) (TB-MVP-01,
+`python scripts/typed_builder_gate.py`).
 
 **What is claimed.** The profile protects the local C# capabilities and aliases of
 an entity that already exists. It does **not** protect the persisted row from

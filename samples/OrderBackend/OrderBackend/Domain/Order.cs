@@ -1,0 +1,51 @@
+using System;
+
+namespace OrderBackend.Domain;
+
+public enum OrderStatus
+{
+    Draft,
+    Submitted,
+    Approved,
+    Shipped,
+}
+
+/// An ordinary EF Core entity — no base class, no interface — and the declaration its
+/// protocol is generated from (Order.Protocol.cs). EF materializes it through the private
+/// constructor and tracks THIS instance; every state token wraps the same reference.
+[TypedProtocol]
+public sealed partial class Order
+{
+    private Order()
+    {
+    }
+
+    public int Id { get; private set; }
+
+    [BuilderRequired]
+    public string Customer { get; private set; } = "";
+
+    [ProtocolState]
+    public OrderStatus Status { get; private set; }
+
+    public DateTime? SubmittedAt { get; private set; }
+
+    public DateTime? ApprovedAt { get; private set; }
+
+    public DateTime? ShippedAt { get; private set; }
+
+    public int? TrackingNumber { get; private set; }
+
+    [Transition("Submit", OrderStatus.Draft, OrderStatus.Submitted)]
+    private void OnSubmit(DateTime at) => SubmittedAt = at;
+
+    [Transition("Approve", OrderStatus.Submitted, OrderStatus.Approved)]
+    private void OnApprove(DateTime at) => ApprovedAt = at;
+
+    [Transition("Ship", OrderStatus.Approved, OrderStatus.Shipped)]
+    private void OnShip(DateTime at, int trackingNumber)
+    {
+        ShippedAt = at;
+        TrackingNumber = trackingNumber;
+    }
+}

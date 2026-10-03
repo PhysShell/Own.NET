@@ -1,0 +1,24 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// C1: Draft has no Approve.
+public static class C1DraftApprove
+{
+    public static async Task Run(OrdersDb db, int id, CancellationToken ct)
+    {
+        var order = await db.Orders.SingleAsync(o => o.Id == id, ct);
+        var now = DateTime.UnixEpoch;
+        OrderProtocol.WithDraft(order, draft =>
+        {
+            draft.Approve(now);
+        });
+        await db.SaveChangesAsync(ct);
+    }
+}

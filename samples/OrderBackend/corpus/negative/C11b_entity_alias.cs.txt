@@ -1,0 +1,25 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// C11b: an alias of the borrowed entity, inside the region.
+public static class C11bEntityAlias
+{
+    public static async Task Run(OrdersDb db, int id, CancellationToken ct)
+    {
+        var order = await db.Orders.SingleAsync(o => o.Id == id, ct);
+        var now = DateTime.UnixEpoch;
+        OrderProtocol.WithDraft(order, draft =>
+        {
+            var alias = order;
+            draft.Submit(now);
+        });
+        await db.SaveChangesAsync(ct);
+    }
+}

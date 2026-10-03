@@ -1,0 +1,26 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// C8: the Draft token is spent by Submit; using it again is a use after a transition.
+public static class C8StaleDraft
+{
+    public static async Task Run(OrdersDb db, int id, CancellationToken ct)
+    {
+        var order = await db.Orders.SingleAsync(o => o.Id == id, ct);
+        var now = DateTime.UnixEpoch;
+        OrderProtocol.WithDraft(order, draft =>
+        {
+            var submitted = draft.Submit(now);
+            draft.Submit(now);
+            submitted.Approve(now);
+        });
+        await db.SaveChangesAsync(ct);
+    }
+}

@@ -1,0 +1,45 @@
+ok[db-fresh]: EnsureCreated made the schema in a new database file: 0 rows
+ok[http-create]: POST /orders -> 201 /orders/1 {"id":1,"status":"Draft"}
+ok[oracle-create]: raw row: 1 | alice | Draft | NULL | NULL | NULL | NULL
+ok[http-submit]: POST /orders/1/submit -> 200 {"id":1,"status":"Submitted"}
+ok[oracle-submit]: raw row: 1 | alice | Submitted | 2026-01-02 03:04:05 | NULL | NULL | NULL
+ok[http-approve]: POST /orders/1/approve -> 200 {"id":1,"status":"Approved"}
+ok[oracle-approve]: raw row: 1 | alice | Approved | 2026-01-02 03:04:05 | 2026-01-02 03:04:05 | NULL | NULL
+ok[http-ship]: POST /orders/1/ship -> 200 {"id":1,"status":"Shipped","trackingNumber":1007919}
+ok[oracle-ship]: raw row: 1 | alice | Shipped | 2026-01-02 03:04:05 | 2026-01-02 03:04:05 | 2026-01-02 03:04:05 | 1007919
+ok[http-get-shipped]: GET /orders/1 -> 200 {"id":1,"customer":"alice","status":"Shipped","submittedAt":"2026-01-02T03:04:05","approvedAt":"2026-01-02T03:04:05","shippedAt":"2026-01-02T03:04:05","trackingNumber":1007919}
+ok[http-create-required]: POST /orders {} -> 400 {"error":"customer_required"}, no row written
+ok[http-create-required]: POST /orders {"customer":"  "} -> 400 {"error":"customer_required"}, no row written
+ok[http-create-b]: second order -> /orders/2
+ok[h9-approve-draft]: approve a Draft order -> 409 {"error":"invalid_transition","id":2,"state":"Draft","required":"Submitted"}; row unchanged: True
+ok[h9-ship-draft]: ship a Draft order -> 409 {"error":"invalid_transition","id":2,"state":"Draft","required":"Approved"}; row unchanged: True
+ok[h9-b-submit]: the legal submit in between goes through: Submitted
+ok[h9-ship-submitted]: ship a Submitted order -> 409 {"error":"invalid_transition","id":2,"state":"Submitted","required":"Approved"}; row unchanged: True
+ok[h9-submit-submitted]: submit a Submitted order -> 409 {"error":"invalid_transition","id":2,"state":"Submitted","required":"Draft"}; row unchanged: True
+ok[h9-b-approve]: the legal approve in between goes through: Approved
+ok[h9-submit-approved]: submit an Approved order -> 409 {"error":"invalid_transition","id":2,"state":"Approved","required":"Draft"}; row unchanged: True
+ok[h9-approve-approved]: approve an Approved order -> 409 {"error":"invalid_transition","id":2,"state":"Approved","required":"Submitted"}; row unchanged: True
+ok[h9-b-ship]: the legal ship in between goes through: Shipped
+ok[h9-submit-shipped]: submit a Shipped order -> 409 {"error":"invalid_transition","id":2,"state":"Shipped","required":"Draft"}; row unchanged: True
+ok[h9-approve-shipped]: approve a Shipped order -> 409 {"error":"invalid_transition","id":2,"state":"Shipped","required":"Submitted"}; row unchanged: True
+ok[h9-ship-shipped]: ship a Shipped order -> 409 {"error":"invalid_transition","id":2,"state":"Shipped","required":"Approved"}; row unchanged: True
+ok[http-404-submit]: submit an unknown id -> 404
+ok[http-404-approve]: approve an unknown id -> 404
+ok[http-404-ship]: ship an unknown id -> 404
+ok[http-404-get]: GET an unknown id -> 404
+ok[h8-corrupt-'Bogus']: stored 'Bogus': submit=500 approve=500 ship=500 get=500; EF load: CorruptOrderStateException('Bogus'); row unchanged: True
+ok[h8-corrupt-'7']: stored '7': submit=500 approve=500 ship=500 get=500; EF load: CorruptOrderStateException('7'); row unchanged: True
+ok[h8-corrupt-'approved']: stored 'approved': submit=500 approve=500 ship=500 get=500; EF load: CorruptOrderStateException('approved'); row unchanged: True
+ok[h8-corrupt-'']: stored '': submit=500 approve=500 ship=500 get=500; EF load: CorruptOrderStateException(''); row unchanged: True
+ok[h8-storage-strict]: 'Bogus'=refused '7'=refused 'approved'=refused ''=refused ' Draft'=refused ToStore(7)=refused
+ok[builder-draft]: Order.Create().Customer("carol").Build() is a new Draft for carol
+ok[h10-same-instance-before]: the queried Order IS the instance the ChangeTracker holds, Unchanged
+ok[h10-same-instance-after]: after the region the tracked instance is still the queried one, now Submitted; one entry, nothing re-attached
+ok[h10-tracked-change]: the ChangeTracker sees Modified: Status,SubmittedAt
+ok[h11-saved-exactly]: SaveChangesAsync wrote 1 row; raw columns changed: Status,SubmittedAt; raw row: 7 | carol | Submitted | 2026-01-02 03:04:05 | NULL | NULL | NULL
+ok[h12-reload-refine]: reloaded Submitted: WithDraft -> InvalidOrderStateException(Submitted, required Draft) (Unchanged); WithSubmitted -> Approve saved Approved
+ok[h13-linq-endpoint]: GET /orders?status=Approved -> 200 [{"id":7,"customer":"carol"}] (the corrupt 'approved' row is not Approved)
+ok[h13-linq-unknown-status]: GET /orders?status=approved -> 400 {"error":"unknown_status"}
+ok[h13-linq-translated]: the predicate is server-side SQL over the stored name: WHERE "o"."Status" = 'Approved' ... ORDER BY
+ok[ef-update-emitted]: the transitions reach the database as ordinary UPDATE statements
+typed builder acceptance: all checks hold

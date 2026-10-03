@@ -1,0 +1,103 @@
+{
+  "C10a_raw_mutator": {
+    "stage": "extractor",
+    "text": "'ApplyShip' of 'Order' is not public and belongs to a state protocol"
+  },
+  "C10b_raw_entity_in_region": {
+    "stage": "core",
+    "verdict": [
+      "OWN013"
+    ]
+  },
+  "C10c_raw_state_write": {
+    "stage": "compiler",
+    "code": "CS0272",
+    "member": "Status"
+  },
+  "C11a_token_copy": {
+    "stage": "core",
+    "verdict": [
+      "OWN005"
+    ]
+  },
+  "C11b_entity_alias": {
+    "stage": "core",
+    "verdict": [
+      "OWN013"
+    ]
+  },
+  "C12a_harmful_helper": {
+    "stage": "core",
+    "refusal": "'OrderBackend.Corpus.C12aHarmfulHelper.Counter.Next()': writes.static is may"
+  },
+  "C12b_logger_in_region": {
+    "stage": "extractor",
+    "text": "LoggerExtensions.LogInformation' inside a protocol region runs code with no stated contract"
+  },
+  "C13_builder_without_customer": {
+    "stage": "compiler",
+    "code": "CS1061",
+    "member": "Build"
+  },
+  "C14_forged_token": {
+    "stage": "extractor",
+    "text": "a protocol token 'ApprovedOrder' is created outside the protocol's own types"
+  },
+  "C15_entity_constructor": {
+    "stage": "compiler",
+    "code": "CS0122",
+    "member": "Order"
+  },
+  "C1_draft_approve": {
+    "stage": "compiler",
+    "code": "CS1061",
+    "member": "Approve"
+  },
+  "C2_draft_ship": {
+    "stage": "compiler",
+    "code": "CS1061",
+    "member": "Ship"
+  },
+  "C3_submitted_submit": {
+    "stage": "compiler",
+    "code": "CS1061",
+    "member": "Submit"
+  },
+  "C4_submitted_ship": {
+    "stage": "compiler",
+    "code": "CS1061",
+    "member": "Ship"
+  },
+  "C5_approved_submit": {
+    "stage": "compiler",
+    "code": "CS1061",
+    "member": "Submit"
+  },
+  "C6_approved_approve": {
+    "stage": "compiler",
+    "code": "CS1061",
+    "member": "Approve"
+  },
+  "C7_shipped_transition": {
+    "stage": "compiler",
+    "code": "CS1061",
+    "member": "Submit"
+  },
+  "C7b_shipped_region": {
+    "stage": "compiler",
+    "code": "CS0117",
+    "member": "WithShipped"
+  },
+  "C8_stale_draft": {
+    "stage": "core",
+    "verdict": [
+      "OWN002"
+    ]
+  },
+  "C9_stale_submitted": {
+    "stage": "core",
+    "verdict": [
+      "OWN002"
+    ]
+  }
+}

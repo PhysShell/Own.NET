@@ -1,0 +1,23 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// P1: a Draft is created through the typed builder, added and saved.
+public static class P1CreateDraft
+{
+    public static async Task<int> Run(OrdersDb db, CancellationToken ct)
+    {
+        var order = Order.Create()
+            .Customer("alice")
+            .Build();
+        db.Orders.Add(order);
+        await db.SaveChangesAsync(ct);
+        return order.Id;
+    }
+}

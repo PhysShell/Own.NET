@@ -1,0 +1,26 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// C9: the Submitted token is spent by Approve; using it again is a use after a transition.
+public static class C9StaleSubmitted
+{
+    public static async Task Run(OrdersDb db, int id, CancellationToken ct)
+    {
+        var order = await db.Orders.SingleAsync(o => o.Id == id, ct);
+        var now = DateTime.UnixEpoch;
+        OrderProtocol.WithSubmitted(order, submitted =>
+        {
+            var approved = submitted.Approve(now);
+            submitted.Approve(now);
+            approved.Ship(now, 1);
+        });
+        await db.SaveChangesAsync(ct);
+    }
+}
