@@ -1,0 +1,18 @@
+# E2 feasibility spike (OX-01): the authoritative Rust core behind a C ABI, for a Roslyn
+# analyzer to call in-process. Experimental, outside every shipping path and every CI build;
+# its own workspace so the main workspace's fmt/clippy/test never see it.
+[package]
+name = "owen-e2-native"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "owen_e2"
+crate-type = ["cdylib"]
+
+[dependencies]
+own-ir = { path = "../../../rust/crates/own-ir" }
+own-bridge = { path = "../../../rust/crates/own-bridge" }
+
+[workspace]
