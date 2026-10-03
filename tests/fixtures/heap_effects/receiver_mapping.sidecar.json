@@ -1,0 +1,127 @@
+{
+  "heap_effects_version": 1,
+  "methods": [
+    {
+      "key": "C.Set()",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": true,
+      "return_inert": true,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "instance",
+          "target": [
+            "receiver"
+          ]
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "C.Get()",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": true,
+      "return_inert": true,
+      "params": [],
+      "locals": [],
+      "derefs": [
+        "receiver"
+      ],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "C.Both()",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": true,
+      "return_inert": true,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "C.Set()",
+          "dispatch": "direct",
+          "receiver": [
+            "receiver"
+          ],
+          "args": [],
+          "line": 1
+        },
+        {
+          "id": 1,
+          "callee": "C.Get()",
+          "dispatch": "direct",
+          "receiver": [
+            "receiver"
+          ],
+          "args": [],
+          "line": 1
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "Drive(C, C)",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "x",
+          "inert": false
+        },
+        {
+          "index": 1,
+          "name": "y",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "C.Set()",
+          "dispatch": "direct",
+          "receiver": [
+            "param:0"
+          ],
+          "args": [],
+          "line": 1
+        },
+        {
+          "id": 1,
+          "callee": "C.Get()",
+          "dispatch": "direct",
+          "receiver": [
+            "param:1"
+          ],
+          "args": [],
+          "line": 1
+        }
+      ],
+      "unknown": []
+    }
+  ]
+}

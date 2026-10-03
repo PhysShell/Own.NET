@@ -1,0 +1,39 @@
+{
+  "heap_effects_version": 1,
+  "summaries": [
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "Calls(Order, Order, Order)",
+      "params": [
+        {
+          "effect": "unknown",
+          "index": 0,
+          "name": "a"
+        },
+        {
+          "effect": "unknown",
+          "index": 1,
+          "name": "b"
+        },
+        {
+          "effect": "unknown",
+          "index": 2,
+          "name": "c"
+        }
+      ],
+      "receiver": null,
+      "returns": [],
+      "unresolved": [
+        "D.Invoke(Order) (delegate)",
+        "Ext.Read(Order) (extern)",
+        "I.M() (virtual)"
+      ],
+      "writes": {
+        "indirect": "unknown",
+        "instance": "unknown",
+        "static": "unknown"
+      }
+    }
+  ]
+}

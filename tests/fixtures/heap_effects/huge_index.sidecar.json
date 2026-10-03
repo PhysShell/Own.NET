@@ -1,0 +1,26 @@
+{
+  "heap_effects_version": 1,
+  "methods": [
+    {
+      "key": "B(int)",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 1180591620717411303424,
+          "name": "n",
+          "inert": true
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    }
+  ]
+}

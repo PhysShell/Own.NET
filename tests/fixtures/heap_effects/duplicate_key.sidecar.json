@@ -1,0 +1,35 @@
+{
+  "heap_effects_version": 1,
+  "methods": [
+    {
+      "key": "A()",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": true,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "A()",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": true,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    }
+  ]
+}

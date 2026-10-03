@@ -1,0 +1,1 @@
+heap-effect facts: method #0: derefs holds a token outside the vocabulary

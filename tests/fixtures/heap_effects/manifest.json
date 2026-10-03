@@ -1,0 +1,96 @@
+{
+  "heap_effects_version": 1,
+  "cases": [
+    {
+      "name": "samples",
+      "source": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "pins": "the five kill fixtures, transitive A->B, SCC (pure, mutating, unknown), receiver, local alias, reassigned parameter, return alias, static initialization, lambda, virtual"
+    },
+    {
+      "name": "missing_callee",
+      "pins": "a direct call with no record is Unknown, logged '(no summary)'"
+    },
+    {
+      "name": "constructor_result",
+      "pins": "a returned receiver with no receiver at the call (a constructor) is heap; a kept constructor argument escapes"
+    },
+    {
+      "name": "unknown_root_write",
+      "pins": "a write through a value an unknown call returned is an unknown write"
+    },
+    {
+      "name": "local_cycle",
+      "pins": "local sources resolve through cycles; an indirect write through a local is the parameter's borrow_mut"
+    },
+    {
+      "name": "unknown_keeps_inert_plain",
+      "pins": "an unmodelled construct is Unknown everywhere except inert by-value parameters"
+    },
+    {
+      "name": "scc_return_alias",
+      "pins": "return aliases converge around a three-method cycle; a write through the result maps back to the argument"
+    },
+    {
+      "name": "heap_through_callee",
+      "pins": "a callee's borrow_mut / may_escape on a heap argument is an instance write of the caller"
+    },
+    {
+      "name": "dispatch_kinds",
+      "pins": "virtual, delegate and extern dispatch are Unknown on the receiver and every argument"
+    },
+    {
+      "name": "receiver_mapping",
+      "pins": "a callee's receiver effect lands on the caller's receiver argument"
+    }
+  ],
+  "rejections": [
+    {
+      "name": "not_object"
+    },
+    {
+      "name": "bad_version"
+    },
+    {
+      "name": "bool_version"
+    },
+    {
+      "name": "methods_not_array"
+    },
+    {
+      "name": "duplicate_key"
+    },
+    {
+      "name": "bool_line"
+    },
+    {
+      "name": "huge_index"
+    },
+    {
+      "name": "params_out_of_sequence"
+    },
+    {
+      "name": "bad_dispatch"
+    },
+    {
+      "name": "bad_write_kind"
+    },
+    {
+      "name": "token_out_of_range"
+    },
+    {
+      "name": "receiver_on_static"
+    },
+    {
+      "name": "non_canonical_token"
+    },
+    {
+      "name": "arity_mismatch"
+    },
+    {
+      "name": "missing_field"
+    },
+    {
+      "name": "not_json"
+    }
+  ]
+}

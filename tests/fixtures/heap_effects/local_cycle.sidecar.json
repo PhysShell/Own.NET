@@ -1,0 +1,49 @@
+{
+  "heap_effects_version": 1,
+  "methods": [
+    {
+      "key": "Cycle(Order)",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [
+        {
+          "id": 0,
+          "name": "a",
+          "sources": [
+            "local:1",
+            "param:0"
+          ]
+        },
+        {
+          "id": 1,
+          "name": "b",
+          "sources": [
+            "local:0"
+          ]
+        }
+      ],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "indirect",
+          "target": [
+            "local:1"
+          ]
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    }
+  ]
+}

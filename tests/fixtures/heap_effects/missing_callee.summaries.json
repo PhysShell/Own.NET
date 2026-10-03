@@ -1,0 +1,27 @@
+{
+  "heap_effects_version": 1,
+  "summaries": [
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "Caller(Order)",
+      "params": [
+        {
+          "effect": "unknown",
+          "index": 0,
+          "name": "o"
+        }
+      ],
+      "receiver": null,
+      "returns": [],
+      "unresolved": [
+        "Gone(Order) (no summary)"
+      ],
+      "writes": {
+        "indirect": "unknown",
+        "instance": "unknown",
+        "static": "unknown"
+      }
+    }
+  ]
+}

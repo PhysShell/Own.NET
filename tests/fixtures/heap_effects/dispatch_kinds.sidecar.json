@@ -1,0 +1,73 @@
+{
+  "heap_effects_version": 1,
+  "methods": [
+    {
+      "key": "Calls(Order, Order, Order)",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "a",
+          "inert": false
+        },
+        {
+          "index": 1,
+          "name": "b",
+          "inert": false
+        },
+        {
+          "index": 2,
+          "name": "c",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "I.M()",
+          "dispatch": "virtual",
+          "receiver": [
+            "param:0"
+          ],
+          "args": [],
+          "line": 1
+        },
+        {
+          "id": 1,
+          "callee": "D.Invoke(Order)",
+          "dispatch": "delegate",
+          "receiver": [
+            "heap"
+          ],
+          "args": [
+            [
+              "param:1"
+            ]
+          ],
+          "line": 1
+        },
+        {
+          "id": 2,
+          "callee": "Ext.Read(Order)",
+          "dispatch": "extern",
+          "receiver": null,
+          "args": [
+            [
+              "param:2"
+            ]
+          ],
+          "line": 1
+        }
+      ],
+      "unknown": []
+    }
+  ]
+}

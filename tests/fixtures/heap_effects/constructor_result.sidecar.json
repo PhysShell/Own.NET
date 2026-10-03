@@ -1,0 +1,127 @@
+{
+  "heap_effects_version": 1,
+  "methods": [
+    {
+      "key": "W..ctor(Order)",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": true,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "instance",
+          "target": [
+            "receiver"
+          ]
+        }
+      ],
+      "stores": [
+        "param:0"
+      ],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "W.Self()",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": true,
+      "return_inert": false,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [
+        "receiver"
+      ],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Make(Order)",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": false,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [
+        "heap"
+      ],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "W..ctor(Order)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            [
+              "param:0"
+            ]
+          ],
+          "line": 1
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "Use()",
+      "file": "synthetic.cs",
+      "line": 1,
+      "receiver": false,
+      "return_inert": true,
+      "params": [],
+      "locals": [
+        {
+          "id": 0,
+          "name": "w",
+          "sources": [
+            "heap"
+          ]
+        }
+      ],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "instance",
+          "target": [
+            "call:0"
+          ]
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "W.Self()",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [],
+          "line": 1
+        }
+      ],
+      "unknown": []
+    }
+  ]
+}

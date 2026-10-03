@@ -1,0 +1,59 @@
+{
+  "heap_effects_version": 1,
+  "summaries": [
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "FromStatic()",
+      "params": [],
+      "receiver": null,
+      "returns": [],
+      "unresolved": [],
+      "writes": {
+        "indirect": "none",
+        "instance": "may",
+        "static": "may"
+      }
+    },
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "Keep(Order)",
+      "params": [
+        {
+          "effect": "may_escape",
+          "index": 0,
+          "name": "o"
+        }
+      ],
+      "receiver": null,
+      "returns": [],
+      "unresolved": [],
+      "writes": {
+        "indirect": "none",
+        "instance": "none",
+        "static": "may"
+      }
+    },
+    {
+      "file": "synthetic.cs",
+      "line": 1,
+      "method": "Mut(Order)",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "index": 0,
+          "name": "o"
+        }
+      ],
+      "receiver": null,
+      "returns": [],
+      "unresolved": [],
+      "writes": {
+        "indirect": "none",
+        "instance": "none",
+        "static": "none"
+      }
+    }
+  ]
+}

@@ -3348,6 +3348,11 @@ jobs:
       - name: The protocol gate + both public CLIs on the C#-derived documents
         if: matrix.os == 'ubuntu-latest'
         run: python scripts/protocol_gate.py --rust "$PWD/rust/target/debug/own-cli"
+      # H0 heap-effect summaries (docs/notes/heap-effect-summaries.md): the real extractor
+      # still emits the committed sidecar, and --heap-effects moves no byte of the facts,
+      # no exit code and no stderr — over every protocol case and refusal and examples/.
+      - name: Heap-effect sidecar (samples + inertness of --heap-effects)
+        run: python scripts/heap_effects_gate.py
 
   # P-012 slice 1: score the checker against the labeled corpus on REAL C# — not
   # just the .own reduction tests/test_corpus.py checks. Per case: the bug must be

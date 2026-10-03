@@ -3,6 +3,9 @@
 Status: **BLOCKED BY SUMMARY INFRASTRUCTURE** — a kill-first finding, no code
 change. Measured at `main` = `a27a8277b40309aa56b945e73dd305ddb90e72b4`.
 
+**Follow-up:** slice H0 (§4) landed inert — see
+[`heap-effect-summaries.md`](heap-effect-summaries.md). H1 is still open.
+
 Question: can `ProtocolLowering` let a *provably harmless* call stand inside a
 state-protocol region by consuming the existing P-036/P-037 summary layer,
 without weakening the fail-closed default?

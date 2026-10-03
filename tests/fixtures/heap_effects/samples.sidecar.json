@@ -1,0 +1,1041 @@
+{
+  "heap_effects_version": 1,
+  "methods": [
+    {
+      "key": "Own.HeapEffects.Samples.Holder.Touch()",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 151,
+      "receiver": true,
+      "return_inert": true,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "instance",
+          "target": []
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": [
+        "captured primary-constructor parameter"
+      ]
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Kill.Escapes(Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 38,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "x",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "static",
+          "target": []
+        }
+      ],
+      "stores": [
+        "param:0"
+      ],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Kill.Logs()",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 44,
+      "receiver": false,
+      "return_inert": true,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "System.Console.WriteLine(string?)",
+          "dispatch": "extern",
+          "receiver": null,
+          "args": [
+            []
+          ],
+          "line": 44
+        }
+      ],
+      "unknown": [
+        "member of external type System.Console"
+      ]
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Kill.Mutates(Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 35,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "x",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "instance",
+          "target": [
+            "param:0"
+          ]
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Kill.TouchesGlobalState()",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 41,
+      "receiver": false,
+      "return_inert": true,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "static",
+          "target": []
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Kill.Twice(int)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 32,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "x",
+          "inert": true
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Lazy.Lazy()",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 142,
+      "receiver": false,
+      "return_inert": true,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "static",
+          "target": []
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "System.Environment.ProcessorCount.get",
+          "dispatch": "extern",
+          "receiver": null,
+          "args": [],
+          "line": 142
+        }
+      ],
+      "unknown": [
+        "member of external type System.Environment",
+        "static initialization of Own.HeapEffects.Samples.Lazy"
+      ]
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Lazy.Value()",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 144,
+      "receiver": false,
+      "return_inert": true,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": [
+        "static initialization of Own.HeapEffects.Samples.Lazy"
+      ]
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Opaque.CallsLazy()",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 135,
+      "receiver": false,
+      "return_inert": true,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Own.HeapEffects.Samples.Lazy.Value()",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [],
+          "line": 135
+        }
+      ],
+      "unknown": [
+        "static initialization of Own.HeapEffects.Samples.Lazy"
+      ]
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Opaque.Lambda(Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 132,
+      "receiver": false,
+      "return_inert": false,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": [
+        "expression DelegateCreation"
+      ]
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Opaque.Virtual(Own.HeapEffects.Samples.IShape)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 129,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "s",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Own.HeapEffects.Samples.IShape.Area()",
+          "dispatch": "virtual",
+          "receiver": [
+            "param:0"
+          ],
+          "args": [],
+          "line": 129
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Order.Peek()",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 18,
+      "receiver": true,
+      "return_inert": true,
+      "params": [],
+      "locals": [],
+      "derefs": [
+        "receiver"
+      ],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Order.Touch()",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 17,
+      "receiver": true,
+      "return_inert": true,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "instance",
+          "target": [
+            "receiver"
+          ]
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Recursive.Even(int)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 96,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "n",
+          "inert": true
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Own.HeapEffects.Samples.Recursive.Odd(int)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            []
+          ],
+          "line": 96
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Recursive.Odd(int)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 97,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "n",
+          "inert": true
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Own.HeapEffects.Samples.Recursive.Even(int)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            []
+          ],
+          "line": 97
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Recursive.Ping(Own.HeapEffects.Samples.Order, int)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 100,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        },
+        {
+          "index": 1,
+          "name": "n",
+          "inert": true
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Own.HeapEffects.Samples.Recursive.Pong(Own.HeapEffects.Samples.Order, int)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            [
+              "param:0"
+            ],
+            []
+          ],
+          "line": 103
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Recursive.Pong(Own.HeapEffects.Samples.Order, int)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 106,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        },
+        {
+          "index": 1,
+          "name": "n",
+          "inert": true
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "instance",
+          "target": [
+            "param:0"
+          ]
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Own.HeapEffects.Samples.Recursive.Ping(Own.HeapEffects.Samples.Order, int)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            [
+              "param:0"
+            ],
+            []
+          ],
+          "line": 109
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Recursive.Tick(Own.HeapEffects.Samples.Order, int)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 113,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        },
+        {
+          "index": 1,
+          "name": "n",
+          "inert": true
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Own.HeapEffects.Samples.Recursive.Tock(Own.HeapEffects.Samples.Order, int)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            [
+              "param:0"
+            ],
+            []
+          ],
+          "line": 116
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Recursive.Tock(Own.HeapEffects.Samples.Order, int)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 119,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        },
+        {
+          "index": 1,
+          "name": "n",
+          "inert": true
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "System.Console.WriteLine(int)",
+          "dispatch": "extern",
+          "receiver": null,
+          "args": [
+            []
+          ],
+          "line": 121
+        },
+        {
+          "id": 1,
+          "callee": "Own.HeapEffects.Samples.Recursive.Tick(Own.HeapEffects.Samples.Order, int)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            [
+              "param:0"
+            ],
+            []
+          ],
+          "line": 122
+        }
+      ],
+      "unknown": [
+        "member of external type System.Console"
+      ]
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Returns.Fresh()",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 89,
+      "receiver": false,
+      "return_inert": false,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [
+        "heap"
+      ],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Returns.FromHeap()",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 88,
+      "receiver": false,
+      "return_inert": false,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [
+        "heap"
+      ],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Returns.Id(Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 86,
+      "receiver": false,
+      "return_inert": false,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [
+        "param:0"
+      ],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Returns.MutatesResult(Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 90,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "instance",
+          "target": [
+            "call:0"
+          ]
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Own.HeapEffects.Samples.Returns.Id(Own.HeapEffects.Samples.Order)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            [
+              "param:0"
+            ]
+          ],
+          "line": 90
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Returns.ViaCall(Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 87,
+      "receiver": false,
+      "return_inert": false,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [
+        "call:0"
+      ],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Own.HeapEffects.Samples.Returns.Id(Own.HeapEffects.Samples.Order)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            [
+              "param:0"
+            ]
+          ],
+          "line": 87
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Transitive.A(Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 50,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "x",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Own.HeapEffects.Samples.Transitive.B(Own.HeapEffects.Samples.Order)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            [
+              "param:0"
+            ]
+          ],
+          "line": 50
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Transitive.AliasMutates(Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 64,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [
+        {
+          "id": 0,
+          "name": "a",
+          "sources": [
+            "param:0"
+          ]
+        }
+      ],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "instance",
+          "target": [
+            "local:0"
+          ]
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Transitive.B(Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 51,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "x",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "instance",
+          "target": [
+            "param:0"
+          ]
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Transitive.CallsLogs()",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 57,
+      "receiver": false,
+      "return_inert": true,
+      "params": [],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Own.HeapEffects.Samples.Kill.Logs()",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [],
+          "line": 57
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Transitive.CallsPeek(Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 61,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Own.HeapEffects.Samples.Order.Peek()",
+          "dispatch": "direct",
+          "receiver": [
+            "param:0"
+          ],
+          "args": [],
+          "line": 61
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Transitive.CallsTouch(Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 60,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Own.HeapEffects.Samples.Order.Touch()",
+          "dispatch": "direct",
+          "receiver": [
+            "param:0"
+          ],
+          "args": [],
+          "line": 60
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Transitive.EscapeInner(Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 54,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "x",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "static",
+          "target": []
+        }
+      ],
+      "stores": [
+        "param:0"
+      ],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Transitive.EscapeOuter(Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 53,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "x",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [
+        {
+          "id": 0,
+          "callee": "Own.HeapEffects.Samples.Transitive.EscapeInner(Own.HeapEffects.Samples.Order)",
+          "dispatch": "direct",
+          "receiver": null,
+          "args": [
+            [
+              "param:0"
+            ]
+          ],
+          "line": 53
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Transitive.ReadsDeep(Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 81,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [
+        "param:0"
+      ],
+      "writes": [],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Transitive.Reassigned(Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 71,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [
+        {
+          "id": 0,
+          "name": "o",
+          "sources": [
+            "heap",
+            "param:0"
+          ]
+        }
+      ],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "instance",
+          "target": [
+            "local:0"
+          ]
+        }
+      ],
+      "stores": [],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    },
+    {
+      "key": "Own.HeapEffects.Samples.Transitive.SetFirst(Own.HeapEffects.Samples.Order[], Own.HeapEffects.Samples.Order)",
+      "file": "frontend/roslyn/heap-effects-samples/HeapEffects.cs",
+      "line": 78,
+      "receiver": false,
+      "return_inert": true,
+      "params": [
+        {
+          "index": 0,
+          "name": "items",
+          "inert": false
+        },
+        {
+          "index": 1,
+          "name": "o",
+          "inert": false
+        }
+      ],
+      "locals": [],
+      "derefs": [],
+      "writes": [
+        {
+          "kind": "indirect",
+          "target": [
+            "param:0"
+          ]
+        }
+      ],
+      "stores": [
+        "param:1"
+      ],
+      "returns": [],
+      "calls": [],
+      "unknown": []
+    }
+  ]
+}
