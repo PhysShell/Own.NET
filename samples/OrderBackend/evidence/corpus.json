@@ -1,0 +1,357 @@
+{
+  "sample": {
+    "regions": {
+      "OrderBackend.OrderEndpoints.Submit$protocol": [
+        "acquire",
+        "call OrderBackend.Domain.DraftOrder.Submit"
+      ],
+      "OrderBackend.OrderEndpoints.Approve$protocol": [
+        "acquire",
+        "call OrderBackend.Domain.SubmittedOrder.Approve"
+      ],
+      "OrderBackend.OrderEndpoints.Ship$protocol": [
+        "acquire",
+        "proven_call OrderBackend.Shipping.TrackingNumber(int)",
+        "call OrderBackend.Domain.ApprovedOrder.Ship"
+      ]
+    },
+    "heap_effects": [
+      "OrderBackend.Shipping.TrackingNumber(int)",
+      "site:samples/OrderBackend/OrderBackend/OrderEndpoints.cs:97:36"
+    ],
+    "verdict": []
+  },
+  "corpus": [
+    {
+      "kind": "positive",
+      "case": "P1_create_draft",
+      "expected": {
+        "stage": "core",
+        "verdict": []
+      },
+      "observed": []
+    },
+    {
+      "kind": "positive",
+      "case": "P2_draft_submit",
+      "expected": {
+        "stage": "core",
+        "verdict": []
+      },
+      "observed": []
+    },
+    {
+      "kind": "positive",
+      "case": "P3_submitted_approve",
+      "expected": {
+        "stage": "core",
+        "verdict": []
+      },
+      "observed": []
+    },
+    {
+      "kind": "positive",
+      "case": "P4_approved_ship",
+      "expected": {
+        "stage": "core",
+        "verdict": []
+      },
+      "observed": []
+    },
+    {
+      "kind": "positive",
+      "case": "P5_harmless_helper",
+      "expected": {
+        "stage": "core",
+        "verdict": [],
+        "proven_call": "OrderBackend.Shipping.TrackingNumber(int)"
+      },
+      "observed": []
+    },
+    {
+      "kind": "positive",
+      "case": "P6_load_refine_transition",
+      "expected": {
+        "stage": "core",
+        "verdict": []
+      },
+      "observed": []
+    },
+    {
+      "kind": "positive",
+      "case": "P7_linq_before_refinement",
+      "expected": {
+        "stage": "core",
+        "verdict": []
+      },
+      "observed": []
+    },
+    {
+      "kind": "positive",
+      "case": "P8_full_chain",
+      "expected": {
+        "stage": "core",
+        "verdict": [],
+        "proven_call": "OrderBackend.Shipping.TrackingNumber(int)"
+      },
+      "observed": []
+    },
+    {
+      "kind": "negative",
+      "case": "C10a_raw_mutator",
+      "expected": {
+        "stage": "extractor",
+        "text": "'ApplyShip' of 'Order' is not public and belongs to a state protocol"
+      },
+      "observed": "exit 2: extractor: protocol lowering refused: OrderBackend/C10a_raw_mutator.cs:17: 'ApplyShip' of 'Order' is not public and belongs to a state protocol: it is called here, outside the protocol's own types, where it is reachable only through a token (the scan holds the protocol to the boundary a separate assembly would give it)"
+    },
+    {
+      "kind": "negative",
+      "case": "C10b_raw_entity_in_region",
+      "expected": {
+        "stage": "core",
+        "verdict": [
+          "OWN013"
+        ]
+      },
+      "observed": [
+        "OWN013"
+      ]
+    },
+    {
+      "kind": "negative",
+      "case": "C10c_raw_state_write",
+      "expected": {
+        "stage": "compiler",
+        "code": "CS0272",
+        "member": "Status"
+      },
+      "observed": [
+        "C10c_raw_state_write.cs: CS0272: The property or indexer 'Order.Status' cannot be used in this context because the set accessor is inaccessible"
+      ]
+    },
+    {
+      "kind": "negative",
+      "case": "C11a_token_copy",
+      "expected": {
+        "stage": "core",
+        "verdict": [
+          "OWN005"
+        ]
+      },
+      "observed": [
+        "OWN005"
+      ]
+    },
+    {
+      "kind": "negative",
+      "case": "C11b_entity_alias",
+      "expected": {
+        "stage": "core",
+        "verdict": [
+          "OWN013"
+        ]
+      },
+      "observed": [
+        "OWN013"
+      ]
+    },
+    {
+      "kind": "negative",
+      "case": "C12a_harmful_helper",
+      "expected": {
+        "stage": "core",
+        "refusal": "'OrderBackend.Corpus.C12aHarmfulHelper.Counter.Next()': writes.static is may"
+      },
+      "observed": "refused: OwnIR 'proven_call' to 'OrderBackend.Corpus.C12aHarmfulHelper.Counter.Next()' is not proven harmless: 'OrderBackend.Corpus.C12aHarmfulHelper.Counter.Next()': writes.static is may (OrderBackend/C12a_harmful_helper.cs:20) — refused: an exclusive region admits only calls the effect summaries prove harmless"
+    },
+    {
+      "kind": "negative",
+      "case": "C12b_logger_in_region",
+      "expected": {
+        "stage": "extractor",
+        "text": "LoggerExtensions.LogInformation' inside a protocol region runs code with no stated contract"
+      },
+      "observed": "exit 2: extractor: protocol lowering refused: OrderBackend/C12b_logger_in_region.cs:20: a call to 'Microsoft.Extensions.Logging.LoggerExtensions.LogInformation' inside a protocol region runs code with no stated contract; an exclusive region admits only transitions and what the lowering can read"
+    },
+    {
+      "kind": "negative",
+      "case": "C13_builder_without_customer",
+      "expected": {
+        "stage": "compiler",
+        "code": "CS1061",
+        "member": "Build"
+      },
+      "observed": [
+        "C13_builder_without_customer.cs: CS1061: 'Order.DraftBuilder.CustomerStep' does not contain a definition for 'Build' and no accessible extension method 'Build' accepting a first argument of type 'Order.DraftBuilder.CustomerStep' could be found (are you missing a using directive or an assembly reference?)"
+      ]
+    },
+    {
+      "kind": "negative",
+      "case": "C14_forged_token",
+      "expected": {
+        "stage": "extractor",
+        "text": "a protocol token 'ApprovedOrder' is created outside the protocol's own types"
+      },
+      "observed": "exit 2: extractor: protocol lowering refused: OrderBackend/C14_forged_token.cs:17: a protocol token 'ApprovedOrder' is created outside the protocol's own types: a token comes only from a region entry or a transition (the attribute names ProtocolRegion and ProtocolToken are reserved in these shapes: a method marked [ProtocolRegion] that takes a delegate is a region entry, a ref struct marked [ProtocolToken] is a state token)"
+    },
+    {
+      "kind": "negative",
+      "case": "C15_entity_constructor",
+      "expected": {
+        "stage": "compiler",
+        "code": "CS0122",
+        "member": "Order"
+      },
+      "observed": [
+        "C15_entity_constructor.cs: CS0122: 'Order.Order()' is inaccessible due to its protection level"
+      ]
+    },
+    {
+      "kind": "negative",
+      "case": "C1_draft_approve",
+      "expected": {
+        "stage": "compiler",
+        "code": "CS1061",
+        "member": "Approve"
+      },
+      "observed": [
+        "C1_draft_approve.cs: CS1061: 'DraftOrder' does not contain a definition for 'Approve' and no accessible extension method 'Approve' accepting a first argument of type 'DraftOrder' could be found (are you missing a using directive or an assembly reference?)"
+      ]
+    },
+    {
+      "kind": "negative",
+      "case": "C2_draft_ship",
+      "expected": {
+        "stage": "compiler",
+        "code": "CS1061",
+        "member": "Ship"
+      },
+      "observed": [
+        "C2_draft_ship.cs: CS1061: 'DraftOrder' does not contain a definition for 'Ship' and no accessible extension method 'Ship' accepting a first argument of type 'DraftOrder' could be found (are you missing a using directive or an assembly reference?)"
+      ]
+    },
+    {
+      "kind": "negative",
+      "case": "C3_submitted_submit",
+      "expected": {
+        "stage": "compiler",
+        "code": "CS1061",
+        "member": "Submit"
+      },
+      "observed": [
+        "C3_submitted_submit.cs: CS1061: 'SubmittedOrder' does not contain a definition for 'Submit' and no accessible extension method 'Submit' accepting a first argument of type 'SubmittedOrder' could be found (are you missing a using directive or an assembly reference?)"
+      ]
+    },
+    {
+      "kind": "negative",
+      "case": "C4_submitted_ship",
+      "expected": {
+        "stage": "compiler",
+        "code": "CS1061",
+        "member": "Ship"
+      },
+      "observed": [
+        "C4_submitted_ship.cs: CS1061: 'SubmittedOrder' does not contain a definition for 'Ship' and no accessible extension method 'Ship' accepting a first argument of type 'SubmittedOrder' could be found (are you missing a using directive or an assembly reference?)"
+      ]
+    },
+    {
+      "kind": "negative",
+      "case": "C5_approved_submit",
+      "expected": {
+        "stage": "compiler",
+        "code": "CS1061",
+        "member": "Submit"
+      },
+      "observed": [
+        "C5_approved_submit.cs: CS1061: 'ApprovedOrder' does not contain a definition for 'Submit' and no accessible extension method 'Submit' accepting a first argument of type 'ApprovedOrder' could be found (are you missing a using directive or an assembly reference?)"
+      ]
+    },
+    {
+      "kind": "negative",
+      "case": "C6_approved_approve",
+      "expected": {
+        "stage": "compiler",
+        "code": "CS1061",
+        "member": "Approve"
+      },
+      "observed": [
+        "C6_approved_approve.cs: CS1061: 'ApprovedOrder' does not contain a definition for 'Approve' and no accessible extension method 'Approve' accepting a first argument of type 'ApprovedOrder' could be found (are you missing a using directive or an assembly reference?)"
+      ]
+    },
+    {
+      "kind": "negative",
+      "case": "C7_shipped_transition",
+      "expected": {
+        "stage": "compiler",
+        "code": "CS1061",
+        "member": "Submit"
+      },
+      "observed": [
+        "C7_shipped_transition.cs: CS1061: 'ShippedOrder' does not contain a definition for 'Submit' and no accessible extension method 'Submit' accepting a first argument of type 'ShippedOrder' could be found (are you missing a using directive or an assembly reference?)"
+      ]
+    },
+    {
+      "kind": "negative",
+      "case": "C7b_shipped_region",
+      "expected": {
+        "stage": "compiler",
+        "code": "CS0117",
+        "member": "WithShipped"
+      },
+      "observed": [
+        "C7b_shipped_region.cs: CS0117: 'OrderProtocol' does not contain a definition for 'WithShipped'"
+      ]
+    },
+    {
+      "kind": "negative",
+      "case": "C8_stale_draft",
+      "expected": {
+        "stage": "core",
+        "verdict": [
+          "OWN002"
+        ]
+      },
+      "observed": [
+        "OWN002"
+      ]
+    },
+    {
+      "kind": "negative",
+      "case": "C9_stale_submitted",
+      "expected": {
+        "stage": "core",
+        "verdict": [
+          "OWN002"
+        ]
+      },
+      "observed": [
+        "OWN002"
+      ]
+    },
+    {
+      "kind": "limits",
+      "case": "K1_named_terminal_token",
+      "expected": {
+        "stage": "core",
+        "verdict": [
+          "OWN001"
+        ],
+        "why": "tokens are linear, not affine (P-010; case G6): a named token must be spent, and a terminal one cannot be"
+      },
+      "observed": [
+        "OWN001"
+      ]
+    },
+    {
+      "kind": "limits",
+      "case": "K2_execute_update",
+      "expected": {
+        "stage": "core",
+        "verdict": [],
+        "why": "a bulk write has no entity instance for a token to guard: concurrency tokens, constraints and transactions own it"
+      },
+      "observed": []
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "K1_named_terminal_token": {
+    "stage": "core",
+    "verdict": [
+      "OWN001"
+    ],
+    "why": "tokens are linear, not affine (P-010; case G6): a named token must be spent, and a terminal one cannot be"
+  },
+  "K2_execute_update": {
+    "stage": "core",
+    "verdict": [],
+    "why": "a bulk write has no entity instance for a token to guard: concurrency tokens, constraints and transactions own it"
+  }
+}

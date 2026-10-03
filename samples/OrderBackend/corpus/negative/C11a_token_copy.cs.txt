@@ -1,0 +1,26 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// C11a: a token copy is a move; the source is dead.
+public static class C11aTokenCopy
+{
+    public static async Task Run(OrdersDb db, int id, CancellationToken ct)
+    {
+        var order = await db.Orders.SingleAsync(o => o.Id == id, ct);
+        var now = DateTime.UnixEpoch;
+        OrderProtocol.WithDraft(order, draft =>
+        {
+            var copy = draft;
+            draft.Submit(now);
+            copy.Submit(now);
+        });
+        await db.SaveChangesAsync(ct);
+    }
+}

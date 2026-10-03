@@ -1,0 +1,603 @@
+{
+  "ownir_version": 2,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "OrderBackend.OrderEndpoints.Create",
+      "file": "samples/OrderBackend/OrderBackend/OrderEndpoints.cs",
+      "sig": "OrderBackend.CreateOrderRequest,OrderBackend.Data.OrdersDb,System.Threading.CancellationToken",
+      "params": [
+        {
+          "name": "db",
+          "line": 19
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 21,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 22
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "use",
+          "var": "db",
+          "line": 27
+        },
+        {
+          "op": "use",
+          "var": "db",
+          "line": 28
+        },
+        {
+          "op": "return",
+          "var": null,
+          "line": 29
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.OrderEndpoints.Submit",
+      "file": "samples/OrderBackend/OrderBackend/OrderEndpoints.cs",
+      "sig": "System.Int32,OrderBackend.Data.OrdersDb,System.TimeProvider,System.Threading.CancellationToken",
+      "params": [
+        {
+          "name": "db",
+          "line": 32
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 36,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 34
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 37,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 34
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 40,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 34
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 41,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 34
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 46,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 34
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "use",
+          "var": "db",
+          "line": 46
+        },
+        {
+          "op": "return",
+          "var": null,
+          "line": 34
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.OrderEndpoints.Approve",
+      "file": "samples/OrderBackend/OrderBackend/OrderEndpoints.cs",
+      "sig": "System.Int32,OrderBackend.Data.OrdersDb,System.TimeProvider,System.Threading.CancellationToken",
+      "params": [
+        {
+          "name": "db",
+          "line": 59
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 63,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 61
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 64,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 61
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 67,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 61
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 68,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 61
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 73,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 61
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "use",
+          "var": "db",
+          "line": 73
+        },
+        {
+          "op": "return",
+          "var": null,
+          "line": 61
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.OrderEndpoints.Ship",
+      "file": "samples/OrderBackend/OrderBackend/OrderEndpoints.cs",
+      "sig": "System.Int32,OrderBackend.Data.OrdersDb,System.TimeProvider,System.Threading.CancellationToken",
+      "params": [
+        {
+          "name": "db",
+          "line": 86
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 90,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 88
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 91,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 88
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 94,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 88
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 95,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 88
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "if",
+          "line": 100,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 88
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "use",
+          "var": "db",
+          "line": 100
+        },
+        {
+          "op": "return",
+          "var": null,
+          "line": 88
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.OrderEndpoints.Get",
+      "file": "samples/OrderBackend/OrderBackend/OrderEndpoints.cs",
+      "sig": "System.Int32,OrderBackend.Data.OrdersDb,System.Threading.CancellationToken",
+      "params": [
+        {
+          "name": "db",
+          "line": 113
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 117,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 115
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "return",
+          "var": null,
+          "line": 115
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.OrderEndpoints.List",
+      "file": "samples/OrderBackend/OrderBackend/OrderEndpoints.cs",
+      "sig": "System.String,OrderBackend.Data.OrdersDb,System.Threading.CancellationToken",
+      "params": [
+        {
+          "name": "db",
+          "line": 138
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 140,
+          "then": [
+            {
+              "op": "return",
+              "var": null,
+              "line": 141
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "return",
+          "var": null,
+          "line": 148
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.OrderEndpoints.Submit$protocol",
+      "file": "samples/OrderBackend/OrderBackend/OrderEndpoints.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "order",
+          "line": 41
+        },
+        {
+          "op": "borrow_mut",
+          "owner": "order",
+          "binding": "order.region1",
+          "line": 41,
+          "body": [
+            {
+              "op": "acquire",
+              "var": "draft",
+              "line": 41
+            },
+            {
+              "op": "call",
+              "callee": "OrderBackend.Domain.DraftOrder.Submit",
+              "args": [
+                "draft",
+                "order.region1"
+              ],
+              "line": 43
+            }
+          ]
+        },
+        {
+          "op": "release",
+          "var": "order",
+          "line": 41
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.OrderEndpoints.Approve$protocol",
+      "file": "samples/OrderBackend/OrderBackend/OrderEndpoints.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "order",
+          "line": 68
+        },
+        {
+          "op": "borrow_mut",
+          "owner": "order",
+          "binding": "order.region1",
+          "line": 68,
+          "body": [
+            {
+              "op": "acquire",
+              "var": "submitted",
+              "line": 68
+            },
+            {
+              "op": "call",
+              "callee": "OrderBackend.Domain.SubmittedOrder.Approve",
+              "args": [
+                "submitted",
+                "order.region1"
+              ],
+              "line": 70
+            }
+          ]
+        },
+        {
+          "op": "release",
+          "var": "order",
+          "line": 68
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.OrderEndpoints.Ship$protocol",
+      "file": "samples/OrderBackend/OrderBackend/OrderEndpoints.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "order",
+          "line": 95
+        },
+        {
+          "op": "borrow_mut",
+          "owner": "order",
+          "binding": "order.region1",
+          "line": 95,
+          "body": [
+            {
+              "op": "acquire",
+              "var": "approved",
+              "line": 95
+            },
+            {
+              "op": "proven_call",
+              "site": "site:samples/OrderBackend/OrderBackend/OrderEndpoints.cs:97:36",
+              "callee": "OrderBackend.Shipping.TrackingNumber(int)",
+              "line": 97
+            },
+            {
+              "op": "call",
+              "callee": "OrderBackend.Domain.ApprovedOrder.Ship",
+              "args": [
+                "approved",
+                "order.region1"
+              ],
+              "line": 97
+            }
+          ]
+        },
+        {
+          "op": "release",
+          "var": "order",
+          "line": 95
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.Domain.ApprovedOrder.Ship",
+      "file": "samples/OrderBackend/OrderBackend/Domain/Order.Protocol.cs",
+      "params": [
+        {
+          "name": "token",
+          "effect": "consume",
+          "line": 167
+        },
+        {
+          "name": "entity",
+          "effect": "borrow_mut",
+          "line": 167
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "token",
+          "line": 167
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.Domain.DraftOrder.Submit",
+      "file": "samples/OrderBackend/OrderBackend/Domain/Order.Protocol.cs",
+      "params": [
+        {
+          "name": "token",
+          "effect": "consume",
+          "line": 133
+        },
+        {
+          "name": "entity",
+          "effect": "borrow_mut",
+          "line": 133
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "token",
+          "line": 133
+        }
+      ]
+    },
+    {
+      "name": "OrderBackend.Domain.SubmittedOrder.Approve",
+      "file": "samples/OrderBackend/OrderBackend/Domain/Order.Protocol.cs",
+      "params": [
+        {
+          "name": "token",
+          "effect": "consume",
+          "line": 150
+        },
+        {
+          "name": "entity",
+          "effect": "borrow_mut",
+          "line": 150
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "token",
+          "line": 150
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "methods_with_local": 6,
+    "methods_flow_analysed": 6,
+    "methods_skipped_unmodelled": 0
+  },
+  "heap_effects": {
+    "heap_effects_version": 1,
+    "methods": [
+      {
+        "key": "OrderBackend.Shipping.TrackingNumber(int)",
+        "file": "samples/OrderBackend/OrderBackend/Shipping.cs",
+        "line": 9,
+        "receiver": false,
+        "return_inert": true,
+        "params": [
+          {
+            "index": 0,
+            "name": "orderId",
+            "inert": true
+          }
+        ],
+        "locals": [],
+        "derefs": [],
+        "writes": [],
+        "stores": [],
+        "returns": [],
+        "calls": [],
+        "unknown": []
+      },
+      {
+        "key": "site:samples/OrderBackend/OrderBackend/OrderEndpoints.cs:97:36",
+        "file": "samples/OrderBackend/OrderBackend/OrderEndpoints.cs",
+        "line": 97,
+        "receiver": false,
+        "return_inert": true,
+        "params": [],
+        "locals": [],
+        "derefs": [],
+        "writes": [],
+        "stores": [],
+        "returns": [],
+        "calls": [
+          {
+            "id": 0,
+            "callee": "OrderBackend.Shipping.TrackingNumber(int)",
+            "dispatch": "direct",
+            "receiver": null,
+            "args": [
+              []
+            ],
+            "line": 97
+          }
+        ],
+        "unknown": []
+      }
+    ]
+  }
+}

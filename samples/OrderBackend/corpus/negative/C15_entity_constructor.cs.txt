@@ -1,0 +1,15 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// C15: the entity has no public constructor: the builder is the way in.
+public static class C15EntityConstructor
+{
+    public static Order Run() => new Order();
+}

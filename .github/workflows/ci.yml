@@ -3353,6 +3353,16 @@ jobs:
       # no exit code and no stderr — over every protocol case and refusal and examples/.
       - name: Heap-effect sidecar (samples + inertness of --heap-effects)
         run: python scripts/heap_effects_gate.py
+      # TB-MVP-01 (docs/notes/tb-mvp-01-preregistration.md): the Typed Builder Order
+      # vertical slice. The generator's output is deterministic and committed; the corpus
+      # is held to its registered compiler / extractor / core answers; the backend runs
+      # real HTTP against real SQLite twice with oracles outside the typed API.
+      - name: Typed Builder MVP (generator, corpus, EF + HTTP acceptance)
+        if: matrix.os != 'ubuntu-latest'
+        run: python scripts/typed_builder_gate.py
+      - name: Typed Builder MVP + both public CLIs on every core-stage document
+        if: matrix.os == 'ubuntu-latest'
+        run: python scripts/typed_builder_gate.py --rust "$PWD/rust/target/debug/own-cli"
 
   # P-012 slice 1: score the checker against the labeled corpus on REAL C# — not
   # just the .own reduction tests/test_corpus.py checks. Per case: the bug must be

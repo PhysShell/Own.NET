@@ -1,0 +1,34 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// P6: an EF tracked load, the checked refinement, a transition, SaveChangesAsync.
+public static class P6LoadRefineTransition
+{
+    public static async Task<bool> Run(OrdersDb db, int id, CancellationToken ct)
+    {
+        var order = await db.Orders.SingleOrDefaultAsync(o => o.Id == id, ct);
+        if (order is null)
+            return false;
+        var now = DateTime.UnixEpoch;
+        try
+        {
+            OrderProtocol.WithDraft(order, draft =>
+            {
+                draft.Submit(now);
+            });
+        }
+        catch (InvalidOrderStateException)
+        {
+            return false;
+        }
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
+}

@@ -1,0 +1,29 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// P7: ordinary LINQ picks the order; the refinement starts after it.
+public static class P7LinqBeforeRefinement
+{
+    public static async Task Run(OrdersDb db, CancellationToken ct)
+    {
+        var oldest = await db.Orders
+            .Where(o => o.Status == OrderStatus.Submitted)
+            .OrderBy(o => o.Id)
+            .Select(o => o.Id)
+            .FirstAsync(ct);
+        var order = await db.Orders.SingleAsync(o => o.Id == oldest, ct);
+        var now = DateTime.UnixEpoch;
+        OrderProtocol.WithSubmitted(order, submitted =>
+        {
+            submitted.Approve(now);
+        });
+        await db.SaveChangesAsync(ct);
+    }
+}

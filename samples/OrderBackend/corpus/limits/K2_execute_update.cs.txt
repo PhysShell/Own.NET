@@ -1,0 +1,17 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using OrderBackend.Data;
+using OrderBackend.Domain;
+
+namespace OrderBackend.Corpus;
+
+// K2: ExecuteUpdate writes the state past every token. Outside the claim.
+public static class K2ExecuteUpdate
+{
+    public static Task<int> Run(OrdersDb db, int id, CancellationToken ct) =>
+        db.Orders.Where(o => o.Id == id)
+            .ExecuteUpdateAsync(set => set.SetProperty(o => o.Status, OrderStatus.Shipped), ct);
+}
