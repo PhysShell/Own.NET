@@ -219,11 +219,11 @@ def isolation(c: Consumer) -> None:
         not leaked,
         f"on the consumer PATH: {leaked or 'no python/cargo/rustc/owen'}",
     )
-    check(
-        "E-outside-checkout",
-        os.path.commonpath([os.path.realpath(c.dir), ROOT]) != ROOT,
-        "the consumer directory is not inside the Own.NET checkout",
-    )
+    try:
+        inside = os.path.commonpath([os.path.realpath(c.dir), ROOT]) == ROOT
+    except ValueError:  # Windows: different drives, so certainly not inside
+        inside = False
+    check("E-outside-checkout", not inside, "the consumer is outside the Own.NET checkout")
 
 
 def scaffold(c: Consumer) -> None:
