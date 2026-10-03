@@ -148,6 +148,83 @@
       "rust_replay": true
     },
     {
+      "name": "proven_call_bad_section",
+      "rules": [
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "proven_call_empty_callee",
+      "rules": [
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "proven_call_missing_callee_record",
+      "rules": [
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "proven_call_no_section",
+      "rules": [
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "proven_call_no_site_record",
+      "rules": [
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "proven_call_outside_region",
+      "rules": [
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "proven_call_site_not_a_string",
+      "rules": [
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "proven_call_unknown_callee",
+      "rules": [
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "proven_call_unknown_site",
+      "rules": [
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "proven_call_virtual_in_site",
+      "rules": [
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "proven_call_wrong_callee",
+      "rules": [
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
       "name": "routing_r1_unresolved",
       "rules": [
         "BR-L1/R1"
@@ -218,6 +295,86 @@
       "name": "typestate_cs_g6_capability_not_spent",
       "rules": [
         "BR-L13"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_h1a_harmless_call",
+      "rules": [
+        "BR-L13",
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_h1b_transitive_pure",
+      "rules": [
+        "BR-L13",
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_h1c_pure_scc",
+      "rules": [
+        "BR-L13",
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_h1d_global_state",
+      "rules": [
+        "BR-L13",
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_h1e_transitive_global",
+      "rules": [
+        "BR-L13",
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_h1f_polluted_scc",
+      "rules": [
+        "BR-L13",
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_h1g_transitive_unknown",
+      "rules": [
+        "BR-L13",
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_h1h_mutates_entity",
+      "rules": [
+        "BR-L13",
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_h1i_escapes_entity",
+      "rules": [
+        "BR-L13",
+        "BR-L14"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "typestate_cs_h1j_mutates_outer_value",
+      "rules": [
+        "BR-L13",
+        "BR-L14"
       ],
       "rust_replay": true
     },

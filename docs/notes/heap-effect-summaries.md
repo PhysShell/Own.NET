@@ -98,7 +98,7 @@ Receiver mapping, local aliases, a reassigned parameter, array elements, return 
 
 **The core:** no verdict-path module changed. The only edit to existing Rust code is the visibility of `dump.rs::emit` (private → `pub(crate)`). The existing suites (`tests/run_tests.py`, `cargo test`) pass unchanged. The coordinate census (`docs/generated/p022-coord-census.md`) is regenerated only because it now also counts the new fixture family's `line` slots.
 
-## 7. What H1 still needs before `ProtocolLowering` can ask `Harmless(callee, region-resource)`
+## 7. What H1 still needed (landed: [`h1-proven-call.md`](h1-proven-call.md), OwnIR v2)
 
 1. **The decision point: an owner ruling.** `ProtocolLowering` refuses in the extractor, before any fact exists, while the summary is solved in the core. Moving the decision core-side needs a must-understand construct for "a call inside this region whose effect must be proven", which is an OwnIR v2 op (IR3/IR4), plus the sidecar travelling with the facts it describes. Solving in the extractor is not an option: frontends emit facts only (IR6).
 2. **The predicate**, over a solved summary of a `direct` callee:

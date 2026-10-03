@@ -1,0 +1,26 @@
+using System.Threading.Tasks;
+using Own.Protocols.Sample;
+
+namespace Own.Protocols.Cases;
+
+// H1 does not reach this one: a call through an interface dispatches to an implementation
+// nobody can name statically, so no summary describes it -> refused by the lowering, exactly
+// as before OwnIR v2. Devirtualization is not attempted.
+public interface IClock
+{
+    int Ticks();
+}
+
+public static class R19VirtualCallInsideRegion
+{
+    public static async Task Run(Db db, int id, IClock clock)
+    {
+        var order = await db.SingleAsync(id);
+        Protocol.WithApproved(order, approved =>
+        {
+            var t = clock.Ticks();
+            approved.Ship();
+        });
+        await db.SaveChangesAsync();
+    }
+}

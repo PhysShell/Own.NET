@@ -1,0 +1,4 @@
+{
+  "lowered_version": 2,
+  "error": "OwnIR flow op 'proven_call' needs a non-empty string 'site' and a non-empty string 'callee' (frontend/roslyn/protocol-samples/cases/H1a_harmless_call.cs:18)"
+}

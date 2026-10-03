@@ -1,6 +1,7 @@
 //! Heap-effect summaries — H0, the port of `ownlang/heap_effects.py`
-//! (docs/notes/heap-effect-summaries.md). INERT: nothing in the bridge's
-//! verdict path reads it.
+//! (docs/notes/heap-effect-summaries.md). Inert, with ONE exception: `OwnIR`
+//! v2's `proven_call` (H1, `proven.rs`) admits a call inside an exclusive
+//! region only when `Proof::site_verdict` below proves it harmless.
 //!
 //! The input is the extractor's heap-effect SOURCE FACTS (`ownsharp-extract
 //! --heap-effects FILE`), not `OwnIR`: a separate document, so this module
@@ -765,6 +766,93 @@ fn unresolved(m: &Method, methods: &HashMap<&str, &Method>) -> Vec<String> {
         }
     }
     reasons.into_iter().collect()
+}
+
+// --- H1: the harmless predicate (docs/notes/h1-proven-call.md) ---------------
+//
+// The port of `harmless` / `site_verdict`: the one consumer of the solved
+// summaries that decides anything — OwnIR v2's `proven_call` (`proven.rs`). The
+// reason texts are part of the refusal parity surface.
+
+/// The FIRST failing clause, in the reference's fixed order, or `None` when
+/// the summary proves the method harmless.
+fn harmless(s: &Summary) -> Option<String> {
+    for (i, effect) in s.params.iter().enumerate() {
+        if *effect > BORROW {
+            return Some(format!("parameter {i} is {}", effect_label(*effect)));
+        }
+    }
+    if let Some(r) = s.receiver {
+        if r > BORROW {
+            return Some(format!("receiver is {}", effect_label(r)));
+        }
+    }
+    for (i, kind) in WRITE_KINDS.iter().enumerate() {
+        let level = s.writes.get(i).copied().unwrap_or(W_UNKNOWN);
+        if level != W_NONE {
+            return Some(format!("writes.{kind} is {}", write_label(level)));
+        }
+    }
+    if !s.returns.is_empty() {
+        return Some(format!("returns alias {}", s.returns.join(", ")));
+    }
+    None
+}
+
+/// A loaded and solved `heap_effects` section — what `proven_call` is judged
+/// against.
+pub(crate) struct Proof {
+    methods: Vec<Method>,
+    solved: HashMap<String, Summary>,
+}
+
+/// Load and solve a `heap_effects` section (the H0 vocabulary).
+pub(crate) fn prove(section: &Value) -> Result<Proof, BridgeError> {
+    let methods = load(section)?;
+    let solved = solve(&methods);
+    Ok(Proof { methods, solved })
+}
+
+impl Proof {
+    fn method(&self, key: &str) -> Option<&Method> {
+        self.methods.iter().find(|m| m.key == key)
+    }
+
+    /// Whether the section holds a record named `key`.
+    pub(crate) fn has(&self, key: &str) -> bool {
+        self.method(key).is_some()
+    }
+
+    /// The reference's `site_verdict`: `None` when the call site is proven
+    /// harmless, otherwise why not.
+    pub(crate) fn site_verdict(&self, site: &str, callee: &str) -> Option<String> {
+        let Some(m) = self.method(site) else {
+            return Some(format!("'{site}' has no summary"));
+        };
+        if !m
+            .calls
+            .iter()
+            .any(|c| c.callee == callee && c.dispatch == "direct")
+        {
+            return Some(format!("the site does not call '{callee}' directly"));
+        }
+        for c in &m.calls {
+            if c.dispatch != "direct" {
+                return Some(format!("'{}' is {}", c.callee, c.dispatch));
+            }
+            let Some(s) = self.solved.get(&c.callee) else {
+                return Some(format!("'{}' has no summary", c.callee));
+            };
+            if let Some(reason) = harmless(s) {
+                return Some(format!("'{}': {reason}", c.callee));
+            }
+        }
+        // every loaded record is solved; a missing one is no proof, never a pass
+        let Some(s) = self.solved.get(site) else {
+            return Some(format!("'{site}' has no summary"));
+        };
+        harmless(s).map(|reason| format!("the call site: {reason}"))
+    }
 }
 
 fn effect_label(level: u8) -> &'static str {

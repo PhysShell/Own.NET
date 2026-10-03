@@ -1,6 +1,6 @@
 {
   "artifact": "p022-263a-calibration-policy-freeze",
-  "measurement_harness_digest": "1a26aa63fd5fbbe06e7ae72dd5e1c8f2d611bff8856af4a5b93ae36d2d23a9b1",
+  "measurement_harness_digest": "b92f08c990fcf6d74df29aad333b330b6c3c4f9e1c1bad55efe8164c39dea57c",
   "policy_implementation_digest": "c3068ed7fa880a7083866ead25fe8bf65c87889d242d8af1f7eee01582cd5cbf",
   "policy_implementation_digest_framing": "sha256 over the source set ordered by the UTF-8 bytes of each repo-relative POSIX path. Each file contributes, with no header and no separator: its path byte length as an 8-byte big-endian unsigned integer, its path's exact UTF-8 bytes, its blob byte length as an 8-byte big-endian unsigned integer, and its exact git blob bytes.",
   "policy_source_commit": "b4f657a0abdfdfaae199cbc7eee0c47acd8b0057",

@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "excluded_lowered": [
     {
       "name": "tolerant_unknown_kind",

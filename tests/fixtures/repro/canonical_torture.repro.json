@@ -1,20 +1,20 @@
 {
   "repro_version": 3,
   "input": {
-    "ownir_version": 1,
+    "ownir_version": 2,
     "raw": {
       "algorithm": "sha256",
-      "digest": "a1c896ce83130584dcbb113c751547e4b488fae6798b00fcc919c8a1cdd8a170",
+      "digest": "9e9aa2dd965ef4c28aa0b09130ad9b93db2dea9c86d9da8196130aaef25a7933",
       "bytes": 1049,
-      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMSwKICAibW9kdWxlIjogIlRvcnR1cmXDqea8ouWtl/CfmIAiLAogICJjYW5vbmljYWxfcHJvYmUiOiB7CiAgICAiaTY0X21heCI6IDkyMjMzNzIwMzY4NTQ3NzU4MDcsCiAgICAiaTY0X21pbiI6IC05MjIzMzcyMDM2ODU0Nzc1ODA4LAogICAgInplcm8iOiAwLAogICAgImJvb2xlYW5zIjogW3RydWUsIGZhbHNlXSwKICAgICJudWxsIjogbnVsbCwKICAgICJlbXB0eV9vYmplY3QiOiB7fSwKICAgICJlbXB0eV9hcnJheSI6IFtdLAogICAgImVtcHR5X3N0cmluZyI6ICIiLAogICAgInR3b19jaGFyX2VzY2FwZXMiOiAiXGJcdFxuXGZcciIsCiAgICAib3RoZXJfYzBfY29udHJvbHMiOiAiXHUwMDAwXHUwMDAxXHUwMDFmIiwKICAgICJkZWxldGVfaXNfbm90X2VzY2FwZWQiOiAiXHUwMDdmIiwKICAgICJxdW90ZV9hbmRfYmFja3NsYXNoIjogImhlIHNhaWQgXCJoaVwiIFxcIGJhY2siLAogICAgIm5ic3AiOiAiwqAiLAogICAgImxpbmVfYW5kX3BhcmFncmFwaF9zZXBhcmF0b3JzIjogIuKAqOKAqSIsCiAgICAiYnl0ZV9vcmRlcl9tYXJrIjogIu+7vyIsCiAgICAiYXN0cmFsIjogIvCfmIAiLAogICAgIvCfmIAiOiAiYW4gYXN0cmFsIGtleSBzb3J0cyBhZnRlciBldmVyeSBBU0NJSSBrZXkiLAogICAgIsOpIjogImFuIGFjY2VudGVkIGtleSBzb3J0cyBhZnRlciBldmVyeSBBU0NJSSBrZXkiLAogICAgIiI6ICJ0aGUgZW1wdHkga2V5IHNvcnRzIGZpcnN0IiwKICAgICJaIjogInVwcGVyY2FzZSBaIHNvcnRzIGJlZm9yZSBsb3dlcmNhc2UgYSIsCiAgICAiYSI6ICJsb3dlcmNhc2UgYSIKICB9LAogICJjb21wb25lbnRzIjogWwogICAgewogICAgICAibmFtZSI6ICJUb3J0dXJlVmlldyIsCiAgICAgICJmaWxlIjogIlTDtnJ0dXJlLmNzIiwKICAgICAgInN1YnNjcmlwdGlvbnMiOiBbCiAgICAgICAgeyJldmVudCI6ICJidXMuU3Vic2NyaWJlIiwgImhhbmRsZXIiOiAiT27mvKIiLCAibGluZSI6IDcsICJyZWxlYXNlZCI6IGZhbHNlLCAicmVzb3VyY2UiOiAic3Vic2NyaWJlIn0KICAgICAgXQogICAgfQogIF0KfQo="
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMiwKICAibW9kdWxlIjogIlRvcnR1cmXDqea8ouWtl/CfmIAiLAogICJjYW5vbmljYWxfcHJvYmUiOiB7CiAgICAiaTY0X21heCI6IDkyMjMzNzIwMzY4NTQ3NzU4MDcsCiAgICAiaTY0X21pbiI6IC05MjIzMzcyMDM2ODU0Nzc1ODA4LAogICAgInplcm8iOiAwLAogICAgImJvb2xlYW5zIjogW3RydWUsIGZhbHNlXSwKICAgICJudWxsIjogbnVsbCwKICAgICJlbXB0eV9vYmplY3QiOiB7fSwKICAgICJlbXB0eV9hcnJheSI6IFtdLAogICAgImVtcHR5X3N0cmluZyI6ICIiLAogICAgInR3b19jaGFyX2VzY2FwZXMiOiAiXGJcdFxuXGZcciIsCiAgICAib3RoZXJfYzBfY29udHJvbHMiOiAiXHUwMDAwXHUwMDAxXHUwMDFmIiwKICAgICJkZWxldGVfaXNfbm90X2VzY2FwZWQiOiAiXHUwMDdmIiwKICAgICJxdW90ZV9hbmRfYmFja3NsYXNoIjogImhlIHNhaWQgXCJoaVwiIFxcIGJhY2siLAogICAgIm5ic3AiOiAiwqAiLAogICAgImxpbmVfYW5kX3BhcmFncmFwaF9zZXBhcmF0b3JzIjogIuKAqOKAqSIsCiAgICAiYnl0ZV9vcmRlcl9tYXJrIjogIu+7vyIsCiAgICAiYXN0cmFsIjogIvCfmIAiLAogICAgIvCfmIAiOiAiYW4gYXN0cmFsIGtleSBzb3J0cyBhZnRlciBldmVyeSBBU0NJSSBrZXkiLAogICAgIsOpIjogImFuIGFjY2VudGVkIGtleSBzb3J0cyBhZnRlciBldmVyeSBBU0NJSSBrZXkiLAogICAgIiI6ICJ0aGUgZW1wdHkga2V5IHNvcnRzIGZpcnN0IiwKICAgICJaIjogInVwcGVyY2FzZSBaIHNvcnRzIGJlZm9yZSBsb3dlcmNhc2UgYSIsCiAgICAiYSI6ICJsb3dlcmNhc2UgYSIKICB9LAogICJjb21wb25lbnRzIjogWwogICAgewogICAgICAibmFtZSI6ICJUb3J0dXJlVmlldyIsCiAgICAgICJmaWxlIjogIlTDtnJ0dXJlLmNzIiwKICAgICAgInN1YnNjcmlwdGlvbnMiOiBbCiAgICAgICAgeyJldmVudCI6ICJidXMuU3Vic2NyaWJlIiwgImhhbmRsZXIiOiAiT27mvKIiLCAibGluZSI6IDcsICJyZWxlYXNlZCI6IGZhbHNlLCAicmVzb3VyY2UiOiAic3Vic2NyaWJlIn0KICAgICAgXQogICAgfQogIF0KfQo="
     },
     "canonical": {
       "algorithm": "sha256",
-      "digest": "abe4b1afa5a4f287401f9b50c1dec00c57588ab6baabc77968f3f1af232b49f2",
+      "digest": "b4b25311816e496d885f8b3639e4f20d0a13cc02fd50c589f24b51b3f32511e7",
       "bytes": 834
     },
     "document": {
-      "ownir_version": 1,
+      "ownir_version": 2,
       "module": "Tortureé漢字😀",
       "canonical_probe": {
         "i64_max": 9223372036854775807,
@@ -64,7 +64,7 @@
       "id": "python-ownlang",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "a1c896ce83130584dcbb113c751547e4b488fae6798b00fcc919c8a1cdd8a170",
+        "digest": "9e9aa2dd965ef4c28aa0b09130ad9b93db2dea9c86d9da8196130aaef25a7933",
         "bytes": 1049
       },
       "layers": [
@@ -206,7 +206,7 @@
           "document": {
             "degraded": null,
             "module": "Tortureé漢字😀",
-            "ownir_version": 1,
+            "ownir_version": 2,
             "summaries": [],
             "unresolved": []
           }
@@ -247,7 +247,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "78ece332c38aa64e10136c8a809552dc47aafaa5bede557d020be4090fe689da",
+            "digest": "a942641984e3c85658edc26b8c4512a915fd927dab6b834bb259c3564d0bc711",
             "bytes": 822
           }
         }
@@ -257,7 +257,7 @@
       "id": "rust-own-bridge",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "a1c896ce83130584dcbb113c751547e4b488fae6798b00fcc919c8a1cdd8a170",
+        "digest": "9e9aa2dd965ef4c28aa0b09130ad9b93db2dea9c86d9da8196130aaef25a7933",
         "bytes": 1049
       },
       "layers": [
@@ -399,7 +399,7 @@
           "document": {
             "degraded": null,
             "module": "Tortureé漢字😀",
-            "ownir_version": 1,
+            "ownir_version": 2,
             "summaries": [],
             "unresolved": []
           }
@@ -440,7 +440,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "78ece332c38aa64e10136c8a809552dc47aafaa5bede557d020be4090fe689da",
+            "digest": "a942641984e3c85658edc26b8c4512a915fd927dab6b834bb259c3564d0bc711",
             "bytes": 822
           }
         }

@@ -370,7 +370,7 @@ fn the_depth_guard_never_fires_on_a_document_from_json_accepts() {
             node = serde_json::json!({"nested": [node]});
         }
         serde_json::to_string(&serde_json::json!({
-            "ownir_version": 1,
+            "ownir_version": 2,
             "future_section": node
         }))
         .expect("serializes")

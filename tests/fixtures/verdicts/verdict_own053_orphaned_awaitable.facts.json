@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "Orphans",
   "_doc": [
     "BR-V1 / BR-V4 / BR-V8: the OWN053 orphaned-awaitable advisory, promoted from",

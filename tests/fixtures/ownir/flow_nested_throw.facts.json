@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "Extracted",
   "comment": "Exception-edge RECALL slice: the IR the extractor now emits for three try shapes. (1) NestedThrowLeaks: the throw edge recurses into the `if` and lands before MayThrow() (a nested LEAF), where nestedLeak is still owned -> leaks. (2) DisposeInsideIfWithThrow: the same recursion, but the dispose precedes the throw in each branch, so cif is already released at the edge -> silent. (3) CtorThrowLeaksPrior: a `new` is a throw point; the edge before `var ctorLater = new ...` finds ctorPrior owned -> leaks, while ctorLater (acquired after the edge) is silent.",
   "components": [],

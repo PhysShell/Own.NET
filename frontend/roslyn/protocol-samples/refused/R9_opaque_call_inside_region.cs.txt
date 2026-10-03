@@ -6,9 +6,11 @@ using Own.Protocols.Sample;
 namespace Own.Protocols.Cases;
 
 // A call inside the region that never mentions the entity, and mutates it anyway.
-// Nothing at the call site can be lowered, so nothing proves the call harmless - and an
-// exclusive region does not analyse unprovable code as safe. REFUSED, never clean.
-// (When effect summaries can prove a callee harmless, this is the rule they relax.)
+// Nothing at the call site touches the entity, so since OwnIR v2 the lowering hands the call
+// to the core as a `proven_call` - and the core REFUSES it: the heap-effect summaries see the
+// mutation behind it (AnnotateLast writes an object reached through a static, writes.instance
+// is may). An exclusive region does not analyse unprovable code as safe. REFUSED, never clean
+// - one stage later than before H1, for a reason the summaries can now name.
 public static class R9OpaqueCallInsideRegion
 {
     public static async Task Run(Db db, int id)

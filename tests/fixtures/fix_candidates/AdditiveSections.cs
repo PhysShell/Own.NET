@@ -91,3 +91,53 @@ namespace Own.Samples.FixCandidates.Additive
         }
     }
 }
+
+// heap_effects — OwnIR v2 (H1): a state-protocol region holding a call the core must prove
+// harmless (a `proven_call`), which makes the extractor write the `heap_effects` section. The
+// protocol is declared here, by attribute name, so the file stays self-contained.
+namespace Own.Samples.FixCandidates.Additive.Protocols
+{
+    using System;
+
+    [AttributeUsage(AttributeTargets.Struct)]
+    public sealed class ProtocolTokenAttribute : Attribute { }
+
+    [AttributeUsage(AttributeTargets.Method)]
+    public sealed class ProtocolRegionAttribute : Attribute { }
+
+    public sealed class Door
+    {
+        public bool IsOpen { get; internal set; }
+    }
+
+    [ProtocolToken]
+    public readonly ref struct ClosedDoor
+    {
+        private readonly Door _door;
+        internal ClosedDoor(Door door) => _door = door;
+
+        public void Open() => _door.IsOpen = true;
+    }
+
+    public delegate void ClosedRegion(ClosedDoor closed);
+
+    public static class Doors
+    {
+        [ProtocolRegion]
+        public static void WithClosed(Door door, ClosedRegion body) => body(new ClosedDoor(door));
+    }
+
+    public static class Handler
+    {
+        static int Twice(int x) => x * 2;
+
+        public static void Run(Door door)
+        {
+            Doors.WithClosed(door, closed =>
+            {
+                var n = Twice(21);
+                closed.Open();
+            });
+        }
+    }
+}

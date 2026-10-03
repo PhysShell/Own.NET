@@ -1,20 +1,20 @@
 {
   "repro_version": 3,
   "input": {
-    "ownir_version": 1,
+    "ownir_version": 2,
     "raw": {
       "algorithm": "sha256",
-      "digest": "4573241a7888cac6145dd1005623c1edd6573a221d6779515781eb247041ebc7",
+      "digest": "58a2d13e4d8993a710f8d4d62a2cc417ccce569145678648ef92c53e8839f9bd",
       "bytes": 48,
-      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMSwKICAibW9kdWxlIjogIk1pbmltYWwiCn0K"
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMiwKICAibW9kdWxlIjogIk1pbmltYWwiCn0K"
     },
     "canonical": {
       "algorithm": "sha256",
-      "digest": "0f3af651cbd63f59131e16da784820e334fa68ed69b29fb068076abf4374d319",
+      "digest": "fa704f85cb2ccb45144cf585ca6ed2c91540ebe6bfffae1ef44d9e46dde14a71",
       "bytes": 38
     },
     "document": {
-      "ownir_version": 1,
+      "ownir_version": 2,
       "module": "Minimal"
     }
   },
@@ -23,7 +23,7 @@
       "id": "python-ownlang",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "4573241a7888cac6145dd1005623c1edd6573a221d6779515781eb247041ebc7",
+        "digest": "58a2d13e4d8993a710f8d4d62a2cc417ccce569145678648ef92c53e8839f9bd",
         "bytes": 48
       },
       "layers": [
@@ -139,7 +139,7 @@
           "document": {
             "degraded": null,
             "module": "Minimal",
-            "ownir_version": 1,
+            "ownir_version": 2,
             "summaries": [],
             "unresolved": []
           }
@@ -163,7 +163,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "aa7b2312f4da58d124b29b75b86b5f05c767ef43cac802cffa19e566740b3096",
+            "digest": "a7bf0bd6d242a0d56eeebed72e2dcc5fc80cd2c44e89792c7fc5a2311334ea4d",
             "bytes": 289
           }
         }
@@ -173,7 +173,7 @@
       "id": "rust-own-bridge",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "4573241a7888cac6145dd1005623c1edd6573a221d6779515781eb247041ebc7",
+        "digest": "58a2d13e4d8993a710f8d4d62a2cc417ccce569145678648ef92c53e8839f9bd",
         "bytes": 48
       },
       "layers": [
@@ -289,7 +289,7 @@
           "document": {
             "degraded": null,
             "module": "Minimal",
-            "ownir_version": 1,
+            "ownir_version": 2,
             "summaries": [],
             "unresolved": []
           }
@@ -313,7 +313,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "aa7b2312f4da58d124b29b75b86b5f05c767ef43cac802cffa19e566740b3096",
+            "digest": "a7bf0bd6d242a0d56eeebed72e2dcc5fc80cd2c44e89792c7fc5a2311334ea4d",
             "bytes": 289
           }
         }

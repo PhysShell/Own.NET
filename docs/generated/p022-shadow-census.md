@@ -24,12 +24,12 @@ acceptance work.
 
 | corpus | documents |
 |---|---|
-| `tests/fixtures/lowered` | 64 |
+| `tests/fixtures/lowered` | 85 |
 | `tests/fixtures/ownir` | 22 |
 | `tests/fixtures/repro` | 3 |
 | `tests/fixtures/summaries` | 9 |
 | `tests/fixtures/verdicts` | 38 |
-| **total** | **136** |
+| **total** | **157** |
 
 Every one of those documents is canonicalized and hashed by the reference
 (`ownlang/repro.py`) and re-hashed from the same file by the port
@@ -43,8 +43,8 @@ refuses to carry a foreign entry that has none rather than filling one in.
 
 | surface | count |
 |---|---|
-| documents captured and digest-pinned | 136 |
-| tamper controls (one changed character per document, refusal required) | 136 |
+| documents captured and digest-pinned | 157 |
+| tamper controls (one changed character per document, refusal required) | 157 |
 | documents both engines must REFUSE to name (`domain_refusals`) | 6 |
 | reproduction artifacts committed and replayed byte-for-byte | 10 |
 | structural negative controls on `verify` (each side) | 34 |

@@ -1,0 +1,4 @@
+{
+  "verdicts_version": 1,
+  "error": "OwnIR 'proven_call' to 'Own.Protocols.Cases.H1eTransitiveGlobal.A(int)' is not proven harmless: 'Own.Protocols.Cases.H1eTransitiveGlobal.A(int)': writes.static is may (frontend/roslyn/protocol-samples/cases/H1e_transitive_global.cs:19) — refused: an exclusive region admits only calls the effect summaries prove harmless"
+}

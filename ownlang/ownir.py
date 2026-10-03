@@ -9,7 +9,7 @@ single checker — we do not reimplement it in C# (a second checker would drift)
 OwnIR schema (JSON)::
 
     {
-      "ownir_version": 1,
+      "ownir_version": 2,
       "module": "WpfApp",
       "components": [
         {
@@ -150,6 +150,9 @@ from .effects import Binding as EffectBinding
 from .effects import Effect as ReactEffect
 from .effects import find_effect_storms
 from .evidence import code_flow, di_path_steps
+from .heap_effects import HeapEffectsError, site_verdict
+from .heap_effects import load as load_heap_effects
+from .heap_effects import solve as solve_heap_effects
 from .obligations import (
     COLUMN_MAX,
     COLUMN_MIN,
@@ -181,7 +184,7 @@ from .ownership import (
 # vocabulary changes incompatibly; the extractor stamps the same number so a
 # mismatched extractor/core pair fails loudly (see load()) instead of silently
 # mis-reading facts.
-OWNIR_VERSION = 1
+OWNIR_VERSION = 2
 
 
 class OwnIRError(ValueError):
@@ -340,7 +343,7 @@ def _route_resource(rkind: str) -> tuple[str, str]:
 _FLOW_OPS = frozenset({
     "acquire", "release", "use", "overspan", "return",
     "alias_join", "call", "if", "while",
-    "move", "borrow_mut",
+    "move", "borrow_mut", "proven_call",
 })
 
 # The parameter ownership-effect vocabulary (P-006/2b): a method contract's
@@ -1232,6 +1235,10 @@ def to_module(facts: dict[str, Any],
     should surface as advisory findings rather than lose; `advisories` collects
     ready-made advisory Findings minted during lowering (OWN051 unverified-transfer
     notes) for the caller to append."""
+    # OwnIR v2 (H1): every `proven_call` in the document is admitted or refused
+    # HERE, before anything is lowered — not where `_lower_flow` happens to meet
+    # it, so no body the lowering walks differently can carry one past the proof.
+    _admit_proven_calls(facts)
     handles: dict[str, dict[str, Any]] = {}
     functions: list[FnDecl] = []
     gid = 0
@@ -1437,8 +1444,8 @@ def to_module(facts: dict[str, Any],
                 # PASS. Refuse instead — on both engines, identically.
                 arg, callee, transfer, cline = unverified[0]
                 raise OwnIRError(
-                    f"OwnIR function {fname!r} opens a borrow_mut region but hands "
-                    f"{arg!r} to {callee!r} at an unverified position (inferred "
+                    f"OwnIR function '{fname}' opens a borrow_mut region but hands "
+                    f"'{arg}' to '{callee}' at an unverified position (inferred "
                     f"contract: {transfer}) ({ffile}:{cline}) — refused: a function "
                     f"with an exclusive region must not rely on the optimistic "
                     f"ownership default")
@@ -1499,6 +1506,78 @@ def to_module(facts: dict[str, Any],
                    functions=functions,
                    lifetimes=list(_CAPTURE_LIFETIMES) if any_capture else []),
             handles)
+
+
+# OwnIR v2 (H1, docs/notes/h1-proven-call.md): `proven_call` is a call inside an
+# exclusive region that the frontend could not lower (it touches no entity and no
+# token, so there is no `use` to reject) and did not refuse, because a summary might
+# prove it harmless. MUST-UNDERSTAND: a core that cannot prove it refuses the whole
+# document — an unproven call inside a region is never read as clean. The proof is
+# the shared heap-effect summary layer (`heap_effects.site_verdict`) over the
+# document's `heap_effects` section, which carries the frontend's FACTS only.
+_COMPOUND_KEYS = ("then", "else", "body")
+
+
+def _proven_calls(nodes: Any, ffile: str, in_region: bool,
+                  out: list[tuple[dict[str, Any], str, bool]], depth: int = 0) -> None:
+    """Every `proven_call` under `nodes`, in document order, with whether it sits
+    inside a `borrow_mut` body."""
+    if not isinstance(nodes, list) or depth > 256:
+        return
+    for n in nodes:
+        if not isinstance(n, dict):
+            continue
+        if n.get("op") == "proven_call":
+            out.append((n, ffile, in_region))
+        inner = in_region or n.get("op") == "borrow_mut"
+        for key in _COMPOUND_KEYS:
+            _proven_calls(n.get(key), ffile, inner, out, depth + 1)
+
+
+def _admit_proven_calls(facts: dict[str, Any]) -> None:
+    raw_fns = facts.get("functions", [])
+    sites: list[tuple[dict[str, Any], str, bool]] = []
+    if isinstance(raw_fns, list):
+        for fn in raw_fns:
+            if isinstance(fn, dict):
+                _proven_calls(fn.get("body"), str(fn.get("file", "?")), False, sites)
+    if not sites:
+        return
+    for n, ffile, in_region in sites:
+        line = _as_line(n.get("line", 0))
+        site, callee = n.get("site"), n.get("callee")
+        if not (isinstance(site, str) and site and isinstance(callee, str) and callee):
+            raise OwnIRError(
+                f"OwnIR flow op 'proven_call' needs a non-empty string 'site' and a "
+                f"non-empty string 'callee' ({ffile}:{line})")
+        if not in_region:
+            raise OwnIRError(
+                f"OwnIR 'proven_call' outside a borrow_mut region ({ffile}:{line}) — "
+                f"refused: the op admits a call only inside an exclusive region")
+    first_file, first_line = sites[0][1], _as_line(sites[0][0].get("line", 0))
+    section = facts.get("heap_effects")
+    if section is None:
+        raise OwnIRError(
+            f"OwnIR 'proven_call' ({first_file}:{first_line}) needs the 'heap_effects' "
+            f"section — refused: a call with no effect evidence is not harmless")
+    try:
+        methods = {m.key: m for m in load_heap_effects(section)}
+    except HeapEffectsError as e:
+        raise OwnIRError(f"OwnIR 'heap_effects' section is malformed — {e}") from e
+    solved = solve_heap_effects(list(methods.values()))
+    for n, ffile, _ in sites:
+        line = _as_line(n.get("line", 0))
+        site, callee = str(n["site"]), str(n["callee"])
+        if site not in methods:
+            raise OwnIRError(
+                f"OwnIR 'proven_call' site '{site}' has no record in 'heap_effects' "
+                f"({ffile}:{line}) — refused: no evidence is not harmless")
+        reason = site_verdict(methods, solved, site, callee)
+        if reason is not None:
+            raise OwnIRError(
+                f"OwnIR 'proven_call' to '{callee}' is not proven harmless: {reason} "
+                f"({ffile}:{line}) — refused: an exclusive region admits only calls "
+                f"the effect summaries prove harmless")
 
 
 def _has_region(nodes: Any) -> bool:
@@ -3043,6 +3122,11 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                                    "ever_released": result in released_vars,
                                    "pool": False}
                 body.append(Let(handle, Acquire("Disposable", [], line), line))
+        elif op == "proven_call":
+            # Admitted by `_admit_proven_calls` before lowering began (it refuses
+            # the document otherwise): a call the effect summaries proved
+            # harmless touches nothing the core tracks, so it lowers to nothing.
+            continue
         elif op in _FLOW_OPS:
             # In `_FLOW_OPS` (the declared vocabulary) but no branch above handled
             # it — an internal-consistency bug: the op was added to the authority set

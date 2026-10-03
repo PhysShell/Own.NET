@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "SameSite",
   "_doc": [
     "BR-V7's key, one pair per member: records on the same line that differ in",

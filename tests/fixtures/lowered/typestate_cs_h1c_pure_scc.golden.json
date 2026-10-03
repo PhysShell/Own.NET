@@ -1,0 +1,210 @@
+{
+  "lowered_version": 2,
+  "module": "Extracted",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [],
+  "functions": [
+    {
+      "name": "Own.Protocols.Cases.H1cPureScc.Run",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_0",
+          "resource": "Disposable",
+          "line": 16
+        },
+        {
+          "stmt": "borrow_mut",
+          "owner": "loc_0",
+          "binding": "brw_1",
+          "body": [
+            {
+              "stmt": "acquire",
+              "handle": "loc_2",
+              "resource": "Disposable",
+              "line": 16
+            },
+            {
+              "stmt": "call",
+              "callee": "Own.Protocols.Sample.ApprovedOrder.Ship",
+              "args": [
+                "loc_2",
+                "brw_1"
+              ],
+              "line": 19
+            }
+          ],
+          "line": 16
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_0",
+          "line": 16
+        }
+      ]
+    },
+    {
+      "name": "Own.Protocols.Sample.ApprovedOrder.Ship",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_3",
+          "type": {
+            "name": "Disposable",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 80,
+          "lifetime": null
+        },
+        {
+          "handle": "parg_4",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": true
+          },
+          "line": 80,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "release",
+          "handle": "parg_3",
+          "line": 80
+        }
+      ]
+    }
+  ],
+  "handles": [
+    {
+      "handle": "loc_0",
+      "component": "Own.Protocols.Cases.H1cPureScc.Run",
+      "file": "frontend/roslyn/protocol-samples/cases/H1c_pure_scc.cs",
+      "line": 16,
+      "event": "order",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    },
+    {
+      "handle": "loc_2",
+      "component": "Own.Protocols.Cases.H1cPureScc.Run",
+      "file": "frontend/roslyn/protocol-samples/cases/H1c_pure_scc.cs",
+      "line": 16,
+      "event": "approved",
+      "resource": "flow-local",
+      "ever_released": false,
+      "pool": false
+    },
+    {
+      "handle": "parg_3",
+      "component": "Own.Protocols.Sample.ApprovedOrder.Ship",
+      "file": "frontend/roslyn/protocol-samples/Api/ProtocolApi.cs",
+      "line": 80,
+      "event": "token",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    {
+      "handle": "parg_4",
+      "component": "Own.Protocols.Sample.ApprovedOrder.Ship",
+      "file": "frontend/roslyn/protocol-samples/Api/ProtocolApi.cs",
+      "line": 80,
+      "event": "entity",
+      "resource": "flow-local",
+      "ever_released": false
+    }
+  ]
+}

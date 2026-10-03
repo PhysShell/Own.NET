@@ -1,0 +1,4 @@
+{
+  "verdicts_version": 1,
+  "error": "OwnIR 'heap_effects' section is malformed — heap-effect facts: heap_effects_version must be 1"
+}

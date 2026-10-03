@@ -41,6 +41,7 @@ mod dump;
 mod heap_effects;
 mod lower;
 mod mos;
+mod proven;
 mod render;
 mod verdict;
 

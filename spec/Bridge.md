@@ -243,6 +243,25 @@ A frontend must therefore not emit a region it cannot prove closed over
 contracted calls; what it may put inside one is the frontend's rule, not the
 bridge's (the Roslyn lowering is default-deny: transitions and what it reads).
 
+**BR-L14 (`proven_call` — admission by proof, OwnIR v2).** A `proven_call`
+(`site`, `callee`, `line`) is a call inside a region that touches nothing the
+core tracks and that the frontend did not refuse, because a summary might prove
+it harmless. It is **must-understand**: before ANY function is lowered,
+`to_module` walks every function body (through `then`/`else`/`body`) and
+admits or refuses every `proven_call` in the document, so no lowering path can
+carry one past the proof. Refused (`OwnIRError`, file:line), in this order:
+(a) a `site` or `callee` that is not a non-empty string; (b) a `proven_call`
+outside a `borrow_mut` body; (c) a document with a `proven_call` and no
+`heap_effects` section; (d) a `heap_effects` section the H0 reader refuses
+(its message, prefixed); (e) a `site` with no record in the section; (f) a site
+the shared summary layer does not prove harmless (`heap_effects.site_verdict`:
+every call in the site `direct` to a summarized method that satisfies the
+strict predicate — every parameter and the receiver at most `borrow`, no write
+of any kind, nothing returned — and the site's own solved summary the same).
+An admitted `proven_call` lowers to **nothing**: it touches no tracked
+resource. The inference views and the MOS dump ignore it. The bridge never
+reads a summary the frontend solved; the section carries facts only.
+
 ## 3. Interprocedural MOS
 
 Normatively specified in [Inference.md](Inference.md) (INF-L/S/R/M/F/A/P +

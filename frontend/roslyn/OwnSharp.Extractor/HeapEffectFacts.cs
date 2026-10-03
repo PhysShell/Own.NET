@@ -37,7 +37,16 @@ internal static class HeapEffectFacts
         (method.ReducedFrom ?? method).OriginalDefinition.ToDisplayString(KeyFormat);
 
     public static Dictionary<string, object?> Extract(Compilation compilation,
-                                                      IReadOnlyList<(string file, SyntaxTree tree)> parsed)
+                                                      IReadOnlyList<(string file, SyntaxTree tree)> parsed) =>
+        new()
+        {
+            ["heap_effects_version"] = Version,
+            ["methods"] = Methods(compilation, parsed).Values.ToList(),
+        };
+
+    /// Every source method's record, by key.
+    private static SortedDictionary<string, Dictionary<string, object?>> Methods(
+        Compilation compilation, IReadOnlyList<(string file, SyntaxTree tree)> parsed)
     {
         var methods = new SortedDictionary<string, Dictionary<string, object?>>(StringComparer.Ordinal);
         foreach (var (file, tree) in parsed)
@@ -74,11 +83,94 @@ internal static class HeapEffectFacts
                 methods[key] = new Walk(compilation, symbol, file, node).Run(body);
             }
         }
+        return methods;
+    }
+
+    // ---- OwnIR v2 `proven_call` (H1, docs/notes/h1-proven-call.md) ----------------------
+    //
+    // A call inside a protocol region that touches no entity and no token is lowered as a
+    // `proven_call` instead of being refused, IF it could be proven harmless at all: its
+    // dispatch is `direct` — the same classification every H0 call fact carries. The proof
+    // is the core's. What the frontend adds is FACTS: one record for the call site itself
+    // (the call expression walked like a body, every variable from outside it read as
+    // `heap`) and the records of the methods it reaches through `direct` edges.
+
+    /// The identity of one call site: unique in a scan, and never a method key.
+    internal static string SiteKey(string file, SyntaxNode node)
+    {
+        var p = node.GetLocation().GetLineSpan().StartLinePosition;
+        return $"site:{file}:{p.Line + 1}:{p.Character + 1}";
+    }
+
+    /// Whether a call could be proven harmless at all: an ordinary method, bound, and
+    /// dispatched `direct`. Anything else is Unknown to the summary layer by construction.
+    internal static bool Provable(SemanticModel model, InvocationExpressionSyntax inv)
+    {
+        if (model.GetOperation(inv) is not IInvocationOperation op)
+            return false;
+        var method = op.TargetMethod;
+        if (method.MethodKind is not (MethodKind.Ordinary or MethodKind.ReducedExtension))
+            return false;
+        var nonVirtual = !op.IsVirtual || op.Instance?.Syntax is BaseExpressionSyntax;
+        return Dispatch(method, nonVirtual) == "direct";
+    }
+
+    /// The `heap_effects` section of an OwnIR v2 document: the site records, and every
+    /// method record reachable from them through `direct` call edges. A selection, not a
+    /// solve: a record left out is a callee with no summary, which the core reads as
+    /// Unknown.
+    internal static Dictionary<string, object?> Section(
+        Compilation compilation, IReadOnlyList<(string file, SyntaxTree tree)> parsed,
+        IReadOnlyList<(string Key, string File, InvocationExpressionSyntax Call)> sites)
+    {
+        var all = Methods(compilation, parsed);
+        var chosen = new SortedDictionary<string, Dictionary<string, object?>>(StringComparer.Ordinal);
+        var work = new Queue<Dictionary<string, object?>>();
+        foreach (var (key, file, call) in sites)
+        {
+            if (chosen.ContainsKey(key))
+                continue;
+            var model = compilation.GetSemanticModel(call.SyntaxTree);
+            var op = model.GetOperation(call);
+            if (op is null)
+                continue;   // no record: the core refuses the site for want of evidence
+            var record = new Walk(compilation, file, call, op).RunSite(key, op);
+            chosen[key] = record;
+            work.Enqueue(record);
+        }
+        while (work.Count > 0)
+        {
+            var record = work.Dequeue();
+            foreach (var call in (List<Dictionary<string, object?>>)record["calls"]!)
+            {
+                if ((string?)call["dispatch"] != "direct" || call["callee"] is not string callee
+                    || chosen.ContainsKey(callee) || !all.TryGetValue(callee, out var next))
+                    continue;
+                chosen[callee] = next;
+                work.Enqueue(next);
+            }
+        }
         return new Dictionary<string, object?>
         {
             ["heap_effects_version"] = Version,
-            ["methods"] = methods.Values.ToList(),
+            ["methods"] = chosen.Values.ToList(),
         };
+    }
+
+    /// The dispatch of a call: `delegate`, `virtual`, `extern` (no source), or `direct`.
+    internal static string Dispatch(IMethodSymbol method, bool nonVirtual)
+    {
+        if (method.MethodKind == MethodKind.DelegateInvoke)
+            return "delegate";
+        if (!nonVirtual && (method.IsVirtual || method.IsAbstract || method.IsOverride
+                            || method.ContainingType.TypeKind == TypeKind.Interface)
+            && !(method.IsSealed || method.ContainingType.IsSealed || method.ContainingType.IsValueType))
+            return "virtual";
+        if (method.ContainingType.TypeKind == TypeKind.Interface)
+            return "virtual";   // a static abstract member: resolved by a type argument
+        if (method.OriginalDefinition.DeclaringSyntaxReferences.IsEmpty)
+            return "extern";
+        return "direct";
     }
 
     /// A value of this type carries no reference: copying it shares nothing with the caller.
@@ -101,7 +193,10 @@ internal static class HeapEffectFacts
     private sealed class Walk
     {
         private readonly Compilation _compilation;
-        private readonly IMethodSymbol _method;
+        private readonly IMethodSymbol? _method;
+        // site mode: the one call expression being walked; everything declared outside it is
+        // somebody else's variable and reads as `heap`
+        private readonly SyntaxNode? _site;
         private readonly string _file;
         private readonly SyntaxNode _decl;
         private readonly bool _returnInert;
@@ -128,6 +223,27 @@ internal static class HeapEffectFacts
             _returnInert = method.ReturnsVoid || Inert(method.ReturnType);
         }
 
+        /// Site mode: one call expression, walked as if it were a body of its own.
+        public Walk(Compilation compilation, string file, SyntaxNode site, IOperation op)
+        {
+            _compilation = compilation;
+            _method = null;
+            _site = site;
+            _file = file;
+            _decl = site;
+            _returnInert = op.Type is null || op.Type.SpecialType == SpecialType.System_Void || Inert(op.Type);
+        }
+
+        /// The record of one call site: no parameters, no receiver; what the call
+        /// expression returns, if anything, is its `returns`.
+        public Dictionary<string, object?> RunSite(string key, IOperation op)
+        {
+            var value = Eval(op);
+            if (!_returnInert)
+                _returns.UnionWith(value);
+            return Record(key, receiver: false, Array.Empty<IParameterSymbol>());
+        }
+
         private static SortedSet<string> None() => new(StringComparer.Ordinal);
 
         private static SortedSet<string> One(string token) => new(StringComparer.Ordinal) { token };
@@ -136,13 +252,14 @@ internal static class HeapEffectFacts
 
         public Dictionary<string, object?> Run(IOperation body)
         {
-            if (_method.IsAsync)
+            var method = _method!;
+            if (method.IsAsync)
                 Unknown("async method");
-            if (_method.ReturnsByRef || _method.ReturnsByRefReadonly)
+            if (method.ReturnsByRef || method.ReturnsByRefReadonly)
                 Unknown("ref return");
-            if (_method.MethodKind == MethodKind.Constructor && HasInstanceInitializers(_method.ContainingType))
-                Unknown($"instance initializers of {_method.ContainingType.ToDisplayString()}");
-            foreach (var p in _method.Parameters)
+            if (method.MethodKind == MethodKind.Constructor && HasInstanceInitializers(method.ContainingType))
+                Unknown($"instance initializers of {method.ContainingType.ToDisplayString()}");
+            foreach (var p in method.Parameters)
                 if (!Inert(p.Type) || p.RefKind is RefKind.Ref or RefKind.Out)
                     if (IsReassigned(body, p) && p.RefKind is RefKind.None or RefKind.In)
                     {
@@ -151,16 +268,21 @@ internal static class HeapEffectFacts
                         _reassigned[p] = slot;
                     }
             Exec(body);
+            return Record(Key(method), receiver: !method.IsStatic, method.Parameters);
+        }
 
+        private Dictionary<string, object?> Record(string key, bool receiver,
+                                                   IEnumerable<IParameterSymbol> parameters)
+        {
             var line = _decl.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
             return new Dictionary<string, object?>
             {
-                ["key"] = Key(_method),
+                ["key"] = key,
                 ["file"] = _file,
                 ["line"] = line,
-                ["receiver"] = !_method.IsStatic,
+                ["receiver"] = receiver,
                 ["return_inert"] = _returnInert,
-                ["params"] = _method.Parameters.Select(p => new Dictionary<string, object?>
+                ["params"] = parameters.Select(p => new Dictionary<string, object?>
                 {
                     ["index"] = p.Ordinal,
                     ["name"] = p.Name,
@@ -184,7 +306,13 @@ internal static class HeapEffectFacts
 
         /// A parameter of the method being read (not one a member captured from elsewhere).
         private bool Own(IParameterSymbol p) =>
-            SymbolEqualityComparer.Default.Equals(p.ContainingSymbol, _method);
+            _method is not null && SymbolEqualityComparer.Default.Equals(p.ContainingSymbol, _method);
+
+        /// Site mode: a local declared outside the call expression belongs to the code
+        /// around it (the region's lambda, the enclosing method).
+        private bool Outer(ILocalSymbol local) =>
+            _site is not null && !local.DeclaringSyntaxReferences.Any(r =>
+                r.SyntaxTree == _site.SyntaxTree && _site.Span.Contains(r.Span));
 
         private static bool IsReassigned(IOperation body, IParameterSymbol p) =>
             body.Descendants().Any(op => op switch
@@ -476,6 +604,8 @@ internal static class HeapEffectFacts
                 case ISizeOfOperation:
                 case IDiscardOperation:
                     return None();
+                case IParameterReferenceOperation when _site is not null:
+                    return One("heap");   // site mode: a variable of the code around the call
                 case IParameterReferenceOperation p when !Own(p.Parameter):
                     // a primary-constructor parameter captured by a member: hidden state
                     Unknown("captured primary-constructor parameter");
@@ -485,7 +615,7 @@ internal static class HeapEffectFacts
                         return One($"local:{slot}");
                     return One($"param:{p.Parameter.Ordinal}");
                 case IInstanceReferenceOperation { ReferenceKind: InstanceReferenceKind.ContainingTypeInstance }:
-                    return One("receiver");
+                    return One(_site is not null ? "heap" : "receiver");
                 case IInstanceReferenceOperation:
                     Unknown("implicit receiver (an object or collection initializer)");
                     return None();
@@ -495,6 +625,8 @@ internal static class HeapEffectFacts
                         Unknown("ref local");
                         return None();
                     }
+                    if (Outer(l.Local))
+                        return One("heap");
                     return One($"local:{LocalId(l.Local)}");
                 case IFieldReferenceOperation f:
                     return Field(f);
@@ -740,6 +872,10 @@ internal static class HeapEffectFacts
         {
             switch (target)
             {
+                case ILocalReferenceOperation l when Outer(l.Local):
+                case IParameterReferenceOperation when _site is not null:
+                    Unknown("assignment to a variable outside the call");
+                    return;
                 case ILocalReferenceOperation l when !l.Local.IsRef:
                     _locals[LocalId(l.Local)].Sources.UnionWith(Inert(l.Local.Type) ? None() : value);
                     return;
@@ -812,7 +948,7 @@ internal static class HeapEffectFacts
 
         /// A get-only auto-property assigned in its own type's constructor writes its backing field.
         private bool InOwnConstructor(IPropertySymbol property) =>
-            _method.MethodKind is MethodKind.Constructor or MethodKind.StaticConstructor
+            _method is { MethodKind: MethodKind.Constructor or MethodKind.StaticConstructor }
             && SymbolEqualityComparer.Default.Equals(property.ContainingType, _method.ContainingType);
 
         private static bool IsBaseAccess(IOperation? instance) =>
@@ -923,19 +1059,7 @@ internal static class HeapEffectFacts
                 StaticAccess(method.ContainingType, "member");
 
             var receiver = instance is null ? null : Eval(instance);
-            string dispatch;
-            if (method.MethodKind == MethodKind.DelegateInvoke)
-                dispatch = "delegate";
-            else if (!nonVirtual && (method.IsVirtual || method.IsAbstract || method.IsOverride
-                                      || method.ContainingType.TypeKind == TypeKind.Interface)
-                     && !(method.IsSealed || method.ContainingType.IsSealed || method.ContainingType.IsValueType))
-                dispatch = "virtual";
-            else if (method.ContainingType.TypeKind == TypeKind.Interface)
-                dispatch = "virtual";   // a static abstract member: resolved by a type argument
-            else if (method.OriginalDefinition.DeclaringSyntaxReferences.IsEmpty)
-                dispatch = "extern";
-            else
-                dispatch = "direct";
+            var dispatch = Dispatch(method, nonVirtual);
 
             var id = _calls.Count;
             _calls.Add(new Dictionary<string, object?>

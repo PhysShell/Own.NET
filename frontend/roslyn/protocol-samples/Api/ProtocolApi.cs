@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Own.Protocols.Sample;
 
-// The sample state protocol behind `protocol-samples/cases` (C# -> OwnIR v1 lowering,
+// The sample state protocol behind `protocol-samples/cases` (C# -> OwnIR v2 lowering,
 // see frontend/roslyn/README.md). Deliberately minimal: one entity, three state tokens,
 // two region entries, no persistence. It is a fixture, not an API proposal — the
 // realistic shape, on an entity EF Core tracks, is `protocol-samples/efcore`. What it

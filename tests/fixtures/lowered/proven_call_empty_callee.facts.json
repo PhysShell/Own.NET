@@ -1,0 +1,132 @@
+{
+  "ownir_version": 2,
+  "module": "Extracted",
+  "components": [],
+  "services": [],
+  "functions": [
+    {
+      "name": "Own.Protocols.Cases.H1aHarmlessCall.Run",
+      "file": "frontend/roslyn/protocol-samples/cases/H1a_harmless_call.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "order",
+          "line": 16
+        },
+        {
+          "op": "borrow_mut",
+          "owner": "order",
+          "binding": "order.region1",
+          "line": 16,
+          "body": [
+            {
+              "op": "acquire",
+              "var": "approved",
+              "line": 16
+            },
+            {
+              "op": "proven_call",
+              "site": "site:frontend/roslyn/protocol-samples/cases/H1a_harmless_call.cs:18:21",
+              "callee": "",
+              "line": 18
+            },
+            {
+              "op": "call",
+              "callee": "Own.Protocols.Sample.ApprovedOrder.Ship",
+              "args": [
+                "approved",
+                "order.region1"
+              ],
+              "line": 19
+            }
+          ]
+        },
+        {
+          "op": "release",
+          "var": "order",
+          "line": 16
+        }
+      ]
+    },
+    {
+      "name": "Own.Protocols.Sample.ApprovedOrder.Ship",
+      "file": "frontend/roslyn/protocol-samples/Api/ProtocolApi.cs",
+      "params": [
+        {
+          "name": "token",
+          "effect": "consume",
+          "line": 80
+        },
+        {
+          "name": "entity",
+          "effect": "borrow_mut",
+          "line": 80
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "token",
+          "line": 80
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "methods_with_local": 0,
+    "methods_flow_analysed": 0,
+    "methods_skipped_unmodelled": 0
+  },
+  "heap_effects": {
+    "heap_effects_version": 1,
+    "methods": [
+      {
+        "key": "Own.Protocols.Cases.H1aHarmlessCall.Twice(int)",
+        "file": "frontend/roslyn/protocol-samples/cases/H1a_harmless_call.cs",
+        "line": 11,
+        "receiver": false,
+        "return_inert": true,
+        "params": [
+          {
+            "index": 0,
+            "name": "x",
+            "inert": true
+          }
+        ],
+        "locals": [],
+        "derefs": [],
+        "writes": [],
+        "stores": [],
+        "returns": [],
+        "calls": [],
+        "unknown": []
+      },
+      {
+        "key": "site:frontend/roslyn/protocol-samples/cases/H1a_harmless_call.cs:18:21",
+        "file": "frontend/roslyn/protocol-samples/cases/H1a_harmless_call.cs",
+        "line": 18,
+        "receiver": false,
+        "return_inert": true,
+        "params": [],
+        "locals": [],
+        "derefs": [],
+        "writes": [],
+        "stores": [],
+        "returns": [],
+        "calls": [
+          {
+            "id": 0,
+            "callee": "Own.Protocols.Cases.H1aHarmlessCall.Twice(int)",
+            "dispatch": "direct",
+            "receiver": null,
+            "args": [
+              []
+            ],
+            "line": 18
+          }
+        ],
+        "unknown": []
+      }
+    ]
+  }
+}

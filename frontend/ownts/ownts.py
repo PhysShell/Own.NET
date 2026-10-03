@@ -577,7 +577,7 @@ def extract(path: str) -> list[Component]:
 def to_ownir(comps: list[Component], module: str,
              effects: list[dict] | None = None) -> dict:
     facts = {
-        "ownir_version": 1,
+        "ownir_version": 2,
         "module": module,
         "components": [
             {

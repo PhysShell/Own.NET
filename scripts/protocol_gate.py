@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""State protocols (P-010, pillar 9): real C# -> OwnIR v1 -> core, tied back to source.
+"""State protocols (P-010, pillar 9): real C# -> OwnIR v2 -> core, tied back to source.
 
 The Layer 2/3 ledgers freeze the facts the Roslyn lowering emits for the state-protocol
 surface, and both engines replay them with zero `dotnet`. This script is the other half: it
@@ -15,7 +15,10 @@ Python dependencies). Every path below is under `frontend/roslyn/protocol-sample
 
 2. **refused** — every `refused/<Case>.cs.txt` compiles, and the extractor must REFUSE it
    (exit 2) with the text in `expected.json`: a shape the core cannot check, code with no
-   contract inside a region, a protocol that is not admitted.
+   contract inside a region, a protocol that is not admitted. An entry
+   `{"stage": "core", "text": ...}` is a call the lowering hands to the core as an OwnIR v2
+   `proven_call` (H1): the extractor writes the facts, and the core must refuse them with
+   that text because the effect summaries cannot prove the call harmless.
 
 3. **does-not-compile** — every `does-not-compile/<Case>.cs.txt` must be rejected by the C#
    compiler itself, built against the API as a SEPARATE assembly (so `internal` means what
@@ -159,13 +162,31 @@ def refused(dll: str, fails: list[str]) -> int:
             src = _staged("refused", case, tmp)
             out = os.path.join(tmp, f"{case}.json")
             done = _run(["dotnet", dll, API_REL, src, "--flow-locals", "-o", out])
+            want = expected[case]
+            if isinstance(want, dict):
+                # OwnIR v2 (H1): a call the lowering hands to the core as a `proven_call`
+                # is refused by the CORE when the summaries cannot prove it harmless —
+                # still a refusal of the whole document, one stage later. The facts are
+                # written, and the reference must refuse them with the pinned text.
+                if want.get("stage") != "core":
+                    fails.append(f"refused/{case}: unknown expectation {want!r}")
+                elif done.returncode != 0 or not os.path.exists(out):
+                    fails.append(f"refused/{case}: the extractor exited {done.returncode}; "
+                                 f"a core-stage refusal needs its facts written")
+                else:
+                    with open(out, encoding="utf-8") as f:
+                        got = _verdict(json.load(f))
+                    if not (isinstance(got, str) and want["text"] in got):
+                        fails.append(f"refused/{case}: the core did not refuse with "
+                                     f"{want['text']!r}: {got!r}")
+                continue
             if done.returncode != 2:
                 fails.append(f"refused/{case}: the extractor exited {done.returncode}, "
                              f"expected a refusal (2)")
             elif os.path.exists(out):
                 fails.append(f"refused/{case}: a facts file was written despite the refusal")
-            elif expected[case] not in done.stderr:
-                fails.append(f"refused/{case}: refusal text lacks {expected[case]!r}: "
+            elif want not in done.stderr:
+                fails.append(f"refused/{case}: refusal text lacks {want!r}: "
                              f"{done.stderr.strip()[-300:]}")
     return len(on_disk)
 

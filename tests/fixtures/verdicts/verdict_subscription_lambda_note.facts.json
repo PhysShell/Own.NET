@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "SubscriptionLambdaNote",
   "_doc": [
     "The inline-lambda note on the INJECTED plain-subscription wording. The",

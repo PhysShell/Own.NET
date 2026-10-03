@@ -276,6 +276,12 @@ caught it is `perf-calibration-facts-current`: it runs the reference on the
 generator's output and requires the `facts` workloads to be analysed and the
 `refused` one to be refused.
 
+It moved a third time, from `1a26aa63fd5f` to `b92f08c990fc`, when OwnIR's
+vocabulary moved to v2 for H1's must-understand `proven_call`: the same literal,
+`1` → `2`, the same re-binding of steps 4, 5 and 6, recorded as the frozen T0's
+Amendment 2. `perf-calibration-facts-current` named the defect between the core's
+version move and the instrument's, exactly as it was added to.
+
 On POSIX the same `wait4` call also carries the child's CPU split, fault counts
 and context-switch counts. Those are now kept rather than discarded — see *The
 interval kept its meaning and gave up its secrets* — under the same rule: off

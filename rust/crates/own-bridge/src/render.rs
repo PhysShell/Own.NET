@@ -38,7 +38,12 @@ const SARIF_VERSION: &str = "2.1.0";
 const TOOL_NAME: &str = "Owen";
 /// `OWNIR_VERSION` — the schema stamp the driver carries so a consumer can tell
 /// which fact vocabulary produced the log.
-const OWNIR_VERSION: u32 = 1;
+const OWNIR_VERSION: u32 = 2;
+
+// The SARIF stamp is a copy of the door's version and must not drift from it: OwnIR v2
+// moved the door and left this copy at 1, and only the repro parity surface noticed.
+#[allow(clippy::cast_lossless)] // `From` is not const; u32 -> i64 is lossless
+const _: () = assert!(OWNIR_VERSION as i64 == own_ir::OWNIR_VERSION);
 
 /// `_esc_data`: a GitHub workflow-command MESSAGE escapes only `%`, CR and LF.
 fn esc_data(s: &str) -> String {

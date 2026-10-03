@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "DomainIntBelowI64",
   "canonical_probe": -9223372036854775809
 }

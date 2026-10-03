@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "ColumnAnchors",
   "_doc": [
     "Own.NET#317: the optional 1-based `column` on the finding-anchor path.",

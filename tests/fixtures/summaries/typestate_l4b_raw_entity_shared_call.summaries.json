@@ -1,7 +1,7 @@
 {
   "degraded": null,
   "module": "TypestateGate",
-  "ownir_version": 1,
+  "ownir_version": 2,
   "summaries": [
     {
       "file": "Orders.cs",

@@ -1,0 +1,4 @@
+{
+  "lowered_version": 2,
+  "error": "OwnIR 'proven_call' to 'Own.Protocols.Cases.H1jMutatesOuterValue.Fill(int[])' is not proven harmless: 'Own.Protocols.Cases.H1jMutatesOuterValue.Fill(int[])': parameter 0 is borrow_mut (frontend/roslyn/protocol-samples/cases/H1j_mutates_outer_value.cs:20) — refused: an exclusive region admits only calls the effect summaries prove harmless"
+}

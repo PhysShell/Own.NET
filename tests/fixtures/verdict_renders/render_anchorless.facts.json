@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "Anchorless",
   "_doc": [
     "OWN052 is anchorless by nature (file '?', line 0), so its SARIF location",

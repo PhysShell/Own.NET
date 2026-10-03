@@ -10,8 +10,8 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 
 | measure                            | value |
 |------------------------------------|------:|
-| JSON files scanned                 | 625 |
-| coordinate slots found             | 4175 |
+| JSON files scanned                 | 709 |
+| coordinate slots found             | 4535 |
 
 ## By value class
 
@@ -21,12 +21,12 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `below-1` | 23 | 23 |
 | `bool` | 18 | 17 |
 | `float` | 3 | 3 |
-| `in-domain` | 3480 | 2193 |
+| `in-domain` | 3796 | 2424 |
 | `negative` | 26 | 26 |
-| `null` | 259 | 9 |
+| `null` | 261 | 9 |
 | `outside-int64` | 15 | 15 |
 | `string` | 19 | 19 |
-| `zero` | 308 | 26 |
+| `zero` | 350 | 26 |
 
 ## By family and slot
 
@@ -162,10 +162,12 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `heap_effects` | `summaries[].line` | `in-domain` | — | 56 | 10 | — |
 | `lowered` | `components[].subscriptions[].line` | `in-domain` | yes | 24 | 10 | — |
 | `lowered` | `functions[].<nested>[].column` | `in-domain` | yes | 2 | 2 | — |
-| `lowered` | `functions[].<nested>[].line` | `in-domain` | yes | 903 | 112 | — |
-| `lowered` | `functions[].params[].line` | `in-domain` | yes | 460 | 79 | — |
+| `lowered` | `functions[].<nested>[].line` | `in-domain` | yes | 1082 | 138 | — |
+| `lowered` | `functions[].params[].line` | `in-domain` | yes | 512 | 105 | — |
 | `lowered` | `functions[].params[].line` | `zero` | yes | 4 | 3 | — |
-| `lowered` | `handles[].line` | `in-domain` | — | 343 | 56 | — |
+| `lowered` | `handles[].line` | `in-domain` | — | 363 | 61 | — |
+| `lowered` | `heap_effects.methods[].calls[].line` | `in-domain` | — | 25 | 17 | — |
+| `lowered` | `heap_effects.methods[].line` | `in-domain` | — | 38 | 18 | — |
 | `lowered` | `services[].line` | `in-domain` | yes | 2 | 1 | — |
 | `ownir` | `components[].subscriptions[].column` | `in-domain` | yes | 2 | 1 | — |
 | `ownir` | `components[].subscriptions[].line` | `in-domain` | yes | 20 | 10 | — |
@@ -201,7 +203,7 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `repro` | `traces[].layers[].steps[].value.params[].line` | `in-domain` | — | 4 | 1 | — |
 | `summaries` | `functions[].<nested>[].line` | `in-domain` | yes | 37 | 9 | — |
 | `summaries` | `functions[].params[].line` | `in-domain` | yes | 25 | 8 | — |
-| `summaries` | `summaries[].line` | `zero` | — | 252 | 63 | — |
+| `summaries` | `summaries[].line` | `zero` | — | 294 | 84 | — |
 | `verdict_renders` | `components[].subscriptions[].column` | `in-domain` | yes | 1 | 1 | — |
 | `verdict_renders` | `components[].subscriptions[].line` | `in-domain` | yes | 11 | 5 | — |
 | `verdict_renders` | `functions[].<nested>[].line` | `in-domain` | yes | 3 | 2 | — |
@@ -220,8 +222,8 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `verdicts` | `effects[].line` | `negative` | yes | 1 | 1 | `-3` |
 | `verdicts` | `effects[].line` | `zero` | yes | 1 | 1 | — |
 | `verdicts` | `findings[].column` | `in-domain` | — | 17 | 7 | — |
-| `verdicts` | `findings[].column` | `null` | — | 198 | 93 | — |
-| `verdicts` | `findings[].line` | `in-domain` | — | 200 | 89 | — |
+| `verdicts` | `findings[].column` | `null` | — | 200 | 95 | — |
+| `verdicts` | `findings[].line` | `in-domain` | — | 202 | 91 | — |
 | `verdicts` | `findings[].line` | `zero` | — | 15 | 12 | — |
 | `verdicts` | `functions[].<nested>[].column` | `below-1` | yes | 1 | 1 | `0` |
 | `verdicts` | `functions[].<nested>[].column` | `in-domain` | yes | 7 | 2 | — |

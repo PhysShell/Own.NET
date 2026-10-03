@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "DiEvidenceDegradations",
   "_doc": [
     "Two BR-V5 degradations on the DI families. `App` records a consuming ctor",

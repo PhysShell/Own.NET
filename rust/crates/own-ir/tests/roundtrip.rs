@@ -45,9 +45,21 @@ fn round_trips_every_python_fixture() {
 
 #[test]
 fn version_gate_rejects_future_schema() {
-    let err = OwnIr::from_json(r#"{"ownir_version": 2}"#).expect_err("v2 must be rejected");
+    let err = OwnIr::from_json(r#"{"ownir_version": 3}"#).expect_err("v3 must be rejected");
     assert!(
-        err.message.contains("schema v2") && err.message.contains(&format!("v{OWNIR_VERSION}")),
+        err.message.contains("schema v3") && err.message.contains(&format!("v{OWNIR_VERSION}")),
+        "gate message must name both versions: {err}"
+    );
+}
+
+/// `OwnIR` v2 is not a superset that also reads v1: a v1 document is refused at
+/// the door, like any other version (no compatibility shim, either direction).
+#[test]
+fn version_gate_rejects_the_previous_schema() {
+    assert_eq!(OWNIR_VERSION, 2, "this control is about the v1 -> v2 move");
+    let err = OwnIr::from_json(r#"{"ownir_version": 1}"#).expect_err("v1 must be rejected");
+    assert!(
+        err.message.contains("schema v1") && err.message.contains("understands v2"),
         "gate message must name both versions: {err}"
     );
 }

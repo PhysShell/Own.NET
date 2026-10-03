@@ -1,0 +1,41 @@
+{
+  "degraded": null,
+  "module": "Extracted",
+  "ownir_version": 2,
+  "summaries": [
+    {
+      "file": "frontend/roslyn/protocol-samples/cases/H1j_mutates_outer_value.cs",
+      "line": 0,
+      "method": "Own.Protocols.Cases.H1jMutatesOuterValue.Run",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "frontend/roslyn/protocol-samples/Api/ProtocolApi.cs",
+      "line": 0,
+      "method": "Own.Protocols.Sample.ApprovedOrder.Ship",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "token",
+          "transfer": "must"
+        },
+        {
+          "disposable": true,
+          "index": 1,
+          "name": "entity",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": []
+}

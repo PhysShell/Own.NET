@@ -5,8 +5,10 @@ extractor's heap-effect SOURCE FACTS (`ownsharp-extract --heap-effects FILE`) by
 least fixpoint over the call graph's SCC condensation. It is a second summary
 domain beside the Method Ownership Summary (`ownership.py`), in its own document:
 nothing here reads OwnIR facts, and nothing in the checker reads this. No verdict,
-refusal or diagnostic depends on it (H0 is inert by construction; H1 is the first
-consumer, and it is not written).
+refusal or diagnostic depends on it, with ONE exception: OwnIR v2's `proven_call`
+(H1) admits a call inside an exclusive region only when `site_verdict` below proves
+it harmless — the predicate lives here, in the summary layer, not in the typestate
+code that asks.
 
 THE DOMAIN, per method:
 
@@ -436,6 +438,54 @@ def solve(methods: list[Method]) -> dict[str, Summary]:
                     solved[k] = new
                     changed = True
     return solved
+
+
+# --- H1: the harmless predicate (docs/notes/h1-proven-call.md) ----------------
+#
+# The ONE consumer of the solved summaries that decides anything: OwnIR v2's
+# `proven_call` (ownir.py `_admit_proven_calls`, own-bridge `proven.rs`) admits a
+# call inside an exclusive region only when these two functions say so. Strict on
+# purpose — a reference returned without an alias is still refused (`returns` must
+# be empty), and Unknown fails every clause it touches.
+
+
+def harmless(s: Summary) -> str | None:
+    """None when the summary proves the method harmless; otherwise the FIRST failing
+    clause, in a fixed order (parameters, receiver, writes, returns)."""
+    for i, effect in enumerate(s.params):
+        if effect > BORROW:
+            return f"parameter {i} is {EFFECTS[effect]}"
+    if s.receiver is not None and s.receiver > BORROW:
+        return f"receiver is {EFFECTS[s.receiver]}"
+    for i, kind in enumerate(WRITE_KINDS):
+        if s.writes[i] != W_NONE:
+            return f"writes.{kind} is {WRITES[s.writes[i]]}"
+    if s.returns:
+        return f"returns alias {', '.join(s.returns)}"
+    return None
+
+
+def site_verdict(methods: dict[str, Method], solved: dict[str, Summary],
+                 site: str, callee: str) -> str | None:
+    """None when the call site `site` (a record the frontend wrote for one call
+    expression) is proven harmless; otherwise why not. Every call in the site must be
+    a `direct` call to a summarized, harmless method, the site must contain a direct
+    call to `callee`, and the site's own solved summary must be harmless too."""
+    m = methods[site]
+    if not any(c.callee == callee and c.dispatch == "direct" for c in m.calls):
+        return f"the site does not call '{callee}' directly"
+    for c in m.calls:
+        if c.dispatch != "direct":
+            return f"'{c.callee}' is {c.dispatch}"
+        if c.callee not in methods:
+            return f"'{c.callee}' has no summary"
+        reason = harmless(solved[c.callee])
+        if reason is not None:
+            return f"'{c.callee}': {reason}"
+    reason = harmless(solved[site])
+    if reason is not None:
+        return f"the call site: {reason}"
+    return None
 
 
 def _unresolved(m: Method, methods: dict[str, Method]) -> list[str]:

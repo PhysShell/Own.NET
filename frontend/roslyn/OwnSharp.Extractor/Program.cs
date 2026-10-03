@@ -7262,10 +7262,13 @@ foreach (var (file, tree) in parsed)
 // `stats` is additive coverage metadata — the core's load() ignores unknown keys.
 // P-006: the DI registration + ctor graph (empty when the scan has no
 // Add{Singleton,Scoped,Transient} calls). ownlang/di.py turns it into DI001.
-// P-010 pillar 9: state-protocol regions -> `borrow_mut` / `move` flow records (OwnIR v1). A
+// P-010 pillar 9: state-protocol regions -> `borrow_mut` / `move` / `proven_call` flow records (OwnIR v2). A
 // lowering, not an analysis (see ProtocolLowering.cs). A shape it cannot lower is a
 // REFUSAL of the whole run (exit 2, the same tier as the guarded-fact self-check below):
 // the alternative is a region that silently drops out of the facts and reads as clean.
+// OwnIR v2 `proven_call` sites (H1): non-empty only when a protocol region holds a call the
+// core must prove harmless; they turn into the document's `heap_effects` section below.
+List<(string Key, string File, Microsoft.CodeAnalysis.CSharp.Syntax.InvocationExpressionSyntax Call)> protocolSites = new();
 if (flowLocals)
 {
     var protocol = ProtocolLowering.Lower(compilation, parsed, flowRecordNames);
@@ -7276,6 +7279,7 @@ if (flowLocals)
         return 2;
     }
     flowFunctions.AddRange(protocol.Functions);
+    protocolSites = protocol.Sites;
 }
 
 var factServices = ExtractServices(parsed);
@@ -7298,7 +7302,7 @@ var factStats = new
 //
 // `ownir_version` is the core's current one (ownlang/ownir.py OWNIR_VERSION). It is spelled
 // as this one literal on purpose: tests/test_ownir.py (IR2) reads every stamp in this file.
-const int ownir_version = 1;
+const int ownir_version = 2;
 var facts = new Dictionary<string, object?>();
 facts["ownir_version"] = ownir_version;
 // S0: ADDITIVE metadata, present ONLY under --fix-candidates. It does not move the version
@@ -7312,6 +7316,11 @@ facts["components"] = components;
 facts["services"] = factServices;
 facts["functions"] = flowFunctions;
 facts["stats"] = factStats;
+// OwnIR v2 (H1): the heap-effect FACTS a `proven_call` is judged against — the call sites
+// and the methods they reach. Present exactly when a `proven_call` is: a document without one
+// is the v1 document with a new stamp. The core proves or refuses; nothing here decides.
+if (protocolSites.Count > 0)
+    facts["heap_effects"] = HeapEffectFacts.Section(compilation, parsed, protocolSites);
 // OWN053 (promoted from ownership-semantics-lab H-29): an ADDITIVE top-level list of orphaned
 // awaitables from which both engines mint the advisory. Absent when there is no site, so such
 // a document stays byte-identical to the pre-OWN053 shape.

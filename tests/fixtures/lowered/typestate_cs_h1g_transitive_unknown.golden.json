@@ -1,0 +1,4 @@
+{
+  "lowered_version": 2,
+  "error": "OwnIR 'proven_call' to 'Own.Protocols.Cases.H1gTransitiveUnknown.A(int)' is not proven harmless: 'Own.Protocols.Cases.H1gTransitiveUnknown.A(int)': writes.instance is unknown (frontend/roslyn/protocol-samples/cases/H1g_transitive_unknown.cs:18) — refused: an exclusive region admits only calls the effect summaries prove harmless"
+}

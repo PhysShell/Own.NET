@@ -1,5 +1,5 @@
 {
-  "ownir_version": 1,
+  "ownir_version": 2,
   "module": "Columns",
   "_doc": [
     "A reported column rides into SARIF as region.startColumn, and only ever",

@@ -486,7 +486,7 @@ def _structural_controls(artifact: dict[str, Any]) -> list[str]:
         # The link that makes `input.document` an observation: bytes that are
         # perfectly self-consistent (their own digest and length hold) and parse
         # to a DIFFERENT document than the artifact claims.
-        other = b'{"ownir_version": 1, "module": "SomethingElse"}'
+        other = b'{"ownir_version": 2, "module": "SomethingElse"}'
         a["input"]["raw"] = encode_raw(other)
 
     def drop_consumed(a: dict[str, Any]) -> None:

@@ -1,7 +1,7 @@
 {
   "degraded": null,
   "module": "Fresh",
-  "ownir_version": 1,
+  "ownir_version": 2,
   "summaries": [
     {
       "file": "F.cs",

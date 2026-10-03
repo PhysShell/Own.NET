@@ -303,7 +303,7 @@ def _selftest() -> int:
          "event_handlers": [{"event": "Loaded", "handler": "OnLoaded", "line": 4}],
          "bindings": [], "named_elements": []},
     ]}
-    ownir = {"ownir_version": 1, "module": "App", "components": [
+    ownir = {"ownir_version": 2, "module": "App", "components": [
         {"name": "CustomerView", "file": "Views/CustomerView.xaml.cs", "subscriptions": [
             {"event": "_bus.Changed", "handler": "OnChanged", "line": 21, "released": False}]},
         {"name": "CleanView", "file": "Views/CleanView.xaml.cs", "subscriptions": [
@@ -363,7 +363,7 @@ def _selftest() -> int:
     wrong_ns = {"documents": [{"file": "Features/Billing/CustomerView.xaml",
                 "x_class": "Billing.CustomerView",
                 "event_handlers": [{"event": "Loaded", "handler": "OnLoaded", "line": 4}]}]}
-    other = {"ownir_version": 1, "components": [
+    other = {"ownir_version": 2, "components": [
         {"name": "CustomerView", "file": "Legacy/CustomerView.cs", "subscriptions": [
             {"event": "_bus.Changed", "handler": "OnChanged", "line": 9, "released": False}]}]}
     check(join(wrong_ns, other) == [],

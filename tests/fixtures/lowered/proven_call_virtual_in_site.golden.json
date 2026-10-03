@@ -1,0 +1,4 @@
+{
+  "lowered_version": 2,
+  "error": "OwnIR 'proven_call' to 'Own.Protocols.Cases.H1aHarmlessCall.Twice(int)' is not proven harmless: 'Own.Protocols.Cases.IClock.Ticks()' is virtual (frontend/roslyn/protocol-samples/cases/H1a_harmless_call.cs:18) — refused: an exclusive region admits only calls the effect summaries prove harmless"
+}

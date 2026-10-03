@@ -1,20 +1,20 @@
 {
   "repro_version": 3,
   "input": {
-    "ownir_version": 1,
+    "ownir_version": 2,
     "raw": {
       "algorithm": "sha256",
-      "digest": "b5fd4f02066e01f09661c2a68b00faa58ec2b5dd6b43a640ff15514cd1f74033",
+      "digest": "b6899a982dd2d81f87da8bb9b2e2a9105b6a0344aaf32bf99414e8146169e8dd",
       "bytes": 1559,
-      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMSwKICAibW9kdWxlIjogIkV4dHJhY3RlZCIsCiAgImNvbXBvbmVudHMiOiBbXSwKICAicHJvdG9jb2xzIjogWwogICAgewogICAgICAibmFtZSI6ICJEb2N1bWVudExvYWRpbmciLAogICAgICAiZGVzY3JpcHRpb24iOiAiVGhlIGRvY3VtZW50IHRyZWUgaXMgaW5jb25zaXN0ZW50IHdoaWxlIElzTG9hZGVkID09IGZhbHNlOyBwdWJsaXNoaW5nIERvY3VtZW50L1Jvd3MvVG90YWxzIGluIHRoYXQgd2luZG93IGhhbmRzIGJpbmRpbmdzIGEgYnJva2VuIG9iamVjdC4iLAogICAgICAib3BlbnMiOiAgeyJraW5kIjogImFzc2lnbiIsICJ0YXJnZXQiOiAiSXNMb2FkZWQiLCAidmFsdWUiOiBmYWxzZX0sCiAgICAgICJjbG9zZXMiOiB7ImtpbmQiOiAiYXNzaWduIiwgInRhcmdldCI6ICJJc0xvYWRlZCIsICJ2YWx1ZSI6IHRydWV9LAogICAgICAiYmFycmllcnMiOiBbCiAgICAgICAgeyJraW5kIjogImNhbGwiLCAiY2FsbGVlIjogIk9uUHJvcGVydHlDaGFuZ2VkIiwKICAgICAgICAgImFyZ3MiOiBbIkRvY3VtZW50IiwgIlJvd3MiLCAiVG90YWxzIiwgIlNlbGVjdGVkSXRlbSJdfQogICAgICBdLAogICAgICAiYWxsb3ciOiBbCiAgICAgICAgeyJraW5kIjogImNhbGwiLCAiY2FsbGVlIjogIk9uUHJvcGVydHlDaGFuZ2VkIiwKICAgICAgICAgImFyZ3MiOiBbIklzTG9hZGVkIiwgIklzQnVzeSIsICJQcm9ncmVzcyIsICJTdGF0dXNUZXh0Il19CiAgICAgIF0sCiAgICAgICJleGl0X2JhcnJpZXJzIjogdHJ1ZSwKICAgICAgInNjb3BlIjogeyJtZXRob2RzIjogWyJCaWdEb2N1bWVudFZpZXdNb2RlbC5Mb2FkQmlnRG9jdW1lbnQiXX0KICAgIH0KICBdLAogICJwcm90b2NvbF9mdW5jdGlvbnMiOiBbCiAgICB7CiAgICAgICJuYW1lIjogIkJyb2tlci5CaWdEb2N1bWVudFZpZXdNb2RlbC5Mb2FkQmlnRG9jdW1lbnQiLAogICAgICAiZmlsZSI6ICJCaWdEb2N1bWVudFZpZXdNb2RlbC5jcyIsCiAgICAgICJldmVudHMiOiBbCiAgICAgICAgeyJldiI6ICJhc3NpZ24iLCAidGFyZ2V0IjogIklzTG9hZGVkIiwgInZhbHVlIjogZmFsc2UsICJsaW5lIjogMTg0fSwKICAgICAgICB7ImV2IjogImNhbGwiLCAiY2FsbGVlIjogIk9uUHJvcGVydHlDaGFuZ2VkIiwgImFyZyI6ICJJc0J1c3kiLCAibGluZSI6IDE4NX0sCiAgICAgICAgeyJldiI6ICJjYWxsIiwgImNhbGxlZSI6ICJSZWJ1aWxkSW5kZXhlcyIsICJsaW5lIjogMTkwfSwKICAgICAgICB7ImV2IjogImlmIiwgImxpbmUiOiAyMjAsICJ0aGVuIjogWwogICAgICAgICAgeyJldiI6ICJjYWxsIiwgImNhbGxlZSI6ICJPblByb3BlcnR5Q2hhbmdlZCIsICJhcmciOiAiRG9jdW1lbnQiLCAibGluZSI6IDI0MX0KICAgICAgICBdLCAiZWxzZSI6IFtdfSwKICAgICAgICB7ImV2IjogImFzc2lnbiIsICJ0YXJnZXQiOiAiSXNMb2FkZWQiLCAidmFsdWUiOiB0cnVlLCAibGluZSI6IDI2MH0sCiAgICAgICAgeyJldiI6ICJjYWxsIiwgImNhbGxlZSI6ICJPblByb3BlcnR5Q2hhbmdlZCIsICJhcmciOiAiRG9jdW1lbnQiLCAibGluZSI6IDI2MX0KICAgICAgXQogICAgfQogIF0KfQo="
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMiwKICAibW9kdWxlIjogIkV4dHJhY3RlZCIsCiAgImNvbXBvbmVudHMiOiBbXSwKICAicHJvdG9jb2xzIjogWwogICAgewogICAgICAibmFtZSI6ICJEb2N1bWVudExvYWRpbmciLAogICAgICAiZGVzY3JpcHRpb24iOiAiVGhlIGRvY3VtZW50IHRyZWUgaXMgaW5jb25zaXN0ZW50IHdoaWxlIElzTG9hZGVkID09IGZhbHNlOyBwdWJsaXNoaW5nIERvY3VtZW50L1Jvd3MvVG90YWxzIGluIHRoYXQgd2luZG93IGhhbmRzIGJpbmRpbmdzIGEgYnJva2VuIG9iamVjdC4iLAogICAgICAib3BlbnMiOiAgeyJraW5kIjogImFzc2lnbiIsICJ0YXJnZXQiOiAiSXNMb2FkZWQiLCAidmFsdWUiOiBmYWxzZX0sCiAgICAgICJjbG9zZXMiOiB7ImtpbmQiOiAiYXNzaWduIiwgInRhcmdldCI6ICJJc0xvYWRlZCIsICJ2YWx1ZSI6IHRydWV9LAogICAgICAiYmFycmllcnMiOiBbCiAgICAgICAgeyJraW5kIjogImNhbGwiLCAiY2FsbGVlIjogIk9uUHJvcGVydHlDaGFuZ2VkIiwKICAgICAgICAgImFyZ3MiOiBbIkRvY3VtZW50IiwgIlJvd3MiLCAiVG90YWxzIiwgIlNlbGVjdGVkSXRlbSJdfQogICAgICBdLAogICAgICAiYWxsb3ciOiBbCiAgICAgICAgeyJraW5kIjogImNhbGwiLCAiY2FsbGVlIjogIk9uUHJvcGVydHlDaGFuZ2VkIiwKICAgICAgICAgImFyZ3MiOiBbIklzTG9hZGVkIiwgIklzQnVzeSIsICJQcm9ncmVzcyIsICJTdGF0dXNUZXh0Il19CiAgICAgIF0sCiAgICAgICJleGl0X2JhcnJpZXJzIjogdHJ1ZSwKICAgICAgInNjb3BlIjogeyJtZXRob2RzIjogWyJCaWdEb2N1bWVudFZpZXdNb2RlbC5Mb2FkQmlnRG9jdW1lbnQiXX0KICAgIH0KICBdLAogICJwcm90b2NvbF9mdW5jdGlvbnMiOiBbCiAgICB7CiAgICAgICJuYW1lIjogIkJyb2tlci5CaWdEb2N1bWVudFZpZXdNb2RlbC5Mb2FkQmlnRG9jdW1lbnQiLAogICAgICAiZmlsZSI6ICJCaWdEb2N1bWVudFZpZXdNb2RlbC5jcyIsCiAgICAgICJldmVudHMiOiBbCiAgICAgICAgeyJldiI6ICJhc3NpZ24iLCAidGFyZ2V0IjogIklzTG9hZGVkIiwgInZhbHVlIjogZmFsc2UsICJsaW5lIjogMTg0fSwKICAgICAgICB7ImV2IjogImNhbGwiLCAiY2FsbGVlIjogIk9uUHJvcGVydHlDaGFuZ2VkIiwgImFyZyI6ICJJc0J1c3kiLCAibGluZSI6IDE4NX0sCiAgICAgICAgeyJldiI6ICJjYWxsIiwgImNhbGxlZSI6ICJSZWJ1aWxkSW5kZXhlcyIsICJsaW5lIjogMTkwfSwKICAgICAgICB7ImV2IjogImlmIiwgImxpbmUiOiAyMjAsICJ0aGVuIjogWwogICAgICAgICAgeyJldiI6ICJjYWxsIiwgImNhbGxlZSI6ICJPblByb3BlcnR5Q2hhbmdlZCIsICJhcmciOiAiRG9jdW1lbnQiLCAibGluZSI6IDI0MX0KICAgICAgICBdLCAiZWxzZSI6IFtdfSwKICAgICAgICB7ImV2IjogImFzc2lnbiIsICJ0YXJnZXQiOiAiSXNMb2FkZWQiLCAidmFsdWUiOiB0cnVlLCAibGluZSI6IDI2MH0sCiAgICAgICAgeyJldiI6ICJjYWxsIiwgImNhbGxlZSI6ICJPblByb3BlcnR5Q2hhbmdlZCIsICJhcmciOiAiRG9jdW1lbnQiLCAibGluZSI6IDI2MX0KICAgICAgXQogICAgfQogIF0KfQo="
     },
     "canonical": {
       "algorithm": "sha256",
-      "digest": "1025d2dadba8f7f00604e5d40a264d286a0d5cf62a243b16578fd00b3430d813",
+      "digest": "946c1e8200398dd311e1bca65ce69f9ec9b3c5ee82ebf6d0779f24f6774ffa75",
       "bytes": 1217
     },
     "document": {
-      "ownir_version": 1,
+      "ownir_version": 2,
       "module": "Extracted",
       "components": [],
       "protocols": [
@@ -120,7 +120,7 @@
       "id": "python-ownlang",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "b5fd4f02066e01f09661c2a68b00faa58ec2b5dd6b43a640ff15514cd1f74033",
+        "digest": "b6899a982dd2d81f87da8bb9b2e2a9105b6a0344aaf32bf99414e8146169e8dd",
         "bytes": 1559
       },
       "layers": [
@@ -236,7 +236,7 @@
           "document": {
             "degraded": null,
             "module": "Extracted",
-            "ownir_version": 1,
+            "ownir_version": 2,
             "summaries": [],
             "unresolved": []
           }
@@ -293,7 +293,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "8cc50bd50c0c89ba50889e19589622969af9607dc7e43e843156391070340f39",
+            "digest": "1fab9d1ef18aaf629baca5fabbf90319e0563e8f157647ff0545595106fd8dc0",
             "bytes": 1556
           }
         }
@@ -303,7 +303,7 @@
       "id": "rust-own-bridge",
       "consumed": {
         "algorithm": "sha256",
-        "digest": "b5fd4f02066e01f09661c2a68b00faa58ec2b5dd6b43a640ff15514cd1f74033",
+        "digest": "b6899a982dd2d81f87da8bb9b2e2a9105b6a0344aaf32bf99414e8146169e8dd",
         "bytes": 1559
       },
       "layers": [
@@ -419,7 +419,7 @@
           "document": {
             "degraded": null,
             "module": "Extracted",
-            "ownir_version": 1,
+            "ownir_version": 2,
             "summaries": [],
             "unresolved": []
           }
@@ -476,7 +476,7 @@
           "status": "produced",
           "canonical": {
             "algorithm": "sha256",
-            "digest": "8cc50bd50c0c89ba50889e19589622969af9607dc7e43e843156391070340f39",
+            "digest": "1fab9d1ef18aaf629baca5fabbf90319e0563e8f157647ff0545595106fd8dc0",
             "bytes": 1556
           }
         }

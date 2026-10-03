@@ -832,7 +832,7 @@ fn verify_refuses_each_structural_violation() {
         "raw bytes that parse to another document",
         "does not reproduce input.canonical",
         with_raw(&|_raw| {
-            let other = br#"{"ownir_version": 1, "module": "SomethingElse"}"#;
+            let other = br#"{"ownir_version": 2, "module": "SomethingElse"}"#;
             let identity = own_shadow::hash_bytes(other);
             Json::Object(vec![
                 ("algorithm".to_owned(), Json::Str("sha256".to_owned())),

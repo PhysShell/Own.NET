@@ -34,12 +34,12 @@ fn record_order_changes_global_mint_order_predictably() {
         )
     };
     let doc_ab = lower(&format!(
-        r#"{{"ownir_version": 1, "module": "M", "components": [{}, {}]}}"#,
+        r#"{{"ownir_version": 2, "module": "M", "components": [{}, {}]}}"#,
         comp("A"),
         comp("B")
     ));
     let doc_ba = lower(&format!(
-        r#"{{"ownir_version": 1, "module": "M", "components": [{}, {}]}}"#,
+        r#"{{"ownir_version": 2, "module": "M", "components": [{}, {}]}}"#,
         comp("B"),
         comp("A")
     ));
@@ -62,7 +62,7 @@ fn record_order_changes_global_mint_order_predictably() {
 #[test]
 fn kill_on_rebind_removes_the_old_mapping() {
     let doc = lower(
-        r#"{"ownir_version": 1, "module": "M", "functions": [
+        r#"{"ownir_version": 2, "module": "M", "functions": [
              {"name": "F", "file": "F.cs", "body": [
                {"op": "acquire", "var": "x", "line": 2},
                {"op": "call", "callee": "Unknown.Make", "args": [], "result": "x", "line": 3},
@@ -82,7 +82,7 @@ fn kill_on_rebind_removes_the_old_mapping() {
 #[test]
 fn precise_overload_channel_does_not_unmap() {
     let doc = lower(
-        r#"{"ownir_version": 1, "module": "M", "functions": [
+        r#"{"ownir_version": 2, "module": "M", "functions": [
              {"name": "Take", "file": "F.cs", "sig": "System.IO.Stream",
               "params": [{"name": "p", "line": 1, "effect": "consume"}], "body": []},
              {"name": "Take", "file": "F.cs", "sig": "System.String",
@@ -115,7 +115,7 @@ fn precise_overload_channel_does_not_unmap() {
 #[test]
 fn merged_may_consume_applies_the_kill_site_unmap() {
     let doc = lower(
-        r#"{"ownir_version": 1, "module": "M", "functions": [
+        r#"{"ownir_version": 2, "module": "M", "functions": [
              {"name": "Take", "file": "F.cs", "sig": "System.IO.Stream",
               "params": [{"name": "p", "line": 1, "effect": "consume"}], "body": []},
              {"name": "Take", "file": "F.cs", "sig": "System.String",
@@ -148,7 +148,7 @@ mod hoist_gates {
     #[test]
     fn positive_control_hoists() {
         let doc = lower(
-            r#"{"ownir_version": 1, "module": "M", "functions": [
+            r#"{"ownir_version": 2, "module": "M", "functions": [
                  {"name": "F", "file": "F.cs", "body": [
                    {"op": "if", "line": 2,
                     "then": [{"op": "acquire", "var": "r", "line": 3}],
@@ -175,7 +175,7 @@ mod hoist_gates {
     #[test]
     fn nested_depth_reference_blocks_the_hoist() {
         let doc = lower(
-            r#"{"ownir_version": 1, "module": "M", "functions": [
+            r#"{"ownir_version": 2, "module": "M", "functions": [
                  {"name": "F", "file": "F.cs", "body": [
                    {"op": "if", "line": 2, "then": [
                       {"op": "if", "line": 3,
@@ -195,7 +195,7 @@ mod hoist_gates {
     #[test]
     fn while_body_acquire_blocks_the_hoist() {
         let doc = lower(
-            r#"{"ownir_version": 1, "module": "M", "functions": [
+            r#"{"ownir_version": 2, "module": "M", "functions": [
                  {"name": "F", "file": "F.cs", "body": [
                    {"op": "while", "line": 2,
                     "body": [{"op": "acquire", "var": "r", "line": 3}]},
@@ -214,7 +214,7 @@ mod hoist_gates {
     #[test]
     fn early_return_blocks_the_hoist() {
         let doc = lower(
-            r#"{"ownir_version": 1, "module": "M", "functions": [
+            r#"{"ownir_version": 2, "module": "M", "functions": [
                  {"name": "F", "file": "F.cs", "body": [
                    {"op": "if", "line": 2,
                     "then": [{"op": "acquire", "var": "r", "line": 3}],
@@ -236,7 +236,7 @@ mod hoist_gates {
 #[test]
 fn unknown_flow_op_fails_loud_with_python_text() {
     let facts = own_ir::OwnIr::from_json(
-        r#"{"ownir_version": 1, "module": "M", "functions": [
+        r#"{"ownir_version": 2, "module": "M", "functions": [
              {"name": "F", "file": "X.cs", "body": [{"op": "goto", "line": 7}]}]}"#,
     )
     .expect("facts parse");

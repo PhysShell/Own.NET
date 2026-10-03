@@ -8,6 +8,20 @@
   "G6_capability_not_spent": [
     "OWN001"
   ],
+  "H1a_harmless_call": [],
+  "H1b_transitive_pure": [],
+  "H1c_pure_scc": [],
+  "H1d_global_state": "refused: OwnIR 'proven_call' to 'Own.Protocols.Cases.H1dGlobalState.TouchesGlobalState()' is not proven harmless: 'Own.Protocols.Cases.H1dGlobalState.TouchesGlobalState()': writes.static is may (frontend/roslyn/protocol-samples/cases/H1d_global_state.cs:18) — refused: an exclusive region admits only calls the effect summaries prove harmless",
+  "H1e_transitive_global": "refused: OwnIR 'proven_call' to 'Own.Protocols.Cases.H1eTransitiveGlobal.A(int)' is not proven harmless: 'Own.Protocols.Cases.H1eTransitiveGlobal.A(int)': writes.static is may (frontend/roslyn/protocol-samples/cases/H1e_transitive_global.cs:19) — refused: an exclusive region admits only calls the effect summaries prove harmless",
+  "H1f_polluted_scc": "refused: OwnIR 'proven_call' to 'Own.Protocols.Cases.H1fPollutedScc.Ping(int)' is not proven harmless: 'Own.Protocols.Cases.H1fPollutedScc.Ping(int)': writes.static is may (frontend/roslyn/protocol-samples/cases/H1f_polluted_scc.cs:19) — refused: an exclusive region admits only calls the effect summaries prove harmless",
+  "H1g_transitive_unknown": "refused: OwnIR 'proven_call' to 'Own.Protocols.Cases.H1gTransitiveUnknown.A(int)' is not proven harmless: 'Own.Protocols.Cases.H1gTransitiveUnknown.A(int)': writes.instance is unknown (frontend/roslyn/protocol-samples/cases/H1g_transitive_unknown.cs:18) — refused: an exclusive region admits only calls the effect summaries prove harmless",
+  "H1h_mutates_entity": [
+    "OWN013"
+  ],
+  "H1i_escapes_entity": [
+    "OWN013"
+  ],
+  "H1j_mutates_outer_value": "refused: OwnIR 'proven_call' to 'Own.Protocols.Cases.H1jMutatesOuterValue.Fill(int[])' is not proven harmless: 'Own.Protocols.Cases.H1jMutatesOuterValue.Fill(int[])': parameter 0 is borrow_mut (frontend/roslyn/protocol-samples/cases/H1j_mutates_outer_value.cs:20) — refused: an exclusive region admits only calls the effect summaries prove harmless",
   "L10_region_inside_try": [],
   "L11_region_beside_disposable": [],
   "L12_region_beside_leaked_disposable": [
