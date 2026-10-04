@@ -135,3 +135,16 @@ VS Code, an LSP server, Rider/ReSharper, code fixes/lightbulbs, hover/explain UI
 ## 14. Verdict
 
 `GO_OWEN_VISUAL_STUDIO_ALPHA` only if all hold: an unsaved edit goes through the one extractor and the authoritative core to OWN002, a squiggle, an Error List row with navigation to the reported location, and disappears when the line is deleted — in a real Visual Studio; the parity gate passes; K1–K8 pass where registered; thresholds of §8 hold; mutations M1–M6 go red. Otherwise `NO_GO_OWEN_VISUAL_STUDIO_ALPHA` with the exact measured blocker. After GO: STOP.
+
+## Amendment 1 (2026-10-04): baseline results, and what the real IDE required
+
+**Baseline on `e889f8b`** (clean worktree, Linux): `cargo test` all ok (51 result lines); `protocol_gate --rust` 0 failures; `heap_effects_gate` PASS; `typed_builder_gate --rust` 0 failures (transcript `ba447304…`); `owen_extension_gate` 55/55; `tests/run_tests.py` exit 1 with exactly the two pre-existing local-only Stage-1 controls (`divergence-is-5`, `exec-failure-is-5`; red only when the launcher is built locally, recorded in OX-01) — CI on the same base is green. P-022 merge-gate controls 15/15 + wiring 12/12.
+
+**Changes to the plan, none to a threshold or a verdict rule:**
+1. **The Error List is read with UI Automation, not `DTE.ToolWindows.ErrorList.ErrorItems`.** In Visual Studio 2026 18.10 `ErrorItems` returned 0 while the window showed CS0029 (probe run 37163671022, screenshot). UI Automation reads the rows the user sees (code, description, project, file, line); the column is checked through navigation.
+2. **The hive.** CI runs in the image's `Exp` hive (an ephemeral runner; nothing shared to protect) instead of a dedicated root suffix: a fresh suffix opens on the modal sign-in dialog, which rejects every DTE call. The driver also dismisses first-run dialogs through UI Automation.
+3. **The MEF cache.** The image ships the hive's `ComponentModelCache` prebuilt, and installing a VSIX rebuilt only the pkgdef cache, so Owen's parts were never composed (identical cache bytes across runs, Owen absent from the composition log). The driver drops that cache and runs `devenv /updateconfiguration` after installing, as a developer machine would on a first start after an install.
+4. **"Loaded" is the extension's own trace line** (`Owen live analysis loaded`), not `Process.Modules`, which does not reliably list a .NET Framework assembly.
+5. **The editor must be in front.** VS reopens its start page over the editor after load; a view that is not visible is never asked for tags, so the driver brings `Use.cs` to the front before each measured edit. (Product change made while finding this: the tagger raises `TagsChanged` on the UI thread and reports any exception instead of being switched off silently.)
+6. **E3/E4** overlay a self-contained input (`frontend/roslyn/samples`): OrderBackend's extraction refuses on a clean checkout (no `bin/`, EF types unresolved), so it compared no facts with no facts in CI.
+7. **P-037 pins** the extractor's disk read sites in `Program.cs`; the overlay is consulted before them (`TryOverlay`, no filesystem access) instead of replacing them.
