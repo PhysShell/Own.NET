@@ -209,8 +209,9 @@ function Tags-Since($since) {
     Poll-Trace
     @($script:events | Where-Object { $_.kind -eq 'tags' -and $_.t -ge $since -and $_.data.file -like '*Use.cs' })
 }
-# always an array: Windows PowerShell gives a lone PSCustomObject no .Count
-function Own002($tagsEvent) { return ,@($tagsEvent.data.tags | Where-Object { $_.code -eq 'OWN002' }) }
+# Windows PowerShell gives a lone PSCustomObject no .Count: callers count @(Own002 $e). (A
+# function returning ",@(...)" would make that a one-element array holding the array.)
+function Own002($tagsEvent) { $tagsEvent.data.tags | Where-Object { $_.code -eq 'OWN002' } }
 function Wait-Tags($since, [scriptblock]$Want, [int]$Seconds = 60) {
     $deadline = (Get-Date).AddSeconds($Seconds)
     while ((Get-Date) -lt $deadline) {
@@ -323,8 +324,8 @@ $since = Now
 $insertAt = (Line-Of $anchor) + 1
 Insert-Line $insertAt $stale
 $regionLine = Line-Of $region
-$hit = Wait-Tags $since { param($e) $o = Own002 $e; ($o | Where-Object { -not $_.primary -and $_.line -eq $insertAt }) -and ($o | Where-Object { $_.primary -and $_.line -eq $regionLine }) }
-Check "K2-squiggle" ($null -ne $hit) ("tags on Use.cs after the edit: " + $(if ($hit) { (Own002 $hit | ForEach-Object { "$($_.line):$($_.column)+$($_.length) primary=$($_.primary) '$($_.text)'" }) -join '; ' } else { 'none with OWN002 at the region entry and on the inserted line' }))
+$hit = Wait-Tags $since { param($e) $o = @(Own002 $e); ($o | Where-Object { -not $_.primary -and $_.line -eq $insertAt }) -and ($o | Where-Object { $_.primary -and $_.line -eq $regionLine }) }
+Check "K2-squiggle" ($null -ne $hit) ("tags on Use.cs after the edit: " + $(if ($hit) { (@(Own002 $hit) | ForEach-Object { "$($_.line):$($_.column)+$($_.length) primary=$($_.primary) '$($_.text)'" }) -join '; ' } else { 'none with OWN002 at the region entry and on the inserted line' }))
 if ($hit) { $results.measurements.k2_edit_to_squiggle_ms = $hit.t - $since }
 Check "K2-unsaved" (-not $doc.Saved) "Use.cs is unsaved (Saved=$($doc.Saved)); the disk still has one Submit: $(-not ((Get-Content $fx.use -Raw) -match 'draft\.Submit\(now\);\s*\r?\n\s*draft\.Submit'))"
 Start-Sleep -Milliseconds 700
