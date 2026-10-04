@@ -175,13 +175,15 @@ Retry { $window.Activate() } | Out-Null
 Retry { $window.Visible = $true } | Out-Null
 $doc = Retry { $dte.ActiveDocument }
 Log "active document: $($doc.FullName)"
+# The extension's own word that its MEF parts were composed and its monitor runs (a .NET
+# Framework assembly does not reliably show among the process's native modules).
 $loaded = $null
-for ($k = 0; $k -lt 60 -and -not $loaded; $k++) {
-    try { $loaded = @((Get-Process -Id $proc.Id).Modules | Where-Object { $_.FileName -like '*Owen.VisualStudio.dll' })[0] } catch { }
+for ($k = 0; $k -lt 120 -and -not $loaded; $k++) {
+    if (Test-Path $trace) { $loaded = Select-String -Path $trace -Pattern '"Owen live analysis loaded"' -SimpleMatch -List }
     if (-not $loaded) { Start-Sleep -Seconds 1 }
 }
 if (-not $loaded) { Collect-Diagnostics }
-Check "vsix-loaded" ($null -ne $loaded) "Owen.VisualStudio.dll in devenv: $(if ($loaded) { $loaded.FileName } else { 'not loaded' })"
+Check "vsix-loaded" ($null -ne $loaded) "Owen.VisualStudio composed in devenv: $(if ($loaded) { $loaded.Line } else { 'no load line in the trace after 120 s' })"
 Shot "opened"
 if (-not $loaded) {
     # nothing below can pass without the extension in the process: stop with the evidence
