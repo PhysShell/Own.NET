@@ -3551,6 +3551,12 @@ jobs:
           $built = @(Get-ChildItem -Recurse frontend\roslyn\Owen.VisualStudio -Filter Owen.VisualStudio.vsix)
           if ($built.Count -eq 0) { Write-Error "no Owen.VisualStudio.vsix was produced"; exit 1 }
           $built | ForEach-Object { "$($_.FullName) ($($_.Length) bytes)" }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead($built[0].FullName)
+          $zip.Entries | ForEach-Object { "  entry: $($_.FullName) ($($_.Length))" }
+          $m = $zip.GetEntry('extension.vsixmanifest'); $r = New-Object System.IO.StreamReader($m.Open()); $r.ReadToEnd(); $r.Dispose(); $zip.Dispose()
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\vs-evidence" | Out-Null
+          Copy-Item $built[0].FullName "$env:RUNNER_TEMP\vs-evidence\"
       - name: The acceptance in Visual Studio
         shell: powershell
         run: |
