@@ -52,10 +52,7 @@ namespace Owen.VisualStudio
         {
             _workspace = workspace;
             _errorList = new OwenErrorListSource(tables.GetTableManager(StandardTables.ErrorsTable));
-            _engine = new LiveEngine(SnapshotAsync, AnalyzerFor, OwenLog.Write, TimeSpan.FromMilliseconds(250))
-            {
-                IgnoreVersions = Environment.GetEnvironmentVariable("OWEN_LIVE_MUTATION") == "M1",
-            };
+            _engine = new LiveEngine(SnapshotAsync, AnalyzerFor, OwenLog.Write, TimeSpan.FromMilliseconds(250));
             _engine.Published += OnPublished;
             _workspace.WorkspaceChanged += OnWorkspaceChanged;
             OwenLog.Write("Owen live analysis loaded");
@@ -116,7 +113,10 @@ namespace Owen.VisualStudio
         {
             var request = LiveRequestFile.For(key);
             if (LiveRequestFile.TryRead(request) == null)
+            {
+                OwenTrace.Event("no-request", new { key, request });
                 return null;
+            }
             var project = _workspace.CurrentSolution.Projects.FirstOrDefault(
                 p => string.Equals(p.FilePath, key, StringComparison.OrdinalIgnoreCase));
             if (project == null)
