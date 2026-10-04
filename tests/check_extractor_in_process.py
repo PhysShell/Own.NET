@@ -143,9 +143,11 @@ def main() -> int:
                 elif _read(outs[i]) != _read(cli_out[i]):
                     fails.append(f"{label} {name}: facts differ from the command line's")
 
-        # E3/E4: OrderBackend, the endpoint file overlaid
-        project = "samples/OrderBackend/OrderBackend"
-        target = os.path.join(ROOT, project, "OrderEndpoints.cs")
+        # E3/E4: the samples directory, one file overlaid. Self-contained on purpose: a run
+        # whose facts depend on a built bin/ (OrderBackend's EF types) would refuse on a
+        # clean checkout and compare no facts with no facts.
+        project = SAMPLES
+        target = os.path.join(ROOT, project, "FlowLocalsSample.cs")
         with open(target, encoding="utf-8") as f:
             original = f.read()
         same = os.path.join(tmp, "same.cs")
@@ -153,13 +155,13 @@ def main() -> int:
             f.write(original)
         # a non-escaping disposable local: the flow pass emits a function for it
         changed_text = original + (
-            "\nnamespace OrderBackend { static class OverlayProbe { static void M() "
-            "{ var s = new System.IO.MemoryStream(); s.WriteByte(1); } } }\n"
+            "\nstatic class OverlayProbe { static void M() "
+            "{ var s = new System.IO.MemoryStream(); s.WriteByte(1); } }\n"
         )
         changed = os.path.join(tmp, "changed.cs")
         with open(changed, "w", encoding="utf-8", newline="") as f:
             f.write(changed_text)
-        args = [f"{project}/OrderBackend.csproj", "--flow-locals"]
+        args = [project, "--flow-locals"]
         base_out = os.path.join(tmp, "e3-base.json")
         _cli(dll, args, base_out)
         e3 = os.path.join(tmp, "e3.json")
@@ -177,17 +179,18 @@ def main() -> int:
             fails.append("E3: an overlay equal to the disk changed the facts")
         # the same change made on disk, in a copy of the tree, run by the command line
         copy = os.path.join(tmp, "tree")
-        # bin/ included: a .csproj input auto-references the project's built output
         shutil.copytree(os.path.join(ROOT, project), os.path.join(copy, project))
         with open(
-            os.path.join(copy, project, "OrderEndpoints.cs"), "w", encoding="utf-8", newline=""
+            os.path.join(copy, project, "FlowLocalsSample.cs"), "w", encoding="utf-8", newline=""
         ) as f:
             f.write(changed_text)
         disk_out = os.path.join(tmp, "e4-disk.json")
         _cli(dll, args, disk_out, cwd=copy)
         checks += 1
         e4_bytes = _read(e4)
-        if e4_bytes is None or e4_bytes == _read(base_out):
+        if _read(base_out) is None:
+            fails.append("E4: the unchanged samples produced no facts; nothing was compared")
+        elif e4_bytes is None or e4_bytes == _read(base_out):
             fails.append(
                 "E4: an overlay that differs from the disk did not change the facts "
                 "(the disk was read instead of the buffer)"

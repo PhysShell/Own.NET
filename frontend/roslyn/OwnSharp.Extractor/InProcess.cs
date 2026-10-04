@@ -22,13 +22,16 @@ partial class Program
     internal static StringComparer PathComparer =>
         OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
-    static bool SourceExists(string path) =>
-        SourceOverlay?.ContainsKey(Path.GetFullPath(path)) == true || File.Exists(path);
-
-    static string ReadSource(string path) =>
-        SourceOverlay is not null && SourceOverlay.TryGetValue(Path.GetFullPath(path), out var text)
-            ? text
-            : File.ReadAllText(path);
+    /// <summary>The overlaid text of <paramref name="path"/>, when an overlay holds it. No
+    /// filesystem access: the disk read stays at its one site in the parse loop.</summary>
+    static bool TryOverlay(string path, out string text)
+    {
+        text = "";
+        if (SourceOverlay is null || !SourceOverlay.TryGetValue(Path.GetFullPath(path), out var held))
+            return false;
+        text = held;
+        return true;
+    }
 }
 
 namespace OwnSharp.Extractor

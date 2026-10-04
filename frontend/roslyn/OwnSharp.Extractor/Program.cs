@@ -5703,23 +5703,26 @@ foreach (var path in inputs)
     // Defensive: an explicit input that is not a readable file (a directory
     // passed by mistake, a deleted path) is skipped with a note, never an
     // unhandled exception that aborts the whole scan.
-    if (!SourceExists(path))
+    // OX-02: an IDE's unsaved buffer for this path is read INSTEAD of the file
+    // (InProcessExtractor). The CLI never has an overlay, so for it this is the disk path
+    // below, unchanged.
+    if (!TryOverlay(path, out var text))
     {
-        Console.Error.WriteLine($"ownsharp-extract: skipping (not a file): {path}");
-        continue;
-    }
-    string text;
-    try
-    {
-        // OX-02: an IDE's unsaved buffer for this path wins over the file on disk
-        // (InProcessExtractor); with no overlay — the CLI — this is File.ReadAllText.
-        text = ReadSource(path);
-    }
-    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-    {
-        // A locked/unreadable file is skipped with a note, not an abort.
-        Console.Error.WriteLine($"ownsharp-extract: skipping unreadable file: {path} ({ex.Message})");
-        continue;
+        if (!File.Exists(path))
+        {
+            Console.Error.WriteLine($"ownsharp-extract: skipping (not a file): {path}");
+            continue;
+        }
+        try
+        {
+            text = File.ReadAllText(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // A locked/unreadable file is skipped with a note, not an abort.
+            Console.Error.WriteLine($"ownsharp-extract: skipping unreadable file: {path} ({ex.Message})");
+            continue;
+        }
     }
     parsed.Add((Rel(path), CSharpSyntaxTree.ParseText(text, path: path)));
     if (path.EndsWith(".xaml.cs", StringComparison.OrdinalIgnoreCase))

@@ -72,9 +72,8 @@ MUTATIONS: list[tuple[str, str, str, str, str, list[str]]] = [
     (
         "M6",
         os.path.join(EXTRACTOR, "InProcess.cs"),
-        "SourceOverlay is not null && "
-        "SourceOverlay.TryGetValue(Path.GetFullPath(path), out var text)",
-        "false && SourceOverlay!.TryGetValue(Path.GetFullPath(path), out var text)",
+        "if (SourceOverlay is null || !SourceOverlay.TryGetValue(",
+        "if (true || !SourceOverlay!.TryGetValue(",
         "gate",
         ["K2-unsaved-own002"],
     ),
