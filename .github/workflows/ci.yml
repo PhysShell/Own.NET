@@ -3555,7 +3555,7 @@ jobs:
         shell: powershell
         run: |
           $vsix = (Get-ChildItem -Recurse frontend\roslyn\Owen.VisualStudio -Filter Owen.VisualStudio.vsix | Select-Object -First 1).FullName
-          scripts\vs\owen-vs-acceptance.ps1 -Vsix $vsix -Fixture "$env:RUNNER_TEMP\vsfx\fixture.json" -Out "$env:RUNNER_TEMP\vs-evidence"
+          scripts\vs\owen-vs-acceptance.ps1 -Vsix $vsix -Fixture "$env:RUNNER_TEMP\vsfx\fixture.json" -Out "$env:RUNNER_TEMP\vs-evidence" -RootSuffix Exp
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

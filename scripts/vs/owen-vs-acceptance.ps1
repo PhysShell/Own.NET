@@ -95,9 +95,35 @@ $activity = Join-Path $Out 'ActivityLog.xml'
 $t0 = Now
 $proc = Start-Process $devenv -ArgumentList "/rootsuffix", $RootSuffix, "/log", "`"$activity`"", "`"$($fx.sln)`"" -PassThru
 Log "devenv pid $($proc.Id)"
+# A hive's first launch shows modal first-run dialogs (sign-in, then the environment
+# settings); a modal dialog rejects every DTE call. Dismiss them the way a user would.
+$firstRun = @('Skip and add accounts later.', 'Skip and add accounts later', 'Not now, maybe later.', 'Start Visual Studio')
+function Dismiss-FirstRun {
+    $root = [System.Windows.Automation.AutomationElement]::RootElement
+    $byPid = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty, $proc.Id)
+    foreach ($w in $root.FindAll([System.Windows.Automation.TreeScope]::Children, $byPid)) {
+        foreach ($name in $firstRun) {
+            $c = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty, $name)
+            $el = $w.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $c)
+            if ($el) {
+                Log "first-run dialog: '$name'"
+                try { $el.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke() }
+                catch {
+                    $r = $el.Current.BoundingRectangle
+                    [Mouse]::SetCursorPos([int]($r.X + $r.Width / 2), [int]($r.Y + $r.Height / 2)) | Out-Null
+                    [Mouse]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero); [Mouse]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero)
+                }
+                return $true
+            }
+        }
+    }
+    return $false
+}
 $dte = $null
 for ($k = 0; $k -lt 180 -and -not $dte; $k++) {
     Start-Sleep -Seconds 2
+    try { [void](Dismiss-FirstRun) } catch { Log "dismiss: $_" }
+    if ($k % 30 -eq 0) { Shot ("startup-{0:D3}" -f $k) }
     if ($proc.HasExited) {
         Log "devenv exited ($($proc.ExitCode)); relaunching once (extension registration restart)"
         $proc = Start-Process $devenv -ArgumentList "/rootsuffix", $RootSuffix, "/log", "`"$activity`"", "`"$($fx.sln)`"" -PassThru
@@ -105,7 +131,7 @@ for ($k = 0; $k -lt 180 -and -not $dte; $k++) {
     try { $dte = [System.Runtime.InteropServices.Marshal]::GetActiveObject("VisualStudio.DTE.$major.0") } catch { }
 }
 if (-not $dte) { Check "dte" $false "no DTE after 360 s"; Shot "no-dte"; exit 1 }
-Retry { if (-not ($dte.Solution.IsOpen -and $dte.Solution.Projects.Count -gt 0)) { throw "loading" } } 300 | Out-Null
+Retry { try { [void](Dismiss-FirstRun) } catch { }; if (-not ($dte.Solution.IsOpen -and $dte.Solution.Projects.Count -gt 0)) { throw "loading" } } 300 | Out-Null
 Log "solution open after $([int]((Now) - $t0) / 1000) s: $($dte.Solution.FullName)"
 
 $liveTxt = Join-Path (Split-Path $fx.project) 'obj\owen\live.txt'
