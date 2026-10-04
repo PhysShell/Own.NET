@@ -343,7 +343,10 @@ if ($row) { try {
     $active = Retry { $dte.ActiveDocument }
     $point = Retry { $active.Selection.ActivePoint }
     $expectColumn = ((Retry { (All-Text) -split "`r?`n" })[$regionLine - 1]).IndexOf('OrderProtocol') + 1
-    Check "K2-navigation" ($active.FullName -eq $fx.use -and $point.Line -eq $regionLine -and $point.LineCharOffset -eq $expectColumn) "double-click -> $($active.Name) line $($point.Line) column $($point.LineCharOffset); expected Use.cs line $regionLine column $expectColumn (the core's location, §6)"
+    # the same file, whatever casing or form DTE reports its path in (the run on 7cdf529 failed
+    # this check with the caret exactly at 10:9 on a FullName that compared unequal by case)
+    $sameFile = [System.IO.Path]::GetFullPath($active.FullName).Equals([System.IO.Path]::GetFullPath($fx.use), [System.StringComparison]::OrdinalIgnoreCase)
+    Check "K2-navigation" ($sameFile -and $point.Line -eq $regionLine -and $point.LineCharOffset -eq $expectColumn) "double-click -> '$($active.FullName)' line $($point.Line) column $($point.LineCharOffset); expected '$($fx.use)' line $regionLine column $expectColumn (the core's location, §6)"
     Shot "k2-navigated"
 } catch { Check "K2-navigation" $false "navigation could not be driven: $($_.Exception.Message) at $($_.InvocationInfo.PositionMessage)" } }
 
