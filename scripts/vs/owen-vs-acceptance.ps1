@@ -209,7 +209,8 @@ function Tags-Since($since) {
     Poll-Trace
     @($script:events | Where-Object { $_.kind -eq 'tags' -and $_.t -ge $since -and $_.data.file -like '*Use.cs' })
 }
-function Own002($tagsEvent) { @($tagsEvent.data.tags | Where-Object { $_.code -eq 'OWN002' }) }
+# always an array: Windows PowerShell gives a lone PSCustomObject no .Count
+function Own002($tagsEvent) { return ,@($tagsEvent.data.tags | Where-Object { $_.code -eq 'OWN002' }) }
 function Wait-Tags($since, [scriptblock]$Want, [int]$Seconds = 60) {
     $deadline = (Get-Date).AddSeconds($Seconds)
     while ((Get-Date) -lt $deadline) {
@@ -335,7 +336,7 @@ Check "K2-error-list" ($null -ne $row) "Error List row: $(if ($row) { $row.Text 
 if ($row) { try {
     try { $row.Element.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select() } catch { }
     $r = $row.Element.Current.BoundingRectangle
-    [Mouse]::SetForegroundWindow([IntPtr]$dte.MainWindow.HWnd) | Out-Null
+    [Mouse]::SetForegroundWindow((Get-Process -Id $proc.Id).MainWindowHandle) | Out-Null
     [Mouse]::DoubleClick([int]($r.X + [Math]::Min(200, $r.Width / 2)), [int]($r.Y + $r.Height / 2))
     Start-Sleep -Milliseconds 1500
     $active = Retry { $dte.ActiveDocument }
@@ -360,7 +361,7 @@ Start-Sleep -Milliseconds 1500
 Front-Use
 $since = Now
 Delete-Line (Line-Of 'draft.Submit(now);')
-$gone = Wait-Tags $since { param($e) (Own002 $e).Count -eq 0 }
+$gone = Wait-Tags $since { param($e) @(Own002 $e).Count -eq 0 }
 $rowGone = Wait-Row 'OWN002' $false 60
 Check "K3-disappears" (($null -ne $gone) -and ($rowGone -eq $true)) "after deleting the line: tags without OWN002 at +$(if ($gone) { $gone.t - $since } else { '?' }) ms; Error List row gone: $($rowGone -eq $true)"
 Shot "k3-gone"
@@ -372,12 +373,12 @@ for ($i = 0; $i -lt $Repeats; $i++) {
     Start-Sleep -Milliseconds 800
     $since = Now
     Insert-Line ((Line-Of $anchor) + 1) $stale
-    $e = Wait-Tags $since { param($x) (Own002 $x | Where-Object { -not $_.primary }).Count -gt 0 } 30
+    $e = Wait-Tags $since { param($x) @(Own002 $x | Where-Object { -not $_.primary }).Count -gt 0 } 30
     if ($e) { $appear += ($e.t - $since) }
     Start-Sleep -Milliseconds 800
     $since = Now
     Delete-Line (Line-Of 'draft.Submit(now);')
-    $e = Wait-Tags $since { param($x) (Own002 $x).Count -eq 0 } 30
+    $e = Wait-Tags $since { param($x) @(Own002 $x).Count -eq 0 } 30
     if ($e) { $vanish += ($e.t - $since) }
 }
 function P95($xs) { $s = @($xs | Sort-Object); if ($s.Count -eq 0) { return $null }; return $s[[Math]::Max(0, [int][Math]::Ceiling($s.Count * 0.95) - 1)] }
@@ -406,8 +407,14 @@ Check "never-saved" ((Get-Content $fx.use -Raw) -eq (Get-Content (Join-Path $PSS
 $results.failed = $failed
 $results | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $Out 'results.json') -Encoding UTF8
 try { $dte.Documents.CloseAll(2) } catch { }
+$services = @(Get-CimInstance Win32_Process -Filter "Name = 'dotnet.exe'" | Where-Object { $_.CommandLine -like '*ownsharp.dll*serve*' })
+Log "owen serve processes before devenv ends: $(@($services | ForEach-Object { $_.ProcessId }) -join ', ')"
 Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
-Get-Process -Name dotnet -ErrorAction SilentlyContinue | ForEach-Object { Log "dotnet still running after devenv: pid $($_.Id)" }
+Start-Sleep -Seconds 3
+$orphans = @(Get-CimInstance Win32_Process -Filter "Name = 'dotnet.exe'" | Where-Object { $_.CommandLine -like '*ownsharp.dll*serve*' })
+Check "no-orphan" ($services.Count -ge 1 -and $orphans.Count -eq 0) "owen serve ran ($($services.Count) process(es)) and did not outlive a killed devenv ($($orphans.Count) left)"
+$results.failed = $failed
+$results | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $Out 'results.json') -Encoding UTF8
 if ($failed) { Log "VS acceptance: FAILED"; exit 1 }
 Log "VS acceptance: all checks passed"
 exit 0
