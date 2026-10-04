@@ -111,6 +111,11 @@ BodyThrowEdges = false;
 // as belonging to a Fody-enabled project must not stay "weaver-owned" for an unrelated later
 // invocation in the same process (a sticky false positive). Same reset discipline as above.
 WeaverOwnedFiles.Clear();
+// OX-02: the two collectors below are filled while a run walks the compilation, so a run in a
+// long-lived process (InProcessExtractor, the IDE service) must start them empty too. A fresh
+// process starts them empty anyway: for the CLI this is a no-op.
+GuardedFactsViolations.Clear();
+OrphanedAwaitables.Sites.Clear();
 // `extract` verb: the tool's one job is extraction, so an optional leading `extract`
 // makes the advertised `ownsharp-extract extract --project App.csproj --out facts.json`
 // UX real while the bare form (no verb) stays the default and back-compatible. (The
@@ -5698,7 +5703,7 @@ foreach (var path in inputs)
     // Defensive: an explicit input that is not a readable file (a directory
     // passed by mistake, a deleted path) is skipped with a note, never an
     // unhandled exception that aborts the whole scan.
-    if (!File.Exists(path))
+    if (!SourceExists(path))
     {
         Console.Error.WriteLine($"ownsharp-extract: skipping (not a file): {path}");
         continue;
@@ -5706,7 +5711,9 @@ foreach (var path in inputs)
     string text;
     try
     {
-        text = File.ReadAllText(path);
+        // OX-02: an IDE's unsaved buffer for this path wins over the file on disk
+        // (InProcessExtractor); with no overlay — the CLI — this is File.ReadAllText.
+        text = ReadSource(path);
     }
     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
     {
