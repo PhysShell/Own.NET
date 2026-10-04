@@ -71,6 +71,23 @@ function Retry([scriptblock]$Block, [int]$Seconds = 60) {
     }
 }
 
+# Where an installed extension and the MEF composition's own errors live, for the evidence.
+function Collect-Diagnostics {
+    $hive = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Microsoft\VisualStudio') -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -like "*$RootSuffix" }
+    foreach ($h in $hive) {
+        Log "hive: $($h.FullName)"
+        Get-ChildItem (Join-Path $h.FullName 'Extensions') -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -like '*Owen*' -or $_.Name -like '*.vsixmanifest' -or $_.Name -like 'extensions.*' } |
+            ForEach-Object { Log "  ext: $($_.FullName)" }
+        Get-ChildItem (Join-Path $h.FullName 'ComponentModelCache') -ErrorAction SilentlyContinue | ForEach-Object {
+            Log "  cache: $($_.Name) $($_.Length)"
+            if ($_.Name -like '*.err') { Copy-Item $_.FullName (Join-Path $Out $_.Name) -ErrorAction SilentlyContinue }
+        }
+    }
+    Get-ChildItem $env:TEMP -Filter 'dd_VSIXInstaller*' -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName $Out -ErrorAction SilentlyContinue }
+}
+
 # ---- Visual Studio ----------------------------------------------------------------------------
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $vs = (& $vswhere -latest -products * -format json | ConvertFrom-Json)[0]
@@ -151,8 +168,16 @@ for ($k = 0; $k -lt 60 -and -not $loaded; $k++) {
     try { $loaded = @((Get-Process -Id $proc.Id).Modules | Where-Object { $_.FileName -like '*Owen.VisualStudio.dll' })[0] } catch { }
     if (-not $loaded) { Start-Sleep -Seconds 1 }
 }
+if (-not $loaded) { Collect-Diagnostics }
 Check "vsix-loaded" ($null -ne $loaded) "Owen.VisualStudio.dll in devenv: $(if ($loaded) { $loaded.FileName } else { 'not loaded' })"
 Shot "opened"
+if (-not $loaded) {
+    # nothing below can pass without the extension in the process: stop with the evidence
+    $results.failed = $true
+    $results | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $Out 'results.json') -Encoding UTF8
+    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    exit 1
+}
 $td = Retry { $doc.Object('TextDocument') }
 
 # ---- trace ------------------------------------------------------------------------------------
