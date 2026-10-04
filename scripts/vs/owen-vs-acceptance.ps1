@@ -107,6 +107,18 @@ $p = Start-Process $installer -ArgumentList "/quiet", "/rootSuffix:$RootSuffix",
 Check "install-vsix" ($p.ExitCode -eq 0) "VSIXInstaller exit $($p.ExitCode) into root suffix $RootSuffix"
 if ($p.ExitCode -ne 0) { $results | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $Out 'results.json'); exit 1 }
 
+# The MEF composition is cached per hive (ComponentModelCache). A hosted image ships that
+# cache prebuilt, and installing an extension rebuilt the pkgdef cache but not this one (the
+# run on 4289f6a: the cache files were byte-for-byte the image's, no part of Owen in them).
+# Drop it so Visual Studio composes again with the installed extension, as /updateconfiguration
+# would on a developer machine.
+foreach ($h in (Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Microsoft\VisualStudio') -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*$RootSuffix" })) {
+    $cache = Join-Path $h.FullName 'ComponentModelCache'
+    if (Test-Path $cache) { Remove-Item -Recurse -Force $cache; Log "dropped the MEF cache $cache" }
+}
+$u = Start-Process $devenv -ArgumentList "/rootsuffix", $RootSuffix, "/updateconfiguration" -Wait -PassThru
+Log "devenv /updateconfiguration exit $($u.ExitCode)"
+
 $major = $vs.installationVersion.Split('.')[0]
 $activity = Join-Path $Out 'ActivityLog.xml'
 $t0 = Now
