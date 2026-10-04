@@ -23,7 +23,7 @@ $work = Join-Path $env:RUNNER_TEMP 'probe'
 New-Item -ItemType Directory -Force $work | Out-Null
 Push-Location $work
 & dotnet new console -n Probe --framework net8.0 -o Probe 2>&1 | Out-Null
-& dotnet new sln -n Probe 2>&1 | Out-Null
+& dotnet new sln -n Probe --format sln 2>&1 | Out-Null
 & dotnet sln Probe.sln add Probe\Probe.csproj 2>&1 | Out-Null
 & dotnet restore Probe.sln 2>&1 | Out-Null
 Pop-Location
