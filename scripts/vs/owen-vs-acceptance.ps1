@@ -135,8 +135,24 @@ Retry { try { [void](Dismiss-FirstRun) } catch { }; if (-not ($dte.Solution.IsOp
 Log "solution open after $([int]((Now) - $t0) / 1000) s: $($dte.Solution.FullName)"
 
 $liveTxt = Join-Path (Split-Path $fx.project) 'obj\owen\live.txt'
+# The editor must be REALIZED for its taggers to exist: a background tab is not. Close the
+# start page VS opens after an update, open the Error List, and bring Use.cs to the front.
+foreach ($w in @(Retry { $dte.Windows })) {
+    try { if ($w.Caption -like "What's new*" -or $w.Caption -like "Start Page*") { Log "closing '$($w.Caption)'"; $w.Close() } } catch { }
+}
+Retry { $dte.ExecuteCommand('View.ErrorList') } | Out-Null
 $window = Retry { $dte.ItemOperations.OpenFile($fx.use) }
+Retry { $window.Activate() } | Out-Null
+Retry { $window.Visible = $true } | Out-Null
 $doc = Retry { $dte.ActiveDocument }
+Log "active document: $($doc.FullName)"
+$loaded = $null
+for ($k = 0; $k -lt 60 -and -not $loaded; $k++) {
+    try { $loaded = @((Get-Process -Id $proc.Id).Modules | Where-Object { $_.FileName -like '*Owen.VisualStudio.dll' })[0] } catch { }
+    if (-not $loaded) { Start-Sleep -Seconds 1 }
+}
+Check "vsix-loaded" ($null -ne $loaded) "Owen.VisualStudio.dll in devenv: $(if ($loaded) { $loaded.FileName } else { 'not loaded' })"
+Shot "opened"
 $td = Retry { $doc.Object('TextDocument') }
 
 # ---- trace ------------------------------------------------------------------------------------
