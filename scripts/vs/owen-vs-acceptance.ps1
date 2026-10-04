@@ -267,6 +267,14 @@ function Delete-Line($line) {
     $b = $td.StartPoint.CreateEditPoint(); $b.MoveToLineAndOffset($line + 1, 1)
     $a.Delete($b)
 }
+# VS may reopen its start page over the editor after the solution loads; an editor that is not
+# visible is never asked for tags, so every measured edit first brings Use.cs to the front.
+function Front-Use {
+    foreach ($w in @($dte.Windows)) {
+        try { if ($w.Caption -like "What's new*" -or $w.Caption -like "Start Page*") { $w.Close() } } catch { }
+    }
+    try { $script:window.Activate() } catch { Log "activate: $_" }
+}
 $stale = '            draft.Submit(now);'
 $anchor = 'var submitted = draft.Submit(now);'
 $region = 'OrderProtocol.WithDraft(order, draft =>'
@@ -295,6 +303,7 @@ else {
 $snap = @($script:events | Where-Object { $_.kind -eq 'snapshot' })[0]
 if ($snap) { Log "snapshot: documents $($snap.data.documents -join ', '); generated $($snap.data.generated -join ', ')" }
 
+Front-Use
 $since = Now
 Insert-Line ((Line-Of $anchor) + 1) '            // an unsaved, harmless edit'
 $cleanPub = $null
@@ -308,6 +317,7 @@ Check "K1-unsaved-clean" ($cleanPub -and @($cleanPub.data.entries | Where-Object
 Delete-Line (Line-Of '// an unsaved, harmless edit')
 
 # ---- K2: the second Submit, unsaved -----------------------------------------------------------
+Front-Use
 $since = Now
 $insertAt = (Line-Of $anchor) + 1
 Insert-Line $insertAt $stale
@@ -322,7 +332,7 @@ $row = Wait-Row 'OWN002' $true 60
 Check "K2-error-list" ($null -ne $row) "Error List row: $(if ($row) { $row.Text } else { 'none' })"
 
 # navigation: double-click the row, then read the caret
-if ($row) {
+if ($row) { try {
     try { $row.Element.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select() } catch { }
     $r = $row.Element.Current.BoundingRectangle
     [Mouse]::SetForegroundWindow([IntPtr]$dte.MainWindow.HWnd) | Out-Null
@@ -333,7 +343,7 @@ if ($row) {
     $expectColumn = ((Retry { (All-Text) -split "`r?`n" })[$regionLine - 1]).IndexOf('OrderProtocol') + 1
     Check "K2-navigation" ($active.FullName -eq $fx.use -and $point.Line -eq $regionLine -and $point.LineCharOffset -eq $expectColumn) "double-click -> $($active.Name) line $($point.Line) column $($point.LineCharOffset); expected Use.cs line $regionLine column $expectColumn (the core's location, §6)"
     Shot "k2-navigated"
-}
+} catch { Check "K2-navigation" $false "navigation could not be driven: $($_.Exception.Message) at $($_.InvocationInfo.PositionMessage)" } }
 
 # ---- P9: a CS error beside OWN002 -------------------------------------------------------------
 $csAt = (Line-Of $region)
@@ -347,6 +357,7 @@ Delete-Line (Line-Of 'int notAString = "s";')
 
 # ---- K3: delete the line ------------------------------------------------------------------------
 Start-Sleep -Milliseconds 1500
+Front-Use
 $since = Now
 Delete-Line (Line-Of 'draft.Submit(now);')
 $gone = Wait-Tags $since { param($e) (Own002 $e).Count -eq 0 }
@@ -357,6 +368,7 @@ Shot "k3-gone"
 # ---- latency over repeated edits ---------------------------------------------------------------
 $appear = @(); $vanish = @()
 for ($i = 0; $i -lt $Repeats; $i++) {
+    Front-Use
     Start-Sleep -Milliseconds 800
     $since = Now
     Insert-Line ((Line-Of $anchor) + 1) $stale

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Diagnostics;
 using System.Linq;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Adornments;
 using Microsoft.VisualStudio.Text.Tagging;
@@ -54,11 +55,39 @@ namespace Owen.VisualStudio
             if (!string.Equals(System.IO.Path.GetFullPath(file), System.IO.Path.GetFullPath(_document.FilePath),
                     StringComparison.OrdinalIgnoreCase))
                 return;
-            var snapshot = _buffer.CurrentSnapshot;
-            TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
+            // Publications arrive on a background thread; the editor's tag aggregators expect
+            // TagsChanged on the UI thread.
+            _ = ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                try
+                {
+                    var snapshot = _buffer.CurrentSnapshot;
+                    TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(new SnapshotSpan(snapshot, 0, snapshot.Length)));
+                }
+                catch (Exception ex)
+                {
+                    OwenTrace.Event("error", new { where = "TagsChanged", error = ex.ToString() });
+                }
+            });
         }
 
         public IEnumerable<ITagSpan<IErrorTag>> GetTags(NormalizedSnapshotSpanCollection spans)
+        {
+            try
+            {
+                return Tags(spans);
+            }
+            catch (Exception ex)
+            {
+                // a tagger that throws is switched off by the editor: report, show nothing this time
+                OwenTrace.Event("error", new { where = "GetTags", error = ex.ToString() });
+                OwenLog.Write("Owen: squiggles failed: " + ex.Message);
+                return Array.Empty<ITagSpan<IErrorTag>>();
+            }
+        }
+
+        private IEnumerable<ITagSpan<IErrorTag>> Tags(NormalizedSnapshotSpanCollection spans)
         {
             if (spans.Count == 0)
                 return Array.Empty<ITagSpan<IErrorTag>>();
