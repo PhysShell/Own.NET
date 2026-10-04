@@ -43,8 +43,15 @@ FLAG_SETS: list[list[str]] = [
 
 
 def _run(cmd: list[str], cwd: str = ROOT) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8",
-                          errors="replace", check=False)
+    return subprocess.run(
+        cmd,
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
 
 
 def _build(project: str) -> None:
@@ -64,17 +71,21 @@ def _jobs() -> list[tuple[str, list[str]]]:
             jobs.append((f"samples/{name}", [f"{SAMPLES}/{name}", "--flow-locals"]))
     for name in sorted(os.listdir(os.path.join(ROOT, PROTO, "cases"))):
         if name.endswith(".cs"):
-            jobs.append((f"cases/{name}", [f"{PROTO}/Api", f"{PROTO}/cases/{name}",
-                                           "--flow-locals"]))
+            jobs.append(
+                (f"cases/{name}", [f"{PROTO}/Api", f"{PROTO}/cases/{name}", "--flow-locals"])
+            )
     for sub in ("same-assembly", "unrelated"):
         jobs.append((sub, [f"{PROTO}/{sub}", "--flow-locals"]))
-    jobs.append(("heap-effects-samples", ["frontend/roslyn/heap-effects-samples",
-                                          "--flow-locals"]))
-    jobs.append(("project-input-sample",
-                 ["frontend/roslyn/project-input-sample/ProjectInputSample.csproj",
-                  "--flow-locals"]))
-    jobs.append(("OrderBackend", ["samples/OrderBackend/OrderBackend/OrderBackend.csproj",
-                                  "--flow-locals"]))
+    jobs.append(("heap-effects-samples", ["frontend/roslyn/heap-effects-samples", "--flow-locals"]))
+    jobs.append(
+        (
+            "project-input-sample",
+            ["frontend/roslyn/project-input-sample/ProjectInputSample.csproj", "--flow-locals"],
+        )
+    )
+    jobs.append(
+        ("OrderBackend", ["samples/OrderBackend/OrderBackend/OrderBackend.csproj", "--flow-locals"])
+    )
     return jobs
 
 
@@ -89,8 +100,9 @@ def _in_process(driver: str, jobs: list[dict[str, object]], tmp: str) -> list[in
             f.write(json.dumps(job) + "\n")
     done = _run(["dotnet", "exec", driver, path])
     if done.returncode != 0:
-        raise SystemExit(f"FAIL: the in-process driver exited {done.returncode}: "
-                         f"{done.stderr[-2000:]}")
+        raise SystemExit(
+            f"FAIL: the in-process driver exited {done.returncode}: {done.stderr[-2000:]}"
+        )
     lines = [ln for ln in done.stdout.splitlines() if ln.strip()]
     return [int(json.loads(ln)["rc"]) for ln in lines]
 
@@ -115,11 +127,14 @@ def main() -> int:
         cli_out = [os.path.join(tmp, f"cli-{i}.json") for i in range(len(jobs))]
         cli_rc = [_cli(dll, args, out) for (_, args), out in zip(jobs, cli_out, strict=True)]
 
-        for order, label in ((list(range(len(jobs))), "E1"),
-                             (list(reversed(range(len(jobs)))), "E2")):
+        for order, label in (
+            (list(range(len(jobs))), "E1"),
+            (list(reversed(range(len(jobs)))), "E2"),
+        ):
             outs = {i: os.path.join(tmp, f"{label}-{i}.json") for i in order}
-            rcs = _in_process(driver, [{"cwd": ROOT, "args": [*jobs[i][1], "-o", outs[i]]}
-                                       for i in order], tmp)
+            rcs = _in_process(
+                driver, [{"cwd": ROOT, "args": [*jobs[i][1], "-o", outs[i]]} for i in order], tmp
+            )
             for i, rc in zip(order, rcs, strict=True):
                 checks += 1
                 name = jobs[i][0]
@@ -139,7 +154,8 @@ def main() -> int:
         # a non-escaping disposable local: the flow pass emits a function for it
         changed_text = original + (
             "\nnamespace OrderBackend { static class OverlayProbe { static void M() "
-            "{ var s = new System.IO.MemoryStream(); s.WriteByte(1); } } }\n")
+            "{ var s = new System.IO.MemoryStream(); s.WriteByte(1); } } }\n"
+        )
         changed = os.path.join(tmp, "changed.cs")
         with open(changed, "w", encoding="utf-8", newline="") as f:
             f.write(changed_text)
@@ -148,10 +164,14 @@ def main() -> int:
         _cli(dll, args, base_out)
         e3 = os.path.join(tmp, "e3.json")
         e4 = os.path.join(tmp, "e4.json")
-        _in_process(driver, [
-            {"cwd": ROOT, "args": [*args, "-o", e3], "overlay": {target: same}},
-            {"cwd": ROOT, "args": [*args, "-o", e4], "overlay": {target: changed}},
-        ], tmp)
+        _in_process(
+            driver,
+            [
+                {"cwd": ROOT, "args": [*args, "-o", e3], "overlay": {target: same}},
+                {"cwd": ROOT, "args": [*args, "-o", e4], "overlay": {target: changed}},
+            ],
+            tmp,
+        )
         checks += 1
         if _read(e3) != _read(base_out):
             fails.append("E3: an overlay equal to the disk changed the facts")
@@ -159,24 +179,30 @@ def main() -> int:
         copy = os.path.join(tmp, "tree")
         # bin/ included: a .csproj input auto-references the project's built output
         shutil.copytree(os.path.join(ROOT, project), os.path.join(copy, project))
-        with open(os.path.join(copy, project, "OrderEndpoints.cs"), "w", encoding="utf-8",
-                  newline="") as f:
+        with open(
+            os.path.join(copy, project, "OrderEndpoints.cs"), "w", encoding="utf-8", newline=""
+        ) as f:
             f.write(changed_text)
         disk_out = os.path.join(tmp, "e4-disk.json")
         _cli(dll, args, disk_out, cwd=copy)
         checks += 1
         e4_bytes = _read(e4)
         if e4_bytes is None or e4_bytes == _read(base_out):
-            fails.append("E4: an overlay that differs from the disk did not change the facts "
-                         "(the disk was read instead of the buffer)")
+            fails.append(
+                "E4: an overlay that differs from the disk did not change the facts "
+                "(the disk was read instead of the buffer)"
+            )
         elif e4_bytes != _read(disk_out):
-            fails.append("E4: overlay facts differ from the command line's over the same "
-                         "contents on disk")
+            fails.append(
+                "E4: overlay facts differ from the command line's over the same contents on disk"
+            )
 
-    for f in fails:
-        print(f"FAIL: {f}")
-    print(f"extractor in-process: {checks - len(fails)}/{checks} passed, {len(fails)} failed "
-          f"({len(jobs)} jobs)")
+    for failure in fails:
+        print(f"FAIL: {failure}")
+    print(
+        f"extractor in-process: {checks - len(fails)}/{checks} passed, {len(fails)} failed "
+        f"({len(jobs)} jobs)"
+    )
     return 1 if fails else 0
 
 

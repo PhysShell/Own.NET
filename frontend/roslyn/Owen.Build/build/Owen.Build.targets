@@ -18,22 +18,51 @@
     <_OwenObjDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(BaseIntermediateOutputPath)', 'owen'))</_OwenObjDir>
   </PropertyGroup>
 
-  <Target Name="OwenBuildCheck"
-          AfterTargets="CopyFilesToOutputDirectory"
-          Condition="'$(OwenEnabled)' == 'true' and '$(DesignTimeBuild)' != 'true' and '$(BuildingProject)' != 'false'">
+  <!-- What to analyse, in the request format `owen build-check` and `owen serve` both read: ONE
+       definition, so a build and the live IDE host can never disagree about the project, the
+       active extensions or the generated sources. -->
+  <Target Name="_OwenRequestLines">
     <PropertyGroup>
       <!-- the muxer already running this build; never a PATH search for anything of ours -->
       <_OwenDotnet>$(DOTNET_HOST_PATH)</_OwenDotnet>
       <_OwenDotnet Condition="'$(_OwenDotnet)' == ''">dotnet</_OwenDotnet>
       <_OwenGeneratedRoot>$(CompilerGeneratedFilesOutputPath)</_OwenGeneratedRoot>
       <_OwenGeneratedRoot Condition="'$(_OwenGeneratedRoot)' != '' and !$([System.IO.Path]::IsPathRooted('$(_OwenGeneratedRoot)'))">$(MSBuildProjectDirectory)/$(_OwenGeneratedRoot)</_OwenGeneratedRoot>
-      <_OwenRequest>$(_OwenObjDir)request.txt</_OwenRequest>
     </PropertyGroup>
     <ItemGroup>
+      <_OwenRequestLine Remove="@(_OwenRequestLine)" />
       <_OwenRequestLine Include="project&#9;$(MSBuildProjectFullPath)" />
       <_OwenRequestLine Include="@(OwenExtensionDescriptor->'descriptor&#9;%(FullPath)')" />
       <_OwenRequestLine Include="generated-root&#9;$(_OwenGeneratedRoot)" Condition="'$(_OwenGeneratedRoot)' != ''" />
       <_OwenRequestLine Include="severity&#9;$(OwenSeverity)" />
+    </ItemGroup>
+  </Target>
+
+  <!-- OX-02: obj/owen/live.txt, the request a live IDE host (Owen.VisualStudio) analyses with,
+       plus where this package's `owen serve` is. Written by design-time builds too — the ones
+       Visual Studio runs by itself when it loads a project — so live analysis needs no build.
+       It analyses nothing. -->
+  <Target Name="OwenLiveRequest"
+          AfterTargets="CoreCompile"
+          DependsOnTargets="_OwenRequestLines"
+          Condition="'$(OwenEnabled)' == 'true'">
+    <ItemGroup>
+      <_OwenLiveLine Include="@(_OwenRequestLine)" />
+      <_OwenLiveLine Include="host&#9;$(_OwenHostDir)ownsharp.dll" />
+      <_OwenLiveLine Include="dotnet&#9;$(DOTNET_HOST_PATH)" Condition="'$(DOTNET_HOST_PATH)' != ''" />
+    </ItemGroup>
+    <MakeDir Directories="$(_OwenObjDir)" ContinueOnError="true" />
+    <WriteLinesToFile File="$(_OwenObjDir)live.txt" Lines="@(_OwenLiveLine)" Overwrite="true" WriteOnlyWhenDifferent="true" ContinueOnError="true" />
+  </Target>
+
+  <Target Name="OwenBuildCheck"
+          AfterTargets="CopyFilesToOutputDirectory"
+          DependsOnTargets="_OwenRequestLines"
+          Condition="'$(OwenEnabled)' == 'true' and '$(DesignTimeBuild)' != 'true' and '$(BuildingProject)' != 'false'">
+    <PropertyGroup>
+      <_OwenRequest>$(_OwenObjDir)request.txt</_OwenRequest>
+    </PropertyGroup>
+    <ItemGroup>
       <_OwenRequestLine Include="manifest&#9;$(_OwenObjDir)extensions.json" />
       <_OwenRequestLine Include="emit-facts&#9;$(OwenEmitFacts)" Condition="'$(OwenEmitFacts)' != ''" />
     </ItemGroup>

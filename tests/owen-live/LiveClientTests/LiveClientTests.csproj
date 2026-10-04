@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- OX-02: the Visual-Studio-independent half of Owen.VisualStudio (its Live/ folder, compiled
+       here by link — the pattern ADAPTED from Snipper's integration-test project, MIT) under
+       test on any OS: framing, the version gate (K4), debounce (bursts), the coordinate
+       contract, the entries a response becomes, and the supervised service's death and
+       restart policy (K6, M2) against a real `owen serve`. Run by scripts/owen_live_gate.py. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <Compile Include="..\..\..\frontend\roslyn\Owen.VisualStudio\Live\*.cs" Link="Live\%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

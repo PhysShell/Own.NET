@@ -1,0 +1,15 @@
+using Owen.TestProtocol;
+
+namespace LiveFixture;
+
+public static class Gate
+{
+    public static void Pass(Turnstile turnstile)
+    {
+        TurnstileProtocol.WithLocked(turnstile, locked =>
+        {
+            var unlocked = locked.Coin();
+            unlocked.Push();
+        });
+    }
+}
