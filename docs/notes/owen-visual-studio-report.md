@@ -71,10 +71,55 @@ capability semantics. The Rust core is untouched.
 | M6 | read the unsaved document from disk | K2-unsaved-own002 (and E4) |
 
 ### 3.4 Real Visual Studio (P14) — CI job `owen-visual-studio`, Visual Studio Enterprise 2026 18.10 on `windows-2025-vs2026`
-VS_RESULTS_PLACEHOLDER
+**19/19 on the final product head `fbdc978`** (run 37175674769; evidence kept in
+`evidence/ox02-visual-studio/`). The solution is restored and never built. The VSIX is
+installed with `VSIXInstaller` into the image's `Exp` hive. The IDE is driven as a user would
+drive it:
+- edits go through DTE `EditPoint`, never saved;
+- the Error List is read through UI Automation;
+- navigation is a double-click on the row;
+- squiggles come from Owen's own tagger trace and are visible in the screenshots.
+
+| check | result |
+|---|---|
+| vsix-loaded | Owen.VisualStudio composed in devenv (its trace: `Owen live analysis loaded`) |
+| L0 | Visual Studio's own design-time build wrote `obj/owen/live.txt`; no build ran |
+| K1 | first publication: 0 entries; an unsaved clean edit: analysed, 0 OWN entries |
+| **K2 squiggle** | `10:9+39 'OrderProtocol.WithDraft(order, draft =>'` (finding) and `13:13+18 'draft.Submit(now);'` (witness, the inserted line), `Use.cs` unsaved |
+| **K2 Error List** | `OWN002 \| IDisposable local 'draft' is used after it is disposed [resource: disposable] \| LiveFixture \| Use.cs \| 10` |
+| **K2 navigation** | double-click → `Use.cs` line 10 column 9 = the registered coordinate |
+| P9 | `CS0029 … Use.cs 10` beside the OWN002 row |
+| **K3** | line deleted → no OWN002 tag after 344 ms; the row is gone |
+| edit → squiggle | 10/10, p95 **349 ms** (threshold 1000); 328–349 ms with the 250 ms debounce included |
+| edit → disappearance | 10/10, p95 **347 ms** (threshold 1000) |
+| UI thread | longest Owen handler **3.3 ms** (threshold 50) |
+| service in VS | 26 analyses; cold (first) 4.9 s; warm median **58 ms**, p95 76 ms, max 150 ms; working set 169 → 203 MB |
+| no-build / never-saved | no `LiveFixture.dll`, no build request; `Use.cs` on disk byte-identical to the fixture |
+| no-orphan | `owen serve` did not outlive a killed devenv (job object) |
+
+The same product code also passed 19/19 on `90bd419` (run 37174835723: p95 399/413 ms, UI
+4.8 ms). Run 37174809967 on `7cdf529` (same product code) failed one check,
+K2-navigation, with the caret at exactly 10:9 = expected. The driver's path comparison is
+now normalised and prints both paths; it passed on `fbdc978`. Not counted as a pass.
+
+**What the IDE run took** (Amendment 1): the Error List read through UI Automation (DTE
+`ErrorItems` returned 0 in VS 2026), the `Exp` hive plus first-run dialog dismissal, a MEF
+cache rebuilt after install, and the editor kept in front. One product fix came out of it:
+`TagsChanged` now raises on the UI thread and the tagger reports its exceptions.
 
 ## 4. Gates kept green
-GATES_PLACEHOLDER
+Final head, CI run 37175674769: **every job green**, Ubuntu and Windows. That includes:
+- lint (ruff + mypy --strict);
+- tests on Python 3.11/3.12/3.13 (`run_tests.py`, P-037 pins included);
+- rust fmt/clippy/tests;
+- the state-protocol gate, the heap-effects gate and the typed-builder gate;
+- `owen_extension_gate` (55/55 on both platforms);
+- Owen.Cli gate A on both platforms, and the Stage-1 engine controls;
+- Rust-default dogfood;
+- the new `owen-live` job (Ubuntu + Windows) and `owen-visual-studio`.
+
+Locally `run_tests.py` shows the same two pre-existing local-only Stage-1 controls as on the
+base (Amendment 1).
 
 ## 5. Snipper reuse
 `owen-visual-studio-snipper-reuse.md`: four ADAPTed chunks (VSIX project shape, manifest, the
@@ -82,4 +127,25 @@ real-IDE smoke's instance/hive/relaunch shape, link-compiled tests). Nothing cop
 the LSP spine, PATH fallback, commands and lifecycle are not reused.
 
 ## 6. Verdict
-VERDICT_PLACEHOLDER
+**GO_OWEN_VISUAL_STUDIO_ALPHA.**
+
+In a real Visual Studio 2026, an unsaved edit goes through the shared Roslyn frontend (the ONE
+extractor, in-process, over the editor's text and Roslyn's in-memory generated sources) to the
+authoritative Rust core. The result is OWN002: a live squiggle on the inserted
+`draft.Submit(now);` (the core's witness step) and at the finding's location, and an Error List
+row with exact navigation to the reported location. Deleting the line removes them. No save,
+no build.
+
+For the same saved source, build and live agree on code, severity, message, file and line
+(P10, five sources). K1–K8, M1–M6 and the §8 thresholds hold. The VS host and the service
+name no extension; Owen.TestProtocol, a second extension with its own generator, works with
+no host change.
+
+Known and registered:
+- OWN002 points at the region entry, with the stale use as its witness step (#393, unchanged);
+- state-protocol findings have no column (the narrowest coordinate contract applies);
+- a never-saved new file is not in the input set;
+- live analysis starts after the project's first design-time build;
+- proven on VS 2026 18.10 only; VS 2022 17.14 is declared by the manifest but was not run.
+
+STOP here, per the brief.

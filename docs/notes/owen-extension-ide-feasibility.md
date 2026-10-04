@@ -20,7 +20,11 @@ clang-tidy's integration code is not copied; only the shape is borrowed.
 
 ## E1: a generic VSIX host (`IErrorTag` + `ITableDataSource` + a long-lived Owen process)
 
-**Verdict: NOT EXECUTED in this environment.** The session runs on Linux with no Windows
+**Update (OX-02): executed and shipped as `Owen.VisualStudio`; see owen-visual-studio-report.md
+(GO). The two blockers below were solved by the in-process extractor with an overlay and by
+`owen serve`.**
+
+**Verdict at OX-01: NOT EXECUTED in this environment.** The session runs on Linux with no Windows
 and no Visual Studio, so a VSIX cannot be built, deployed to an experimental instance or
 observed. Nothing below is measured. It is the specification of the spike, plus the two
 blockers already visible from the code.

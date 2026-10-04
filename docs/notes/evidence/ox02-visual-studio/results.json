@@ -1,0 +1,153 @@
+﻿{
+    "checks":  [
+                   {
+                       "name":  "install-vsix",
+                       "ok":  true,
+                       "detail":  "VSIXInstaller exit 0 into root suffix Exp"
+                   },
+                   {
+                       "name":  "vsix-loaded",
+                       "ok":  true,
+                       "detail":  "Owen.VisualStudio composed in devenv: {\"t\":1791086890317,\"kind\":\"log\",\"data\":{\"line\":\"Owen live analysis loaded\"}}"
+                   },
+                   {
+                       "name":  "L0-live-request",
+                       "ok":  true,
+                       "detail":  "the design-time build wrote D:\\a\\_temp\\vsfx\\ws\\LiveFixture\\obj\\owen\\live.txt (no build was run)"
+                   },
+                   {
+                       "name":  "K1-open-clean",
+                       "ok":  true,
+                       "detail":  "first publication (version 2, 4921 ms in the service): 0 entries, OWN: 0"
+                   },
+                   {
+                       "name":  "K1-unsaved-clean",
+                       "ok":  true,
+                       "detail":  "a clean unsaved edit was analysed (version 3) with no OWN entry; document saved=False"
+                   },
+                   {
+                       "name":  "K2-squiggle",
+                       "ok":  true,
+                       "detail":  "tags on Use.cs after the edit: 10:9+39 primary=True \u0027OrderProtocol.WithDraft(order, draft =\u003e\u0027; 13:13+18 primary=False \u0027draft.Submit(now);\u0027"
+                   },
+                   {
+                       "name":  "K2-unsaved",
+                       "ok":  true,
+                       "detail":  "Use.cs is unsaved (Saved=False); the disk still has one Submit: True"
+                   },
+                   {
+                       "name":  "K2-error-list",
+                       "ok":  true,
+                       "detail":  "Error List row: OWN002 | IDisposable local \u0027draft\u0027 is used after it is disposed [resource: disposable] | LiveFixture | Use.cs | 10"
+                   },
+                   {
+                       "name":  "K2-navigation",
+                       "ok":  true,
+                       "detail":  "double-click -\u003e \u0027D:\\a\\_temp\\vsfx\\ws\\LiveFixture\\Use.cs\u0027 line 10 column 9; expected \u0027D:\\a\\_temp\\vsfx\\ws\\LiveFixture\\Use.cs\u0027 line 10 column 9 (the core\u0027s location, Â§6)"
+                   },
+                   {
+                       "name":  "P9-cs-and-own",
+                       "ok":  true,
+                       "detail":  "CS0029 row: CS0029 | Cannot implicitly convert type \u0027string\u0027 to \u0027int\u0027 | LiveFixture | Use.cs | 10; OWN002 rows: 1"
+                   },
+                   {
+                       "name":  "K3-disappears",
+                       "ok":  true,
+                       "detail":  "after deleting the line: tags without OWN002 at +344 ms; Error List row gone: True"
+                   },
+                   {
+                       "name":  "T-edit-to-squiggle",
+                       "ok":  true,
+                       "detail":  "edit -\u003e squiggle over 10/10 edits: p95 349 ms (threshold 1000), all: 334, 328, 349, 330, 336, 330, 347, 343, 328, 335"
+                   },
+                   {
+                       "name":  "T-edit-to-disappearance",
+                       "ok":  true,
+                       "detail":  "edit -\u003e disappearance over 10/10 edits: p95 347 ms (threshold 1000), all: 328, 347, 330, 328, 336, 329, 322, 342, 343, 326"
+                   },
+                   {
+                       "name":  "T-ui-thread",
+                       "ok":  true,
+                       "detail":  "longest Owen UI-thread handler: 3.3251 ms (threshold 50)"
+                   },
+                   {
+                       "name":  "no-build",
+                       "ok":  true,
+                       "detail":  "no LiveFixture.dll under bin/ (0), no build-check request: the build host never ran"
+                   },
+                   {
+                       "name":  "never-saved",
+                       "ok":  true,
+                       "detail":  "Use.cs on disk is byte-identical to the fixture"
+                   },
+                   {
+                       "name":  "no-orphan",
+                       "ok":  true,
+                       "detail":  "owen serve ran (1 process(es)) and did not outlive a killed devenv (0 left)"
+                   }
+               ],
+    "measurements":  {
+                         "visual_studio":  "Visual Studio Enterprise 2026 18.10.12217.157",
+                         "cold_open_to_first_publication_ms":  41686,
+                         "k2_edit_to_squiggle_ms":  448,
+                         "edit_to_squiggle_ms":  [
+                                                     334,
+                                                     328,
+                                                     349,
+                                                     330,
+                                                     336,
+                                                     330,
+                                                     347,
+                                                     343,
+                                                     328,
+                                                     335
+                                                 ],
+                         "edit_to_disappearance_ms":  [
+                                                          328,
+                                                          347,
+                                                          330,
+                                                          328,
+                                                          336,
+                                                          329,
+                                                          322,
+                                                          342,
+                                                          343,
+                                                          326
+                                                      ],
+                         "ui_thread_max_ms":  3.3251,
+                         "service_total_ms":  [
+                                                  4921,
+                                                  134,
+                                                  150,
+                                                  75,
+                                                  63,
+                                                  60,
+                                                  60,
+                                                  57,
+                                                  55,
+                                                  76,
+                                                  76,
+                                                  58,
+                                                  61,
+                                                  57,
+                                                  59,
+                                                  58,
+                                                  56,
+                                                  56,
+                                                  59,
+                                                  55,
+                                                  71,
+                                                  54,
+                                                  55,
+                                                  55,
+                                                  58,
+                                                  55
+                                              ],
+                         "publications":  26,
+                         "service_working_set_kb_first_last":  [
+                                                                   173572,
+                                                                   208184
+                                                               ]
+                     },
+    "failed":  false
+}
