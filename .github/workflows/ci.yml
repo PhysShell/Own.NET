@@ -3548,7 +3548,9 @@ jobs:
           $msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
           & $msbuild frontend\roslyn\Owen.VisualStudio\Owen.VisualStudio.csproj /restore /p:Configuration=Release /p:DeployExtension=false /v:m
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Get-ChildItem -Recurse frontend\roslyn\Owen.VisualStudio -Filter *.vsix | ForEach-Object { $_.FullName }
+          $built = @(Get-ChildItem -Recurse frontend\roslyn\Owen.VisualStudio -Filter Owen.VisualStudio.vsix)
+          if ($built.Count -eq 0) { Write-Error "no Owen.VisualStudio.vsix was produced"; exit 1 }
+          $built | ForEach-Object { "$($_.FullName) ($($_.Length) bytes)" }
       - name: The acceptance in Visual Studio
         shell: powershell
         run: |
