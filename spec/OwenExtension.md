@@ -105,8 +105,20 @@ developer declared, and "could not be checked" must never read as clean.
 **Generator diagnostic:** `OWENTB001` (Typed Builder) means a refused declaration, one error per
 defect.
 
+## 4a. The live host (OX-02): the same contract in the IDE
+
+An extension gets live diagnostics in Visual Studio without shipping any IDE code. The one
+generic `Owen.VisualStudio` extension (a VSIX, installed once per machine) serves every active
+extension through the same descriptors:
+
+- **The live request.** `Owen.Build.targets` writes `obj/owen/live.txt` (target `OwenLiveRequest`, after `CoreCompile`, design-time builds included). It carries the same `project` / `descriptor` / `generated-root` / `severity` lines as the build request, plus `host` (this package's `ownsharp.dll`) and `dotnet`. Visual Studio's own design-time build writes it on load: no build is needed.
+- **The service.** `owen serve` (the same packed program) speaks `owen-live/1`: `Content-Length` framing of UTF-8 JSON on stdin/stdout, `hello` first, anything malformed fatal (exit 3). An `analyze` request names the live request and carries the editor's unsaved documents and source-generated documents. The service validates the descriptors exactly as `build-check` does (OWENB002/003/004 live), takes the same input set, reads the editor's text instead of the disk, runs the ONE extractor in-process, and returns the Rust core's findings (its SARIF renderer: code, level, message, location, witness steps).
+- **Generated sources.** An in-memory generated document whose path contains a declared generator's name (`…/<generator>/<type>/<hint>`) is used in place of that generator's last build output on disk. Matched by generator name, never by extension.
+- **Parity.** For the same saved sources a build and the live service report the same findings (code, severity, message, file, line). The live host additionally carries the column (when the core has one) and the witness steps; the msbuild line has neither.
+- **Its own condition.** `OWENV001` (Owen.VisualStudio): the live service could not start or died. Shown in the Error List, restarted on the next edit at most three times in five minutes, then live analysis stays off (and says so) until the solution is reopened. Builds are unaffected.
+
 ## 5. What the contract deliberately does not have
 
 - **Dynamic loading of analysis code.** Extensions add frontends and vocabulary. The analysis is the one Rust core, and its semantics change only through OwnIR (spec/OwnIR.md).
-- **Per-extension IDE integration.** A future `Owen.VisualStudio` or language server serves every active extension from the same manifest.
+- **Per-extension IDE integration.** `Owen.VisualStudio` (§4a) serves every active extension from the same descriptors; an extension never ships IDE code.
 - **Version ranges.** `requires.host` is a lower bound. The host refuses what it does not understand; it does not guess.

@@ -19,7 +19,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import owen_extension_gate as ox  # noqa: E402
+import owen_extension_gate as ox
 
 FIXTURE = os.path.join(ox.ROOT, "tests", "owen-live", "LiveFixture")
 
