@@ -1,0 +1,14 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/efcore
+# ref       : v10.0.12
+# path      : src/Microsoft.Data.Sqlite.Core/Microsoft.Data.Sqlite.Core.csproj
+# blob sha  : 2305284d616c335902c96cb7201ab772049621c2
+# file sha256: b58e8f7587a04c49ae53754041763dc05dbf152f9e93686add6de6866482edef
+# file bytes : 2725
+# marker    : '<TargetFrameworks>$(NetMinimum);netstandard2.0</TargetFrameworks>'
+# region    : lines 18..21
+# derived by: scripts/derive_source_evidence.py
+   18|     <TargetFrameworks>$(NetMinimum);netstandard2.0</TargetFrameworks>
+   19|     <MinClientVersion>3.6</MinClientVersion>
+   20|     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+   21|     <CodeAnalysisRuleSet>Microsoft.Data.Sqlite.Core.ruleset</CodeAnalysisRuleSet>

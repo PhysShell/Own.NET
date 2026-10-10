@@ -1,0 +1,13 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/runtime
+# ref       : v10.0.12
+# path      : src/libraries/System.Data.Common/src/System/Data/IDbCommand.cs
+# blob sha  : 823f7345cd66bab797f48a9fdb819f61c8ed19d9
+# file sha256: 5fee96c4567d38943b5127b8f7cc6f335fe6dc54d80a7f88328de4b97a83b826
+# file bytes : 869
+# marker    : 'public interface IDbCommand'
+# region    : lines 8..10
+# derived by: scripts/derive_source_evidence.py
+    8|     public interface IDbCommand : IDisposable
+    9|     {
+   10|         IDbConnection? Connection { get; set; }

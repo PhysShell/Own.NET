@@ -1,0 +1,26 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/runtime
+# ref       : v8.0.20
+# path      : src/libraries/System.Private.CoreLib/src/System/Runtime/InteropServices/SafeHandle.cs
+# blob sha  : ef8860aed8e79dc0f5820d4d504081a59b596f5a
+# file sha256: 3df9d6928d6a8bcbce983d5c53ac85a513abe5621ba9adef0e4ffd179d97a7dc
+# file bytes : 12716
+# marker    : '~SafeHandle()'
+# region    : lines 86..101
+# derived by: scripts/derive_source_evidence.py
+   86|         ~SafeHandle()
+   87|         {
+   88|             if (_fullyInitialized)
+   89|             {
+   90|                 Dispose(disposing: false);
+   91|             }
+   92|         }
+   93| <blank>
+   94|         internal bool OwnsHandle => _ownsHandle;
+   95| <blank>
+   96|         protected internal void SetHandle(IntPtr handle) => this.handle = handle;
+   97| <blank>
+   98|         public IntPtr DangerousGetHandle() => handle;
+   99| <blank>
+  100|         public bool IsClosed => (_state & StateBits.Closed) == StateBits.Closed;
+  101| <blank>

@@ -1,0 +1,14 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/runtime
+# ref       : v10.0.12
+# path      : src/libraries/System.Data.Common/src/System/Data/Common/DbCommand.cs
+# blob sha  : 5538ea867a81b3e8e31868576302e6d2150875dd
+# file sha256: c8f6f56c13b82f0556f5c5235dafe96e6c434fbea4476ad0087220eea85d033f
+# file bytes : 8678
+# marker    : 'public abstract class DbCommand'
+# region    : lines 11..14
+# derived by: scripts/derive_source_evidence.py
+   11|     public abstract class DbCommand : Component, IDbCommand, IAsyncDisposable
+   12|     {
+   13|         protected DbCommand() : base()
+   14|         {

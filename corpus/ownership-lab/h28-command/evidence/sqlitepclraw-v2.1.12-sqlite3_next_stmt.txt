@@ -1,0 +1,23 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : ericsink/SQLitePCL.raw
+# ref       : v2.1.12
+# path      : src/SQLitePCLRaw.core/raw.cs
+# blob sha  : a2765aac08e9f4a2141fe693864f449ebaf0c68d
+# file sha256: cab23c3ea0012e858af2c92eb1ecb05b8e0eab908108bc1334a82f181f493208
+# file bytes : 60531
+# marker    : 'static public sqlite3_stmt sqlite3_next_stmt(sqlite3 db, sqlite3_stmt stmt)'
+# region    : lines 1028..1040
+# derived by: scripts/derive_source_evidence.py
+ 1028|         static public sqlite3_stmt sqlite3_next_stmt(sqlite3 db, sqlite3_stmt stmt)
+ 1029|         {
+ 1030|             IntPtr p = Provider.sqlite3_next_stmt(db, (stmt != null) ? stmt.ptr : IntPtr.Zero);
+ 1031| <blank>
+ 1032|             if (p == IntPtr.Zero)
+ 1033|             {
+ 1034|                 return null;
+ 1035|             }
+ 1036|             else
+ 1037|             {
+ 1038|                 return db.find_stmt(p);
+ 1039|             }
+ 1040|         }

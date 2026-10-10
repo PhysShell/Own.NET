@@ -1,0 +1,40 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/runtime
+# ref       : v10.0.12
+# path      : src/libraries/System.Data.Common/src/System/Data/DataTable.cs
+# blob sha  : 996f52cc479710fb75f95292a07d2237bf770d28
+# file sha256: dd4002e7407b1b1503b597151179de865d1d9692de24855f0998a52770a13fbb
+# file bytes : 297223
+# marker    : 'public virtual void Load(IDataReader reader, LoadOption loadOption, FillErrorEventHandler? errorHandler)'
+# region    : lines 4974..5003
+# derived by: scripts/derive_source_evidence.py
+ 4974|         public virtual void Load(IDataReader reader, LoadOption loadOption, FillErrorEventHandler? errorHandler)
+ 4975|         {
+ 4976|             long logScopeId = DataCommonEventSource.Log.EnterScope("<ds.DataTable.Load|API> {0}, loadOption={1}", ObjectID, loadOption);
+ 4977|             try
+ 4978|             {
+ 4979|                 if (PrimaryKey.Length == 0)
+ 4980|                 {
+ 4981|                     DataTableReader? dtReader = reader as DataTableReader;
+ 4982|                     if (dtReader != null && dtReader.CurrentDataTable == this)
+ 4983|                     {
+ 4984|                         return; // if not return, it will go to infinite loop
+ 4985|                     }
+ 4986|                 }
+ 4987|                 Common.LoadAdapter adapter = new Common.LoadAdapter();
+ 4988|                 adapter.FillLoadOption = loadOption;
+ 4989|                 adapter.MissingSchemaAction = MissingSchemaAction.AddWithKey;
+ 4990|                 if (null != errorHandler)
+ 4991|                 {
+ 4992|                     adapter.FillError += errorHandler;
+ 4993|                 }
+ 4994|                 adapter.FillFromReader(new DataTable[] { this }, reader, 0, 0);
+ 4995| <blank>
+ 4996|                 if (!reader.IsClosed && !reader.NextResult())
+ 4997|                 {
+ 4998|                     reader.Close();
+ 4999|                 }
+ 5000|             }
+ 5001|             finally
+ 5002|             {
+ 5003|                 DataCommonEventSource.Log.ExitScope(logScopeId);

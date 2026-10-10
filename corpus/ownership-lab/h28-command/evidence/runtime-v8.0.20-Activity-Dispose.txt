@@ -1,0 +1,22 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/runtime
+# ref       : v8.0.20
+# path      : src/libraries/System.Diagnostics.DiagnosticSource/src/System/Diagnostics/Activity.cs
+# blob sha  : db4d5e2308108780e377661566053c665036a997
+# file sha256: 2fcfbffca75351dd8512078a608d5b90800fab9d36fe49e3da65d67166e88aa5
+# file bytes : 82453
+# marker    : 'Dispose will stop the Activity if it is already started'
+# region    : lines 1006..1017
+# derived by: scripts/derive_source_evidence.py
+ 1006|         /// Dispose will stop the Activity if it is already started and notify any event listeners. Nothing will happen otherwise.
+ 1007|         /// </summary>
+ 1008|         public void Dispose()
+ 1009|         {
+ 1010|             if (!IsStopped)
+ 1011|             {
+ 1012|                 Stop();
+ 1013|             }
+ 1014| <blank>
+ 1015|             Dispose(true);
+ 1016|             GC.SuppressFinalize(this);
+ 1017|         }

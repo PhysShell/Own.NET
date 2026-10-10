@@ -1,0 +1,24 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/SqlClient
+# ref       : main
+# path      : src/Microsoft.Data.SqlClient/src/Microsoft/Data/SqlClient/SqlCommand.cs
+# blob sha  : 775792720397ee98a529aabe274918b807e39b69
+# file sha256: fc8200df4b13013629b3a19ad5108978bd5782568b1d5afd6a514555fc7a22a3
+# file bytes : 144099
+# marker    : 'protected override void Dispose(bool disposing)'
+# region    : lines 1883..1896
+# derived by: scripts/derive_source_evidence.py
+ 1883|         protected override void Dispose(bool disposing)
+ 1884|         {
+ 1885|             if (disposing)
+ 1886|             {
+ 1887|                 // Release managed objects
+ 1888|                 _cachedMetaData = null;
+ 1889| <blank>
+ 1890|                 // Reset async cache information to allow a second async execute
+ 1891|                 CachedAsyncState?.ResetAsyncState();
+ 1892|             }
+ 1893| <blank>
+ 1894|             // Release unmanaged objects
+ 1895|             base.Dispose(disposing);
+ 1896|         }

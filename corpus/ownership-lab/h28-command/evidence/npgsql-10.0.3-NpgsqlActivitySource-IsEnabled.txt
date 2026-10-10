@@ -1,0 +1,12 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : npgsql/npgsql
+# ref       : v10.0.3
+# path      : src/Npgsql/NpgsqlActivitySource.cs
+# blob sha  : be4e257c480267e0b2afbc76a8e223a656449e3e
+# file sha256: b7ef8df7f2f665738739110335ee577fa56c8239da1be0df4320694537e28316
+# file bytes : 7511
+# marker    : 'internal static bool IsEnabled'
+# region    : lines 17..18
+# derived by: scripts/derive_source_evidence.py
+   17|     internal static bool IsEnabled => Source.HasListeners();
+   18| <blank>

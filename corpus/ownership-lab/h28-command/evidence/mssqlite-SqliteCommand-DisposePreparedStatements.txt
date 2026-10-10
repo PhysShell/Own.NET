@@ -1,0 +1,32 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/efcore
+# ref       : v10.0.12
+# path      : src/Microsoft.Data.Sqlite.Core/SqliteCommand.cs
+# blob sha  : 01b3eed85551a660e1502d0c09b02361b9242bd0
+# file sha256: c5d427a5d70161528f63b9f789af93b0b24af3d7118dbfd92912db808ac1f5fb
+# file bytes : 21934
+# marker    : 'private void DisposePreparedStatements(bool disposing = true)'
+# region    : lines 520..541
+# derived by: scripts/derive_source_evidence.py
+  520|     private void DisposePreparedStatements(bool disposing = true)
+  521|     {
+  522|         if (disposing
+  523|             && DataReader != null)
+  524|         {
+  525|             DataReader.Dispose();
+  526|             DataReader = null;
+  527|         }
+  528| <blank>
+  529|         if (_preparedStatements != null)
+  530|         {
+  531|             foreach (var (stmt, _) in _preparedStatements)
+  532|             {
+  533|                 stmt.Dispose();
+  534|             }
+  535| <blank>
+  536|             _preparedStatements.Clear();
+  537|         }
+  538| <blank>
+  539|         _prepared = false;
+  540|     }
+  541| <blank>

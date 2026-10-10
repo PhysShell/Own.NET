@@ -1,0 +1,90 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : npgsql/npgsql
+# ref       : v10.0.3
+# path      : src/Npgsql/NpgsqlDataReader.cs
+# blob sha  : 55753dc7f6c7500fe61fbf23e913a61e84fa287c
+# file sha256: 9c109626d6627b55aef9768827ce4aa860d3934c224d009048ba57060431607c
+# file bytes : 92885
+# marker    : 'internal async Task Cleanup(bool async, bool connectionClosing'
+# region    : lines 1141..1220
+# derived by: scripts/derive_source_evidence.py
+ 1141|     internal async Task Cleanup(bool async, bool connectionClosing = false, bool isDisposing = false)
+ 1142|     {
+ 1143|         LogMessages.ReaderCleanup(_commandLogger, Connector.Id);
+ 1144| <blank>
+ 1145|         // If multiplexing isn't on, _sendTask contains the task for the writing of this command.
+ 1146|         // Make sure that this task, which may have executed asynchronously and in parallel with the reading,
+ 1147|         // has completed, throwing any exceptions it generated. If we don't do this, there's the possibility of a race condition where the
+ 1148|         // user executes a new command after reader.Dispose() returns, but some additional write stuff is still finishing up from the last
+ 1149|         // command.
+ 1150|         if (_sendTask is { Status: not TaskStatus.RanToCompletion })
+ 1151|         {
+ 1152|             // If the connector is broken, we have no reason to wait for the sendTask to complete
+ 1153|             // as we're not going to send anything else over it
+ 1154|             // and that can lead to deadlocks (concurrent write and read failure, see #4804)
+ 1155|             if (Connector.IsBroken)
+ 1156|             {
+ 1157|                 // Prevent unobserved Task notifications by observing the failed Task exception.
+ 1158|                 _ = _sendTask.ContinueWith(t => _ = t.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Current);
+ 1159|             }
+ 1160|             else
+ 1161|             {
+ 1162|                 try
+ 1163|                 {
+ 1164|                     if (async)
+ 1165|                         await _sendTask.ConfigureAwait(false);
+ 1166|                     else
+ 1167|                         _sendTask.GetAwaiter().GetResult();
+ 1168|                 }
+ 1169|                 catch (Exception e)
+ 1170|                 {
+ 1171|                     // TODO: think of a better way to handle exceptions, see #1323 and #3163
+ 1172|                     _commandLogger.LogDebug(e, "Exception caught while sending the request", Connector.Id);
+ 1173|                 }
+ 1174|             }
+ 1175|         }
+ 1176| <blank>
+ 1177|         if (ColumnInfoCache is { } cache)
+ 1178|         {
+ 1179|             ColumnInfoCache = null;
+ 1180|             ArrayPool<ColumnInfo>.Shared.Return(cache, clearArray: true);
+ 1181|         }
+ 1182| <blank>
+ 1183|         State = ReaderState.Closed;
+ 1184|         Command.State = CommandState.Idle;
+ 1185|         Connector.CurrentReader = null;
+ 1186|         if (_commandLogger.IsEnabled(LogLevel.Information))
+ 1187|             Command.LogExecutingCompleted(Connector, executing: false);
+ 1188|         NpgsqlEventSource.Log.CommandStop();
+ 1189|         Connector.DataSource.MetricsReporter.ReportCommandStop(_startTimestamp);
+ 1190|         Connector.EndUserAction();
+ 1191| <blank>
+ 1192|         // The reader shouldn't be unbound, if we're disposing - so the state is set prematurely
+ 1193|         if (isDisposing)
+ 1194|             State = ReaderState.Disposed;
+ 1195| <blank>
+ 1196|         if (_connection?.ConnectorBindingScope == ConnectorBindingScope.Reader)
+ 1197|         {
+ 1198|             UnbindIfNecessary();
+ 1199| <blank>
+ 1200|             // TODO: Refactor... Use proper scope
+ 1201|             _connection.Connector = null;
+ 1202|             Connector.Connection = null;
+ 1203|             _connection.ConnectorBindingScope = ConnectorBindingScope.None;
+ 1204| <blank>
+ 1205|             // If the reader is being closed as part of the connection closing, we don't apply
+ 1206|             // the reader's CommandBehavior.CloseConnection
+ 1207|             if (_behavior.HasFlag(CommandBehavior.CloseConnection) && !connectionClosing)
+ 1208|                 _connection.Close();
+ 1209| <blank>
+ 1210|             Connector.ReaderCompleted.SetResult(null);
+ 1211|         }
+ 1212|         else if (_behavior.HasFlag(CommandBehavior.CloseConnection) && !connectionClosing)
+ 1213|         {
+ 1214|             Debug.Assert(_connection is not null);
+ 1215|             _connection.Close();
+ 1216|         }
+ 1217| <blank>
+ 1218|         if (ReaderClosed != null)
+ 1219|         {
+ 1220|             ReaderClosed(this, EventArgs.Empty);

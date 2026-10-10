@@ -1,0 +1,16 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : mysql-net/MySqlConnector
+# ref       : master
+# path      : src/MySqlConnector/MySqlCommand.cs
+# blob sha  : 7712fac730d089d7d725cc1c0078053c88e06e0c
+# file sha256: 4369c492ce1c1fc1191b0684be67c6c6dead95b4545ffb7590ec65ab4ecf7d7b
+# file bytes : 19512
+# marker    : 'protected override void Dispose(bool disposing)'
+# region    : lines 377..382
+# derived by: scripts/derive_source_evidence.py
+  377| 	protected override void Dispose(bool disposing)
+  378| 	{
+  379| 		m_isDisposed = true;
+  380| 		base.Dispose(disposing);
+  381| 	}
+  382| <blank>

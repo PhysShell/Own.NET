@@ -1,0 +1,72 @@
+// H-28-CMD: the ENGINE-RUNNABLE half of the fixture.
+//
+// fx/CommandDispose.cs needs the Roslyn extractor, which needs a .NET SDK; this file needs
+// only `python -m ownlang`, so the engine arm of the finding is reproducible anywhere.
+//
+// Honest frame (the same one corpus/real-world/README.md states): this is a MANUAL REDUCTION
+// of the C#, not C# the checker read. It models the two obligations the extractor's
+// IsOwningFactory appears to mint for this family -- IDbConnection.CreateCommand() -> DbCommand
+// and IDbCommand.ExecuteReader() -> DbDataReader -- and it models the H-28 runtime fact that
+// DataTable.Load(reader) closes the reader. This hand-written reduction is NOT the G3 C# path;
+// the production extractor -> OwnIR -> verdict ran separately in workflow #38048287923. This
+// reduction encodes the witnessed callee effect explicitly so the core-only result stays distinct.
+module H28Cmd
+
+resource Command {
+  acquire open
+  release dispose
+  kind "disposable"
+  emit_type    "DbCommand"
+  emit_acquire "{args}.CreateCommand()"
+  emit_release "{0}.Dispose()"
+}
+
+resource Reader {
+  acquire open
+  release dispose
+  kind "disposable"
+  emit_type    "DbDataReader"
+  emit_acquire "{args}.ExecuteReader()"
+  emit_release "{0}.Dispose()"
+}
+
+// B -- the demanding instance (victor-wiki/DatabaseManager DbInterpreter.GetDataTableAsync:699).
+// table.Load(reader) closed the reader: witnessed RELEASE_IF_LAST_RESULT_SET by the H-28
+// runtime falsifier (corpus/ownership-lab/h28/falsifier/falsifier.out, F1 IsClosed=True on
+// Sqlite AND Npgsql). The command is never released.
+// EXPECTED for this manual reduction: OWN001 on 'command'. This does not decide whether the
+// diagnostic's practical implication is misleading for a provider; provider effects are not
+// encoded in this reduction. G3 independently confirmed the C# extraction pattern.
+fn B_load_neither_disposed(conn: int) {
+  let command = acquire Command(conn);
+  let reader  = acquire Reader(command);
+  release reader;              // DataTable.Load(reader) -> reader.Close()
+  // no `release command;`
+}
+
+// A -- control: both released. EXPECTED: clean.
+fn A_load_both_released(conn: int) {
+  let command = acquire Command(conn);
+  let reader  = acquire Reader(command);
+  release reader;
+  release command;
+}
+
+// D -- control: the command released after Load. EXPECTED: clean in this manual reduction.
+// G2 confirmed this is the arm that returned Microsoft.Data.Sqlite's directly observed
+// command-held sqlite3_stmt count to baseline. This manual reduction models only ownership ops.
+fn D_command_released_after_load(conn: int) {
+  let command = acquire Command(conn);
+  let reader  = acquire Reader(command);
+  release reader;
+  release command;
+}
+
+// E -- control with NO Load: the reader obligation is never handed to a callee, so it stays
+// tracked. EXPECTED: OWN001 on 'command' AND OWN001 on 'reader' -- two findings, which is how
+// you can tell "the reader was released" apart from "the reader was untracked by the escape
+// rule" without reading the extractor.
+fn E_no_load_both_leak(conn: int) {
+  let command = acquire Command(conn);
+  let reader  = acquire Reader(command);
+}
