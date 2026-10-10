@@ -1,0 +1,159 @@
+$ python3 tests/test_corpus.py
+real-world corpus (corpus/real-world/):
+  ado-executereader-leak                  OWN001
+  arraypool-aliased-receiver              OWN003
+  arraypool-double-return                 OWN003
+  arraypool-field-fullspan-overread       OWN025
+  arraypool-fullspan-overread             OWN025
+  arraypool-length-overread               OWN025
+  arraypool-memory-view-escape            OWN002
+  arraypool-span-view-after-return        OWN002
+  arraypool-use-after-return              OWN002
+  arraypool-view-into-field-overread      OWN025
+  field-dispose-via-exchange              OWN001
+  field-dispose-via-helper                OWN001
+  field-noop-dispose-wrapper              OWN001
+  local-dispose-via-using-statement       OWN001
+  memorypool-double-dispose               OWN003
+  memorypool-using-owner-escape           OWN002
+  memorypool-using-statement-view-escape  OWN002
+  memorypool-using-view-escape            OWN002
+  memorypool-view-after-dispose           OWN002
+  nethermind-patriciatree-arraypool-leak  OWN001
+  ownership-handoff-consume               OWN001,OWN002
+  ownership-handoff-use                   OWN002
+  ownership-handoff-use-transitive        OWN002
+  pool-transfer-via-wrapper-local         OWN001
+  screentogif-loaded-subscription         OWN001
+  screentogif-systemevents-leak           OWN001
+  sharex-rfc2898-derivebytes-leak         OWN001
+  sharex-shapemanager-menuform-leak       OWN001
+  socket-accept-leak                      OWN001
+  subscription-self-owned-property        OWN001
+  tcplistener-accept-leak                 OWN001
+  tcplistener-acceptsocket-leak           OWN001
+  using-statement-throw-releases          OWN001
+corpus: 33/33 cases match their expected diagnostics
+# exit: 0
+
+$ ruff check .
+All checks passed!
+# exit: 0
+
+$ mypy
+Success: no issues found in 60 source files
+# exit: 0
+
+$ python3 -m py_compile corpus/ownership-lab/h28-command/scripts/derive_source_evidence.py corpus/ownership-lab/h28-command/scripts/verify_g3.py corpus/ownership-lab/h28-command/falsifier/run_with_pgserver.py
+# exit: 0
+
+$ bash -n corpus/ownership-lab/h28-command/run.sh
+# exit: 0
+
+$ C# syntax grammar parse (tree-sitter; not a compiler)
+corpus/ownership-lab/h28-command/falsifier/Program.cs: PASS; syntax nodes=0
+corpus/ownership-lab/h28-command/fx/CommandDispose.cs: PASS; syntax nodes=0
+# exit: 0
+
+$ python3 tests/run_tests.py
+
+analysis: 132/132 passed, 0 failed
+codegen:  43/43 generated cleanly
+golden:   PASS
+buffer:   PASS
+escape:   PASS
+branchy:  PASS
+nesting:  PASS
+ordering: PASS
+helper:   PASS
+byte variants OK: 10 variants measured by both readers, 7 raw-variant (one canonical identity, 7 distinct byte sequences), 3 invalid, 0 disagreements
+ok[constants-artifact-shape]: 5 permitted keys and no others; 3 rationals as reduced pairs, 1 count and 1 ladder as exact integers
+ok[constants-accepted-by-policy]: q=19/20, M=2, R_runs=5, ladder=[5, 15, 45] stopping at 45, G=1/10; accepted by the frozen implementation and byte-identical on the round trip
+ok[constants-bound-to-freeze]: bound to policy c3068ed7fa88… and harness b92f08c990fc…, both equal to what step 4 froze
+ok[constants-no-empirical]: none of ['A_abs', 'R_rel', 'elapsed_ns', 'measurements', 'selected_N'] appears, and no value is a float
+
+calibration constants controls: 4 passed, 0 failed
+ok[freeze-artifact-shape]: 9 permitted keys and no others, every digest well-formed, and the only numbers present are the 1 recorded byte lengths
+FAIL[freeze-ancestry]: the frozen source commit b4f657a0abdf does not read as an ancestor of HEAD e524972d5a54; the history here is truncated, so this answer is not trustworthy either way and the job needs fetch-depth: 0
+ok[freeze-source-set]: 1 file(s) recorded, each path, blob sha1 and byte length equal to git's own at b4f657a0abdf
+ok[freeze-source-root-clean]: every committed path under scripts/calibration/ is a *.py the digest covers, at the frozen commit and at HEAD
+ok[freeze-digest]: c3068ed7fa88… recomputed from 1 git blob(s) at b4f657a0abdf, under the framing the artifact states
+ok[freeze-source-unchanged]: all 1 policy source blob(s) are byte-identical at HEAD and at b4f657a0abdf
+ok[freeze-harness-untouched]: b92f08c990fc… unchanged, in the working tree and at HEAD
+
+calibration freeze controls: 6 passed, 1 failed
+ok[calib-no-defaults]: 51 callables inspected, no numeric default and no module-level value anywhere
+ok[calib-design-set]: all five constants required; every range refused by its own field; the ladder's last rung is the mandatory stop
+ok[calib-representation]: floats, decimal strings, bools, zero and negative denominators and unreduced pairs are all refused; counts are integers and medians stay exact
+ok[calib-cell-verdict]: inner inclusive, outer strict, the three invalid conditions each refused by name, a zero bound admits only exact agreement, and the bound sits at the midpoint
+ok[calib-symmetry]: 4563 ordered median pairs across three envelopes, and no verdict depends on which run was recorded first
+ok[calib-aggregation]: precedence invalid > not-reproducible > inconclusive > reproducible; one failing cell in a hundred still fails the pair; a pair-level condition overrides every cell
+ok[calib-fit]: no grid point beats the enumerated optimum; identical data give identical constants; the bound stays non-negative; and an empty, rank-deficient, negative or mis-sized corpus is refused
+ok[calib-select-n]: the smallest rung within (1 + G) of the best width wins; a rung far outside the margin loses; G = 0 picks the argmin; and a missing rung or empty universe is refused
+ok[calib-exact-domain]: 17 float and non-exact inputs refused at the door rather than converted, all 12 computed quantities come back Fraction, and all 17 public entry points are accounted for
+ok[calib-purity]: imports are ['__future__', 'collections.abc', 'dataclasses', 'fractions', 'itertools', 'math'] and nothing else; no mutable module-level state
+
+calibration policy controls: 10 passed, 0 failed
+certify (Tier A): 114/114 checks pass
+certify (Tier B): SKIP (non-required mode; set OWN_TIERB_REQUIRED=1)
+FAIL: /home/user/Own.NET/tests/fixtures/cfg_parity.json is stale (the corpus or the lowering changed); regenerate with 'python tests/test_cfg_fixtures.py --write' and re-run the Rust side (cd rust && cargo test)
+cfg_json: 20/20 CFG-seam checks pass
+FAIL[checkpoint-status]: mutation campaign: source commit 4c1c9d819721 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-shadow-cp1: source commit 4c1c9d819721 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-shadow-cp2: source commit 4c1c9d819721 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-shadow-cp3: source commit 4c1c9d819721 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-shadow-cp4: source commit 4c1c9d819721 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-shadow-acc-1: source commit 1c6a611f1ed8 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-shadow-acc-2: source commit 1c6a611f1ed8 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-shadow-sweep-1: source commit 565de6d49f3d is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: shadow sweep: source commit 321ab8b40e52 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the sweep
+FAIL[checkpoint-status]: mutation campaign p022-cp5-1: source commit 4c1c9d819721 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-cp5-2: source commit 4c1c9d819721 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-cp5-3: source commit 4c1c9d819721 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-cp4b-1: source commit 4c1c9d819721 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-cp4b-2: source commit 4c1c9d819721 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-coord-1: source commit 4c1c9d819721 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-coord-2: source commit 4c1c9d819721 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-cli-1: source commit b5d9272a0a85 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-stage1-1: source commit f988c8e1be7f is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-stage1-windows: source commit baf3771cd010 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+FAIL[checkpoint-status]: mutation campaign p022-stage2-1: source commit 0d6686eddc91 is not an ancestor of HEAD — the run describes a history this tree does not contain; re-run the campaign
+Traceback (most recent call last):
+  File "/home/user/Own.NET/tests/run_tests.py", line 1111, in <module>
+    raise SystemExit(run())
+                     ^^^^^
+  File "/home/user/Own.NET/tests/run_tests.py", line 1096, in run
+    module_rcs.append(runner(mod) if runner is not None else mod.run())
+                                                             ^^^^^^^^^
+  File "/home/user/Own.NET/tests/test_checkpoint_status.py", line 106, in run
+    anchors = _anchors()
+              ^^^^^^^^^^
+  File "/home/user/Own.NET/tests/test_checkpoint_status.py", line 98, in _anchors
+    problems.extend(f"{rel}: {p}" for p in validate(definition))
+                                           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/Own.NET/tests/../scripts/mutate_campaign.py", line 691, in validate
+    problems += validate_catchers(definition)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/Own.NET/tests/../scripts/mutate_campaign.py", line 722, in validate_catchers
+    layers = {x.id: x for x in _layers_of(definition)}
+                               ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/Own.NET/tests/../scripts/mutate_campaign.py", line 599, in _layers_of
+    for pkg in workspace_packages(workspace))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/Own.NET/tests/../scripts/mutate_campaign.py", line 490, in workspace_packages
+    out = subprocess.run(
+          ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/subprocess.py", line 1024, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/usr/lib/python3.11/subprocess.py", line 1901, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'cargo'
+# exit: 1
+
+
+$ pgserver 0.1.4 supervisor API preflight (not a .NET/provider falsifier)
+# started a temporary server, obtained a Unix-socket URI, converted to Npgsql DSN.
+# exit: 0 (temporary server cleaned up)

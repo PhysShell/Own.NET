@@ -1,0 +1,11 @@
+# H-28-CMD negative source scan (auto-derived, do not edit by hand)
+# repo      : npgsql/npgsql
+# ref       : v10.0.3
+# path      : src/Npgsql/NpgsqlCommand.cs
+# blob sha  : 8ddbb2e5fb846d1905c237aa351ac622171e1994
+# file sha256: 6bdde5901d32a6331a0d22367673a83bcce01d9fe0782bbf6829594e52837b6f
+# file bytes : 84694
+# regex     : '~\\s*NpgsqlCommand\\s*\\('
+# matches   : 0
+# derived by: scripts/derive_source_evidence.py
+<no matches>

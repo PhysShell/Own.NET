@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
-# H-28-CMD reproduction driver. Two halves, deliberately separable:
+# H-28-CMD gates. Results are explicitly PASS / FAIL / SKIP.
 #
-#   half 1 (ENGINE)    fx/CommandDispose.own -> python -m ownlang check
-#                      needs only python3. Runs anywhere, including the sandbox that
-#                      produced the report. Artifact: evidence/engine-CommandDispose.txt
+#   engine        Python-only handwritten reduction. Always runnable.
+#   g3            G3: production Roslyn -> OwnIR -> summaries -> core verdict.
+#   runtime       G1+G2: compile the C# falsifier, direct SQLite stmt counts, isolated Npgsql P4.
+#   all           run every gate; environment SKIPs are reported but do not fail local use.
+#   all-required  mandatory/CI gate; ANY SKIP is a non-zero failure.
+#   g3-required / runtime-required are strict single-gate forms.
 #
-#   half 2 (RUNTIME)   falsifier/ -> dotnet run against a real PostgreSQL
-#                      needs a .NET SDK, a NuGet feed, and PostgreSQL. Artifact:
-#                      evidence/falsifier.out
-#                      If any of those is missing this half prints SKIP-WHY and exits 0:
-#                      a missing runtime arm is recorded, never silently pretended.
-#
-# Usage:  corpus/ownership-lab/h28-command/run.sh [engine|runtime|all]
+# NuGet is not probed with curl: dotnet restore is attempted first, so an offline but warm
+# package cache can run. A restore failure is an explicit SKIP; a build/test failure is FAIL.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,81 +18,168 @@ EV="$HERE/evidence"
 MODE="${1:-all}"
 mkdir -p "$EV"
 
+skip_status() {
+  local label="$1" strict="$2"
+  echo "SKIP $label"
+  if [ "$strict" = 1 ]; then
+    echo "FAIL required gate cannot skip: $label"
+    return 2
+  fi
+  return 3
+}
+
 engine_half() {
-  echo "=== half 1: ENGINE (python -m ownlang check) ==="
-  local out="$EV/engine-CommandDispose.txt"
+  echo "=== ENGINE: handwritten OwnLang reduction ==="
+  local out="$EV/engine-CommandDispose.txt" rc n_cmd n_reader
   ( cd "$ROOT" && python3 -m ownlang check \
       corpus/ownership-lab/h28-command/fx/CommandDispose.own ) >"$out" 2>&1
-  local rc=$?
+  rc=$?
   {
-    echo "# exit code: $rc  (OWN001 is error-severity, so non-zero is the expected result)"
-    echo "# command  : python3 -m ownlang check corpus/ownership-lab/h28-command/fx/CommandDispose.own"
-    echo "# cwd      : repository root"
-    echo "# python   : $(python3 --version 2>&1)"
+    echo "# exit code: $rc (OWN001 is error severity, so a finding run exits 1)"
+    echo "# command: python3 -m ownlang check corpus/ownership-lab/h28-command/fx/CommandDispose.own"
+    echo "# python: $(python3 --version 2>&1)"
   } >>"$out"
   cat "$out"
-  # The prediction the report makes: 3 findings -- OWN001 on 'command' in B, and OWN001 on
-  # BOTH 'command' and 'reader' in E. A and D clean. Any other shape means the report is stale.
-  local n_cmd n_reader
   n_cmd=$(grep -c "'command' is owned but not released" "$out")
   n_reader=$(grep -c "'reader' is owned but not released" "$out")
-  echo
-  if [ "$n_cmd" = "2" ] && [ "$n_reader" = "1" ]; then
-    echo "PREDICTION HOLDS: 2x OWN001 'command' (B, E) + 1x OWN001 'reader' (E), A/D clean."
+  if [ "$rc" = 1 ] && [ "$n_cmd" = 2 ] && [ "$n_reader" = 1 ]; then
+    echo "PASS ENGINE: expected 2 command findings (B/E), 1 reader finding (E); A/D clean."
     return 0
   fi
-  echo "PREDICTION BROKE: got command=$n_cmd reader=$n_reader; expected command=2 reader=1."
-  echo "Re-read docs/notes/h28-npgsql-command-resolution.md section 7 before trusting it."
+  echo "FAIL ENGINE: rc=$rc command=$n_cmd reader=$n_reader; expected rc=1 command=2 reader=1."
+  return 1
+}
+
+restore_project() {
+  local label="$1" project="$2" strict="$3" log="$EV/$1-restore.log"
+  echo "# dotnet restore $project --ignore-failed-sources -p:NuGetAudit=false"
+  if dotnet restore "$project" --ignore-failed-sources --disable-parallel \
+      -p:NuGetAudit=false >"$log" 2>&1; then
+    tail -8 "$log"
+    return 0
+  fi
+  echo "# restore output: $log"
+  tail -20 "$log"
+  skip_status "$label dependencies unavailable (restore failed; warm cache was tried)" "$strict"
+}
+
+g3_half() {
+  local strict="$1"
+  echo "=== G3: production Roslyn -> OwnIR -> summaries -> core ==="
+  if ! command -v dotnet >/dev/null 2>&1; then
+    skip_status "G3 requires the .NET 8 SDK" "$strict"
+    return $?
+  fi
+  local project="$ROOT/frontend/roslyn/OwnSharp.Extractor/OwnSharp.Extractor.csproj"
+  restore_project "g3" "$project" "$strict"
+  local restore_rc=$?
+  if [ "$restore_rc" -ne 0 ]; then return "$restore_rc"; fi
+  if python3 "$HERE/scripts/verify_g3.py"; then
+    return 0
+  fi
+  echo "FAIL G3: see $EV/g3-CommandDispose.log and the emitted facts/SARIF artifacts."
   return 1
 }
 
 runtime_half() {
-  echo
-  echo "=== half 2: RUNTIME (real PostgreSQL + Npgsql + Microsoft.Data.Sqlite) ==="
+  local strict="$1"
+  echo "=== G1+G2: compiled provider falsifier ==="
   if ! command -v dotnet >/dev/null 2>&1; then
-    echo "SKIP-WHY: no .NET SDK on PATH. The report's runtime arm was NOT executed;"
-    echo "          its claims are source-derived (evidence/*.txt) and marked PREDICTED."
-    echo "          Install .NET 8 SDK + reach api.nuget.org, then re-run: $0 runtime"
-    return 0
+    skip_status "runtime falsifier requires the .NET 8 SDK" "$strict"
+    return $?
   fi
-  if ! curl -sS -m 8 -o /dev/null https://api.nuget.org/v3/index.json 2>/dev/null; then
-    echo "SKIP-WHY: dotnet is present but api.nuget.org is unreachable, so Npgsql 10.0.3 and"
-    echo "          Microsoft.Data.Sqlite 10.0.12 cannot be restored."
-    return 0
-  fi
+  local project="$HERE/falsifier/h28cmd.csproj" dll="$HERE/falsifier/bin/Release/net8.0/h28cmd-falsifier.dll"
+  restore_project "runtime" "$project" "$strict"
+  local restore_rc=$?
+  if [ "$restore_rc" -ne 0 ]; then return "$restore_rc"; fi
 
-  # PostgreSQL: pgserver (PyPI) is what the original H-28 falsifier used -- a self-contained
-  # PostgreSQL 16 on a Unix socket, no root, no container.
-  local dsn="${H28_PG_DSN:-}"
-  if [ -z "$dsn" ] && python3 -c "import pgserver" 2>/dev/null; then
-    echo "starting PostgreSQL via pgserver ..."
-    dsn=$(python3 - "$HERE" <<'PY'
-import os, re, sys, pgserver
-d = "/tmp/h28cmd-pgdata"
-srv = pgserver.get_server(d, cleanup_mode=None)
-uri = srv.get_uri()                      # postgresql://postgres:@/postgres?host=<socketdir>
-m = re.search(r"host=([^&\s]+)", uri)
-print(f"Host={m.group(1) if m else d};Username=postgres;Database=postgres" if m else "")
-PY
-)
+  local build_log="$EV/runtime-build.log"
+  if ! dotnet build "$project" -c Release --no-restore --nologo -v q >"$build_log" 2>&1; then
+    echo "FAIL G1: runtime falsifier / abstract C# fixture did not compile."
+    cat "$build_log"
+    return 1
   fi
-  if [ -z "$dsn" ]; then
-    echo "SKIP-WHY: no PostgreSQL. Either 'pip install pgserver' or export H28_PG_DSN."
-    echo "          The SQLite arm still runs: dotnet run --project falsifier -- sqlite-only"
+  cat "$build_log"
+  if [ ! -f "$dll" ]; then
+    echo "FAIL G1: build succeeded but expected executable is missing: $dll"
+    return 1
   fi
-  export H28_PG_DSN="$dsn"
-  echo "DSN: ${H28_PG_DSN:-<none>}"
+  echo "PASS G1: falsifier and CommandDispose.cs compile under net8.0."
 
-  local out="$EV/falsifier.out"
-  ( cd "$HERE/falsifier" && dotnet run -c Release ) 2>&1 | tee "$out"
-  local rc=${PIPESTATUS[0]}
-  echo "# exit code: $rc" >>"$out"
-  return $rc
+  # Run G2 by itself first. This makes SQLite observability useful even if no PostgreSQL
+  # server/pgserver is present; it does not replace the mandatory Npgsql run below.
+  local sqlite_out="$EV/runtime-sqlite-only.out" rc
+  dotnet "$dll" sqlite-only >"$sqlite_out" 2>&1
+  rc=$?
+  cat "$sqlite_out"
+  if [ "$rc" -ne 0 ]; then
+    echo "FAIL G2: direct sqlite3_next_stmt checks failed (rc=$rc)."
+    return 1
+  fi
+  grep -q '^PASS G2' "$sqlite_out" || {
+    echo "FAIL G2: no PASS marker in $sqlite_out"; return 1;
+  }
+  echo "PASS G2: direct native statement-lifecycle checks passed."
+
+  local full_out="$EV/runtime-full.out"
+  if [ -n "${H28_PG_DSN:-}" ]; then
+    echo "# Using caller-supplied H28_PG_DSN."
+    H28_PG_DSN="$H28_PG_DSN" dotnet "$dll" >"$full_out" 2>&1
+    rc=$?
+  elif python3 -c "import pgserver" >/dev/null 2>&1; then
+    python3 "$HERE/falsifier/run_with_pgserver.py" "$dll" >"$full_out" 2>&1
+    rc=$?
+    if [ "$rc" = 3 ]; then
+      cat "$full_out"
+      skip_status "PostgreSQL arm requires pgserver or H28_PG_DSN" "$strict"
+      return $?
+    fi
+  else
+    skip_status "Npgsql G1/P4/P5 requires pgserver (pip install pgserver) or H28_PG_DSN" "$strict"
+    return $?
+  fi
+  cat "$full_out"
+  if [ "$rc" -ne 0 ]; then
+    echo "FAIL G1/P4/P5: Npgsql runtime assertions failed (rc=$rc)."
+    return 1
+  fi
+  grep -q '^PASS runtime falsifier' "$full_out" || {
+    echo "FAIL G1/P4/P5: no PASS marker in $full_out"; return 1;
+  }
+  echo "PASS G1/P4/P5: Npgsql runtime assertions passed."
+  return 0
 }
 
 case "$MODE" in
-  engine)  engine_half ;;
-  runtime) runtime_half ;;
-  all)     engine_half; runtime_half ;;
-  *) echo "usage: $0 [engine|runtime|all]" >&2; exit 2 ;;
+  engine) engine_half ;;
+  g3)
+    g3_half 0; rc=$?
+    [ "$rc" = 3 ] && exit 0
+    exit "$rc"
+    ;;
+  g3-required) g3_half 1 ;;
+  runtime)
+    runtime_half 0; rc=$?
+    [ "$rc" = 3 ] && exit 0
+    exit "$rc"
+    ;;
+  runtime-required) runtime_half 1 ;;
+  all)
+    overall=0
+    engine_half || overall=1
+    g3_half 0; rc=$?; [ "$rc" != 0 ] && [ "$rc" != 3 ] && overall=1
+    runtime_half 0; rc=$?; [ "$rc" != 0 ] && [ "$rc" != 3 ] && overall=1
+    exit "$overall"
+    ;;
+  all-required)
+    overall=0
+    engine_half || overall=1
+    g3_half 1 || overall=1
+    runtime_half 1 || overall=1
+    exit "$overall"
+    ;;
+  *)
+    echo "usage: $0 [engine|g3|g3-required|runtime|runtime-required|all|all-required]" >&2
+    exit 2
+    ;;
 esac

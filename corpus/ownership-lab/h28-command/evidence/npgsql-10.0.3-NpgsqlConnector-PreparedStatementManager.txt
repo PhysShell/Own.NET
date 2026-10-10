@@ -9,4 +9,4 @@
 # region    : lines 164..165
 # derived by: scripts/derive_source_evidence.py
   164|     internal PreparedStatementManager PreparedStatementManager { get; }
-  165| 
+  165| <blank>

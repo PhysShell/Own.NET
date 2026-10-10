@@ -13,4 +13,4 @@
   379| 		m_isDisposed = true;
   380| 		base.Dispose(disposing);
   381| 	}
-  382| 
+  382| <blank>

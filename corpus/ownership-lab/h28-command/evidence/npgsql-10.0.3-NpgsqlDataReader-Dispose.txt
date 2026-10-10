@@ -25,7 +25,7 @@
  1022|             {
  1023|                 State = ReaderState.Disposed;
  1024|             }
- 1025| 
+ 1025| <blank>
  1026|             throw;
  1027|         }
  1028|         finally
@@ -33,4 +33,4 @@
  1030|             Command.TraceCommandStop();
  1031|         }
  1032|     }
- 1033| 
+ 1033| <blank>

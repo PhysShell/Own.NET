@@ -1,5 +1,6 @@
-# H-28-CMD evidence manifest: one line per pinned citation.
-# OK = re-derived now; MISSING/MARKER-NOT-FOUND = the report is stale.
+# H-28-CMD source evidence manifest (declared refs).
+# OK/SCAN = re-derived now; MISSING/MARKER-NOT-FOUND = stale or unavailable.
+OK	npgsql-v10.0.3-target-frameworks.txt	npgsql/npgsql@v10.0.3	sha256=fd36c9e18a2c4765	lines=8
 OK	npgsql-10.0.3-NpgsqlCommand-Dispose.txt	npgsql/npgsql@v10.0.3	sha256=6bdde5901d32a633	lines=1712
 OK	npgsql-10.0.3-NpgsqlCommand-Reset.txt	npgsql/npgsql@v10.0.3	sha256=6bdde5901d32a633	lines=1728
 OK	npgsql-10.0.3-NpgsqlCommand-ctor-SuppressFinalize.txt	npgsql/npgsql@v10.0.3	sha256=6bdde5901d32a633	lines=120
@@ -8,6 +9,7 @@ OK	npgsql-10.0.3-NpgsqlCommand-TraceCommandStart.txt	npgsql/npgsql@v10.0.3	sha25
 OK	npgsql-10.0.3-NpgsqlCommand-TraceCommandStop.txt	npgsql/npgsql@v10.0.3	sha256=6bdde5901d32a633	lines=1792
 OK	npgsql-10.0.3-NpgsqlConnection-CreateCommand.txt	npgsql/npgsql@v10.0.3	sha256=02ed57055a9e1f02	lines=549
 OK	npgsql-10.0.3-NpgsqlDataReader-Dispose.txt	npgsql/npgsql@v10.0.3	sha256=9c109626d6627b55	lines=1008
+OK	npgsql-10.0.3-NpgsqlDataReader-DisposeAsync.txt	npgsql/npgsql@v10.0.3	sha256=9c109626d6627b55	lines=1037
 OK	npgsql-10.0.3-NpgsqlDataReader-Close-public.txt	npgsql/npgsql@v10.0.3	sha256=9c109626d6627b55	lines=1073
 OK	npgsql-10.0.3-NpgsqlDataReader-Cleanup.txt	npgsql/npgsql@v10.0.3	sha256=9c109626d6627b55	lines=1141
 OK	npgsql-10.0.3-NpgsqlActivitySource-IsEnabled.txt	npgsql/npgsql@v10.0.3	sha256=b7ef8df7f2f66573	lines=17
@@ -23,12 +25,23 @@ OK	runtime-v10.0.12-DbDataReader-Close-Dispose.txt	dotnet/runtime@v10.0.12	sha25
 OK	runtime-v10.0.12-IDbCommand.txt	dotnet/runtime@v10.0.12	sha256=5fee96c4567d3894	lines=8
 OK	runtime-v8.0.20-Activity-Dispose.txt	dotnet/runtime@v8.0.20	sha256=2fcfbffca75351dd	lines=1006
 OK	runtime-v8.0.20-Activity-IDisposable.txt	dotnet/runtime@v8.0.20	sha256=2fcfbffca75351dd	lines=56
-OK	mssqlite-SqliteCommand-Dispose.txt	dotnet/efcore@main	sha256=7ac8596c1cd999a3	lines=221
-OK	mssqlite-SqliteCommand-DisposePreparedStatements.txt	dotnet/efcore@main	sha256=7ac8596c1cd999a3	lines=604
-OK	mssqlite-SqliteCommand-PrepareAndEnumerate-head.txt	dotnet/efcore@main	sha256=7ac8596c1cd999a3	lines=547
-OK	mssqlite-SqliteCommand-preparedStatements-field.txt	dotnet/efcore@main	sha256=7ac8596c1cd999a3	lines=31
-OK	mssqlite-SqliteDataReader-Close-Dispose.txt	dotnet/efcore@main	sha256=5c3e1c054fceb256	lines=272
-OK	mssqlite-SqliteConnection-commands-weakrefs.txt	dotnet/efcore@main	sha256=7ab4e87bd49e75a8	lines=32
-OK	sqlitepclraw-sqlite3_stmt-SafeHandle.txt	ericsink/SQLitePCL.raw@main	sha256=0cb6c489786c3acf	lines=196
+OK	mssqlite-SqliteCommand-Dispose.txt	dotnet/efcore@v10.0.12	sha256=c5d427a5d7016152	lines=216
+OK	mssqlite-SqliteCommand-DisposePreparedStatements.txt	dotnet/efcore@v10.0.12	sha256=c5d427a5d7016152	lines=520
+OK	mssqlite-SqliteCommand-PrepareAndEnumerate-head.txt	dotnet/efcore@v10.0.12	sha256=c5d427a5d7016152	lines=464
+OK	mssqlite-SqliteCommand-preparedStatements-field.txt	dotnet/efcore@v10.0.12	sha256=c5d427a5d7016152	lines=30
+OK	mssqlite-SqliteDataReader-Close-Dispose.txt	dotnet/efcore@v10.0.12	sha256=0712b68bd0b03688	lines=227
+OK	mssqlite-SqliteConnection-commands-weakrefs.txt	dotnet/efcore@v10.0.12	sha256=0fd8dd0cd1ca7e6f	lines=31
+OK	mssqlite-SqliteConnection-Handle.txt	dotnet/efcore@v10.0.12	sha256=0fd8dd0cd1ca7e6f	lines=129
+OK	efcore-v10.0.12-SQLitePCLRawVersion.txt	dotnet/efcore@v10.0.12	sha256=a31b3e681cac5f15	lines=34
+OK	mssqlite-v10.0.12-Microsoft.Data.Sqlite-target.txt	dotnet/efcore@v10.0.12	sha256=00448ec2082b4c14	lines=18
+OK	mssqlite-v10.0.12-Core-targets.txt	dotnet/efcore@v10.0.12	sha256=b58e8f7587a04c49	lines=18
+OK	efcore-v10.0.12-default-net-target.txt	dotnet/efcore@v10.0.12	sha256=a31b3e681cac5f15	lines=14
+OK	sqlitepclraw-v2.1.12-sqlite3_next_stmt.txt	ericsink/SQLitePCL.raw@v2.1.12	sha256=cab23c3ea0012e85	lines=1028
+OK	sqlitepclraw-v2.1.12-enable-next-stmt.txt	ericsink/SQLitePCL.raw@v2.1.12	sha256=9afd074db410ba78	lines=300
+OK	sqlitepclraw-v2.1.12-find-stmt-enabled.txt	ericsink/SQLitePCL.raw@v2.1.12	sha256=9afd074db410ba78	lines=323
+OK	runtime-v8.0.20-SafeHandle-finalizer.txt	dotnet/runtime@v8.0.20	sha256=3df9d6928d6a8bcb	lines=86
+OK	runtime-v10.0.12-SafeHandle-finalizer.txt	dotnet/runtime@v10.0.12	sha256=3df9d6928d6a8bcb	lines=86
+OK	sqlitepclraw-sqlite3_stmt-SafeHandle.txt	ericsink/SQLitePCL.raw@v2.1.12	sha256=9afd074db410ba78	lines=195
 OK	sqlclient-SqlCommand-Dispose.txt	dotnet/SqlClient@main	sha256=fc8200df4b130136	lines=1883
 OK	mysqlconnector-MySqlCommand-Dispose.txt	mysql-net/MySqlConnector@master	sha256=4369c492ce1c1fc1	lines=377
+SCAN	npgsql-10.0.3-NpgsqlCommand-finalizer-scan.txt	npgsql/npgsql@v10.0.3	sha256=6bdde5901d32a633	matches=0

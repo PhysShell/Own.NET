@@ -21,4 +21,4 @@
  1738|         Debug.Assert(_unknownResultTypeList is null);
  1739|         EnableErrorBarriers = false;
  1740|     }
- 1741| 
+ 1741| <blank>

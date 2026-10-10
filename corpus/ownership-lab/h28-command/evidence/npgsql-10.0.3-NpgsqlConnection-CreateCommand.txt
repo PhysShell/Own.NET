@@ -11,7 +11,7 @@
   549|     public new NpgsqlCommand CreateCommand()
   550|     {
   551|         CheckDisposed();
-  552| 
+  552| <blank>
   553|         var cachedCommand = CachedCommand;
   554|         if (cachedCommand is not null)
   555|         {
@@ -19,7 +19,7 @@
   557|             cachedCommand.State = CommandState.Idle;
   558|             return cachedCommand;
   559|         }
-  560| 
+  560| <blank>
   561|         return NpgsqlCommand.CreateCachedCommand(this);
   562|     }
-  563| 
+  563| <blank>

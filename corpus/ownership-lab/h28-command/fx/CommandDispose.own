@@ -5,11 +5,11 @@
 //
 // Honest frame (the same one corpus/real-world/README.md states): this is a MANUAL REDUCTION
 // of the C#, not C# the checker read. It models the two obligations the extractor's
-// IsOwningFactory mints for this family -- IDbConnection.CreateCommand() -> DbCommand and
-// IDbCommand.ExecuteReader() -> DbDataReader -- and it models the ONE runtime fact the
-// extractor does not know: that DataTable.Load(reader) closes the reader. That last line is
-// the whole point of the reduction: it is a witnessed callee effect that today has to be
-// hand-written here because the argument-escape rule throws the call away instead.
+// IsOwningFactory appears to mint for this family -- IDbConnection.CreateCommand() -> DbCommand
+// and IDbCommand.ExecuteReader() -> DbDataReader -- and it models the H-28 runtime fact that
+// DataTable.Load(reader) closes the reader. The production extractor -> OwnIR path has NOT yet
+// run here (G3 is pending). This hand-written reduction encodes the candidate callee effect
+// because source inspection predicts the argument-escape rule may drop the call instead.
 module H28Cmd
 
 resource Command {
@@ -34,8 +34,9 @@ resource Reader {
 // table.Load(reader) closed the reader: witnessed RELEASE_IF_LAST_RESULT_SET by the H-28
 // runtime falsifier (corpus/ownership-lab/h28/falsifier/falsifier.out, F1 IsClosed=True on
 // Sqlite AND Npgsql). The command is never released.
-// EXPECTED: OWN001 on 'command' -- and this is exactly the finding whose correctness is
-// provider-dependent, which no .own model and no OwnIR fact can currently express.
+// EXPECTED for this manual reduction: OWN001 on 'command'. This does not decide whether the
+// diagnostic's practical implication is misleading for a provider; provider effects are not
+// encoded in this reduction, and the production C# extraction result is still pending G3.
 fn B_load_neither_disposed(conn: int) {
   let command = acquire Command(conn);
   let reader  = acquire Reader(command);
@@ -51,8 +52,9 @@ fn A_load_both_released(conn: int) {
   release command;
 }
 
-// D -- control: the command released after Load. EXPECTED: clean. This is the only variant
-// that deterministically releases Microsoft.Data.Sqlite's native sqlite3_stmt handles.
+// D -- control: the command released after Load. EXPECTED: clean in this manual reduction.
+// Source predicts this is the arm that deterministically finalizes Microsoft.Data.Sqlite's
+// command-held sqlite3_stmt handles; G2 must confirm it before treating that as a result.
 fn D_command_released_after_load(conn: int) {
   let command = acquire Command(conn);
   let reader  = acquire Reader(command);

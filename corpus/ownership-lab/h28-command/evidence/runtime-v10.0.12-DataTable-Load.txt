@@ -29,7 +29,7 @@
  4992|                     adapter.FillError += errorHandler;
  4993|                 }
  4994|                 adapter.FillFromReader(new DataTable[] { this }, reader, 0, 0);
- 4995| 
+ 4995| <blank>
  4996|                 if (!reader.IsClosed && !reader.NextResult())
  4997|                 {
  4998|                     reader.Close();

@@ -1,254 +1,415 @@
-// H-28-CMD runtime falsifier: what does the ABSENCE of DbCommand.Dispose() actually cost?
+// H-28-CMD falsifier: the provider effect of not disposing a DbCommand.
 //
-// This is the program that was NOT runnable in the sandbox which produced the report
-// (no .NET SDK, no NuGet feed -- see docs/notes/h28-npgsql-command-resolution.md section 6).
-// It is written to be run as-is on a machine that has both, and every probe exists because it
-// separates two hypotheses that source reading alone could not settle.
+// Run through ../run.sh (the supervisor keeps pgserver alive while dotnet runs).
+// Pinned to the original H-28 evidence: net8.0, Npgsql 10.0.3,
+// Microsoft.Data.Sqlite 10.0.12, PostgreSQL 16.
 //
-//   ../run.sh runtime          (starts PostgreSQL via pgserver, then dotnet run)
-//   dotnet run -c Release                         # Npgsql arm skipped if no PostgreSQL
-//   dotnet run -c Release -- sqlite-only          # SQLite arm only
+// G1 / P4: use a dedicated Npgsql command+reader for each treatment. Record Activity
+// listener counts immediately after DataTable.Load(), then immediately after the selected
+// Dispose call(s). No P2/P3 SQL runs between those observations. P1-P3 run separately with
+// no ActivityListener, so they cannot create or overwrite the Activity being measured.
 //
-// Pinned to the original H-28 evidence: net8.0, Npgsql 10.0.3, Microsoft.Data.Sqlite 10.0.12,
-// PostgreSQL 16 (see h28cmd.csproj and ../README.txt).
+// G2 / P6: enumerate live native sqlite3_stmt handles with SQLitePCL.raw.sqlite3_next_stmt
+// via SqliteConnection.Handle. No RSS proxy, no GC, no memory snapshot. Count at baseline,
+// after ExecuteReader, after DataTable.Load/reader.Close, after reader.Dispose, after
+// command.Dispose, and on a second execution of the same command.
 //
-// Probes
-//   P1 reader.IsClosed after Load    reproduces H-28 F1 (RELEASE, not BORROW)
-//   P2 command reusable after Load   "the reader bounds the command's lifetime" vs
-//                                    "the reader leaves it Idle" (NpgsqlCleanup sets Idle)
-//   P3 connection still usable       protocol leak vs object leak
-//   P4 Activity started/stopped      THE discriminating probe for the claim that only
-//                                    reader.Dispose() stops the command's Activity. Npgsql
-//                                    only: its ActivitySource is named "Npgsql" and
-//                                    Microsoft.Data.Sqlite has no ActivitySource at all.
-//   P5 pg_prepared_statements        whether command.Dispose() releases server-side state
-//   P6 RSS delta over N iterations   whether an undisposed command retains NATIVE memory
-//                                    (the Microsoft.Data.Sqlite sqlite3_stmt arm)
-//
-// Deliberately returns List<string>, not an iterator: `yield return` is illegal inside a
-// try/catch, and almost every probe here needs one.
+// G3 is the separate production Roslyn -> OwnIR -> summaries -> core gate in ../run.sh g3.
+// This project also compiles ../fx/CommandDispose.cs as part of its build.
 using System.Data;
 using System.Data.Common;
 using System.Diagnostics;
+using Microsoft.Data.Sqlite;
+using Npgsql;
 
 static class Probe
 {
-    // ---- P4: count Activity starts and stops for Npgsql's source ---------------------
-    // NpgsqlActivitySource.IsEnabled is Source.HasListeners(), so WITHOUT this listener the
-    // whole tracing arm is inert (CurrentActivity stays null) and P4 would prove nothing.
+    // ActivityListener callbacks can run on provider threads; use Interlocked for both writes
+    // and reads. The listener is installed only after P1-P3 finish.
     static int _started, _stopped;
 
-    internal static readonly ActivityListener Listener = new()
+    internal static ActivityListener NewNpgsqlListener() => new()
     {
-        ShouldListenTo = s => s.Name == "Npgsql",
-        Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
-        SampleUsingParentId = (ref ActivityCreationOptions<string> options) => ActivitySamplingResult.AllData,
+        ShouldListenTo = source => source.Name == "Npgsql",
+        Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+        SampleUsingParentId = (ref ActivityCreationOptions<string> _) => ActivitySamplingResult.AllData,
         ActivityStarted = _ => Interlocked.Increment(ref _started),
         ActivityStopped = _ => Interlocked.Increment(ref _stopped),
     };
 
-    static void ResetActivity() { _started = 0; _stopped = 0; }
-    static string ActivityReport() => $"started={_started} stopped={_stopped}";
-
-    // ---- P6: process RSS. GC.GetTotalMemory is deliberately NOT used: it measures the ----
-    // managed heap, and the resource in question (sqlite3_stmt) is native. One snapshot
-    // proves nothing, so P6 is a DELTA over N iterations with an explicit finalization control.
-    static long Rss()
+    static void ResetActivity()
     {
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
-        return Environment.WorkingSet;
+        Interlocked.Exchange(ref _started, 0);
+        Interlocked.Exchange(ref _stopped, 0);
     }
 
-    // ---- the four variants of the family; disposeCommand/disposeReader are the knobs ----
-    internal static List<string> Run(string name, DbConnection conn, string sql,
-                                     bool disposeCommand, bool disposeReader, bool load)
+    static string ActivityReport()
+        => $"started={Interlocked.CompareExchange(ref _started, 0, 0)} "
+         + $"stopped={Interlocked.CompareExchange(ref _stopped, 0, 0)}";
+
+    // P1-P3 only. No ActivityListener is installed during this helper. Cleanup is unconditional
+    // and happens only AFTER all reported observations, so arms do not leak objects into the
+    // following run; the intended dispose flags still determine the P1-P3 observations.
+    internal static List<string> Lifecycle(string name, DbConnection conn, string sql,
+                                           bool disposeCommand, bool disposeReader)
     {
-        var o = new List<string>();
-        ResetActivity();
-
+        var output = new List<string>();
         DbCommand command = conn.CreateCommand();
-        command.CommandText = sql;
-        DbDataReader reader = command.ExecuteReader();
-
-        int rows = 0;
-        if (load)
+        DbDataReader reader = null;
+        bool commandDisposed = false, readerDisposed = false;
+        try
         {
+            command.CommandText = sql;
+            reader = command.ExecuteReader();
             var table = new DataTable();
-            table.Load(reader);              // BCL: Close() iff this is the last result set
-            rows = table.Rows.Count;
+            table.Load(reader);
+            output.Add($"{name} P1 reader.IsClosed after Load={reader.IsClosed}; rows={table.Rows.Count}");
+
+            if (disposeReader)
+            {
+                reader.Dispose();
+                readerDisposed = true;
+            }
+
+            // P2 is a separate probe from P4. It deliberately executes a second command on the
+            // same object; its output is never used as evidence about Activity lifecycle.
+            try
+            {
+                command.CommandText = "select 1";
+                output.Add($"{name} P2 command reuse after reader close=OK ({command.ExecuteScalar()})");
+            }
+            catch (Exception e)
+            {
+                output.Add($"{name} P2 command reuse threw {e.GetType().Name}: {e.Message}");
+            }
+
+            if (disposeCommand)
+            {
+                command.Dispose();
+                commandDisposed = true;
+            }
+
+            // P3 is also separate from P4: a fresh command tests whether the connection remains
+            // usable after the family. Its query is never in the Activity measurement.
+            try
+            {
+                using var c2 = conn.CreateCommand();
+                c2.CommandText = "select 42";
+                output.Add($"{name} P3 connection usable=OK ({c2.ExecuteScalar()}); state={conn.State}");
+            }
+            catch (Exception e)
+            {
+                output.Add($"{name} P3 connection threw {e.GetType().Name}: {e.Message}");
+            }
+        }
+        finally
+        {
+            if (reader is not null && !readerDisposed)
+                reader.Dispose();
+            if (!commandDisposed)
+                command.Dispose();
+        }
+        return output;
+    }
+
+    // P4: this helper performs exactly ONE ExecuteReader + DataTable.Load. It records directly
+    // after Load, then after reader.Dispose when requested, then after command.Dispose when
+    // requested. No other query executes in this helper. In the final cleanup of a negative
+    // control, disposal happens only after the snapshots were captured.
+    internal static List<string> ActivityLifecycle(string name, DbConnection conn, string sql,
+                                                   bool disposeReader, bool disposeCommand)
+    {
+        var output = new List<string>();
+        ResetActivity();
+        DbCommand command = conn.CreateCommand();
+        DbDataReader reader = null;
+        bool readerDisposed = false, commandDisposed = false;
+        try
+        {
+            command.CommandText = sql;
+            reader = command.ExecuteReader();
+            var table = new DataTable();
+            table.Load(reader);
+            output.Add($"{name} P4 immediately after Load: {ActivityReport()} "
+                     + $"reader.IsClosed={reader.IsClosed}; rows={table.Rows.Count}");
+
+            if (disposeReader)
+            {
+                reader.Dispose();
+                readerDisposed = true;
+                output.Add($"{name} P4 immediately after reader.Dispose(): {ActivityReport()}");
+            }
+            if (disposeCommand)
+            {
+                command.Dispose();
+                commandDisposed = true;
+                output.Add($"{name} P4 immediately after command.Dispose(): {ActivityReport()}");
+            }
+        }
+        finally
+        {
+            // For B/C/D these are containment cleanups, not measured treatment events. Their
+            // callbacks are intentionally not sampled into the already-recorded output.
+            if (reader is not null && !readerDisposed)
+                reader.Dispose();
+            if (!commandDisposed)
+                command.Dispose();
+        }
+        return output;
+    }
+
+    // G2/P6: direct, connection-wide count of native sqlite3_stmt objects. SqliteConnection.Handle
+    // is public in Microsoft.Data.Sqlite 10.0.12; sqlite3_next_stmt walks live statements without
+    // preparing another query and without triggering GC/finalization.
+    static int LiveSqliteStatements(SqliteConnection connection)
+    {
+        var db = connection.Handle ?? throw new InvalidOperationException("SqliteConnection.Handle is null");
+        int count = 0;
+        var statement = SQLitePCL.raw.sqlite3_next_stmt(db, null);
+        while (statement is not null)
+        {
+            count++;
+            statement = SQLitePCL.raw.sqlite3_next_stmt(db, statement);
+        }
+        return count;
+    }
+
+    internal static List<string> SqliteStatementLifecycle(string name,
+                                                           bool disposeReader,
+                                                           bool disposeCommand,
+                                                           bool executeTwice = false)
+    {
+        var output = new List<string>();
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        // SQLitePCLRaw disables its wrapper lookup table by default; the native walk itself
+        // works, but sqlite3_next_stmt maps raw pointers back to SafeHandles through this opt-in.
+        var db = connection.Handle ?? throw new InvalidOperationException("SqliteConnection.Handle is null");
+        db.enable_sqlite3_next_stmt(true);
+        int baseline = LiveSqliteStatements(connection);
+        output.Add($"{name} P6 before query={baseline} (delta=0)");
+
+        var command = connection.CreateCommand();
+        command.CommandText = "select 1 as a union all select 2 union all select 3";
+        SqliteDataReader reader = command.ExecuteReader();
+        int afterExecute = LiveSqliteStatements(connection);
+        output.Add($"{name} P6 after ExecuteReader={afterExecute} (delta={afterExecute - baseline})");
+
+        var table = new DataTable();
+        table.Load(reader);
+        int afterLoad = LiveSqliteStatements(connection);
+        output.Add($"{name} P6 after DataTable.Load/reader.Close={afterLoad} "
+                 + $"(delta={afterLoad - baseline})");
+
+        if (disposeReader)
+        {
+            reader.Dispose();
+            int afterReaderDispose = LiveSqliteStatements(connection);
+            output.Add($"{name} P6 after reader.Dispose={afterReaderDispose} "
+                     + $"(delta={afterReaderDispose - baseline})");
+        }
+        if (disposeCommand)
+        {
+            command.Dispose();
+            int afterCommandDispose = LiveSqliteStatements(connection);
+            output.Add($"{name} P6 after command.Dispose={afterCommandDispose} "
+                     + $"(delta={afterCommandDispose - baseline})");
+        }
+
+        // Re-execution has its own arm. It reuses THIS command. On its next ExecuteReader,
+        // PrepareAndEnumerateStatements must finalize the first statement before preparing the
+        // second; the live count should therefore remain baseline+1, not grow to baseline+2.
+        if (executeTwice)
+        {
+            command.CommandText = "select 4 as a union all select 5";
+            var reader2 = command.ExecuteReader();
+            int afterSecondExecute = LiveSqliteStatements(connection);
+            output.Add($"{name} P6 after second ExecuteReader={afterSecondExecute} "
+                     + $"(delta={afterSecondExecute - baseline})");
+            var table2 = new DataTable();
+            table2.Load(reader2);
+            int afterSecondLoad = LiveSqliteStatements(connection);
+            output.Add($"{name} P6 after second Load={afterSecondLoad} "
+                     + $"(delta={afterSecondLoad - baseline})");
+            command.Dispose();
+            int afterFinalDispose = LiveSqliteStatements(connection);
+            output.Add($"{name} P6 after final command.Dispose={afterFinalDispose} "
+                     + $"(delta={afterFinalDispose - baseline})");
         }
         else
         {
-            while (reader.Read()) rows++;
+            // Unmeasured containment cleanup: preserve the measured before/after stages above.
+            reader.Dispose();
+            command.Dispose();
         }
-
-        // P1 -- the H-28 F1 reproduction
-        o.Add($"{name} P1 reader.IsClosed after Load = {reader.IsClosed} (rows={rows})");
-
-        if (disposeReader) reader.Dispose();
-
-        // P2 -- is the command still logically usable? A model claiming the reader's lifetime
-        // bounds the command's must predict a throw here.
-        try
-        {
-            command.CommandText = "select 1";
-            o.Add($"{name} P2 command reuse after the reader closed = OK ({command.ExecuteScalar()})");
-        }
-        catch (Exception e)
-        {
-            o.Add($"{name} P2 command reuse threw {e.GetType().Name}: {e.Message}");
-        }
-
-        if (disposeCommand) command.Dispose();
-
-        // P4 -- the discriminating tracing probe (Npgsql only; 0/0 on SQLite is expected)
-        o.Add($"{name} P4 Activity {ActivityReport()}");
-
-        // P3 -- protocol leak (connection busy) or only an object leak?
-        try
-        {
-            using var c2 = conn.CreateCommand();
-            c2.CommandText = "select 42";
-            o.Add($"{name} P3 connection after the family = OK ({c2.ExecuteScalar()}) state={conn.State}");
-        }
-        catch (Exception e)
-        {
-            o.Add($"{name} P3 connection threw {e.GetType().Name}: {e.Message}");
-        }
-        return o;
+        return output;
     }
 
-    // ---- P5 -- does command.Dispose() release SERVER-SIDE prepared state? --------------
-    internal static List<string> Prepared(string name, DbConnection conn, string sql)
+    // P5: an actual Npgsql prepared statement, before and after the command's Dispose. This is
+    // the direct provider experiment; the standalone psql session check is not a substitute.
+    internal static (List<string> Output, int Before, int AfterPrepare, int AfterDispose)
+        PreparedStatementLifecycle(DbConnection connection)
     {
-        var o = new List<string>();
+        var output = new List<string>();
         int Count()
         {
-            using var c = conn.CreateCommand();
-            c.CommandText = "select count(*) from pg_prepared_statements";
-            return Convert.ToInt32(c.ExecuteScalar());
+            using var countCommand = connection.CreateCommand();
+            countCommand.CommandText = "select count(*) from pg_prepared_statements";
+            return Convert.ToInt32(countCommand.ExecuteScalar());
         }
 
-        var cmd = conn.CreateCommand();
-        cmd.CommandText = sql;
-        Exception err = null;
-        try { cmd.Prepare(); } catch (Exception e) { err = e; }
-        if (err != null)
-        {
-            o.Add($"{name} P5 Prepare threw {err.GetType().Name}: {err.Message}");
-            return o;
-        }
-        cmd.ExecuteNonQuery();
-        var afterPrepare = Count();
-        cmd.Dispose();                        // the arm under test
-        var afterDispose = Count();
-        o.Add($"{name} P5 pg_prepared_statements after Prepare={afterPrepare} "
-            + $"after command.Dispose()={afterDispose} "
-            + (afterDispose == afterPrepare
-                 ? "-> command.Dispose() released NO server-side prepared state"
-                 : "-> command.Dispose() DID release server-side prepared state"));
-        return o;
-    }
-
-    // ---- P6 -- native retention over N iterations ------------------------------------
-    internal static List<string> NativeRetention(string name, Func<DbConnection> open, string sql,
-                                                 bool disposeCommand, int n = 20000)
-    {
-        var o = new List<string>();
-        using var conn = open();
-        conn.Open();
-        // warm up, so the delta is not the provider's first-touch cost
-        for (int i = 0; i < 200; i++)
-        {
-            var w = conn.CreateCommand(); w.CommandText = sql;
-            var r = w.ExecuteReader(); var t = new DataTable(); t.Load(r);
-            if (disposeCommand) w.Dispose();
-        }
-        var before = Rss();
-        for (int i = 0; i < n; i++)
-        {
-            var c = conn.CreateCommand(); c.CommandText = sql;
-            var r = c.ExecuteReader(); var t = new DataTable(); t.Load(r);
-            if (disposeCommand) c.Dispose();
-        }
-        var after = Rss();
-        o.Add($"{name} P6 n={n} disposeCommand={disposeCommand} "
-            + $"RSS {before / 1024}KiB -> {after / 1024}KiB (delta {(after - before) / 1024}KiB)");
-        return o;
+        int before = Count();
+        var command = connection.CreateCommand();
+        command.CommandText = "select $1::int";
+        command.Parameters.Add(new Npgsql.NpgsqlParameter { Value = 7 });
+        command.Prepare();
+        command.ExecuteScalar();
+        int afterPrepare = Count();
+        command.Dispose();
+        int afterDispose = Count();
+        output.Add($"Npgsql P5 pg_prepared_statements: before={before}; "
+                 + $"after Prepare={afterPrepare}; after command.Dispose={afterDispose}");
+        return (output, before, afterPrepare, afterDispose);
     }
 }
 
 static class Program
 {
     const string Sql = "select 1 as a union all select 2 union all select 3";
-
     static readonly (string Name, bool Cmd, bool Rdr)[] Variants =
     {
-        ("B_neither",      false, false),   // the H-28 demanding instance
-        ("C_reader_only",  false, true ),   // reader.Dispose(): the arm that stops the Activity
-        ("D_command_only", true,  false),   // command.Dispose() after Load
-        ("A_both",         true,  true ),   // fully released control
+        ("B_neither", false, false),
+        ("C_reader_only", false, true),
+        ("D_command_only", true, false),
+        ("A_both", true, true),
     };
 
-    static async Task Main(string[] args)
+    static int _failures;
+    static void Check(bool condition, string message)
     {
-        ActivitySource.AddActivityListener(Probe.Listener);
-        var pgDsn = Environment.GetEnvironmentVariable("H28_PG_DSN")
-                    ?? "Host=127.0.0.1;Port=5432;Username=postgres;Password=postgres;Database=postgres";
+        Console.WriteLine($"{(condition ? "PASS" : "FAIL")} {message}");
+        if (!condition) _failures++;
+    }
+
+    static void Main(string[] args)
+    {
+        var pgDsn = Environment.GetEnvironmentVariable("H28_PG_DSN");
         var mode = args.Length > 0 ? args[0] : "all";
+        Console.WriteLine($"# H-28-CMD falsifier net={Environment.Version}; "
+            + $"Npgsql={typeof(NpgsqlConnection).Assembly.GetName().Version}; "
+            + $"Microsoft.Data.Sqlite={typeof(SqliteConnection).Assembly.GetName().Version}");
 
-        Console.WriteLine($"# H-28-CMD falsifier  net={Environment.Version} "
-            + $"npgsql={typeof(Npgsql.NpgsqlConnection).Assembly.GetName().Version} "
-            + $"sqlite={typeof(Microsoft.Data.Sqlite.SqliteConnection).Assembly.GetName().Version}");
-
-        // ---- Microsoft.Data.Sqlite: the arm where command.Dispose() DOES matter --------
-        Console.WriteLine("\n## Microsoft.Data.Sqlite (in-memory)");
-        using (var conn = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:"))
+        // G2/P6: direct native statements, separate isolated in-memory connections for B/C/D/A.
+        Console.WriteLine("\n## Microsoft.Data.Sqlite: direct sqlite3_next_stmt counts");
+        foreach (var v in Variants)
         {
-            conn.Open();
-            foreach (var v in Variants)
-                foreach (var line in Probe.Run(v.Name, conn, Sql, v.Cmd, v.Rdr, load: true))
-                    Console.WriteLine(line);
-            foreach (var line in Probe.NativeRetention("sqlite_nodispose",
-                         () => new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:"),
-                         Sql, disposeCommand: false)) Console.WriteLine(line);
-            foreach (var line in Probe.NativeRetention("sqlite_dispose",
-                         () => new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:"),
-                         Sql, disposeCommand: true)) Console.WriteLine(line);
+            var rows = Probe.SqliteStatementLifecycle(v.Name, disposeReader: v.Rdr,
+                                                       disposeCommand: v.Cmd);
+            foreach (var row in rows) Console.WriteLine(row);
+            int baselineSnapshot = ReadDelta(rows, "before query", expected: 0);
+            int afterExecute = ReadDelta(rows, "after ExecuteReader", expected: 1);
+            int afterLoad = ReadDelta(rows, "after DataTable.Load/reader.Close", expected: 1);
+            int afterReader = v.Rdr
+                ? ReadDelta(rows, "after reader.Dispose", expected: 1)
+                : afterLoad;
+            int afterCommand = v.Cmd
+                ? ReadDelta(rows, "after command.Dispose", expected: 0)
+                : afterReader;
+            Check(baselineSnapshot == 0 && afterExecute == 1 && afterLoad == 1
+                  && afterReader == 1 && afterCommand == (v.Cmd ? 0 : 1),
+                  $"SQLite {v.Name}: reader.Dispose leaves the statement; command.Dispose finalizes it");
         }
-        if (mode == "sqlite-only") return;
+        var reuseRows = Probe.SqliteStatementLifecycle("sqlite_reuse", disposeReader: false,
+                                                        disposeCommand: false, executeTwice: true);
+        foreach (var row in reuseRows) Console.WriteLine(row);
+        int secondExecute = ReadDelta(reuseRows, "after second ExecuteReader", expected: 1);
+        int secondLoad = ReadDelta(reuseRows, "after second Load", expected: 1);
+        int finalDispose = ReadDelta(reuseRows, "after final command.Dispose", expected: 0);
+        Check(secondExecute == 1 && secondLoad == 1 && finalDispose == 0,
+              "SQLite repeated execution replaces rather than accumulates statements");
 
-        // ---- Npgsql: the arm where command.Dispose() releases nothing ------------------
-        Console.WriteLine("\n## Npgsql (real PostgreSQL)");
-        var pg = new Npgsql.NpgsqlConnection(pgDsn);
-        try { await pg.OpenAsync(); }
-        catch (Exception e)
+        if (mode == "sqlite-only")
         {
-            Console.WriteLine($"# SKIP the Npgsql arm: cannot reach PostgreSQL at {pgDsn}: "
-                            + $"{e.GetType().Name}: {e.Message}");
-            Console.WriteLine("# Start one with ../run.sh runtime (pgserver) or set H28_PG_DSN.");
+            Console.WriteLine($"\n{(_failures == 0 ? "PASS" : "FAIL")} G2 SQLite-only; failures={_failures}");
+            Environment.ExitCode = _failures == 0 ? 0 : 1;
             return;
         }
-        using (pg)
+
+        if (string.IsNullOrWhiteSpace(pgDsn))
         {
-            var version = (string)await pg.ExecuteScalarAsync("select version()");
-            Console.WriteLine($"# server: {version.Split('\n')[0]}");
-            foreach (var v in Variants)
-                foreach (var line in Probe.Run(v.Name, pg, "select generate_series(1,3) as a",
-                                               v.Cmd, v.Rdr, load: true))
-                    Console.WriteLine(line);
-            foreach (var line in Probe.Prepared("npgsql", pg, "select $1::int"))
-                Console.WriteLine(line);
+            Console.Error.WriteLine("FAIL G1: H28_PG_DSN was not supplied; no PostgreSQL runtime was tested.");
+            Environment.ExitCode = 2;
+            return;
         }
 
-        Console.WriteLine("\n## how to read this");
-        Console.WriteLine("# P4 stopped=0 on B_neither/D_command_only and stopped=1 on C_reader_only/A_both");
-        Console.WriteLine("#    => only reader.Dispose() stops the command's Activity; command.Dispose() does not.");
-        Console.WriteLine("#    (P4 is 0/0 for every SQLite variant: Microsoft.Data.Sqlite has no ActivitySource.)");
-        Console.WriteLine("# P2 OK everywhere => the reader does not end the command's logical lifetime.");
-        Console.WriteLine("# P5 unchanged     => command.Dispose() releases no server-side prepared state.");
-        Console.WriteLine("# P6 delta(nodispose) >> delta(dispose) => native retention is real on SQLite only.");
+        Console.WriteLine("\n## Npgsql: P1-P3 (ActivityListener not installed)");
+        using var pg = new NpgsqlConnection(pgDsn);
+        pg.Open();
+        using (var versionCommand = pg.CreateCommand())
+        {
+            versionCommand.CommandText = "select version()";
+            var version = Convert.ToString(versionCommand.ExecuteScalar());
+            Console.WriteLine($"# server: {version?.Split('\n')[0]}");
+        }
+        foreach (var v in Variants)
+            foreach (var row in Probe.Lifecycle(v.Name, pg, Sql, v.Cmd, v.Rdr))
+                Console.WriteLine(row);
+
+        Console.WriteLine("\n## Npgsql: isolated P4 Activity lifecycle");
+        using (var listener = Probe.NewNpgsqlListener())
+        {
+            ActivitySource.AddActivityListener(listener);
+            foreach (var v in Variants)
+            {
+                var rows = Probe.ActivityLifecycle(v.Name, pg, "select generate_series(1,3) as a",
+                                                   disposeReader: v.Rdr, disposeCommand: v.Cmd);
+                foreach (var row in rows) Console.WriteLine(row);
+                var afterLoad = Snapshot(rows, "immediately after Load", started: 1, stopped: 0);
+                bool actionsCorrect = true;
+                if (v.Rdr)
+                    actionsCorrect &= Snapshot(rows, "immediately after reader.Dispose()",
+                                               started: 1, stopped: 1);
+                if (v.Cmd)
+                    actionsCorrect &= Snapshot(rows, "immediately after command.Dispose()",
+                                               started: 1, stopped: v.Rdr ? 1 : 0);
+                Check(afterLoad && actionsCorrect, $"Npgsql isolated Activity stages for {v.Name}");
+            }
+        }
+
+        Console.WriteLine("\n## Npgsql: P5 direct prepared-statement lifecycle");
+        var prepared = Probe.PreparedStatementLifecycle(pg);
+        foreach (var row in prepared.Output) Console.WriteLine(row);
+        Check(prepared.AfterPrepare > prepared.Before
+              && prepared.AfterDispose == prepared.AfterPrepare,
+              "Npgsql command.Dispose leaves the explicit prepared statement registered");
+        Console.WriteLine($"\n{(_failures == 0 ? "PASS" : "FAIL")} runtime falsifier; failures={_failures}");
+        Environment.ExitCode = _failures == 0 ? 0 : 1;
+    }
+
+    static int ReadDelta(List<string> rows, string stage, int expected)
+    {
+        var row = rows.SingleOrDefault(x => x.Contains(stage, StringComparison.Ordinal));
+        if (row is null) return int.MinValue;
+        var marker = "(delta=";
+        int start = row.IndexOf(marker, StringComparison.Ordinal);
+        if (start < 0) return int.MinValue;
+        start += marker.Length;
+        int end = row.IndexOf(')', start);
+        if (end < 0 || !int.TryParse(row.AsSpan(start, end - start), out var delta))
+            return int.MinValue;
+        if (delta != expected)
+            Console.WriteLine($"FAIL expected delta={expected} at {stage}, got {delta}");
+        return delta;
+    }
+
+    static bool Snapshot(List<string> rows, string stage, int started, int stopped)
+    {
+        var row = rows.SingleOrDefault(x => x.Contains(stage, StringComparison.Ordinal));
+        bool ok = row is not null && row.Contains($"started={started} stopped={stopped}",
+                                                   StringComparison.Ordinal);
+        if (!ok)
+            Console.WriteLine($"FAIL expected Activity started={started} stopped={stopped} at {stage}; "
+                            + $"observed: {row ?? "<missing snapshot>"}");
+        return ok;
     }
 }

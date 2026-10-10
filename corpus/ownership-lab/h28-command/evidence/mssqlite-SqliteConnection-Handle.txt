@@ -1,0 +1,13 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/efcore
+# ref       : v10.0.12
+# path      : src/Microsoft.Data.Sqlite.Core/SqliteConnection.cs
+# blob sha  : 3062c0f923c5358326da200bc01e7448bb756477
+# file sha256: 0fd8dd0cd1ca7e6f9ad7fa1301cfd77a743c33be3276550fad94b20557b096b6
+# file bytes : 38343
+# marker    : 'public virtual sqlite3? Handle'
+# region    : lines 129..131
+# derived by: scripts/derive_source_evidence.py
+  129|     public virtual sqlite3? Handle
+  130|         => _innerConnection?.Handle;
+  131| <blank>

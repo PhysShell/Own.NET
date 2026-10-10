@@ -9,7 +9,7 @@
 # region    : lines 34..65
 # derived by: scripts/derive_source_evidence.py
    34|         public virtual void Close() { }
-   35| 
+   35| <blank>
    36|         public virtual Task CloseAsync()
    37|         {
    38|             try
@@ -22,10 +22,10 @@
    45|                 return Task.FromException(e);
    46|             }
    47|         }
-   48| 
+   48| <blank>
    49|         [EditorBrowsable(EditorBrowsableState.Never)]
    50|         public void Dispose() => Dispose(true);
-   51| 
+   51| <blank>
    52|         protected virtual void Dispose(bool disposing)
    53|         {
    54|             if (disposing)
@@ -33,10 +33,10 @@
    56|                 Close();
    57|             }
    58|         }
-   59| 
+   59| <blank>
    60|         public virtual ValueTask DisposeAsync()
    61|         {
    62|             Dispose();
    63|             return default;
    64|         }
-   65| 
+   65| <blank>

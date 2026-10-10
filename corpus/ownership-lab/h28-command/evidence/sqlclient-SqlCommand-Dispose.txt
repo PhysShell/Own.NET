@@ -14,11 +14,11 @@
  1886|             {
  1887|                 // Release managed objects
  1888|                 _cachedMetaData = null;
- 1889| 
+ 1889| <blank>
  1890|                 // Reset async cache information to allow a second async execute
  1891|                 CachedAsyncState?.ResetAsyncState();
  1892|             }
- 1893| 
+ 1893| <blank>
  1894|             // Release unmanaged objects
  1895|             base.Dispose(disposing);
  1896|         }

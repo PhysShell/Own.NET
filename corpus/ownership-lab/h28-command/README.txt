@@ -1,59 +1,72 @@
 H-28-CMD: the DbCommand half of the `DataTable.Load(reader)` family.
 
-WHAT THIS IS
-  The original H-28 (corpus/ownership-lab/h28/, on the research branch
-  research/ownership-semantics-lab-v1 at 298b305 -- NOT on main) asked about argument
-  ownership transfer. Its runtime falsifier settled `DataTable.Load(reader)`: the reader IS
-  closed (RELEASE_IF_LAST_RESULT_SET, not BORROW). The same record then wrote down one
-  sentence and never classified it:
+STATUS
+  Final verdict: H28-INCONCLUSIVE pending G1/G2/G3. Provider source suggests a provider-specific
+  difference, but the .NET runtime falsifier and production Roslyn -> OwnIR -> core path have not
+  run yet. Read docs/notes/h28-npgsql-command-resolution.md before interpreting any artifact.
+
+  The original H-28 (research/ownership-semantics-lab-v1@298b305, not on main) settled
+  `DataTable.Load(reader)` for a one-result reader: it IS closed (`RELEASE_IF_LAST_RESULT_SET`,
+  not BORROW). That same record wrote down one sentence and never classified it:
 
       "what remains is the never-disposed DbCommand `cmd` (an object leak without a
        protocol consequence)"
       -- h28/scripts/h28_anchors_record.py, consequence_for_the_demanding_instance
 
-  This directory closes that sentence. Read docs/notes/h28-npgsql-command-resolution.md.
-
-  Verdict: H28-PROVIDER-SPECIFIC. Not disposing the command is a real resource defect on
-  Microsoft.Data.Sqlite and releases nothing on Npgsql / Microsoft.Data.SqlClient /
-  MySqlConnector. Details, citations and falsifiers are in the report.
+  This directory turns that residual into falsifiable source and runtime checks. It does not yet
+  call OWN001 a false positive, claim a native leak on Npgsql, or claim a proven model gap.
 
 LAYOUT
-  fx/CommandDispose.cs     the fixture, 9 methods (A/B/C/D + 5 controls), written against the
-                           ABSTRACT ADO.NET types on purpose -- that is what the extractor's
-                           IsOwningFactory matches, so one fixture shows the analyzer's verdict
-                           for every provider at once. Expectations are marked PREDICTED: the
-                           Roslyn extractor was not runnable where this was produced.
-  fx/CommandDispose.own    the ENGINE-RUNNABLE reduction of the same family. Needs only
-                           python3. This half WAS executed; see evidence/.
-  falsifier/Program.cs     the runtime falsifier: probes P1-P6 over variants A/B/C/D.
-  falsifier/h28cmd.csproj  net8.0, Npgsql 10.0.3, Microsoft.Data.Sqlite 10.0.12 -- the exact
-                           versions of the original H-28 falsifier, so the two runs compare.
-  run.sh                   driver. `engine` always runs; `runtime` prints SKIP-WHY and exits 0
-                           when there is no .NET SDK / NuGet / PostgreSQL, rather than faking it.
+  fx/CommandDispose.cs       nine C# methods (A/B/C/D + controls), using abstract ADO.NET types.
+                             The extraction expectations are PREDICTED until G3 runs.
+  fx/CommandDispose.own      engine-only manual reduction. This is not C# extraction evidence.
+  falsifier/Program.cs       P1-P5 and G2/P6. P4 is isolated from P1-P3; P6 counts live SQLite
+                             statements via sqlite3_next_stmt, not RSS or forced GC.
+  falsifier/h28cmd.csproj    net8.0, Npgsql 10.0.3, Microsoft.Data.Sqlite 10.0.12; compiles
+                             both the falsifier and fx/CommandDispose.cs.
+  falsifier/run_with_pgserver.py
+                             keeps the temporary pgserver alive while the .NET test runs.
+  scripts/verify_g3.py       production Roslyn -> OwnIR -> summaries -> core SARIF; exact expected
+                             finding anchors are checked, and all intermediate artifacts saved.
   scripts/derive_source_evidence.py
-                           re-fetches all 31 pinned source citations and rewrites evidence/.
-                           Non-zero exit = the report's source arm is stale.
-  evidence/*.txt           the artifacts every claim in the report cites. Each carries repo,
-                           ref, path, git blob sha, file sha256 and the extracted line range,
-                           so a quotation is checkable against git rather than against memory.
+                             re-fetches 44 upstream excerpts plus the Npgsql finalizer negative
+                             scan. Includes the SQLitePCLRaw opt-in required by sqlite3_next_stmt;
+                             TFM evidence confirms Npgsql 10.0.3 targets net8.0 and
+                             Microsoft.Data.Sqlite 10.0.12 has a netstandard2.0 asset usable by
+                             this net8.0 falsifier. Non-zero = drift.
+  run.sh                     PASS/FAIL/SKIP driver. `all-required` fails on any SKIP.
+  evidence/*.txt              source excerpts with repository/ref/path/git blob sha/file sha256/
+                             line range. Engine output is saved. G3/runtime output is created
+                             here by the required workflow if the gates run.
+  .github/workflows/h28-command-falsifier.yml
+                             runs `all-required` on the PR and preserves results as an artifact.
 
-REPRODUCE
-  corpus/ownership-lab/h28-command/run.sh engine     # python3 only; ~1s
-  corpus/ownership-lab/h28-command/run.sh runtime    # needs .NET 8 SDK + NuGet + PostgreSQL
+GATES
+  ./corpus/ownership-lab/h28-command/run.sh engine          # Python only; current manual core pass
+  ./corpus/ownership-lab/h28-command/run.sh g3-required     # production extractor and core
+  ./corpus/ownership-lab/h28-command/run.sh runtime-required # compile + provider runtime
+  ./corpus/ownership-lab/h28-command/run.sh all-required    # mandatory; SKIP is non-zero
   python3 corpus/ownership-lab/h28-command/scripts/derive_source_evidence.py
 
-  The runtime half starts PostgreSQL itself via pgserver (PyPI, self-contained PostgreSQL 16 on
-  a Unix socket) -- the same harness the original H-28 falsifier used -- or takes H28_PG_DSN.
+  Runtime dependencies: .NET 8 SDK, packages available from NuGet or already restored in cache,
+  and PostgreSQL 16. The workflow installs pinned pgserver 0.1.4 from PyPI; locally either
+  `pip install pgserver==0.1.4` or set H28_PG_DSN. There is no curl-only NuGet gate: the script attempts restore with
+  `--ignore-failed-sources`, so a warm package cache can work offline.
 
-WHAT WAS AND WAS NOT EXECUTED WHERE THIS WAS PRODUCED
-  executed   : the engine half (evidence/engine-CommandDispose.txt), the source derivation of
-               all 31 citations (evidence/*.txt + MANIFEST.txt), a live PostgreSQL 16.2 via
-               pgserver (used only for the server-side lifecycle checks quoted in the report).
-  NOT executed: the Roslyn extractor (no .NET SDK, no NuGet feed) and the runtime falsifier
-               (same). fx/CommandDispose.cs expectations and falsifier probes P2/P4/P6 are
-               therefore PREDICTED from source, and the report says so at each one.
+WHAT HAS RUN IN THE PRODUCING SANDBOX
+  PASS: Python engine reduction, matching three manual OWN001 expectations; 33/33 real-world
+        corpus cases; whole-tree Ruff; mypy (60 source files); 44 source excerpts + finalizer scan;
+        Python/shell syntax checks, C# grammar parse (not compilation), and pgserver supervisor
+        API/Unix-socket DSN preflight (not a .NET/provider falsifier).
+  BLOCKED: G1 runtime-project build, P4 Npgsql Activity probe, G2 native SQLite statement probe,
+           P5 Npgsql prepared-state probe, and G3 production C# extraction. No .NET SDK is present.
+           `all-required` ran and returned 1 on these SKIPs; see evidence/required-gates-local.txt.
+  INCOMPLETE: `python tests/run_tests.py` passed its early analysis/codegen checks, then stopped at
+              checkpoint validation because this checkout is shallow and `cargo` is absent. It is
+              not counted as a green full-suite run. See evidence/local-validation.txt.
 
-NO PRODUCTION CHANGE
-  Nothing here alters the extractor, the core, the vocabulary or any diagnostic. corpus/
-  ownership-lab/ is not globbed by tests/test_corpus.py (only corpus/real-world/ is), so these
-  fixtures are inert data until someone decides to act on the report's section 10.
+SCOPE
+  No production analyzer code, OwnIR vocabulary, ownership semantics, or diagnostics are changed.
+  The normal real-world corpus suite does not glob `corpus/ownership-lab/`; these are experiment
+  fixtures. Any follow-up architecture work, including #382, waits for G3 to reproduce the
+  predicted extraction loss.

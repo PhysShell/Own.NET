@@ -9,4 +9,4 @@
 # region    : lines 1096..1097
 # derived by: scripts/derive_source_evidence.py
  1096|     public override void Close() => Close(connectionClosing: false, async: false, isDisposing: false).GetAwaiter().GetResult();
- 1097| 
+ 1097| <blank>

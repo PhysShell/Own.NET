@@ -16,7 +16,7 @@
  1011|             {
  1012|                 Stop();
  1013|             }
- 1014| 
+ 1014| <blank>
  1015|             Dispose(true);
  1016|             GC.SuppressFinalize(this);
  1017|         }

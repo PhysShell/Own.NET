@@ -16,5 +16,5 @@
   125|         InternalConnection = connection;
   126|         CommandType = CommandType.Text;
   127|     }
-  128| 
+  128| <blank>
   129|     /// <summary>

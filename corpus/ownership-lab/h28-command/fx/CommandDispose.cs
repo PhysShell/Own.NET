@@ -3,10 +3,10 @@
 // Deliberately written against the ABSTRACT ADO.NET types (DbConnection / DbCommand /
 // DbDataReader), not against Npgsql, because that is exactly what Own.NET's
 // IsOwningFactory matches on (frontend/roslyn/OwnSharp.Extractor/Program.cs, the ADO.NET
-// tranche: receiver implements IDbConnection, return implements IDbCommand). The fixture
-// therefore shows the analyzer's verdict for EVERY provider at once -- which is the point:
-// the runtime semantics are NOT the same for every provider (see ../README.txt and
-// docs/notes/h28-npgsql-command-resolution.md).
+// tranche: receiver implements IDbConnection, return implements IDbCommand). This makes it a
+// useful source-level fixture for the provider-agnostic acquisition rule; it does NOT run the
+// same C# against each provider. Runtime/provider expectations remain predictions until G1/G2 run
+// (see ../README.txt and docs/notes/h28-npgsql-command-resolution.md).
 //
 // The method name carries the expectation. Run with the flow-locals default:
 //   dotnet ownsharp-extract.dll --flow-locals fx/CommandDispose.cs -o cmd.facts.json
@@ -52,10 +52,10 @@ public static class CommandDispose
         return table;
     }
 
-    // C: the reader explicitly released, the command not. This is the arm that matters for
-    // Npgsql tracing: reader.Dispose() is the ONLY thing that stops the command's Activity
-    // (NpgsqlDataReader.Dispose -> Command.TraceCommandStop; NpgsqlDataReader.Close does not).
-    // PREDICTED: OWN001 on `command`.
+    // C: the reader explicitly released, the command not. In Npgsql 10.0.3 source, reader
+    // Dispose/DisposeAsync call Command.TraceCommandStop while public Close uses the
+    // non-disposing close path. This predicts an Activity difference, not a runtime result;
+    // the isolated listener probe is G1/P4. PREDICTED: OWN001 on `command`.
     public static DataTable C_reader_disposed_command_not(DbConnection connection, string sql)
     {
         var command = connection.CreateCommand();
@@ -68,9 +68,10 @@ public static class CommandDispose
         return table;
     }
 
-    // D: the command released after Load, the reader not (Load already closed it).
-    // For Microsoft.Data.Sqlite this is the ONLY variant in the family that releases the
-    // native sqlite3_stmt handles at a deterministic point. PREDICTED: clean.
+    // D: the command released after Load, the reader not (Load already closed it). For
+    // Microsoft.Data.Sqlite 10.0.12, source predicts that command.Dispose deterministically
+    // finalizes the command-held sqlite3_stmt handles. G2 measures this directly; it has not
+    // run here. PREDICTED: clean.
     public static DataTable D_command_disposed_after_load(DbConnection connection, string sql)
     {
         var command = connection.CreateCommand();
@@ -117,10 +118,9 @@ public static class CommandDispose
         return n;
     }
 
-    // G: the command is still logically usable after the reader closes. NpgsqlDataReader
-    // .Cleanup sets `Command.State = CommandState.Idle`, so reuse is legitimate -- the
-    // command's lifetime is NOT bounded by the reader's. A model that treated reader close
-    // as ending the command would mispredict this. PREDICTED: clean.
+    // G: the source indicates reader cleanup sets `Command.State = CommandState.Idle`; this
+    // predicts reuse is possible and that the command lifetime is not bounded by reader close.
+    // P2 measures same-command reuse separately. PREDICTED: clean.
     public static int G_command_reused_after_reader_closed(DbConnection connection, string sql)
     {
         using var command = connection.CreateCommand();
@@ -133,12 +133,12 @@ public static class CommandDispose
         return command.ExecuteNonQuery();     // legal: the reader's Cleanup left it Idle
     }
 
-    // H: the prepared-statement arm. Server-side prepared state is the one resource in this
-    // family whose lifetime is NOT the command's: Npgsql registers it on the CONNECTOR
-    // (NpgsqlConnector.PreparedStatementManager), and NpgsqlCommand.Dispose never issues a
-    // DEALLOCATE. So disposing the command does not release it, and not disposing the command
-    // does not retain it. PREDICTED: OWN001 on `command` -- a finding whose fix would not
-    // change any server-side state.
+    // H: the prepared-statement arm. Npgsql source routes prepared-statement management through
+    // the connector's PreparedStatementManager, and its reviewed command Dispose body shows no
+    // explicit native-handle release or DEALLOCATE. Connector/session ownership alone does not
+    // prove the command cannot issue DEALLOCATE. P5 directly compares pg_prepared_statements
+    // before Prepare, after Prepare, and after this command's Dispose. Until then the server-side
+    // effect is unresolved. PREDICTED by extractor source only: OWN001 on `command`.
     public static int H_prepared_command_not_disposed(DbConnection connection, string sql)
     {
         var command = connection.CreateCommand();

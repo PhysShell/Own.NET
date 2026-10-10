@@ -9,5 +9,5 @@
 # region    : lines 15..17
 # derived by: scripts/derive_source_evidence.py
    15|     static readonly ActivitySource Source = new("Npgsql", GetLibraryVersion());
-   16| 
+   16| <blank>
    17|     internal static bool IsEnabled => Source.HasListeners();

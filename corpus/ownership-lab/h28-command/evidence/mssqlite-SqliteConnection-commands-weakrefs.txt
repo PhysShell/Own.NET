@@ -1,12 +1,12 @@
 # H-28-CMD source citation (auto-derived, do not edit by hand)
 # repo      : dotnet/efcore
-# ref       : main
+# ref       : v10.0.12
 # path      : src/Microsoft.Data.Sqlite.Core/SqliteConnection.cs
-# blob sha  : 22e183f1e7be5f329feb2de1ab46b5e722f107ba
-# file sha256: 7ab4e87bd49e75a8081f443be91a3b04ba5ca458ca05874f559c54b946ec6a9f
-# file bytes : 59980
+# blob sha  : 3062c0f923c5358326da200bc01e7448bb756477
+# file sha256: 0fd8dd0cd1ca7e6f9ad7fa1301cfd77a743c33be3276550fad94b20557b096b6
+# file bytes : 38343
 # marker    : 'List<WeakReference<SqliteCommand>> _commands'
-# region    : lines 32..33
+# region    : lines 31..32
 # derived by: scripts/derive_source_evidence.py
-   32|     private readonly List<WeakReference<SqliteCommand>> _commands = [];
-   33| 
+   31|     private readonly List<WeakReference<SqliteCommand>> _commands = [];
+   32| <blank>

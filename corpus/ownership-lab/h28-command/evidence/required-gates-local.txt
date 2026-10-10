@@ -1,0 +1,27 @@
+=== ENGINE: handwritten OwnLang reduction ===
+corpus/ownership-lab/h28-command/fx/CommandDispose.own:43:3: error: [OWN001] 'command' is owned but not released at end of function (leaks on at least one path) [resource: disposable]
+  43 |   release reader;              // DataTable.Load(reader) -> reader.Close()
+         ^
+  note: 'command' acquired here at corpus/ownership-lab/h28-command/fx/CommandDispose.own:41
+corpus/ownership-lab/h28-command/fx/CommandDispose.own:71:32: error: [OWN001] 'command' is owned but not released at end of function (leaks on at least one path) [resource: disposable]
+  71 |   let reader  = acquire Reader(command);
+                                      ^
+  note: 'command' acquired here at corpus/ownership-lab/h28-command/fx/CommandDispose.own:70
+corpus/ownership-lab/h28-command/fx/CommandDispose.own:71:7: error: [OWN001] 'reader' is owned but not released at end of function (leaks on at least one path) [resource: disposable]
+  71 |   let reader  = acquire Reader(command);
+             ^
+  note: 'reader' acquired here at corpus/ownership-lab/h28-command/fx/CommandDispose.own:71
+
+3 errors.
+# exit code: 1 (OWN001 is error severity, so a finding run exits 1)
+# command: python3 -m ownlang check corpus/ownership-lab/h28-command/fx/CommandDispose.own
+# python: Python 3.11.2
+PASS ENGINE: expected 2 command findings (B/E), 1 reader finding (E); A/D clean.
+=== G3: production Roslyn -> OwnIR -> summaries -> core ===
+SKIP G3 requires the .NET 8 SDK
+FAIL required gate cannot skip: G3 requires the .NET 8 SDK
+=== G1+G2: compiled provider falsifier ===
+SKIP runtime falsifier requires the .NET 8 SDK
+FAIL required gate cannot skip: runtime falsifier requires the .NET 8 SDK
+
+# all-required exit code: 1

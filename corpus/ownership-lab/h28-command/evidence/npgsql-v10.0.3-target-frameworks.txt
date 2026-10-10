@@ -1,0 +1,14 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : npgsql/npgsql
+# ref       : v10.0.3
+# path      : src/Npgsql/Npgsql.csproj
+# blob sha  : 01aaa5013daba8a6d3d034593477ea04049c5044
+# file sha256: fd36c9e18a2c47656732ed6a6173cfe459f36b706b1798153f82ce4803da2894
+# file bytes : 2005
+# marker    : '<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>'
+# region    : lines 8..11
+# derived by: scripts/derive_source_evidence.py
+    8|     <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    9|     <NoWarn>$(NoWarn);CA2017</NoWarn>
+   10|     <NoWarn>$(NoWarn);NPG9001</NoWarn> <!-- Converter-related APIs are experimental -->
+   11|     <NoWarn>$(NoWarn);NPG9002</NoWarn> <!-- DatabaseInfo-related APIs are experimental -->

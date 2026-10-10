@@ -1,0 +1,26 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : ericsink/SQLitePCL.raw
+# ref       : v2.1.12
+# path      : src/SQLitePCLRaw.core/handles.cs
+# blob sha  : 0973a6de5a4e18374193dce87e4ded3b7d736fbf
+# file sha256: 9afd074db410ba78fdeb89540fc05a42c52d64a924a041b907f64198830e6c0a
+# file bytes : 11066
+# marker    : 'public void enable_sqlite3_next_stmt(bool enabled)'
+# region    : lines 300..315
+# derived by: scripts/derive_source_evidence.py
+  300|         public void enable_sqlite3_next_stmt(bool enabled)
+  301|         {
+  302|             if (enabled)
+  303|             {
+  304|                 if (_stmts == null)
+  305|                 {
+  306|                     _stmts = new ConcurrentDictionary<IntPtr, sqlite3_stmt>();
+  307|                 }
+  308|             }
+  309|             else
+  310|             {
+  311|                 _stmts = null;
+  312|             }
+  313|         }
+  314| <blank>
+  315|         internal void add_stmt(sqlite3_stmt stmt)

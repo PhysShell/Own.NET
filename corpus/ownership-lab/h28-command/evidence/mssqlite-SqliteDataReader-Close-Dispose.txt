@@ -1,52 +1,52 @@
 # H-28-CMD source citation (auto-derived, do not edit by hand)
 # repo      : dotnet/efcore
-# ref       : main
+# ref       : v10.0.12
 # path      : src/Microsoft.Data.Sqlite.Core/SqliteDataReader.cs
-# blob sha  : 105e6e4a2df2206c651fb393564a90fad686686a
-# file sha256: 5c3e1c054fceb256fc9b2642db5f16cf870f726aa29e681d36ed4933ef989e9b
-# file bytes : 36674
+# blob sha  : 2537670988b0bef85011b4f42a4fb2e77e572f44
+# file sha256: 0712b68bd0b036886b3ea5c5209ba257a4d6b3ba9ac51655dbb2c4c374946968
+# file bytes : 33555
 # marker    : 'public override void Close()'
-# region    : lines 272..313
+# region    : lines 227..268
 # derived by: scripts/derive_source_evidence.py
-  272|     public override void Close()
-  273|         => Dispose(true);
-  274| 
-  275|     /// <summary>
-  276|     ///     Releases any resources used by the data reader and closes it.
-  277|     /// </summary>
-  278|     /// <param name="disposing">
-  279|     ///     <see langword="true" /> to release managed and unmanaged resources;
-  280|     ///     <see langword="false" /> to release only unmanaged resources.
-  281|     /// </param>
-  282|     protected override void Dispose(bool disposing)
-  283|     {
-  284|         if (!disposing || _closed)
-  285|         {
-  286|             return;
-  287|         }
-  288| 
-  289|         _command.DataReader = null;
-  290| 
-  291|         _record?.Dispose();
-  292|         _record = null;
-  293| 
-  294|         if (_stmtEnumerator != null)
-  295|         {
-  296|             try
-  297|             {
-  298|                 while (NextResult())
-  299|                 {
-  300|                 }
-  301|             }
-  302|             catch
-  303|             {
-  304|             }
-  305|         }
-  306| 
-  307|         _stmtEnumerator?.Dispose();
-  308| 
-  309|         _closed = true;
-  310| 
-  311|         if (_closeConnection)
-  312|         {
-  313|             _command.Connection!.Close();
+  227|     public override void Close()
+  228|         => Dispose(true);
+  229| <blank>
+  230|     /// <summary>
+  231|     ///     Releases any resources used by the data reader and closes it.
+  232|     /// </summary>
+  233|     /// <param name="disposing">
+  234|     ///     <see langword="true" /> to release managed and unmanaged resources;
+  235|     ///     <see langword="false" /> to release only unmanaged resources.
+  236|     /// </param>
+  237|     protected override void Dispose(bool disposing)
+  238|     {
+  239|         if (!disposing || _closed)
+  240|         {
+  241|             return;
+  242|         }
+  243| <blank>
+  244|         _command.DataReader = null;
+  245| <blank>
+  246|         _record?.Dispose();
+  247|         _record = null;
+  248| <blank>
+  249|         if (_stmtEnumerator != null)
+  250|         {
+  251|             try
+  252|             {
+  253|                 while (NextResult())
+  254|                 {
+  255|                 }
+  256|             }
+  257|             catch
+  258|             {
+  259|             }
+  260|         }
+  261| <blank>
+  262|         _stmtEnumerator?.Dispose();
+  263| <blank>
+  264|         _closed = true;
+  265| <blank>
+  266|         if (_closeConnection)
+  267|         {
+  268|             _command.Connection!.Close();

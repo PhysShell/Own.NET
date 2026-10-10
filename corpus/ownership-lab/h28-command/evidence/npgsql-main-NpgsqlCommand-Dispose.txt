@@ -11,16 +11,16 @@
  1632|     protected override void Dispose(bool disposing)
  1633|     {
  1634|         ResetTransaction();
- 1635| 
+ 1635| <blank>
  1636|         State = CommandState.Disposed;
- 1637| 
+ 1637| <blank>
  1638|         if (IsCacheable && InternalConnection is not null && InternalConnection.CachedCommand is null)
  1639|         {
  1640|             Reset();
  1641|             InternalConnection.CachedCommand = this;
  1642|             return;
  1643|         }
- 1644| 
+ 1644| <blank>
  1645|         IsCacheable = false;
  1646|     }
- 1647| 
+ 1647| <blank>

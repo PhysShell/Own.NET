@@ -1,0 +1,14 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/efcore
+# ref       : v10.0.12
+# path      : eng/Versions.props
+# blob sha  : 4299bcff02df10cacebb45435c16cd0af9f901f3
+# file sha256: a31b3e681cac5f1537ef29e7b81976b4f61533affd7c5857de3d19f469be7c6e
+# file bytes : 2726
+# marker    : '<SQLitePCLRawVersion>'
+# region    : lines 34..37
+# derived by: scripts/derive_source_evidence.py
+   34|     <SQLitePCLRawVersion>2.1.12</SQLitePCLRawVersion>
+   35|     <SQLitePCLRawBundleESqlcipherVersion>2.1.11</SQLitePCLRawBundleESqlcipherVersion>
+   36|     <SQLitePCLRawBundleSqlite3Version>2.1.11</SQLitePCLRawBundleSqlite3Version>
+   37|     <SQLitePCLRawBundleWinsqlite3Version>2.1.11</SQLitePCLRawBundleWinsqlite3Version>

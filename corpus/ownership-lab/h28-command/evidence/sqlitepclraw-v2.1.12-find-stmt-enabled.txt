@@ -1,0 +1,26 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : ericsink/SQLitePCL.raw
+# ref       : v2.1.12
+# path      : src/SQLitePCLRaw.core/handles.cs
+# blob sha  : 0973a6de5a4e18374193dce87e4ded3b7d736fbf
+# file sha256: 9afd074db410ba78fdeb89540fc05a42c52d64a924a041b907f64198830e6c0a
+# file bytes : 11066
+# marker    : 'internal sqlite3_stmt find_stmt(IntPtr p)'
+# region    : lines 323..338
+# derived by: scripts/derive_source_evidence.py
+  323|         internal sqlite3_stmt find_stmt(IntPtr p)
+  324|         {
+  325|             if (_stmts != null)
+  326|             {
+  327|                 return _stmts[p];
+  328|             }
+  329|             else
+  330|             {
+  331|                 // any change to the wording of this error message might break a test case
+  332|                 throw new Exception("The sqlite3_next_stmt() function is disabled.  To enable it, call sqlite3.enable_sqlite3_next_stmt(true) immediately after opening the sqlite3 connection.");
+  333|             }
+  334|         }
+  335| <blank>
+  336|         internal void remove_stmt(sqlite3_stmt s)
+  337|         {
+  338|             if (_stmts != null)

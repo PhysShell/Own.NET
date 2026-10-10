@@ -1,0 +1,38 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : npgsql/npgsql
+# ref       : v10.0.3
+# path      : src/Npgsql/NpgsqlDataReader.cs
+# blob sha  : 55753dc7f6c7500fe61fbf23e913a61e84fa287c
+# file sha256: 9c109626d6627b55aef9768827ce4aa860d3934c224d009048ba57060431607c
+# file bytes : 92885
+# marker    : 'public override async ValueTask DisposeAsync()'
+# region    : lines 1037..1064
+# derived by: scripts/derive_source_evidence.py
+ 1037|     public override async ValueTask DisposeAsync()
+ 1038|     {
+ 1039|         try
+ 1040|         {
+ 1041|             await Close(connectionClosing: false, async: true, isDisposing: true).ConfigureAwait(false);
+ 1042|         }
+ 1043|         catch (Exception ex)
+ 1044|         {
+ 1045|             // In the case of a PostgresException (or multiple ones, if we have error barriers), the reader's state has already been set
+ 1046|             // to Disposed in Close above; in multiplexing, we also unbind the connector (with its reader), and at that point it can be used
+ 1047|             // by other consumers. Therefore, we only set the state to Disposed if the exception *wasn't* a PostgresException.
+ 1048|             if (!(ex is PostgresException ||
+ 1049|                   ex is NpgsqlException { InnerException: AggregateException aggregateException } &&
+ 1050|                   AllPostgresExceptions(aggregateException.InnerExceptions)))
+ 1051|             {
+ 1052|                 State = ReaderState.Disposed;
+ 1053|             }
+ 1054|             throw;
+ 1055|         }
+ 1056|         finally
+ 1057|         {
+ 1058|             Command.TraceCommandStop();
+ 1059|         }
+ 1060|     }
+ 1061| <blank>
+ 1062|     static bool AllPostgresExceptions(ReadOnlyCollection<Exception> collection)
+ 1063|     {
+ 1064|         foreach (var exception in collection)

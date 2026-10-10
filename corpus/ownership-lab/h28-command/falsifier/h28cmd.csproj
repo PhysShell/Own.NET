@@ -19,5 +19,7 @@
   <ItemGroup>
     <PackageReference Include="Npgsql" Version="10.0.3" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+    <!-- Compile the production-extractor fixture too, so G1 catches source/API drift. -->
+    <Compile Include="../fx/CommandDispose.cs" Link="CommandDispose.cs" />
   </ItemGroup>
 </Project>

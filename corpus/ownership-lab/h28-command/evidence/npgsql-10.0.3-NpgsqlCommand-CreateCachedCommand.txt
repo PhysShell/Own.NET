@@ -10,4 +10,4 @@
 # derived by: scripts/derive_source_evidence.py
   166|     internal static NpgsqlCommand CreateCachedCommand(NpgsqlConnection connection)
   167|         => new(null, connection) { IsCacheable = true };
-  168| 
+  168| <blank>

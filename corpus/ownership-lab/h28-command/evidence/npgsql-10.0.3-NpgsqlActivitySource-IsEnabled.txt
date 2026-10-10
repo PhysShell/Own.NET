@@ -9,4 +9,4 @@
 # region    : lines 17..18
 # derived by: scripts/derive_source_evidence.py
    17|     internal static bool IsEnabled => Source.HasListeners();
-   18| 
+   18| <blank>

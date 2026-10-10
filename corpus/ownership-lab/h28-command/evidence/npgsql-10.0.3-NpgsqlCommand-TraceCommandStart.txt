@@ -11,19 +11,19 @@
  1748|     internal void TraceCommandStart(NpgsqlTracingOptions tracingOptions, bool? prepared)
  1749|     {
  1750|         Debug.Assert(CurrentActivity is null);
- 1751| 
+ 1751| <blank>
  1752|         if (NpgsqlActivitySource.IsEnabled)
  1753|         {
  1754|             var enableTracing = WrappingBatch is not null
  1755|                 ? tracingOptions.BatchFilter?.Invoke(WrappingBatch) ?? true
  1756|                 : tracingOptions.CommandFilter?.Invoke(this) ?? true;
- 1757| 
+ 1757| <blank>
  1758|             if (enableTracing)
  1759|             {
  1760|                 var spanName = WrappingBatch is not null
  1761|                     ? tracingOptions.BatchSpanNameProvider?.Invoke(WrappingBatch)
  1762|                     : tracingOptions.CommandSpanNameProvider?.Invoke(this);
- 1763| 
+ 1763| <blank>
  1764|                 CurrentActivity = NpgsqlActivitySource.CommandStart(
  1765|                     WrappingBatch is not null ? GetBatchFullCommandText() : CommandText,
  1766|                     CommandType,
@@ -32,5 +32,5 @@
  1769|             }
  1770|         }
  1771|     }
- 1772| 
+ 1772| <blank>
  1773|     internal void TraceCommandEnrich(NpgsqlConnector connector)

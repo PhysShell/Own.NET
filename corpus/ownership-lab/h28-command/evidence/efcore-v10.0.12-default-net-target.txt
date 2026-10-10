@@ -1,0 +1,14 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/efcore
+# ref       : v10.0.12
+# path      : eng/Versions.props
+# blob sha  : 4299bcff02df10cacebb45435c16cd0af9f901f3
+# file sha256: a31b3e681cac5f1537ef29e7b81976b4f61533affd7c5857de3d19f469be7c6e
+# file bytes : 2726
+# marker    : '<DefaultNetCoreTargetFramework>net10.0</DefaultNetCoreTargetFramework>'
+# region    : lines 14..17
+# derived by: scripts/derive_source_evidence.py
+   14|     <DefaultNetCoreTargetFramework>net10.0</DefaultNetCoreTargetFramework>
+   15|   </PropertyGroup>
+   16|   <PropertyGroup Label="Arcade settings">
+   17|     <UsingToolXliff>False</UsingToolXliff>
