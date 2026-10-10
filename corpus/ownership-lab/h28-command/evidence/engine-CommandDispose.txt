@@ -1,0 +1,18 @@
+corpus/ownership-lab/h28-command/fx/CommandDispose.own:42:3: error: [OWN001] 'command' is owned but not released at end of function (leaks on at least one path) [resource: disposable]
+  42 |   release reader;              // DataTable.Load(reader) -> reader.Close()
+         ^
+  note: 'command' acquired here at corpus/ownership-lab/h28-command/fx/CommandDispose.own:40
+corpus/ownership-lab/h28-command/fx/CommandDispose.own:69:32: error: [OWN001] 'command' is owned but not released at end of function (leaks on at least one path) [resource: disposable]
+  69 |   let reader  = acquire Reader(command);
+                                      ^
+  note: 'command' acquired here at corpus/ownership-lab/h28-command/fx/CommandDispose.own:68
+corpus/ownership-lab/h28-command/fx/CommandDispose.own:69:7: error: [OWN001] 'reader' is owned but not released at end of function (leaks on at least one path) [resource: disposable]
+  69 |   let reader  = acquire Reader(command);
+             ^
+  note: 'reader' acquired here at corpus/ownership-lab/h28-command/fx/CommandDispose.own:69
+
+3 errors.
+# exit code: 1  (OWN001 is error-severity, so non-zero is the expected result)
+# command  : python3 -m ownlang check corpus/ownership-lab/h28-command/fx/CommandDispose.own
+# cwd      : repository root
+# python   : Python 3.11.2

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Pinned to the exact versions the original H-28 runtime falsifier used
+    (corpus/ownership-lab/h28/falsifier/w28.csproj), so the two runs are comparable:
+    net8.0, Npgsql 10.0.3, Microsoft.Data.Sqlite 10.0.12, PostgreSQL 16.
+    To re-check the CURRENT provider instead, bump Npgsql and re-run: the report's
+    Npgsql arm claims stability from v10.0.3 to main, which is a source-level claim
+    (evidence/npgsql-main-*.txt) that this run should corroborate.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>h28cmd-falsifier</AssemblyName>
+    <RootNamespace>H28Cmd</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+  </ItemGroup>
+</Project>

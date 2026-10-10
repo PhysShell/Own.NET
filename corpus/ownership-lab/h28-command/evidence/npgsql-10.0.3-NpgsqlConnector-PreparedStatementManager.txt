@@ -1,0 +1,12 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : npgsql/npgsql
+# ref       : v10.0.3
+# path      : src/Npgsql/Internal/NpgsqlConnector.cs
+# blob sha  : 663577ea1a89fbf818fd92cf81429a2e069ec186
+# file sha256: 7a13d79578e0a0874c5842532d450d496f7d52c0f66d3fa7c1a2984a83465274
+# file bytes : 138455
+# marker    : 'internal PreparedStatementManager PreparedStatementManager'
+# region    : lines 164..165
+# derived by: scripts/derive_source_evidence.py
+  164|     internal PreparedStatementManager PreparedStatementManager { get; }
+  165| 

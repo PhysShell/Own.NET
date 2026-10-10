@@ -1,0 +1,25 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : npgsql/npgsql
+# ref       : v10.0.3
+# path      : src/Npgsql/NpgsqlConnection.cs
+# blob sha  : 5973efc92db9e0b5734884257bbfcda176099e64
+# file sha256: 02ed57055a9e1f025c631590d10c4040af1abddf4fa53d04cd07eaf35675d93b
+# file bytes : 87404
+# marker    : 'public new NpgsqlCommand CreateCommand()'
+# region    : lines 549..563
+# derived by: scripts/derive_source_evidence.py
+  549|     public new NpgsqlCommand CreateCommand()
+  550|     {
+  551|         CheckDisposed();
+  552| 
+  553|         var cachedCommand = CachedCommand;
+  554|         if (cachedCommand is not null)
+  555|         {
+  556|             CachedCommand = null;
+  557|             cachedCommand.State = CommandState.Idle;
+  558|             return cachedCommand;
+  559|         }
+  560| 
+  561|         return NpgsqlCommand.CreateCachedCommand(this);
+  562|     }
+  563| 

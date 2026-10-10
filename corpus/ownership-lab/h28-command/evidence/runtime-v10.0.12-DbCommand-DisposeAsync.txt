@@ -1,0 +1,16 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/runtime
+# ref       : v10.0.12
+# path      : src/libraries/System.Data.Common/src/System/Data/Common/DbCommand.cs
+# blob sha  : 5538ea867a81b3e8e31868576302e6d2150875dd
+# file sha256: c8f6f56c13b82f0556f5c5235dafe96e6c434fbea4476ad0087220eea85d033f
+# file bytes : 8678
+# marker    : 'public virtual ValueTask DisposeAsync()'
+# region    : lines 245..250
+# derived by: scripts/derive_source_evidence.py
+  245|         public virtual ValueTask DisposeAsync()
+  246|         {
+  247|             Dispose();
+  248|             return default;
+  249|         }
+  250|     }

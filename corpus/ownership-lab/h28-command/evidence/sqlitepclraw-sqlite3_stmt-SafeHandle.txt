@@ -1,0 +1,36 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : ericsink/SQLitePCL.raw
+# ref       : main
+# path      : src/SQLitePCLRaw.core/handles.cs
+# blob sha  : e7a73ebcda5243a9c36c716b2f98ad4191424ace
+# file sha256: 0cb6c489786c3acf237ef0760fd8aa2703e8c0bf500301fe746ac1dd102b13bd
+# file bytes : 11664
+# marker    : 'public class sqlite3_stmt : SafeHandle'
+# region    : lines 196..221
+# derived by: scripts/derive_source_evidence.py
+  196|     public class sqlite3_stmt : SafeHandle
+  197|     {
+  198|         private sqlite3 _db;
+  199| 
+  200|         internal static sqlite3_stmt From(IntPtr p, sqlite3 db)
+  201|         {
+  202|             var h = new sqlite3_stmt();
+  203|             h.SetHandle(p);
+  204|             db.add_stmt(h);
+  205|             h._db = db;
+  206|             return h;
+  207|         }
+  208| 
+  209|         sqlite3_stmt() : base(IntPtr.Zero, true)
+  210|         {
+  211|         }
+  212| 
+  213|         public override bool IsInvalid => handle == IntPtr.Zero;
+  214| 
+  215|         protected override bool ReleaseHandle()
+  216|         {
+  217|             int rc = raw.internal_sqlite3_finalize(handle);
+  218|             // TODO check rc?
+  219|             _db.remove_stmt(this);
+  220|             return true;
+  221|         }

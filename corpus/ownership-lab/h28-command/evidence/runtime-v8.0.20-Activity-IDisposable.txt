@@ -1,0 +1,12 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/runtime
+# ref       : v8.0.20
+# path      : src/libraries/System.Diagnostics.DiagnosticSource/src/System/Diagnostics/Activity.cs
+# blob sha  : db4d5e2308108780e377661566053c665036a997
+# file sha256: 2fcfbffca75351dd8512078a608d5b90800fab9d36fe49e3da65d67166e88aa5
+# file bytes : 82453
+# marker    : 'public partial class Activity : IDisposable'
+# region    : lines 56..57
+# derived by: scripts/derive_source_evidence.py
+   56|     public partial class Activity : IDisposable
+   57|     {

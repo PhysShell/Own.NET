@@ -1,0 +1,42 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/runtime
+# ref       : v10.0.12
+# path      : src/libraries/System.Data.Common/src/System/Data/Common/DbDataReader.cs
+# blob sha  : 77f2184ea1b03483fa3fad44b482ed8f49295a4e
+# file sha256: c2f3c2871cbc269fcb5ffb2c471c92336812a76ce642b22dd65228dad125a91e
+# file bytes : 11831
+# marker    : 'public virtual void Close() { }'
+# region    : lines 34..65
+# derived by: scripts/derive_source_evidence.py
+   34|         public virtual void Close() { }
+   35| 
+   36|         public virtual Task CloseAsync()
+   37|         {
+   38|             try
+   39|             {
+   40|                 Close();
+   41|                 return Task.CompletedTask;
+   42|             }
+   43|             catch (Exception e)
+   44|             {
+   45|                 return Task.FromException(e);
+   46|             }
+   47|         }
+   48| 
+   49|         [EditorBrowsable(EditorBrowsableState.Never)]
+   50|         public void Dispose() => Dispose(true);
+   51| 
+   52|         protected virtual void Dispose(bool disposing)
+   53|         {
+   54|             if (disposing)
+   55|             {
+   56|                 Close();
+   57|             }
+   58|         }
+   59| 
+   60|         public virtual ValueTask DisposeAsync()
+   61|         {
+   62|             Dispose();
+   63|             return default;
+   64|         }
+   65| 

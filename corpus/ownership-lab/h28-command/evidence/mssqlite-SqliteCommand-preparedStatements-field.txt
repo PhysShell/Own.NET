@@ -1,0 +1,12 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/efcore
+# ref       : main
+# path      : src/Microsoft.Data.Sqlite.Core/SqliteCommand.cs
+# blob sha  : 7436572dcc87189532e757de1717e4972b1c23f3
+# file sha256: 7ac8596c1cd999a3967f30890a0e4bbd982b549e716b873106827377bc232588
+# file bytes : 26373
+# marker    : '_preparedStatements ='
+# region    : lines 31..32
+# derived by: scripts/derive_source_evidence.py
+   31|     private readonly List<(sqlite3_stmt Statement, int ParamCount)> _preparedStatements = [with(1)];
+   32|     private SqliteConnection? _connection;

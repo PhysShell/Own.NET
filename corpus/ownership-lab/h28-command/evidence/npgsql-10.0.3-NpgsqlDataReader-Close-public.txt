@@ -1,0 +1,12 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : npgsql/npgsql
+# ref       : v10.0.3
+# path      : src/Npgsql/NpgsqlDataReader.cs
+# blob sha  : 55753dc7f6c7500fe61fbf23e913a61e84fa287c
+# file sha256: 9c109626d6627b55aef9768827ce4aa860d3934c224d009048ba57060431607c
+# file bytes : 92885
+# marker    : 'public override void Close() => Close(connectionClosing: false'
+# region    : lines 1073..1074
+# derived by: scripts/derive_source_evidence.py
+ 1073|     public override void Close() => Close(connectionClosing: false, async: false, isDisposing: false).GetAwaiter().GetResult();
+ 1074| 

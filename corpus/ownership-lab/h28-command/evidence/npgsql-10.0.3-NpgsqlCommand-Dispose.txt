@@ -1,0 +1,26 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : npgsql/npgsql
+# ref       : v10.0.3
+# path      : src/Npgsql/NpgsqlCommand.cs
+# blob sha  : 8ddbb2e5fb846d1905c237aa351ac622171e1994
+# file sha256: 6bdde5901d32a6331a0d22367673a83bcce01d9fe0782bbf6829594e52837b6f
+# file bytes : 84694
+# marker    : 'protected override void Dispose(bool disposing)'
+# region    : lines 1712..1727
+# derived by: scripts/derive_source_evidence.py
+ 1712|     protected override void Dispose(bool disposing)
+ 1713|     {
+ 1714|         ResetTransaction();
+ 1715| 
+ 1716|         State = CommandState.Disposed;
+ 1717| 
+ 1718|         if (IsCacheable && InternalConnection is not null && InternalConnection.CachedCommand is null)
+ 1719|         {
+ 1720|             Reset();
+ 1721|             InternalConnection.CachedCommand = this;
+ 1722|             return;
+ 1723|         }
+ 1724| 
+ 1725|         IsCacheable = false;
+ 1726|     }
+ 1727| 

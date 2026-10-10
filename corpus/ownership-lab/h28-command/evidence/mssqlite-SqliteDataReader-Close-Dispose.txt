@@ -1,0 +1,52 @@
+# H-28-CMD source citation (auto-derived, do not edit by hand)
+# repo      : dotnet/efcore
+# ref       : main
+# path      : src/Microsoft.Data.Sqlite.Core/SqliteDataReader.cs
+# blob sha  : 105e6e4a2df2206c651fb393564a90fad686686a
+# file sha256: 5c3e1c054fceb256fc9b2642db5f16cf870f726aa29e681d36ed4933ef989e9b
+# file bytes : 36674
+# marker    : 'public override void Close()'
+# region    : lines 272..313
+# derived by: scripts/derive_source_evidence.py
+  272|     public override void Close()
+  273|         => Dispose(true);
+  274| 
+  275|     /// <summary>
+  276|     ///     Releases any resources used by the data reader and closes it.
+  277|     /// </summary>
+  278|     /// <param name="disposing">
+  279|     ///     <see langword="true" /> to release managed and unmanaged resources;
+  280|     ///     <see langword="false" /> to release only unmanaged resources.
+  281|     /// </param>
+  282|     protected override void Dispose(bool disposing)
+  283|     {
+  284|         if (!disposing || _closed)
+  285|         {
+  286|             return;
+  287|         }
+  288| 
+  289|         _command.DataReader = null;
+  290| 
+  291|         _record?.Dispose();
+  292|         _record = null;
+  293| 
+  294|         if (_stmtEnumerator != null)
+  295|         {
+  296|             try
+  297|             {
+  298|                 while (NextResult())
+  299|                 {
+  300|                 }
+  301|             }
+  302|             catch
+  303|             {
+  304|             }
+  305|         }
+  306| 
+  307|         _stmtEnumerator?.Dispose();
+  308| 
+  309|         _closed = true;
+  310| 
+  311|         if (_closeConnection)
+  312|         {
+  313|             _command.Connection!.Close();
