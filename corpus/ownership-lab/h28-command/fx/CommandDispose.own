@@ -7,9 +7,9 @@
 // of the C#, not C# the checker read. It models the two obligations the extractor's
 // IsOwningFactory appears to mint for this family -- IDbConnection.CreateCommand() -> DbCommand
 // and IDbCommand.ExecuteReader() -> DbDataReader -- and it models the H-28 runtime fact that
-// DataTable.Load(reader) closes the reader. The production extractor -> OwnIR path has NOT yet
-// run here (G3 is pending). This hand-written reduction encodes the candidate callee effect
-// because source inspection predicts the argument-escape rule may drop the call instead.
+// DataTable.Load(reader) closes the reader. This hand-written reduction is NOT the G3 C# path;
+// the production extractor -> OwnIR -> verdict ran separately in workflow #38048287923. This
+// reduction encodes the witnessed callee effect explicitly so the core-only result stays distinct.
 module H28Cmd
 
 resource Command {
@@ -36,7 +36,7 @@ resource Reader {
 // Sqlite AND Npgsql). The command is never released.
 // EXPECTED for this manual reduction: OWN001 on 'command'. This does not decide whether the
 // diagnostic's practical implication is misleading for a provider; provider effects are not
-// encoded in this reduction, and the production C# extraction result is still pending G3.
+// encoded in this reduction. G3 independently confirmed the C# extraction pattern.
 fn B_load_neither_disposed(conn: int) {
   let command = acquire Command(conn);
   let reader  = acquire Reader(command);
@@ -53,8 +53,8 @@ fn A_load_both_released(conn: int) {
 }
 
 // D -- control: the command released after Load. EXPECTED: clean in this manual reduction.
-// Source predicts this is the arm that deterministically finalizes Microsoft.Data.Sqlite's
-// command-held sqlite3_stmt handles; G2 must confirm it before treating that as a result.
+// G2 confirmed this is the arm that returned Microsoft.Data.Sqlite's directly observed
+// command-held sqlite3_stmt count to baseline. This manual reduction models only ownership ops.
 fn D_command_released_after_load(conn: int) {
   let command = acquire Command(conn);
   let reader  = acquire Reader(command);

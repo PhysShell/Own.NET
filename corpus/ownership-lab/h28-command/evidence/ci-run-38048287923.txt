@@ -1,0 +1,36 @@
+# H-28 mandatory GitHub Actions gate record
+# Captured from gh run view / GitHub Actions API; this is status metadata, not the per-stage log.
+run: https://github.com/PhysShell/Own.NET/actions/runs/38048287923
+head: 008a21736e83139954d4ed1b34ab89fc8a194a00 (arena/e1a5511b-own-net; PR #399)
+{
+  "conclusion": "success",
+  "databaseId": 38048287923,
+  "event": "pull_request",
+  "headSha": "008a21736e83139954d4ed1b34ab89fc8a194a00",
+  "jobs": [
+    {
+      "name": "H-28 required runtime + extractor gates",
+      "status": "completed",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Install self-contained PostgreSQL 16 harness",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run mandatory G1-G3 gates (SKIP is failure)",
+          "conclusion": "success"
+        },
+        {
+          "name": "Preserve source facts and runtime observations",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/PhysShell/Own.NET/actions/runs/38048287923"
+}
+artifact:
+{"expired":false,"name":"h28-command-falsifier","size_in_bytes":6235}
+note: raw run-log and artifact downloads redirect to the Actions results blob service; this sandbox cannot access that host.
