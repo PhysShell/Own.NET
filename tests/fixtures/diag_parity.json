@@ -634,80 +634,6 @@
       ]
     },
     {
-      "name": "curated_buffer_policy",
-      "source": "module M\nfn f(n: int) {\n  let a = Buffer.inline(999999);\n  release a;\n}\n",
-      "diags": [
-        [
-          3,
-          "OWN019"
-        ]
-      ]
-    },
-    {
-      "name": "curated_double_release",
-      "source": "module M\nresource Conn { acquire open release close }\nresource Token { acquire mint release burn kind \"subscription token\" }\nextern fn Fill(borrow_mut Conn);\nextern fn Hash(borrow Conn);\nextern fn Store(consume Conn);\nfn f() {\n    let c = acquire Conn(1);\n    release c;\n    release c;\n    return;\n}\n",
-      "diags": [
-        [
-          10,
-          "OWN003"
-        ]
-      ]
-    },
-    {
-      "name": "curated_leak_and_release",
-      "source": "module M\nresource Conn { acquire open release close }\nresource Token { acquire mint release burn kind \"subscription token\" }\nextern fn Fill(borrow_mut Conn);\nextern fn Hash(borrow Conn);\nextern fn Store(consume Conn);\nfn leaks() {\n    let c = acquire Conn(1);\n    return;\n}\nfn clean() {\n    let c = acquire Conn(1);\n    release c;\n    return;\n}\n",
-      "diags": [
-        [
-          9,
-          "OWN001"
-        ]
-      ]
-    },
-    {
-      "name": "curated_maybe_release_branch",
-      "source": "module M\nresource Conn { acquire open release close }\nresource Token { acquire mint release burn kind \"subscription token\" }\nextern fn Fill(borrow_mut Conn);\nextern fn Hash(borrow Conn);\nextern fn Store(consume Conn);\nfn f(n: int) {\n    let c = acquire Conn(1);\n    if (n) { release c; }\n    Hash(c);\n    return;\n}\n",
-      "diags": [
-        [
-          10,
-          "OWN009"
-        ],
-        [
-          11,
-          "OWN001"
-        ]
-      ]
-    },
-    {
-      "name": "curated_parse_error_is_own020",
-      "source": "module M\nfn f( {\n",
-      "diags": [
-        [
-          2,
-          "OWN020"
-        ]
-      ]
-    },
-    {
-      "name": "curated_use_after_move",
-      "source": "module M\nresource Conn { acquire open release close }\nresource Token { acquire mint release burn kind \"subscription token\" }\nextern fn Fill(borrow_mut Conn);\nextern fn Hash(borrow Conn);\nextern fn Store(consume Conn);\nfn f() {\n    let c = acquire Conn(1);\n    let d = move c;\n    Hash(c);\n    Store(d);\n    return;\n}\n",
-      "diags": [
-        [
-          10,
-          "OWN005"
-        ]
-      ]
-    },
-    {
-      "name": "curated_use_after_release",
-      "source": "module M\nresource Conn { acquire open release close }\nresource Token { acquire mint release burn kind \"subscription token\" }\nextern fn Fill(borrow_mut Conn);\nextern fn Hash(borrow Conn);\nextern fn Store(consume Conn);\nfn f() {\n    let c = acquire Conn(1);\n    release c;\n    Hash(c);\n    return;\n}\n",
-      "diags": [
-        [
-          10,
-          "OWN002"
-        ]
-      ]
-    },
-    {
       "name": "examples/bad_leak_branch.own",
       "source": "module LeakBranchDemo\n\nresource Conn {\n  acquire open\n  release close\n}\n\n// OWN001: released on the 'then' path only; leaks through 'else'.\nfn maybe(flag: int) {\n  let c = acquire Conn(flag);\n  if (flag) {\n    release c;\n  }\n}\n",
       "diags": [
@@ -880,6 +806,80 @@
       "name": "examples/ok_pool.own",
       "source": "module PoolDemo\n\nresource Buffer {\n  acquire rent\n  release give\n}\n\n// Canonical happy path: rent a buffer, look at it mutably then read it,\n// hand it back. Checker proves it is returned on the single path; codegen\n// hoists the release into a finally for exception-safety.\nfn process(size: int) {\n  let buf = acquire Buffer(size);\n\n  borrow_mut buf as bytes {\n    use bytes;\n  }\n\n  borrow buf as bytes {\n    use bytes;\n  }\n\n  release buf;\n}\n",
       "diags": []
+    },
+    {
+      "name": "curated_leak_and_release",
+      "source": "module M\nresource Conn { acquire open release close }\nresource Token { acquire mint release burn kind \"subscription token\" }\nextern fn Fill(borrow_mut Conn);\nextern fn Hash(borrow Conn);\nextern fn Store(consume Conn);\nfn leaks() {\n    let c = acquire Conn(1);\n    return;\n}\nfn clean() {\n    let c = acquire Conn(1);\n    release c;\n    return;\n}\n",
+      "diags": [
+        [
+          9,
+          "OWN001"
+        ]
+      ]
+    },
+    {
+      "name": "curated_use_after_release",
+      "source": "module M\nresource Conn { acquire open release close }\nresource Token { acquire mint release burn kind \"subscription token\" }\nextern fn Fill(borrow_mut Conn);\nextern fn Hash(borrow Conn);\nextern fn Store(consume Conn);\nfn f() {\n    let c = acquire Conn(1);\n    release c;\n    Hash(c);\n    return;\n}\n",
+      "diags": [
+        [
+          10,
+          "OWN002"
+        ]
+      ]
+    },
+    {
+      "name": "curated_double_release",
+      "source": "module M\nresource Conn { acquire open release close }\nresource Token { acquire mint release burn kind \"subscription token\" }\nextern fn Fill(borrow_mut Conn);\nextern fn Hash(borrow Conn);\nextern fn Store(consume Conn);\nfn f() {\n    let c = acquire Conn(1);\n    release c;\n    release c;\n    return;\n}\n",
+      "diags": [
+        [
+          10,
+          "OWN003"
+        ]
+      ]
+    },
+    {
+      "name": "curated_use_after_move",
+      "source": "module M\nresource Conn { acquire open release close }\nresource Token { acquire mint release burn kind \"subscription token\" }\nextern fn Fill(borrow_mut Conn);\nextern fn Hash(borrow Conn);\nextern fn Store(consume Conn);\nfn f() {\n    let c = acquire Conn(1);\n    let d = move c;\n    Hash(c);\n    Store(d);\n    return;\n}\n",
+      "diags": [
+        [
+          10,
+          "OWN005"
+        ]
+      ]
+    },
+    {
+      "name": "curated_maybe_release_branch",
+      "source": "module M\nresource Conn { acquire open release close }\nresource Token { acquire mint release burn kind \"subscription token\" }\nextern fn Fill(borrow_mut Conn);\nextern fn Hash(borrow Conn);\nextern fn Store(consume Conn);\nfn f(n: int) {\n    let c = acquire Conn(1);\n    if (n) { release c; }\n    Hash(c);\n    return;\n}\n",
+      "diags": [
+        [
+          10,
+          "OWN009"
+        ],
+        [
+          11,
+          "OWN001"
+        ]
+      ]
+    },
+    {
+      "name": "curated_buffer_policy",
+      "source": "module M\nfn f(n: int) {\n  let a = Buffer.inline(999999);\n  release a;\n}\n",
+      "diags": [
+        [
+          3,
+          "OWN019"
+        ]
+      ]
+    },
+    {
+      "name": "curated_parse_error_is_own020",
+      "source": "module M\nfn f( {\n",
+      "diags": [
+        [
+          2,
+          "OWN020"
+        ]
+      ]
     }
   ]
 }
