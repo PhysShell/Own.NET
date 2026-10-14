@@ -1,0 +1,10 @@
+-Q theories P037Spike
+-arg -w -arg -notation-overridden
+-arg -w -arg -notation-for-abbreviation
+-arg -w -arg -redundant-canonical-projection
+theories/Lfp.v
+theories/P037.v
+theories/RustTables.v
+theories/Correspondence.v
+theories/OrderProbe.v
+theories/Audit.v
