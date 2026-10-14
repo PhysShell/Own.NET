@@ -38,6 +38,22 @@ if (args[0] == "build-check")
     }
 }
 
+// The live Owen service for an IDE (OX-02, docs/notes/owen-visual-studio-preregistration.md):
+// Owen.VisualStudio starts it from the Owen.Build package and speaks owen-live/1 to it. Not a
+// user verb either.
+if (args[0] == "serve")
+{
+    try
+    {
+        return await ServeCommand.RunAsync(args[1..]).ConfigureAwait(false);
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"owen serve: internal failure: {ex}");
+        return 5;
+    }
+}
+
 if (args[0] != "check")
 {
     Console.Error.WriteLine($"owen: unknown command '{args[0]}'");

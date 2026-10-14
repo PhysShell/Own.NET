@@ -135,3 +135,17 @@ until the .NET alpha above is delicious. Do not let the spike exceed 20%.
 The standing priority is unchanged: **prove value, don't reshape form**
 ([consolidation-and-positioning.md](consolidation-and-positioning.md)). This note is
 the concrete "what value, packaged how" gate for that.
+
+## Update 2026-10-04: live diagnostics in Visual Studio (OX-02)
+
+`GO_OWEN_VISUAL_STUDIO_ALPHA` (docs/notes/owen-visual-studio-report.md). One generic
+`Owen.VisualStudio` VSIX shows every active Owen extension's findings live, unsaved, as
+squiggles and Error List rows. It reads the project's `obj/owen/live.txt`, written by
+Owen.Build in design-time builds. It talks to `owen serve` from the project's own Owen.Build
+package. The extractor runs in-process over the editor's text, and the verdict is the Rust
+core's.
+
+- Proven in a real Visual Studio 2026 on CI: 19/19.
+- Build/live parity is a gate.
+- Extensions ship no IDE code.
+- `dotnet build` stays the authoritative gate.

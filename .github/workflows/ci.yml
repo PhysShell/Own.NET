@@ -3487,6 +3487,87 @@ jobs:
       - name: The extension gate (pack, isolated consumer A-H, mutations M1-M7)
         run: python scripts/owen_extension_gate.py
 
+  # OX-02 (docs/notes/owen-visual-studio-preregistration.md): live Owen diagnostics in the IDE.
+  # The extractor run in-process over an overlay is byte-identical to the command line; the
+  # `owen serve` service, as Owen.VisualStudio uses it, answers unsaved edits (K1-K8), agrees
+  # with `dotnet build` on saved sources (P10), stays inside its latency/memory budget, and its
+  # client half survives the service dying (K6). Both platforms: the VSIX host is Windows-only,
+  # the service is not.
+  owen-live:
+    name: Owen live service (in-process extractor, owen serve, build/live parity)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: The extractor as a library (E1-E4)
+        run: python tests/check_extractor_in_process.py
+      - name: The live gate (L0, S, K1-K8, P10, T, C, G)
+        run: python scripts/owen_live_gate.py
+
+  # OX-02 P14: the real Visual Studio run. The hosted image carries Visual Studio with the
+  # extension workload; the VSIX is built with its MSBuild, installed into a dedicated root
+  # suffix, and the IDE is driven (DTE for edits, UI Automation for the Error List, Owen's
+  # opt-in trace for the squiggles) on a solution that is restored and never built.
+  owen-visual-studio:
+    name: Owen.VisualStudio in a real Visual Studio (unsaved edit -> squiggle + Error List)
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build the Rust core
+        shell: bash
+        run: cargo build -p own-cli --release --manifest-path rust/Cargo.toml
+      - name: Prepare the solution (packed Owen.Build + Owen.TypedBuilder; restored, not built)
+        shell: bash
+        run: python scripts/vs/prepare_vs_fixture.py --out "$RUNNER_TEMP/vsfx" --rust-core "$PWD/rust/target/release/own-cli.exe"
+      - name: Build the VSIX
+        shell: powershell
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
+          & $msbuild frontend\roslyn\Owen.VisualStudio\Owen.VisualStudio.csproj /restore /p:Configuration=Release /p:DeployExtension=false /v:m
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $built = @(Get-ChildItem -Recurse frontend\roslyn\Owen.VisualStudio -Filter Owen.VisualStudio.vsix)
+          if ($built.Count -eq 0) { Write-Error "no Owen.VisualStudio.vsix was produced"; exit 1 }
+          $built | ForEach-Object { "$($_.FullName) ($($_.Length) bytes)" }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead($built[0].FullName)
+          $zip.Entries | ForEach-Object { "  entry: $($_.FullName) ($($_.Length))" }
+          $m = $zip.GetEntry('extension.vsixmanifest'); $r = New-Object System.IO.StreamReader($m.Open()); $r.ReadToEnd(); $r.Dispose(); $zip.Dispose()
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\vs-evidence" | Out-Null
+          Copy-Item $built[0].FullName "$env:RUNNER_TEMP\vs-evidence\"
+      - name: The acceptance in Visual Studio
+        shell: powershell
+        run: |
+          $vsix = (Get-ChildItem -Recurse frontend\roslyn\Owen.VisualStudio -Filter Owen.VisualStudio.vsix | Select-Object -First 1).FullName
+          scripts\vs\owen-vs-acceptance.ps1 -Vsix $vsix -Fixture "$env:RUNNER_TEMP\vsfx\fixture.json" -Out "$env:RUNNER_TEMP\vs-evidence" -RootSuffix Exp
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: owen-visual-studio-evidence
+          path: ${{ runner.temp }}/vs-evidence/
+
   # Alpha gate A (issue #202): the single delightful command, proven end-to-end
   # on a clean runner — install -> check -> findings. Packaging only, no
   # analysis-behaviour change: the underlying project stays OwnSharp.Cli

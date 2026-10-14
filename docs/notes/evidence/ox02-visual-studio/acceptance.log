@@ -1,0 +1,26 @@
+[04:03:20.333] Visual Studio: Visual Studio Enterprise 2026 18.10.12217.157 [b61ad8f0]
+[04:06:52.917] ok[install-vsix]: VSIXInstaller exit 0 into root suffix Exp
+[04:06:52.954] dropped the MEF cache C:\Users\runneradmin\AppData\Local\Microsoft\VisualStudio\18.0_b61ad8f0Exp\ComponentModelCache
+[04:07:48.331] devenv /updateconfiguration exit 0
+[04:07:48.396] devenv pid 1812
+[04:07:58.313] solution open after 9.893 s: D:\a\_temp\vsfx\ws\LiveFixture.sln
+[04:08:09.801] active document: D:\a\_temp\vsfx\ws\LiveFixture\Use.cs
+[04:08:10.954] ok[vsix-loaded]: Owen.VisualStudio composed in devenv: {"t":1791086890317,"kind":"log","data":{"line":"Owen live analysis loaded"}}
+[04:08:11.024] ok[L0-live-request]: the design-time build wrote D:\a\_temp\vsfx\ws\LiveFixture\obj\owen\live.txt (no build was run)
+[04:08:30.432] ok[K1-open-clean]: first publication (version 2, 4921 ms in the service): 0 entries, OWN: 0
+[04:08:30.437] snapshot: documents D:\a\_temp\vsfx\ws\LiveFixture\Use.cs; generated D:\a\_temp\vsfx\ws\LiveFixture\obj\Debug\net8.0\generated\Owen.TypedBuilder.Generator\Own.TypedBuilder.TypedBuilderGenerator\Order.Protocol.g.cs, D:\a\_temp\vsfx\ws\LiveFixture\obj\Debug\net8.0\generated\Owen.TypedBuilder.Generator\Own.TypedBuilder.TypedBuilderGenerator\Owen.TypedBuilder.Attributes.g.cs
+[04:08:31.460] ok[K1-unsaved-clean]: a clean unsaved edit was analysed (version 3) with no OWN entry; document saved=False
+[04:08:31.963] ok[K2-squiggle]: tags on Use.cs after the edit: 10:9+39 primary=True 'OrderProtocol.WithDraft(order, draft =>'; 13:13+18 primary=False 'draft.Submit(now);'
+[04:08:31.967] ok[K2-unsaved]: Use.cs is unsaved (Saved=False); the disk still has one Submit: True
+[04:08:33.309] ok[K2-error-list]: Error List row: OWN002 | IDisposable local 'draft' is used after it is disposed [resource: disposable] | LiveFixture | Use.cs | 10
+[04:08:34.933] ok[K2-navigation]: double-click -> 'D:\a\_temp\vsfx\ws\LiveFixture\Use.cs' line 10 column 9; expected 'D:\a\_temp\vsfx\ws\LiveFixture\Use.cs' line 10 column 9 (the core's location, §6)
+[04:08:36.475] ok[P9-cs-and-own]: CS0029 row: CS0029 | Cannot implicitly convert type 'string' to 'int' | LiveFixture | Use.cs | 10; OWN002 rows: 1
+[04:08:40.340] ok[K3-disappears]: after deleting the line: tags without OWN002 at +344 ms; Error List row gone: True
+[04:09:04.176] ok[T-edit-to-squiggle]: edit -> squiggle over 10/10 edits: p95 349 ms (threshold 1000), all: 334, 328, 349, 330, 336, 330, 347, 343, 328, 335
+[04:09:04.179] ok[T-edit-to-disappearance]: edit -> disappearance over 10/10 edits: p95 347 ms (threshold 1000), all: 328, 347, 330, 328, 336, 329, 322, 342, 343, 326
+[04:09:04.194] ok[T-ui-thread]: longest Owen UI-thread handler: 3.3251 ms (threshold 50)
+[04:09:04.202] ok[no-build]: no LiveFixture.dll under bin/ (0), no build-check request: the build host never ran
+[04:09:04.204] ok[never-saved]: Use.cs on disk is byte-identical to the fixture
+[04:09:04.556] owen serve processes before devenv ends: 5372
+[04:09:07.578] ok[no-orphan]: owen serve ran (1 process(es)) and did not outlive a killed devenv (0 left)
+[04:09:07.580] VS acceptance: all checks passed

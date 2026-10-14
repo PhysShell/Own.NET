@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- A SYNTHETIC second Owen extension WITH ITS OWN GENERATOR, for the OX-02 live gate only
+       (scripts/owen_live_gate.py, K8 and mutation M4). Never shipped. Its generator emits a
+       fixed state protocol (a turnstile) that has nothing to do with Typed Builder, so a host
+       that only knew Typed Builder's generator would miss its findings. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Owen.TestProtocol.Generator</AssemblyName>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <IsPackable>true</IsPackable>
+    <PackageId>Owen.TestProtocol</PackageId>
+    <Version>0.1.0</Version>
+    <Description>Test fixture: a synthetic Owen extension with a generator. Not published.</Description>
+    <Authors>PhysShell</Authors>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>false</SuppressDependenciesWhenPacking>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+    <ProjectReference Include="..\..\..\frontend\roslyn\Owen.Build\Owen.Build.csproj" PrivateAssets="none" IncludeAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="buildTransitive\Owen.TestProtocol.props" Pack="true" PackagePath="build;buildTransitive" />
+    <None Include="buildTransitive\owen-extension.json" Pack="true" PackagePath="build;buildTransitive" />
+  </ItemGroup>
+</Project>

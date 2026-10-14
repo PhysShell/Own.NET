@@ -1,0 +1,16 @@
+using System;
+
+namespace LiveFixture;
+
+public static class Use
+{
+    public static void Run(Order order)
+    {
+        var now = DateTime.UnixEpoch;
+        OrderProtocol.WithDraft(order, draft =>
+        {
+            var submitted = draft.Submit(now);
+            submitted.Approve(now);
+        });
+    }
+}

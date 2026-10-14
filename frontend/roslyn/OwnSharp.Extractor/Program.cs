@@ -111,6 +111,11 @@ BodyThrowEdges = false;
 // as belonging to a Fody-enabled project must not stay "weaver-owned" for an unrelated later
 // invocation in the same process (a sticky false positive). Same reset discipline as above.
 WeaverOwnedFiles.Clear();
+// OX-02: the two collectors below are filled while a run walks the compilation, so a run in a
+// long-lived process (InProcessExtractor, the IDE service) must start them empty too. A fresh
+// process starts them empty anyway: for the CLI this is a no-op.
+GuardedFactsViolations.Clear();
+OrphanedAwaitables.Sites.Clear();
 // `extract` verb: the tool's one job is extraction, so an optional leading `extract`
 // makes the advertised `ownsharp-extract extract --project App.csproj --out facts.json`
 // UX real while the bare form (no verb) stays the default and back-compatible. (The
@@ -5698,21 +5703,26 @@ foreach (var path in inputs)
     // Defensive: an explicit input that is not a readable file (a directory
     // passed by mistake, a deleted path) is skipped with a note, never an
     // unhandled exception that aborts the whole scan.
-    if (!File.Exists(path))
+    // OX-02: an IDE's unsaved buffer for this path is read INSTEAD of the file
+    // (InProcessExtractor). The CLI never has an overlay, so for it this is the disk path
+    // below, unchanged.
+    if (!TryOverlay(path, out var text))
     {
-        Console.Error.WriteLine($"ownsharp-extract: skipping (not a file): {path}");
-        continue;
-    }
-    string text;
-    try
-    {
-        text = File.ReadAllText(path);
-    }
-    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-    {
-        // A locked/unreadable file is skipped with a note, not an abort.
-        Console.Error.WriteLine($"ownsharp-extract: skipping unreadable file: {path} ({ex.Message})");
-        continue;
+        if (!File.Exists(path))
+        {
+            Console.Error.WriteLine($"ownsharp-extract: skipping (not a file): {path}");
+            continue;
+        }
+        try
+        {
+            text = File.ReadAllText(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // A locked/unreadable file is skipped with a note, not an abort.
+            Console.Error.WriteLine($"ownsharp-extract: skipping unreadable file: {path} ({ex.Message})");
+            continue;
+        }
     }
     parsed.Add((Rel(path), CSharpSyntaxTree.ParseText(text, path: path)));
     if (path.EndsWith(".xaml.cs", StringComparison.OrdinalIgnoreCase))

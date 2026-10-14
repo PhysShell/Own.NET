@@ -30,3 +30,4 @@ docs/evidence/*.json text eol=lf
 # `core.autocrlf=true` would make a correct generator look stale.
 samples/OrderBackend/OrderBackend/Domain/Order.Protocol.cs text eol=lf
 samples/OrderBackend/evidence/* text eol=lf
+docs/notes/evidence/ox02-visual-studio/** -text

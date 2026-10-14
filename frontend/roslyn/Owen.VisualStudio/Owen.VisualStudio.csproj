@@ -1,0 +1,78 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Owen.VisualStudio (OX-02, docs/notes/owen-visual-studio-preregistration.md): the ONE
+       generic Visual Studio host for every active Owen extension. It knows no extension: it
+       reads the project's obj/owen/live.txt (written by Owen.Build), starts the `owen serve`
+       that package ships, sends it the editor's unsaved text, and shows the Rust core's findings
+       as squiggles (IErrorTag) and Error List rows (ITableDataSource). It carries no extractor,
+       no core, no Python.
+
+       Live/ is independent of Visual Studio (tests/owen-live/LiveClientTests compiles it on any
+       OS). The VSIX is built on Windows with the VSSDK build tools; elsewhere this project only
+       compiles, which is what the Linux gate checks.
+
+       ADAPTED from Snipper (PhysShell/snipper 43b395a, MIT,
+       extensions/snipper-vs/Snipper.VisualStudio/Snipper.VisualStudio.csproj): the SDK-style
+       VSIX project shape (VSSDK.BuildTools, pkgdef/vsix properties, CreateVsixContainer). -->
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <OutputType>Library</OutputType>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Owen.VisualStudio</RootNamespace>
+    <AssemblyName>Owen.VisualStudio</AssemblyName>
+    <Version>0.1.0</Version>
+    <IsPackable>false</IsPackable>
+    <GeneratePkgDefFile>false</GeneratePkgDefFile>
+    <IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
+    <IncludeDebugSymbolsInVSIXContainer>true</IncludeDebugSymbolsInVSIXContainer>
+    <IncludeDebugSymbolsInLocalVSIXDeployment>true</IncludeDebugSymbolsInLocalVSIXDeployment>
+    <CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
+    <CopyOutputSymbolsToOutputDirectory>true</CopyOutputSymbolsToOutputDirectory>
+    <TargetVsixContainerName>Owen.VisualStudio.vsix</TargetVsixContainerName>
+    <VSSDKBuildToolsAutoSetup>true</VSSDKBuildToolsAutoSetup>
+    <TargetVsixContainer>$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\$(TargetVsixContainerName)</TargetVsixContainer>
+    <CreatePkgDefAssemblyToProcess>$(MSBuildProjectDirectory)\obj\$(Configuration)\$(TargetFramework)\$(AssemblyName).dll</CreatePkgDefAssemblyToProcess>
+    <!-- the VSSDK's intermediate layout, spelled out for an SDK-style project (as Snipper does) -->
+    <VsixIntermediateOutputPath>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\vsix\</VsixIntermediateOutputPath>
+    <IntermediateVsixManifest>$(VsixIntermediateOutputPath)extension.vsixmanifest</IntermediateVsixManifest>
+    <FileManifest>$(VsixIntermediateOutputPath)files.json</FileManifest>
+    <TemplateFileManifest>$(VsixIntermediateOutputPath)templateFiles.json</TemplateFileManifest>
+    <ResourceManifest>$(VsixIntermediateOutputPath)resources.json</ResourceManifest>
+    <CtoFileManifest>$(VsixIntermediateOutputPath)ctoFiles.json</CtoFileManifest>
+    <CtoCacheFile>$(VsixIntermediateOutputPath)mergeCto.cache</CtoCacheFile>
+    <CreateTemplateManifestsCacheFile>$(VsixIntermediateOutputPath)createTemplateManifests.cache</CreateTemplateManifestsCacheFile>
+    <TemplateOutputDirectory>$(VsixIntermediateOutputPath)</TemplateOutputDirectory>
+    <!-- the service client runs on its own threads by design (never the UI thread); the
+         analyzers that assume a JoinableTaskFactory context everywhere do not apply to it -->
+    <NoWarn>$(NoWarn);VSTHRD003;VSTHRD010;VSTHRD100;VSTHRD110;VSTHRD200;VSSDK007</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Everything here is what Visual Studio already has loaded: compile against it, ship none
+         of it (ExcludeAssets="runtime"). -->
+    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.VisualStudio.LanguageServices" Version="4.8.0" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.CodeAnalysis.EditorFeatures.Text" Version="4.8.0" ExcludeAssets="runtime" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" ExcludeAssets="runtime" />
+    <Reference Include="System.ComponentModel.Composition" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2142" PrivateAssets="all" />
+    <ProjectCapability Include="CreateVsixContainer" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="source.extension.vsixmanifest" SubType="Designer" />
+  </ItemGroup>
+  <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets"
+          Condition="'$(OS)' == 'Windows_NT' and '$(VSToolsPath)' != '' and Exists('$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets')" />
+
+  <Target Name="OwenVsixIntermediate" BeforeTargets="DetokenizeVsixManifestFile;GenerateFileManifest"
+          Condition="'$(OS)' == 'Windows_NT'">
+    <MakeDir Directories="$(VsixIntermediateOutputPath)" />
+  </Target>
+
+  <Target Name="OwenCreateVsix" AfterTargets="Build" DependsOnTargets="CreateVsixContainer"
+          Condition="'$(OS)' == 'Windows_NT'" />
+</Project>
