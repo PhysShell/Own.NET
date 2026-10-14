@@ -28,7 +28,10 @@ caught by name rather than by a CI job failing somewhere downstream.
 A case whose shape belongs to a step that has not landed carries
 `"status": "pending_a2"` with the contract it will be held to, and asserts
 today's facts meanwhile — so the diff a2 produces is visible per shape instead
-of aggregated into a number.
+of aggregated into a number. A `"status": "boundary"` case pins a shape a step
+deliberately does not close — today `record-absence-boundary`, the methods that
+get no `functions[]` record at all (escalated in
+`docs/notes/p037-a2.2-call-facts.md` §3).
 
 Checked by `scripts/p037_fact_shapes.py`, which names its engine explicitly
 (#262 Stage 3) and runs one extractor invocation per case.
