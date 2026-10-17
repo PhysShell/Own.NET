@@ -802,6 +802,14 @@ jobs:
         env:
           OWN_TIERB_REQUIRED: "1"
         run: python tests/test_extractor_columns.py
+      - name: Deep if / else-if chain does not take the run down (Own.NET#401)
+        # One method with a tracked local and 31 conditions used to abort the whole extraction
+        # (System.Text.Json MaxDepth 64). Bodies within spec/OwnIR.md section 4.2 (<= 32) stay analysed;
+        # deeper ones are skipped and counted, and the core accepts every emitted document.
+        # REQUIRED here; skips cleanly in the offline Tier-A job.
+        env:
+          OWN_TIERB_REQUIRED: "1"
+        run: python tests/test_extractor_deep_flow.py
       - name: Guarded release is not a call-site handoff (INF-S2, #380)
         # A callee that releases its parameter only under a guard is a PARTIAL release, so
         # its call must not be lowered as the caller's `release` (the fabricated `must`),
