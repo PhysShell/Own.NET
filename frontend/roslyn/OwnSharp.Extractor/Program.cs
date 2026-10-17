@@ -3679,6 +3679,12 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                           bool canEscape = true, List<object>? onThrow = null,
                           List<object>? onReturn = null, bool onThrowDefinite = false)
 {
+    // #401: the lowering recurses once per nested statement, so a few hundred `else if`
+    // overflowed the stack - an uncatchable crash that lost the whole run. Running short of
+    // stack means the body is far deeper than spec/OwnIR.md section 4.2 admits (32), which is
+    // skipped anyway: bail the method as unmodelled instead.
+    if (!System.Runtime.CompilerServices.RuntimeHelpers.TryEnsureSufficientExecutionStack())
+        return false;
     switch (st)
     {
         case BlockSyntax b:

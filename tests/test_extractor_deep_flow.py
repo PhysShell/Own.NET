@@ -20,6 +20,9 @@ WHAT THIS TEST PINS (each a separate PASS/KILL criterion of the fix)
       document - so the crash is not merely moved from the extractor to the core.
   P3  In every case a sibling method with a real undisposed local is still reported, i.e.
       one deep method never costs the rest of the file its analysis.
+  P4  n = 1000: the lowering recursion itself used to overflow the stack (an uncatchable
+      crash, the whole run lost) somewhere between 300 and 600 conditions; it must bail the
+      method as unmodelled instead (P2 and P3 apply).
 
 The boundary n = 32 / 33 is the spec's, not a tuning knob: `then`/`else` bodies are levels,
 the top-level body is level 0, so the k-th condition's `then` sits at level k+1 and a chain
@@ -43,7 +46,7 @@ import tempfile
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _EXT = os.path.join(_REPO, "frontend", "roslyn", "OwnSharp.Extractor")
 _LIMIT = 32  # spec/OwnIR.md §4.2: a body nesting exactly 32 is accepted, 33 rejected
-_CASES = (31, 32, 33, 200)
+_CASES = (31, 32, 33, 200, 1000)
 
 
 def _source(n: int) -> str:
