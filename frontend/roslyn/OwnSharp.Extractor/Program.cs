@@ -3568,6 +3568,35 @@ static bool IsCatchAll(CatchClauseSyntax cc) =>
 // `tracked` local IDisposables. Returns null on any UNMODELLED statement (a `goto`, labeled
 // statement, local function, `lock`/`fixed`, …): the method is then honestly skipped, not
 // guessed. Loops, `try`, `do` and `switch` ARE modelled below.
+// spec/OwnIR.md §4.2: flow bodies nest at most 32 levels (`then` / `else` / `body`; the
+// top-level list is level 0). Both doors reject a document that nests deeper.
+const int OwnIrMaxNestingDepth = 32;
+
+// #401: each nested body costs two JSON levels (an object and an array), so a document at the
+// §4.2 limit is about 2 * 32 + 4 levels deep. The default MaxDepth (64) threw on 31 nested
+// `else if`; 128 is the cap §4.2 itself is measured against.
+const int FactsJsonMaxDepth = 128;
+
+// The deepest `then` / `else` / `body` nesting of a lowered flow body, counted as §4.2 counts it
+// (an existing list is a level, even an empty one). Flow ops are anonymous objects or
+// dictionaries, so the three keys are read by name.
+static int FlowNestingDepth(IReadOnlyList<object> nodes, int level = 0)
+{
+    var deepest = level;
+    foreach (var node in nodes)
+    {
+        foreach (var key in new[] { "then", "else", "body" })
+        {
+            object? child = node is IDictionary<string, object?> d
+                ? (d.TryGetValue(key, out var v) ? v : null)
+                : node?.GetType().GetProperty(key)?.GetValue(node);
+            if (child is IReadOnlyList<object> list)
+                deepest = Math.Max(deepest, FlowNestingDepth(list, level + 1));
+        }
+    }
+    return deepest;
+}
+
 static List<object>? LowerFlowBody(BlockSyntax block, HashSet<string> tracked, SemanticModel model)
 {
     var nodes = new List<object>();
@@ -3650,6 +3679,12 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                           bool canEscape = true, List<object>? onThrow = null,
                           List<object>? onReturn = null, bool onThrowDefinite = false)
 {
+    // #401: the lowering recurses once per nested statement, so a few hundred `else if`
+    // overflowed the stack - an uncatchable crash that lost the whole run. Running short of
+    // stack means the body is far deeper than spec/OwnIR.md section 4.2 admits (32), which is
+    // skipped anyway: bail the method as unmodelled instead.
+    if (!System.Runtime.CompilerServices.RuntimeHelpers.TryEnsureSufficientExecutionStack())
+        return false;
     switch (st)
     {
         case BlockSyntax b:
@@ -7197,6 +7232,14 @@ foreach (var (file, tree) in parsed)
                     statMethodsSkipped++;   // unmodelled construct -> honestly skipped
                     continue;
                 }
+                // #401: a body nesting deeper than spec/OwnIR.md §4.2 admits would make BOTH
+                // doors reject the whole document, so it is skipped like any other unmodelled
+                // shape: this method loses its flow facts, the rest of the run keeps theirs.
+                if (FlowNestingDepth(fbody) > OwnIrMaxNestingDepth)
+                {
+                    statMethodsSkipped++;
+                    continue;
+                }
                 statMethodsAnalysed++;
                 // Stage 2 (spec §5.1): stamp the record's per-overload `sig` when the
                 // symbol resolves, so an overloaded method gets its own summary beside
@@ -7337,7 +7380,7 @@ if (GuardedFactsViolations.Count > 0)
         Console.Error.WriteLine($"extractor: guarded_facts self-check failed: {violation}");
     return 2;
 }
-var json = JsonSerializer.Serialize(facts, new JsonSerializerOptions { WriteIndented = true });
+var json = JsonSerializer.Serialize(facts, new JsonSerializerOptions { WriteIndented = true, MaxDepth = FactsJsonMaxDepth });
 
 if (reportStats)
     Console.Error.WriteLine(
@@ -7352,7 +7395,7 @@ else File.WriteAllText(outPath, json);
 if (heapEffectsPath is not null)
     File.WriteAllText(heapEffectsPath, JsonSerializer.Serialize(
         HeapEffectFacts.Extract(compilation, parsed),
-        new JsonSerializerOptions { WriteIndented = true }));
+        new JsonSerializerOptions { WriteIndented = true, MaxDepth = FactsJsonMaxDepth }));
 return 0;
 
 // Opt-in recall knob for the flow pass, read deep in InjectThrowEdge (a static field rather than
