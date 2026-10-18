@@ -1,0 +1,7 @@
+AdCodicem_AdCodicem.Pdf__248	tests/AdCodicem.Pdf.Tests/DocumentReaderTests.cs	stream	-
+BoBoBaSs84_BB84.IPTV__36	src/BB84.IPTV.M3U.Editor.Application/ViewModels/GuideOverviewViewModel.cs	tokenSource	O
+CodeForFire_lagebuch__206	src/LageBuch.AppLogic/ViewModels/ChecklistViewModel.cs	item	-
+KerckhoffsLabs_KerckhoffsLabs.Security.Cryptography.Pkcs11__60	src/KerckhoffsLabs.Security.Cryptography.Pkcs11.Tests/Integration/ThreadSafety/LibraryDisposeRaceTests.cs	library	B
+digirati-co-uk_digital-preservation__332	src/DigitalPreservation/Storage.API/Features/Import/Requests/ExecuteImportJob.cs	transactionMonitor	-
+digirati-co-uk_digital-preservation__332	src/DigitalPreservation/Storage.API/Features/Import/Requests/FedoraTransactionMonitor.cs	cancellationTokenSource	-
+whizbang-lib_whizbang__1204	src/Whizbang.Transports.AzureServiceBus/AzureServiceBusConnectionRetry.cs	client	-

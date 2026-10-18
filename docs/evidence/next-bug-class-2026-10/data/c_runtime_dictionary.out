@@ -1,0 +1,4 @@
+meziantou reentrant: returned=computed stored=<null>  (bug: True)
+meziantou throwing: ContainsKey=True value=<null>
+control non-reentrant: stored=ok (ok: True)
+maui shape: stored=<null> (bug: True)
