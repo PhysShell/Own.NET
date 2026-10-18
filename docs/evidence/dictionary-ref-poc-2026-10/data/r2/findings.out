@@ -1,0 +1,15 @@
+samples/r2/101.cs:60:22: possible stale ref 'bounds' into 'itemBounds' (GetValueRefOrAddDefault at line 57) write after callee event at line 59: MutateBins(item, bounds, RemoveItem) -> action(BinAt(row, col), item, bounds)
+samples/r2/103.cs:98:21: possible stale ref 'list' into 'localDict' (GetValueRefOrAddDefault at line 92) read after direct event at line 95: localDict[...] = ...
+samples/r2/114.cs:34:16: possible stale ref 'val' into '_configs' (GetValueRefOrAddDefault at line 31) write after delegate event at line 34: ctor()
+samples/r2/122.cs:47:7: possible stale ref 'currentValue' into 'dict' (GetValueRefOrAddDefault at line 44) write after delegate event at line 47: newValueFunc()
+samples/r2/178.cs:49:13: possible stale ref 'value' into '_entries' (GetValueRefOrAddDefault at line 41) write after delegate event at line 49: generate.Invoke()
+samples/r2/194.cs:78:4: possible stale ref 'apiObject' into 'ApiCache' (GetValueRefOrAddDefault at line 73) write after delegate event at line 76: loggerProvider(package.Manifest)
+samples/r2/206.cs:253:39: possible stale ref 'old' into 'compData' (GetValueRefOrAddDefault at line 233) read after direct event at line 248: compData.Remove(change.NetID)
+samples/r2/229.cs:70:6: possible stale ref 'cached' into 'subscriptions' (GetValueRefOrAddDefault at line 65) write after delegate event at line 70: factory(_root, source)
+samples/r2/23.cs:40:3: possible stale ref 'current' into 'values' (GetValueRefOrAddDefault at line 23) write after direct event at line 36: this.values.Remove(min.Key)
+samples/r2/244.cs:113:37: possible stale ref 'e' into '_entries' (GetValueRefOrAddDefault at line 103) read after delegate event at line 110: .Invoke(feet.X, feet.Y)
+samples/r2/47.cs:340:20: possible stale ref 'result' into '_setBddCache' (GetValueRefOrAddDefault at line 339) write after callee event at line 340: Compute(set) -> CreateBDDFromSetString(set.Substring(i)) -> CollectionsMarshal.GetValueRefOrAddDefault(_setBddCache, set, out _)
+samples/r2/85.cs:132:25: possible stale ref 'y' into '_cache' (GetValueRefOrAddDefault at line 128) write after delegate event at line 132: Function()
+samples/r2/85.cs:216:25: possible stale ref 'z' into '_cache' (GetValueRefOrAddDefault at line 211) write after delegate event at line 216: Function()
+samples/r2/90.cs:41:5: possible stale ref 'item' into 'cache' (GetValueRefOrAddDefault at line 28) write after delegate event at line 38: factory(ctx)
+sites=290 findings=14 files=252

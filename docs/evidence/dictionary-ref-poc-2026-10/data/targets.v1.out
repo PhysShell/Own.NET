@@ -1,0 +1,11 @@
+## meziantou-base
+targets/meziantou-base/DictionaryExtensions.cs:31:9: possible stale ref 'dictionaryValue' into 'dict' (GetValueRefOrAddDefault at line 27) write after delegate event at line 31: valueFactory(key)
+targets/meziantou-base/DictionaryExtensions.cs:56:13: possible stale ref 'dictionaryValue' into 'dict' (GetValueRefOrNullRef at line 53) write after delegate event at line 56: valueFactory(key, dictionaryValue)
+sites=4 findings=2 files=1
+## meziantou-fix
+sites=2 findings=0 files=1
+## maui-base
+targets/maui-base/BindableObject.cs:793:5: possible stale ref 'context' into '_properties' (GetValueRefOrAddDefault at line 790) write after callee event at line 793: CreateContext(property) -> defaultValueCreator(this)
+sites=1 findings=1 files=1
+## maui-fix
+sites=0 findings=0 files=1

@@ -1,0 +1,19 @@
+id	repo	path	label	reason
+F1	DrJohnMelville/Pdf	Src/Melville.Fonts/SfntParsers/TableCache.cs	TP	caller's loader() runs while the ref is live; the cache is reachable from the loader (Meziantou shape)
+F2	Hafthor/Toycoin	Toycoin/ArrayKeyDictionary.cs	TP	GetOrAdd(key, factory): valueRef = factory(key), factory can reach the dictionary
+F3	Hafthor/Toycoin	Toycoin/ArrayKeyDictionary.cs	TP	same, span overload
+F4	InflexCZE/SpaceEditor	Rocks/CollectionRocks.cs	TP	extension GetOrAdd(dictionary, key, factory) = Meziantou shape
+F5	kevingosse/AdventOfCode	src/2017/Day7.cs	TP	a second GetValueRefOrAddDefault on the same dictionary can resize it, then the first ref is read (contract violation; the read of an unchanged reference slot is benign in practice)
+F6	magicbug/OscarWatch-Tracker	OscarWatch.Core/Services/RisingPassAnnouncer.cs	UNCLEAR	speak(...) is an opaque Action; no evidence it can reach _states
+F7	MeltyPlayer/MeltyTool	FinModelUtility/Fin/Fin/src/data/dictionaries/CaseInvariantStringDictionary.cs	TP	GetOrAdd(key, createHandler): value = createHandler(key) (Meziantou shape, under a reentrant lock)
+F8	MeltyPlayer/MeltyTool	FinModelUtility/Fin/Fin/src/data/dictionaries/CaseInvariantStringDictionary.cs	TP	same, span overload
+F9	MeltyPlayer/MeltyTool	FinModelUtility/Fin/Fin/src/data/dictionaries/SimpleDictionary.cs	TP	same shape
+F10	NethermindEth/nethermind	src/Nethermind/Nethermind.Core/BlockAccessLists/BlockAccessListDelta.cs	UNCLEAR	getAccount(...) is an opaque Func; no evidence it can reach this delta's _accounts
+F11	AAEmu/AAEmu	AAEmu.Game/Core/Managers/InstantGameManager.cs	FP	_matchmakingQueue.Remove(...) is followed by return: the later use is unreachable from the event
+F12	Shockah/Nickel	Nickel/Framework/ModStorageManager.cs	UNCLEAR	contractResolverFactory (inside the callee) is mod code; reachability of CachedSerializers not evident
+F13	sn4k3/NetSonar	src/NetSonar/Extensions/CollectionsExtensions.cs	TP	extension GetOrAdd(valueFactory) = Meziantou shape
+F14	space-wizards/RobustToolbox	Robust.Server/GameStates/PvsSystem.Chunks.cs	FP	_chunks.Remove(...) in a catch that rethrows: the later use is unreachable from the event
+F15	space-wizards/RobustToolbox	Robust.Server/GameStates/PvsSystem.Chunks.cs	FP	same
+F16	space-wizards/RobustToolbox	Robust.Shared/Physics/DynamicTree.cs	UNCLEAR	_extractAabb(item) is an opaque field delegate; no evidence it can reach _nodeLookup
+F17	dotnet/dotnet	src/runtime/src/libraries/System.Linq/src/System/Linq/AggregateBy.cs	FP	dict is a method-local that escapes only after the loop: func cannot reach it at the event
+F18	dotnet/dotnet	src/runtime/src/libraries/System.Linq/src/System/Linq/AggregateBy.cs	FP	same
