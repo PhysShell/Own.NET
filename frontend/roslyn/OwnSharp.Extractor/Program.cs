@@ -930,6 +930,61 @@ static bool IsTimerEvent(ExpressionSyntax left) =>
 //     symbol-based closure proves a teardown calls it, a lambda only when it is
 //     the handler wired to a lifecycle event.
 
+// #410: every enclosing branch of a release found in ANOTHER partial declaration must run on
+// each teardown — the positive `if (disposing)` of Dispose(bool) (never its else), or a null check of the
+// released field itself (`if (_f != null)`). Any other condition (a flag, a parameter, a loop) leaves the
+// release unproven, so the honest OWN001 stays. Stops at a lambda: its wiring is InTeardownContext's call.
+static bool CrossPartialGuardsOk(SyntaxNode site, string field)
+{
+    for (var cur = site.Parent; cur is not null && cur is not MemberDeclarationSyntax; cur = cur.Parent)
+    {
+        if (cur is AnonymousFunctionExpressionSyntax)
+            break;
+        if (GuardCondition(cur) is not { } cond)
+            continue;
+        if (cur is not IfStatementSyntax || SiteOnNegativeBranch(cur, site))
+            return false;
+        var c = cond is ParenthesizedExpressionSyntax pe ? pe.Expression : cond;
+        if (c is IdentifierNameSyntax { Identifier.Text: "disposing" } || IsNullCheckOfField(c, field))
+            continue;
+        return false;
+    }
+    return true;
+}
+
+static bool IsNullCheckOfField(ExpressionSyntax c, string field)
+{
+    static bool IsField(ExpressionSyntax e, string f) => ThisFieldName(e) == f;
+    return c switch
+    {
+        BinaryExpressionSyntax b when b.IsKind(SyntaxKind.NotEqualsExpression) =>
+            (IsField(b.Left, field) && b.Right.IsKind(SyntaxKind.NullLiteralExpression))
+            || (IsField(b.Right, field) && b.Left.IsKind(SyntaxKind.NullLiteralExpression)),
+        IsPatternExpressionSyntax ip => IsField(ip.Expression, field)
+            && ip.Pattern is UnaryPatternSyntax { Pattern: ConstantPatternSyntax { Expression: LiteralExpressionSyntax lit } }
+            && lit.IsKind(SyntaxKind.NullLiteralExpression),
+        _ => false,
+    };
+}
+
+// #410, designer files (syntax only, no model): the release must sit directly in the body of a
+// teardown-named method (Dispose / DisposeAsync / OnClosed ...) of the designer half — not in a lambda or a
+// local function, not in a helper (no call closure without symbols) — behind allowed guards only, and a
+// `disposing` guard must name that method's own bool parameter.
+static bool DesignerTeardownSite(SyntaxNode site, string field)
+{
+    var member = site.Ancestors().FirstOrDefault(a => a is MemberDeclarationSyntax or AnonymousFunctionExpressionSyntax
+                                                          or LocalFunctionStatementSyntax);
+    if (member is not MethodDeclarationSyntax md || !IsTeardownMethodName(md.Identifier.Text))
+        return false;
+    var usesDisposing = site.Ancestors().TakeWhile(a => a != md).OfType<IfStatementSyntax>()
+        .Any(i => i.Condition is IdentifierNameSyntax { Identifier.Text: "disposing" });
+    if (usesDisposing && !md.ParameterList.Parameters.Any(p => p.Identifier.Text == "disposing"
+                                                                && p.Type?.ToString() == "bool"))
+        return false;
+    return CrossPartialGuardsOk(site, field);
+}
+
 // A method name the platform (or the IDisposable contract) itself invokes at the
 // end of the object's life.
 static bool IsTeardownMethodName(string name) =>
@@ -5877,6 +5932,54 @@ foreach (var dir in refDirs)
     }
     Console.Error.WriteLine($"extractor: +{added} references from --ref-dir {dir} (recursive)");
 }
+// #410: `Ns.Outer.Foo` for a class declaration, from syntax alone (namespaces + enclosing types).
+static string SyntaxQualifiedName(ClassDeclarationSyntax cls)
+{
+    var parts = new List<string> { cls.Identifier.Text };
+    foreach (var a in cls.Ancestors())
+        switch (a)
+        {
+            case TypeDeclarationSyntax t: parts.Add(t.Identifier.Text); break;
+            case BaseNamespaceDeclarationSyntax ns: parts.Add(ns.Name.ToString()); break;
+        }
+    parts.Reverse();
+    return string.Join(".", parts);
+}
+
+// #410: a WinForms `Foo.Designer.cs` beside a parsed `Foo.cs` is never analysed (IsGenerated), yet it is
+// where the designer `Dispose(bool)` releases the form's fields. It is parsed here but NOT compiled: adding it
+// to the compilation resolves the designer-declared child controls and turns their OWN050 advisories into
+// subscription findings (measured on gitextensions). Its class declarations are kept by qualified name and
+// read ONLY as syntactic evidence that a field is released at teardown (see the field pass) — never as a
+// source of facts.
+var designerDecls = new Dictionary<string, List<ClassDeclarationSyntax>>(StringComparer.Ordinal);
+{
+    var seen = new HashSet<string>(inputs, StringComparer.OrdinalIgnoreCase);
+    foreach (var path in inputs)
+    {
+        if (!path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".Designer.cs", StringComparison.OrdinalIgnoreCase))
+            continue;
+        var designer = path[..^3] + ".Designer.cs";
+        if (!seen.Add(designer) || !File.Exists(designer))
+            continue;
+        try
+        {
+            var dtree = CSharpSyntaxTree.ParseText(File.ReadAllText(designer), path: designer);
+            foreach (var dcls in dtree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>())
+            {
+                var key = SyntaxQualifiedName(dcls);
+                if (!designerDecls.TryGetValue(key, out var list))
+                    designerDecls[key] = list = new List<ClassDeclarationSyntax>();
+                list.Add(dcls);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // An unreadable designer file just means "no extra release evidence".
+        }
+    }
+}
 var compilation = CSharpCompilation.Create(
     "own", parsed.Select(p => p.tree), references,
     new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
@@ -6381,6 +6484,83 @@ foreach (var (file, tree) in parsed)
                     || CallReleasesReceiver(model.GetSymbolInfo(cinv).Symbol as IMethodSymbol, model)))
                 disposed.Add(model.GetSymbolInfo(cae.Expression).Symbol is ILocalSymbol lc
                              && aliasToField.TryGetValue(lc, out var fc) ? fc : cdf);
+
+        // #410: the same two release shapes in the class's OTHER partial declarations (`Foo.cs` declares
+        // the field, `Foo.Lifecycle.cs` disposes it). The scan above only sees THIS declaration, which made
+        // OWN001 call such a field never disposed. Credited only when the receiver BINDS to a field of THIS
+        // class (symbol, not name: a same-named field of another class never counts) AND the release is
+        // reached at this object's teardown — stricter than the same-declaration scan above, which credits
+        // a release anywhere: a release in an uncalled method or behind an arbitrary flag stays OWN001.
+        if (clsSymbol is not null)
+            foreach (var sref in clsSymbol.DeclaringSyntaxReferences)
+            {
+                if (sref.GetSyntax() is not ClassDeclarationSyntax other || other == cls)
+                    continue;
+                var om = model.Compilation.GetSemanticModel(other.SyntaxTree);
+                var otherTeardown = TeardownContextMethods(other, om, clsSymbol);
+                // a proven teardown method of that declaration (or one it provably calls), or a handler wired
+                // to our own lifecycle event; every enclosing branch must run on each teardown.
+                bool Reached(SyntaxNode site, string field) =>
+                    InTeardownContext(site, other, otherTeardown, om)
+                    && CrossPartialGuardsOk(site, field)
+                    && !IsParamGuardedByEarlyReturn(site, om);
+                bool OwnField(ExpressionSyntax e) =>
+                    om.GetSymbolInfo(e).Symbol is IFieldSymbol f
+                    && SymbolEqualityComparer.Default.Equals(f.ContainingType.OriginalDefinition, clsSymbol.OriginalDefinition);
+                foreach (var inv in other.DescendantNodes().OfType<InvocationExpressionSyntax>())
+                    if (inv.Expression is MemberAccessExpressionSyntax pm
+                        && ThisFieldName(pm.Expression) is { } pdf
+                        && OwnField(pm.Expression)
+                        && (pm.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close"
+                            || CallReleasesReceiver(om.GetSymbolInfo(inv).Symbol as IMethodSymbol, om))
+                        && Reached(inv, pdf))
+                        disposed.Add(pdf);
+                foreach (var pcae in other.DescendantNodes().OfType<ConditionalAccessExpressionSyntax>())
+                    if (ThisFieldName(pcae.Expression) is { } pcdf
+                        && OwnField(pcae.Expression)
+                        && pcae.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax pmb } pcinv
+                        && (pmb.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close"
+                            || CallReleasesReceiver(om.GetSymbolInfo(pcinv).Symbol as IMethodSymbol, om))
+                        && Reached(pcae, pcdf))
+                        disposed.Add(pcdf);
+            }
+
+        // #410: a companion designer declaration of THIS class (same qualified name) that disposes `_f` /
+        // `this._f` where `_f` IS a field of this class (member lookup on the class symbol), the name is not
+        // shadowed by a local or parameter of the enclosing member, and the call sits directly in a
+        // teardown method behind teardown-safe guards only (DesignerTeardownSite).
+        if (clsSymbol is not null
+            && designerDecls.TryGetValue(SyntaxQualifiedName(cls), out var dparts))
+            foreach (var dpart in dparts)
+            {
+                bool OwnFieldName(ExpressionSyntax e, out string name)
+                {
+                    name = ThisFieldName(e) ?? "";
+                    if (name.Length == 0 || !clsSymbol.GetMembers(name).OfType<IFieldSymbol>().Any())
+                        return false;
+                    var member = e.Ancestors().FirstOrDefault(a => a is BaseMethodDeclarationSyntax or AccessorDeclarationSyntax
+                                                                        or LocalFunctionStatementSyntax or AnonymousFunctionExpressionSyntax);
+                    var n = name;
+                    return e is MemberAccessExpressionSyntax   // `this._f` can never be a local
+                           || member is null
+                           || !member.DescendantNodesAndSelf().Any(d =>
+                                  d is VariableDeclaratorSyntax vd && vd.Identifier.Text == n
+                                  || d is ParameterSyntax ps && ps.Identifier.Text == n
+                                  || d is SingleVariableDesignationSyntax sd && sd.Identifier.Text == n);
+                }
+                foreach (var inv in dpart.DescendantNodes().OfType<InvocationExpressionSyntax>())
+                    if (inv.Expression is MemberAccessExpressionSyntax dm
+                        && dm.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close"
+                        && OwnFieldName(dm.Expression, out var ddf)
+                        && DesignerTeardownSite(inv, ddf))
+                        disposed.Add(ddf);
+                foreach (var dcae in dpart.DescendantNodes().OfType<ConditionalAccessExpressionSyntax>())
+                    if (dcae.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax dmb }
+                        && dmb.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close"
+                        && OwnFieldName(dcae.Expression, out var dcdf)
+                        && DesignerTeardownSite(dcae, dcdf))
+                        disposed.Add(dcdf);
+            }
 
         // P-004 (issue #220): `using (field = new T()) { ... }` — the STATEMENT form of
         // `using` whose parenthesized expression IS the acquisition, assigned directly to

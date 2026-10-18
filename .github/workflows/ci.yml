@@ -825,6 +825,13 @@ jobs:
         env:
           OWN_TIERB_REQUIRED: "1"
         run: python tests/test_extractor_sibling_locals.py
+      - name: A field released in another partial file at teardown is not a leak (Own.NET#410)
+        # OWN001 [disposable field] only looked inside the declaring class declaration, and
+        # *.Designer.cs files are never parsed: a designer Dispose(bool) release read as a leak.
+        # The release must be reached at teardown; a designer file stays evidence only.
+        env:
+          OWN_TIERB_REQUIRED: "1"
+        run: python tests/test_extractor_partial_dispose.py
       - name: Guarded release is not a call-site handoff (INF-S2, #380)
         # A callee that releases its parameter only under a guard is a PARTIAL release, so
         # its call must not be lowered as the caller's `release` (the fabricated `must`),
