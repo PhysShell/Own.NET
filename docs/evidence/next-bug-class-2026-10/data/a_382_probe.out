@@ -1,0 +1,33 @@
+A1 ForwardDynamic body on main: [{"op": "use", "var": "forwarded", "line": 121}]
+A1 caller records emitted: []
+  summary BorrowingWrapper [('borrowed', 'no')]
+  summary ForwardDynamic [('forwarded', 'no')]
+  summary MaybeClose [('s', 'may')]
+A2 with a hand-made call:
+  summary BorrowingWrapper [('borrowed', 'no')]
+  summary ForwardDynamic [('forwarded', 'may')]
+  summary MaybeClose [('s', 'may')]
+A3 caller diagnostics with the call (both callers):
+  python:
+    warning: [OWN051] cannot verify whether 'GuardedConsumeSample.ForwardDynamic' takes ownership of 'x' (inferred contract: may); optimistically assuming it does � 'x' is not checked past this call [resource: ownership transfer]
+    warning: [OWN051] cannot verify whether 'GuardedConsumeSample.ForwardDynamic' takes ownership of 'y' (inferred contract: may); optimistically assuming it does � 'y' is not checked past this call [resource: ownership transfer]
+    warning: [OWN002] IDisposable local 'handoffStream' is used after it is disposed [resource: disposable]
+    warning: [OWN002] IDisposable local 'finallyStream' is used after it is disposed [resource: disposable]
+  rust:  
+    warning: [OWN051] cannot verify whether 'GuardedConsumeSample.ForwardDynamic' takes ownership of 'x' (inferred contract: may); optimistically assuming it does — 'x' is not checked past this call [resource: ownership transfer]
+    warning: [OWN051] cannot verify whether 'GuardedConsumeSample.ForwardDynamic' takes ownership of 'y' (inferred contract: may); optimistically assuming it does — 'y' is not checked past this call [resource: ownership transfer]
+    warning: [OWN002] IDisposable local 'handoffStream' is used after it is disposed [resource: disposable]
+    warning: [OWN002] IDisposable local 'finallyStream' is used after it is disposed [resource: disposable]
+A3 multi-level definite forward and borrow leak on main:
+  python:
+    warning: [OWN002] IDisposable local 'b' is used after it is disposed [resource: disposable]
+  rust:  
+    warning: [OWN002] IDisposable local 'b' is used after it is disposed [resource: disposable]
+A3 borrow leak with a hand-made call:
+  python:
+    warning: [OWN002] IDisposable local 'b' is used after it is disposed [resource: disposable]
+    warning: [OWN001] IDisposable local 'd' is never disposed (leak) [resource: disposable]
+  rust:  
+    warning: [OWN002] IDisposable local 'b' is used after it is disposed [resource: disposable]
+    warning: [OWN001] IDisposable local 'd' is never disposed (leak) [resource: disposable]
+(work dir: <tmp>)

@@ -1,0 +1,7 @@
+bad: list[0]=10 (stale write lost: True)
+bad-spare-capacity: list2[0]=99 (observable: False), v2.Length=1 list2.Count=2
+bad-removeat: v3=[2,3,3] list3=[2,3]
+ok-no-mutation: True
+ok-other-list: True
+ok-no-use-after: True
+ok-refreshed: True

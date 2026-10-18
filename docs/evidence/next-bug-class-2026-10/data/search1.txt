@@ -1,0 +1,218 @@
+### prs :: "CollectionsMarshal" stale --language C#
+KinsonDigital/Velaptor	#1208	open	perf: replace ConcurrentDictionary with Dictionary + CollectionsMarshal in content loaders and KeyboardDataService
+tedd/Tedd.DictionaryUtils	#13	open	⚡ Bolt: AddExtensions.GetOrAdd Optimization
+thomhurst/Respire	#1565	merged	chore(deps): update dependency polyfill to 11.4.5
+BasisVR/Basis	#1078	open	Feat/cilbox network behaviour overrides
+dotnet/runtime	#134313	merged	Pool TLS 1.3 session tickets per host instead of keeping one
+NethermindEth/nethermind	#14450	merged	perf(zkevm): trim per-transaction tracer reads and journal clearing in the guest
+meziantou/Meziantou.Framework	#2825	merged	Do not hold a dictionary ref across a user-supplied value factory
+dotnet/maui	#37148	merged	Fix NullReferenceException in ApplyBindings when DefaultValueCreator mutates other BindableProperties
+rtkelly-labs/Parquet.SourceGenerator	#639	merged	fix(emitter): check the list span length before the unchecked write loop
+NethermindEth/nethermind	#14222	merged	perf(zkevm): OptimizedDictionary/OptimizedHashSet with 64-bit guest hash tables on the state path
+NethermindEth/nethermind	#13459	merged	fix(eip8141): restore the snapshot on every frame-tx pre-flight rejection
+Yesanith/RegionsOfXIV	#15	merged	Fix Turkish letters rendering and improve font handling
+dotnet/runtime	#131142	merged	Avoid array allocations when evaluating connections for eviction
+nasytnyk/csharp-mistakes-explained	#14	merged	Add exhibit #0040: the-span-left-behind
+NethermindEth/nethermind	#13967	merged	fix(rpc): serve code written by SETCODEFROM and EIP-7702 through code overrides
+NethermindEth/nethermind	#13312	merged	perf(bal): bypass journaling for immutable parent reads
+alexswi/LinkPulse	#28	merged	refactor: clarify presence count semantics and halve dict lookups
+dotnet/skills	#1134	merged	Weekly plugin version sync
+NethermindEth/nethermind	#12998	merged	perf(state): unswitch tracing branches in commit loops
+Cysharp/ObservableCollections	#110	merged	Fix `List<T>` to `ListView<T>` casting bug on .NET Framework
+XeldarAlz/FFXIV-Aetherphone	#161	merged	feat(uno): house rules
+ParadiseEngine/ParadiseEngine	#241	merged	A frame graph over the command stream: named events, owned targets, derived reads, inferred store ops, and a feature seam
+dotnet/maui	#36030	closed	[Controls] Fix BindableObject DefaultValueCreator re-entrancy regression
+open-astro/openastro-ara	#810	merged	perf: §64/§59 — StarDetector measures only the brightest-N when capped
+NethermindEth/nethermind	#13447	merged	Merge master into eip8141-frame-txs-devnet7
+b-editor/beutl	#1990	merged	fix(engine): dispose truncated FormattedText glyph resources on shrink
+Toys0125/Basis	#17	closed	Ci/sync sim tests
+dotnet/orleans	#10693	open	feat(messaging): add durable grain inbox and outbox messaging
+ARKlab/Ark.Tools	#1113	merged	chore(deps): update all non-major dependencies
+NethermindEth/nethermind	#12018	closed	feat(witness): generate the storage witness from the world-state scope
+### prs :: "CollectionsMarshal.AsSpan" fix --language C#
+dotnet/skills	#1248	open	test(dotnet-diag): strengthen evaluation quality
+Doraku/DefaultDocumentation	#302	open	Bump Polyfill from 11.4.3 to 11.4.5
+Doraku/DefaultUnDo	#79	open	Bump Polyfill from 11.4.3 to 11.4.5
+tedd/Tedd.HashSetExtensions	#5	open	📜 Codex: Documentation Synchronization and Architectural Articulation
+Doraku/DefaultCSharp	#156	open	Bump Polyfill from 11.4.3 to 11.4.5
+ChrisPulman/Spectre.Console.Rx	#279	open	Update dependency Polyfill to 11.4.5
+dailydevops/extensions.test	#1509	open	chore(deps): update dependency polyfill to 11.4.5
+ChrisPulman/IoT-DriverCore	#146	open	Update dependency Polyfill to 11.4.5
+spectreconsole/spectre.console	#2224	open	chore: Update dependency Polyfill to 11.4.5
+reactiveui/ReactiveUI.Validation	#988	open	chore(deps): update dependency polyfill to 11.4.5
+dailydevops/arguments	#827	open	chore(deps): update dependency polyfill to 11.4.5
+RocketSurgeonsGuild/MSBuild.Targets	#1621	open	Update dependency Polyfill to 11.4.5
+RocketSurgeonsGuild/Testing	#2322	open	Update dependency Polyfill to 11.4.5
+Cysharp/R3	#395	open	fix: stop assuming List<T>'s private field layout (#394)
+MarcelRoozekrans/roslyn-codelens-mcp	#497	merged	build(deps): remove NetFabric.Hyperlinq.Analyzer
+code-of-chaos/CodeOfChaos.Unions	#128	open	Chore(deps): Bump Polyfill from 11.3.0 to 11.4.5
+ChrisPulman/XamlConverters	#112	open	Update dependency Polyfill to 11.4.5
+dwierzbicki11/SlavicGame	#357	merged	perf: retire menu vertex buffers without device stall
+NethermindEth/nethermind	#14626	merged	Collect a transaction's account changes without allocating
+BasisVR/Basis	#1078	open	Feat/cilbox network behaviour overrides
+BasisVR/Basis	#1067	open	fix(sdk): survive platform switches during multi-target bundle builds
+CodeMazeBlog/CodeMazeGuides	#2261	merged	Array Slicing in C#: retarget SliceArrays to .NET 10 and fix the crash on run
+dotnet/skills	#1309	open	Complete the Vally 0.18 evaluation migration
+alttpr/csrando	#35	open	Fix randomizer hanging with conservative door search optimizations and targeted DungeonKeySolver integration
+RocketSurgeonsGuild/Conventions	#2449	open	Update dependency Polyfill to v11
+thomhurst/Sourcy	#142	merged	Update dependency Polyfill to 11.4.5
+Zektopic/sharpemu	#85	closed	⚡ Bolt: Optimize TryValidateRange bounds checks in VirtualMemory
+RocketSurgeonsGuild/LaunchPad	#3031	open	Update dependency Polyfill to v11
+b-editor/beutl	#3057	merged	refactor!: remove CoreListMarshal from Beutl.Core
+RocketSurgeonsGuild/Extensions	#1961	open	Update dependency Polyfill to v11
+### issues :: "CollectionsMarshal.AsSpan" bug --language C#
+Cysharp/ObservableCollections	#128	open	Update TargetFrameworks: add net10.0 now, drop net6.0/net8.0 after November 2026
+naudio/NAudio	#1419	closed	[v3.0] Mp3FileReaderBase - CurrentTime setter does not update mp3Stream.Position on files with VBR header
+credfeto/credfeto-dotnet-codeanalysis-override	#44	closed	IniFile parsing: quadratic ImmutableArray.Add accumulation and redundant line-buffer copies
+AvaloniaUI/Avalonia	#8764	open	For Avalonia.Controls.ListBox for Items Property, Support for IList<T> without non-generic IList
+SharpAstro/tianwen	#1343	closed	Audit: duplicated code and guideline violations in the planetary wave of 2026-10-08
+Cysharp/R3	#142	closed	SystemRuntime.CompilerServices.Unsafe missing
+pal-tamas/rask	#683	closed	Builder surface is 18% slower than the factory it replaces — the unconditional reset of five shared props
+dotnet/runtime	#114262	open	[net9] System.Private.CoreLib occurs InvalidOperationException and InvalidCastException
+dotnet/runtime	#81523	open	Reconsider version checks in collections?
+richlander/dotnet-inspect	#1142	closed	Decompiler ledger frontier evidence burndown
+pedrosakuma/B3MatchingPlatform	#342	closed	perf: profile SortedDictionary in LimitOrderBook before any container swap (#17 go/no-go)
+dotnet/runtime	#115400	closed	[API Proposal]: BitArray.AsBytes()
+SciSharp/LLamaSharp	#891	closed	[BUG]: KernelMemory.AskAsync() does not work - exception: object reference not set to an instance of an object
+dotnet/runtime	#111813	closed	[API Proposal]: Expose a way to get either directly to the backing array of an ImmutableArray.Builder, or get it as a span.
+ltrzesniewski/InlineIL.Fody	#32	closed	FieldRef to generic class can not be resolved
+apache/arrow-adbc	#1690	closed	csharp: native memory leaks in CAdbcDriverImporter.cs
+dotnet/runtime	#96876	closed	CollectionsMarshal.AsSpan assertion failure in System.Text.Json tests
+dotnet/roslyn	#70656	closed	IDE0305 recommends collection expression that results in worse IL
+dotnet/runtime	#76205	closed	LINQ Usage Survey
+### issues :: "CollectionsMarshal" "Add" span invalid --language C#
+ais-dotnet/Ais.Net	#200	open	Process various AI perf suggestions
+dotnet/runtime	#41418	open	Enumerating type safety guarantees in MemoryMarshal and friends
+AvaloniaUI/Avalonia	#8764	open	For Avalonia.Controls.ListBox for Items Property, Support for IList<T> without non-generic IList
+castleproject/Core	#663	open	Support by-ref-like (`ref struct`) parameter types such as `Span<T>` and `ReadOnlySpan<T>`
+dotnet/runtime	#101244	closed	[API Proposal]: Expose flattened index get/set on Array
+MihuBot/runtime-utils	#1374	open	[JitDiff X64] xtqqczze/dotnet-runtime/memorymarshal-getspan
+dotnet/runtime	#114262	open	[net9] System.Private.CoreLib occurs InvalidOperationException and InvalidCastException
+dotnet/runtime	#14477	open	[Proposal] Use B+-trees instead of AVL trees for Immutable Collections
+SciSharp/LLamaSharp	#891	closed	[BUG]: KernelMemory.AskAsync() does not work - exception: object reference not set to an instance of an object
+dotnet/runtime	#56773	closed	Optimize `CollectionsMarshal.AsSpan` with inlining and bounds check removal
+dotnet/runtime	#27062	closed	Developers can use CollectionsMarshal ref accessors for Dictionary<TKey, TValue>
+### prs :: dispose captured lambda leak --language C#
+forge-trust/AppSurface	#884	open	feat(evidence): add bounded HTTP readiness and Aspire fixtures
+dotnet/maui-labs	#178	open	[AI] Windows AI chat and structured JSON support
+openai/openai-dotnet	#1431	open	Add Content-Type parameter to Multipart convenience methods
+refusedguy/Harbor-Harness	#524	merged	fix(overlays): OverlayController detaches from the singleton stack on dispose (#476)
+decentraland/unity-explorer	#9909	open	fix: texture disk-cache use-after-free during async writes
+microsoft/ai-dev-gallery	#545	open	[Fix]IDisposable Analyzer Warnings
+openai/openai-dotnet	#1349	open	Migrate old CollectionResult/AsyncCollectionResult to AsyncStreamingCollectionResult for streaming in Responses/Audio/Images
+microsoft/aspire	#18770	open	Add preview Aspire.Mcp.Client integration
+CommunityToolkit/Maui	#2897	open	Android service update
+Systemorph/MeshWeaver	#6311	merged	fix(mesh): copy and move deadlines no longer retain the handler's hub
+decentraland/unity-explorer	#10407	open	feat: avatar preview renderer parity with the Babylon preview
+community-outpost/GenHub	#540	open	feat(online): joinable LAN servers for zerohour with virtual LAN tab
+HartsyAI/HartsyInference	#201	merged	Engine: synthesizer and transcriber runner leases (voice agent PR8a)
+microsoft/Agent365-dotnet	#224	open	fix: propagate CancellationToken through async MCP tooling and observability call chains
+community-outpost/GenHub	#600	open	feat(online): Generals Online lobby browser tab with CRC matchmaking
+zacala1/InterprocessMemory	#3	merged	Fix Linux lock-owner detection and lock-wait robustness; opt-in lock takeover; crash-recovery tools; narrow Dispose races
+Systemorph/MeshWeaver	#996	merged	A pending Rx timer kept disposed hubs alive — in four watchers, three of them on the live thread path
+roo-oliv/monodreams	#120	open	feat(demos): deterministic fixed-step clock for headless runs
+HavenDV/H.NotifyIcon	#281	merged	fix(winui): release second-window context menu
+squirix/squirix	#544	merged	chore: fix Rider findings across server and test projects
+NethermindEth/nethermind	#14220	open	[WIP] Lean proof and devp2p benchmarks
+community-outpost/GenHub	#669	open	feat(genhotkeys): add tooltip and cameo customization with in-game replica preview
+BookBeat/knightbus	#193	merged	fix(knightbus): release singleton lock when the receiver stops
+unoplatform/uno	#24236	open	fix(binding): Drop dead INotifyPropertyChanged subscriptions
+El1rans/porchlight	#10	merged	feat(lighting): RGB control via OpenRGB
+abpframework/abp	#26122	merged	Fix event handler leak in ChildUnitOfWork
+pnp/Microsoft365-Analytics-Insights	#709	merged	Importer: run the daily usage reports in the background, off the import loop, so Copilot/audit data isn't held behind them (#706)
+unoplatform/uno	#23754	open	feat(webview2): Improve API parity across platforms
+tomwolfgang/piper	#44	merged	Relay response bodies as they arrive instead of buffering them whole
+parse-community/Parse-SDK-dotNET	#411	open	feat: Add livequery support
+### prs :: "local function" dispose leak --language C#
+dotnet/runtime	#133659	open	Invoke debugger function evaluations through managed UCO
+IvanJosipovic/KubeUI	#1565	open	feat: open Properties view follows list selection
+valence-works/elsa-control	#845	open	spike: AC1 Shared shell memory and cold-start harness (#798)
+JKamsker/LiteDB	#133	open	Add explicit transaction handles and operation lifetime protection
+litedb-org/LiteDB	#3085	open	Add thread-independent transaction handles (#3064)
+SergeyTeplyakov/ErrorProne.NET	#288	open	Add lightweight disposable ownership analysis
+dotnet/roslyn	#20111	open	Fix cancellation leaks
+jafin/AngleSharp	#3	open	Keep auxiliary browsing contexts alive until their opener is gone
+microsoft/node-api-dotnet	#500	open	Improve object safety
+linq2db/linq2db	#5959	open	Coerce ClickHouse date operands to DateTime64 before the epoch functions
+litedb-org/LiteDB	#3087	open	Reuse Shared transaction-handle holder threads and child wrappers
+unoplatform/uno	#23313	open	fix(SpeechRecognizer): report WASM recognition outcomes via Status instead of throwing
+vein-lang/vein	#295	open	Feature/generics runtime
+decentraland/unity-explorer	#9059	open	feat: poc enable comms for PEXs interacting with the authoritative-server
+Yeusepe/Yeusepes-Modules	#8	open	Add option to trigger song recognition via VRCOSC UI
+cyrildewit/morti	#24	open	Bump the nuget group with 13 updates
+cyrildewit/morti	#23	open	Bump Aspire.Hosting.AppHost and 12 others
+microsoft/aspire	#19521	open	Add terminal-driven CLI smoke scenarios
+bitfoundation/bitplatform	#12426	open	Use fast invoke JS extension methods in sync calls in BlazorUI (#9917)
+CommunityToolkit/Maui	#2502	open	Add support for local files and package resources to MediaElement
+microsoft/Agent365-Samples	#313	open	 feat(nodejs): Add Google ADK sample agent with Microsoft OpenTelemetry distro
+mrazza/smoc	#40	open	feat(cast): add Google Cast support and :output command
+EvilBeaver/OneScript	#1745	open	ФоновоеЗадание.Отменить()
+nobigllebowski/Veil	#24	open	Bump the dotnet group with 20 updates
+dotnet/runtime	#131544	open	Fix EventPipe dispose-in-callback deadlock
+unoplatform/uno	#23027	open	fix(xbind): Observe INPC through a static-class root
+HampusVictoren/trading-agent-system	#73	open	Bump the nuget group with 9 updates
+Belphemur/SoundSwitch	#2475	open	feat(banner): customize monitor, color, and scale
+bitfoundation/bitplatform	#13856	open	feat(blazorui): add seekable PDF stream sources #13702
+thrtn70/WatchDog	#82	open	fix: automated audit fixes — CI build, security, and resource leaks
+### prs :: "not disposed" stream passed helper --language C#
+sytone/botnexus	#4968	open	test(process): avoid waiting on a disposed root handle
+MDA2AV/ioxide	#383	open	http3: a request whose body does not match its content-length is refused with H3_MESSAGE_ERROR instead of being served
+bitfoundation/bitplatform	#13856	open	feat(blazorui): add seekable PDF stream sources #13702
+mono/SkiaSharp	#4814	open	[memory-leak] Fix SKStreamAsset leak in ToHarfBuzzBlob copy branch
+dotnet/android	#13078	open	[Unsafe] Opt tooling into updated C# memory-safety rules
+adamhathcock/sharpcompress	#1454	open	Reduce archive allocations across types
+JKamsker/DotBoxD	#1434	open	[surprise-red-test] RpcPeer disposal deadlocks when outbound stream callbacks await teardown
+couchbase/couchbase-net-client	#221	open	NCBC-3625: Add GetAllReplicasStreamAsync
+linq2db/linq2db	#6014	open	SignalR remote transport: cancellable streaming calls, concurrency limits, size pre-flight, restartable DI connection
+microsoft/durabletask-dotnet	#814	open	Honor explicit abandonment in the in-process test host
+ysy95109/jellyfin-plugin-metatube	#8	open	Propagate cancellation through enrichment and tasks, and give HTTP responses explicit owners
+bjorkstromm/azure-functions-test-framework	#143	open	Capture mixed HTTP + output bindings via GetOutputData() (#142)
+dotnet/maui-labs	#178	open	[AI] Windows AI chat and structured JSON support
+openai/openai-dotnet	#1431	open	Add Content-Type parameter to Multipart convenience methods
+openai/openai-dotnet	#1226	open	Defer streaming request content creation until enumeration
+NethermindEth/nethermind	#14727	open	fix(debug): classify transaction native tracer configuration errors
+dotnet/android	#13150	open	[Build.Tasks] Emit resource designers with System.Reflection.Metadata
+Azure/durabletask	#1402	open	Add opt-in guard for duplicate awaited sub-orchestration IDs
+NethermindEth/nethermind	#14574	open	fix(debug): preserve block-number timeout error precedence
+sbroenne/mcp-server-excel	#1095	open	feat(cli): support incremental batch commands over stdin
+dotnet/maui	#38111	open	[Android] Fix ObjectDisposedException when Glide restarts stream images
+openai/openai-dotnet	#1349	open	Migrate old CollectionResult/AsyncCollectionResult to AsyncStreamingCollectionResult for streaming in Responses/Audio/Images
+NethermindEth/nethermind	#14834	open	fix(debug): validate precompile moves before traceCall fees
+microsoft/vstest	#16445	open	Stop sending after a partial frame write
+csmashe/typewhisper-linux	#119	open	Send dictionary terms whole to Gladia
+NethermindEth/nethermind	#14522	open	feat: EIP-8437 ethp2p binding with authenticated broadcast
+mkelley88/NO-TIIDE	#9	open	Harden file-open handler: dialog result, reader disposal, error handling
+litedb-org/LiteDB	#3059	open	Keep caller streams unchanged by stream open, checkpoint and dispose
+oras-project/oras-dotnet	#328	open	feat: implement File Store
+Gibbs-Morris/mississippi	#876	open	Route Aqueduct messages to connected users +semver: breaking
+### prs :: fix "undisposed" stream leak --language C#
+mono/SkiaSharp	#4814	open	[memory-leak] Fix SKStreamAsset leak in ToHarfBuzzBlob copy branch
+dotnet/dotnet-api-docs	#12659	open	Fix Process standard stream examples to avoid resource leaks and add ownership remarks
+blxkstxllion/shopkeeper	#119	merged	Fix void credit-balance leak, void stock lost-update, refund number race, stream leaks, invitation rate limiting
+Flakroup/FEx	#172	merged	Fix FtpDownloader unbounded retry, undisposed responses and shared retry counter
+unoplatform/uno.monaco.editor	#53	open	fix(tests): probe each static server candidate to readiness
+dotnet/maui-labs	#178	open	[AI] Windows AI chat and structured JSON support
+ClickHouse/clickhouse-cs	#332	open	BinaryImport
+ChrisBrooksbank/Vox	#41	merged	Fix resource leaks found in a leak audit
+openai/openai-dotnet	#1349	open	Migrate old CollectionResult/AsyncCollectionResult to AsyncStreamingCollectionResult for streaming in Responses/Audio/Images
+NethermindEth/nethermind	#14583	open	fix(debug): preserve native tracer boolean values on null
+almeidajr/Kongroo.OpcUa	#11	open	chore: Bump the nuget group with 11 updates
+sneaky-tester/validation-core	#7	open	Simplify empty-enumerable evaluation
+sneaky-tester/validation-core	#9	open	Simplify EmptyValidator conditions
+PinataLabs/ImagePastel	#49	merged	Harden the WebP decoder against container oddities
+Sendspin/sendspin-dotnet	#358	merged	fix: keep unadmitted host connections from stopping shared pipelines
+microsoft/Agent365-Samples	#277	open	Add Perplexity AI Sample Agent (.NET)
+thomhurst/ModularPipelines	#6634	merged	fix: dispose downloader requests and configured content
+adbc-drivers/databricks	#544	open	fix(csharp): metadata(csharp): GetTables TABLE_TYPE/REMARKS/TABLE_NAME value normalization differs (Thrift REMARKS=UNKNOWN vs SEA "") (#527)
+litedb-org/LiteDB	#3085	open	Add thread-independent transaction handles (#3064)
+woutervanranst/Arius7	#195	open	perf: reduce per-item allocation churn in Arius.Core
+BepInEx/BepInEx.Debug	#21	merged	ScriptEngine - Support hot reload of interconnected assemblies
+HartsyAI/HartsyInference	#418	merged	Chatterbox: derive zero-shot conditioning from the reference as upstream does
+ray-amjad/hyperwhisper-app	#1068	merged	fix(linux): SIGTERM/SIGINT run the real quit, so the sink and mic are restored (#1038)
+SharpAstro/tianwen	#1067	merged	fix(hosting): a start's lease goes back on a throw, and the build's 27 warnings are gone
+AntiNotAnti/Project-Prime	#495	merged	Dispose Music engine after failed playback-device startup
+dotnet/orleans	#10588	open	feat(streaming)!: unify stream partition recovery
+jayanth-org1/Green-Bus-Server	#7	open	 added bugs
+lukislp/studylife	#208	merged	fix(client): release AppStateService resources on dispose, dialog semantics for modals
+galapa-dqx/GalapaLauncher	#9	open	feat(patcher): DQX ZiPatch installer + architecture docs (oracle-validated)
+VectorNNTP/VectorNNTPD	#139	merged	fix(nntp): prevent idle session leaks and disposal races
