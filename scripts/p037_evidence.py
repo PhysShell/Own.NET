@@ -169,6 +169,14 @@ EXPLICIT_FILE_SEMANTIC_FS_DEPENDENCIES: tuple[dict[str, str], ...] = (
         "closure": "support_manifest + external_ancestor_problems",
         "anchor": r"Path\.Combine\(dir, \"FodyWeavers\.xml\"\)",
     },
+    {
+        # #410: the companion `Foo.Designer.cs` of a primary `Foo.cs` is read (never compiled)
+        # as evidence that a field is released at teardown. The extractor reads it only when it
+        # is not itself a primary input, so the closure carries it only in that case.
+        "mechanism": "sibling-designer",
+        "closure": "support_manifest",
+        "anchor": r"var designer = path\[\.\.\^3\] \+ \"\.Designer\.cs\";",
+    },
 )
 
 
@@ -322,15 +330,23 @@ def support_manifest(
 ) -> list[dict[str, str]]:
     """Committed side inputs the extractor reads BECAUSE of the primary inputs.
 
-    Explicit-file mode only: the sibling ``.xaml`` of every ``*.xaml.cs``, and
-    every ``FodyWeavers.xml`` on a primary file's ancestor chain up to the repo
-    root. Project/solution expansion (``WeaverOwnedFiles`` via a ``.csproj``) is
-    not part of this closure and is not certified by it.
+    Explicit-file mode only: the sibling ``.xaml`` of every ``*.xaml.cs``, the
+    companion ``Foo.Designer.cs`` of every primary ``Foo.cs`` that is not itself a
+    primary input (#410: read as release evidence, never compiled), and every
+    ``FodyWeavers.xml`` on a primary file's ancestor chain up to the repo root.
+    Project/solution expansion (``WeaverOwnedFiles`` via a ``.csproj``) is not part
+    of this closure and is not certified by it.
     """
     tree = _tree_blobs(commit, (), repo=repo)
+    primary = {entry["path"] for entry in analysis}
     out: dict[str, dict[str, str]] = {}
     for entry in analysis:
         path = entry["path"]
+        if not path.lower().endswith(".designer.cs"):
+            designer = path[:-3] + ".Designer.cs"
+            if designer in tree and designer not in primary:
+                out[designer] = {"path": designer, "blob": tree[designer],
+                                 "mechanism": "sibling-designer"}
         if path.endswith(".xaml.cs"):
             sibling = path[:-3]
             if sibling in tree:

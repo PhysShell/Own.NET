@@ -13,7 +13,7 @@ population drift) a small synthetic git history is built in a temporary clone
 so the real git-backed predicate runs over real commits.
 
 Two fitness pins ride along: the extractor's explicit-file filesystem read
-sites must all be classified against the four semantic mechanisms the support
+sites must all be classified against the five semantic mechanisms the support
 closure covers, and the repository population's support closure must be
 exactly the three files it is today.
 """
@@ -66,7 +66,7 @@ FS_API = re.compile(
 DECL = re.compile(r"^static\s+[\w<>\[\]?,. ]+?\s+(\w+)\s*\(")
 
 # Every filesystem read site in the extractor, classified. The explicit-file
-# entries are the four semantic mechanisms the evidence closure covers; a new
+# entries are the five semantic mechanisms the evidence closure covers; a new
 # site (or a moved one) fails by NAME until someone classifies it here, and a
 # classification into explicit-file analysis obliges a support-closure update
 # in scripts/p037_evidence.py. Counting File.ReadAllText per file would guard
@@ -88,6 +88,8 @@ EXTRACTOR_FS_SITES: dict[tuple[str, str, str], tuple[str, int]] = {
     ("<top-level>", "File.ReadAllText", "path"): ("explicit-file:explicit-cs-contents", 1),
     ("<top-level>", "File.Exists", "xamlPath"): ("explicit-file:sibling-xaml", 1),
     ("<top-level>", "File.ReadAllText", "xamlPath"): ("explicit-file:sibling-xaml", 1),
+    ("<top-level>", "File.Exists", "designer"): ("explicit-file:sibling-designer", 1),
+    ("<top-level>", "File.ReadAllText", "designer"): ("explicit-file:sibling-designer", 1),
     ("<top-level>", "Directory.Exists", "dir"): ("reference-environment", 2),
     ("<top-level>", "Directory.EnumerateFiles", "dir"): ("reference-environment", 2),
 }
@@ -172,6 +174,22 @@ class History:
         ):
             subprocess.run(["git", "-C", str(self.repo), *argv], check=True,
                            capture_output=True, env=env)
+        proc = subprocess.run(["git", "-C", str(self.repo), "write-tree"], check=True,
+                              capture_output=True, env=env)
+        return proc.stdout.decode("ascii").strip()
+
+    def tree_with_files(self, files: dict[str, bytes]) -> str:
+        """HEAD's tree with several paths added or replaced, through a private index."""
+        self.index_count += 1
+        index = self.tmp / f"index-{self.index_count}"
+        env = {**self.env, "GIT_INDEX_FILE": str(index)}
+        subprocess.run(["git", "-C", str(self.repo), "read-tree", self.head_tree], check=True,
+                       capture_output=True, env=env)
+        for path, content in files.items():
+            blob = self.git("hash-object", "-w", "--stdin", stdin=content)
+            subprocess.run(["git", "-C", str(self.repo), "update-index", "--add",
+                            "--cacheinfo", f"100644,{blob},{path}"],
+                           check=True, capture_output=True, env=env)
         proc = subprocess.run(["git", "-C", str(self.repo), "write-tree"], check=True,
                               capture_output=True, env=env)
         return proc.stdout.decode("ascii").strip()
@@ -598,6 +616,61 @@ def history_controls() -> None:
         hist.cleanup()
 
 
+def designer_support_controls() -> None:
+    """#410: a companion `Foo.Designer.cs` read as release evidence is a semantic side input.
+
+    With only `Foo.cs` as a primary input the extractor reads the designer file beside it, so
+    the support closure must carry it, and a designer edit must invalidate earlier evidence.
+    With the designer itself a primary input it is pinned by the analysis manifest instead and
+    must not be materialized twice."""
+    hist = History()
+    try:
+        base = "corpus/p037-designer"
+        main_cs = f"{base}/Foo.cs"
+        designer = f"{base}/Foo.Designer.cs"
+        files_v1 = {
+            main_cs: b"namespace R;\npublic partial class Foo { }\n",
+            designer: b"namespace R;\npartial class Foo { /* v1 */ }\n",
+        }
+        files_v2 = dict(files_v1)
+        files_v2[designer] = b"namespace R;\npartial class Foo { /* v2 */ }\n"
+        c1 = hist.commit(hist.tree_with_files(files_v1), [], "designer v1 (root)")
+        c2 = hist.commit(hist.tree_with_files(files_v2), [c1], "designer v2")
+        only_main = (main_cs,)
+
+        f1 = ev.population_fields(c1, only_main, repo=hist.repo)
+        support = {e["path"]: e["mechanism"] for e in f1["support_manifest"]}
+        check("control-15-sibling-designer-in-support-closure",
+              support.get(designer) == "sibling-designer",
+              f"support closure {support!r} does not carry the companion designer file")
+        whole = ev.population_fields(c1, (base,), repo=hist.repo)
+        primary = {e["path"] for e in whole["analysis_manifest"]}
+        check("control-15b-primary-designer-not-in-support",
+              designer in primary
+              and all(e["path"] != designer for e in whole["support_manifest"]),
+              "a designer file that is a primary input must be pinned once, by the analysis "
+              "manifest")
+
+        before = complete(ev.evidence_fields(only_main, population_commit=c1, source_commit=c1,
+                                             repo=hist.repo))
+        forged = copy.deepcopy(before)
+        forged["support_manifest"] = ev.population_fields(
+            c2, only_main, repo=hist.repo)["support_manifest"]
+        expect_problem("control-15c-designer-edit-invalidates-record",
+                       ev.record_problems(forged, repo=hist.repo),
+                       "recorded support_manifest does not match")
+        after = complete(ev.evidence_fields(only_main, population_commit=c2, source_commit=c2,
+                                            repo=hist.repo))
+        drift = ev.comparison_problems(before, after, against=c2, repo=hist.repo)
+        expect_problem("control-15d-designer-edit-breaks-comparison", drift,
+                       "semantic support manifests differ")
+        check("control-15e-designer-edit-moves-only-support",
+              before["analysis_manifest"] == after["analysis_manifest"],
+              "the designer edit should move only the support closure")
+    finally:
+        hist.cleanup()
+
+
 def main() -> int:
     problems = ev.closure_problems()
     check("runtime-closure-covered", not problems, "; ".join(problems))
@@ -606,10 +679,12 @@ def main() -> int:
     fitness_pins()
     record_level_controls()
     history_controls()
+    designer_support_controls()
     if failures:
         print(f"RESULT: {failures} P-037 evidence control(s) failed")
         return 1
-    print("RESULT: all P-037 evidence controls passed (14 negative, 1 positive, fitness pins)")
+    print("RESULT: all P-037 evidence controls passed "
+          "(14 negative, 1 positive, sibling-designer closure, fitness pins)")
     return 0
 
 
