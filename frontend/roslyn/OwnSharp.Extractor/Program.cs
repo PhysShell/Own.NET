@@ -3597,6 +3597,63 @@ static int FlowNestingDepth(IReadOnlyList<object> nodes, int level = 0)
     return deepest;
 }
 
+// #408: C# lets two DIFFERENT locals share a name when their scopes are disjoint (two branches, two
+// blocks, a branch and a loop). The flow pass keys locals by NAME, so every reference to an untracked
+// local named like a tracked one became an op on the tracked local: a `use` with no `acquire` on that
+// path aborted the whole document in the core (internal OWN030 "undefined name", MessagePack-CSharp),
+// and a `use` after the tracked local's release was a false OWN002. Map each scope that declares such
+// an untracked same-named local (its block, or the foreach / for / using / switch / fixed statement it
+// belongs to) to the names it hides; the lowering drops those names from `tracked` inside it. Scopes of
+// two same-named locals never overlap (CS0128 / CS0136), so inside that scope the name can only mean
+// the untracked local. Lambda and local-function parameters are not mapped.
+static Dictionary<SyntaxNode, HashSet<string>>? ShadowingScopes(BlockSyntax body, HashSet<string> tracked,
+                                                                  HashSet<SyntaxNode> candidateDecls)
+{
+    Dictionary<SyntaxNode, HashSet<string>>? map = null;
+    void Hide(SyntaxNode? scope, string name)
+    {
+        if (scope is null || !tracked.Contains(name)) return;
+        map ??= new Dictionary<SyntaxNode, HashSet<string>>();
+        if (!map.TryGetValue(scope, out var names))
+            map[scope] = names = new HashSet<string>(StringComparer.Ordinal);
+        names.Add(name);
+    }
+    static SyntaxNode? StatementScope(SyntaxNode? owner) => owner switch
+    {
+        SwitchSectionSyntax sec => sec.Parent,   // a section's locals belong to the whole switch block
+        _ => owner,
+    };
+    foreach (var node in body.DescendantNodes())
+        switch (node)
+        {
+            case VariableDeclaratorSyntax d when !candidateDecls.Contains(d):
+                Hide(d.Parent?.Parent switch
+                {
+                    LocalDeclarationStatementSyntax ld => StatementScope(ld.Parent),
+                    { } owner => owner,          // for / using / fixed statement
+                    null => null,
+                }, d.Identifier.Text);
+                break;
+            case ForEachStatementSyntax fe:
+                Hide(fe, fe.Identifier.Text);
+                break;
+            case SingleVariableDesignationSyntax sv:   // `out var x`, `is T x`, deconstruction
+                Hide(StatementScope(sv.Ancestors().FirstOrDefault(a => a is BlockSyntax or SwitchSectionSyntax)),
+                     sv.Identifier.Text);
+                break;
+        }
+    return map;
+}
+
+static HashSet<string> WithoutShadowed(SyntaxNode scope, HashSet<string> tracked)
+{
+    if (FlowShadows.Hidden is not { } map || !map.TryGetValue(scope, out var hidden) || !tracked.Overlaps(hidden))
+        return tracked;
+    var narrowed = new HashSet<string>(tracked, StringComparer.Ordinal);
+    narrowed.ExceptWith(hidden);
+    return narrowed;
+}
+
 static List<object>? LowerFlowBody(BlockSyntax block, HashSet<string> tracked, SemanticModel model)
 {
     var nodes = new List<object>();
@@ -3617,6 +3674,8 @@ static bool LowerFlowStatements(IReadOnlyList<StatementSyntax> stmts, int start,
                                 bool canEscape, List<object>? onThrow, List<object>? onReturn,
                                 bool onThrowDefinite = false)
 {
+    if (start == 0 && stmts.Count > 0 && stmts[0].Parent is { } scope)
+        tracked = WithoutShadowed(scope, tracked);
     for (var i = start; i < stmts.Count; i++)
     {
         var st = stmts[i];
@@ -3685,6 +3744,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
     // skipped anyway: bail the method as unmodelled instead.
     if (!System.Runtime.CompilerServices.RuntimeHelpers.TryEnsureSufficientExecutionStack())
         return false;
+    tracked = WithoutShadowed(st, tracked);
     switch (st)
     {
         case BlockSyntax b:
@@ -7032,6 +7092,14 @@ foreach (var (file, tree) in parsed)
                     }
                 }
                 var candidates = new HashSet<string>();
+                // #408: the DECLARATORS behind `candidates` — the flow pass keys locals by name, so a
+                // different local that merely shares a tracked name must be told apart by its declarator.
+                var candidateDecls = new HashSet<SyntaxNode>();
+                void AddCandidate(VariableDeclaratorSyntax d)
+                {
+                    candidates.Add(d.Identifier.Text);
+                    candidateDecls.Add(d);
+                }
                 var poolBuffers = new HashSet<string>();   // candidates that are ArrayPool<T> buffers
                 var usingMemoryOwners = new HashSet<string>();   // `using`-declared MemoryPool owners
                 var newedDisposables = new HashSet<string>();    // candidates created via `new` (NOT a pool rental / factory)
@@ -7045,7 +7113,7 @@ foreach (var (file, tree) in parsed)
                         foreach (var v in ld.Declaration.Variables)
                             if (IsMemoryPoolRent(v.Initializer?.Value, model))
                             {
-                                candidates.Add(v.Identifier.Text);
+                                AddCandidate(v);
                                 usingMemoryOwners.Add(v.Identifier.Text);
                             }
                         continue;
@@ -7059,25 +7127,25 @@ foreach (var (file, tree) in parsed)
                             // resource -> never disposing a local of it cannot leak.
                             && !HasEmptyDisposeBody(dt))
                         {
-                            candidates.Add(v.Identifier.Text);
+                            AddCandidate(v);
                             newedDisposables.Add(v.Identifier.Text);
                         }
                         else if (IsPoolRent(v.Initializer?.Value, model))   // an ArrayPool<T> buffer
                         {
-                            candidates.Add(v.Identifier.Text);
+                            AddCandidate(v);
                             poolBuffers.Add(v.Identifier.Text);
                         }
                         else if (IsOwningFactory(v.Initializer?.Value, model))   // File / crypto Create* factory
-                            candidates.Add(v.Identifier.Text);
+                            AddCandidate(v);
                         else if (IsMemoryPoolRent(v.Initializer?.Value, model))   // MemoryPool<T> IMemoryOwner (Dispose-released, NOT a poolBuffer)
-                            candidates.Add(v.Identifier.Text);
+                            AddCandidate(v);
                         else if (IsFirstPartyDisposableFactory(v.Initializer?.Value, model,
                                                                out _, out _))
                             // P-005 D5.2: `var r = FirstPartyFactory()` — a candidate acquire
                             // IFF the core proves the callee returns `fresh` (it emits a `call`
                             // op, not an `acquire`; the core decides). Checked last so `new` /
                             // pool / BCL-factory initializers keep their existing classification.
-                            candidates.Add(v.Identifier.Text);
+                            AddCandidate(v);
                 }
                 // OWN053 (promoted from ownership-semantics-lab H-29): the orphaned-awaitable sites of this body,
                 // always on under --flow-locals (the own-check default); the frozen scope is the detector's own comment.
@@ -7090,7 +7158,7 @@ foreach (var (file, tree) in parsed)
                         foreach (var v in usd.Variables)
                             if (IsMemoryPoolRent(v.Initializer?.Value, model))
                             {
-                                candidates.Add(v.Identifier.Text);
+                                AddCandidate(v);
                                 usingMemoryOwners.Add(v.Identifier.Text);
                             }
                 // Eligibility, NOT a deleted guard. This is the gate that drops a method
@@ -7226,7 +7294,9 @@ foreach (var (file, tree) in parsed)
                 // shape `params[]` is paired with.
                 var flowNames = new HashSet<string>(tracked, StringComparer.Ordinal);
                 flowNames.UnionWith(ownedParamNames);
+                FlowShadows.Hidden = ShadowingScopes(mbody, flowNames, candidateDecls);
                 var fbody = LowerFlowBody(mbody, flowNames, model);
+                FlowShadows.Hidden = null;
                 if (fbody is null || fbody.Count == 0)
                 {
                     statMethodsSkipped++;   // unmodelled construct -> honestly skipped
@@ -7446,4 +7516,11 @@ partial class Program
     internal readonly record struct SourcePos(int Line, int Column);
 
     internal readonly record struct SourceRange(SourcePos Start, SourcePos End);
+}
+
+// #408: the shadowing scopes of the method being lowered (see ShadowingScopes), ambient for the
+// recursive lowering so its many signatures stay unchanged; null outside LowerFlowBody.
+static class FlowShadows
+{
+    [ThreadStatic] internal static Dictionary<SyntaxNode, HashSet<string>>? Hidden;
 }

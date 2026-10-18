@@ -818,6 +818,13 @@ jobs:
         env:
           OWN_TIERB_REQUIRED: "1"
         run: python tests/test_extractor_deep_flow.py
+      - name: Same-named locals in sibling scopes are not conflated (Own.NET#408)
+        # The flow pass keys locals by name: an untracked local sharing a tracked one's name in a
+        # sibling branch aborted the whole document in the core (internal OWN030), and in a later
+        # block read as a false OWN002. REQUIRED here; skips cleanly in the offline Tier-A job.
+        env:
+          OWN_TIERB_REQUIRED: "1"
+        run: python tests/test_extractor_sibling_locals.py
       - name: Guarded release is not a call-site handoff (INF-S2, #380)
         # A callee that releases its parameter only under a guard is a PARTIAL release, so
         # its call must not be lowered as the caller's `release` (the fabricated `must`),
