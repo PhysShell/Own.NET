@@ -1,0 +1,16 @@
+file	line	class	method	S	D	object	holder	capture_line	snippet	test_project	path_regex
+N3NegativeControls.cs	167	ControlsController	P_S1_D1_HttpContextInTaskRun	S1	D1	HttpContext	R1	167	Task.Run(() => Log(0, HttpContext.TraceIdentifier))	-	-
+N3NegativeControls.cs	171	ControlsController	P_S1_D2_HttpContextInQueue	S1	D2	HttpContext	R1	171	_queue.QueueBackgroundWorkItem(async ct => { await Task.Delay(1, ct); Log(0, HttpContext.TraceIdentifier); })	-	-
+N3NegativeControls.cs	174	ControlsController	P_S1_D3a_HttpContextReceiver	S1	D3a	HttpContext	R1	174	HttpContext.Response.WriteAsync("late")	-	-
+N3NegativeControls.cs	176	ControlsController	P_S1_D3b_HttpContextSameClass	S1	D3b	ctx	R1	181	LogLaterAsync(HttpContext)	-	-
+N3NegativeControls.cs	185	ControlsController	P_S2_D1_DbInTaskRun	S2	D1	_db	R1	185	Task.Run(() => _db.Orders.Count())	-	-
+N3NegativeControls.cs	187	ControlsController	P_S2_D2_DbInQueue	S2	D2	_db	R1	187	_queue.QueueBackgroundWorkItem(async ct => await _db.SaveChangesAsync(ct))	-	-
+N3NegativeControls.cs	189	ControlsController	P_S2_D3a_DbReceiver	S2	D3a	_db	R1	189	_db.SaveChangesAsync()	-	-
+N3NegativeControls.cs	191	ControlsController	P_S2_D3b_DbSameClass	S2	D3b	_db	R1	196	SaveAfterAwaitAsync()	-	-
+N3NegativeControls.cs	200	ControlsController	P_S3_D1_ScopedInTaskRun	S3	D1	_orders	R1	200	Task.Run(() => _orders.NotifyAsync(1))	-	-
+N3NegativeControls.cs	202	ControlsController	P_S3_D2_ScopedInQueue	S3	D2	_orders	R1	202	_queue.QueueBackgroundWorkItem(ct => _orders.NotifyAsync(2))	-	-
+N3NegativeControls.cs	204	ControlsController	P_S3_D3a_ScopedReceiver	S3	D3a	_orders	R1	204	_orders.NotifyAsync(3)	-	-
+N3NegativeControls.cs	206	ControlsController	P_S3_D3b_ScopedSameClass	S3	D3b	_orders	R1	211	NotifyLaterAsync()	-	-
+N3NegativeControls.cs	215	ControlsController	P_S4_D1_ScopeProviderInTaskRun	S4	D1	_sp	R1	215	Task.Run(() => _sp.GetRequiredService<IOrderService>())	-	-
+N3NegativeControls.cs	219	ControlsController	P_S4_D2_ScopeProviderInQueue	S4	D2	_sp	R1	219	_queue.QueueBackgroundWorkItem(ct => _sp.GetRequiredService<IOrderService>().NotifyAsync(5))	-	-
+N3NegativeControls.cs	224	ControlsController	P_S4_D3b_ScopeProviderSameClass	S4	D3b	_sp	R1	229	ResolveLaterAsync()	-	-

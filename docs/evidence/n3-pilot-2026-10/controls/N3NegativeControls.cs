@@ -151,6 +151,16 @@ public class ControlsController : ControllerBase
 
     public void C14_AccessorInsideWork() { _ = Task.Run(() => Log(0, _accessor.HttpContext?.TraceIdentifier)); }
 
+    // C15 (added after the first pair run, PoC v1 bug): a void same-class call is not D3b, and an await
+    // inside a nested lambda is not the callee's own first await.
+    public void C15_VoidSameClassNestedAwait() { KickOff(); }
+
+    private void KickOff()
+    {
+        Func<Task> f = async () => { await Task.Delay(1); _db.Orders.Count(); };
+        f().Wait();
+    }
+
     // ---- positive samples: must be reported ----
 
     // S1 HttpContext

@@ -58,16 +58,16 @@ var scan = new Scanner(comp, lt, dbContexts);
 foreach (var t in trees) scan.Run(t);
 
 using var w = outPath is null ? Console.Out : new StreamWriter(outPath, false, new System.Text.UTF8Encoding(false));
-w.WriteLine("file\tline\tclass\tmethod\tS\tD\tobject\tholder\tsnippet");
+w.WriteLine("file\tline\tclass\tmethod\tS\tD\tobject\tholder\tcapture_line\tsnippet");
 foreach (var r in scan.Warnings.OrderBy(r => r.File, StringComparer.Ordinal).ThenBy(r => r.Line).ThenBy(r => r.Object))
-    w.WriteLine(string.Join('\t', r.File, r.Line, r.Class, r.Method, r.S, r.D, r.Object, r.Holder, r.Snippet));
+    w.WriteLine(string.Join('\t', r.File, r.Line, r.Class, r.Method, r.S, r.D, r.Object, r.Holder, r.CaptureLine, r.Snippet));
 Console.Error.WriteLine($"n3poc: {files.Count} files, {scan.Warnings.Count} warnings, " +
     $"{scan.RequestBoundTypes} request-bound types, {scan.DetachedSites} detached sites, " +
     $"{scan.UnknownSites} detached sites using only unknown-ownership fields");
 return 0;
 
 sealed record Warning(string File, int Line, string Class, string Method, string S, string D, string Object,
-    string Holder, string Snippet);
+    string Holder, int CaptureLine, string Snippet);
 
 sealed class Lifetimes
 {
@@ -341,7 +341,7 @@ sealed class Scanner(CSharpCompilation comp, Lifetimes lt, Dictionary<string, st
                 {
                     // D3b: one hop into a same-class method; uses after its first await
                     DetachedSites++;
-                    if (UseAfterFirstAwait(c, inv, callee, locals) is { } u) Add(c, inv, method, u.S, "D3b", u.Name);
+                    if (UseAfterFirstAwait(c, inv, callee, locals) is { } u) Add(c, inv, method, u.S, "D3b", u.Name, u.Line);
                 }
             }
         }
@@ -447,16 +447,20 @@ sealed class Scanner(CSharpCompilation comp, Lifetimes lt, Dictionary<string, st
         var sym = c.Sm.GetSymbolInfo(target).Symbol as IMethodSymbol
                   ?? c.Sm.GetSymbolInfo(target).CandidateSymbols.OfType<IMethodSymbol>().FirstOrDefault();
         if (sym is null || c.Type is null || !SymbolEqualityComparer.Default.Equals(sym.ContainingType, c.Type)) return null;
+        // §3 D3b is a discarded *Task* call (`_ = MAsync(…)`): a void callee is not detached work by itself
+        if (sym.ReturnType.Name is not ("Task" or "ValueTask")) return null;
         return sym.DeclaringSyntaxReferences.Select(r => r.GetSyntax()).OfType<MethodDeclarationSyntax>()
             .FirstOrDefault(md => md.Body is not null || md.ExpressionBody is not null);
     }
 
-    (string S, string Name)? UseAfterFirstAwait(Ctx c, InvocationExpressionSyntax call, MethodDeclarationSyntax callee,
+    (string S, string Name, int Line)? UseAfterFirstAwait(Ctx c, InvocationExpressionSyntax call, MethodDeclarationSyntax callee,
         Dictionary<ISymbol, (string S, string Type)> callerLocals)
     {
         var body = (SyntaxNode?)callee.Body ?? callee.ExpressionBody;
         if (body is null) return null;
-        var firstAwait = body.DescendantNodes().OfType<AwaitExpressionSyntax>().FirstOrDefault();
+        // the callee's own first await: one inside a nested lambda or local function does not suspend the callee
+        var firstAwait = body.DescendantNodes(n => n == body || n is not (AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
+            .OfType<AwaitExpressionSyntax>().FirstOrDefault();
         if (firstAwait is null) return null;
         // parameters bound to scope-owned arguments at this call site
         var calleeSm = comp.GetSemanticModel(callee.SyntaxTree);
@@ -471,7 +475,7 @@ sealed class Scanner(CSharpCompilation comp, Lifetimes lt, Dictionary<string, st
         {
             if (id.SpanStart <= firstAwait.Span.End) continue;
             if (id.Parent is MemberAccessExpressionSyntax ma && ma.Name == id && ma.Expression is not ThisExpressionSyntax) continue;
-            if (OwnedName(cc, id, paramOwn, null) is { } u) return u;
+            if (OwnedName(cc, id, paramOwn, null) is { } u) return (u.S, u.Name, Syn.Line(id));
         }
         return null;
     }
@@ -486,15 +490,17 @@ sealed class Scanner(CSharpCompilation comp, Lifetimes lt, Dictionary<string, st
             if (id.Parent is MemberBindingExpressionSyntax) continue;
             if (OwnedName(c, id, locals, lam) is not { } o) continue;
             any = true;
-            Add(c, lam.Parent?.Parent?.Parent ?? lam, method, o.S, d, o.Name);
+            Add(c, lam.Parent?.Parent?.Parent ?? lam, method, o.S, d, o.Name, Syn.Line(id));
         }
         if (!any) UnknownSites++;
     }
 
-    void Add(Ctx c, SyntaxNode site, string method, string s, string d, string obj)
+    // `captureLine`: where the scope-owned object is used (D1/D2/D3b) or the call itself (D3a)
+    void Add(Ctx c, SyntaxNode site, string method, string s, string d, string obj, int captureLine = 0)
     {
         var line = Syn.Line(site);
         if (!_seen.Add((c.Tree.FilePath, line, obj))) return;
-        Warnings.Add(new Warning(c.Tree.FilePath, line, c.Type?.Name ?? "?", method, s, d, obj, c.Holder, Syn.Snip(site)));
+        Warnings.Add(new Warning(c.Tree.FilePath, line, c.Type?.Name ?? "?", method, s, d, obj, c.Holder,
+            captureLine == 0 ? line : captureLine, Syn.Snip(site)));
     }
 }
