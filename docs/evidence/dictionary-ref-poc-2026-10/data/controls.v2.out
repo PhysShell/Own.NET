@@ -1,0 +1,5 @@
+controls/Controls.cs:15:9: possible stale ref 'v' into 'dict' (GetValueRefOrAddDefault at line 13) write after delegate event at line 15: factory(key)
+controls/Controls.cs:24:16: possible stale ref 'v' into 'd' (GetValueRefOrNullRef at line 22) read after direct event at line 23: d.Add(2, 2)
+controls/Controls.cs:32:9: possible stale ref 'v' into 'd' (GetValueRefOrAddDefault at line 30) write after direct event at line 31: d[...] = ...
+controls/Controls.cs:47:13: possible stale ref 'ctx' into '_props' (GetValueRefOrAddDefault at line 45) write after callee event at line 47: Create() -> .Invoke(this)
+sites=14 findings=4 files=1

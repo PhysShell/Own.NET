@@ -1,0 +1,18 @@
+id	effect	note
+F1	PLAUSIBLE	cache loader runs while the ref is live; needs a loader that touches the same cache; not demonstrated
+F2	PLAUSIBLE	generic GetOrAdd(factory) helper: a defect needs a caller whose factory mutates the same dictionary; not demonstrated
+F3	PLAUSIBLE	same helper, span overload
+F4	PLAUSIBLE	generic GetOrAdd(factory) extension; same condition
+F5	CONTRACT_ONLY	second GetValueRefOrAddDefault can resize, then the first ref is read; the slot holds an unchanged reference, so the read is benign on the current runtime
+F7	PLAUSIBLE	generic GetOrAdd(createHandler) under a reentrant lock; same condition
+F8	PLAUSIBLE	same, span overload
+F9	PLAUSIBLE	same shape
+F13	PLAUSIBLE	generic GetOrAdd(valueFactory) extension; same condition
+G3	PLAUSIBLE	user factory over a static dictionary it can reach; not demonstrated
+G4	PLAUSIBLE	generic GetOrAddValue(newValueFunc) extension; same condition
+G5	PLAUSIBLE	navigation-cache generator; not demonstrated
+G8	PLAUSIBLE	uno StateStore: a feed factory can create subscriptions in the same store; not demonstrated
+G9	CONTRACT_ONLY	Remove of another entry while the ref is live; Remove does not move other entries on the current runtime
+G11	CONTRACT_ONLY	dotnet/runtime RegexNodeConverter: a lost write leaves a null placeholder that only causes a recompute (cache miss)
+G12	PLAUSIBLE	CalcpadCE: a user function can evaluate the same custom function (same _cache); not demonstrated
+G13	PLAUSIBLE	same, two-argument overload

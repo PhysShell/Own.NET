@@ -1,0 +1,15 @@
+id	repo	path	label	reason
+G1	Kruzntat/OpenRA_For_TAKX	OpenRA.Game/Primitives/SpatiallyPartitioned.cs	FP	the callee's action (AddItem/RemoveItem) mutates a bin dictionary passed to it, never itemBounds
+G2	kuchannn/wow-classic-grind-bot	PPather/Triangles/TriangleMatrix.cs	FP	indexer write to the key just added: no add/remove, the entry does not move
+G3	LoneSailSoon/Eris	Eris/Component/Generic/ConfigSeq.cs	TP	val = ctor(): a user factory over a static dictionary it can reach (Meziantou shape)
+G4	microsoft/profile-explorer	src/ProfileExplorerCore/Utilities/ExtensionMethods.cs	TP	extension GetOrAddValue(dict, key, newValueFunc) = Meziantou shape
+G5	reactivemarbles/CrissCross	src/CrissCross.Avalonia.UI/Controls/NavigationView/NavigationCache.cs	TP	value = generate.Invoke(): factory over the cache the caller holds
+G6	Shockah/Nickel	Nickel/Framework/Implementations/ModRegistry.cs	UNCLEAR	the flagged event is loggerProvider(...), an opaque Func; no evidence it reaches ApiCache
+G7	space-wizards/RobustToolbox	Robust.Client/GameStates/GameStateProcessor.cs	FP	compData.Remove(...) is followed by `continue`: the later use is unreachable in that iteration
+G8	unoplatform/uno.extensions	src/Uno.Extensions.Reactive/Core/Internal/StateStore.cs	TP	cached = factory(_root, source): a feed factory can create subscriptions in the same store
+G9	aromaa/Skylight3	src/Skylight.Server/Collections/SortedValueSet.cs	TP	this.values.Remove(...) while the ref is live (contract violation; benign in practice: Remove does not move other entries)
+G10	Yafrovon/MSUIClient	MSUIClient/World/Wmo/InteriorUnitLight.cs	UNCLEAR	TerrainHeight?.Invoke(...) is an opaque terrain query; no evidence it reaches _entries
+G11	dotnet/runtime	src/libraries/System.Text.RegularExpressions/src/System/Text/RegularExpressions/Symbolic/RegexNodeConverter.cs	TP	result ??= Compute(set): Compute recurses into CreateBDDFromSetString on the same _setBddCache (benign in practice: a lost write leaves the null placeholder, i.e. a cache miss)
+G12	imartincei/CalcpadCE	Calcpad.Core/Parsers/MathParser/MathParser.CustomFunction.cs	TP	y = Function(): a user function can evaluate the same custom function (same _cache)
+G13	imartincei/CalcpadCE	Calcpad.Core/Parsers/MathParser/MathParser.CustomFunction.cs	TP	same, two-argument overload
+G14	Kaciras/CodingFS	Benchmark/Legacy/CodingScannerV2.cs	UNCLEAR	detector delegates work on a context object; no evidence they reach cache
