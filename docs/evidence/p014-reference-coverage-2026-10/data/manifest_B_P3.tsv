@@ -1,0 +1,4 @@
+package	compile_asset	sha256_16
+Microsoft.Extensions.Logging.Abstractions/6.0.1	lib/net6.0/Microsoft.Extensions.Logging.Abstractions.dll	c3e73ec5f2e1f102
+Microsoft.Extensions.Primitives/6.0.0	lib/net6.0/Microsoft.Extensions.Primitives.dll	8ce9a85927ec7507
+System.IO.Pipelines/8.0.0	lib/net8.0/System.IO.Pipelines.dll	86d0f5bfaaf1b2ab

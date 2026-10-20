@@ -1,0 +1,4 @@
+file	line	col	kind	expr	A	A_sym	B	B_sym	C	C_sym
+<work>/p014/controls\K6\sources\a.cs	1	12+4	type	void	resolved	NamedType|System|void|System.Private.CoreLib/8.0.0.0	resolved	NamedType|System|void|System.Runtime/8.0.0.0	resolved	NamedType|System|void|System.Private.CoreLib/8.0.0.0
+<work>/p014/controls\K6\sources\a.cs	1	23+18	call	Missing.Thing.Do()	unresolved		unresolved		unresolved	
+<work>/p014/controls\K6\sources\a.cs	1	55+13	type	Missing.Thing	unresolved		unresolved		unresolved	

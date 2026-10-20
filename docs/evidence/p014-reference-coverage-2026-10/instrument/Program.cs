@@ -95,7 +95,7 @@ foreach (var (mode, listPath) in refLists.OrderBy(k => k.Key))
             }
             if (kind is null) continue;
             var pos = n.GetLocation().GetLineSpan().StartLinePosition;
-            var key = $"{t.FilePath}\t{pos.Line + 1}\t{pos.Character + 1}\t{kind}";
+            var key = $"{t.FilePath}\t{pos.Line + 1}\t{pos.Character + 1}+{n.Span.Length}\t{kind}";
             if (!sites.TryGetValue(key, out var row))
                 sites[key] = row = new Dictionary<string, string> { ["expr"] = Snip(n) };
             row[mode] = status!;

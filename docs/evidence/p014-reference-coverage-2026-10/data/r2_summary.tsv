@@ -1,0 +1,16 @@
+project	kind	sites	A_ok	B_ok	C_ok	recovered_by_refs	recovered_also_by_usings	fixed_by_usings_only	lost_in_B	symbol_changed	still_unresolved	B_ambiguous	recovered_by_refs_pct
+P1	call	2844	925	1373	925	448	0	0	0	24	1471	267	15.8
+P1	type	2842	2081	2575	2081	494	0	0	0	4	267	0	17.4
+P1	plus_eq	82	10	35	10	25	0	0	0	0	47	0	30.5
+P2	call	3820	3401	3462	3401	61	0	0	0	12	358	34	1.6
+P2	type	5896	5718	5757	5718	39	0	0	0	3	139	0	0.7
+P2	plus_eq	22	6	6	6	0	0	0	0	0	16	0	0.0
+P3	call	839	353	396	525	43	0	172	0	0	271	95	5.1
+P3	type	1911	1293	1323	1783	30	0	490	0	0	98	0	1.6
+P3	plus_eq	25	0	0	0	0	0	0	0	0	25	0	0.0
+P4	call	353	169	228	189	59	0	20	0	8	105	28	16.7
+P4	type	394	267	329	307	62	0	40	0	9	25	0	15.7
+P4	plus_eq	6	0	5	0	5	0	0	0	0	1	0	83.3
+P5	call	2003	643	1272	973	629	0	330	0	30	401	242	31.4
+P5	type	2460	1788	2191	2037	403	0	249	0	70	20	0	16.4
+P5	plus_eq	83	11	48	12	37	0	1	0	0	34	0	44.6

@@ -1,0 +1,15 @@
+package	compile_asset	sha256_16
+Microsoft.Windows.SDK.NET.Ref/10.0.19041.57	lib\net8.0\Microsoft.Windows.SDK.NET.dll	0ec371d93798852e
+Microsoft.Windows.SDK.NET.Ref/10.0.19041.57	lib\net8.0\Microsoft.Windows.UI.Xaml.dll	ebde71d1a781a0c5
+Microsoft.Windows.SDK.NET.Ref/10.0.19041.57	lib\net8.0\WinRT.Runtime.dll	bcf3a14e8712a908
+Microsoft.Extensions.Configuration.Abstractions/9.0.9	lib/net9.0/Microsoft.Extensions.Configuration.Abstractions.dll	d36225749cf87a41
+Microsoft.Extensions.DependencyInjection.Abstractions/9.0.9	lib/net9.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll	3f733fa41c8b735c
+Microsoft.Extensions.Diagnostics.Abstractions/9.0.9	lib/net9.0/Microsoft.Extensions.Diagnostics.Abstractions.dll	b02609a53666238e
+Microsoft.Extensions.FileProviders.Abstractions/9.0.9	lib/net9.0/Microsoft.Extensions.FileProviders.Abstractions.dll	e1d94ad98e17d027
+Microsoft.Extensions.Hosting.Abstractions/9.0.9	lib/net9.0/Microsoft.Extensions.Hosting.Abstractions.dll	6fb66393099b843f
+Microsoft.Extensions.Logging.Abstractions/9.0.9	lib/net9.0/Microsoft.Extensions.Logging.Abstractions.dll	622cf6cafd1d5a40
+Microsoft.Extensions.Options/9.0.9	lib/net9.0/Microsoft.Extensions.Options.dll	022e30ae3ce6dd2d
+Microsoft.Extensions.Primitives/9.0.9	lib/net9.0/Microsoft.Extensions.Primitives.dll	6bf0052e4045d893
+Microsoft.IO.RecyclableMemoryStream/3.0.1	lib/net6.0/Microsoft.IO.RecyclableMemoryStream.dll	631a5fc41df9498d
+Microsoft.Toolkit.Uwp.Notifications/7.1.3	lib/net5.0-windows10.0.17763/Microsoft.Toolkit.Uwp.Notifications.dll	e6676557727bc03c
+Newtonsoft.Json/13.0.3	lib/net6.0/Newtonsoft.Json.dll	22c649f75fce5be7

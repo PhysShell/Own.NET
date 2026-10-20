@@ -1,0 +1,5 @@
+file	line	col	kind	expr	A	A_sym	B	B_sym	C	C_sym
+<work>/p014/controls\K5\sources\a.cs	1	12+4	type	void	resolved	NamedType|System|void|System.Private.CoreLib/8.0.0.0	resolved	NamedType|System|void|System.Runtime/8.0.0.0	resolved	NamedType|System|void|System.Private.CoreLib/8.0.0.0
+<work>/p014/controls\K5\sources\a.cs	1	19+7	type	Lib.Api	resolved	NamedType|Lib|Lib.Api|Lib/2.0.0.0	resolved	NamedType|Lib|Lib.Api|Lib/2.0.0.0	resolved	NamedType|Lib|Lib.Api|Lib/2.0.0.0
+<work>/p014/controls\K5\sources\a.cs	1	32+26	plus_eq	a.Changed += (s, e) => { }	event	Event|Lib.Api|Lib.Api.Changed|Lib/2.0.0.0	event	Event|Lib.Api|Lib.Api.Changed|Lib/2.0.0.0	event	Event|Lib.Api|Lib.Api.Changed|Lib/2.0.0.0
+<work>/p014/controls\K5\sources\a.cs	1	60+12	plus_eq	a.Count += 1	other:Field	Field|Lib.Api|Lib.Api.Count|Lib/2.0.0.0	other:Field	Field|Lib.Api|Lib.Api.Count|Lib/2.0.0.0	other:Field	Field|Lib.Api|Lib.Api.Count|Lib/2.0.0.0
