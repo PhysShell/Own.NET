@@ -1,0 +1,57 @@
+config	id	class	file	line	rule	message
+K1	P1	Probes	Probes.cs	26	IDISP017	Prefer using
+K1	P2	Probes	Probes.cs	29	IDISP017	Prefer using
+K1	P3	Probes	Probes.cs	32	IDISP017	Prefer using
+K1	P4	Probes	Probes.cs	35	IDISP017	Prefer using
+K1	_build	rc=0		0	errors=0	results=6
+K2	P1	Probes	Probes.cs	26	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K2	P1	Probes	Probes.cs	26	IDISP017	Prefer using
+K2	P2	Probes	Probes.cs	29	CA2000	Object created by 'Open(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K2	P2	Probes	Probes.cs	29	IDISP017	Prefer using
+K2	P3	Probes	Probes.cs	32	CA2000	Object created by 'File.OpenText(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K2	P3	Probes	Probes.cs	32	IDISP017	Prefer using
+K2	P4	Probes	Probes.cs	35	CA2000	Object created by 'OpenAsync(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K2	P4	Probes	Probes.cs	35	IDISP017	Prefer using
+K2	P5	Probes	Probes.cs	38	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K2	P6	Probes	Probes.cs	41	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K2	P7	Probes	Probes.cs	46	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K2	P8	Probes	Probes.cs	53	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K2	_build	rc=0		0	errors=0	results=15
+K3	P1	Probes	Probes.cs	26	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K3	P1	Probes	Probes.cs	26	IDISP017	Prefer using
+K3	P2	Probes	Probes.cs	29	CA2000	Object created by 'Open(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K3	P2	Probes	Probes.cs	29	IDISP017	Prefer using
+K3	P3	Probes	Probes.cs	32	CA2000	Object created by 'File.OpenText(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K3	P3	Probes	Probes.cs	32	IDISP017	Prefer using
+K3	P4	Probes	Probes.cs	35	CA2000	Object created by 'OpenAsync(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K3	P4	Probes	Probes.cs	35	IDISP017	Prefer using
+K3	P5	Probes	Probes.cs	38	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K3	P6	Probes	Probes.cs	41	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K3	P7	Probes	Probes.cs	46	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K3	P8	Probes	Probes.cs	53	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K3	_build	rc=0		0	errors=0	results=15
+K4	P1	Probes	Probes.cs	26	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K4	P1	Probes	Probes.cs	26	IDISP017	Prefer using
+K4	P2	Probes	Probes.cs	29	CA2000	Object created by 'Open(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K4	P2	Probes	Probes.cs	29	IDISP017	Prefer using
+K4	P3	Probes	Probes.cs	32	CA2000	Object created by 'File.OpenText(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K4	P3	Probes	Probes.cs	32	IDISP017	Prefer using
+K4	P4	Probes	Probes.cs	35	IDISP017	Prefer using
+K4	P5	Probes	Probes.cs	38	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K4	P6	Probes	Probes.cs	41	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K4	P7	Probes	Probes.cs	46	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K4	P8	Probes	Probes.cs	53	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K4	_build	rc=0		0	errors=0	results=14
+K5	P1	Probes	Probes.cs	26	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K5	P1	Probes	Probes.cs	26	IDISP017	Prefer using
+K5	P2	Probes	Probes.cs	29	CA2000	Object created by 'Open(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K5	P2	Probes	Probes.cs	29	IDISP017	Prefer using
+K5	P3	Probes	Probes.cs	32	CA2000	Object created by 'File.OpenText(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K5	P3	Probes	Probes.cs	32	IDISP017	Prefer using
+K5	P4	Probes	Probes.cs	35	CA2000	Object created by 'OpenAsync(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K5	P4	Probes	Probes.cs	35	IDISP017	Prefer using
+K5	P5	Probes	Probes.cs	38	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K5	P6	Probes	Probes.cs	41	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K5	P7	Probes	Probes.cs	46	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K5	P8	Probes	Probes.cs	53	CA2000	Object created by 'new StreamReader(p)' is not disposed along all exception paths. Call System.IDisposable.Dispose on the object before all references to it are out of scope.
+K5	_build	rc=0		0	errors=0	results=15
