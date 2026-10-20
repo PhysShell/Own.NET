@@ -1,0 +1,4 @@
+group	file	type	method	acq_line	acq	handover_line	kind	dispose_evidence	throw_line	throw_site
+controls	OwnershipControls.cs	Holder	P_R	130	Remote.CreateAsync(k)	132	1b _owned[]	154: v.DisposeAsync()	131	await c.PingAsync()
+controls	OwnershipControls.cs	Holder	P_B	138	_conn.OpenAsync()	140	1b _owned[]	154: v.DisposeAsync()	139	await ch.PingAsync()
+controls	OwnershipControls.cs	Holder	P_X	146	Remote.CreateAsync("x")	148	1c Wrap	Wrap._inner disposed at 28: _inner.DisposeAsync()	147	await StepAsync()
