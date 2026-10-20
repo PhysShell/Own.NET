@@ -88,9 +88,8 @@ def main() -> int:
         for r in rows[1:]:
             rel = r.split("\t", 1)[0]
             _, is_test = owning_project(os.path.join(src, rel))
-            f.write(
-                f"{r}\t{'test' if is_test else '-'}\t{'nonproduct' if NONPRODUCT.search(rel) else '-'}\n"
-            )
+            label = "nonproduct" if NONPRODUCT.search(rel) else "-"
+            f.write(f"{r}\t{'test' if is_test else '-'}\t{label}\n")
     summary = {
         "src": src,
         "registrations": len(raw),
