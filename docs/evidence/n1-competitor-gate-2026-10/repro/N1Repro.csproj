@@ -10,8 +10,10 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <ErrorLog Condition="'$(N1ErrorLog)' != ''">$(N1ErrorLog)</ErrorLog>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../stubs/N1Stubs.csproj" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <Analyzer Include="$(NuGetRoot)/idisposableanalyzers/4.0.8/analyzers/dotnet/cs/IDisposableAnalyzers.dll" />
     <Analyzer Include="$(NuGetRoot)/sonaranalyzer.csharp/10.35.0.4138/analyzers/SonarAnalyzer.CSharp.dll" />

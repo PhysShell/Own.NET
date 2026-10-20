@@ -61,6 +61,10 @@ def main() -> int:
     a = ap.parse_args()
     acq = acquisition_lines(a.repro)
     os.makedirs(a.out, exist_ok=True)
+    # the stub assembly sits next to each config's copy, as ../stubs (see N1Repro.csproj)
+    stubs = os.path.join(os.path.dirname(os.path.abspath(a.repro)), "stubs")
+    shutil.rmtree(os.path.join(a.work, "stubs"), ignore_errors=True)
+    shutil.copytree(stubs, os.path.join(a.work, "stubs"))
     rows = []
     for k, extra in CONFIGS.items():
         work = os.path.join(a.work, k)
@@ -78,12 +82,14 @@ def main() -> int:
             "-v",
             "q",
             f"-p:NuGetRoot={a.nuget}",
-            f"-p:ErrorLog={sarif},version=2.1",
+            f"-p:N1ErrorLog={sarif}",
             "--configfile",
             os.path.join(a.work, "nuget.config"),
         ]
+        env = dict(os.environ, DOTNET_CLI_UI_LANGUAGE="en")  # English diagnostic messages
         p = subprocess.run(
-            cmd, cwd=work, capture_output=True, text=True, encoding="utf-8", errors="replace"
+            cmd, cwd=work, env=env, capture_output=True, text=True, encoding="utf-8",
+            errors="replace",
         )
         log = json.load(open(sarif, encoding="utf-8"))
         n_err, n_all = 0, 0
@@ -93,8 +99,10 @@ def main() -> int:
                 if r.get("level") == "error":
                     n_err += 1
                 for loc in r.get("locations", []):
-                    pl = loc.get("physicalLocation", {})
-                    uri = os.path.basename(pl.get("artifactLocation", {}).get("uri", ""))
+                    # SARIF 2.1 physicalLocation, or the 1.0 resultFile csc writes by default
+                    pl = loc.get("physicalLocation") or loc.get("resultFile") or {}
+                    art = pl.get("artifactLocation", {}).get("uri", "") or pl.get("uri", "")
+                    uri = os.path.basename(art)
                     line = pl.get("region", {}).get("startLine", 0)
                     if (uri, line) in acq:
                         mid, cls = acq[(uri, line)]
