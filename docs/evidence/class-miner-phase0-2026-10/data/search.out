@@ -1,0 +1,107 @@
+### fire-and-forget ObjectDisposedException
+DoForYou-ZA/DFY-BE#35	fix: prevent disposed DbContext during user registration
+xandeq/diax-crm#174	fix(security): checklists sem auth, await no DbContext, path traversal, login por IP
+open-astro/openastro-ara#1410	The dew advisor's stop cancels its check and survives the host's shutdown budget
+TJvL/Ready4Balfolk#363	fix(web): dispose the host after a stop that fails, and let disposal wait its turn
+tomwolfgang/piper#102	Land F2 part 4 (#101: TLS, HTTP/2 and RTT scenarios) on main
+OlyForge3D/PrintFarmer#3399	test(moonraker): cover zmod_ifs handling through ProcessStatusUpdateAsync
+MUnique/OpenMU#961	Stop periodic tasks before disconnecting players on game server shutdown
+Astrea-EIP/api-back#79	chore(docker): harden api image and document local container run
+ToMeRhh/volco#54	Harden UDP and WebSocket transports (dispose safety, ordered WebSocket sends)
+Systemorph/MeshWeaver#3165	fix: a hub disposed with a request outstanding is a TYPED teardown, not an anonymous failure (#3148)
+damianh/dotNext#46	Release failure-detection membership lock (#17)
+Runic-Artifex/runic-sdk#232	W260-005: NavigationRegion.Start for a window's root page
+swigerb/AzureAIDriveThru#58	S1.5 A2 — tool-error seam, audio-free greeting unmute, browser logging gate, voice follow-ups (#36 #48 #53 #57)
+Redmern/fleet-tui#28	fix: stop the remote-link test's broken pipe and the wire races behind it
+crazysmile-PhD/downkyicore#445	Fix Pause All scheduler admission gate
+squirix/squirix#463	fix(threading): SingleConsumerWorker stays alive on any handler exception
+Astrea-EIP/api-back#81	test: set up test project and cover current api architecture
+open-astro/openastro-ara#1084	cooling fan: sequencer path, fail-closed states, fan-first on cooler-on, late-connect catch-up (#1076)
+sven-borden/10Lapse#82	Virtualized filmstrip with selection, removal, undo, reorder and gap markers (#20)
+FNA-XNA/FNA#648	exception accuracy: Throw Exception in SoundEffect.Play when FrameworkDispatcher.Update has not been called
+### IServiceScopeFactory ObjectDisposedException
+haffff/NordvikManager-Backend#32	Fixes: addon install/uninstall race, chat commands, dice plus sign, card refresh
+NilsLattek/modulith-template#38	Add IScopedMediator for safe message handling in Blazor
+Pial-Ahmed-Shosi/Mediguard#75	Create Payments Ledger Domain Model & EF Core Migration & Create Audit Logs Domain Model, Schema Migration & Action Filter
+HarshaJayaweera21/Mehewara#14	Feature report intake
+LLabmik/DotNetCloud#43	fix: series enrichment ObjectDisposedException - use IServiceScopeFactory for background enrichment
+jessiicamaru/events-management#20	feat(sync): bi-directional Google Calendar, with outbox, webhook and live push
+escalated-dev/escalated-dotnet#162	fix(webhooks): retry failed deliveries in a scope of their own
+microting/eform-angular-timeplanning-plugin#1669	fix: own a DI scope per fire-and-forget handover push send
+thomhurst/ModularPipelines#6555	fix(engine): reuse module context scopes and aggregate disposal failures
+bestter/photosgallaery#439	🛡️ Sentinel: Fix User Enumeration vulnerability in CreateInvitation
+ironkid90/lucky5-v8#81	fix(realtime): improve session cleanup and game state synchronization
+daniel3303/Equibles#4132	fix(worker): swallow scope-creation failures in best-effort activity publish
+CalebTek/ChatCore.NET#2	fix: inject IServiceScopeFactory in SignalRTransportDispatcher to prevent ObjectDisposedException
+brenpike/Chatter#425	Let the hosted receiver own its DI scope (#297, #314)
+Advance-Technologies-Foundation/clio#1426	Fix #1421: create-app-section reported work in progress that had already stopped
+jasoneisen/crawldad#27	#26: drain SyncRunSupervisor tasks on host shutdown
+Vardy-Party/Client#107	fix: play MP before FB and keep Windows HLS streams open
+yllibed/repl#74	fix(di): open one DI scope per session so Scoped services match the documented lifetime
+james-langridge/mars-vista-api#26	Fix unobserved ObjectDisposedException in usage tracking middleware
+ASADRAJA/Vendorea.PartnerConnect#49	Fix FTP-ingestion disposed-scope crash + price-push UI polish
+### ObjectDisposedException HttpContext background
+Pial-Ahmed-Shosi/Mediguard#75	Create Payments Ledger Domain Model & EF Core Migration & Create Audit Logs Domain Model, Schema Migration & Action Filter
+spelech/model-context-gateway#196	feat(routing): downstream MCP resilience, mock harness, and admin lifecycle fixes
+Astrea-EIP/api-back#81	test: set up test project and cover current api architecture
+achieveai/LmDotnetTools#413	Mirror S2S transcripts, externalise oversized tool results, and close the lifecycle tenant-refusal bypass (#253, #254, #402)
+ravendb/ravendb#23103	RavenDB-26913 - Fix ObjectDisposedException in offline database migration audit logging
+Lolle2000la/MangaIngestWithUpscaling#432	fix: resolve .NET ThreadPool starvation and DB connection pool contention
+guilhermesuzuki/origami#50	Develop
+smartsolutionslab/smart-sentinel-eye#2862	fix(2659): authorize MediaMTX's control API through the existing WHEP hook
+FastEndpoints/FastEndpoints#1118	Fix ObjectDisposedException from ServiceResolver root-provider fallback during requests
+VirtoCommerce/vc-module-x-api#84	Memoize the per-request user-state check
+soliktomasz/Ledgerra#47	Add personal API token management in settings
+intervalrain/OpenClaw.Net#31	fix: cron job executor and editor improvements
+forge-trust/AppSurface#654	feat(web-push): add safe delivery rail
+EvilBeaver/OneScript#1725	Функция ТекущийПоток(): данные и событие завершения потока исполнения
+syedhhassan/url-shortener#10	fix: resolve critical bugs, add unit tests, and harden infrastructure
+microsoft/durabletask-dotnet#758	Add large-payload blob auto-purge with a persistent orchestration
+sillsdev/web-xforge#3785	SF-3773 Improve onboarding request save speed to fix timeouts
+VirtoCommerce/vc-module-background-jobs#2	VCST-5245: Background Jobs
+forge-trust/AppSurface#362	feat: add live docs harvest observatory
+gankedtv/gankedtv#112	[server][infra] Redis: hot-feed/trending cache + cluster-wide rate limiting
+### QueueBackgroundWorkItem ObjectDisposedException
+ganjoor/GanjoorService#508	Fix public data import failing with ObjectDisposedException
+### leak dispose exception rethrow client
+OpenIdentityPlatform/OpenICF#168	[#166] Close the REST, CREST and SQL clients when the release closure throws
+BartoszJarocki/jarocki.me#58	fix(skyline): release the scene when its mount fails
+Wizard-Software/BareWire#73	fix(transport): release RabbitMQ consumer channels on setup failure and idle stop
+tomwolfgang/piper#73	S9-2: Happy Eyeballs connects and TLS handshake timeouts
+NethermindEth/nethermind#14790	perf(rpc): write eth_getLogs json straight from receipts
+jake-dev-99/simple-query#64	[UNFY-300] Map every Android host error to SimpleQueryError
+mysunyourmoon30-creator/repair-request-system#29	test(api): add bounded diagnostics for fixture drop error 3702
+OpenIdentityPlatform/OpenICF#155	[#154] Unregister the published customizer class on release()
+assistant-ui/assistant-ui#9747	fix(react): dispose a frame host when its iframe is removed
+zcsizmadia/SshSharp#145	Connections and forwarding: fixes from the pre-0.5.0 review
+gonace/Cronitor#48	Make the shared TickerQ test host fire a cron ticker before the tests, and log what TickerQ did
+thomhurst/ModularPipelines#6208	fix(ftp): preserve cancellation during socket setup
+L-K-M/Hauntware#102	Run Poltergeist's Settings window on the shared link
+FocusRGB/FocusRGB#24	Slice 10: minimal plugin runtime and fake output
+thomhurst/TUnit#7047	feat(aspnetcore): add PerTestWebApplicationTest with per-test CreateFactoryAsync
+modelingevolution/blazor-blaze#23	fix: stop canvas view init when disposed or canvas missing
+squirix/squirix#698	fix(durability): let dispose fault acks whose fsync never returns
+thomhurst/Respire#1039	fix: await lifecycle cleanup and enforce CA1849
+NethermindEth/dotnet-libp2p#266	Enable QUIC transport on Windows
+MapColonies/GpkgMerger#255	perf(gpkg): connection reuse + prepared bulk-insert + keyset paging (MAPCO-11320)
+### dispose on failure leak connect
+benyblack/ntilde#531	test(platform): fix flaky port-forward Dispose tests
+klitztuch/LanBoard#47	Stop live-update DB work from racing request scope disposal
+eXsoria/XauXat#177	Recover stalled Tor control channels after iOS suspension
+MIA-BU-Energy-Utility/FtpServer#12	fix: snapshot connection features before disposing them on stop
+eclipse-emfcloud/hydranium#309	fix: release a connection a failed readiness check leaves behind
+gordonmurray/flink-connector-iggy#6	Release Iggy connections and fail loudly on a dead connection
+vercel/eve#4797	fix(eve): close MCP sessions per step and single-flight inbound SSE (#4379)
+tomwolfgang/piper#73	S9-2: Happy Eyeballs connects and TLS handshake timeouts
+honua-io/honua-server#6255	fix(gp): integrate scoped custom-code execution and durable artifact delivery
+bitworks-io/amd-inference#5	Fix two intermittent runtime-test failures (PS7 API soak, PS5.1 stop file)
+agentfront/frontmcp#869	fix(sdk): a server that fails to start releases the scopes it built
+matthewjameswatkins1978-cyber/Agent-X#15	C3: independent worker runtime + version-tolerant Pi RPC compatibility boundary
+idm23/workbench#194	Close every database the tests open, and fail on the next leak (#83)
+OpenIdentityPlatform/OpenICF#168	[#166] Close the REST, CREST and SQL clients when the release closure throws
+OpenIdentityPlatform/OpenICF#155	[#154] Unregister the published customizer class on release()
+remote-oss/remote#192	lib-authority: the resolver host (#138 PR 5)
+fitchmultz/pi-cursor-sdk#366	feat: make the pi tool bridge url host and port configurable
+microsoft/vscode-languageserver-node#1863	Close pipe/socket transport server when the language server process fails to start
+ob-f/OpenBot#551	Fixed the Android Robot video feed freezing issue in the Flutter Controller.
+D-sorganization/UpstreamDrift#11225	fix(motion-matching): bind matcher process events and handle failed starts (#11148)

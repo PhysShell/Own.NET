@@ -1,0 +1,31 @@
+class	source	instance	owner_counted	verdict	note
+N3	corpus	A-james-langridge/mars-vista-api#26	james-langridge	confirmed	HttpContext passed to a discarded async call; diff re-read
+N3	corpus	A-ganjoor/GanjoorService#508	ganjoor	confirmed	injected HttpClient captured by QueueBackgroundWorkItem lambda; diff re-read
+N3	corpus	A-CalebTek/ChatCore.NET#2	CalebTek	confirmed	scoped repository used from fire-and-forget Task.Run (cross-class); diff re-read
+N3	deep	LLabmik/DotNetCloud#43	LLabmik	confirmed	scoped service in fire-and-forget Task.Run
+N3	deep	DoForYou-ZA/DFY-BE#35	DoForYou-ZA	confirmed	_ = scopedService.NotifyAdminsAsync(...)
+N3	deep	ASADRAJA/Vendorea.PartnerConnect#49	ASADRAJA	confirmed	request-scoped IServiceProvider field used in Task.Run
+N3	deep	escalated-dev/escalated-dotnet#162	escalated-dev	confirmed	_ = RetryLaterAsync(...) on a scoped dispatcher
+N3	deep	microting/eform-angular-timeplanning-plugin#1669	microting	confirmed	fire-and-forget sends capture a request-scoped service
+N3	deep	klitztuch/LanBoard#47	-	not_this_class	event-triggered loads during prerender scope disposal
+N1	corpus	A-whizbang-lib/whizbang#1204	whizbang-lib	confirmed	new client, throwing verification, returned on success; diff re-read
+N1	corpus	A-MarimerLLC/rockbot#638-2	MarimerLLC	confirmed	McpClient.CreateAsync, throwing discovery, stored on success; code re-read
+N1	corpus	A-NexusFFXIV/NexusKit#34-2	NexusFFXIV	confirmed	BuildServiceProvider, throwing init, returned on success; diff re-read
+N1	deep	Wizard-Software/BareWire#73	Wizard-Software	confirmed	channel created, basic.qos throws before registration
+N1	deep	reqnroll/Reqnroll.IdeSupport#1119	-	not_this_class	cached proxy field nulled without dispose (C02 shape)
+N1	deep	daqifi/daqifi-core#504	-	not_this_class	moved to N1b
+N1	deep	modelingevolution/micro-plumberd#20	-	not_counted	test-support library, external resource (Docker container)
+N1b	corpus	A-AmirrezaFarnamTaheri/PattN#10	AmirrezaFarnamTaheri	confirmed	Dispose after a throwing StopAsync in the same cleanup block
+N1b	deep	daqifi/daqifi-core#504	daqifi	confirmed	throwing event handler skips the release; found while checking N1
+N6	corpus	A-honua-io/honua-server#5294	honua-io	ledger_only	add-only key-membership index
+N6	corpus	A-praetorianer777/chaosflix-jellyfin#38	praetorianer777	ledger_only	cache and per-key lock dictionary never evicted
+N6	corpus	A-raymondkrahwinkel/AI-Cockpit#583-2	raymondkrahwinkel	ledger_only	plugin-lifetime dictionary keyed by pane only added to
+N6	corpus	A-BoBoBaSs84/BB84.IPTV#36-2	BoBoBaSs84	ledger_only	unbounded image cache in a long-lived service
+N7	corpus	A-xshaheen/headless-framework#1206	xshaheen	ledger_only	CTS disposed while a racing StopAsync uses it
+N7	corpus	A-charles8051/frame-flow#727-1	charles8051	ledger_only	CTS disposed while flush/clock paths read its token
+N7	corpus	A-litedb-org/LiteDB#2987	litedb-org	ledger_only	CTS shared via a cache entry disposed by the publisher
+N2	corpus	A-Sakwala/affiant#20	Sakwala	ledger_only	missed: ServiceDescriptor runtime lifetime, TryAddSingleton factory, IEnumerable dependency
+N2	corpus	A-jonasmz/SIBO-AUTH-SSD#9	jonasmz	ledger_only	missed: framework registration (AddIdentityCore)
+N2	corpus	A-rrr-pi-rate/StockPriceSheetPrintService#60	rrr-pi-rate	detected	DI001 full match; not counted as a gap
+N4	corpus	A-couchbase/couchbase-net-client#193	couchbase	ledger_only	non-atomic disposed flag (Own.NET tool failure)
+N4	corpus	A-wileyc427/AgentInfer#8	wileyc427	ledger_only	non-atomic disposed flag
