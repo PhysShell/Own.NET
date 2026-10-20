@@ -1,0 +1,527 @@
+file:line	enclosing type	statement
+holdout/Jackett__Jackett/src/Jackett.Server/Controllers/ServerConfigurationController.cs:298	public class ServerConfigurationController : Controller	Task.Factory.StartNew(() => Helper.applicationLifetime.StopApplication
+holdout/Jackett__Jackett/src/Jackett.Tray/Main.cs:88	public partial class Main : Form	Task.Factory.StartNew(WaitForEvent);
+holdout/MassTransit__MassTransit/src/MassTransit/Caching/Internals/NodeTracker.cs:85	public class NodeTracker<TValue> :	Task.Run(() => AddNode(nodeValueFactory));
+holdout/MassTransit__MassTransit/src/MassTransit/Caching/Internals/NodeTracker.cs:95	public class NodeTracker<TValue> :	Task.Run(() => RemoveNode(node));
+holdout/MassTransit__MassTransit/src/MassTransit/Caching/Internals/NodeTracker.cs:260	public class NodeTracker<TValue> :	Task.Run(() => Cleanup(now));
+holdout/MassTransit__MassTransit/src/MassTransit/Clients/ClientRequestHandle.cs:109	public class ClientRequestHandle<TRequest> :	Task.Factory.StartNew(CancelAndDispose, CancellationToken.None, TaskCr
+holdout/MassTransit__MassTransit/src/MassTransit/Clients/ClientRequestHandle.cs:254	public class ClientRequestHandle<TRequest> :	Task.Factory.StartNew(HandleFail, CancellationToken.None, TaskCreation
+holdout/MassTransit__MassTransit/src/MassTransit/Consumers/Batching/BatchConsumer.cs:67	public class BatchConsumer<TMessage> :	Task.Run(() => _executor.Push(() =>
+holdout/MassTransit__MassTransit/src/MassTransit/Consumers/Batching/BatchConsumer.cs:125	public class BatchConsumer<TMessage> :	Task.Run(() => _executor.Push(() =>
+holdout/MassTransit__MassTransit/src/MassTransit/Consumers/Configuration/BatchConsumerMessageConnector.cs:103	class BatchConnectHandle :	Task.Run(DisposeConsumerFactory);
+holdout/MassTransit__MassTransit/src/MassTransit/InMemoryTransport/InMemoryTransport/InMemoryReceiveTransport.cs:98	class ReceiveTransportAgent :	Task.Run(() => Startup());
+holdout/MassTransit__MassTransit/src/MassTransit/Internals/Reflection/ReadProperty.cs:34	public class ReadProperty<T, TProperty> :	Task.Run(() => GenerateExpressionGetMethod(getMethod));
+holdout/MassTransit__MassTransit/src/MassTransit/Internals/Reflection/WriteProperty.cs:37	public class WriteProperty<T, TProperty> :	Task.Run(() => GenerateExpressionSetMethod(implementationType, setMeth
+holdout/MassTransit__MassTransit/src/MassTransit/JobService/JobService/JobService.cs:137	public class JobService :	Task.Run(async () =>
+holdout/MassTransit__MassTransit/src/MassTransit/Sagas/Configuration/SagaMetadataCache.cs:43	public class SagaMetadataCache<TSaga> :	Task.Run(GenerateFactoryMethodAsynchronously);
+holdout/MassTransit__MassTransit/src/MassTransit/Sagas/Configuration/SagaMetadataCache.cs:62	public class SagaMetadataCache<TSaga> :	Task.Run(GeneratePropertyFactoryMethodAsynchronously);
+holdout/MassTransit__MassTransit/src/MassTransit/Transports/Components/KillSwitch/KillSwitch.cs:120	public class KillSwitch :	Task.Run(() => RestartReceiveEndpoint());
+holdout/MassTransit__MassTransit/src/MassTransit/Transports/Components/KillSwitch/KillSwitch.cs:134	public class KillSwitch :	Task.Run(() => StopReceiveEndpoint(stopped));
+holdout/MassTransit__MassTransit/src/MassTransit/Transports/ConsumerAgent.cs:110	public abstract class ConsumerAgent<TKey> :	Task.Run(() => TryStop());
+holdout/MassTransit__MassTransit/src/MassTransit/Transports/Fabric/Gauge.cs:33	public class Gauge :	Task.Run(() => NotifyZeroActivity(zeroActivity));
+holdout/MassTransit__MassTransit/src/MassTransit/Transports/Fabric/MessageQueue.cs:97	public class MessageQueue<TContext, T> :	Task.Run(async () =>
+holdout/MassTransit__MassTransit/src/Transports/MassTransit.Azure.ServiceBus.Core/AzureServiceBusTransport/Contexts/QueueClientContext.cs:108	public class QueueClientContext :	Task.Run(() => _agent.Stop($"Unrecoverable exception on {entityPath}")
+holdout/MassTransit__MassTransit/src/Transports/MassTransit.Azure.ServiceBus.Core/AzureServiceBusTransport/Contexts/SubscriptionClientContext.cs:110	public class SubscriptionClientContext :	Task.Run(() => _agent.Stop($"Unrecoverable exception on {entityPath}")
+holdout/MassTransit__MassTransit/src/Transports/MassTransit.RabbitMqTransport/RabbitMqTransport/ChannelContextFactory.cs:33	public class ChannelContextFactory :	Task.Run(() => asyncContext.Stop(args.ReplyText))
+holdout/MassTransit__MassTransit/src/Transports/MassTransit.RabbitMqTransport/RabbitMqTransport/ConnectionContextFactory.cs:37	public class ConnectionContextFactory :	Task.Run(() => contextHandle.Stop(args.ReplyText))
+holdout/MassTransit__MassTransit/src/Transports/MassTransit.RabbitMqTransport/RabbitMqTransport/RabbitMqChannelContext.cs:162	public class RabbitMqChannelContext :	Task.Run(() => _agent.Stop($"Unrecoverable exception on {inputAddress.
+holdout/OrchardCMS__OrchardCore/.agents/skills/orchardcore-video-producer/scripts/recorder/Scene.cs:233	public sealed class Scene : IAsyncDisposable	_ = _cdp.SendAsync("Page.screencastFrameAck", new Dictionary<string, o
+holdout/OrchardCMS__OrchardCore/src/OrchardCore/OrchardCore.Abstractions/BackgroundJobs/HttpBackgroundJob.cs:58	public static class HttpBackgroundJob	_ = ShellScope.UsingChildScopeAsync(async scope =>
+holdout/OrchardCMS__OrchardCore/src/OrchardCore/OrchardCore.DataPipelines.Core/Services/DataPipelineEdge.cs:100	internal sealed class DataPipelineEdge	_ = Task.Run(PumpAsync, CancellationToken.None);
+holdout/OrchardCMS__OrchardCore/src/OrchardCore.Modules/OrchardCore.DataPipelines/Services/DataPipelineRunDispatcher.cs:62	public sealed class DataPipelineRunDispatcher	_ = Task.Run(() => ExecuteAsync(runId));
+holdout/Radarr__Radarr/src/NzbDrone.Common/Http/HttpClient.cs:315	public class HttpClient : IHttpClient	Task.Run(() => DownloadFileAsync(url, fileName)).GetAwaiter().GetResul
+holdout/Radarr__Radarr/src/NzbDrone.Core/RootFolders/RootFolderService.cs:217	public class RootFolderService : IRootFolderService	Task.Run(() =>
+holdout/Radarr__Radarr/src/Radarr.Api.V3/System/SystemController.cs:116	public class SystemController : Controller	Task.Factory.StartNew(() => _lifecycleService.Shutdown());
+holdout/Radarr__Radarr/src/Radarr.Api.V3/System/SystemController.cs:123	public class SystemController : Controller	Task.Factory.StartNew(() => _lifecycleService.Restart());
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:744	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:755	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:761	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:771	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:783	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:789	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:799	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:809	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:815	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:825	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:837	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:843	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:853	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:864	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:871	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:881	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:893	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:899	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:909	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:919	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:925	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:942	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:952	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:958	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:974	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:986	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:992	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1001	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1011	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1021	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1030	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1040	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1050	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1060	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1068	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1074	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1092	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1105	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1111	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1126	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1134	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1140	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1154	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1162	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1168	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1180	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1188	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1194	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1205	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1213	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1219	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1231	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1241	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1247	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1257	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1265	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1271	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1282	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1288	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1296	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1304	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1311	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1321	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1329	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/AdminClient.cs:1339	internal class AdminClient : IAdminClient	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.Kafka/Impl/SafeKafkaHandle.cs:1244	internal sealed class SafeKafkaHandle : SafeHandleZeroIsInvalid	Task.Run(() =>
+holdout/confluentinc__confluent-kafka-dotnet/src/Confluent.SchemaRegistry/SchemaRegistrySerdeBuilder.cs:253	public abstract class SchemaRegistrySerdeBuilder<TBuilder>	Task.Run(() => init(serde)).GetAwaiter().GetResult();
+holdout/dnSpyEx__dnSpy/dnSpy/dnSpy/Documents/Tabs/Dialogs/OpenDocumentListVM.cs:134		sealed class OpenDocumentListVM : ViewModelBase, IDisposable {	Task.Factory.StartNew(() => new DefaultDocumentListFinder(cancellation
+holdout/dnSpyEx__dnSpy/dnSpy/dnSpy/Documents/Tabs/Dialogs/OpenFromGACVM.cs:118		sealed class OpenFromGACVM : ViewModelBase, IGACFileReceiver, IDisposable {	Task.Factory.StartNew(() => new GACFileFinder(this, dispatcher, cancel
+holdout/dnSpyEx__dnSpy/dnSpy/dnSpy/Documents/Tabs/SaveCommands.cs:158			sealed class ExportTask : IExportTask, IMSBuildProjectWriterLogger, IMSBuildPr	Task.Factory.StartNew(() => {
+holdout/dnSpyEx__dnSpy/dnSpy/dnSpy/Documents/Tabs/TabContentImpl.cs:345			sealed class AsyncShowContext : IAsyncShowContext {	Task.Run(() => asyncTabContent.CreateContentAsync(asyncShowCtx), ctx.C
+holdout/dnSpyEx__dnSpy/dnSpy/dnSpy/Documents/Tabs/TabContentImpl.cs:396			sealed class AsyncWorkerContext : IDisposable {	Task.Factory.StartNew(() => asyncAction(), ctx.CancellationToken)
+holdout/dnSpyEx__dnSpy/dnSpy/dnSpy/Hex/Editor/Search/HexViewSearchService.cs:1060			sealed class PositionInfo {	Task.Run(() => asyncSearcher.Find(), asyncSearcher.CancellationToken);
+holdout/dnSpyEx__dnSpy/dnSpy/dnSpy/MainApp/App.xaml.cs:208		sealed partial class App : Application {	Task.Run(() => SaveMefStateAsync(config)).ContinueWith(t => {
+holdout/dnSpyEx__dnSpy/dnSpy/dnSpy/MainApp/Settings/FontAppSettingsPage.cs:109		sealed class FontAppSettingsPage : AppSettingsPage {	Task.Factory.StartNew(() =>
+holdout/dnSpyEx__dnSpy/dnSpy/dnSpy/MainApp/StartupUpdateCheck.cs:43		sealed class StartupUpdateCheck : IAutoLoaded {	Task.Run(CheckForUpdate);
+holdout/dnSpyEx__dnSpy/dnSpy/Roslyn/dnSpy.Roslyn/Optimizations/FirstUseOptimization.cs:90	sealed class C {	Task.Run(() => InitializeAsync(buffer, tagger, docFactory))
+holdout/dnSpyEx__dnSpy/Extensions/dnSpy.Scripting.Roslyn/Common/ScriptControlVM.cs:263			sealed class ExecState {	Task.Run(() => {
+holdout/dnSpyEx__dnSpy/Extensions/dnSpy.Scripting.Roslyn/Common/ScriptControlVM.cs:380			sealed class ExecState {	Task.Run(() => {
+holdout/dnSpyEx__dnSpy/Extensions/dnSpy.StringSearcher/StringReferencesService.cs:179		sealed class StringReferencesService : IStringReferencesService {	Task.Factory.StartNew(() => {
+holdout/dotnet__eShop/src/EventBusRabbitMQ/RabbitMQEventBus.cs:229	public sealed class RabbitMQEventBus(	_ = Task.Factory.StartNew(async () =>
+holdout/dotnet__eShop/src/WebhookClient/Services/HooksRepository.cs:18	public class HooksRepository	_ = subscription.Key.NotifyAsync();
+holdout/files-community__Files/src/Files.App/Actions/FileSystem/CreateFileAction.cs:43		internal sealed partial class CreateFileAction : BaseUIAction, IAction	_ = UIFilesystemHelpers.CreateFileFromDialogResultTypeAsync(AddItemDia
+holdout/files-community__Files/src/Files.App/Actions/FileSystem/CreateFolderAction.cs:46		internal sealed partial class CreateFolderAction : BaseUIAction, IAction	_ = UIFilesystemHelpers.CreateFileFromDialogResultTypeAsync(AddItemDia
+holdout/files-community__Files/src/Files.App/App.xaml.cs:80		public partial class App : Application	_ = ActivateAsync();
+holdout/files-community__Files/src/Files.App/App.xaml.cs:209		public partial class App : Application	_ = MainWindow.Instance.InitializeApplicationAsync(appActivationArgume
+holdout/files-community__Files/src/Files.App/Data/Factories/ContentPageContextFlyoutFactory.cs:717		public static class ContentPageContextFlyoutFactory	_ = bitmap.SetSourceAsync(ms.AsRandomAccessStream());
+holdout/files-community__Files/src/Files.App/Data/Items/DriveItem.cs:275		public sealed partial class DriveItem : ExpandableSidebarItemBase, INavigationC	_ = MainWindow.Instance.DispatcherQueue.EnqueueOrInvokeAsync(item.Upda
+holdout/files-community__Files/src/Files.App/Data/Items/ExpandableSidebarItemBase.cs:35		public abstract partial class ExpandableSidebarItemBase : ObservableObject	_ = LoadSubfoldersAsync();
+holdout/files-community__Files/src/Files.App/Data/Items/ExpandableSidebarItemBase.cs:65		public abstract partial class ExpandableSidebarItemBase : ObservableObject	_ = LoadSubfoldersAsync();
+holdout/files-community__Files/src/Files.App/Data/Items/ExpandableSidebarItemBase.cs:71		public abstract partial class ExpandableSidebarItemBase : ObservableObject	_ = ResyncSubfoldersAsync();
+holdout/files-community__Files/src/Files.App/Data/Items/ExpandableSidebarItemBase.cs:283		public abstract partial class ExpandableSidebarItemBase : ObservableObject	_ = LocationItem.UpgradeIconsAsync(inserted, iconBytes, dispatcher);
+holdout/files-community__Files/src/Files.App/Data/Items/ListedItem.cs:116		public partial class ListedItem : ObservableObject, IGroupableItem, IListedItem	_ = FileTagsHelper.WriteFileTagAsync(path, value);
+holdout/files-community__Files/src/Files.App/Data/Items/LocationItem.cs:142		public partial class LocationItem : ExpandableSidebarItemBase, INavigationContr	_ = UpgradeIconsAsync(createdChildren, iconBytes, dispatcher);
+holdout/files-community__Files/src/Files.App/Data/Items/LocationItem.cs:319		public sealed partial class RecycleBinLocationItem : LocationItem	_ = RefreshSpaceUsedAsync();
+holdout/files-community__Files/src/Files.App/Data/Items/WidgetFileTagsContainerItem.cs:76		public sealed partial class WidgetFileTagsContainerItem : ObservableObject, IAs	_ = LoadIconAsync(cardItem, item.Storable, linkedToken);
+holdout/files-community__Files/src/Files.App/Data/Items/WidgetFileTagsContainerItem.cs:98		public sealed partial class WidgetFileTagsContainerItem : ObservableObject, IAs	_ = LoadIconAsync(cardItem, item.Storable, linkedToken);
+holdout/files-community__Files/src/Files.App/Data/Models/DirectoryPropertiesViewModel.cs:114		public sealed partial class StatusBarViewModel : ObservableObject, IDisposable	_ = OnZipEncodingChangedAsync(value);
+holdout/files-community__Files/src/Files.App/Data/Models/DirectoryPropertiesViewModel.cs:163		public sealed partial class StatusBarViewModel : ObservableObject, IDisposable	_ = UpdateZipEncodingStateAsync();
+holdout/files-community__Files/src/Files.App/Data/Models/DirectoryPropertiesViewModel.cs:416		public sealed partial class StatusBarViewModel : ObservableObject, IDisposable	_ = UpdateZipEncodingStateAsync();
+holdout/files-community__Files/src/Files.App/Data/Models/PinnedFoldersManager.cs:113		public sealed class PinnedFoldersManager	_ = LoadIconForLocationItemAsync(locationItem, path, isFolder: false);
+holdout/files-community__Files/src/Files.App/Data/Models/PinnedFoldersManager.cs:119		public sealed class PinnedFoldersManager	_ = LoadIconForLocationItemAsync(locationItem, folder.Path);
+holdout/files-community__Files/src/Files.App/Data/Models/PinnedFoldersManager.cs:125		public sealed class PinnedFoldersManager	_ = LoadDefaultIconForLocationItemAsync(locationItem);
+holdout/files-community__Files/src/Files.App/Helpers/Application/AppLifecycleHelper.cs:112		public static class AppLifecycleHelper	_ = Task.Run(async () =>
+holdout/files-community__Files/src/Files.App/Helpers/Application/AppLifecycleHelper.cs:130		public static class AppLifecycleHelper	_ = Task.Run(FileTagsHelper.UpdateTagsDb);
+holdout/files-community__Files/src/Files.App/Helpers/Application/AppLifecycleHelper.cs:132		public static class AppLifecycleHelper	_ = Task.Run(async () =>
+holdout/files-community__Files/src/Files.App/Helpers/Application/AppLifecycleHelper.cs:169		public static class AppLifecycleHelper	_ = Task.Run(async () =>
+holdout/files-community__Files/src/Files.App/Helpers/Application/AppMemoryHelper.cs:45		public static class AppMemoryHelper	_ = Task.Run(async () =>
+holdout/files-community__Files/src/Files.App/Helpers/Dialog/DynamicDialogFactory.cs:462		public static class DynamicDialogFactory	_ = inputText.DispatcherQueue.EnqueueOrInvokeAsync(() => inputText.Foc
+holdout/files-community__Files/src/Files.App/Helpers/MenuFlyout/FastContextFlyout.cs:438		public sealed class FastContextFlyout	_ = PopulateAsync();
+holdout/files-community__Files/src/Files.App/Helpers/MenuFlyout/MenuFlyoutHelper.cs:64			public sealed class MenuFlyoutFactoryItemViewModel : IMenuFlyoutItemViewModel	_ = SetupItemsAsync(menu);
+holdout/files-community__Files/src/Files.App/Helpers/Win32/Win32Helper.Storage.cs:674		public static partial class Win32Helper	Task.Run(async () =>
+holdout/files-community__Files/src/Files.App/MainWindow.xaml.cs:146		public sealed partial class MainWindow : WindowEx	_ = EnsureContentHasKeyboardFocusAsync();
+holdout/files-community__Files/src/Files.App/Services/Settings/FileTagsSettingsService.cs:192		internal sealed class FileTagsSettingsService : BaseJsonSettings, IFileTagsSett	_ = FileTagsHelper.WriteFileTagAsync(
+holdout/files-community__Files/src/Files.App/Services/Storage/StorageDevicesService.cs:94		public sealed class RemovableDrivesService : IRemovableDrivesService	_ = MainWindow.Instance.DispatcherQueue.EnqueueOrInvokeAsync(() =>
+holdout/files-community__Files/src/Files.App/Services/Windows/WindowsRecentItemsService.cs:308		public class WindowsRecentItemsService : IWindowsRecentItemsService	_ = UpdateRecentFilesAsync();
+holdout/files-community__Files/src/Files.App/Services/Windows/WindowsRecentItemsService.cs:309		public class WindowsRecentItemsService : IWindowsRecentItemsService	_ = UpdateRecentFoldersAsync();
+holdout/files-community__Files/src/Files.App/UserControls/FileIcon.xaml.cs:69		public sealed partial class FileIcon : UserControl	_ = UpdateImageSourceAsync();
+holdout/files-community__Files/src/Files.App/UserControls/NavigationToolbar.xaml.cs:133		public sealed partial class NavigationToolbar : UserControl	_ = LoadFlyoutItemIconAsync(flyoutItem, args.NavPathParam);
+holdout/files-community__Files/src/Files.App/UserControls/Pane/ShelfPane.xaml.cs:65		public sealed partial class ShelfPane : UserControl	_ = shelfItem.InitAsync();
+holdout/files-community__Files/src/Files.App/Utils/Cloud/CloudDrivesManager.cs:58		public static class CloudDrivesManager	_ = LoadIconAsync(cloudProviderItem, provider);
+holdout/files-community__Files/src/Files.App/Utils/Cloud/CloudDrivesManager.cs:72		public static class CloudDrivesManager	_ = SetRootAndUpdatePropertiesAsync(cloudProviderItem);
+holdout/files-community__Files/src/Files.App/Utils/Shell/LaunchHelper.cs:258		public static class LaunchHelper	_ = Task.Run(async () =>
+holdout/files-community__Files/src/Files.App/Utils/Storage/Enumerators/UniversalStorageEnumerator.cs:113		public static class UniversalStorageEnumerator	_ = folderSizeProvider.UpdateAsync(folderPath, cancellationToken);
+holdout/files-community__Files/src/Files.App/Utils/Storage/Enumerators/Win32StorageEnumerator.cs:97		public static class Win32StorageEnumerator	_ = folderSizeProvider.UpdateAsync(folderPath, cancellationToken);
+holdout/files-community__Files/src/Files.App/Utils/Storage/Operations/FileOperationsHelpers.cs:1002		public sealed partial class FileOperationsHelpers	_ = FileTagsHelper.WriteFileTagAsync(destination, tag);
+holdout/files-community__Files/src/Files.App/Utils/Taskbar/SystemTrayIcon.cs:299		public sealed partial class SystemTrayIcon : IDisposable	_ = Launcher.LaunchUriAsync(new Uri("files-dev:"));
+holdout/files-community__Files/src/Files.App/ViewModels/Dialogs/CompressSkippedItemsDialogViewModel.cs:19		public sealed partial class CompressSkippedItemsDialogViewModel : ObservableObj	_ = LoadItemsIconAsync();
+holdout/files-community__Files/src/Files.App/ViewModels/Layouts/BaseLayoutViewModel.cs:55		public sealed partial class BaseLayoutViewModel : IDisposable	_ = UIFilesystemHelpers.CreateFileFromDialogResultTypeAsync(AddItemDia
+holdout/files-community__Files/src/Files.App/ViewModels/Properties/Items/CombinedFileProperties.cs:186		internal sealed class CombinedFileProperties : CombinedProperties, IFilePropert	_ = GetSystemFilePropertiesAsync();
+holdout/files-community__Files/src/Files.App/ViewModels/Properties/Items/FileProperties.cs:171		public sealed class FileProperties : BaseProperties, IFileProperties	_ = GetOtherPropertiesAsync(file.Properties);
+holdout/files-community__Files/src/Files.App/ViewModels/Properties/Items/FileProperties.cs:288		public sealed class FileProperties : BaseProperties, IFileProperties	_ = GetSystemFilePropertiesAsync();
+holdout/files-community__Files/src/Files.App/ViewModels/Properties/Items/FolderProperties.cs:122		internal sealed class FolderProperties : BaseProperties	_ = GetOtherPropertiesAsync(storageFolder.Properties);
+holdout/files-community__Files/src/Files.App/ViewModels/Properties/Items/FolderProperties.cs:128		internal sealed class FolderProperties : BaseProperties	_ = GetFolderSizeAsync(storageFolder.Path, TokenSource.Token);
+holdout/files-community__Files/src/Files.App/ViewModels/Properties/Items/FolderProperties.cs:162		internal sealed class FolderProperties : BaseProperties	_ = GetFolderSizeAsync(folderPath, TokenSource.Token);
+holdout/files-community__Files/src/Files.App/ViewModels/Properties/Items/LibraryProperties.cs:27		internal sealed class LibraryProperties : BaseProperties	_ = GetSpecialPropertiesAsync();
+holdout/files-community__Files/src/Files.App/ViewModels/Settings/AdvancedViewModel.cs:46		public sealed partial class AdvancedViewModel : ObservableObject	_ = DetectOpenFilesAtStartupAsync();
+holdout/files-community__Files/src/Files.App/ViewModels/Settings/AdvancedViewModel.cs:47		public sealed partial class AdvancedViewModel : ObservableObject	_ = UpdateCacheSizeAsync();
+holdout/files-community__Files/src/Files.App/ViewModels/ShellViewModel.cs:163		public sealed partial class ShellViewModel : ObservableObject, IDisposable	_ = LoadGitPropertiesAsync(gitItem);
+holdout/files-community__Files/src/Files.App/ViewModels/ShellViewModel.cs:251		public sealed partial class ShellViewModel : ObservableObject, IDisposable	_ = Task.Run(() => jumpListService.AddFolderAsync(value));
+holdout/files-community__Files/src/Files.App/ViewModels/ShellViewModel.cs:1037		public sealed partial class ShellViewModel : ObservableObject, IDisposable	_ = UpdateNetworkAvailabilityInfoBarAsync(workingDirectory, networkAva
+holdout/files-community__Files/src/Files.App/ViewModels/ShellViewModel.cs:1528		public sealed partial class ShellViewModel : ObservableObject, IDisposable	_ = Task.Run(async () =>
+holdout/files-community__Files/src/Files.App/ViewModels/ShellViewModel.cs:1773		public sealed partial class ShellViewModel : ObservableObject, IDisposable	_ = LoadExtendedFilePropertiesInBackgroundAsync(item, matchingStorageF
+holdout/files-community__Files/src/Files.App/ViewModels/ShellViewModel.cs:1886		public sealed partial class ShellViewModel : ObservableObject, IDisposable	_ = Task.Run(async () =>
+holdout/files-community__Files/src/Files.App/ViewModels/ShellViewModel.cs:2101		public sealed partial class ShellViewModel : ObservableObject, IDisposable	_ = RapidAddItemsToCollectionAsync(WorkingDirectory, previousDir, post
+holdout/files-community__Files/src/Files.App/ViewModels/ShellViewModel.cs:2216		public sealed partial class ShellViewModel : ObservableObject, IDisposable	_ = WatchForStorageFolderChangesAsync(currentStorageFolder?.Item);
+holdout/files-community__Files/src/Files.App/ViewModels/ShellViewModel.cs:2382		public sealed partial class ShellViewModel : ObservableObject, IDisposable	_ = PromptToUnlockBitlockerIfLockedAsync(path, pathRoot);
+holdout/files-community__Files/src/Files.App/ViewModels/ShellViewModel.cs:2498		public sealed partial class ShellViewModel : ObservableObject, IDisposable	_ = dispatcherQueue.EnqueueOrInvokeAsync(CheckForSolutionFile, Microso
+holdout/files-community__Files/src/Files.App/ViewModels/UserControls/InfoPaneViewModel.cs:156		public sealed partial class InfoPaneViewModel : ObservableObject, IDisposable	_ = MainWindow.Instance.DispatcherQueue.EnqueueOrInvokeAsync(() =>
+holdout/files-community__Files/src/Files.App/ViewModels/UserControls/InfoPaneViewModel.cs:196		public sealed partial class InfoPaneViewModel : ObservableObject, IDisposable	_ = UpdateSelectedItemPreviewAsync();
+holdout/files-community__Files/src/Files.App/ViewModels/UserControls/NavigationToolbarViewModel.cs:770		public sealed partial class NavigationToolbarViewModel : ObservableObject, IAdd	_ = LoadFlyoutItemIconAsync(flyoutItem, childPath);
+holdout/files-community__Files/src/Files.App/ViewModels/UserControls/Previews/PDFPreviewViewModel.cs:40		public sealed partial class PDFPreviewViewModel : BasePreviewModel	_ = TryLoadPagesAsync(pdf, fileStream);
+holdout/files-community__Files/src/Files.App/ViewModels/UserControls/SidebarViewModel.cs:519		public sealed partial class SidebarViewModel : ObservableObject, IDisposable	_ = ApplyTreeViewExpandabilityAsync(elem, section.Section);
+holdout/files-community__Files/src/Files.App/ViewModels/UserControls/SidebarViewModel.cs:930		public sealed partial class SidebarViewModel : ObservableObject, IDisposable	_ = QuickAccessService.PinToSidebarAsync([path]);
+holdout/files-community__Files/src/Files.App/ViewModels/UserControls/SidebarViewModel.cs:941		public sealed partial class SidebarViewModel : ObservableObject, IDisposable	_ = QuickAccessService.UnpinFromSidebarAsync(path);
+holdout/files-community__Files/src/Files.App/ViewModels/UserControls/Widgets/BaseWidgetViewModel.cs:91		public abstract class BaseWidgetViewModel : ObservableObject	_ = ShellContextFlyoutFactory.LoadShellMenuItemsAsync(_flyoutItemPath,
+holdout/files-community__Files/src/Files.App/ViewModels/UserControls/Widgets/FileTagsWidgetViewModel.cs:86		public sealed partial class FileTagsWidgetViewModel : BaseWidgetViewModel, IWid	_ = matchingItem.InitAsync(grouped[item.Uid], _updateCTS.Token);
+holdout/files-community__Files/src/Files.App/ViewModels/UserControls/Widgets/FileTagsWidgetViewModel.cs:106		public sealed partial class FileTagsWidgetViewModel : BaseWidgetViewModel, IWid	_ = container.InitAsync(preloadedItems);
+holdout/files-community__Files/src/Files.App/ViewModels/UserControls/Widgets/RecentFilesWidgetViewModel.cs:56		public sealed partial class RecentFilesWidgetViewModel : BaseWidgetViewModel, I	_ = RefreshWidgetAsync();
+holdout/files-community__Files/src/Files.App/ViewModels/UserControls/Widgets/RecentFilesWidgetViewModel.cs:225		public sealed partial class RecentFilesWidgetViewModel : BaseWidgetViewModel, I	_ = recentItem.LoadRecentItemIconAsync()
+holdout/files-community__Files/src/Files.App/Views/Layouts/BaseLayoutPage.cs:614		public abstract class BaseLayoutPage : Page, IBaseLayoutPage, INotifyPropertyCh	_ = shellViewModel.SearchAsync(searchInstance);
+holdout/files-community__Files/src/Files.App/Views/Layouts/BaseLayoutPage.cs:1312		public abstract class BaseLayoutPage : Page, IBaseLayoutPage, INotifyPropertyCh	_ = Parallel.ForEachAsync(itemsToLoad, (item, _) => new ValueTask(Load
+holdout/files-community__Files/src/Files.App/Views/Layouts/ColumnLayoutPage.xaml.cs:252		public sealed partial class ColumnLayoutPage : BaseGroupableLayoutPage	_ = ReloadItemIconsAsync();
+holdout/files-community__Files/src/Files.App/Views/Layouts/DetailsLayoutPage.xaml.cs:208		public sealed partial class DetailsLayoutPage : BaseGroupableLayoutPage	_ = ReloadItemIconsAsync();
+holdout/files-community__Files/src/Files.App/Views/Layouts/DetailsLayoutPage.xaml.cs:279		public sealed partial class DetailsLayoutPage : BaseGroupableLayoutPage	_ = ReloadItemIconsAsync();
+holdout/files-community__Files/src/Files.App/Views/Layouts/DetailsLayoutPage.xaml.cs:485		public sealed partial class DetailsLayoutPage : BaseGroupableLayoutPage	_ = ValidateItemNameInputTextAsync(textBox, args, (showError) =>
+holdout/files-community__Files/src/Files.App/Views/Layouts/DetailsLayoutPage.xaml.cs:873		public sealed partial class DetailsLayoutPage : BaseGroupableLayoutPage	_ = Commands.AutoFitColumns.ExecuteAsync();
+holdout/files-community__Files/src/Files.App/Views/Layouts/GridLayoutPage.xaml.cs:252		public sealed partial class GridLayoutPage : BaseGroupableLayoutPage	_ = ReloadItemIconsAsync();
+holdout/files-community__Files/src/Files.App/Views/Layouts/GridLayoutPage.xaml.cs:328		public sealed partial class GridLayoutPage : BaseGroupableLayoutPage	_ = DispatcherQueue.EnqueueOrInvokeAsync(async () =>
+holdout/files-community__Files/src/Files.App/Views/Layouts/GridLayoutPage.xaml.cs:527		public sealed partial class GridLayoutPage : BaseGroupableLayoutPage	_ = ValidateItemNameInputTextAsync(textBox, args, (showError) =>
+holdout/files-community__Files/src/Files.App/Views/Layouts/GridLayoutPage.xaml.cs:678		public sealed partial class GridLayoutPage : BaseGroupableLayoutPage	_ = ReloadItemIconsAsync();
+holdout/files-community__Files/src/Files.App/Views/MainPage.xaml.cs:258		public sealed partial class MainPage : Page	_ = ViewModel.OnNavigatedToAsync(e);
+holdout/files-community__Files/src/Files.App/Views/MainPage.xaml.cs:618		public sealed partial class MainPage : Page	_ = AnimateSettingsIconAsync();
+holdout/files-community__Files/src/Files.App/Views/Properties/GeneralPage.xaml.cs:134		public sealed partial class GeneralPage : BasePropertiesPage	_ = MainWindow.Instance.DispatcherQueue.EnqueueOrInvokeAsync(async () 
+holdout/files-community__Files/src/Files.App/Views/Properties/GeneralPage.xaml.cs:172		public sealed partial class GeneralPage : BasePropertiesPage	_ = MainWindow.Instance.DispatcherQueue.EnqueueOrInvokeAsync(async () 
+holdout/files-community__Files/src/Files.App/Views/Shells/BaseShellPage.cs:197		public abstract class BaseShellPage : Page, IShellPage, INotifyPropertyChanged	_ = DisplayFilesystemConsentDialogAsync();
+holdout/files-community__Files/src/Files.Shared/Helpers/AsyncManualResetEvent.cs:44	public sealed class AsyncManualResetEvent	Task.Factory.StartNew(s => ((TaskCompletionSource<bool>)s!).TrySetResu
+holdout/gitextensions__gitextensions/src/app/GitExtUtils/GitUI/TaskManager.cs:82	public class TaskManager	_ = JoinableTaskFactory.RunAsync(async () =>
+holdout/gitextensions__gitextensions/src/app/GitExtUtils/GitUI/TaskManager.cs:111	public class TaskManager	_ = JoinableTaskFactory.RunAsync(() =>
+holdout/gitextensions__gitextensions/src/app/GitUI/CommandsDialogs/FormDiff.cs:152	public partial class FormDiff : GitModuleForm	_ = DiffText.ViewChangesAsync(DiffFiles.SelectedItem,
+holdout/gitextensions__gitextensions/src/app/GitUI/CommandsDialogs/FormFileHistory.cs:342	public sealed partial class FormFileHistory : GitModuleForm, IRevisionGridFileUp	_ = Blame.LoadBlameAsync(revision, children, fileName, revisionGridInf
+holdout/gitextensions__gitextensions/src/app/GitUI/CommandsDialogs/FormFileHistory.cs:354	public sealed partial class FormFileHistory : GitModuleForm, IRevisionGridFileUp	_ = View.ViewGitItemAsync(file, revision.ObjectId, cancellationToken: 
+holdout/gitextensions__gitextensions/src/app/GitUI/CommandsDialogs/FormFileHistory.cs:369	public sealed partial class FormFileHistory : GitModuleForm, IRevisionGridFileUp	_ = Diff.ViewChangesAsync(item, defaultText: TranslatedStrings.NoChang
+holdout/gitextensions__gitextensions/src/app/GitUI/CommandsDialogs/FormLog.cs:48	public partial class FormLog : GitModuleForm	_ = diffViewer.ViewChangesAsync(DiffFiles.SelectedItem,
+holdout/gitextensions__gitextensions/src/app/GitUI/UserControls/RevisionGrid/Columns/CommitIdColumnProvider.cs:79	internal sealed class CommitIdColumnProvider : ColumnProvider	Task.Run(async () =>
+holdout/gitextensions__gitextensions/src/plugins/BuildServerIntegration/AppVeyorIntegration/AppVeyorAdapter.cs:289	internal sealed class AppVeyorAdapter : IBuildServerAdapter	Task.Run(
+holdout/gitextensions__gitextensions/src/plugins/BuildServerIntegration/TeamCityIntegration/TeamCityAdapter.cs:181	internal sealed class TeamCityAdapter : IBuildServerAdapter	Task.Run(
+holdout/gitextensions__gitextensions/src/plugins/Statistics/GitStatistics/FormGitStatistics.cs:161	public partial class FormGitStatistics : GitExtensionsFormBase	Task.Run(() => LoadLinesOfCode());
+holdout/grpc__grpc-dotnet/examples/Mailer/Server/MailQueue.cs:47	public class MailQueue	_ = Task.Run(async () =>
+holdout/grpc__grpc-dotnet/perf/benchmarkapps/GrpcClient/Program.cs:215	class Program	_ = Task.Run(async () =>
+holdout/grpc__grpc-dotnet/perf/benchmarkapps/QpsWorker/Infrastructure/ServerRunner.cs:69	public class ServerRunner	_ = app.RunAsync();
+holdout/grpc__grpc-dotnet/src/Grpc.AspNetCore.Server/Internal/ServerCallDeadlineManager.cs:122	internal sealed class ServerCallDeadlineManager : IAsyncDisposable	_ = manager.DeadlineExceededAsync();
+holdout/grpc__grpc-dotnet/src/Grpc.Net.Client/Balancer/Subchannel.cs:282	private sealed class StateChangedRegistration : IDisposable	_ = Task.Run(ConnectTransportAsync);
+holdout/grpc__grpc-dotnet/src/Grpc.Net.Client/Internal/HttpClientCallInvoker.cs:201	internal sealed class HttpClientCallInvoker : CallInvoker	_ = call.GetResponseHeadersAsync();
+holdout/grpc__grpc-dotnet/src/Grpc.Net.Client/Internal/Retry/HedgingCall.cs:209	internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T	_ = GetResponseAsync();
+holdout/grpc__grpc-dotnet/src/Grpc.Net.Client/Internal/Retry/RetryCall.cs:259	internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T	_ = GetResponseAsync();
+holdout/linq2db__linq2db/Source/LinqToDB/Internal/Async/SafeAwaiter.cs:38		internal static class SafeAwaiter	Task.Run(async () => await task(default).ConfigureAwait(false)).GetAwa
+holdout/linq2db__linq2db/Source/LinqToDB/Internal/Async/SafeAwaiter.cs:43		internal static class SafeAwaiter	Task.Run(async () => await task(default).ConfigureAwait(false)).GetAwa
+holdout/linq2db__linq2db/Source/LinqToDB/Internal/Async/SafeAwaiter.cs:48		internal static class SafeAwaiter	Task.Run(async () => await task().ConfigureAwait(false)).GetAwaiter().
+holdout/linq2db__linq2db/Source/LinqToDB/Internal/Cache/CacheEntry.cs:241		internal sealed class CacheEntry<TKey,TEntry> : ICacheEntry<TKey,TEntry>	_ = Task.Factory.StartNew(state =>
+holdout/linq2db__linq2db/Source/LinqToDB/Internal/Cache/CacheEntry.cs:270		internal sealed class CacheEntry<TKey,TEntry> : ICacheEntry<TKey,TEntry>	_ = Task.Factory.StartNew(state => InvokeCallbacks((CacheEntry<TKey,TE
+holdout/linq2db__linq2db/Source/LinqToDB/Internal/Cache/MemoryCache.cs:283		sealed class MemoryCache<TKey,TEntry> : IMemoryCache<TKey,TEntry>	_ = Task.Factory.StartNew(state => ScanForExpiredItems((MemoryCache<TK
+holdout/linq2db__linq2db/Source/LinqToDB.Remote.SignalR.Client/SignalRDataContext.cs:59		public class SignalRDataContext : RemoteDataContextBase	Task.Run(DisposeOwnedHubConnectionAsync).GetAwaiter().GetResult();
+holdout/microsoft__garnet/benchmark/BDN.benchmark/Cluster/EpochBumpContention.cs:156	readonly struct ArrayObserverSource : IEpochObserver	_ = epoch.BumpAndSpinWaitForEpochTransitionAsync().GetAwaiter().GetRes
+holdout/microsoft__garnet/benchmark/BDN.benchmark/Cluster/EpochBumpContention.cs:158	readonly struct ArrayObserverSource : IEpochObserver	_ = epoch.BumpAndWaitForEpochTransitionAsync(token: token).GetAwaiter(
+holdout/microsoft__garnet/benchmark/Resp.benchmark/ClusterBench/ClientRequestProvider.Online.cs:320	public unsafe partial class ClientRequestProvider	_ = primaryClient.ExecuteForStringResultAsync("AUTH", [opts.Auth]).Get
+holdout/microsoft__garnet/benchmark/Resp.benchmark/ClusterBench/ClientRequestProvider.Online.cs:334	public unsafe partial class ClientRequestProvider	_ = replicaClient.ExecuteForStringResultAsync("AUTH", [opts.Auth]).Get
+holdout/microsoft__garnet/benchmark/Resp.benchmark/ClusterBench/ClientRequestProvider.Online.cs:391	public unsafe partial class ClientRequestProvider	_ = primaryClient.ExecuteForStringResultAsync("AUTH", [opts.Auth]).Get
+holdout/microsoft__garnet/benchmark/Resp.benchmark/ClusterBench/ClientRequestProvider.Online.cs:404	public unsafe partial class ClientRequestProvider	_ = replicaClient.ExecuteForStringResultAsync("AUTH", [opts.Auth]).Get
+holdout/microsoft__garnet/benchmark/Resp.benchmark/TxnPerfBench.cs:263	public class TxnPerfBench	_ = txn.StringGetAsync(req.GenerateKey());
+holdout/microsoft__garnet/benchmark/Resp.benchmark/TxnPerfBench.cs:272	public class TxnPerfBench	_ = txn.StringSetAsync(req.GenerateKey(), req.GenerateValue());
+holdout/microsoft__garnet/benchmark/Resp.benchmark/TxnPerfBench.cs:282	public class TxnPerfBench	_ = txn.StringGetAsync(req.GenerateKey());
+holdout/microsoft__garnet/benchmark/Resp.benchmark/TxnPerfBench.cs:284	public class TxnPerfBench	_ = txn.StringSetAsync(req.GenerateKey(), req.GenerateValue());
+holdout/microsoft__garnet/benchmark/Resp.benchmark/TxnPerfBench.cs:299	public class TxnPerfBench	_ = txn.StringSetAsync(req.GenerateKey(), req.GenerateValue());
+holdout/microsoft__garnet/libs/client/GarnetClient.cs:225	public sealed partial class GarnetClient : IServerHook, IMessageConsumer, IDispo	Task.Run(TimeoutChecker);
+holdout/microsoft__garnet/libs/client/GarnetClient.cs:255	public sealed partial class GarnetClient : IServerHook, IMessageConsumer, IDispo	_ = ExecuteForStringResultAsync(CLIENT, SETINFO).ConfigureAwait(false)
+holdout/microsoft__garnet/libs/client/GarnetClient.cs:256	public sealed partial class GarnetClient : IServerHook, IMessageConsumer, IDispo	_ = ExecuteForStringResultAsync(CLIENT, clientName).ConfigureAwait(fal
+holdout/microsoft__garnet/libs/client/GarnetClient.cs:285	public sealed partial class GarnetClient : IServerHook, IMessageConsumer, IDispo	_ = Task.Run(TimeoutChecker);
+holdout/microsoft__garnet/libs/client/NetworkWriter.cs:410	internal sealed class NetworkWriter : IDisposable	Task.Run(EpochProtectAggressiveShiftReadOnlyRunner);
+holdout/microsoft__garnet/libs/cluster/Server/ClusterManager.cs:121	internal sealed partial class ClusterManager : IDisposable	_ = Task.Run(() => FlushTaskAsync());
+holdout/microsoft__garnet/libs/cluster/Server/Failover/FailoverManager.cs:94	internal sealed class FailoverManager : IDisposable	_ = Task.Run(async () =>
+holdout/microsoft__garnet/libs/cluster/Server/Failover/FailoverManager.cs:126	internal sealed class FailoverManager : IDisposable	_ = Task.Run(async () =>
+holdout/microsoft__garnet/libs/cluster/Server/Failover/ReplicaFailoverSession.cs:162	internal sealed partial class FailoverSession : IDisposable	_ = clusterProvider.BumpAndWaitForEpochTransitionAsync().ConfigureAwai
+holdout/microsoft__garnet/libs/cluster/Server/Gossip/Gossip.cs:111	internal sealed partial class ClusterManager : IDisposable	_ = Task.Run(GossipMainAsync);
+holdout/microsoft__garnet/libs/cluster/Server/Migration/MigrationDriver.cs:122	internal sealed partial class MigrateSession : IDisposable	_ = BeginAsyncMigrationTaskAsync();
+holdout/microsoft__garnet/libs/cluster/Server/Replication/PrimaryOps/DisklessReplication/ReplicationSyncManager.cs:140	internal sealed class ReplicationSyncManager	_ = Task.Run(() => MainStreamingSnapshotDriverAsync(signalCompletion))
+holdout/microsoft__garnet/libs/cluster/Server/Replication/PrimaryOps/ReplicationPrimaryAofSync.cs:73	internal sealed partial class ReplicationManager : IDisposable	_ = Task.Run(() => aofSyncDriver.RunAsync());
+holdout/microsoft__garnet/libs/cluster/Server/Replication/ReplicaOps/AOFReplay/ReplicaReplayDriver.cs:90	internal sealed class ReplicaReplayDriver : IBulkLogEntryConsumer, IDisposable	_ = Task.Run(() => replayTask.FullPageBasedBackgroundReplayAsync());
+holdout/microsoft__garnet/libs/cluster/Server/Replication/ReplicaOps/AOFReplay/ReplicaReplayDriver.cs:298	internal sealed class ReplicaReplayDriver : IBulkLogEntryConsumer, IDisposable	_ = BackgroundReplayTaskAsync();
+holdout/microsoft__garnet/libs/cluster/Server/Replication/ReplicaOps/ReplicaDiskbasedSync.cs:62	internal sealed partial class ReplicationManager : IDisposable	_ = ReplicaSyncAttachTaskAsync(options.UpgradeLock, forceAsync: true);
+holdout/microsoft__garnet/libs/cluster/Server/Replication/ReplicaOps/ReplicaDisklessSync.cs:53	internal sealed partial class ReplicationManager : IDisposable	_ = TryBeginReplicaSyncAsync(options.UpgradeLock, forceAsync: true);
+holdout/microsoft__garnet/libs/cluster/Server/Replication/ReplicationManager.cs:261	internal sealed partial class ReplicationManager : IDisposable	_ = Task.Run(
+holdout/microsoft__garnet/libs/cluster/Session/RespClusterMigrateCommands.cs:98	internal sealed unsafe partial class ClusterSession : IClusterSession	_ = Task.Run(() => Process(basicGarnetApi, buffer, replaceOption, vect
+holdout/microsoft__garnet/libs/common/Networking/NetworkHandler.cs:262	public abstract partial class NetworkHandler<TServerHook, TNetworkSender> : Netw	_ = SslReaderAsync(result.AsTask(), cancellationTokenSource.Token);
+holdout/microsoft__garnet/libs/common/Networking/NetworkHandler.cs:326	public abstract partial class NetworkHandler<TServerHook, TNetworkSender> : Netw	_ = SslReaderAsync(result.AsTask(), cancellationTokenSource.Token);
+holdout/microsoft__garnet/libs/common/Networking/NetworkHandler.cs:608	public abstract partial class NetworkHandler<TServerHook, TNetworkSender> : Netw	_ = SslReaderAsync(result.AsTask(), cancellationTokenSource.Token);
+holdout/microsoft__garnet/libs/common/Networking/NetworkHandler.cs:662	public abstract partial class NetworkHandler<TServerHook, TNetworkSender> : Netw	_ = SslReaderLoopAsync(retry, token);
+holdout/microsoft__garnet/libs/common/Networking/TcpNetworkHandlerBase.cs:135	public abstract class TcpNetworkHandlerBase<TServerHook, TNetworkSender> : Netwo	_ = Task.Run(() => RecvEventArgCompletedWithTLS(null, receiveEventArgs
+holdout/microsoft__garnet/libs/common/Networking/TcpNetworkHandlerBase.cs:137	public abstract class TcpNetworkHandlerBase<TServerHook, TNetworkSender> : Netwo	_ = Task.Run(() => RecvEventArgCompletedWithoutTLS(null, receiveEventA
+holdout/microsoft__garnet/libs/common/Networking/TcpNetworkHandlerBase.cs:203	public abstract class TcpNetworkHandlerBase<TServerHook, TNetworkSender> : Netwo	_ = HandleReceiveWithTLSAsync(sender, e);
+holdout/microsoft__garnet/libs/server/Metrics/GarnetServerMonitor.cs:99	internal sealed class GarnetServerMonitor	_ = Task.Run(() => MainMonitorTaskAsync(cts.Token));
+holdout/microsoft__garnet/libs/server/PubSub/SubscribeBroker.cs:177	public sealed class SubscribeBroker : IDisposable, ILogEntryConsumer	_ = Task.Run(() => StartAsync(cts.Token));
+holdout/microsoft__garnet/libs/server/Resp/AsyncProcessor.cs:65	internal sealed partial class RespServerSession : ServerSessionBase	_ = AsyncGetProcessorAsync(_storageApi);
+holdout/microsoft__garnet/libs/server/Resp/BasicCommands.cs:1922	internal sealed unsafe partial class RespServerSession : ServerSessionBase	_ = Task.Run(() => ExecuteFlushDb(cmd, unsafeTruncateLog));
+holdout/microsoft__garnet/libs/server/Resp/Vector/VectorManager.Cleanup.cs:466	private sealed class PostDropCleanupFunctions : IScanIteratorFunctions	_ = Task.Run(() => QueueCleanups(this));
+holdout/microsoft__garnet/libs/server/Servers/GarnetServerTcp.cs:372	public class GarnetServerTcp : GarnetServerBase, IServerHook	_ = ObserveHandlerStartAsync(startTask, handler);
+holdout/microsoft__garnet/libs/storage/Tsavorite/cs/src/core/Allocator/AllocatorBase.cs:2392	public abstract unsafe partial class AllocatorBase<TStoreFunctions, TAllocator> 	_ = Task.Run(FlushRunner);
+holdout/microsoft__garnet/libs/storage/Tsavorite/cs/src/core/Allocator/WorkQueueFIFO.cs:70	internal sealed class WorkQueueFIFO<T> : IDisposable	_ = Task.Run(ProcessQueue);
+holdout/microsoft__garnet/libs/storage/Tsavorite/cs/src/core/Device/ManagedLocalStorageDevice.cs:184	public sealed class ManagedLocalStorageDevice : StorageDeviceBase	_ = Task.Run(async () =>
+holdout/microsoft__garnet/libs/storage/Tsavorite/cs/src/core/Device/ManagedLocalStorageDevice.cs:293	public sealed class ManagedLocalStorageDevice : StorageDeviceBase	_ = Task.Run(async () =>
+holdout/microsoft__garnet/libs/storage/Tsavorite/cs/src/core/Device/RandomAccessLocalStorageDevice.cs:223	public sealed class RandomAccessLocalStorageDevice : StorageDeviceBase	_ = ReadWorkerAsync(segmentId, sourceAddress, destinationAddress, read
+holdout/microsoft__garnet/libs/storage/Tsavorite/cs/src/core/Device/RandomAccessLocalStorageDevice.cs:280	public sealed class RandomAccessLocalStorageDevice : StorageDeviceBase	_ = WriteWorkerAsync(sourceAddress, segmentId, destinationAddress, num
+holdout/microsoft__garnet/libs/storage/Tsavorite/cs/src/core/Index/Checkpointing/StateMachineDriver.cs:192	public class StateMachineDriver	_ = Task.Run(async () => await RunStateMachine(token).ConfigureAwait(f
+holdout/microsoft__garnet/libs/storage/Tsavorite/cs/src/core/Index/Recovery/IndexCheckpoint.cs:155	public partial class TsavoriteBase	Task.Run(FlushRunner);
+holdout/microsoft__garnet/libs/storage/Tsavorite/cs/src/core/Index/Tsavorite/Implementation/Revivification/CheckEmptyWorker.cs:48	internal struct State	Task.Run(LaunchWorker);
+holdout/microsoft__garnet/libs/storage/Tsavorite/cs/src/core/TsavoriteLog/LogCommitPolicy.cs:176	internal sealed class RateLimitLogCommitPolicy : LogCommitPolicy	Task.Run(async () =>
+holdout/microsoft__garnet/libs/storage/Tsavorite/cs/src/devices/AzureStorageDevice/AzureStorageDevice.cs:461	struct RemoveRequestInfo	_ = entry.CreateAsync(size, pageBlob);
+holdout/microsoft__garnet/libs/storage/Tsavorite/cs/src/devices/AzureStorageDevice/AzureStorageDevice.cs:533	struct RemoveRequestInfo	_ = entry.CreateAsync(size, pageBlob);
+holdout/microsoft__garnet/libs/storage/Tsavorite/cs/src/devices/AzureStorageDevice/AzureStorageNamedDeviceFactory.cs:32	public class AzureStorageNamedDeviceFactory : INamedDeviceFactory	_ = pageBlobContainer.WithRetries.CreateIfNotExistsAsync().GetAwaiter(
+holdout/microsoft__garnet/playground/GarnetClientStress/TaskScaling.cs:170	public class TaskScaling	Task.Run(async () => await ShortRunningTask(taskId, opts.DbSize, opts.
+holdout/mongodb__mongo-csharp-driver/src/MongoDB.Driver/Core/Misc/TaskExtensions.cs:142	public struct YieldNoContextAwaiter : ICriticalNotifyCompletion	Task.Factory.StartNew(continuation, default, TaskCreationOptions.Prefe
+holdout/mongodb__mongo-csharp-driver/src/MongoDB.Driver/Core/Misc/TaskExtensions.cs:147	public struct YieldNoContextAwaiter : ICriticalNotifyCompletion	Task.Factory.StartNew(continuation, default, TaskCreationOptions.Prefe
+holdout/quartznet__quartznet/src/Quartz/Core/QuartzScheduler.cs:451	internal sealed class QuartzScheduler	Task.Run(async () =>
+holdout/quartznet__quartznet/src/Quartz/Impl/TaskSchedulingThreadPool.cs:307	public abstract class TaskSchedulingThreadPool : IThreadPool	_ = Task.Factory.StartNew(runWorkItem, new WorkItem(action, state), Ca
+holdout/quartznet__quartznet/src/Quartz.Tests.Unit/Core/SchedulerLoopExecutionLimitWakeTest.cs:223	public sealed class SchedulerLoopExecutionLimitWakeTest	_ = Task.Run(async () =>
+holdout/quartznet__quartznet/src/Quartz.Tests.Unit/QuartzHostedServiceTests.cs:354	private sealed class MockScheduler : IScheduler	_ = Task.Run(async () =>
+holdout/rabbitmq__rabbitmq-dotnet-client/projects/Applications/CreateChannel/Program.cs:59	public static class Program	_ = Task.Run(async () =>
+holdout/rabbitmq__rabbitmq-dotnet-client/projects/Applications/GH-1749/Program.cs:88	static class Program	_ = CloseConnectionAsync();
+holdout/rabbitmq__rabbitmq-dotnet-client/projects/Applications/GH-1749/Program.cs:120	static class Program	_ = CloseConnectionAsync();
+holdout/rabbitmq__rabbitmq-dotnet-client/projects/Applications/GH-1865/Program.cs:63	class Program	_ = Task.Run(async () =>
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/App.xaml.cs:252	public partial class App : IDisposable, ISingleInstanceApp	_ = API.StopwatchLogInfoAsync(ClassName, "Startup cost", async () =>
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/App.xaml.cs:311	public partial class App : IDisposable, ISingleInstanceApp	_ = Task.Run(async () =>
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/App.xaml.cs:329	public partial class App : IDisposable, ISingleInstanceApp	_ = Task.Run(async () =>
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/Helper/SingleInstance.cs:67	public static class SingleInstance<TApplication> where TApplication : Applicatio	_ = CreateRemoteServiceAsync(channelName);
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/Helper/SingleInstance.cs:72	public static class SingleInstance<TApplication> where TApplication : Applicatio	_ = SignalFirstInstanceAsync(channelName);
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/HotkeyControl.xaml.cs:245	public partial class HotkeyControl	_ = OpenHotkeyDialogAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/MainWindow.xaml.cs:116	public partial class MainWindow : IDisposable	_ = _theme.RefreshFrameAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/MainWindow.xaml.cs:220	public partial class MainWindow : IDisposable	_ = _viewModel.ResetPreviewAsync().ContinueWith(static t =>
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/MainWindow.xaml.cs:273	public partial class MainWindow : IDisposable	_ = _viewModel.ResetPreviewAsync().ContinueWith(static t =>
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/MessageBoxEx.xaml.cs:52	public partial class MessageBoxEx : Window	_ = SetImageOfMessageBoxAsync(icon);
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/Msg.xaml.cs:38	public partial class Msg : Window	_ = LoadImageAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/MsgWithButton.xaml.cs:38	public partial class MsgWithButton : Window	_ = LoadImageAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/SettingPages/ViewModels/SettingsPaneGeneralViewModel.cs:379	public class DialogJumpFileResultBehaviourData : DropdownDataGeneric<DialogJumpF	_ = _updater.UpdateAppAsync(false);
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/SettingPages/ViewModels/SettingsPaneThemeViewModel.cs:142	public class ColorSchemeData : DropdownDataGeneric<ColorSchemes> { }	_ = _theme.RefreshFrameAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/SettingPages/ViewModels/SettingsPaneThemeViewModel.cs:158	public class CodeHighlightThemeData : DropdownDataGeneric<CodeHighlightThemes> {	_ = _theme.RefreshFrameAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/SettingPages/ViewModels/SettingsPaneThemeViewModel.cs:258	public class BackdropTypeData : DropdownDataGeneric<BackdropTypes> { }	_ = _theme.SetBlurForWindowAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/SettingPages/Views/SettingsPanePlugins.xaml.cs:35	public partial class SettingsPanePlugins	_ = _viewModel.CheckForUpdatesSilentlyAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/MainViewModel.cs:195	private sealed record ResultsQuerySelection(	_ = RegisterClockAndDateUpdateAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/MainViewModel.cs:215	private sealed record ResultsQuerySelection(	Task.Run(UpdateActionAsync).ContinueWith(continueAction,
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/MainViewModel.cs:267	private sealed record ResultsQuerySelection(	Task.Run(UpdateActionAsync).ContinueWith(continueAction, CancellationT
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/MainViewModel.cs:367	private sealed record ResultsQuerySelection(	_ = QueryResultsAsync(false, isReQuery: true);
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/MainViewModel.cs:375	private sealed record ResultsQuerySelection(	_ = QueryResultsAsync(false, isReQuery: true, reSelect: reselect);
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/MainViewModel.cs:430	private sealed record ResultsQuerySelection(	_ = Task.Run(() => DialogJump.JumpToPathAsync(DialogWindowHandle, dial
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/MainViewModel.cs:590	private sealed record ResultsQuerySelection(	_ = Task.Run(() => DialogJump.JumpToPathAsync(DialogWindowHandle, dial
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/MainViewModel.cs:1330	private sealed record ResultsQuerySelection(	_ = QueryResultsAsync(false);
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/MainViewModel.cs:1354	private sealed record ResultsQuerySelection(	_ = QueryResultsAsync(searchDelay, isReQuery);
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/MainViewModel.cs:2171	private sealed record ResultsQuerySelection(	_ = ResetWindowAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/MainViewModel.cs:2191	private sealed record ResultsQuerySelection(	_ = ResetWindowAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/MainViewModel.cs:2204	private sealed record ResultsQuerySelection(	_ = Task.Run(() =>
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/MainViewModel.cs:2269	private sealed record ResultsQuerySelection(	_ = ResetWindowAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/MainViewModel.cs:2273	private sealed record ResultsQuerySelection(	_ = ResetWindowAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/PluginViewModel.cs:57	public partial class PluginViewModel : BaseModel	_ = LoadIconAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/ResultViewModel.cs:173	public class ResultViewModel : BaseModel	_ = LoadImageAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/ResultViewModel.cs:188	public class ResultViewModel : BaseModel	_ = LoadBadgeImageAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/ResultViewModel.cs:203	public class ResultViewModel : BaseModel	_ = LoadPreviewImageAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ViewModel/ResultViewModel.cs:287	public class ResultViewModel : BaseModel	_ = LoadPreviewImageAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher.Core/Plugin/JsonRPCPluginV2.cs:64	internal abstract class JsonRPCPluginV2 : JsonRPCPluginBase, IAsyncDisposable, I	_ = ReadErrorAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher.Core/Plugin/PluginInstaller.cs:321	public static class PluginInstaller	_ = UpdateAllPluginsFromNotificationAsync(updateAllPlugins, resultsFor
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher.Core/Resource/Internationalization.cs:162	public class Internationalization : IDisposable	_ = ChangeLanguageAsync(language);
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher.Core/Resource/Theme.cs:135	public class Theme	_ = RefreshFrameAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher.Core/Resource/Theme.cs:434	public class Theme	_ = RefreshFrameAsync();
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher.Infrastructure/DialogJump/DialogJump.cs:471	public static class DialogJump	_ = Task.Run(async () =>
+sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher.Infrastructure/Image/ImageLoader.cs:68	public static class ImageLoader	_ = Task.Run(async () =>
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.BrowserBookmark/Main.cs:76	public class Main : ISettingProvider, IPlugin, IReloadable, IPluginI18n, IContex	_ = MonitorRefreshQueueAsync();
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.BrowserBookmark/Views/SettingsControl.xaml.cs:27	public partial class SettingsControl	_ = Task.Run(() => Main.ReloadAllBookmarks());
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.BrowserBookmark/Views/SettingsControl.xaml.cs:37	public partial class SettingsControl	_ = Task.Run(() => Main.ReloadAllBookmarks());
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.BrowserBookmark/Views/SettingsControl.xaml.cs:47	public partial class SettingsControl	_ = Task.Run(() => Main.ReloadAllBookmarks());
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.BrowserBookmark/Views/SettingsControl.xaml.cs:73	public partial class SettingsControl	_ = Task.Run(() => Main.ReloadAllBookmarks());
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.BrowserBookmark/Views/SettingsControl.xaml.cs:82	public partial class SettingsControl	_ = Task.Run(() => Main.ReloadAllBookmarks());
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.BrowserBookmark/Views/SettingsControl.xaml.cs:114	public partial class SettingsControl	_ = Task.Run(() => Main.ReloadAllBookmarks());
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Explorer/ContextMenu.cs:203	internal class ContextMenu : IContextMenu	_ = Task.Run(() =>
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Explorer/ContextMenu.cs:251	internal class ContextMenu : IContextMenu	_ = Task.Run(() => ShellCommand.RunAsDifferentUser(record.FullPath.Set
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Explorer/ContextMenu.cs:413	internal class ContextMenu : IContextMenu	_ = Task.Run(() =>
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Explorer/Search/ResultManager.cs:416	public static class ResultManager	_ = Task.Run(() => Settings.EverythingManagerInstance.IncrementRunCoun
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Explorer/Views/PreviewPanel.xaml.cs:74	public partial class PreviewPanel : UserControl	_ = Task.Run(() =>
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Explorer/Views/PreviewPanel.xaml.cs:96	public partial class PreviewPanel : UserControl	_ = LoadImageAsync();
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.PluginsManager/PluginsManager.cs:348	public class PluginsManager	_ = Task.Run(async () =>
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.PluginsManager/PluginsManager.cs:595	public class PluginsManager	_ = InstallOrUpdateAsync(plugin);
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.PluginsManager/PluginsManager.cs:647	public class PluginsManager	_ = InstallOrUpdateAsync(plugin);
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.PluginsManager/PluginsManager.cs:706	public class PluginsManager	_ = InstallOrUpdateAsync(x); // No need to wait
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Program/Main.cs:311	public class Main : ISettingProvider, IAsyncPlugin, IPluginI18n, IContextMenu, I	_ = Task.Run(async () =>
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Program/Main.cs:327	public class Main : ISettingProvider, IAsyncPlugin, IPluginI18n, IContextMenu, I	_ = UWPPackage.WatchPackageChangeAsync();
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Program/Main.cs:468	public class Main : ISettingProvider, IAsyncPlugin, IPluginI18n, IContextMenu, I	_ = Task.Run(async () =>
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Program/Main.cs:514	public class Main : ISettingProvider, IAsyncPlugin, IPluginI18n, IContextMenu, I	_ = Task.Run(() => IndexUwpProgramsAsync(resetCache: false));
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Program/Main.cs:532	public class Main : ISettingProvider, IAsyncPlugin, IPluginI18n, IContextMenu, I	_ = Task.Run(() => IndexWin32ProgramsAsync(resetCache: false));
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Program/Programs/UWPPackage.cs:458	public partial class UWPApp : IProgram	_ = Task.Run(() => Launch(shouldRunElevated)).ConfigureAwait(false);
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Program/Programs/UWPPackage.cs:500	public partial class UWPApp : IProgram	_ = Task.Run(() => Launch(true)).ConfigureAwait(false);
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Program/Programs/Win32.cs:206	public partial class Win32 : IProgram, IEquatable<Win32>	_ = Task.Run(() => Main.StartProcess(Process.Start, info));
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Program/Programs/Win32.cs:230	public partial class Win32 : IProgram, IEquatable<Win32>	_ = Task.Run(() => Main.StartProcess(ShellCommand.RunAsDifferentUser, 
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Program/Programs/Win32.cs:250	public partial class Win32 : IProgram, IEquatable<Win32>	_ = Task.Run(() => Main.StartProcess(Process.Start, info));
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Program/Programs/Win32.cs:781	public partial class Win32 : IProgram, IEquatable<Win32>	_ = Task.Run(MonitorDirectoryChangeAsync);
+sweep/Flow-Launcher__Flow.Launcher/Plugins/Flow.Launcher.Plugin.Shell/Main.cs:556	public class Main : IPlugin, ISettingProvider, IPluginI18n, IContextMenu, IDispo	_ = Task.Run(async () =>
+sweep/HangfireIO__Hangfire/src/Hangfire.Core/Processing/BackgroundDispatcherAsync.cs:63	internal sealed class BackgroundDispatcherAsync : IBackgroundDispatcher	Task.Factory.StartNew(
+sweep/akkadotnet__akka.net/src/core/Akka/Actor/CoordinatedShutdown.cs:677	public class ClusterJoinUnsuccessfulReason : Reason	Task.Run(() =>
+sweep/akkadotnet__akka.net/src/core/Akka/Actor/Scheduler/HashedWheelTimerScheduler.cs:166	public sealed class HashedWheelTimerScheduler : SchedulerBase, IDateTimeOffsetNo	Task.Run(() => RunAsync(_cts.Token).ConfigureAwait(false)); // start t
+sweep/akkadotnet__akka.net/src/core/Akka/IO/TcpConnection.cs:432	private readonly record struct WriteCommand(Write Cmd, IActorRef Sender);	_ = MonitorReadPumpAsync();
+sweep/akkadotnet__akka.net/src/core/Akka/IO/TcpConnection.cs:433	private readonly record struct WriteCommand(Write Cmd, IActorRef Sender);	_ = MonitorWritePumpAsync();
+sweep/akkadotnet__akka.net/src/core/Akka/IO/TcpConnection.cs:859	private readonly record struct WriteCommand(Write Cmd, IActorRef Sender);	_ = AwaitPipeReadAsync();
+sweep/akkadotnet__akka.net/src/core/Akka/IO/TcpConnection.cs:1199	private readonly record struct WriteCommand(Write Cmd, IActorRef Sender);	_ = AwaitFlushAsync(flush, Self);
+sweep/akkadotnet__akka.net/src/core/Akka.Docs.Tests/Networking/IO/TelnetClient.cs:68	public class TelnetClient : UntypedActor	Task.Factory.StartNew(self => Console.In.ReadLineAsync().PipeTo((ICanT
+sweep/akkadotnet__akka.net/src/core/Akka.Persistence.Tests/ReceivePersistentActorAsyncAwaitSpec.cs:690	public class AsyncPipeToDelayActor : ReceivePersistentActor	Task.Run(() =>
+sweep/akkadotnet__akka.net/src/core/Akka.Persistence.Tests/ReceivePersistentActorAsyncAwaitSpec.cs:715	public class AsyncReentrantActor : ReceivePersistentActor	Task.Run(() =>
+sweep/akkadotnet__akka.net/src/core/Akka.Remote/Artery/ArteryInboundProcessingStage.cs:689	private sealed class Logic : GraphStageLogic, IInHandler, IOutHandler	_ = Task.Run(() => RunLaneConsumer(reader, serialization, dispatch, lo
+sweep/akkadotnet__akka.net/src/core/Akka.Remote.TestKit/Player.cs:709	internal class PlayerHandler : ChannelHandlerAdapter	Task.Factory.StartNew(() =>
+sweep/akkadotnet__akka.net/src/core/Akka.Remote.Tests/Transport/DotNettyBatchWriterSpecs.cs:97	public class FlushLogger : ChannelHandlerAdapter	_ = ch.WriteAndFlushAsync(Unpooled.Buffer(1).WriteInt(i));
+sweep/akkadotnet__akka.net/src/core/Akka.Remote.Tests/Transport/DotNettyBatchWriterSpecs.cs:134	public class FlushLogger : ChannelHandlerAdapter	_ = ch.WriteAndFlushAsync(Unpooled.Buffer(1).WriteInt(i));
+sweep/akkadotnet__akka.net/src/core/Akka.Remote.Tests/Transport/DotNettyBatchWriterSpecs.cs:143	public class FlushLogger : ChannelHandlerAdapter	_ = ch.CloseAsync();
+sweep/akkadotnet__akka.net/src/core/Akka.Remote.Tests/Transport/DotNettyGracefulCloseSpec.cs:258	public class DotNettyGracefulCloseSpec : AkkaSpec	Task.Run(() => outbound.Disassociate("test", Log)),
+sweep/akkadotnet__akka.net/src/core/Akka.Remote.Tests/Transport/DotNettyGracefulCloseSpec.cs:259	public class DotNettyGracefulCloseSpec : AkkaSpec	Task.Run(() => inbound.Disassociate("test", Log)));
+sweep/akkadotnet__akka.net/src/core/Akka.Streams.Tests/Dsl/FlowAskSpec.cs:77	sealed class RandomDelaysReplier : ReceiveActor	Task.Run(async () =>
+sweep/akkadotnet__akka.net/src/core/Akka.Streams.Tests/Dsl/FlowSelectAsyncSpec.cs:420	public class FlowSelectAsyncSpec : AkkaSpec	Task.Run(() => { throw new TestException("failure1"); return "";}),
+sweep/akkadotnet__akka.net/src/core/Akka.Streams.Tests/Dsl/FlowSelectAsyncSpec.cs:421	public class FlowSelectAsyncSpec : AkkaSpec	Task.Run(() => { throw new TestException("failure2"); return "";}),
+sweep/akkadotnet__akka.net/src/core/Akka.Streams.Tests/Dsl/FlowSelectAsyncSpec.cs:422	public class FlowSelectAsyncSpec : AkkaSpec	Task.Run(() => { throw new TestException("failure3"); return "";}),
+sweep/akkadotnet__akka.net/src/core/Akka.Streams.Tests/Dsl/FlowSelectAsyncSpec.cs:423	public class FlowSelectAsyncSpec : AkkaSpec	Task.Run(() => { throw new TestException("failure4"); return "";}),
+sweep/akkadotnet__akka.net/src/core/Akka.Streams.Tests/Dsl/FlowSelectAsyncSpec.cs:424	public class FlowSelectAsyncSpec : AkkaSpec	Task.Run(() => { throw new TestException("failure5"); return "";}),
+sweep/akkadotnet__akka.net/src/core/Akka.Streams.Tests/Dsl/FlowSelectAsyncSpec.cs:601	public class FlowSelectAsyncSpec : AkkaSpec	Task.Run(async () =>
+sweep/akkadotnet__akka.net/src/core/Akka.Streams.Tests/Dsl/FlowSelectAsyncUnorderedSpec.cs:229	public class FlowSelectAsyncUnorderedSpec : AkkaSpec	Task.Run(() => { throw new TestException("failure1"); return "";}),
+sweep/akkadotnet__akka.net/src/core/Akka.Streams.Tests/Dsl/FlowSelectAsyncUnorderedSpec.cs:230	public class FlowSelectAsyncUnorderedSpec : AkkaSpec	Task.Run(() => { throw new TestException("failure2"); return "";}),
+sweep/akkadotnet__akka.net/src/core/Akka.Streams.Tests/Dsl/FlowSelectAsyncUnorderedSpec.cs:231	public class FlowSelectAsyncUnorderedSpec : AkkaSpec	Task.Run(() => { throw new TestException("failure3"); return "";}),
+sweep/akkadotnet__akka.net/src/core/Akka.Streams.Tests/Dsl/FlowSelectAsyncUnorderedSpec.cs:232	public class FlowSelectAsyncUnorderedSpec : AkkaSpec	Task.Run(() => { throw new TestException("failure4"); return "";}),
+sweep/akkadotnet__akka.net/src/core/Akka.Streams.Tests/Dsl/FlowSelectAsyncUnorderedSpec.cs:233	public class FlowSelectAsyncUnorderedSpec : AkkaSpec	Task.Run(() => { throw new TestException("failure5"); return "";}),
+sweep/akkadotnet__akka.net/src/core/Akka.Streams.Tests/Dsl/FlowSelectAsyncUnorderedSpec.cs:341	public class FlowSelectAsyncUnorderedSpec : AkkaSpec	Task.Run(async () =>
+sweep/akkadotnet__akka.net/src/core/Akka.Streams.Tests/Issue7794Spec.cs:40	public class Issue7794Spec: AkkaSpec	_ = Task.Run(async () =>
+sweep/akkadotnet__akka.net/src/core/Akka.Tests/Actor/Dispatch/ActorModelSpec.cs:536	protected class MessageDispatcherInterceptorConfigurator : MessageDispatcherConf	Task.Run(() =>
+sweep/akkadotnet__akka.net/src/core/Akka.Tests/Dispatch/AsyncAwaitSpec.cs:494	public class AsyncReentrantActor : ReceiveActor	Task.Run(() =>
+sweep/akkadotnet__akka.net/src/core/Akka.Tests/Util/ResultSpec.cs:145	public class ResultSpec	Task.Run(async () =>
+sweep/akkadotnet__akka.net/src/core/Akka.Tests/Util/ResultSpec.cs:157	public class ResultSpec	Task.Run(async () =>
+sweep/akkadotnet__akka.net/src/core/Akka.Tests/Util/ResultSpec.cs:178	public class ResultSpec	Task.Run(async () =>
+sweep/akkadotnet__akka.net/src/core/Akka.Tests.Performance/Actor/Scheduler/DefaultSchedulerPerformanceTests.cs:75	public class DefaultSchedulerPerformanceTests	Task.Factory.StartNew(_eventLoop);
+sweep/akkadotnet__akka.net/src/core/Akka.Tests.Performance/IO/TcpInboundOnlySpec.cs:103	private sealed class TestHandler : ReceiveActor	Task.Run(async () =>
+sweep/bitwarden__server/src/Infrastructure.EntityFramework/EntityFrameworkCache.cs:274	public class EntityFrameworkCache : IDistributedCache	Task.Run(_deleteExpiredCachedItemsDelegate);
+sweep/dotnet__orleans/playground/DurableJobsJournaling/DurableJobsJournaling.Web/LoadDriver.cs:121	public sealed class LoadDriver(IClusterClient client, WorkflowMetrics metrics, I	_ = RunWorkflowAsync(workflowId, settings, tracker, stoppingToken);
+sweep/dotnet__orleans/src/Orleans.Clustering.TestKit/MembershipTableTestFixture.cs:142	public sealed class MembershipTableTestFixture : IAsyncDisposable	_ = ObserveLateCleanupFailureAsync(operation, exception);
+sweep/dotnet__orleans/src/Orleans.Clustering.TestKit/MembershipTableTestFixture.cs:193	public sealed class MembershipTableTestFixture : IAsyncDisposable	_ = ObserveLateCleanupFailureAsync(operation, exception);
+sweep/dotnet__orleans/src/Orleans.Clustering.TestKit/MembershipTableTestFixture.cs:297	public sealed class MembershipTableTestFixture : IAsyncDisposable	_ = ObserveLateCleanupFailureAsync(operation, exception);
+sweep/dotnet__orleans/src/Orleans.Clustering.TestKit/MembershipTableTestFixture.cs:350	public sealed class MembershipTableTestFixture : IAsyncDisposable	_ = ObserveLateCleanupFailureAsync(operation, exception);
+sweep/dotnet__orleans/src/Orleans.Clustering.TestKit/MembershipTableTestFixture.cs:426	public sealed class MembershipTableTestFixture : IAsyncDisposable	_ = ObserveLateCleanupFailureAsync(completion, exception);
+sweep/dotnet__orleans/src/Orleans.Core/Lifecycle/ServiceLifecycleNotificationStage.cs:85	internal sealed partial class ServiceLifecycleNotificationStage(ILogger logger, 	_ = Task.Run(() => ExecuteLateCallback(participant));
+sweep/dotnet__orleans/src/Orleans.Core/Messaging/ClientMessageCenter.cs:195	internal partial class ClientMessageCenter : IMessageCenter, IDisposable	_ = SendAsync(connectionTask, msg);
+sweep/dotnet__orleans/src/Orleans.Core/Messaging/ClientMessageCenter.cs:216	internal partial class ClientMessageCenter : IMessageCenter, IDisposable	_ = Task.Factory.StartNew(
+sweep/dotnet__orleans/src/Orleans.Core/Messaging/GatewayManager.cs:224	internal partial class GatewayManager : IDisposable	_ = Task.Run(async () =>
+sweep/dotnet__orleans/src/Orleans.Core/Networking/Transport/Streams/MessageTransportStream.cs:149	internal sealed class MessageTransportStream(MessageTransport transport, MemoryP	_ = CloseTransportAsync(transport, token);
+sweep/dotnet__orleans/src/Orleans.Core/Runtime/OutsideRuntimeClient.cs:459	internal partial class OutsideRuntimeClient : IRuntimeClient, IDisposable, IClus	_ = DisposeAfterDrainAsync(StopObserverInvocationsAsync());
+sweep/dotnet__orleans/src/Orleans.DurableJobs/ShardExecutor.cs:237	internal sealed partial class ShardExecutor	_ = Task.Run(SlowStartRampUpAsync);
+sweep/dotnet__orleans/src/Orleans.Runtime/Activation/ActivationDataActivatorProvider.cs:93	private partial class ActivationDataActivator : IGrainContextActivator	_ = Task.Factory.StartNew(
+sweep/dotnet__orleans/src/Orleans.Runtime/Catalog/ActivationData.cs:1627	private static class ActivityErrorEvents	_ = OnCompleteAsync(this, message, task);
+sweep/dotnet__orleans/src/Orleans.Runtime/Core/HostedClient.cs:232	internal sealed partial class HostedClient : IGrainContext, IGrainExtensionBinde	_ = DisposeAfterDrainAsync();
+sweep/dotnet__orleans/src/Orleans.Runtime/Messaging/MessageCenter.cs:245	internal partial class MessageCenter : IMessageCenter, IAsyncDisposable	_ = SendAsync(this, connectionTask, msg);
+sweep/dotnet__orleans/src/Orleans.Runtime/Networking/SiloConnectionMaintainer.cs:49	internal partial class SiloConnectionMaintainer : ILifecycleParticipant<ISiloLif	_ = Task.Run(() => this.CloseConnectionAsync(updatedSilo));
+sweep/dotnet__orleans/src/Orleans.Serialization.TestKit/FieldCodecTester.cs:201	public abstract class FieldCodecTester<TValue, TCodec> : SerializationTester whe	_ = pipe.Writer.FlushAsync().AsTask().GetAwaiter().GetResult();
+sweep/dotnet__orleans/src/Orleans.Serialization.TestKit/FieldCodecTester.cs:875	public abstract class FieldCodecTester<TValue, TCodec> : SerializationTester whe	_ = pipe.Writer.FlushAsync().AsTask().GetAwaiter().GetResult();
+sweep/dotnet__orleans/src/Orleans.Serialization.TestKit/FieldCodecTester.cs:921	public abstract class FieldCodecTester<TValue, TCodec> : SerializationTester whe	_ = pipe.Writer.FlushAsync().AsTask().GetAwaiter().GetResult();
+sweep/dotnet__orleans/src/Orleans.Serialization.TestKit/ValueTypeFieldCodecTester.cs:76	public abstract class ValueTypeFieldCodecTester<TField, TCodec> : FieldCodecTest	_ = pipe.Writer.FlushAsync().AsTask().GetAwaiter().GetResult();
+sweep/dotnet__orleans/src/Orleans.TestingHost/StandaloneSiloHost.cs:110	public static class StandaloneSiloHost	_ = Task.Factory.StartNew(async _ =>
+sweep/dotnet__orleans/src/Orleans.TestingHost/StandaloneSiloHost.cs:139	public static class StandaloneSiloHost	_ = Task.Factory.StartNew(_ =>
+sweep/duplicati__duplicati/Duplicati/Agent/Program.cs:402	private sealed record CommandLineArguments(	Task.Run(() => StartLocalServerAsync(agentConfig, applicationSettings,
+sweep/duplicati__duplicati/Duplicati/GUI/Duplicati.GUI.TrayIcon/LinuxDBusNotifier.cs:94	public sealed class LinuxDBusNotifier : INativeNotifier	Task.Run(() => NotifyCoreAsync(level, title, message));
+sweep/duplicati__duplicati/Duplicati/GUI/Duplicati.GUI.TrayIcon/MacOSRumpNotifier.cs:115	public sealed class MacOSRumpNotifier : INativeNotifier	Task.Run(() => notificationCenter.RequestAuthorization());
+sweep/duplicati__duplicati/Duplicati/GUI/Duplicati.GUI.TrayIcon/MacOSRumpNotifier.cs:130	public sealed class MacOSRumpNotifier : INativeNotifier	Task.Run(() =>
+sweep/duplicati__duplicati/Duplicati/Library/Logging/RepeatingLogScope.cs:63	public class RepeatingLogScope : ILogDestination, IDisposable	Task.Run(() => RepeatedRunner());
+sweep/duplicati__duplicati/Duplicati/Library/Main/Controller.cs:581	public class Controller : IDisposable, IController	Task.Run(() =>
+sweep/duplicati__duplicati/Duplicati/Library/Main/IPC/ControllerRpcProxy.cs:154	public class ControllerRpcProxy : IController, IDisposable, IControllerRpcCallba	_ = Task.Run(ReadStderrAsync);
+sweep/duplicati__duplicati/Duplicati/Library/Main/IPC/ControllerRpcProxy.cs:171	public class ControllerRpcProxy : IController, IDisposable, IControllerRpcCallba	_ = Task.Run(async () =>
+sweep/duplicati__duplicati/Duplicati/Library/Main/Operation/Backup/FileBlockProcessor.cs:84	internal static class FileBlockProcessor	Task.Run(async () =>
+sweep/duplicati__duplicati/Duplicati/Library/Main/ProcessController.cs:220	public class ProcessController : IDisposable	Task.Run(async () =>
+sweep/duplicati__duplicati/Duplicati/Library/Modules/Builtin/RunScript.cs:579	private class ConsoleDataHandler	Task.Run(async () => StandardOutput = await p.StandardOutput.ReadToEnd
+sweep/duplicati__duplicati/Duplicati/Library/Modules/Builtin/RunScript.cs:580	private class ConsoleDataHandler	Task.Run(async () => StandardError = await p.StandardError.ReadToEndAs
+sweep/duplicati__duplicati/Duplicati/Library/RestAPI/Database/Connection.cs:445	public class Connection : IDisposable	_ = currentTask.UpdateThrottleSpeedsAsync(ApplicationSettings.UploadSp
+sweep/duplicati__duplicati/Duplicati/Library/RestAPI/Runner.cs:820	private class ProgressState : IProgressEventData	Task.Run(async () =>
+sweep/duplicati__duplicati/Duplicati/Library/RestAPI/Runner.cs:867	private class ProgressState : IProgressEventData	Task.Run(async () =>
+sweep/duplicati__duplicati/Duplicati/Library/SourceProvider/Builtin/BackendSourceFileEntry.cs:260	private class LengthReportingStream(Stream stream, long reportedLength) : Overri	_ = Task.Run(async () =>
+sweep/duplicati__duplicati/Duplicati/Server/Program.cs:367	public class Program	Task.Run(async () => DuplicatiWebserver?.StopAsync() ?? Task.Completed
+sweep/duplicati__duplicati/Duplicati/Server/Program.cs:614	public class Program	Task.Run(async () =>
+sweep/duplicati__duplicati/Duplicati/UnitTest/TrayStatusOrderTests.cs:92	public class TrayStatusOrderTests	_ = Task.Run(async () =>
+sweep/duplicati__duplicati/Duplicati/WebserverCore/DuplicatiWebserver.cs:429	public record InitSettings(	_ = Task.Run(() => app.Services.GetRequiredService<ISystemInfoProvider
+sweep/duplicati__duplicati/Duplicati/WebserverCore/Services/RemoteControllerService.cs:198	public class RemoteControllerService(Connection connection, IRemoteControllerHan	_ = Task.Run(async () =>
+sweep/git-ecosystem__git-credential-manager/src/Core/UI/Dispatcher.cs:477	private class DispatcherJobQueue	_ = RemoveWhenCompletedAsync(job);
+sweep/git-ecosystem__git-credential-manager/src/Core.Tests/UI/DispatcherTests.cs:1077	public class DispatcherTests	Task.Factory.StartNew(
+sweep/jellyfin__jellyfin/Emby.Server.Implementations/IO/LibraryMonitor.cs:251	public sealed class LibraryMonitor : ILibraryMonitor, IDisposable	Task.Run(() =>
+sweep/jellyfin__jellyfin/Emby.Server.Implementations/SystemManager.cs:133	public class SystemManager : ISystemManager	Task.Run(async () =>
+sweep/jellyfin__jellyfin/Jellyfin.Api/Controllers/LibraryStructureController.cs:217	public class LibraryStructureController : BaseJellyfinApiController	_ = Task.Run(() => RefreshAfterRenameAsync(newPath, refreshLibrary));
+sweep/jellyfin__jellyfin/Jellyfin.Api/Controllers/LibraryStructureController.cs:380	public class LibraryStructureController : BaseJellyfinApiController	Task.Run(async () =>
+sweep/jellyfin__jellyfin/Jellyfin.Api/Controllers/LibraryStructureController.cs:447	public class LibraryStructureController : BaseJellyfinApiController	Task.Run(async () =>
+sweep/jellyfin__jellyfin/Jellyfin.Server.Implementations/FullSystemBackup/BackupService.cs:80	public class BackupService : IBackupService	_ = Task.Run(async () =>
+sweep/jellyfin__jellyfin/MediaBrowser.Common/Events/EventHelper.cs:24	public static class EventHelper	Task.Run(() =>
+sweep/jellyfin__jellyfin/MediaBrowser.Common/Events/EventHelper.cs:50	public static class EventHelper	Task.Run(() =>
+sweep/jellyfin__jellyfin/MediaBrowser.Controller/LibraryTaskScheduler/LimitedConcurrencyLibraryScheduler.cs:198	public sealed class LimitedConcurrencyLibraryScheduler : ILimitedConcurrencyLibr	Task.Factory.StartNew(
+sweep/jellyfin__jellyfin/MediaBrowser.Providers/Manager/ProviderManager.cs:1162	public class ProviderManager : IProviderManager, IDisposable	Task.Run(StartProcessingRefreshQueue);
+sweep/jellyfin__jellyfin/MediaBrowser.Providers/Trickplay/TrickplayProvider.cs:115	public class TrickplayProvider : ICustomMetadataProvider<Episode>,	_ = _trickplayManager.RefreshTrickplayDataAsync(video, replace, librar
+sweep/lepoco__wpfui/src/Wpf.Ui/Controls/DynamicScrollBar/DynamicScrollBar.cs:84	public class DynamicScrollBar : System.Windows.Controls.Primitives.ScrollBar	_ = UpdateScrollAsync();
+sweep/lepoco__wpfui/src/Wpf.Ui/Controls/DynamicScrollBar/DynamicScrollBar.cs:94	public class DynamicScrollBar : System.Windows.Controls.Primitives.ScrollBar	_ = UpdateScrollAsync();
+sweep/lepoco__wpfui/src/Wpf.Ui/Controls/DynamicScrollBar/DynamicScrollBar.cs:134	public class DynamicScrollBar : System.Windows.Controls.Primitives.ScrollBar	_ = bar.UpdateScrollAsync();
+sweep/lepoco__wpfui/src/Wpf.Ui/Controls/DynamicScrollBar/DynamicScrollBar.cs:151	public class DynamicScrollBar : System.Windows.Controls.Primitives.ScrollBar	_ = bar.UpdateScrollAsync();
+sweep/lepoco__wpfui/src/Wpf.Ui/Controls/Snackbar/SnackbarPresenter.cs:80	public class SnackbarPresenter : System.Windows.Controls.ContentPresenter	_ = ShowQueuedSnackbarsAsync(); // TODO: Fix detached process
+sweep/lepoco__wpfui/src/Wpf.Ui.Gallery/Controllers/MonacoController.cs:78	public class MonacoController	_ = Application.Current.Dispatcher.InvokeAsync(async () =>
+sweep/lepoco__wpfui/src/Wpf.Ui.Gallery/ViewModels/Pages/DesignGuidance/IconsViewModel.cs:57	public partial class IconsViewModel : ViewModel	_ = Task.Run(() =>
+sweep/lepoco__wpfui/src/Wpf.Ui.Gallery/ViewModels/Pages/DesignGuidance/IconsViewModel.cs:134	public partial class IconsViewModel : ViewModel	_ = Task.Run(() =>
+sweep/lepoco__wpfui/src/Wpf.Ui.Gallery/ViewModels/Windows/MonacoWindowViewModel.cs:57	"// This Source Code Form is subject to the terms of the MIT License.
+// If a	_ = DispatchAsync(InitializeEditorAsync);
+sweep/nats-io__nats.net/examples/Example.Client/Program.cs:17		Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.Client/Program.cs:25		Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.Client/Program.cs:33		Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.Client/Program.cs:44		Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.Client/Program.cs:52		Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.Client/Program.cs:64		Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/BasicsSubscribe.cs:12	public class BasicsSubscribe(NatsServerFixture fixture, ITestOutputHelper output	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/LearnCoreNatsPublishSubscribeSubscribe.cs:18	public class LearnCoreNatsPublishSubscribeSubscribe(NatsServerFixture fixture, I	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/LearnCoreNatsQueueGroupsQueueSubscribe.cs:18	public class LearnCoreNatsQueueGroupsQueueSubscribe(NatsServerFixture fixture, I	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/LearnCoreNatsRequestReplyReplies.cs:22	public class LearnCoreNatsRequestReplyReplies(NatsServerFixture fixture, ITestOu	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/LearnCoreNatsRequestReplyRequest.cs:20	public class LearnCoreNatsRequestReplyRequest(NatsServerFixture fixture, ITestOu	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/LearnCoreNatsRequestReplyRespond.cs:18	public class LearnCoreNatsRequestReplyRespond(NatsServerFixture fixture, ITestOu	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/LearnCoreNatsScatterGatherGather.cs:22	public class LearnCoreNatsScatterGatherGather(NatsServerFixture fixture, ITestOu	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/LearnCoreNatsScatterGatherProvider.cs:18	public class LearnCoreNatsScatterGatherProvider(NatsServerFixture fixture, ITest	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/LearnCoreNatsSubjectsAndWildcardsWildcardMulti.cs:18	public class LearnCoreNatsSubjectsAndWildcardsWildcardMulti(NatsServerFixture fi	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/LearnCoreNatsSubjectsAndWildcardsWildcardSingle.cs:18	public class LearnCoreNatsSubjectsAndWildcardsWildcardSingle(NatsServerFixture f	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/QueueGroupsBasic.cs:15	public class QueueGroupsBasic(NatsServerFixture fixture, ITestOutputHelper outpu	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/QueueGroupsBasic.cs:23	public class QueueGroupsBasic(NatsServerFixture fixture, ITestOutputHelper outpu	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/QueueGroupsBasic.cs:31	public class QueueGroupsBasic(NatsServerFixture fixture, ITestOutputHelper outpu	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/QueueGroupsDynamicScaling.cs:22	public class QueueGroupsDynamicScaling(NatsServerFixture fixture, ITestOutputHel	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/QueueGroupsMixedSubscribers.cs:15	public class QueueGroupsMixedSubscribers(NatsServerFixture fixture, ITestOutputH	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/QueueGroupsMixedSubscribers.cs:24	public class QueueGroupsMixedSubscribers(NatsServerFixture fixture, ITestOutputH	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/QueueGroupsMixedSubscribers.cs:33	public class QueueGroupsMixedSubscribers(NatsServerFixture fixture, ITestOutputH	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/QueueGroupsMixedSubscribers.cs:41	public class QueueGroupsMixedSubscribers(NatsServerFixture fixture, ITestOutputH	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/QueueGroupsRequestReply.cs:19	public class QueueGroupsRequestReply(NatsServerFixture fixture, ITestOutputHelpe	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/RequestReplyBasic.cs:16	public class RequestReplyBasic(NatsServerFixture fixture, ITestOutputHelper outp	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/RequestReplyCalculator.cs:17	public class RequestReplyCalculator(NatsServerFixture fixture, ITestOutputHelper	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/RequestReplyHeaders.cs:15	public class RequestReplyHeaders(NatsServerFixture fixture, ITestOutputHelper ou	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/RequestReplyMultipleResponders.cs:15	public class RequestReplyMultipleResponders(NatsServerFixture fixture, ITestOutp	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/RequestReplyMultipleResponders.cs:23	public class RequestReplyMultipleResponders(NatsServerFixture fixture, ITestOutp	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/RequestReplyTimeout.cs:15	public class RequestReplyTimeout(NatsServerFixture fixture, ITestOutputHelper ou	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/SubjectsMonitoring.cs:13	public class SubjectsMonitoring(NatsServerFixture fixture, ITestOutputHelper out	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/SubjectsMultiWildcard.cs:15	public class SubjectsMultiWildcard(NatsServerFixture fixture, ITestOutputHelper 	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/SubjectsMultiWildcard.cs:24	public class SubjectsMultiWildcard(NatsServerFixture fixture, ITestOutputHelper 	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/SubjectsMultiWildcard.cs:33	public class SubjectsMultiWildcard(NatsServerFixture fixture, ITestOutputHelper 	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/SubjectsSingleWildcard.cs:15	public class SubjectsSingleWildcard(NatsServerFixture fixture, ITestOutputHelper	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/SubjectsSingleWildcard.cs:23	public class SubjectsSingleWildcard(NatsServerFixture fixture, ITestOutputHelper	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/examples/Example.NatsIODocs/SubjectsSingleWildcard.cs:32	public class SubjectsSingleWildcard(NatsServerFixture fixture, ITestOutputHelper	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/sandbox/ConsoleApp/Program.cs:42		_ = Task.Run(async () =>
+sweep/nats-io__nats.net/sandbox/ConsoleApp/Program.cs:85	public class Runner : ConsoleAppBase	_ = Task.Run(async () =>
+sweep/nats-io__nats.net/sandbox/MicroBenchmark/Subscribe.cs:111	public class Subscribe	Task.Run(async () =>
+sweep/nats-io__nats.net/sandbox/MinimumWebApp/Program.cs:13		_ = Task.Run(async () =>
+sweep/nats-io__nats.net/src/NATS.Client.Core/NatsConnection.cs:1259	public partial class NatsConnection : INatsConnection	_ = Task.Run(() => DisposeSocketComponentAsync(reader, "socket reader 
