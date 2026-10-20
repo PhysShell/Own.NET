@@ -1,0 +1,11 @@
+class	pr	selected_by_title
+N3	LLabmik/DotNetCloud#43	fix: series enrichment ObjectDisposedException - use IServiceScopeFactory for background enrichment
+N3	escalated-dev/escalated-dotnet#162	fix(webhooks): retry failed deliveries in a scope of their own
+N3	klitztuch/LanBoard#47	Stop live-update DB work from racing request scope disposal
+N3	ASADRAJA/Vendorea.PartnerConnect#49	Fix FTP-ingestion disposed-scope crash + price-push UI polish
+N3	DoForYou-ZA/DFY-BE#35	fix: prevent disposed DbContext during user registration
+N3	microting/eform-angular-timeplanning-plugin#1669	fix: own a DI scope per fire-and-forget handover push send
+N1	Wizard-Software/BareWire#73	fix(transport): release RabbitMQ consumer channels on setup failure and idle stop
+N1	reqnroll/Reqnroll.IdeSupport#1119	fix(#1034): dispose the brokered service proxy in RunTestOutcomeBridge failure paths
+N1	daqifi/daqifi-core#504	fix(transport): a throwing StatusChanged subscriber no longer kills auto-reconnect or leaks the port handle
+N1	modelingevolution/micro-plumberd#20	EventStoreServer: a failed start removes its container; labelled owner reaper; exact name lookup

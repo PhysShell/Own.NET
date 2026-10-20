@@ -1,0 +1,78 @@
+### DisposeAsync leak failure catch IDisposable
+IgniteUI/IgniteUI.Blazor.GridLite#63	fix: event listeners, handler faults, early calls and async disposal
+ktsu-dev/Essentials#22	Make the encoding providers' stream paths genuinely async
+elsa-workflows/elsa-studio#992	fix(workflows): stop instance designer refresh timers when the circuit disconnects
+Chemsorly/coding-agent-automation#3330	feat: Add the Claude Code CLI as a third agent tool
+dborgards/CanKit.Pro#269	feat(canopen): add DisposeAsync, and let a node be disposed from its own event handler
+microsoft/vs-mef#781	Support asynchronous MEF part disposal
+trackdubllc/Trackdub#419	feat: Windows ML 2.4 with GenAI on its runtime, MADLAD KV-cache decoding, streamed TTS prefetch
+BrighterCommand/Brighter#4282	Spec 0036: scoped lifetime per pipeline
+VectorNNTP/VectorNNTPD#12	build: relocate BackFiller, enforce x64, and publish Native AOT
+UltraGameCoder/BlazText#9	Always release the DotNetObjectReference when the editor is disposed
+NethermindEth/nethermind#13530	test(txpool): dispose the replaced pool when a test simulates a restart
+AzureCosmosDB/CassandraMigrationTool#66	Share source session across migration workers
+elsa-workflows/elsa-foundation#2169	Isolate drain heartbeats and preserve completed outbox ownership
+fathomise/MailFathom#490	[#447] Open a write-capable IMAP session separate from every read path
+Systemorph/MeshWeaver#2259	Arm the observer BEFORE the trigger — a hot emission missed has no second chance
+Vortiago/TapScribe#431	refactor(tray-bridge): declare the capture seam's failure contract and put disposal on it (#419)
+elsa-workflows/elsa-core#8492	fix(persistence): refuse cross-tenant SaveManyAsync bulk upserts
+microsoft/agent-framework#8164	.NET: fix: do not forward headers on redirect
+Chemsorly/coding-agent-automation#2927	fix: Hub wire format
+ImmediatePlatform/Immediate.Jobs#150	Improve `SingleServerJobStorage` architecture
+eichler-ai/connectors#45	Execution pipeline: return-value retention, using-Dispose gate bypass, OCE misclassification
+thomhurst/Kevlar#467	fix(partitioned)!: dispose owned strategies
+wieslawsoltes/DisposableGenerator#1	Implement DisposableGenerator with package integration
+danielPoloWork/egl-util-csharp#115	fix(infra): dispose the EventBroker dispatch scope asynchronously (#60)
+thomhurst/ModularPipelines#3354	Preserve module output during provider disposal
+### leaked client when exception dispose csharp
+rleeson24/life-insurance-crm-api#45	Bump the nuget-minor-patch group with 27 updates
+ryanbliss/neo-compose-dotnet#273	P104: the User root (SDK 0.62.0)
+tzdziech/killer-mud-client#42	Add equipment monitoring toggle
+jthorare/agentic-workflow#158	feat: Evidence packet — ui-evidence in C# (R2)
+nassarwafik/ExamBank791381#248	Phase 17F-C1 — Professional Syntax-Highlighted Code Editor
+Altinn/altinn-auth#4344	chore(deps): update nuget non-major dependencies
+ARKlab/Ark.Tools#1113	chore(deps): update all non-major dependencies
+thiagoluga/NeoReports#340	chore(deps): Bump Aspire.Hosting.MongoDB from 13.5.2 to 13.6.0
+thiagoluga/NeoReports#339	chore(deps): Bump Aspire.Hosting.AppHost from 13.5.2 to 13.6.0
+Keboo/PointerStar#626	Bump the nuget group with 8 updates
+open-astro/openastro-ara#1095	client: USB GPS dongle on the computer running the app (time + site to the rig)
+bartul/agave#90	Bump Aspire.Azure.Data.Tables and 5 others
+elsa-workflows/elsa-foundation#1403	Migrate Publishing APIs to Minimal APIs
+MPCoreDeveloper/SharpCoreDB#450	deps: Bump the dotnet-microsoft group with 13 updates
+swigerb/AzureAIDriveThru#140	S3: C# realtime middle tier (#13)
+berkanserbes/urban-community-backend#6	chore: Bump the nuget-minor-and-patch group with 42 updates
+Azure-Samples/Durable-Task-Scheduler#394	Bump the nuget-all group with 19 updates
+vancodocton/MoneyGroup#476	Bump the aspire group with 1 update
+daqifi/daqifi-core#504	fix(transport): a throwing StatusChanged subscriber no longer kills auto-reconnect or leaks the port handle
+gkinsman/AlmostServiceBus#173	Update OrderFlowDemo sample dependencies
+PlagueHO/libris-maleficarum#380	deps: Bump the aspire-packages group with 11 updates
+litedb-org/LiteDB#3003	Shared mode: hardening, native fsync, faster writes and an experimental coordinator
+alex289/CleanArchitecture#132	chore: Bump the dependencies group with 38 updates
+Particular/ServiceControl#5994	Update Aspire to 13.6.1
+Particular/ServiceControl#5958	Update dependency Aspire.Hosting.SqlServer to 13.6.1
+### dispose on failure IDisposable
+benyblack/ntilde#564	chore(settings): pages leave the session's events when the window closes
+SharpMUSH/SharpMUSH#2048	Preserve wiki browsing journeys and page category members
+sbihaiko/MesenAI#869	Release the tooltip's source subscription when the picture is replaced (#861)
+reqnroll/Reqnroll.IdeSupport#1119	fix(#1034): dispose the brokered service proxy in RunTestOutcomeBridge failure paths
+Cratis/Arc#3463	Authenticate the HTTP connection resolver with bearer tokens and Entra ID
+honua-io/honua-server#6255	fix(gp): integrate scoped custom-code execution and durable artifact delivery
+oluciano/NexJob#533	refactor(core): execution timeout and watchdog as one scope (#523, step 3)
+VRising-Modders/Progenitor#71	Camera preview hold and renewable observation lease
+GaTTGeng/ComposeSharp#52	test: always clean temp directories after loader tests
+afonsoft/open-webui#267	test(api): fix shared-infra root causes of flaky NUnit failures
+zcsizmadia/SshSharp#325	File adapters follow a reconnecting connection (session factory, ISshConnectionProvider.OpenSftpAsync)
+modelingevolution/micro-plumberd#20	EventStoreServer: a failed start removes its container; labelled owner reaper; exact name lookup; CronTests IDisposable
+csmashe/typewhisper-linux#127	Bound webhook delivery and sanitize its diagnostics
+IvanJosipovic/SvcSystems.UI.Terminal#81	feat!: update XTerm.NET to v2 and target net10.0 only
+skulmunkie/plainkit#1078	Blazor PkLifecycle and PageBase load/cancel/dispose hooks (#1022, step 2)
+yoavarad/npoi#73	Task 39: Audit IDisposable/using coverage
+migus88/unity-project-template#33	Core: forward unobserved UniTask and unhandled AppDomain exceptions to Log.Exception (game #741)
+SolusQuest/agentic-pr-review#378	Retry transient DeepSeek failures within shared review limits
+afonsoft/open-webui#250	feat(chat): plan/build agent modes (S5)
+afonsoft/open-webui#256	feat(ide): @file mentions + one-click test runs (S7)
+afonsoft/open-webui#258	feat(notifications): in-app notification feed with bell + unread badge (D3)
+frankvdb7/Hagalaz#532	[Raido] Add focused OpenTelemetry metrics for inbound/outbound messages and stateful reconnect
+SharpMUSH/SharpMUSH#2007	Add collection-scoped wiki browsing and researched PF2e organization plan
+afonsoft/open-webui#98	feat: locales do upstream + manifesto dinâmico + error_code (slice i18n-locales)
+afonsoft/open-webui#263	feat(preview): /preview/{port} loopback proxy + IDE Preview tab (D4)
