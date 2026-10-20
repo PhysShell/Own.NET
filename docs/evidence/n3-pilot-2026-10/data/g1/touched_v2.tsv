@@ -1,0 +1,10 @@
+ASADRAJA_Vendorea.PartnerConnect__49	src/Vendorea.PartnerConnect.API/Controllers/Admin/AdminFtpIngestionController.cs:272	capture 276	call=untouched	capture=TOUCHED	S4xD1	using var scope = _serviceProvider.CreateScope();
+DoForYou-ZA_DFY-BE__35	Controllers/AuthController.cs:70	capture 70	call=TOUCHED	capture=TOUCHED	S3xD3a	_ = _notificationService.NotifyAdminsAsync(
+LLabmik_DotNetCloud__43	src/Modules/Video/DotNetCloud.Modules.Video.Data/Services/VideoIndexingCallback.cs:366	capture 371	call=untouched	capture=TOUCHED	S3xD1	await _seriesService.EnrichSeriesAsync(seriesId);
+LLabmik_DotNetCloud__43	src/Modules/Video/DotNetCloud.Modules.Video.Host/Controllers/VideoController.cs:838	capture 838	call=untouched	capture=untouched	S3xD3a	_ = _videoService.UpdateDurationAsync(videoId, probeDuration, HttpCont
+LLabmik_DotNetCloud__43	src/Modules/Video/DotNetCloud.Modules.Video.Host/Controllers/VideoController.cs:1462	capture 1469	call=untouched	capture=untouched	S3xD1	var job = _transcodingService.GetProgress(jobId);
+   fix-warning	LLabmik_DotNetCloud__43	src/Modules/Video/DotNetCloud.Modules.Video.Host/Controllers/VideoController.cs:838	S3xD3a
+   fix-warning	LLabmik_DotNetCloud__43	src/Modules/Video/DotNetCloud.Modules.Video.Host/Controllers/VideoController.cs:1462	S3xD1
+james-langridge_mars-vista-api__26	src/MarsVista.Api/Middleware/UsageTrackingMiddleware.cs:63	capture 175	call=TOUCHED	capture=TOUCHED	S1xD3b	_logger.LogError(ex, "Failed to track usage event for {Path}", context
+james-langridge_mars-vista-api__26	src/MarsVista.Api/Middleware/UserApiKeyAuthenticationMiddleware.cs:153	capture 157	call=untouched	capture=untouched	S1xD1	using var scope = context.RequestServices.CreateScope();
+   fix-warning	james-langridge_mars-vista-api__26	src/MarsVista.Api/Middleware/UserApiKeyAuthenticationMiddleware.cs:153	S1xD1
