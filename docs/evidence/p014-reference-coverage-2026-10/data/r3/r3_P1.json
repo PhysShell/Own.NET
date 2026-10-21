@@ -1,0 +1,127 @@
+{
+ "A": {
+  "extractor_rc": 0,
+  "core_rc": 1,
+  "facts": {
+   "components": 17,
+   "services": 18,
+   "functions": 5,
+   "flow_acquire": 2,
+   "stats": "{\"methods_with_local\": 5, \"methods_flow_analysed\": 5, \"methods_skipped_unmodelled\": 0}"
+  },
+  "packs": [],
+  "ref_dirs": 0
+ },
+ "B": {
+  "extractor_rc": 0,
+  "core_rc": 1,
+  "facts": {
+   "components": 16,
+   "services": 18,
+   "functions": 6,
+   "flow_acquire": 3,
+   "stats": "{\"methods_with_local\": 6, \"methods_flow_analysed\": 6, \"methods_skipped_unmodelled\": 0}"
+  },
+  "packs": [
+   "C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0",
+   "C:\\Program Files\\dotnet\\packs\\Microsoft.WindowsDesktop.App.Ref\\10.0.12\\ref\\net10.0"
+  ],
+  "ref_dirs": 12
+ },
+ "A_rules": {
+  "OWN001": 5,
+  "OWN050": 29
+ },
+ "B_rules": {
+  "OWN001": 8,
+  "OWN050": 18
+ },
+ "only_A": [
+  [
+   "OWN050",
+   "repos/sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/MainWindow.xaml.cs",
+   1195,
+   "cannot verify 'ProgressBar.IsVisibleChanged' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "repos/sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/Msg.xaml.cs",
+   29,
+   "cannot verify 'fadeOutStoryboard.Completed' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "repos/sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/MsgWithButton.xaml.cs",
+   29,
+   "cannot verify 'fadeOutStoryboard.Completed' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "repos/sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/PluginUpdateWindow.xaml.cs",
+   33,
+   "cannot verify 'checkBox.Checked' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "repos/sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/PluginUpdateWindow.xaml.cs",
+   34,
+   "cannot verify 'checkBox.Unchecked' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "repos/sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/Resources/Controls/CustomScrollViewerEx.cs",
+   19,
+   "cannot verify 'Loaded' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "repos/sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/Resources/Controls/CustomWindowTitleBar.xaml.cs",
+   130,
+   "cannot verify 'Loaded' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "repos/sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/Resources/Controls/CustomWindowTitleBar.xaml.cs",
+   131,
+   "cannot verify 'Unloaded' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "repos/sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/Resources/Controls/CustomWindowTitleBar.xaml.cs",
+   260,
+   "cannot verify '_hostWindow.StateChanged' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "repos/sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/Resources/Controls/CustomWindowTitleBar.xaml.cs",
+   261,
+   "cannot verify '_hostWindow.Activated' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "repos/sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/Resources/Controls/CustomWindowTitleBar.xaml.cs",
+   262,
+   "cannot verify '_hostWindow.Closed' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ]
+ ],
+ "only_B": [
+  [
+   "OWN001",
+   "repos/sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/MainWindow.xaml.cs",
+   1195,
+   "event 'ProgressBar.IsVisibleChanged' is subscribed (handler 'ProgressBar_IsVisibleChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive an"
+  ],
+  [
+   "OWN001",
+   "repos/sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/ReportWindow.xaml.cs",
+   101,
+   "event 'link.Click' is subscribed (handler '(s, e) => SearchWeb.OpenInBrowserTab(url)') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and kee"
+  ],
+  [
+   "OWN001",
+   "repos/sweep/Flow-Launcher__Flow.Launcher/Flow.Launcher/SettingPages/ViewModels/SettingsPaneGeneralViewModel.cs",
+   360,
+   "IDisposable local 'dlg' is never disposed (leak) [resource: disposable]"
+  ]
+ ]
+}

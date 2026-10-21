@@ -1,0 +1,38 @@
+{
+ "A": {
+  "extractor_rc": 0,
+  "core_rc": 1,
+  "facts": {
+   "components": 11,
+   "services": 0,
+   "functions": 74,
+   "flow_acquire": 9,
+   "stats": "{\"methods_with_local\": 111, \"methods_flow_analysed\": 74, \"methods_skipped_unmodelled\": 37}"
+  },
+  "packs": [],
+  "ref_dirs": 0
+ },
+ "B": {
+  "extractor_rc": 0,
+  "core_rc": 1,
+  "facts": {
+   "components": 11,
+   "services": 0,
+   "functions": 74,
+   "flow_acquire": 9,
+   "stats": "{\"methods_with_local\": 111, \"methods_flow_analysed\": 74, \"methods_skipped_unmodelled\": 37}"
+  },
+  "packs": [
+   "C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0"
+  ],
+  "ref_dirs": 4
+ },
+ "A_rules": {
+  "OWN001": 15
+ },
+ "B_rules": {
+  "OWN001": 15
+ },
+ "only_A": [],
+ "only_B": []
+}

@@ -1,0 +1,6 @@
+file	line	col	kind	expr	A	A_sym	B	B_sym	C	C_sym
+<work>/p014/controls\K4\sources\p1\a.cs	1	41+4	type	void	resolved	NamedType|System|void|System.Private.CoreLib/8.0.0.0	resolved	NamedType|System|void|System.Runtime/8.0.0.0	resolved	NamedType|System|void|System.Private.CoreLib/8.0.0.0
+<work>/p014/controls\K4\sources\p2\b.cs	1	41+4	type	void	resolved	NamedType|System|void|System.Private.CoreLib/8.0.0.0	resolved	NamedType|System|void|System.Runtime/8.0.0.0	resolved	NamedType|System|void|System.Private.CoreLib/8.0.0.0
+<work>/p014/controls\K4\sources\use.cs	1	12+4	type	void	resolved	NamedType|System|void|System.Private.CoreLib/8.0.0.0	resolved	NamedType|System|void|System.Runtime/8.0.0.0	resolved	NamedType|System|void|System.Private.CoreLib/8.0.0.0
+<work>/p014/controls\K4\sources\use.cs	1	23+17	call	new Dup.T().One()	resolved	Method|Dup.T|Dup.T.One()|own/0.0.0.0	resolved	Method|Dup.T|Dup.T.One()|own/0.0.0.0	resolved	Method|Dup.T|Dup.T.One()|own/0.0.0.0
+<work>/p014/controls\K4\sources\use.cs	1	27+5	type	Dup.T	resolved	NamedType|Dup|Dup.T|own/0.0.0.0	resolved	NamedType|Dup|Dup.T|own/0.0.0.0	resolved	NamedType|Dup|Dup.T|own/0.0.0.0

@@ -1,0 +1,59 @@
+{
+ "A": {
+  "extractor_rc": 0,
+  "core_rc": 1,
+  "facts": {
+   "components": 4,
+   "services": 5,
+   "functions": 0,
+   "flow_acquire": 0,
+   "stats": "{\"methods_with_local\": 0, \"methods_flow_analysed\": 0, \"methods_skipped_unmodelled\": 0}"
+  },
+  "packs": [],
+  "ref_dirs": 0
+ },
+ "B": {
+  "extractor_rc": 0,
+  "core_rc": 1,
+  "facts": {
+   "components": 4,
+   "services": 5,
+   "functions": 0,
+   "flow_acquire": 0,
+   "stats": "{\"methods_with_local\": 0, \"methods_flow_analysed\": 0, \"methods_skipped_unmodelled\": 0}"
+  },
+  "packs": [
+   "C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0"
+  ],
+  "ref_dirs": 73
+ },
+ "A_rules": {
+  "OWN001": 6,
+  "OWN050": 1
+ },
+ "B_rules": {
+  "OWN001": 9,
+  "OWN050": 1
+ },
+ "only_A": [],
+ "only_B": [
+  [
+   "OWN001",
+   "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/App.axaml.cs",
+   66,
+   "event 'desktop.Startup' is subscribed (handler 'async (s, e) => await OnStartupAsync(desktop).ConfigureAwait(true)') but never unsubscribed; its source is an injected dependency whose lifetime is unkn"
+  ],
+  [
+   "OWN001",
+   "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/App.axaml.cs",
+   67,
+   "event 'desktop.Exit' is subscribed (handler '(s, e) => OnExit()') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'App' alive (possib"
+  ],
+  [
+   "OWN001",
+   "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/Services/NotificationService.cs",
+   82,
+   "event 'dialog.Closed' is subscribed (handler '(s, e) => completionSource.TrySetResult(dialog.Result)') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may"
+  ]
+ ]
+}

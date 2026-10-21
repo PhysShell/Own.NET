@@ -1,0 +1,67 @@
+{
+  "A": {
+    "references": 180,
+    "load_failures": 0,
+    "errors": {
+      "CS0009": 12,
+      "CS0246": 236,
+      "CS0234": 42,
+      "CS0103": 82,
+      "CS0126": 1,
+      "CS0161": 7,
+      "CS1061": 25,
+      "CS1674": 1
+    },
+    "calls": 353,
+    "calls_resolved": 169,
+    "calls_ambiguous": 19,
+    "types": 394,
+    "types_resolved": 267,
+    "plus_eq": 6,
+    "plus_eq_event": 0,
+    "plus_eq_other": 1
+  },
+  "B": {
+    "references": 251,
+    "load_failures": 0,
+    "errors": {
+      "CS0234": 34,
+      "CS0246": 121,
+      "CS0534": 1,
+      "CS0535": 2,
+      "CS0103": 56,
+      "CS1061": 8,
+      "CS0161": 7,
+      "CS0126": 1,
+      "CS0311": 3
+    },
+    "calls": 353,
+    "calls_resolved": 228,
+    "calls_ambiguous": 28,
+    "types": 394,
+    "types_resolved": 329,
+    "plus_eq": 6,
+    "plus_eq_event": 5,
+    "plus_eq_other": 1
+  },
+  "C": {
+    "references": 180,
+    "load_failures": 0,
+    "errors": {
+      "CS0009": 12,
+      "CS0246": 189,
+      "CS0234": 42,
+      "CS0103": 70,
+      "CS1061": 25,
+      "CS1674": 1
+    },
+    "calls": 353,
+    "calls_resolved": 189,
+    "calls_ambiguous": 15,
+    "types": 394,
+    "types_resolved": 307,
+    "plus_eq": 6,
+    "plus_eq_event": 0,
+    "plus_eq_other": 1
+  }
+}

@@ -1,0 +1,140 @@
+{
+ "A": {
+  "extractor_rc": 0,
+  "core_rc": 1,
+  "facts": {
+   "components": 9,
+   "services": 0,
+   "functions": 1,
+   "flow_acquire": 1,
+   "stats": "{\"methods_with_local\": 1, \"methods_flow_analysed\": 1, \"methods_skipped_unmodelled\": 0}"
+  },
+  "packs": [],
+  "ref_dirs": 0
+ },
+ "B": {
+  "extractor_rc": 0,
+  "core_rc": 1,
+  "facts": {
+   "components": 8,
+   "services": 0,
+   "functions": 5,
+   "flow_acquire": 1,
+   "stats": "{\"methods_with_local\": 5, \"methods_flow_analysed\": 5, \"methods_skipped_unmodelled\": 0}"
+  },
+  "packs": [
+   "C:\\Program Files\\dotnet\\packs\\Microsoft.NETCore.App.Ref\\10.0.12\\ref\\net10.0",
+   "C:\\Program Files\\dotnet\\packs\\Microsoft.WindowsDesktop.App.Ref\\10.0.12\\ref\\net10.0"
+  ],
+  "ref_dirs": 20
+ },
+ "A_rules": {
+  "OWN001": 1,
+  "OWN050": 15
+ },
+ "B_rules": {
+  "OWN001": 3,
+  "OWN014": 1,
+  "OWN050": 2
+ },
+ "only_A": [
+  [
+   "OWN050",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/App.xaml.cs",
+   26,
+   "cannot verify 'ToastNotificationManagerCompat.OnActivated' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved refere"
+  ],
+  [
+   "OWN050",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/Classes/Visualizer.cs",
+   97,
+   "cannot verify 'SystemEvents.SessionSwitch' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/Classes/Visualizer.cs",
+   98,
+   "cannot verify 'SystemEvents.PowerModeChanged' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/Classes/Visualizer.cs",
+   253,
+   "cannot verify '_capture.DataAvailable' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/Classes/Visualizer.cs",
+   254,
+   "cannot verify '_capture.RecordingStopped' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/Controls/TaskbarVisualizerControl.xaml.cs",
+   30,
+   "cannot verify 'Unloaded' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/MainWindow.xaml.cs",
+   185,
+   "cannot verify 'mediaManager.OnAnyMediaPropertyChanged' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/MainWindow.xaml.cs",
+   186,
+   "cannot verify 'mediaManager.OnAnyPlaybackStateChanged' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/MainWindow.xaml.cs",
+   187,
+   "cannot verify 'mediaManager.OnAnyTimelinePropertyChanged' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved referen"
+  ],
+  [
+   "OWN050",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/MainWindow.xaml.cs",
+   188,
+   "cannot verify 'mediaManager.OnAnySessionClosed' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/ViewModels/UserSettings.cs",
+   796,
+   "cannot verify 'PropertyChanged' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/Windows/OnboardingWindow.xaml.cs",
+   50,
+   "cannot verify '_viewModel.PropertyChanged' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ],
+  [
+   "OWN050",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/Windows/VolumeMixerWindow.xaml.cs",
+   56,
+   "cannot verify 'ViewModel.PropertyChanged' \u2014 its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+  ]
+ ],
+ "only_B": [
+  [
+   "OWN001",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/Classes/WindowHelper.cs",
+   67,
+   "event 'window.SourceInitialized' is subscribed (handler '(sender, e) => ApplyNoActivateStyle()') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outli"
+  ],
+  [
+   "OWN001",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/MainWindow.xaml.cs",
+   48,
+   "IDisposable field 'mediaManager' (type 'WindowsMediaController.MediaManager') is never disposed \u2014 its owner 'MainWindow' leaks it (leak) [resource: disposable field]"
+  ],
+  [
+   "OWN014",
+   "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/SettingsWindow.xaml.cs",
+   213,
+   "event 'SettingsManager.Current.PropertyChanged' is subscribed (handler 'async (s, args) =>\r\n        {\r\n            if (args.PropertyName == nameof(SettingsManager.Current.AppTheme))\r\n            {\r\n  "
+  ]
+ ]
+}
