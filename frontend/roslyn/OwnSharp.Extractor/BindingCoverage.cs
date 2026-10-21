@@ -44,6 +44,8 @@ public sealed class Unit
     public readonly List<string> SourceFiles = new();
     public int GeneratedExcluded;
     public readonly List<Unit> Children = new();
+    // the assets library id of each project-reference member, for the post-compile status propagation
+    public readonly Dictionary<Unit, string> ChildIds = new();
     public bool TieAssumed;
     public CSharpCompilation? Comp;
     public List<SyntaxTree> Trees = new();
@@ -292,7 +294,7 @@ public static class Assets
                 { u.SrcReasons.Add($"p2p-no-assets:{id}"); continue; }
                 var child = Load(childPath, null, fw, env, seen);
                 u.Children.Add(child);
-                if (child.UnitStatus != "COMPLETE") u.SrcReasons.Add($"p2p-unit-{child.UnitStatus.ToLowerInvariant()}:{id}");
+                u.ChildIds[child] = id;   // its final status reaches this unit in Compile, after the child is read
                 continue;
             }
             if (type != "package") continue;
@@ -383,14 +385,28 @@ public static class Assets
     {
         if (!done.Add(u)) return;
         foreach (var c in u.Children) Compile(c, env, done);
+        // Post-order: every member's status is final only once its sources were read, so a member that is not
+        // COMPLETE (unsupported, missing references, an unreadable file, a conditional directive …) reaches its parent
+        // here, never from the earlier Load pass.
+        foreach (var c in u.Children)
+            if (c.UnitStatus != "COMPLETE") u.SrcReasons.Add($"p2p-unit-{c.UnitStatus.ToLowerInvariant()}:{u.ChildIds[c]}");
         if (u.Unsupported.Count > 0 || u.Tfm is null) return;
         u.Trees = new List<SyntaxTree>();
         u.Unreadable = 0;
         foreach (var f in u.SourceFiles)
         {
-            try { u.Trees.Add(CSharpSyntaxTree.ParseText(File.ReadAllText(f), path: f)); }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { u.Unreadable++; }
+            SyntaxTree tree;
+            try { tree = CSharpSyntaxTree.ParseText(File.ReadAllText(f), path: f); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { u.Unreadable++; continue; }
+            u.Trees.Add(tree);
+            // The sources are parsed with no defines, while the SDK defines TFM symbols (NET8_0, …): any #if/#elif may
+            // select a different branch than the real build, so the measured source set is not the compiled one.
+            var root = tree.GetRoot();
+            if (root.ContainsDirectives
+                && root.DescendantTrivia().Any(t => t.IsKind(SyntaxKind.IfDirectiveTrivia) || t.IsKind(SyntaxKind.ElifDirectiveTrivia)))
+                u.SrcReasons.Add("preprocessor-conditional");
         }
+        if (u.Unreadable > 0) u.SrcReasons.Add("unreadable-source");
         var refs = u.Manifest.Select(m => env.Meta(m.Path)).ToList();
         foreach (var c in u.Children) if (c.Comp is not null) refs.Add(c.Comp.ToMetadataReference());
         u.Comp = CSharpCompilation.Create(u.Name, u.Trees, refs, Opts);
@@ -512,7 +528,7 @@ public static class SourceSet
         foreach (var f in u.SourceFiles)
         {
             string text;
-            try { text = File.ReadAllText(f); } catch { continue; }
+            try { text = File.ReadAllText(f); } catch { u.SrcReasons.Add("unreadable-source"); continue; }
             foreach (var a in GeneratorAttributes)
                 if (text.Contains("[" + a, StringComparison.Ordinal))
                     u.SrcReasons.Add($"framework-generator:{a}");
@@ -561,7 +577,8 @@ public static class Coverage
         _ => false,
     };
 
-    public static UnitCoverage Measure(CSharpCompilation comp, IEnumerable<SyntaxTree> trees, ISet<string>? allowedAssemblies, Func<string, string> rel)
+    public static UnitCoverage Measure(CSharpCompilation comp, IEnumerable<SyntaxTree> trees, ISet<string>? allowedAssemblies, Func<string, string> rel,
+                                       bool recordProbes = false)
     {
         var cov = new UnitCoverage();
         var diags = comp.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
@@ -587,11 +604,14 @@ public static class Coverage
                 var line = node.GetLocation().GetLineSpan().StartLinePosition.Line;
                 cov.AllSites.Add(new Site(file, node.SpanStart, node.Span.Length, line + 1, kind, status, sym?.ToDisplayString() ?? "", asm));
                 siteStatus[node] = status;
+                // research probe markers (`/*probe:ID*/`): evidence harness only, never on the production path
+                if (!recordProbes) return;
                 var lt = text.Lines[line].ToString();
                 var pi = lt.IndexOf("/*probe:", StringComparison.Ordinal);
-                if (pi >= 0)
+                var pe = pi >= 0 ? lt.IndexOf("*/", pi + 8, StringComparison.Ordinal) : -1;
+                if (pe > pi + 8)
                 {
-                    var id = lt.Substring(pi + 8, lt.IndexOf("*/", pi, StringComparison.Ordinal) - pi - 8);
+                    var id = lt.Substring(pi + 8, pe - pi - 8);
                     if (!cov.Probes.TryGetValue(id, out var l)) cov.Probes[id] = l = new List<string>();
                     l.Add($"{kind}:{status}:{sym?.ToDisplayString() ?? "-"}@{sym?.ContainingAssembly?.Name ?? "-"}");
                 }

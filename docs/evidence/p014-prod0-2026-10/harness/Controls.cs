@@ -29,7 +29,7 @@ static class Controls
             return MetadataReference.CreateFromImage(ms.ToArray());
         }
         CSharpCompilation U(string name, SyntaxTree[] trees, params MetadataReference[] refs) => CSharpCompilation.Create(name, trees, fw.Concat(refs), Opts);
-        UnitCoverage M(CSharpCompilation c, ISet<string>? allowed = null) => Coverage.Measure(c, c.SyntaxTrees, allowed ?? Coverage.Allowed(c), p => p);
+        UnitCoverage M(CSharpCompilation c, ISet<string>? allowed = null) => Coverage.Measure(c, c.SyntaxTrees, allowed ?? Coverage.Allowed(c), p => p, recordProbes: true);
         string P(UnitCoverage c, string probe) => c.Probes.TryGetValue(probe, out var l) ? string.Join(" | ", l) : "NO-SITE";
         int S(UnitCoverage c, string kind, string key) => c.Sites.TryGetValue(kind, out var d) ? d.GetValueOrDefault(key) : 0;
         void Check(string id, bool pass, string observed, string expected)
