@@ -1,0 +1,15 @@
+{
+  "pass": true,
+  "oracle_refs": 167,
+  "instrument_refs": 167,
+  "only_oracle": [],
+  "only_instrument": [],
+  "conflicts": [],
+  "tie_framework_assumed": false,
+  "unit_status": "COMPLETE",
+  "reasons": {
+    "reference": [],
+    "source_set": [],
+    "unsupported": []
+  }
+}

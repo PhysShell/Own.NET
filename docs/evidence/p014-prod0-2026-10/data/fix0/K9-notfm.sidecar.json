@@ -1,0 +1,39 @@
+{
+  "binding_coverage_version": 1,
+  "mode": "exact-project",
+  "units": [
+    {
+      "assembly_name": "K9",
+      "compiler_errors": null,
+      "conflicts": [],
+      "files": {
+        "generated_excluded": 0,
+        "in_source_set": 1,
+        "parsed": 0,
+        "unreadable": 0
+      },
+      "foreign_binding": null,
+      "foreign_binding_sites": null,
+      "framework_moniker": null,
+      "invariants_failed": null,
+      "manifest": [],
+      "methods": null,
+      "project": "K9/K9.csproj",
+      "project_references": [],
+      "reasons": {
+        "reference": [],
+        "source_set": [],
+        "unsupported": [
+          "multi-tfm:net10.0,net8.0"
+        ]
+      },
+      "reference_status": "UNSUPPORTED",
+      "sites": null,
+      "source_set_status": "COMPLETE_BY_TEXT",
+      "tfm": null,
+      "tfm_status": "NOT_APPLICABLE",
+      "tie_framework_assumed": false,
+      "unit_status": "UNSUPPORTED"
+    }
+  ]
+}
