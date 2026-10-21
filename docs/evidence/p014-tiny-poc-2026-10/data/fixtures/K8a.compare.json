@@ -1,0 +1,30 @@
+{
+  "pass": true,
+  "oracle_refs": 163,
+  "instrument_refs": 163,
+  "only_oracle": [],
+  "only_instrument": [],
+  "conflicts": [
+    {
+      "a": "Microsoft.NETCore.App.Ref/8.0.32 av=8.0.0.0 fv=8.0.3226.50405",
+      "b": "System.Collections.Immutable/9.0.0 av=9.0.0.0 fv=9.0.24.52809",
+      "name": "System.Collections.Immutable.dll",
+      "rule": "assembly-version",
+      "winner": "System.Collections.Immutable/9.0.0"
+    },
+    {
+      "a": "Microsoft.NETCore.App.Ref/8.0.32 av=8.0.0.0 fv=8.0.3226.50405",
+      "b": "System.Reflection.Metadata/9.0.0 av=9.0.0.0 fv=9.0.24.52809",
+      "name": "System.Reflection.Metadata.dll",
+      "rule": "assembly-version",
+      "winner": "System.Reflection.Metadata/9.0.0"
+    }
+  ],
+  "tie_framework_assumed": false,
+  "unit_status": "COMPLETE",
+  "reasons": {
+    "reference": [],
+    "source_set": [],
+    "unsupported": []
+  }
+}

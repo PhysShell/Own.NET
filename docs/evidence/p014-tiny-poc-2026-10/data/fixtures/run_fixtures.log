@@ -1,0 +1,31 @@
+== in-memory controls
+PASS K1: foreign=0 probe=type:resolved:System.Collections.Generic.List<int>@System.Collections | invocation:resolved:System.Collections.Generic.List<int>.Add(int)@System.Collections unresolved=0 errors= types=resolved:66+9
+PASS K2: u1=invocation:resolved:L.C.V1Only()@Lib u2=invocation:resolved:L.C.V2Only()@Lib
+PASS K4: merged_errors=CS0101 u2=invocation:unresolved:-@- | type:resolved:Dup.T@U2 u3=type:ambiguous:-@- u3_errors=CS0433
+PASS K5: event=1 non_event=1
+PASS K6: probe=type:error:-@- foreign=0
+PASS K7: if=NO-SITE else=invocation:resolved:System.Math.Min(int, int)@System.Runtime
+PASS F2.3: u1=invocation:resolved:System.IO.File.Exists(string?)@System.Runtime u2=invocation:unresolved:-@-
+PASS F2.4: u2=event_assign:resolved:System.Timers.Timer.Elapsed@System.ComponentModel.TypeConverter
+PASS F2.5: u1=event_assign:resolved:D.Src.Changed@Dep | type:resolved:System.EventArgs@System.Runtime u3=event_assign:unresolved:-@- | type:resolved:System.EventArgs@System.Runtime
+PASS GUARD: foreign=3 first=U3/c.cs:1 type D.Src @ Dep, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+PASS K11: unresolved=3 no_marker=2
+PASS K12: name_heuristic=1 resolved=1
+controls rc=0
+restore K8a\K8a.csproj rc=0
+restore K8b\K8b.csproj rc=0
+restore K8c\K8c.csproj rc=0
+restore K9\K9.csproj rc=0
+restore K10\Root\Root.csproj rc=0
+== oracle vs instrument (K3, K8a, K8b, K8c, K9)
+K8a: pass=True oracle=163 instrument=163 only_oracle=0 only_instrument=0 tie=False unit=COMPLETE conflicts=System.Collections.Immutable.dll->System.Collections.Immutable/9.0.0(assembly-version); System.Reflection.Metadata.dll->System.Reflection.Metadata/9.0.0(assembly-version)
+K8b: pass=True oracle=163 instrument=163 only_oracle=0 only_instrument=0 tie=False unit=SOURCE_SET_INCOMPLETE conflicts=System.Text.Json.dll->Microsoft.NETCore.App.Ref/8.0.32(file-version)
+K8c: pass=True oracle=206 instrument=206 only_oracle=0 only_instrument=0 tie=False unit=SOURCE_SET_INCOMPLETE conflicts=WindowsBase.dll->Microsoft.WindowsDesktop.App.Ref/10.0.13(assembly-version)
+K9-net8.0: pass=True oracle=163 instrument=163 only_oracle=0 only_instrument=0 tie=False unit=COMPLETE conflicts=System.Collections.Immutable.dll->System.Collections.Immutable/9.0.0(assembly-version)
+K9-net10.0: pass=True oracle=167 instrument=167 only_oracle=0 only_instrument=0 tie=False unit=COMPLETE conflicts=
+== K9 without --tfm
+UNSUPPORTED ['multi-tfm:net10.0,net8.0']
+== K10 project reference: with child assets, then without
+K10-with.sidecar.json K10/Child/Child.csproj COMPLETE [] event_assign= None foreign= 0
+K10-with.sidecar.json K10/Root/Root.csproj COMPLETE [] event_assign= {'event': 1, 'total': 1} foreign= 0
+K10-without.sidecar.json K10/Root/Root.csproj SOURCE_SET_INCOMPLETE ['p2p-no-assets:Child'] event_assign= {'total': 1, 'unresolved': 1} foreign= 0

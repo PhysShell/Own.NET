@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- K8b: net8.0 with System.Text.Json 8.0.5 (override list or version decides). -->
+  <PropertyGroup><TargetFramework>net8.0</TargetFramework><ImplicitUsings>disable</ImplicitUsings></PropertyGroup>
+  <ItemGroup><PackageReference Include="System.Text.Json" Version="8.0.5" /></ItemGroup>
+</Project>

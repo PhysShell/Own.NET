@@ -1,0 +1,25 @@
+{
+  "pass": true,
+  "oracle_refs": 163,
+  "instrument_refs": 163,
+  "only_oracle": [],
+  "only_instrument": [],
+  "conflicts": [
+    {
+      "a": "Microsoft.NETCore.App.Ref/8.0.32 av=8.0.0.0 fv=8.0.3226.50405",
+      "b": "System.Text.Json/8.0.5 av=8.0.0.0 fv=8.0.1024.46610",
+      "name": "System.Text.Json.dll",
+      "rule": "file-version",
+      "winner": "Microsoft.NETCore.App.Ref/8.0.32"
+    }
+  ],
+  "tie_framework_assumed": false,
+  "unit_status": "SOURCE_SET_INCOMPLETE",
+  "reasons": {
+    "reference": [],
+    "source_set": [
+      "package-analyzers:system.text.json/8.0.5"
+    ],
+    "unsupported": []
+  }
+}

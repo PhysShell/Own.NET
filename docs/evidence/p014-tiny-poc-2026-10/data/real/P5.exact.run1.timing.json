@@ -1,0 +1,18 @@
+{
+  "mode": "exact",
+  "project": "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/FluentFlyout.csproj",
+  "timing": [
+    {
+      "iteration": 0,
+      "kind": "cold",
+      "wall_ms": 1862,
+      "peak_working_set_mb": 196.1953125
+    },
+    {
+      "iteration": 1,
+      "kind": "warm",
+      "wall_ms": 1534,
+      "peak_working_set_mb": 207.59765625
+    }
+  ]
+}

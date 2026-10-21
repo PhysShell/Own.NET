@@ -1,0 +1,2221 @@
+{
+  "binding_coverage_version": 1,
+  "mode": "exact-project",
+  "units": [
+    {
+      "assembly_name": "FluentFlyoutDownstream",
+      "compiler_errors": {
+        "CS0019": 4,
+        "CS0066": 5,
+        "CS0070": 1,
+        "CS0103": 671,
+        "CS0123": 4,
+        "CS0126": 8,
+        "CS0161": 9,
+        "CS0165": 4,
+        "CS0170": 24,
+        "CS0227": 3,
+        "CS0246": 348,
+        "CS0267": 104,
+        "CS0535": 14,
+        "CS0759": 34,
+        "CS1001": 1,
+        "CS1061": 32,
+        "CS1503": 30,
+        "CS4036": 16,
+        "CS8130": 2,
+        "CS8795": 37,
+        "CS9174": 1
+      },
+      "conflicts": [
+        {
+          "a": "Microsoft.NETCore.App.Ref/10.0.13 av=10.0.0.0 fv=10.0.1326.50504",
+          "b": "Microsoft.WindowsDesktop.App.Ref/10.0.13 av=10.1.0.0 fv=10.0.1326.50504",
+          "name": "Microsoft.VisualBasic.dll",
+          "rule": "assembly-version",
+          "winner": "Microsoft.WindowsDesktop.App.Ref/10.0.13"
+        },
+        {
+          "a": "Microsoft.NETCore.App.Ref/10.0.13 av=4.0.0.0 fv=10.0.1326.50504",
+          "b": "Microsoft.WindowsDesktop.App.Ref/10.0.13 av=10.0.0.0 fv=10.0.1326.50504",
+          "name": "System.Drawing.dll",
+          "rule": "assembly-version",
+          "winner": "Microsoft.WindowsDesktop.App.Ref/10.0.13"
+        },
+        {
+          "a": "Microsoft.NETCore.App.Ref/10.0.13 av=4.0.0.0 fv=10.0.1326.50504",
+          "b": "Microsoft.WindowsDesktop.App.Ref/10.0.13 av=10.0.0.0 fv=10.0.1326.50504",
+          "name": "WindowsBase.dll",
+          "rule": "assembly-version",
+          "winner": "Microsoft.WindowsDesktop.App.Ref/10.0.13"
+        },
+        {
+          "a": "unchihugo.WPF-UI/4.4.2 av=4.4.1.0 fv=4.4.1.0",
+          "b": "WPF-UI/4.3.0 av=4.3.0.0 fv=4.3.0.0",
+          "name": "Wpf.Ui.dll",
+          "rule": "assembly-version",
+          "winner": "unchihugo.WPF-UI/4.4.2"
+        }
+      ],
+      "files": {
+        "generated_excluded": 0,
+        "in_source_set": 63,
+        "parsed": 63,
+        "unreadable": 0
+      },
+      "foreign_binding": 0,
+      "foreign_binding_sites": [],
+      "framework_moniker": ".NETCoreApp,Version=v10.0",
+      "invariants_failed": [],
+      "manifest": [
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "Accessibility.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/Accessibility.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "8.4.0.0",
+          "file": "CommunityToolkit.Mvvm.dll",
+          "file_version": "8.4.2.1",
+          "id": "CommunityToolkit.Mvvm",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/communitytoolkit.mvvm/8.4.2/lib/net8.0-windows10.0.17763/CommunityToolkit.Mvvm.dll",
+          "version": "8.4.2"
+        },
+        {
+          "assembly_version": "1.0.0.0",
+          "file": "MicaWPF.Core.dll",
+          "file_version": "1.0.0.0",
+          "id": "MicaWPF.Core",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/micawpf.core/6.3.2/lib/net9.0-windows7.0/MicaWPF.Core.dll",
+          "version": "6.3.2"
+        },
+        {
+          "assembly_version": "1.0.0.0",
+          "file": "MicaWPF.dll",
+          "file_version": "1.0.0.0",
+          "id": "MicaWPF",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/micawpf/6.3.2/lib/net9.0-windows7.0/MicaWPF.dll",
+          "version": "6.3.2"
+        },
+        {
+          "assembly_version": "1.1.9.0",
+          "file": "MicaWPF.Projection.dll",
+          "file_version": "1.1.9.0",
+          "id": "MicaWPFRuntimeComponent",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/micawpfruntimecomponent/1.1.9/lib/net8.0/MicaWPF.Projection.dll",
+          "version": "1.1.9"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "Microsoft.CSharp.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/Microsoft.CSharp.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "6.0.0.0",
+          "file": "Microsoft.Extensions.Logging.Abstractions.dll",
+          "file_version": "6.0.21.52210",
+          "id": "Microsoft.Extensions.Logging.Abstractions",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/microsoft.extensions.logging.abstractions/6.0.0/lib/net6.0/Microsoft.Extensions.Logging.Abstractions.dll",
+          "version": "6.0.0"
+        },
+        {
+          "assembly_version": "7.1.0.0",
+          "file": "Microsoft.Toolkit.Uwp.Notifications.dll",
+          "file_version": "7.1.3.1",
+          "id": "Microsoft.Toolkit.Uwp.Notifications",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/microsoft.toolkit.uwp.notifications/7.1.3/lib/net5.0-windows10.0.17763/Microsoft.Toolkit.Uwp.Notifications.dll",
+          "version": "7.1.3"
+        },
+        {
+          "assembly_version": "15.0.0.0",
+          "file": "Microsoft.VisualBasic.Core.dll",
+          "file_version": "15.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/Microsoft.VisualBasic.Core.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.1.0.0",
+          "file": "Microsoft.VisualBasic.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/Microsoft.VisualBasic.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "Microsoft.VisualBasic.Forms.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/Microsoft.VisualBasic.Forms.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "Microsoft.Win32.Primitives.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/Microsoft.Win32.Primitives.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "Microsoft.Win32.Registry.AccessControl.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/Microsoft.Win32.Registry.AccessControl.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "Microsoft.Win32.Registry.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/Microsoft.Win32.Registry.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "Microsoft.Win32.SystemEvents.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/Microsoft.Win32.SystemEvents.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.22000.38",
+          "file": "Microsoft.Windows.SDK.NET.dll",
+          "file_version": "10.0.22000.55",
+          "id": "Microsoft.Windows.SDK.NET.Ref",
+          "kind": "pack",
+          "path": "\u003Cnuget\u003E/microsoft.windows.sdk.net.ref/10.0.22000.57/lib/net8.0/Microsoft.Windows.SDK.NET.dll",
+          "version": "10.0.22000.57"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "mscorlib.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/mscorlib.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "2.3.0.0",
+          "file": "NAudio.Asio.dll",
+          "file_version": "2.3.0.0",
+          "id": "NAudio.Asio",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/naudio.asio/2.3.0/lib/net8.0-windows7.0/NAudio.Asio.dll",
+          "version": "2.3.0"
+        },
+        {
+          "assembly_version": "2.3.0.0",
+          "file": "NAudio.Core.dll",
+          "file_version": "2.3.0.0",
+          "id": "NAudio.Core",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/naudio.core/2.3.0/lib/netstandard2.0/NAudio.Core.dll",
+          "version": "2.3.0"
+        },
+        {
+          "assembly_version": "2.3.0.0",
+          "file": "NAudio.dll",
+          "file_version": "2.3.0.0",
+          "id": "NAudio",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/naudio/2.3.0/lib/net6.0-windows7.0/NAudio.dll",
+          "version": "2.3.0"
+        },
+        {
+          "assembly_version": "2.3.0.0",
+          "file": "NAudio.Midi.dll",
+          "file_version": "2.3.0.0",
+          "id": "NAudio.Midi",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/naudio.midi/2.3.0/lib/netstandard2.0/NAudio.Midi.dll",
+          "version": "2.3.0"
+        },
+        {
+          "assembly_version": "2.3.0.0",
+          "file": "NAudio.Wasapi.dll",
+          "file_version": "2.3.0.0",
+          "id": "NAudio.Wasapi",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/naudio.wasapi/2.3.0/lib/netstandard2.0/NAudio.Wasapi.dll",
+          "version": "2.3.0"
+        },
+        {
+          "assembly_version": "2.3.0.0",
+          "file": "NAudio.WinForms.dll",
+          "file_version": "2.3.0.0",
+          "id": "NAudio.WinForms",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/naudio.winforms/2.3.0/lib/netcoreapp3.1/NAudio.WinForms.dll",
+          "version": "2.3.0"
+        },
+        {
+          "assembly_version": "2.3.0.0",
+          "file": "NAudio.WinMM.dll",
+          "file_version": "2.3.0.0",
+          "id": "NAudio.WinMM",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/naudio.winmm/2.3.0/lib/net6.0/NAudio.WinMM.dll",
+          "version": "2.3.0"
+        },
+        {
+          "assembly_version": "2.1.0.0",
+          "file": "netstandard.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/netstandard.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "6.0.0.0",
+          "file": "NLog.dll",
+          "file_version": "6.1.3.5285",
+          "id": "NLog",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/nlog/6.1.3/lib/netstandard2.1/NLog.dll",
+          "version": "6.1.3"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "PresentationCore.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/PresentationCore.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "PresentationFramework.Aero.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/PresentationFramework.Aero.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "PresentationFramework.Aero2.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/PresentationFramework.Aero2.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "PresentationFramework.AeroLite.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/PresentationFramework.AeroLite.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "PresentationFramework.Classic.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/PresentationFramework.Classic.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "PresentationFramework.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/PresentationFramework.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "PresentationFramework.Luna.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/PresentationFramework.Luna.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "PresentationFramework.Royale.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/PresentationFramework.Royale.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "PresentationUI.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/PresentationUI.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "ReachFramework.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/ReachFramework.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.AppContext.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.AppContext.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Buffers.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Buffers.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.CodeDom.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.CodeDom.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Collections.Concurrent.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Collections.Concurrent.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Collections.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Collections.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Collections.Immutable.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Collections.Immutable.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Collections.NonGeneric.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Collections.NonGeneric.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Collections.Specialized.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Collections.Specialized.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.ComponentModel.Annotations.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.ComponentModel.Annotations.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.ComponentModel.DataAnnotations.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.ComponentModel.DataAnnotations.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.ComponentModel.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.ComponentModel.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.ComponentModel.EventBasedAsync.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.ComponentModel.EventBasedAsync.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.ComponentModel.Primitives.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.ComponentModel.Primitives.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.ComponentModel.TypeConverter.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.ComponentModel.TypeConverter.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Configuration.ConfigurationManager.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Configuration.ConfigurationManager.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.Configuration.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Configuration.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Console.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Console.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.Core.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Core.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Data.Common.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Data.Common.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Data.DataSetExtensions.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Data.DataSetExtensions.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.Data.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Data.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Design.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Design.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Diagnostics.Contracts.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Diagnostics.Contracts.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Diagnostics.Debug.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Diagnostics.Debug.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Diagnostics.DiagnosticSource.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Diagnostics.DiagnosticSource.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Diagnostics.EventLog.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Diagnostics.EventLog.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Diagnostics.FileVersionInfo.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Diagnostics.FileVersionInfo.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Diagnostics.PerformanceCounter.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Diagnostics.PerformanceCounter.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Diagnostics.Process.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Diagnostics.Process.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Diagnostics.StackTrace.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Diagnostics.StackTrace.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Diagnostics.TextWriterTraceListener.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Diagnostics.TextWriterTraceListener.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Diagnostics.Tools.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Diagnostics.Tools.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Diagnostics.TraceSource.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Diagnostics.TraceSource.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Diagnostics.Tracing.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Diagnostics.Tracing.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.DirectoryServices.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.DirectoryServices.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Drawing.Common.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Drawing.Common.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Drawing.Design.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Drawing.Design.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Drawing.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Drawing.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Drawing.Primitives.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Drawing.Primitives.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Dynamic.Runtime.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Dynamic.Runtime.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Formats.Asn1.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Formats.Asn1.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Formats.Nrbf.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Formats.Nrbf.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Formats.Tar.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Formats.Tar.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Globalization.Calendars.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Globalization.Calendars.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Globalization.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Globalization.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Globalization.Extensions.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Globalization.Extensions.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.Compression.Brotli.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.Compression.Brotli.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.Compression.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.Compression.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.IO.Compression.FileSystem.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.Compression.FileSystem.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.Compression.ZipFile.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.Compression.ZipFile.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.FileSystem.AccessControl.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.FileSystem.AccessControl.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.FileSystem.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.FileSystem.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.FileSystem.DriveInfo.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.FileSystem.DriveInfo.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.FileSystem.Primitives.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.FileSystem.Primitives.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.FileSystem.Watcher.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.FileSystem.Watcher.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.IsolatedStorage.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.IsolatedStorage.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.MemoryMappedFiles.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.MemoryMappedFiles.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.Packaging.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.IO.Packaging.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.Pipelines.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.Pipelines.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.Pipes.AccessControl.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.Pipes.AccessControl.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.Pipes.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.Pipes.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.IO.UnmanagedMemoryStream.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.IO.UnmanagedMemoryStream.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Linq.AsyncEnumerable.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Linq.AsyncEnumerable.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Linq.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Linq.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Linq.Expressions.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Linq.Expressions.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Linq.Parallel.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Linq.Parallel.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Linq.Queryable.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Linq.Queryable.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Memory.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Memory.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.Net.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.Http.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.Http.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.Http.Json.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.Http.Json.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.HttpListener.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.HttpListener.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.Mail.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.Mail.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.NameResolution.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.NameResolution.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.NetworkInformation.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.NetworkInformation.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.Ping.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.Ping.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.Primitives.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.Primitives.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.Quic.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.Quic.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.Requests.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.Requests.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.Security.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.Security.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.ServerSentEvents.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.ServerSentEvents.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.ServicePoint.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.ServicePoint.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.Sockets.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.Sockets.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.WebClient.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.WebClient.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.WebHeaderCollection.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.WebHeaderCollection.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.WebProxy.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.WebProxy.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.WebSockets.Client.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.WebSockets.Client.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Net.WebSockets.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Net.WebSockets.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.Numerics.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Numerics.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Numerics.Vectors.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Numerics.Vectors.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.ObjectModel.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.ObjectModel.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Printing.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Printing.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Private.Windows.Core.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Private.Windows.Core.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Private.Windows.GdiPlus.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Private.Windows.GdiPlus.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Reflection.DispatchProxy.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Reflection.DispatchProxy.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Reflection.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Reflection.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Reflection.Emit.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Reflection.Emit.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Reflection.Emit.ILGeneration.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Reflection.Emit.ILGeneration.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Reflection.Emit.Lightweight.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Reflection.Emit.Lightweight.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Reflection.Extensions.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Reflection.Extensions.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Reflection.Metadata.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Reflection.Metadata.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Reflection.Primitives.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Reflection.Primitives.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Reflection.TypeExtensions.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Reflection.TypeExtensions.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Resources.Extensions.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Resources.Extensions.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Resources.Reader.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Resources.Reader.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Resources.ResourceManager.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Resources.ResourceManager.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Resources.Writer.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Resources.Writer.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Runtime.CompilerServices.Unsafe.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.CompilerServices.Unsafe.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Runtime.CompilerServices.VisualC.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.CompilerServices.VisualC.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Runtime.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Runtime.Extensions.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.Extensions.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Runtime.Handles.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.Handles.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Runtime.InteropServices.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.InteropServices.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Runtime.InteropServices.JavaScript.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.InteropServices.JavaScript.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Runtime.InteropServices.RuntimeInformation.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.InteropServices.RuntimeInformation.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Runtime.Intrinsics.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.Intrinsics.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Runtime.Loader.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.Loader.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Runtime.Numerics.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.Numerics.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.Runtime.Serialization.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.Serialization.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "8.1.0.0",
+          "file": "System.Runtime.Serialization.Formatters.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.Serialization.Formatters.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Runtime.Serialization.Json.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.Serialization.Json.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Runtime.Serialization.Primitives.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.Serialization.Primitives.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Runtime.Serialization.Xml.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Runtime.Serialization.Xml.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.AccessControl.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Security.AccessControl.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.Claims.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Security.Claims.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.Cryptography.Algorithms.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Security.Cryptography.Algorithms.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.Cryptography.Cng.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Security.Cryptography.Cng.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.Cryptography.Csp.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Security.Cryptography.Csp.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.Cryptography.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Security.Cryptography.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.Cryptography.Encoding.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Security.Cryptography.Encoding.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.Cryptography.OpenSsl.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Security.Cryptography.OpenSsl.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.Cryptography.Pkcs.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Security.Cryptography.Pkcs.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.Cryptography.Primitives.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Security.Cryptography.Primitives.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.Cryptography.ProtectedData.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Security.Cryptography.ProtectedData.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.Cryptography.X509Certificates.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Security.Cryptography.X509Certificates.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.Cryptography.Xml.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Security.Cryptography.Xml.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.Security.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Security.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.Permissions.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Security.Permissions.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.Principal.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Security.Principal.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.Principal.Windows.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Security.Principal.Windows.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Security.SecureString.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Security.SecureString.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.ServiceModel.Web.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.ServiceModel.Web.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.ServiceProcess.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.ServiceProcess.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Text.Encoding.CodePages.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Text.Encoding.CodePages.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Text.Encoding.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Text.Encoding.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Text.Encoding.Extensions.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Text.Encoding.Extensions.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Text.Encodings.Web.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Text.Encodings.Web.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Text.Json.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Text.Json.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Text.RegularExpressions.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Text.RegularExpressions.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Threading.AccessControl.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Threading.AccessControl.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Threading.Channels.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Threading.Channels.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Threading.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Threading.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Threading.Overlapped.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Threading.Overlapped.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Threading.Tasks.Dataflow.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Threading.Tasks.Dataflow.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Threading.Tasks.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Threading.Tasks.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Threading.Tasks.Extensions.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Threading.Tasks.Extensions.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Threading.Tasks.Parallel.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Threading.Tasks.Parallel.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Threading.Thread.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Threading.Thread.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Threading.ThreadPool.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Threading.ThreadPool.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Threading.Timer.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Threading.Timer.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.Transactions.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Transactions.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Transactions.Local.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Transactions.Local.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.ValueTuple.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.ValueTuple.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.Web.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Web.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Web.HttpUtility.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Web.HttpUtility.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Windows.Controls.Ribbon.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Windows.Controls.Ribbon.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.Windows.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Windows.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Windows.Extensions.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Windows.Extensions.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Windows.Forms.Design.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Windows.Forms.Design.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Windows.Forms.Design.Editors.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Windows.Forms.Design.Editors.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Windows.Forms.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Windows.Forms.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Windows.Forms.Primitives.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Windows.Forms.Primitives.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Windows.Input.Manipulations.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Windows.Input.Manipulations.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Windows.Presentation.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Windows.Presentation.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Windows.Primitives.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Windows.Primitives.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Xaml.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/System.Xaml.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.Xml.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Xml.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.Xml.Linq.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Xml.Linq.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Xml.ReaderWriter.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Xml.ReaderWriter.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "4.0.0.0",
+          "file": "System.Xml.Serialization.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Xml.Serialization.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Xml.XDocument.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Xml.XDocument.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Xml.XmlDocument.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Xml.XmlDocument.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Xml.XmlSerializer.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Xml.XmlSerializer.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Xml.XPath.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Xml.XPath.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "System.Xml.XPath.XDocument.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.NETCore.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.NETCore.App.Ref/10.0.13/ref/net10.0/System.Xml.XPath.XDocument.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "UIAutomationClient.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/UIAutomationClient.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "UIAutomationClientSideProviders.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/UIAutomationClientSideProviders.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "UIAutomationProvider.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/UIAutomationProvider.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "UIAutomationTypes.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/UIAutomationTypes.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "10.0.0.0",
+          "file": "WindowsBase.dll",
+          "file_version": "10.0.1326.50504",
+          "id": "Microsoft.WindowsDesktop.App.Ref",
+          "kind": "pack",
+          "path": "\u003Cdotnet\u003E/packs/Microsoft.WindowsDesktop.App.Ref/10.0.13/ref/net10.0/WindowsBase.dll",
+          "version": "10.0.13"
+        },
+        {
+          "assembly_version": "2.5.6.0",
+          "file": "WindowsMediaController.dll",
+          "file_version": "2.5.6.0",
+          "id": "Dubya.WindowsMediaController",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/dubya.windowsmediacontroller/2.5.6/lib/net10.0-windows10.0.22000/WindowsMediaController.dll",
+          "version": "2.5.6"
+        },
+        {
+          "assembly_version": "2.2.0.0",
+          "file": "WinRT.Runtime.dll",
+          "file_version": "2.2.0.48161",
+          "id": "Microsoft.Windows.SDK.NET.Ref",
+          "kind": "pack",
+          "path": "\u003Cnuget\u003E/microsoft.windows.sdk.net.ref/10.0.22000.57/lib/net8.0/WinRT.Runtime.dll",
+          "version": "10.0.22000.57"
+        },
+        {
+          "assembly_version": "4.3.0.0",
+          "file": "Wpf.Ui.Abstractions.dll",
+          "file_version": "4.3.0.0",
+          "id": "WPF-UI.Abstractions",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/wpf-ui.abstractions/4.3.0/lib/net10.0/Wpf.Ui.Abstractions.dll",
+          "version": "4.3.0"
+        },
+        {
+          "assembly_version": "4.4.1.0",
+          "file": "Wpf.Ui.dll",
+          "file_version": "4.4.1.0",
+          "id": "unchihugo.WPF-UI",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/unchihugo.wpf-ui/4.4.2/lib/net10.0-windows7.0/Wpf.Ui.dll",
+          "version": "4.4.2"
+        },
+        {
+          "assembly_version": "4.3.0.0",
+          "file": "Wpf.Ui.Tray.dll",
+          "file_version": "4.3.0.0",
+          "id": "WPF-UI.Tray",
+          "kind": "package",
+          "path": "\u003Cnuget\u003E/wpf-ui.tray/4.3.0/lib/net10.0-windows7.0/Wpf.Ui.Tray.dll",
+          "version": "4.3.0"
+        }
+      ],
+      "methods": {
+        "all_relevant_sites_resolved": 23,
+        "total": 468,
+        "with_relevant_sites": 37
+      },
+      "project": "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/FluentFlyout.csproj",
+      "project_references": [],
+      "reasons": {
+        "reference": [],
+        "source_set": [
+          "define-constants",
+          "directory-build:Directory.Build.targets",
+          "framework-generator:LibraryImport",
+          "implicit-usings-not-applied",
+          "package-analyzers:communitytoolkit.mvvm/8.4.2",
+          "package-analyzers:microsoft.extensions.logging.abstractions/6.0.0",
+          "wpf-xaml-codegen"
+        ],
+        "unsupported": []
+      },
+      "reference_status": "COMPLETE",
+      "sites": {
+        "disposable_type": {
+          "name_heuristic": 3,
+          "resolved": 13,
+          "total": 16
+        },
+        "event_assign": {
+          "event": 33,
+          "non_event": 24,
+          "total": 65,
+          "unresolved": 8,
+          "unresolved_no_marker": 8
+        },
+        "invocation": {
+          "resolved": 1284,
+          "total": 2003,
+          "unresolved": 719
+        },
+        "type": {
+          "error": 274,
+          "resolved": 775,
+          "total": 1049
+        }
+      },
+      "source_set_status": "SOURCE_SET_INCOMPLETE",
+      "tfm": "net10.0-windows10.0.22000.0",
+      "tfm_status": "PACK_MAJOR_MINOR",
+      "tie_framework_assumed": false,
+      "unit_status": "SOURCE_SET_INCOMPLETE"
+    }
+  ]
+}

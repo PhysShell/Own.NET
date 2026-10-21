@@ -1,0 +1,162 @@
+{
+  "project": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/BB84.IPTV.M3U.Editor.csproj",
+  "resolved_in_both": 1890,
+  "gained_in_exact": 1505,
+  "lost_count": 22,
+  "lost": [
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor.Infrastructure/Persistence/Repositories/GuideRepository.cs",
+      "Line": 22,
+      "Kind": "type",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.Abstractions.Infrastructure.Persistence.Repositories.IGuideRepository @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "error BB84.IPTV.M3U.Editor.Application.Abstractions.Infrastructure.Persistence.Repositories.IGuideRepository @ BB84.IPTV.M3U.Editor.Application, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor.Infrastructure/Services/DownloadService.cs",
+      "Line": 28,
+      "Kind": "type",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.Abstractions.Infrastructure.Services.IDownloadService @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "error BB84.IPTV.M3U.Editor.Application.Abstractions.Infrastructure.Services.IDownloadService @ BB84.IPTV.M3U.Editor.Application, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor.Infrastructure/Services/FileService.cs",
+      "Line": 25,
+      "Kind": "type",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.Abstractions.Infrastructure.Services.IFileService @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "error BB84.IPTV.M3U.Editor.Application.Abstractions.Infrastructure.Services.IFileService @ BB84.IPTV.M3U.Editor.Application, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor.Infrastructure/Services/LogoStoreService.cs",
+      "Line": 20,
+      "Kind": "type",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.Abstractions.Infrastructure.Services.ILogoStoreService @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "error BB84.IPTV.M3U.Editor.Application.Abstractions.Infrastructure.Services.ILogoStoreService @ BB84.IPTV.M3U.Editor.Application, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor.Infrastructure/Services/RepositoryService.cs",
+      "Line": 19,
+      "Kind": "type",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.Abstractions.Infrastructure.Services.IRepositoryService @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "error BB84.IPTV.M3U.Editor.Application.Abstractions.Infrastructure.Services.IRepositoryService @ BB84.IPTV.M3U.Editor.Application, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor.Infrastructure/Services/SettingsService.cs",
+      "Line": 18,
+      "Kind": "type",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.Abstractions.Infrastructure.Services.ISettingsService @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "error BB84.IPTV.M3U.Editor.Application.Abstractions.Infrastructure.Services.ISettingsService @ BB84.IPTV.M3U.Editor.Application, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor.Infrastructure/Services/WebService.cs",
+      "Line": 26,
+      "Kind": "type",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.Abstractions.Infrastructure.Services.IWebService @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "error BB84.IPTV.M3U.Editor.Application.Abstractions.Infrastructure.Services.IWebService @ BB84.IPTV.M3U.Editor.Application, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/App.axaml.cs",
+      "Line": 117,
+      "Kind": "type",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.Events.ErrorOccuredEvent @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "error BB84.IPTV.M3U.Editor.Application.Events.ErrorOccuredEvent @ BB84.IPTV.M3U.Editor.Application, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/App.axaml.cs",
+      "Line": 133,
+      "Kind": "type",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.Events.ErrorOccuredEvent @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "error BB84.IPTV.M3U.Editor.Application.Events.ErrorOccuredEvent @ BB84.IPTV.M3U.Editor.Application, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/App.axaml.cs",
+      "Line": 163,
+      "Kind": "invocation",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.ViewModels.PlaylistsViewModel.LoadPlaylistsAsync(CancellationToken) @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "unresolved  @ "
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/App.axaml.cs",
+      "Line": 168,
+      "Kind": "type",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.Events.ErrorOccuredEvent @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "error BB84.IPTV.M3U.Editor.Application.Events.ErrorOccuredEvent @ BB84.IPTV.M3U.Editor.Application, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/Controls/CatalogControl.axaml.cs",
+      "Line": 34,
+      "Kind": "invocation",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.ViewModels.CatalogViewModel.LoadAndReportAsync() @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "unresolved  @ "
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/Controls/DatabaseControl.axaml.cs",
+      "Line": 33,
+      "Kind": "invocation",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.ViewModels.DatabaseViewModel.LoadStatusAndReportAsync() @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "unresolved  @ "
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/Controls/GuideControl.axaml.cs",
+      "Line": 34,
+      "Kind": "invocation",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.ViewModels.GuideViewModel.LoadAndReportAsync() @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "unresolved  @ "
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/Controls/GuideOverviewControl.axaml.cs",
+      "Line": 43,
+      "Kind": "invocation",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.ViewModels.GuideOverviewViewModel.LoadAndReportAsync() @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "unresolved  @ "
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/Controls/MergeControl.axaml.cs",
+      "Line": 33,
+      "Kind": "invocation",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.ViewModels.MergeViewModel.LoadAndReportAsync() @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "unresolved  @ "
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/Controls/PlaylistsControl.axaml.cs",
+      "Line": 51,
+      "Kind": "invocation",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.ViewModels.PlaylistsViewModel.OpenAsync(BB84.IPTV.M3U.Editor.Application.ViewModels.PlaylistItemViewModel) @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "unresolved  @ "
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/Services/FileDialogService.cs",
+      "Line": 21,
+      "Kind": "type",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.Abstractions.Presentation.Services.IFileDialogService @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "error BB84.IPTV.M3U.Editor.Application.Abstractions.Presentation.Services.IFileDialogService @ BB84.IPTV.M3U.Editor.Application, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/Services/LogoImageService.cs",
+      "Line": 61,
+      "Kind": "invocation",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.Abstractions.Application.Services.ILogoService.GetPathsByUrlAsync(CancellationToken) @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "unresolved  @ "
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/Services/NotificationService.cs",
+      "Line": 32,
+      "Kind": "type",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.Abstractions.Presentation.Services.INotificationService @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "error BB84.IPTV.M3U.Editor.Application.Abstractions.Presentation.Services.INotificationService @ BB84.IPTV.M3U.Editor.Application, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/Views/MainWindow.axaml.cs",
+      "Line": 67,
+      "Kind": "invocation",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.ViewModels.PlaylistsViewModel.ConfirmCloseAsync() @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "unresolved  @ "
+    },
+    {
+      "File": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/Views/MainWindow.axaml.cs",
+      "Line": 98,
+      "Kind": "invocation",
+      "legacy": "BB84.IPTV.M3U.Editor.Application.Abstractions.Application.Services.INavigationService.NavigateTo\u003CBB84.IPTV.M3U.Editor.Application.ViewModels.DatabaseViewModel\u003E() @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "exact": "unresolved  @ "
+    }
+  ]
+}

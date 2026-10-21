@@ -1,0 +1,18 @@
+{
+  "mode": "exact",
+  "project": "evidence/pairs/BoBoBaSs84_BB84.IPTV__36/base/src/BB84.IPTV.M3U.Editor/BB84.IPTV.M3U.Editor.csproj",
+  "timing": [
+    {
+      "iteration": 0,
+      "kind": "cold",
+      "wall_ms": 2160,
+      "peak_working_set_mb": 166.0390625
+    },
+    {
+      "iteration": 1,
+      "kind": "warm",
+      "wall_ms": 1642,
+      "peak_working_set_mb": 194.54296875
+    }
+  ]
+}
