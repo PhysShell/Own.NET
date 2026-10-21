@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- K10: project reference; with the child's assets the child compiles as its own unit, without them it is incomplete. -->
+  <PropertyGroup><TargetFramework>net8.0</TargetFramework><ImplicitUsings>disable</ImplicitUsings></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../Child/Child.csproj" /></ItemGroup>
+</Project>

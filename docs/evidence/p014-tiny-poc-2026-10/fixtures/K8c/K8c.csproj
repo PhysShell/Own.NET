@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- K8c: WPF only; the WindowsDesktop profile must keep WinForms assemblies out. -->
+  <PropertyGroup><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF><ImplicitUsings>disable</ImplicitUsings></PropertyGroup>
+</Project>
