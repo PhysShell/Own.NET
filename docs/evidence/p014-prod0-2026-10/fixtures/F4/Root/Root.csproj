@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- F4 root: references Child; must not be COMPLETE when Child is incomplete. -->
+  <PropertyGroup><TargetFramework>net8.0</TargetFramework><ImplicitUsings>disable</ImplicitUsings></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../Child/Child.csproj" /></ItemGroup>
+</Project>
