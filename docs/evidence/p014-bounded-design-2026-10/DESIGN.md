@@ -79,9 +79,17 @@ on disk.
 - **Effect on the #419 data.** For P2, P4 and P5 the rule happens to agree: the framework is newer or covered by
   an override in every conflict. P1 cannot be judged, because its exact pack is missing. **This is not a reason
   to re-score #419.**
-- **Resolution.** Replace the rule with the dotnet/sdk order. Its inputs are `PackageOverrides.txt`,
-  `FrameworkList.xml` and the DLLs' metadata versions: all on disk, no MSBuild. A pair that the order leaves
-  undecided is `CONFLICT_UNRESOLVED`, and the project is not `COMPLETE`.
+- **What this shows, and what it does not.** F-D1a is a **counterexample to framework-first**. It is **not** a
+  proof that any replacement rule is correct.
+  - `d1_conflicts.py` applies only the first two steps of the dotnet/sdk order (package overrides, then
+    AssemblyVersion). On the rows above, those two steps decide every case.
+  - Taking the highest `AssemblyVersion` on its own does not replace MSBuild's conflict resolution.
+- **Direction for the PoC.** Before the first PoC run, write down the selection rule from the SDK's contract
+  (the `ResolvePackageFileConflicts` / `ConflictResolver` order, with assembly identity, not only file names).
+  - Its inputs are on disk: `PackageOverrides.txt`, `FrameworkList.xml` and the DLLs' metadata. No MSBuild is
+    needed.
+  - A pair the rule leaves undecided is `CONFLICT_UNRESOLVED`, and the project is not `COMPLETE`.
+  - The rule is verified by the K8 controls (§8), not assumed.
 
 **Still outside the class** (detected cheaply, never guessed):
 - `<Reference HintPath>` and `<COMReference>`;
@@ -106,13 +114,17 @@ references as `CompilationReference`. Output: [`falsifiers/d2_isolation.out.txt`
 
 | Case | Merged (today's shape) | Per-project |
 |---|---|---|
-| F2.1 `Dup.T` in P1 (`One()`) and P2 (`Two()`) | CS0101 once, at compilation level. **P2's `new Dup.T().One()` binds with no site error**: silent false certainty | P2 `One()`: unresolved + CS1061 (correct). P3 referencing both: **CS0433 at the site**, so site-level conflict becomes representable |
+| F2.1 `Dup.T` in P1 (`One()`) and P2 (`Two()`) | **CS0101** once (two source definitions in one compilation). **P2's `new Dup.T().One()` binds with no site error**: silent false certainty | P2 `One()`: unresolved + CS1061 (correct). P3 referencing **two assemblies**, P1 and P2, that each define `Dup.T`: **CS0433 at the site**, so site-level conflict becomes representable |
 | F2.2 `Lib` 1.0 in P1, 2.0 in P2 | first-name-wins: P2's `V2Only()` unresolved; with both: CS1704, P1's `V1Only()` unresolved | both bind to their own version |
 | F2.3 ImplicitUsings on in P1, off in P2 | **P2's `File.Exists` binds**: the #407 leak, silent | P2: unresolved + CS0103 (correct) |
 | F2.4 `Timer`: P1 implicit usings (`System.Threading`), P2 `using System.Timers` | P2: CS0104; `t.Elapsed` unresolved **with no site error** | P2 binds `System.Timers.Timer.Elapsed` (`IEventSymbol`) |
 | F2.5 P3 lacks dependency `Dep`, P1 has it | **P3's `s.Changed += H` binds to `Dep`'s event**: an event fact the project could never compile | P3: unresolved, CS0246 (correct) |
 
 Two observations for the design:
+- **CS0101 vs CS0433.** CS0101 (a namespace already contains the definition) is the merged-compilation form:
+  two source definitions in one compilation, reported once and not at the site. CS0433 (the type exists in two
+  referenced assemblies) appears only once the projects are separate assemblies. The per-site conflict signal
+  therefore exists only with per-project compilation.
 - **Ambiguity is often not a candidate list.** In F2.1/P3 the site has `Symbol == null` and **no**
   `CandidateSymbols`; the conflict is visible only as CS0433 on the site span. F2.4's `Elapsed` has neither.
   Site status must therefore combine `SymbolInfo` with the error diagnostics whose span intersects the site
@@ -314,13 +326,14 @@ measured. A is killed by D2.
 ## 7. Verdict
 
 **`GO-P014-TINY-POC`.**
-- D1 `PASS-NARROWED`: the conflict rule must be the dotnet/sdk order, not framework-first.
+- D1 `PASS-NARROWED`: framework-first is falsified. A replacement rule must be written down from the SDK's
+  conflict-resolution contract and verified in the PoC; this packet does not prove one correct.
 - D2 `PASS` for per-project compilation; `KILL` for A.
 - D3 `PASS`.
 - D4 `PASS` only for coverage-only; full activation killed now.
 - D5 `PASS` by construction; cost unmeasured.
 
-**What this does not allow:**
+**What this does not allow** (the #407 KILL and its deferral stand unchanged):
 - production code;
 - extractor or OwnIR changes;
 - diagnostic activation;
@@ -336,7 +349,7 @@ separate design decision**. It must not be encoded through `release`, `use` or e
 `P014Bind`, built offline. It reads assets, packs and the cache, and writes the §4 sidecar. It never touches the
 extractor.
 
-**Budget.** 0.5 agent-day, not extended.
+**Budget.** Proposed here as 0.5 agent-day; the owner set **0.25 agent-day** to the next kill-gate (§12).
 
 **Fixtures:**
 - **Synthetic.**
@@ -366,8 +379,9 @@ extractor.
 - Every #419 B-resolved site in P4/P5 is `SYMBOL_RESOLVED` with the same symbol, or the difference is listed and
   read.
 - No resolved symbol's containing assembly is outside its unit's manifest.
-- K4 shows CS0101 at compilation level, as before. F2.1/P3 shows **CS0433 at the site**, so the status is
-  `SYMBOL_AMBIGUOUS`: the per-site conflict check.
+- K4 (one compilation, two source definitions) shows CS0101 at compilation level, as before. F2.1/P3 (two
+  referenced project assemblies) shows **CS0433 at the site**, so the status is `SYMBOL_AMBIGUOUS`: the per-site
+  conflict check.
 
 **Baseline equivalence.** Extractor facts for P4/P5 are byte-identical before and after. This holds trivially,
 because the extractor is not touched, and it is checked anyway. Python/Rust parity: **not applicable**, because
@@ -424,3 +438,27 @@ P5.
   and it is documented intent, not checked here.
 - Should generated global usings and TFM defines enter the PoC as a separately reported source-set axis, or wait
   for the owner's #407 rule (implicit usings are a separate feature with a census)? This packet keeps them out.
+
+## 12. Owner ruling (21.10.2026, recorded after review of `3e736b7`)
+
+`ACCEPT-PHASE-0 / GO-EVIDENCE-PR / GO-METRICS-ONLY-POC / NO-PRODUCTION`.
+
+- **This evidence.** It may be published as a PR containing only this folder.
+- **D1.** Accepted as a counterexample to framework-first, not as proof of a new selection rule. The exact rule
+  must follow the SDK's contract; `AssemblyVersion` alone is not a replacement for MSBuild.
+- **The Tiny PoC.** Allowed as a **separate stage after this evidence is accepted**, with a ceiling of
+  **0.25 agent-day** to the next kill-gate.
+  - Inputs: existing assets and reference packs only, with no third-party restore or build.
+  - Conflicts are resolved by assembly identity and verifiable SDK rules.
+  - Implicit usings and defines are not added globally; #407 stays a separate axis.
+  - It repeats the D1/D2 controls and measures P4/P5: binding coverage, compiler diagnostics, time and peak
+    memory.
+  - Time and memory limits are fixed before the first run.
+  - No OwnIR or public verdict change. Any finding change is recorded as a breach of the PoC boundary, not as an
+    improvement.
+- **KILL if:**
+  - isolation cannot be achieved without false bindings;
+  - the references cannot be selected on a sound basis;
+  - the cost is out of proportion to the observed gain.
+- **Production stays forbidden.** #407 stays deferred and its KILL stands. #420 is a separate package and is not
+  touched.
