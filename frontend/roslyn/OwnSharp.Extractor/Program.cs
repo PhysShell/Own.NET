@@ -54,6 +54,10 @@ var rawInputs = new List<string>();
 string? outPath = null;
 // H0 heap-effect source facts: written to THIS file, never into the facts document.
 string? heapEffectsPath = null;
+// P-014 PROD0: opt-in binding-coverage sidecar, written to THIS file after the facts; observation only
+// (BindingCoverage.cs). `--binding-coverage-tfm` picks the target of a multi-targeted project.
+string? bindingCoveragePath = null;
+string? bindingCoverageTfm = null;
 // --ref-dir <dir> (repeatable, P-014 Tier B): widen the compilation's reference set with the
 // DLLs under <dir>, searched RECURSIVELY — point it at a project's built `bin/` output (or a
 // restored package's `lib/`) and the SemanticModel can then bind events on third-party types
@@ -156,6 +160,10 @@ Options:
   --body-throw-edges treat escaping body-level may-throw as a dispose-on-throw point (needs --flow-locals)
   --heap-effects FILE  also write heap-effect source facts (H0, inert) to FILE; the facts
                      document is byte-identical with or without it
+  --binding-coverage FILE  also write a per-project binding-coverage record (P-014 PROD0,
+                     observation only) to FILE, for one .csproj input; other inputs are
+                     recorded as UNSUPPORTED. Facts, findings and exit code are unchanged
+  --binding-coverage-tfm TFM  the target to measure for a multi-targeted project
   -h, --help         show this help and exit
 """;
 if (args0.Contains("-h") || args0.Contains("--help"))
@@ -189,6 +197,8 @@ for (int i = 0; i < args0.Length; i++)
     else if (args0[i] == "--body-throw-edges") BodyThrowEdges = true;
     else if (args0[i] == "--stats") reportStats = true;
     else if (args0[i] == "--heap-effects" && i + 1 < args0.Length) heapEffectsPath = args0[++i];
+    else if (args0[i] == "--binding-coverage" && i + 1 < args0.Length) bindingCoveragePath = args0[++i];
+    else if (args0[i] == "--binding-coverage-tfm" && i + 1 < args0.Length) bindingCoverageTfm = args0[++i];
     else rawInputs.Add(args0[i]);
 }
 
@@ -7646,6 +7656,13 @@ if (heapEffectsPath is not null)
     File.WriteAllText(heapEffectsPath, JsonSerializer.Serialize(
         HeapEffectFacts.Extract(compilation, parsed),
         new JsonSerializerOptions { WriteIndented = true, MaxDepth = FactsJsonMaxDepth }));
+// P-014 PROD0: the binding-coverage sidecar, from its OWN per-project compilations, after the facts are final, so
+// no byte of the facts document and no verdict depends on it. A failure here is reported, never an exit-code change.
+if (bindingCoveragePath is not null)
+{
+    try { OwnSharp.BindingCoverage.Runner.Write(rawInputs, bindingCoverageTfm, bindingCoveragePath); }
+    catch (Exception ex) { Console.Error.WriteLine($"extractor: --binding-coverage failed ({ex.GetType().Name}: {ex.Message}); no sidecar written"); }
+}
 return 0;
 
 // Opt-in recall knob for the flow pass, read deep in InjectThrowEdge (a static field rather than

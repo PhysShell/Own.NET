@@ -17,6 +17,13 @@
   **Still deferred:** the heavier auto-discovery of a project's *full transitive closure* from a
   `.csproj`/`.sln` without a prior build (`MSBuildWorkspace`, open question Q3), monorepo scoping
   (Q1), and a general check-selection surface (Q2).
+  **PROD0, opt-in, observation only (2026-10):** `--binding-coverage FILE` writes a per-project
+  binding-coverage record for one restored `.csproj`. It builds one compilation per project from
+  `obj/project.assets.json` and the packs, with the dotnet/sdk conflict order and fail-closed
+  statuses, and it never changes facts or verdicts. Evidence chain:
+  `docs/evidence/p014-reference-coverage-2026-10` → `p014-bounded-design-2026-10` →
+  `p014-tiny-poc-2026-10` → `p014-prod0-2026-10`. Feeding the new symbols to diagnostics (PROD1)
+  is **not** authorised.
 - **Depends on:**
   - [P-001](P-001-csharp-extractor.md) — the seam this deepens. P-001 defines the
     Roslyn-extractor → OwnIR → Python-core pipeline (P-001:71-77) *and* owns the
