@@ -1,0 +1,32 @@
+{
+  "pass": true,
+  "oracle_refs": 209,
+  "instrument_refs": 209,
+  "only_oracle": [],
+  "only_instrument": [],
+  "conflicts": [
+    {
+      "a": "Microsoft.NETCore.App.Ref/10.0.13 av=4.0.0.0 fv=10.0.1326.50504",
+      "b": "Microsoft.WindowsDesktop.App.Ref/10.0.13 av=10.0.0.0 fv=10.0.1326.50504",
+      "name": "WindowsBase.dll",
+      "rule": "assembly-version",
+      "winner": "Microsoft.WindowsDesktop.App.Ref/10.0.13"
+    },
+    {
+      "a": "unchihugo.WPF-UI/4.4.2 av=4.4.1.0 fv=4.4.1.0",
+      "b": "WPF-UI/4.3.0 av=4.3.0.0 fv=4.3.0.0",
+      "name": "Wpf.Ui.dll",
+      "rule": "assembly-version",
+      "winner": "unchihugo.WPF-UI/4.4.2"
+    }
+  ],
+  "tie_framework_assumed": false,
+  "unit_status": "SOURCE_SET_INCOMPLETE",
+  "reasons": {
+    "reference": [],
+    "source_set": [
+      "wpf-xaml-codegen"
+    ],
+    "unsupported": []
+  }
+}

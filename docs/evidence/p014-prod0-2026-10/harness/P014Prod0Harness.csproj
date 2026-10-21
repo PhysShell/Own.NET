@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- PROD0 controls harness (research only). References the BUILT extractor (-p:ExtractorDir=<dir with
+       ownsharp-extract.dll and its Roslyn 4.9.2 DLLs>), so the controls exercise the production code itself. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework><LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>p014prod0harness</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="ownsharp-extract"><HintPath>$(ExtractorDir)/ownsharp-extract.dll</HintPath></Reference>
+    <Reference Include="Microsoft.CodeAnalysis"><HintPath>$(ExtractorDir)/Microsoft.CodeAnalysis.dll</HintPath></Reference>
+    <Reference Include="Microsoft.CodeAnalysis.CSharp"><HintPath>$(ExtractorDir)/Microsoft.CodeAnalysis.CSharp.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>
