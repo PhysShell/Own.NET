@@ -242,3 +242,18 @@ Measured per project:
 - Any diagnostic or verdict effect: the extractor is not run with the new mechanism, and no finding is produced by
   it.
 - Generality beyond P4/P5 and the fixtures.
+
+## Amendment 1 (11:15 +05, before the instrument exists and before any run)
+
+The #419 per-site B lists were never committed (only `r0_r1_summary_P*.json` / `r2_summary.tsv`), and the #419 work
+folder no longer exists. The per-site comparison in §3 and the item-4 reading are therefore replaced as follows:
+- **Against #419 B.** Counts only: resolved calls and types per project, compared with `r0_r1_summary_P4/P5.json`
+  B.
+- **Per-site regression check.**
+  - Every call or type site that is `SYMBOL_RESOLVED` in this instrument's `legacy-merged` mode and **not** in
+    `exact-project` is listed (`lost_sites`).
+  - The first 10 in sorted order per project are read. Each must have a stated cause: the legacy binding was
+    wrong (net8 implementation, a foreign unit, etc.), or the exact binding is missing for a named reason.
+  - **An unexplained lost site counts against item 4.**
+
+No threshold, control or KILL condition changes.
