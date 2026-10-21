@@ -1,6 +1,7 @@
 // P-014 Tiny PoC instrument (research only). Modes:
 //   project <root.csproj> --mode exact|legacy [--tfm T] [--root DIR] [--sidecar F] [--iters N] [--timing F]
 //   lost <root.csproj> [--tfm T] [--root DIR] --out F        sites resolved in legacy-merged but not in exact-project
+//   diag <root.csproj> <file-suffix> <line>                 error diagnostics on one source line, exact-project mode
 //   controls --out F                                          in-memory controls K1 K2 K4 K5 K6 K7 K11 K12, F2.3-F2.5, guard
 // Facts and verdicts are never produced: this program reads sources, assets, packs and the package cache only.
 using System.Diagnostics;
@@ -26,6 +27,7 @@ switch (args.FirstOrDefault())
     case "project": return RunProject();
     case "lost": return RunLost();
     case "controls": return Controls.Run(env, Opt("--out")!, jsonOpts);
+    case "diag": return RunDiag();
     default: Console.Error.WriteLine("usage: p014poc project|lost|controls ..."); return 2;
 }
 
@@ -154,5 +156,22 @@ int RunLost()
         if (!legacy.Any(s => s.File == e.File && s.Start == e.Start && s.Length == e.Length && s.Kind == e.Kind && s.Status == "resolved")) gained++;
     File.WriteAllText(Opt("--out")!, JsonSerializer.Serialize(new { project = Rel(csproj), resolved_in_both = both, gained_in_exact = gained, lost_count = lost.Count, lost }, jsonOpts));
     Console.WriteLine($"lost={lost.Count} gained={gained} both={both}");
+    return 0;
+}
+
+int RunDiag()
+{
+    var root = LoadGraph(args[1], Opt("--tfm"));
+    Assets.Compile(root, env, new HashSet<Unit>());
+    var suffix = args[2].Replace(Path.DirectorySeparatorChar, '/'); var line = int.Parse(args[3]);
+    foreach (var u in Assets.Closure(root))
+        foreach (var t in u.Trees.Where(t => t.FilePath.Replace(Path.DirectorySeparatorChar, '/').EndsWith(suffix, StringComparison.OrdinalIgnoreCase)))
+            foreach (var d in u.Comp!.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error && d.Location.SourceTree == t
+                         && d.Location.GetLineSpan().StartLinePosition.Line + 1 == line))
+                Console.WriteLine($"{u.Name} {suffix}:{line} {d.Id} {d.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}");
+    if (args.Contains("--sites"))
+        foreach (var u in Assets.Closure(root).Where(u => u.Comp is not null && u.Trees.Any(t => t.FilePath.Replace(Path.DirectorySeparatorChar, '/').EndsWith(suffix, StringComparison.OrdinalIgnoreCase))))
+            foreach (var s in Coverage.Measure(u.Comp!, u.Trees, Coverage.Allowed(u.Comp!), Rel).AllSites.Where(s => s.Line == line && s.File.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)))
+                Console.WriteLine($"{u.Name} {suffix}:{line} site {s.Kind} {s.Status} {s.Symbol} @ {s.Assembly}");
     return 0;
 }

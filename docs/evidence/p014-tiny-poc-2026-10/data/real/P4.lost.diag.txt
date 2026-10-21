@@ -1,0 +1,42 @@
+BB84.IPTV.M3U.Editor BB84.IPTV.M3U.Editor/App.axaml.cs:117 CS0246 The type or namespace name 'Exception' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor BB84.IPTV.M3U.Editor/App.axaml.cs:133 CS0246 The type or namespace name 'Exception' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor BB84.IPTV.M3U.Editor/App.axaml.cs:163 CS0246 The type or namespace name 'Task' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor BB84.IPTV.M3U.Editor/App.axaml.cs:168 CS0246 The type or namespace name 'Exception' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor Controls/CatalogControl.axaml.cs:34 CS0246 The type or namespace name 'Task' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor Controls/DatabaseControl.axaml.cs:33 CS0246 The type or namespace name 'Task' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor Controls/GuideControl.axaml.cs:34 CS0246 The type or namespace name 'Task' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor Controls/GuideOverviewControl.axaml.cs:43 CS0246 The type or namespace name 'Task' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor Controls/MergeControl.axaml.cs:33 CS0246 The type or namespace name 'Task' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor Controls/PlaylistsControl.axaml.cs:51 CS0246 The type or namespace name 'Task<>' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor Services/FileDialogService.cs:21 CS0246 The type or namespace name 'Task<>' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor Services/LogoImageService.cs:61 CS0246 The type or namespace name 'Task<>' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor Services/NotificationService.cs:32 CS0246 The type or namespace name 'Task' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor Services/NotificationService.cs:32 CS0246 The type or namespace name 'Task<>' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor Views/MainWindow.axaml.cs:67 CS0246 The type or namespace name 'Task<>' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor Views/MainWindow.axaml.cs:98 CS0246 The type or namespace name 'IDisposable' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor.Infrastructure Repositories/GuideRepository.cs:22 CS0535 'GuideRepository' does not implement interface member 'IGuideRepository.SearchAsync(string?, string?, GuideSortColumn, bool, int, int, CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/DownloadService.cs:28 CS0246 The type or namespace name 'IHttpClientFactory' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor.Infrastructure Services/DownloadService.cs:28 CS0535 'DownloadService' does not implement interface member 'IDownloadService.DownloadAsync(string, string?, CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/FileService.cs:25 CS0535 'FileService' does not implement interface member 'IFileService.LoadAsync(string, CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/FileService.cs:25 CS0535 'FileService' does not implement interface member 'IFileService.Save(IPlaylist, string, CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/LogoStoreService.cs:20 CS0535 'LogoStoreService' does not implement interface member 'ILogoStoreService.SaveAsync(string, string, byte[], CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/RepositoryService.cs:19 CS0535 'RepositoryService' does not implement interface member 'IRepositoryService.CanConnectAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/RepositoryService.cs:19 CS0535 'RepositoryService' does not implement interface member 'IRepositoryService.CommitChangesAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/RepositoryService.cs:19 CS0535 'RepositoryService' does not implement interface member 'IRepositoryService.MigrateDatabaseAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/RepositoryService.cs:19 CS0535 'RepositoryService' does not implement interface member 'IRepositoryService.ResetCatalogAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/SettingsService.cs:18 CS0535 'SettingsService' does not implement interface member 'ISettingsService.LoadAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/SettingsService.cs:18 CS0535 'SettingsService' does not implement interface member 'ISettingsService.SaveAsync(ApplicationSettings, CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/WebService.cs:26 CS0246 The type or namespace name 'IHttpClientFactory' could not be found (are you missing a using directive or an assembly reference?)
+BB84.IPTV.M3U.Editor.Infrastructure Services/WebService.cs:26 CS0535 'WebService' does not implement interface member 'IWebService.GetBlocklistsAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/WebService.cs:26 CS0535 'WebService' does not implement interface member 'IWebService.GetCategoriesAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/WebService.cs:26 CS0535 'WebService' does not implement interface member 'IWebService.GetChannelsAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/WebService.cs:26 CS0535 'WebService' does not implement interface member 'IWebService.GetCitiesAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/WebService.cs:26 CS0535 'WebService' does not implement interface member 'IWebService.GetCountriesAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/WebService.cs:26 CS0535 'WebService' does not implement interface member 'IWebService.GetFeedsAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/WebService.cs:26 CS0535 'WebService' does not implement interface member 'IWebService.GetGuidesAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/WebService.cs:26 CS0535 'WebService' does not implement interface member 'IWebService.GetLanguagesAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/WebService.cs:26 CS0535 'WebService' does not implement interface member 'IWebService.GetLogosAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/WebService.cs:26 CS0535 'WebService' does not implement interface member 'IWebService.GetRegionsAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/WebService.cs:26 CS0535 'WebService' does not implement interface member 'IWebService.GetStreamsAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/WebService.cs:26 CS0535 'WebService' does not implement interface member 'IWebService.GetSubdivisionsAsync(CancellationToken)'
+BB84.IPTV.M3U.Editor.Infrastructure Services/WebService.cs:26 CS0535 'WebService' does not implement interface member 'IWebService.GetTimezonesAsync(CancellationToken)'

@@ -1,0 +1,18 @@
+P4 legacy run1 cold=2264ms/199MB warm=1611ms/230MB
+P4 legacy run2 cold=1992ms/201MB warm=1515ms/232MB
+P4 legacy run3 cold=2260ms/200MB warm=1644ms/229MB
+P4 legacy sidecar identical across 3 runs: True
+P4 exact run1 cold=2160ms/166MB warm=1642ms/195MB
+P4 exact run2 cold=2031ms/165MB warm=1670ms/200MB
+P4 exact run3 cold=2015ms/166MB warm=1608ms/202MB
+P4 exact sidecar identical across 3 runs: True
+lost=22 gained=1505 both=1890
+P5 legacy run1 cold=1637ms/194MB warm=969ms/205MB
+P5 legacy run2 cold=1535ms/194MB warm=963ms/209MB
+P5 legacy run3 cold=1548ms/193MB warm=1194ms/209MB
+P5 legacy sidecar identical across 3 runs: True
+P5 exact run1 cold=1862ms/196MB warm=1534ms/208MB
+P5 exact run2 cold=1714ms/197MB warm=1028ms/206MB
+P5 exact run3 cold=1776ms/190MB warm=1386ms/207MB
+P5 exact sidecar identical across 3 runs: True
+lost=0 gained=1117 both=942

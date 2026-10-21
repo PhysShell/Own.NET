@@ -1,0 +1,6 @@
+P4 extractor run1 rc=0 wall=1066ms peak_ws>=172MB facts_sha256=AD528B8A1E92F4C8
+P4 extractor run2 rc=0 wall=1016ms peak_ws>=171MB facts_sha256=AD528B8A1E92F4C8
+P4 extractor run3 rc=0 wall=940ms peak_ws>=170MB facts_sha256=AD528B8A1E92F4C8
+P5 extractor run1 rc=0 wall=2483ms peak_ws>=200MB facts_sha256=5F0EA76DA86C623A
+P5 extractor run2 rc=0 wall=2524ms peak_ws>=203MB facts_sha256=5F0EA76DA86C623A
+P5 extractor run3 rc=0 wall=2440ms peak_ws>=202MB facts_sha256=5F0EA76DA86C623A
