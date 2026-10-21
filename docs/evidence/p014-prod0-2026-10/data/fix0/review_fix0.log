@@ -1,0 +1,5 @@
+fix0 F4 rc=0 F4/Child/Child.csproj unit_status=SOURCE_SET_INCOMPLETE unreadable=1 source_set=[unreadable-source]
+fix0 F4 rc=0 F4/Root/Root.csproj unit_status=SOURCE_SET_INCOMPLETE unreadable=0 source_set=[p2p-unit-source_set_incomplete:Child]
+fix0 F1 rc=0 sidecar=yes unit_status=SOURCE_SET_INCOMPLETE unreadable=0 source_set=[preprocessor-conditional]
+fix0 F2 rc=0 sidecar=yes unit_status=COMPLETE unreadable=0 source_set=[]
+fix0 F3 rc=0 sidecar=yes unit_status=SOURCE_SET_INCOMPLETE unreadable=1 source_set=[unreadable-source]

@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- F3: PROD0 adversarial-review falsifier (see 01-review-falsifiers.md). -->
+  <PropertyGroup><TargetFramework>net8.0</TargetFramework><ImplicitUsings>disable</ImplicitUsings></PropertyGroup>
+</Project>

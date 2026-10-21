@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- G0: package-vs-package conflict on Wpf.Ui.dll, as in P5 (unchihugo.WPF-UI 4.4.2 vs transitive WPF-UI 4.3.0). -->
+  <PropertyGroup><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF><ImplicitUsings>disable</ImplicitUsings></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="unchihugo.WPF-UI" Version="4.4.2" />
+    <PackageReference Include="WPF-UI.Tray" Version="4.3.0" />
+  </ItemGroup>
+</Project>

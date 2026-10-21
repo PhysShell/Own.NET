@@ -1,0 +1,18 @@
+{
+  "mode": "legacy",
+  "project": "evidence/pairs/MERURUXD_FluentFlyout__3/base/FluentFlyoutWPF/FluentFlyout.csproj",
+  "timing": [
+    {
+      "iteration": 0,
+      "kind": "cold",
+      "wall_ms": 1780,
+      "peak_working_set_mb": 193.39453125
+    },
+    {
+      "iteration": 1,
+      "kind": "warm",
+      "wall_ms": 991,
+      "peak_working_set_mb": 203.6328125
+    }
+  ]
+}

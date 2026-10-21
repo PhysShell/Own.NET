@@ -1,0 +1,25 @@
+{
+  "pass": true,
+  "oracle_refs": 206,
+  "instrument_refs": 206,
+  "only_oracle": [],
+  "only_instrument": [],
+  "conflicts": [
+    {
+      "a": "Microsoft.NETCore.App.Ref/10.0.13 av=4.0.0.0 fv=10.0.1326.50504",
+      "b": "Microsoft.WindowsDesktop.App.Ref/10.0.13 av=10.0.0.0 fv=10.0.1326.50504",
+      "name": "WindowsBase.dll",
+      "rule": "assembly-version",
+      "winner": "Microsoft.WindowsDesktop.App.Ref/10.0.13"
+    }
+  ],
+  "tie_framework_assumed": false,
+  "unit_status": "SOURCE_SET_INCOMPLETE",
+  "reasons": {
+    "reference": [],
+    "source_set": [
+      "wpf-xaml-codegen"
+    ],
+    "unsupported": []
+  }
+}

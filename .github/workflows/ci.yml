@@ -2132,6 +2132,50 @@ jobs:
                <(jq -S . "$RUNNER_TEMP/proj-facts-norefs.json") \
             || { echo "FAIL: --no-project-refs changed the facts for an unbuilt sample project"; exit 1; }
           echo "OK: --help renders the option list; --no-project-refs is accepted"
+      # P-014 PROD0: the opt-in --binding-coverage sidecar is OBSERVATION ONLY. The facts are byte-identical with
+      # and without it; a directory or an unrestored project is recorded UNSUPPORTED (never measured by substitution);
+      # a restored copy of the sample is measured per project with no foreign binding, deterministically.
+      # Evidence: docs/evidence/p014-prod0-2026-10.
+      - name: P-014 PROD0 — --binding-coverage sidecar (observation only)
+        run: |
+          x="dotnet run --project frontend/roslyn/OwnSharp.Extractor --"
+          proj=frontend/roslyn/project-input-sample/ProjectInputSample.csproj
+          $x "$proj" -o "$RUNNER_TEMP/bc-off.json"
+          $x "$proj" -o "$RUNNER_TEMP/bc-on.json" --binding-coverage "$RUNNER_TEMP/bc-unrestored.json"
+          cmp "$RUNNER_TEMP/bc-off.json" "$RUNNER_TEMP/bc-on.json" \
+            || { echo "FAIL: --binding-coverage changed the facts document"; exit 1; }
+          $x frontend/roslyn/samples -o "$RUNNER_TEMP/bc-dir-off.json"
+          $x frontend/roslyn/samples -o "$RUNNER_TEMP/bc-dir-on.json" --binding-coverage "$RUNNER_TEMP/bc-dir.json"
+          cmp "$RUNNER_TEMP/bc-dir-off.json" "$RUNNER_TEMP/bc-dir-on.json" \
+            || { echo "FAIL: --binding-coverage changed the facts document (directory input)"; exit 1; }
+          # a restored COPY of the sample (the sample itself stays unbuilt for the parity checks above)
+          cp -r frontend/roslyn/project-input-sample "$RUNNER_TEMP/bc-sample"
+          dotnet restore "$RUNNER_TEMP/bc-sample/ProjectInputSample.csproj"
+          for run in 1 2; do
+            $x "$RUNNER_TEMP/bc-sample/ProjectInputSample.csproj" -o "$RUNNER_TEMP/bc-r$run-facts.json" \
+              --binding-coverage "$RUNNER_TEMP/bc-restored-$run.json"
+          done
+          cmp "$RUNNER_TEMP/bc-restored-1.json" "$RUNNER_TEMP/bc-restored-2.json" \
+            || { echo "FAIL: the binding-coverage sidecar is not deterministic"; exit 1; }
+          python - "$RUNNER_TEMP" <<'PY'
+          import json, sys
+          t = sys.argv[1]
+          def units(name):
+              return json.load(open(f"{t}/{name}.json"))["units"]
+          [u] = units("bc-unrestored")
+          assert u["unit_status"] == "UNSUPPORTED" and u["reasons"]["unsupported"] == ["no-assets"], u
+          [u] = units("bc-dir")
+          assert u["unit_status"] == "UNSUPPORTED" and u["reasons"]["unsupported"] == ["input-kind:directory"], u
+          [u] = units("bc-restored-1")
+          assert u["reference_status"] == "COMPLETE", u["reasons"]
+          assert u["foreign_binding"] == 0 and u["invariants_failed"] == [], u
+          # fail closed: COMPLETE only with no reason on any axis
+          reasons = u["reasons"]["reference"] + u["reasons"]["source_set"] + u["reasons"]["unsupported"]
+          assert (u["unit_status"] == "COMPLETE") == (not reasons), (u["unit_status"], reasons)
+          assert u["sites"]["event_assign"]["event"] >= 1, u["sites"]
+          print("OK: PROD0 sidecar —", u["unit_status"], u["tfm"], u["tfm_status"], "reasons:", reasons)
+          PY
+          echo "OK: --binding-coverage leaves facts byte-identical; UNSUPPORTED inputs recorded; restored sample measured"
       # explain: the diagnostic-catalogue CLI surface lives in the core (one checker). Smoke
       # it end-to-end — explain a code, and harvest+explain every code in a real findings file.
       - name: explain command (code + --json harvest)

@@ -1,0 +1,17 @@
+{
+  "binding_coverage_version": 1,
+  "mode": "exact-project",
+  "units": [
+    {
+      "project": null,
+      "reasons": {
+        "reference": [],
+        "source_set": [],
+        "unsupported": [
+          "input-kind:directory"
+        ]
+      },
+      "unit_status": "UNSUPPORTED"
+    }
+  ]
+}

@@ -70,6 +70,21 @@ symbols instead of surfacing as OWN050. `--no-project-refs` opts out; an unbuilt
 project just contributes nothing. Run `dotnet run --project OwnSharp.Extractor -- --help`
 for the full option list.
 
+`--binding-coverage FILE` (P-014 PROD0, opt-in, **observation only**) writes a per-project
+binding-coverage record for one restored `.csproj`. It builds its own compilations, one per
+project, from the existing `obj/project.assets.json`, the local targeting packs and the NuGet
+packages folder, with project references as compilation references. It reports, per project:
+- resolved, ambiguous and unresolved call, type and event sites;
+- compiler errors;
+- the reference manifest and how each assembly conflict was decided;
+- a status: `COMPLETE`, `REFERENCE_MISSING`, `SOURCE_SET_INCOMPLETE` or `UNSUPPORTED`, with
+  reasons.
+
+It fails closed: `COMPLETE` only when there is no reason on any axis. A directory, a `.sln` or
+an unrestored project is recorded as `UNSUPPORTED`, never measured by substitution. Facts,
+findings, SARIF and the exit code are byte-identical with or without the flag. It never restores,
+builds or evaluates MSBuild. Evidence: `docs/evidence/p014-prod0-2026-10/`.
+
 ## State protocols (`--flow-locals`, OwnIR v2)
 
 With `--flow-locals` the extractor also lowers a **state-protocol surface** — the

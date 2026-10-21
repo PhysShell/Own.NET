@@ -1,0 +1,78 @@
+{
+  "reference_pack": "Microsoft.NETCore.App.Ref/8.0.32",
+  "all_pass": true,
+  "results": [
+    {
+      "control": "K1",
+      "expected": "foreign=0, all invocations resolved",
+      "observed": "foreign=0 probe=type:resolved:System.Collections.Generic.List\u003Cint\u003E@System.Collections | invocation:resolved:System.Collections.Generic.List\u003Cint\u003E.Add(int)@System.Collections unresolved=0 errors= types=resolved:66\u002B9",
+      "pass": true
+    },
+    {
+      "control": "K2",
+      "expected": "each unit binds its own version; no CS1704",
+      "observed": "u1=invocation:resolved:L.C.V1Only()@Lib u2=invocation:resolved:L.C.V2Only()@Lib",
+      "pass": true
+    },
+    {
+      "control": "K4",
+      "expected": "merged CS0101; U2 One() unresolved\u002BCS1061; U3 type ambiguous via CS0433",
+      "observed": "merged_errors=CS0101 u2=invocation:unresolved:-@- | type:resolved:Dup.T@U2 u3=type:ambiguous:-@- u3_errors=CS0433",
+      "pass": true
+    },
+    {
+      "control": "K5",
+      "expected": "event=1 non_event=1",
+      "observed": "event=1 non_event=1",
+      "pass": true
+    },
+    {
+      "control": "K6",
+      "expected": "unresolved, nothing invented",
+      "observed": "probe=type:error:-@- foreign=0",
+      "pass": true
+    },
+    {
+      "control": "K7",
+      "expected": "#else seen, #if inactive (source-set limit)",
+      "observed": "if=NO-SITE else=invocation:resolved:System.Math.Min(int, int)@System.Runtime",
+      "pass": true
+    },
+    {
+      "control": "F2.3",
+      "expected": "U2 File.Exists unresolved",
+      "observed": "u1=invocation:resolved:System.IO.File.Exists(string?)@System.Runtime u2=invocation:unresolved:-@-",
+      "pass": true
+    },
+    {
+      "control": "F2.4",
+      "expected": "U2 binds System.Timers.Timer.Elapsed (event)",
+      "observed": "u2=event_assign:resolved:System.Timers.Timer.Elapsed@System.ComponentModel.TypeConverter",
+      "pass": true
+    },
+    {
+      "control": "F2.5",
+      "expected": "U3 unresolved, foreign=0",
+      "observed": "u1=event_assign:resolved:D.Src.Changed@Dep | type:resolved:System.EventArgs@System.Runtime u3=event_assign:unresolved:-@- | type:resolved:System.EventArgs@System.Runtime",
+      "pass": true
+    },
+    {
+      "control": "GUARD",
+      "expected": "guard flags a symbol from outside the unit\u0027s manifest",
+      "observed": "foreign=3 first=U3/c.cs:1 type D.Src @ Dep, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+      "pass": true
+    },
+    {
+      "control": "K11",
+      "expected": "unresolved_no_marker=2 (lambda, new delegate)",
+      "observed": "unresolved=3 no_marker=2",
+      "pass": true
+    },
+    {
+      "control": "K12",
+      "expected": "name_heuristic=1, not counted resolved",
+      "observed": "name_heuristic=1 resolved=1",
+      "pass": true
+    }
+  ]
+}

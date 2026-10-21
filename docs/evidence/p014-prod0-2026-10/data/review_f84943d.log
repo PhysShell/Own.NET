@@ -1,0 +1,3 @@
+f84943d F1 rc=0 sidecar=yes unit_status=COMPLETE unreadable=0 source_set=[]
+f84943d F2 rc=0 sidecar=NO stderr=extractor: --binding-coverage failed (ArgumentOutOfRangeException: length ('-56') must be a non-negative value. (Parameter 'length')
+f84943d F3 rc=0 sidecar=yes unit_status=COMPLETE unreadable=1 source_set=[]
