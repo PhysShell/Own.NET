@@ -72,7 +72,9 @@ All 5 units, the 4 of P4 and P5, have reference status `COMPLETE`, `PACK_MAJOR_M
 | Sidecar determinism | byte-identical across 3 runs for P4 and P5 |
 | Build | only warning, before and after: the existing `Program.cs` CS8620, shifted 10 lines. No new warning |
 | `ruff check .` | passes |
-| `python tests/run_tests.py` | **not complete on this host.** It stops at `test_checkpoint_status`, which runs `cargo metadata`, and there is no `cargo` here. Every module before it passed. No Python file is changed by this branch; CI runs the full suite |
+| `python tests/run_tests.py` | runs to the end (about 318 s) with the rustup `cargo` 1.98.1 on PATH. **One module fails, identically on `main`:** `test_cli_ownir_fixtures`, 87 cases. Its frozen CLI bytes were recorded with `
+`, and Python on this Windows host writes `
+`. The same 87-case FAIL set appears on a tree identical to `main` `22b29d5b`, so it is a host artifact, not this branch. All other modules pass. No Python file is changed by this branch. CI (Linux) is authoritative |
 | New CI step, rehearsed locally (offline restore) | facts identical; `UNSUPPORTED` for the unrestored and directory inputs; restored sample `COMPLETE`, `PACK_MAJOR_MINOR`, event bound, deterministic |
 
 ## 5. G3 — cost [run]
@@ -103,7 +105,7 @@ Medians of 3 separate processes (`data/run_prod0.log`, `data/P*.legacy.*.timing.
    are gone, as recorded in #422.
 4. **Configuration outside the repository.** Any `Directory.Build.*` above a project, including a host file, is
    reported and makes the unit incomplete. It is not evaluated, and there is no guarantee about it.
-5. **The Python suite was cut short locally** by the missing `cargo` (§4). CI is authoritative.
+5. **The Python suite fails one module on this Windows host** (`test_cli_ownir_fixtures`, CRLF vs frozen LF bytes), with the same 87 cases on `main` (§4). CI is authoritative.
 
 ## 7. Files
 
