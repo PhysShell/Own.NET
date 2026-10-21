@@ -3,9 +3,13 @@
 **Pre-registered result: `GO-P014-BOUNDED-DESIGN`.** The GO has narrow content: the measured gain in Own.NET
 diagnostics is small (§5).
 
-**Owner decision on review: `ACCEPT-REFERENCE-COVERAGE-FINDING / HOLD-FORMAL-GO / NO-PRODUCTION`.** The formal GO is
-held pending the verification in §8, which was done without a new experiment and without changing rules or
-thresholds. §8 corrects one claim of this report, about package identity.
+**Final owner ruling: `GO-P014-BOUNDED-DESIGN / NO-PRODUCTION`** (§8.7).
+- K4 is accepted as `PASS-COMPILATION-CONFLICT`, with the limit `SITE-LEVEL-CONFLICT-NOT-REPRESENTED`.
+- The earlier `HOLD-FORMAL-GO` is lifted.
+- The GO allows a bounded design only. No production change and no scope extension.
+
+§8 holds the post-review verification, done without a new experiment and without changing rules or thresholds. It
+corrects one claim of this report, about package identity.
 
 Rules: [`00-preregistration.md`](00-preregistration.md), commit `2e73767b` (04:43 +05; the "04:45" in its header is
 my clock reading, and the commit time is the authoritative one). Own.NET `main` `c6e8a3c1`; extractor built offline
@@ -228,7 +232,8 @@ Against the pre-registered K4 ("recorded as ambiguous/conflict, never `RECOVERED
 - **Never `RECOVERED_CORRECT`:** yes, because A == B and no recovery is claimed.
 - **Not recorded at site level:** the per-site binding silently picks the first definition.
 
-Whether compilation-level registration satisfies K4 is the owner's call. The facts above do not change with it.
+The owner ruled on this as `PASS-COMPILATION-CONFLICT`, with the limit `SITE-LEVEL-CONFLICT-NOT-REPRESENTED`
+(§8.7).
 All seven control summaries are now in `data/controls/K*.summary.json`.
 
 ### 8.2 NuGet SHA-512 comparison
@@ -248,7 +253,11 @@ computed SHA-512 (base64) of the `.nupkg` file myself:
 - The assets' `sha512` is NuGet's package content hash, the same value NuGet records in `.nupkg.metadata`. It is
   not the hash of the `.nupkg` file, so my original comparison was wrong. All 231 present packages match their
   assets entry, and **package identity is confirmed**, not approximate.
-- **Not checked by me:** why the content hash and the file hash differ. Package signatures are the likely reason.
+- **Why the two hashes differ** has a documented cause in NuGet's package-signing design: the file hash covers
+  the whole `.nupkg`, while the content hash is computed over the package content without the signature data.
+- **Not done:** an independent byte-level recomputation of that normalized content hash. The evidence is the
+  agreement of the assets' values with the content hashes NuGet itself recorded in the cache (231/231). That
+  confirms the content hashes are consistent; it is not a recomputation.
 - **Package sources** (`.nupkg.metadata` `source`): P4 and P5 are all, or all but one, from nuget.org. For P1–P3,
   46, 2 and 2 packages came from another source. The source addresses are not published here (D13). Identical
   content hashes make the content the same whatever the source.
@@ -297,8 +306,23 @@ reference set than R2's binding numbers, and the two sets of numbers are not one
 - Criteria 1, 3 and 4 hold. Criterion 1 holds on the exact projects alone (P4, P5), and criterion 4 now holds
   without the identity caveat.
 - Criterion 2's controls hold, with K4's conflict recorded at compilation level only (§8.1).
-- The pre-registered result stays `GO-P014-BOUNDED-DESIGN`. The owner's `HOLD-FORMAL-GO` applies until the K4
-  reading is decided.
+- The pre-registered result stays `GO-P014-BOUNDED-DESIGN`. The owner's ruling on K4 is in §8.7.
+
+### 8.7 Owner ruling (recorded after the merge of #419, `ad17d7b2`)
+
+`GO-P014-BOUNDED-DESIGN / NO-PRODUCTION`.
+- **K4 = `PASS-COMPILATION-CONFLICT`.** CS0101 satisfies the pre-registered conflict registration, and no false
+  `RECOVERED_CORRECT` was claimed.
+- **Limit kept: `SITE-LEVEL-CONFLICT-NOT-REPRESENTED`.** The shared `CSharpCompilation` still binds `Dup.T` to its
+  first definition. This is not evidence of correct project isolation.
+- **Scope of the GO.** It allows a bounded design only, given the limited diagnostic effect: 1 actionable TP, 2 minor
+  TPs, 6 FPs. No production changes and no automatic scope extension.
+- **First design must cover:**
+  - an honest `binding coverage` metric;
+  - the bounded applicability of `project.assets.json`;
+  - mandatory control of false OWN001/event findings.
+
+  NuGet references go into the extractor only after that design.
 
 ## 9. Files
 
