@@ -198,6 +198,28 @@ touches them.
 
 ## 8. What this does not show
 
+**Four limits that stay attached to this PASS** (owner review, 21.10):
+1. **`COMPLETE` references do not mean a complete compilation.** All P4/P5 units are `SOURCE_SET_INCOMPLETE`.
+   - The coverage figures in §4 measure call binding under an incomplete source set: no implicit usings, no
+     generators, no XAML code generation.
+   - They are not a share of fully checked code.
+2. **The conflict resolver is qualified only on the forms checked here:**
+   - framework vs package decided by override list, AssemblyVersion or FileVersion (K8a, K8b);
+   - targeting-pack profiles (K8c);
+   - target selection (K9, K3).
+
+   Not qualified:
+   - package-vs-package conflicts with the same DLL name;
+   - the rank and platform steps;
+   - the full SDK contract.
+3. **Environment.** The packs used by #419 (8.0.31, 10.0.12) are gone (§2). Reproducing the earlier measurement
+   on its original packs is **not** shown.
+4. **External `Directory.Build.targets`.** P5's only `directory-build` hit is a host file above all repositories,
+   not part of P5. Configuration outside a repository can change how its project is built.
+   - The instrument only reports such files; it does not evaluate them.
+   - The results carry **no guarantee** about configuration coming from outside the repository.
+
+**Also not shown:**
 - Any effect on findings, precision or OwnIR: nothing was emitted or judged.
 - Package-vs-package conflict correctness, the rank/platform steps, and RID-specific or `netstandard`/.NET Framework
   targets.
