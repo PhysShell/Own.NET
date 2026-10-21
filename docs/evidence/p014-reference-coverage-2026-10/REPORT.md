@@ -1,7 +1,11 @@
 # P-014 reference-resolution coverage — report
 
-**Decision: `GO-P014-BOUNDED-DESIGN`**, by the pre-registered thresholds. The GO has narrow content: the measured
-gain in Own.NET diagnostics is small (§5).
+**Pre-registered result: `GO-P014-BOUNDED-DESIGN`.** The GO has narrow content: the measured gain in Own.NET
+diagnostics is small (§5).
+
+**Owner decision on review: `ACCEPT-REFERENCE-COVERAGE-FINDING / HOLD-FORMAL-GO / NO-PRODUCTION`.** The formal GO is
+held pending the verification in §8, which was done without a new experiment and without changing rules or
+thresholds. §8 corrects one claim of this report, about package identity.
 
 Rules: [`00-preregistration.md`](00-preregistration.md), commit `2e73767b` (04:43 +05; the "04:45" in its header is
 my clock reading, and the commit time is the authoritative one). Own.NET `main` `c6e8a3c1`; extractor built offline
@@ -49,7 +53,8 @@ recovered calls (logging, WPF/Avalonia API, System.CommandLine) feed no analysis
 
 Two limits of the assets route:
 - it works only where a restore has already happened;
-- package identity is not provable from the cache (§2).
+- for P1, the TFM can only be approximated: no 9.0 reference pack exists on this host. Package identity, first
+  reported as unprovable, is confirmed in §8.2.
 
 A separate, comparably large and cheaper lever is the **source set**: SDK implicit usings recover 172 calls in P3,
 330 in P5 and 20 in P4 on their own (mode C).
@@ -72,9 +77,13 @@ The current-state claims are confirmed in `main` (pre-registration §0):
 | P4 | BB84.IPTV `BB84.IPTV.M3U.Editor.csproj` @ `e9ab4f28` (desktop) | net10.0 | complete |
 | P5 | FluentFlyout `FluentFlyout.csproj` @ `911dfda6` (WPF) | net10.0-windows10.0.22000.0 | complete, including Windows SDK projection 10.0.22000.57 |
 
-**All B references are `APPROXIMATION`.** For every package the `sha512` in the assets differs from the
-`.nupkg.sha512` in the global cache: same id and version, a different package file. P1–P3's assets were written by
-CodeQL buildless extraction on 2026-10-17, before the D13 isolation, and their package folders are gone.
+**Corrected in §8.2.** The original text here said every B package was an `APPROXIMATION` because the assets'
+`sha512` differs from the cache's `.nupkg.sha512`. That compared the wrong fields. The assets' value equals the
+cache's recorded content hash (`.nupkg.metadata`) for all 231 packages present, so their identity is confirmed.
+`APPROXIMATION` remains for P1's TFM, for the packages missing in P1–P3, and for B-ext (§5).
+
+P1–P3's assets were written by CodeQL buildless extraction on 2026-10-17, before the D13 isolation, and their
+package folders are gone.
 
 Reference manifests with per-DLL SHA-256 prefixes are in `data/manifest_B_P*.tsv`, and the overview is in
 `data/manifest.json`.
@@ -183,7 +192,7 @@ Triage of the 9 new findings (code read):
 | 1. ≥ 2 projects with reference-caused loss ≥ 5% of calls and ≥ 20 sites | **yes: P1, P3, P4, P5** (P2 no) |
 | 2. ≥ 9/10 sampled recoveries correct in those projects; K1–K6 pass | **yes**: 10/10 each; controls pass. K4 shows the conflict blind spot, but no false recovery |
 | 3. ≥ 1 useful change in OwnIR facts or findings | **yes**: P5 OWN014 TP; OWN050 replaced by verified facts (P5 `mediaManager` events now seen unsubscribed) |
-| 4. B from on-disk artifacts, no forbidden action, bounded cost without MSBuildWorkspace | **yes, as `APPROXIMATION`**: package identity unprovable; needs an existing restore |
+| 4. B from on-disk artifacts, no forbidden action, bounded cost without MSBuildWorkspace | **yes**: needs an existing restore; package identity confirmed (§8.2); P1's TFM approximate (§8.3) |
 
 So **`GO-P014-BOUNDED-DESIGN`**. What the GO does and does not support:
 - The hidden-limit hypothesis is confirmed **at the binding level**. Own.NET today understands roughly a third to a
@@ -194,7 +203,104 @@ So **`GO-P014-BOUNDED-DESIGN`**. What the GO does and does not support:
   apply framework-first conflict resolution, and report binding coverage. It should be measured on implicit usings
   too, which are a source-set fix outside P-014's reference scope and an earlier owner decision.
 
-## 7. Files
+## 8. Verification after owner review (no new experiment, no rule or threshold change)
+
+### 8.1 K4, from the frozen instrument's own output
+
+The K4 `summary.json` written by the scoring build of the instrument (04:47; DLL sha256 `c67a6be1…`) is now
+committed as `data/controls/K4.summary.json`. Before, only `sites.tsv` was committed. It records:
+
+| Mode | K4 compiler errors |
+|---|---|
+| A | `CS0101: 1`, plus the 12 × `CS0009` every A run has (12 native DLLs in the TPA folder) |
+| B | `CS0101: 1` |
+| C | `CS0101: 1` |
+
+CS0101 is "the namespace already contains a definition". The K4 sources contain exactly one duplicated name,
+`Dup.T` in `p1/a.cs` and `p2/b.cs`, so this error is the duplicate definition. The diagnostic message itself was
+not saved; this attribution is by elimination.
+
+At the same time, the call site `new Dup.T().One()` is `resolved` in every mode: Roslyn binds the first
+declaration.
+
+Against the pre-registered K4 ("recorded as ambiguous/conflict, never `RECOVERED_CORRECT`"):
+- **Recorded as a conflict:** yes, at **compilation level** (CS0101 in all modes).
+- **Never `RECOVERED_CORRECT`:** yes, because A == B and no recovery is claimed.
+- **Not recorded at site level:** the per-site binding silently picks the first definition.
+
+Whether compilation-level registration satisfies K4 is the owner's call. The facts above do not change with it.
+All seven control summaries are now in `data/controls/K*.summary.json`.
+
+### 8.2 NuGet SHA-512 comparison
+
+The original check (§2) compared the assets' `libraries[*].sha512` with the cache's `<id>.<ver>.nupkg.sha512` file.
+Re-checked without replacing any hash. For every package of the five projects that has a `.nupkg` in the cache, I
+computed SHA-512 (base64) of the `.nupkg` file myself:
+
+| Comparison | P1 | P2 | P3 | P4 | P5 |
+|---|---|---|---|---|---|
+| packages present (`.nupkg` on disk) | 89 | 17 | 19 | 87 | 19 |
+| cache `.nupkg.sha512` == my hash of the `.nupkg` | 89 | 17 | 19 | 87 | 19 |
+| assets `sha512` == my hash of the `.nupkg` | 0 | 0 | 0 | 0 | 0 |
+| assets `sha512` == cache `.nupkg.metadata` `contentHash` | **89** | **17** | **19** | **87** | **19** |
+| packages missing from the cache | 76 | 20 | 9 | 0 | 0 |
+
+- The assets' `sha512` is NuGet's package content hash, the same value NuGet records in `.nupkg.metadata`. It is
+  not the hash of the `.nupkg` file, so my original comparison was wrong. All 231 present packages match their
+  assets entry, and **package identity is confirmed**, not approximate.
+- **Not checked by me:** why the content hash and the file hash differ. Package signatures are the likely reason.
+- **Package sources** (`.nupkg.metadata` `source`): P4 and P5 are all, or all but one, from nuget.org. For P1–P3,
+  46, 2 and 2 packages came from another source. The source addresses are not published here (D13). Identical
+  content hashes make the content the same whatever the source.
+
+### 8.3 Exact versus approximate projects
+
+| Project | TFM pack | Packages | Calls recovered by references | Status |
+|---|---|---|---|---|
+| **P4** | exact (10.0.12) | all present, identity confirmed | 59 (16.7%) | **exact** |
+| **P5** | exact (10.0.12, Windows SDK 10.0.22000.57) | all present, identity confirmed | 629 (31.4%) | **exact** |
+| P3 | exact (8.0.31) | 2 with compile assets missing | 43 (5.1%) | partial packages |
+| P1 | **10.0.12 for net9** (`UNAVAILABLE_UNDER_D13`: no 9.0 pack) | 70 with compile assets missing | 448 (15.8%) | TFM-approximate |
+| P2 | exact (10.0.12) | 20 with compile assets missing | 61 (1.6%) | below threshold |
+
+- **Exact projects only.** Criterion 1 (≥ 2 projects with ≥ 5% and ≥ 20 sites) is met by **P4 and P5**.
+- **P1's `TimeSpan.FromHours(int)`.** It is the B binding against the 10.0 pack. That `(int)` is the right overload
+  for P1's net9 target is **not verified**: it needs the exact 9.0 reference pack, which is not available. The
+  confirmed fact is narrower: A binds to an overload chosen from the .NET 8 implementation, not from the project's
+  target.
+
+### 8.4 What the sample does and does not show
+
+- **The sample.** 50 of 1,240 reference-recovered calls were read, 10 per project, seed `20261021`, and 50/50 were
+  correct.
+- **What it supports.** Under a Clopper–Pearson 95% bound, about ≥ 93% correctness over all recovered calls, and
+  about ≥ 69% per project from 10/10.
+- **What it does not prove.** It does not show that every one of the 1,240 calls, the 1,028 type sites or the 67
+  event sites is correct.
+- **The 160 changed symbols** were classified **automatically** (116 precision gains, 44 signature changes). Only
+  16 were read (12 signature changes and 4 error-element arrays), so the "no `RECOVERED_WRONG`" statement covers
+  those 16.
+
+### 8.5 R2 and R3 use different framework selection
+
+R2's B compiles against the target TFM's reference packs. R3's B-ext keeps the extractor's .NET 8.0.31 TPA first,
+and adds packs and packages only for names the TPA lacks. The R3 diagnostic changes therefore come from a weaker
+reference set than R2's binding numbers, and the two sets of numbers are not one mechanism.
+
+`project.assets.json` describes restored dependencies. It is not a substitute for compiler reference resolution:
+- no project references are built;
+- no MSBuild-time items, properties or analyzers are applied;
+- no conflict resolution is done beyond the framework-name rule used here.
+
+### 8.6 Effect on the verdict
+
+- Criteria 1, 3 and 4 hold. Criterion 1 holds on the exact projects alone (P4, P5), and criterion 4 now holds
+  without the identity caveat.
+- Criterion 2's controls hold, with K4's conflict recorded at compilation level only (§8.1).
+- The pre-registered result stays `GO-P014-BOUNDED-DESIGN`. The owner's `HOLD-FORMAL-GO` applies until the K4
+  reading is decided.
+
+## 9. Files
 
 - `00-preregistration.md`, `REPORT.md`
 - `instrument/` (Roslyn binding instrument), `controls/make_controls.py`

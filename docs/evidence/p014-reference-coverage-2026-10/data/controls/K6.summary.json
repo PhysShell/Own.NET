@@ -1,0 +1,52 @@
+{
+  "A": {
+    "references": 180,
+    "load_failures": 0,
+    "errors": {
+      "CS0009": 12,
+      "CS0103": 1,
+      "CS0246": 1
+    },
+    "calls": 1,
+    "calls_resolved": 0,
+    "calls_ambiguous": 0,
+    "types": 2,
+    "types_resolved": 1,
+    "plus_eq": 0,
+    "plus_eq_event": 0,
+    "plus_eq_other": 0
+  },
+  "B": {
+    "references": 163,
+    "load_failures": 0,
+    "errors": {
+      "CS0103": 1,
+      "CS0246": 1
+    },
+    "calls": 1,
+    "calls_resolved": 0,
+    "calls_ambiguous": 0,
+    "types": 2,
+    "types_resolved": 1,
+    "plus_eq": 0,
+    "plus_eq_event": 0,
+    "plus_eq_other": 0
+  },
+  "C": {
+    "references": 180,
+    "load_failures": 0,
+    "errors": {
+      "CS0009": 12,
+      "CS0103": 1,
+      "CS0246": 1
+    },
+    "calls": 1,
+    "calls_resolved": 0,
+    "calls_ambiguous": 0,
+    "types": 2,
+    "types_resolved": 1,
+    "plus_eq": 0,
+    "plus_eq_event": 0,
+    "plus_eq_other": 0
+  }
+}
