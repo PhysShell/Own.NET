@@ -1,0 +1,50 @@
+F2.1 Dup.T declared in two projects
+  [merged] errors: CS0101x1
+    P1/use1.cs p1-One: Method Dup.T.One() @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null  site-errors=[]
+    P2/use2.cs p2-Two: Method Dup.T.Two() @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null  site-errors=[]
+    P2/use2.cs p2-One-must-fail: Method Dup.T.One() @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null  site-errors=[]
+    P3/use3.cs p3-refs-both: Method Dup.T.T() @ own, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null  site-errors=[]
+  [per-project P1] errors: 
+    P1/use1.cs p1-One: Method Dup.T.One() @ P1, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null  site-errors=[]
+  [per-project P2] errors: CS1061x1
+    P2/use2.cs p2-Two: Method Dup.T.Two() @ P2, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null  site-errors=[]
+    P2/use2.cs p2-One-must-fail: UNRESOLVED  site-errors=[CS1061]
+  [per-project P3 -> P1,P2] errors: CS0433x1
+    P3/use3.cs p3-refs-both: UNRESOLVED  site-errors=[CS0433]
+F2.2 Lib 1.0 in P1, Lib 2.0 in P2
+  [merged, first-name-wins (v1 only)] errors: CS0117x1
+    P1/a.cs p1-V1Only: Method L.C.V1Only() @ Lib, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null  site-errors=[]
+    P2/b.cs p2-V2Only: UNRESOLVED  site-errors=[CS0117]
+  [merged, both versions] errors: CS0117x1 CS1704x1
+    P1/a.cs p1-V1Only: UNRESOLVED  site-errors=[CS0117]
+    P2/b.cs p2-V2Only: Method L.C.V2Only() @ Lib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null  site-errors=[]
+  [per-project P1 (v1)] errors: 
+    P1/a.cs p1-V1Only: Method L.C.V1Only() @ Lib, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null  site-errors=[]
+  [per-project P2 (v2)] errors: 
+    P2/b.cs p2-V2Only: Method L.C.V2Only() @ Lib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null  site-errors=[]
+F2.3 ImplicitUsings: P1 enable, P2 disable
+  [merged] errors: 
+    P1/a.cs p1-File: Method System.IO.File.Exists(string?) @ System.Runtime, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a  site-errors=[]
+    P2/b.cs p2-File-must-fail: Method System.IO.File.Exists(string?) @ System.Runtime, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a  site-errors=[]
+  [per-project P1] errors: 
+    P1/a.cs p1-File: Method System.IO.File.Exists(string?) @ System.Runtime, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a  site-errors=[]
+  [per-project P2] errors: CS0103x1
+    P2/b.cs p2-File-must-fail: UNRESOLVED  site-errors=[CS0103]
+F2.4 Timer: P1 implicit usings (System.Threading), P2 `using System.Timers;` only
+  [merged] errors: CS0104x2
+    P1/a.cs p1-Timer: Method System.Threading.Timer.Timer(System.Threading.TimerCallback) @ System.Runtime, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a  site-errors=[]
+    P2/b.cs p2-Timer: UNRESOLVED  site-errors=[CS0104]
+    P2/b.cs p2-Elapsed: UNRESOLVED  site-errors=[]
+  [per-project P1] errors: 
+    P1/a.cs p1-Timer: Method System.Threading.Timer.Timer(System.Threading.TimerCallback) @ System.Runtime, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a  site-errors=[]
+  [per-project P2] errors: 
+    P2/b.cs p2-Timer: Method System.Timers.Timer.Timer(double) @ System.ComponentModel.TypeConverter, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a  site-errors=[]
+    P2/b.cs p2-Elapsed: Event System.Timers.Timer.Elapsed @ System.ComponentModel.TypeConverter, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a  site-errors=[]
+F2.5 P3 misses its dependency; P1 is complete
+  [merged (Dep referenced, P3 did not declare it)] errors: 
+    P1/a.cs p1-Changed: Event D.Src.Changed @ Dep, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null  site-errors=[]
+    P3/c.cs p3-Changed-missing: Event D.Src.Changed @ Dep, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null  site-errors=[]
+  [per-project P1 (Dep)] errors: 
+    P1/a.cs p1-Changed: Event D.Src.Changed @ Dep, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null  site-errors=[]
+  [per-project P3 (no Dep)] errors: CS0246x2
+    P3/c.cs p3-Changed-missing: UNRESOLVED  site-errors=[]

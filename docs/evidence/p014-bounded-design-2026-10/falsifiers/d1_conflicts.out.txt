@@ -1,0 +1,13 @@
+## P4 (net10.0, packs 10.0.12)
+System.ComponentModel.Annotations/5.0.0	System.ComponentModel.Annotations.dll	pkgAV=5.0.0.0	fwAV=10.0.0.0	override=4.3.0	-> framework(tie/lower)
+## P5 (net10.0-windows10.0.22000.0, packs 10.0.12)
+## P2 (net10.0, packs 10.0.12)
+System.Diagnostics.DiagnosticSource/6.0.1	System.Diagnostics.DiagnosticSource.dll	pkgAV=6.0.0.0	fwAV=10.0.0.0	override=10.0.12	-> framework
+System.IO.Pipelines/8.0.0	System.IO.Pipelines.dll	pkgAV=8.0.0.0	fwAV=10.0.0.0	override=10.0.12	-> framework
+System.Runtime.CompilerServices.Unsafe/6.0.0	System.Runtime.CompilerServices.Unsafe.dll	pkgAV=6.0.0.0	fwAV=10.0.0.0	override=7.0.0	-> framework
+## nats.net sandbox/MicroBench2 @176e52bc (net8.0, packs 8.0.31)
+System.Collections.Immutable/9.0.0	System.Collections.Immutable.dll	pkgAV=9.0.0.0	fwAV=8.0.0.0	override=1.4.0	-> package
+System.Diagnostics.DiagnosticSource/9.0.1	System.Diagnostics.DiagnosticSource.dll	pkgAV=MISSING	fwAV=8.0.0.0	override=4.4.0	-> ?
+System.Reflection.Metadata/9.0.0	System.Reflection.Metadata.dll	pkgAV=9.0.0.0	fwAV=8.0.0.0	override=1.5.0	-> package
+## P1 (net9 vs 10.0.12 packs, TFM-approx): winners
+     51 framework
