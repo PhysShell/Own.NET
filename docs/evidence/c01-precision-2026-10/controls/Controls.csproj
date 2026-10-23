@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- C01-PRECISION-1 controls: compile check only (scored cases must compile without errors).
+       Never referenced by any Own.NET build; the extractor reads the .cs files directly. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>CS0067;CS0414</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- F09 only: a publisher type the extractor's loose compilation cannot resolve -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+</Project>
