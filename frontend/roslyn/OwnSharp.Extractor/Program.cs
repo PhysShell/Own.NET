@@ -1096,8 +1096,9 @@ static HashSet<IMethodSymbol> TeardownContextMethods(
     }
 
     // intra-class closure: a method/local function a teardown context provably
-    // calls (bare or `this.`-qualified, RESOLVED to a symbol of this class) is
-    // itself a teardown context. Unresolved calls extend nothing — the worst
+    // calls (bare or `this.`-qualified, RESOLVED to a symbol of this class, or
+    // this class's own implementation reached through `(this as I).M()` — see
+    // SelfInterfaceImplementation) is itself a teardown context. Unresolved calls extend nothing — the worst
     // case stays "keeps today's honest warning".
     while (work.Count > 0)
     {
@@ -1116,6 +1117,11 @@ static HashSet<IMethodSymbol> TeardownContextMethods(
                 continue;
             foreach (var inv in DirectBodyNodes(body).OfType<InvocationExpressionSyntax>())
             {
+                if (SelfInterfaceImplementation(inv, model, clsSymbol) is { } impl)
+                {
+                    Add(impl);
+                    continue;
+                }
                 if (inv.Expression is not (IdentifierNameSyntax
                         or MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax }))
                     continue;
@@ -1129,6 +1135,45 @@ static HashSet<IMethodSymbol> TeardownContextMethods(
         }
     }
     return teardown;
+}
+
+// C01-PRECISION-1: the closure edge for a call to THIS object's own implementation of an interface member
+// through a cast — `(this as I).M()`, `((I)this).M()`, `(this as I)?.M()` (mined: the MAUI iOS Shell
+// renderers' `Dispose(bool)` -> `(this as IDisconnectable).Disconnect()`, whose `-=` read as never run).
+// Such a call binds to the INTERFACE method, so the same-class check of the closure never matched it, yet C#
+// dispatch on `this` reaches exactly `cls.FindImplementationForInterfaceMember(im)`. Credited only when that
+// implementation is declared in THIS class and the call is not under a parameter guard (stricter than the
+// bare `M()` edge); a base-class implementation, a cast of another object, a different member, or an
+// unresolved call returns null and keeps today's warning. Symbol-exact: no interface or method name is read.
+static IMethodSymbol? SelfInterfaceImplementation(
+    InvocationExpressionSyntax inv, SemanticModel model, INamedTypeSymbol? cls)
+{
+    if (cls is null)
+        return null;
+    var receiver = inv.Expression switch
+    {
+        MemberAccessExpressionSyntax ma => ma.Expression,
+        MemberBindingExpressionSyntax when inv.Parent is ConditionalAccessExpressionSyntax ca
+                                           && ReferenceEquals(ca.WhenNotNull, inv) => ca.Expression,
+        _ => null,
+    };
+    while (receiver is ParenthesizedExpressionSyntax p)
+        receiver = p.Expression;
+    var operand = receiver switch
+    {
+        BinaryExpressionSyntax b when b.IsKind(SyntaxKind.AsExpression) => b.Left,
+        CastExpressionSyntax c => c.Expression,
+        _ => null,
+    };
+    while (operand is ParenthesizedExpressionSyntax p)
+        operand = p.Expression;
+    if (operand is not ThisExpressionSyntax
+        || model.GetSymbolInfo(inv).Symbol is not IMethodSymbol { ContainingType.TypeKind: TypeKind.Interface } im
+        || cls.FindImplementationForInterfaceMember(im) is not IMethodSymbol impl
+        || !SymbolEqualityComparer.Default.Equals(impl.ContainingType, cls)
+        || IsParamGuardedRelease(inv, model))
+        return null;
+    return impl;
 }
 
 // Does this `-=` sit in a PROVEN teardown context of `cls`? Walks the lexical
