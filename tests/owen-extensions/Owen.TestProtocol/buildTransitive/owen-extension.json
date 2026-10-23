@@ -1,0 +1,13 @@
+{
+  "owen_extension": 1,
+  "id": "Owen.TestProtocol",
+  "version": "0.1.0",
+  "requires": {
+    "host": "0.1.0",
+    "ownir": 2,
+    "capabilities": ["state-protocol"]
+  },
+  "frontend": {
+    "generators": ["Owen.TestProtocol.Generator"]
+  }
+}

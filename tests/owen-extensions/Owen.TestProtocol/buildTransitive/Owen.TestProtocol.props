@@ -1,0 +1,5 @@
+<Project>
+  <ItemGroup>
+    <OwenExtensionDescriptor Include="$(MSBuildThisFileDirectory)owen-extension.json" />
+  </ItemGroup>
+</Project>

@@ -58,6 +58,33 @@ so it never breaks a wrapping build by accident.
 
 ## 2. In Visual Studio
 
+### Live: Owen.VisualStudio (OX-02) — for projects that use an Owen extension
+
+If the project references an Owen extension package (for example `Owen.TypedBuilder`, which
+brings `Owen.Build`), install the one generic **Owen** VSIX
+(`frontend/roslyn/Owen.VisualStudio`, built on Windows with Visual Studio's MSBuild:
+`msbuild frontend\roslyn\Owen.VisualStudio\Owen.VisualStudio.csproj /restore /p:Configuration=Release`,
+then double-click `Owen.VisualStudio.vsix`). Requirements: Visual Studio 2022 17.14+ or Visual
+Studio 2026, and the .NET 8+ runtime that `Owen.Build` already needs. No Python, Rust, checkout
+or global `owen` tool.
+
+What you get, while typing and without saving or building:
+- Owen's findings as **squiggles**: at the finding's location, and on each witness step the core reports (for a stale state token, the line that uses it again);
+- one **Error List** row per finding (Source/Tool `Owen`), double-click to navigate; CS diagnostics stay the compiler's;
+- the **Owen** output pane: the live service's own log, including its stderr.
+
+How it works and what it does not do: `docs/notes/owen-visual-studio-preregistration.md`. In
+short, the VSIX sends the editor's text to `owen serve` from the project's own `Owen.Build`
+package, and the Rust core decides; the VSIX decides nothing. `dotnet build` stays the
+authoritative gate, with the same findings (the build/live parity gate holds them equal).
+
+Known limits: a state-protocol finding has no column (the squiggle covers the reported line);
+a stale token is reported at the region entry with the stale use as its witness step (#393); a
+file that was never saved is not part of the project's input set; live analysis starts after the
+project's first design-time build (Visual Studio runs it on load).
+
+### Without an extension
+
 Two approaches, cheapest first.
 
 ### Option A — External Tool (on-demand, no build coupling) — recommended

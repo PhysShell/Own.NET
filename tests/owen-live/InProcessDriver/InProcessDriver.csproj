@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- OX-02 test driver: runs many extractor jobs through InProcessExtractor inside ONE
+       process, so tests/check_extractor_in_process.py can compare every job's facts with the
+       command line's, byte for byte, and catch state that leaks from one run into the next. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\frontend\roslyn\OwnSharp.Extractor\OwnSharp.Extractor.csproj" />
+  </ItemGroup>
+</Project>
