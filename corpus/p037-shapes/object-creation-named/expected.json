@@ -1,0 +1,92 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "object-creation-named",
+  "status": "anchored",
+  "why": "A2.2 G-A with named arguments in reversed source order on a constructor.",
+  "a2_contract": "A2.2 records `new NamedWrapper(keep: true, s: p)` with args bound by DECLARED ordinal: param 0 -> param{source_param 0}, param 1 -> bool_const true. Source order must not leak into the binding.",
+  "measured_at": "23e3203",
+  "facts": {
+    "NamedWrapper..ctor": {
+      "params": [
+        {
+          "name": "s",
+          "line": 12
+        }
+      ],
+      "body": [
+        "use:s@14"
+      ],
+      "guarded_facts": null
+    },
+    "ShapeObjCreationNamed.Adopt": {
+      "params": [
+        {
+          "name": "p",
+          "line": 29
+        }
+      ],
+      "body": [
+        "acquire:w@31",
+        "release:w@32"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 31,
+              "column": 17
+            },
+            "statement_line": 31,
+            "form": "initializer",
+            "callee": "NamedWrapper..ctor",
+            "sig": "System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "param",
+                "source_param": 0
+              },
+              {
+                "param": 1,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [],
+    "python": []
+  },
+  "a2_landed": "A2.2 landed: object creations and constructor initializers are calls, value-preserving wrappers (parentheses, `!`, identity/non-user-defined reference casts) are looked through, and a handle inside `as`/`?:`/`??`/a non-preserving cast keeps the record with an opaque slot (docs/notes/p037-a2.2-call-facts.md §4). Body, params and verdicts unchanged; the sidecar stays inert.",
+  "a2_expect": [
+    {
+      "function": "ShapeObjCreationNamed.Adopt",
+      "call": {
+        "callee": "NamedWrapper..ctor",
+        "args": [
+          {
+            "param": 0,
+            "kind": "param",
+            "source_param": 0
+          },
+          {
+            "param": 1,
+            "kind": "bool_const",
+            "value": true
+          }
+        ]
+      }
+    }
+  ],
+  "status_history": [
+    "pending_a2 (recorded at 23e3203, base of A2.2)",
+    "anchored (A2.2)"
+  ]
+}

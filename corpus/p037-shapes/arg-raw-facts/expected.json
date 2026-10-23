@@ -1,0 +1,254 @@
+{
+  "schema": "p037-fact-shape/1",
+  "shape": "arg-raw-facts",
+  "status": "anchored",
+  "why": "Required A2.2 control (#304): the raw non-handle argument facts. In a relevant call, `null` is null_literal, `new MemoryStream()` is object_creation, and `Open(path)` is call_result{callee, sig}, never fresh_owned (freshness is a summary conclusion). The creation and the inner call carry no handle, so neither gets its own calls[] record. The OWN003 verdicts are the legacy ConsumesParam reading of `Keep(r, ..., true)` (the P-037 motivating false positive), pinned unchanged because A2 moves no verdict.",
+  "a2_contract": "Already correct at A2.1 and must stay so: one calls[] record per caller, for Keep only; slot 1 is null_literal / object_creation / call_result{ShapeRawArgFacts.Open, System.String}; no fresh_owned; no record for `new MemoryStream()` or `Open(path)`. Added after the A2.2 pre-registration as a coverage fix (the kinds were probed, not pinned), recorded at the base first.",
+  "a2_expect": [
+    {
+      "function": "ShapeRawArgFacts.NullArg",
+      "call": {
+        "form": "statement",
+        "callee": "ShapeRawArgFacts.Keep",
+        "sig": "System.IO.Stream,System.IO.Stream,System.Boolean",
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "r"
+          },
+          {
+            "param": 1,
+            "kind": "null_literal"
+          },
+          {
+            "param": 2,
+            "kind": "bool_const",
+            "value": true
+          }
+        ]
+      }
+    },
+    {
+      "function": "ShapeRawArgFacts.CreationArg",
+      "call": {
+        "form": "statement",
+        "callee": "ShapeRawArgFacts.Keep",
+        "sig": "System.IO.Stream,System.IO.Stream,System.Boolean",
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "r"
+          },
+          {
+            "param": 1,
+            "kind": "object_creation"
+          },
+          {
+            "param": 2,
+            "kind": "bool_const",
+            "value": true
+          }
+        ]
+      }
+    },
+    {
+      "function": "ShapeRawArgFacts.CallResultArg",
+      "call": {
+        "form": "statement",
+        "callee": "ShapeRawArgFacts.Keep",
+        "sig": "System.IO.Stream,System.IO.Stream,System.Boolean",
+        "args": [
+          {
+            "param": 0,
+            "kind": "var",
+            "name": "r"
+          },
+          {
+            "param": 1,
+            "kind": "call_result",
+            "callee": "ShapeRawArgFacts.Open",
+            "sig": "System.String"
+          },
+          {
+            "param": 2,
+            "kind": "bool_const",
+            "value": true
+          }
+        ]
+      }
+    }
+  ],
+  "measured_at": "23e3203",
+  "facts": {
+    "ShapeRawArgFacts.Keep": {
+      "params": [
+        {
+          "name": "s",
+          "line": 12
+        },
+        {
+          "name": "other",
+          "line": 12
+        }
+      ],
+      "body": [
+        "if:None@14",
+        "then:release:s@16"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [],
+        "guards": [
+          {
+            "site": {
+              "line": 14,
+              "column": 9
+            },
+            "param": 2,
+            "predicate": "truth",
+            "negated": true
+          }
+        ]
+      }
+    },
+    "ShapeRawArgFacts.NullArg": {
+      "params": null,
+      "body": [
+        "acquire:r@24",
+        "release:r@25",
+        "release:r@26"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 25,
+              "column": 9
+            },
+            "statement_line": 25,
+            "form": "statement",
+            "callee": "ShapeRawArgFacts.Keep",
+            "sig": "System.IO.Stream,System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "null_literal"
+              },
+              {
+                "param": 2,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    "ShapeRawArgFacts.CreationArg": {
+      "params": null,
+      "body": [
+        "acquire:r@31",
+        "release:r@32",
+        "release:r@33"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 32,
+              "column": 9
+            },
+            "statement_line": 32,
+            "form": "statement",
+            "callee": "ShapeRawArgFacts.Keep",
+            "sig": "System.IO.Stream,System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "object_creation"
+              },
+              {
+                "param": 2,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    },
+    "ShapeRawArgFacts.CallResultArg": {
+      "params": null,
+      "body": [
+        "acquire:r@38",
+        "release:r@39",
+        "release:r@40"
+      ],
+      "guarded_facts": {
+        "version": 1,
+        "calls": [
+          {
+            "site": {
+              "line": 39,
+              "column": 9
+            },
+            "statement_line": 39,
+            "form": "statement",
+            "callee": "ShapeRawArgFacts.Keep",
+            "sig": "System.IO.Stream,System.IO.Stream,System.Boolean",
+            "first_party": true,
+            "args": [
+              {
+                "param": 0,
+                "kind": "var",
+                "name": "r"
+              },
+              {
+                "param": 1,
+                "kind": "call_result",
+                "callee": "ShapeRawArgFacts.Open",
+                "sig": "System.String"
+              },
+              {
+                "param": 2,
+                "kind": "bool_const",
+                "value": true
+              }
+            ]
+          }
+        ],
+        "guards": []
+      }
+    }
+  },
+  "verdict": {
+    "rust": [
+      "OWN003:warning@24",
+      "OWN003:warning@31",
+      "OWN003:warning@38"
+    ],
+    "python": [
+      "OWN003:warning@24",
+      "OWN003:warning@31",
+      "OWN003:warning@38"
+    ]
+  }
+}

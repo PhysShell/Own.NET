@@ -21,6 +21,8 @@ STATUS per shape:
 * ``pending_a2`` — the shape belongs to a step that has not landed. The record
   pins TODAY's facts anyway, so the diff a2 produces is visible per shape
   rather than aggregated away, and ``a2_contract`` states in prose what a2 owes.
+* ``boundary`` — a shape a step deliberately does NOT close (its closure is an
+  escalated decision). The record pins today's facts so a change is visible.
 
 ENGINE is explicit (#262 Stage 3): the verdict layer is engine-visible, and a
 bare invocation resolves the Rust candidate or exits 2 having measured nothing.
@@ -212,7 +214,8 @@ def check(only: set[str], engines: list[str]) -> int:
             failures += 1
             continue
         spec: dict[str, Any] = json.loads(spec_path.read_text(encoding="utf-8"))
-        tag = "anchor" if spec.get("status") == "anchored" else "pending-a2"
+        tag = {"anchored": "anchor", "boundary": "boundary"}.get(spec.get("status", ""),
+                                                                 "pending-a2")
         facts = observe_facts(c / "case.cs")
         ok = facts == spec["facts"]
         if not ok:
