@@ -1,0 +1,29 @@
+"""Generate ci_samples.sh from the two run blocks of ci.yml's Roslyn extractor job
+("Extract OwnIR facts from sample C#" and "Check facts through the core"), verbatim, with
+$RUNNER_TEMP pointed at a scratch dir. Keeps the gate identical to CI instead of re-typed."""
+import sys
+
+ci, out = sys.argv[1], sys.argv[2]
+lines = open(ci, encoding="utf-8").read().splitlines()
+
+
+def block(step_name: str) -> list[str]:
+    i = next(n for n, ln in enumerate(lines) if ln.strip() == f"- name: {step_name}")
+    j = next(n for n in range(i, len(lines)) if lines[n].strip() == "run: |")
+    ind = len(lines[j + 1]) - len(lines[j + 1].lstrip())
+    body = []
+    for ln in lines[j + 1:]:
+        if ln.strip() and len(ln) - len(ln.lstrip()) < ind:
+            break
+        body.append(ln[ind:])
+    return body
+
+
+script = ["#!/usr/bin/env bash", "set -u", 'RUNNER_TEMP="$1"', "cd ~/Documents/ownnet-eng/Own.NET",
+          "set -e", "# --- Extract OwnIR facts from sample C# (ci.yml) ---"]
+script += block("Extract OwnIR facts from sample C#")
+script += ["# --- Check facts through the core (ci.yml) ---"]
+script += block("Check facts through the core")
+script += ['echo "CI_SAMPLES_ALL_ASSERTIONS_PASSED"']
+open(out, "w", encoding="utf-8", newline="\n").write("\n".join(script) + "\n")
+print(len(script), "lines")

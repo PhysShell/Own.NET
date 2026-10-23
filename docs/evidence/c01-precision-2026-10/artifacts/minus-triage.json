@@ -1,0 +1,7173 @@
+[
+ {
+  "finding_id": "c398906b3a1b8f1e",
+  "stratum": "PHASE5",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/AdaptiveTrigger.cs",
+  "line": 69,
+  "event": "_window.SizeChanged",
+  "handler": "OnWindowSizeChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 79,
+    "lhs": "_window.SizeChanged",
+    "method": "DetachEvents"
+   }
+  ]
+ },
+ {
+  "finding_id": "90e3253290afebeb",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Application/Application.cs",
+  "line": 49,
+  "event": "systemResources.ValuesChanged",
+  "handler": "OnParentResourcesChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "c8ed8e020441e06f",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Application/Application.cs",
+  "line": 155,
+  "event": "((IResourceDictionary)_resources).ValuesChanged",
+  "handler": "OnResourcesChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 164,
+    "lhs": "((IResourceDictionary)_resources).ValuesChanged",
+    "method": "SetAppIndexingProvider"
+   }
+  ]
+ },
+ {
+  "finding_id": "9d017b6489e287c6",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Application/Application.cs",
+  "line": 168,
+  "event": "((IResourceDictionary)_resources).ValuesChanged",
+  "handler": "OnResourcesChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 164,
+    "lhs": "((IResourceDictionary)_resources).ValuesChanged",
+    "method": "SetAppIndexingProvider"
+   }
+  ]
+ },
+ {
+  "finding_id": "7545ef90f93f55cb",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/BindingExpression.cs",
+  "line": 463,
+  "event": "elem.ParentSet",
+  "handler": "OnElementParentSet",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 481,
+    "lhs": "elem.ParentSet",
+    "method": "ClearAncestryChangeSubscriptions"
+   }
+  ]
+ },
+ {
+  "finding_id": "3399fc1adb9beed4",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/BindingExpression.cs",
+  "line": 465,
+  "event": "elem.BindingContextChanged",
+  "handler": "OnElementBindingContextChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 483,
+    "lhs": "elem.BindingContextChanged",
+    "method": "ClearAncestryChangeSubscriptions"
+   }
+  ]
+ },
+ {
+  "finding_id": "a9db5db3f988bfc1",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/BindingExpression.cs",
+  "line": 593,
+  "event": "source.PropertyChanged",
+  "handler": "OnPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 603,
+    "lhs": "source.PropertyChanged",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "d461a47262a49dd2",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/BindingExpression.cs",
+  "line": 593,
+  "event": "source.PropertyChanged",
+  "handler": "OnPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 603,
+    "lhs": "source.PropertyChanged",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "8fe087bf769b20f2",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/BindingExpression.cs",
+  "line": 595,
+  "event": "bo.BindingContextChanged",
+  "handler": "OnBCChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 605,
+    "lhs": "bo.BindingContextChanged",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "5b528ada24e11ce0",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/BindingExpression.cs",
+  "line": 595,
+  "event": "bo.BindingContextChanged",
+  "handler": "OnBCChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 605,
+    "lhs": "bo.BindingContextChanged",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "5233926af3f76296",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Border/Border.cs",
+  "line": 265,
+  "event": "newCollection.CollectionChanged",
+  "handler": "OnStrokeDashArrayChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 260,
+    "lhs": "oldCollection.CollectionChanged",
+    "method": "StopNotifyingStrokeChanges"
+   }
+  ]
+ },
+ {
+  "finding_id": "a808615ee98863ee",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Cells/Cell.cs",
+  "line": 206,
+  "event": "RealParent.PropertyChanged",
+  "handler": "OnParentPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 221,
+    "lhs": "RealParent.PropertyChanged",
+    "method": "OnPropertyChanging"
+   }
+  ]
+ },
+ {
+  "finding_id": "c2e1d56334cff44e",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Cells/Cell.cs",
+  "line": 207,
+  "event": "RealParent.PropertyChanging",
+  "handler": "OnParentPropertyChanging",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 222,
+    "lhs": "RealParent.PropertyChanging",
+    "method": "OnPropertyChanging"
+   }
+  ]
+ },
+ {
+  "finding_id": "5c5b9f458f49d8bb",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Cells/ImageCell.cs",
+  "line": 51,
+  "event": "newvalue.SourceChanged",
+  "handler": "OnSourceChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 59,
+    "lhs": "oldvalue.SourceChanged",
+    "method": "OnSourcePropertyChanging"
+   }
+  ]
+ },
+ {
+  "finding_id": "9199eff4f1a93ade",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/FlyoutPage/iOS/PhoneFlyoutPageRenderer.cs",
+  "line": 170,
+  "event": "((FlyoutPage)Element).PropertyChanged",
+  "handler": "HandlePropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 245,
+    "lhs": "Element.PropertyChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "36b11374711947d5",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/FlyoutPage/iOS/PhoneFlyoutPageRenderer.cs",
+  "line": 550,
+  "event": "((FlyoutPage)Element).Flyout.PropertyChanged",
+  "handler": "HandleFlyoutPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 543,
+    "lhs": "((FlyoutPage)Element).Flyout.PropertyChanged",
+    "method": "UpdateFlyoutPageContainers"
+   }
+  ]
+ },
+ {
+  "finding_id": "2efd8f86fe457a08",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/Android/CellAdapter.cs",
+  "line": 56,
+  "event": "((INotifyCollectionChanged)_actionModeContext.ContextActions).CollectionChanged",
+  "handler": "OnContextItemsChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 49,
+    "lhs": "((INotifyCollectionChanged)_actionModeContext.ContextActions).CollectionChanged",
+    "method": "CellAdapter"
+   },
+   {
+    "line": 329,
+    "lhs": "((INotifyCollectionChanged)ActionModeContext.ContextActions).CollectionChanged",
+    "method": "OnDestroyActionModeImpl"
+   }
+  ]
+ },
+ {
+  "finding_id": "c689ab841567659d",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/Android/CellAdapter.cs",
+  "line": 214,
+  "event": "action.PropertyChanged",
+  "handler": "changed",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 334,
+    "lhs": "action.PropertyChanged",
+    "method": "OnDestroyActionModeImpl"
+   }
+  ]
+ },
+ {
+  "finding_id": "49a9a544608984ba",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/Android/CellAdapter.cs",
+  "line": 215,
+  "event": "action.PropertyChanging",
+  "handler": "changing",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 335,
+    "lhs": "action.PropertyChanging",
+    "method": "OnDestroyActionModeImpl"
+   }
+  ]
+ },
+ {
+  "finding_id": "7d3e93fd33b81516",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/Android/CellAdapter.cs",
+  "line": 218,
+  "event": "action.Command.CanExecuteChanged",
+  "handler": "commandChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 338,
+    "lhs": "action.Command.CanExecuteChanged",
+    "method": "OnDestroyActionModeImpl"
+   }
+  ]
+ },
+ {
+  "finding_id": "808539a2be9b0db3",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/Android/CellAdapter.cs",
+  "line": 299,
+  "event": "action.Command.CanExecuteChanged",
+  "handler": "OnContextActionCommandCanExecuteChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 312,
+    "lhs": "action.Command.CanExecuteChanged",
+    "method": "OnContextActionPropertyChanging"
+   }
+  ]
+ },
+ {
+  "finding_id": "8ffc4b407e73125e",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/Android/CellRenderer.cs",
+  "line": 97,
+  "event": "Cell.PropertyChanged",
+  "handler": "PropertyChangedHandler",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 65,
+    "lhs": "Cell.PropertyChanged",
+    "method": "GetCell"
+   },
+   {
+    "line": 176,
+    "lhs": "cell.PropertyChanged",
+    "method": "OnGlobalCellPropertyChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "529fc6397da01fb2",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/Android/EntryCellView.cs",
+  "line": 53,
+  "event": "EditText.BackButtonPressed",
+  "handler": "OnBackButtonPressed",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "26b009f47930ae0b",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/Android/ListViewAdapter.cs",
+  "line": 80,
+  "event": "listView.ItemSelected",
+  "handler": "OnItemSelected",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 523,
+    "lhs": "_listView.ItemSelected",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "de9c6b206d0d9e11",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/Android/ListViewRenderer.cs",
+  "line": 169,
+  "event": "((IListViewController)e.NewElement).ScrollToRequested",
+  "handler": "OnScrollToRequested",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 139,
+    "lhs": "((IListViewController)e.OldElement).ScrollToRequested",
+    "method": "OnElementChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "0bbb850fb04e6ff5",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/Windows/CellControl.cs",
+  "line": 344,
+  "event": "((INotifyCollectionChanged)Cell.ContextActions).CollectionChanged",
+  "handler": "OnContextActionsChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 494,
+    "lhs": "((INotifyCollectionChanged)_contextActions).CollectionChanged",
+    "method": "SetupContextMenu"
+   }
+  ]
+ },
+ {
+  "finding_id": "a51be61cf4086e01",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/Windows/ListViewRenderer.cs",
+  "line": 107,
+  "event": "e.NewElement.ItemSelected",
+  "handler": "OnElementItemSelected",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 94,
+    "lhs": "e.OldElement.ItemSelected",
+    "method": "OnElementChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "bfa3d1dfe43e5568",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/Windows/ListViewRenderer.cs",
+  "line": 108,
+  "event": "e.NewElement.ScrollToRequested",
+  "handler": "OnElementScrollToRequested",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 95,
+    "lhs": "e.OldElement.ScrollToRequested",
+    "method": "OnElementChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "22c907707566fcae",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/Windows/ListViewRenderer.cs",
+  "line": 110,
+  "event": "((ITemplatedItemsView<Cell>)e.NewElement).TemplatedItems.CollectionChanged",
+  "handler": "OnCollectionChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 97,
+    "lhs": ")e.OldElement).TemplatedItems.CollectionChanged",
+    "method": "OnElementChanged"
+   },
+   {
+    "line": 841,
+    "lhs": "templatedItemsView.TemplatedItems.CollectionChanged",
+    "method": "DisconnectHandlerCore"
+   }
+  ]
+ },
+ {
+  "finding_id": "92db0a67c900ebf5",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/iOS/ContextActionCell.cs",
+  "line": 147,
+  "event": "((INotifyCollectionChanged)cell.ContextActions).CollectionChanged",
+  "handler": "OnContextItemsChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 145,
+    "lhs": "((INotifyCollectionChanged)_cell.ContextActions).CollectionChanged",
+    "method": "Update"
+   },
+   {
+    "line": 169,
+    "lhs": "((INotifyCollectionChanged)_cell.ContextActions).CollectionChanged",
+    "method": "Update"
+   },
+   {
+    "line": 301,
+    "lhs": "((INotifyCollectionChanged)_cell.ContextActions).CollectionChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "dda47f88c96b4bd5",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/iOS/ContextActionCell.cs",
+  "line": 183,
+  "event": "cell.PropertyChanged",
+  "handler": "OnCellPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 165,
+    "lhs": "_cell.PropertyChanged",
+    "method": "Update"
+   }
+  ]
+ },
+ {
+  "finding_id": "b873f3a011988835",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/iOS/ListViewRenderer.cs",
+  "line": 257,
+  "event": "listView.ScrollToRequested",
+  "handler": "OnScrollToRequested",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 220,
+    "lhs": "listView.ScrollToRequested",
+    "method": "OnElementChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "59ece2a6af4ece71",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/iOS/ListViewRenderer.cs",
+  "line": 262,
+  "event": "templatedItems.CollectionChanged",
+  "handler": "OnCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 175,
+    "lhs": "templatedItems.CollectionChanged",
+    "method": "CleanUpResources"
+   },
+   {
+    "line": 225,
+    "lhs": "templatedItems.CollectionChanged",
+    "method": "OnElementChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "8005e295de9784cc",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/iOS/ListViewRenderer.cs",
+  "line": 263,
+  "event": "templatedItems.GroupedCollectionChanged",
+  "handler": "OnGroupedCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 176,
+    "lhs": "templatedItems.GroupedCollectionChanged",
+    "method": "CleanUpResources"
+   },
+   {
+    "line": 226,
+    "lhs": "templatedItems.GroupedCollectionChanged",
+    "method": "OnElementChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "84574a4b593fcc6d",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/iOS/ListViewRenderer.cs",
+  "line": 513,
+  "event": "footerView.MeasureInvalidated",
+  "handler": "OnFooterMeasureInvalidated",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 200,
+    "lhs": "footerView.MeasureInvalidated",
+    "method": "CleanUpResources"
+   },
+   {
+    "line": 218,
+    "lhs": "footerView.MeasureInvalidated",
+    "method": "OnElementChanged"
+   },
+   {
+    "line": 497,
+    "lhs": "((VisualElement)_footerRenderer.VirtualView).MeasureInvalidated",
+    "method": "UpdateFooter"
+   },
+   {
+    "line": 519,
+    "lhs": "((VisualElement)_footerRenderer.VirtualView).MeasureInvalidated",
+    "method": "UpdateFooter"
+   }
+  ]
+ },
+ {
+  "finding_id": "d061ecd73bd6713d",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/iOS/ListViewRenderer.cs",
+  "line": 552,
+  "event": "headerView.MeasureInvalidated",
+  "handler": "OnHeaderMeasureInvalidated",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 195,
+    "lhs": "headerView.MeasureInvalidated",
+    "method": "CleanUpResources"
+   },
+   {
+    "line": 214,
+    "lhs": "headerView.MeasureInvalidated",
+    "method": "OnElementChanged"
+   },
+   {
+    "line": 536,
+    "lhs": "((VisualElement)_headerRenderer.VirtualView).MeasureInvalidated",
+    "method": "UpdateHeader"
+   },
+   {
+    "line": 558,
+    "lhs": "((VisualElement)_headerRenderer.VirtualView).MeasureInvalidated",
+    "method": "UpdateHeader"
+   }
+  ]
+ },
+ {
+  "finding_id": "7dae7ad7737bfc5d",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/iOS/ListViewRenderer.cs",
+  "line": 1078,
+  "event": "list.ItemSelected",
+  "handler": "OnItemSelected",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 1590,
+    "lhs": "list.ItemSelected",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "aa3b166217b2697f",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/iOS/ListViewRenderer.cs",
+  "line": 1559,
+  "event": "incc.CollectionChanged",
+  "handler": "OnShortNamesCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 1563,
+    "lhs": "incc.CollectionChanged",
+    "method": "WatchShortNameCollection"
+   }
+  ]
+ },
+ {
+  "finding_id": "e8cc6aa3a89ae132",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/iOS/ListViewRenderer.cs",
+  "line": 1559,
+  "event": "incc.CollectionChanged",
+  "handler": "OnShortNamesCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 1563,
+    "lhs": "incc.CollectionChanged",
+    "method": "WatchShortNameCollection"
+   }
+  ]
+ },
+ {
+  "finding_id": "e62b2ae73e9a777b",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/iOS/ViewCellRenderer.cs",
+  "line": 208,
+  "event": "cell.PropertyChanged",
+  "handler": "ViewCellPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 158,
+    "lhs": "viewCell.PropertyChanged",
+    "method": "Dispose"
+   },
+   {
+    "line": 193,
+    "lhs": "oldCell.PropertyChanged",
+    "method": "UpdateCell"
+   }
+  ]
+ },
+ {
+  "finding_id": "d8d4b7c2aae2086b",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/iOS/ViewCellRenderer.cs",
+  "line": 208,
+  "event": "cell.PropertyChanged",
+  "handler": "ViewCellPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 158,
+    "lhs": "viewCell.PropertyChanged",
+    "method": "Dispose"
+   },
+   {
+    "line": 193,
+    "lhs": "oldCell.PropertyChanged",
+    "method": "UpdateCell"
+   }
+  ]
+ },
+ {
+  "finding_id": "9111108e87dcd354",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/iOS/ViewCellRenderer.cs",
+  "line": 232,
+  "event": "cell.View.MeasureInvalidated",
+  "handler": "OnMeasureInvalidated",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 159,
+    "lhs": "viewCell.View.MeasureInvalidated",
+    "method": "Dispose"
+   },
+   {
+    "line": 194,
+    "lhs": "oldCell.View.MeasureInvalidated",
+    "method": "UpdateCell"
+   }
+  ]
+ },
+ {
+  "finding_id": "68b9c75f9f8d2692",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/ListView/iOS/ViewCellRenderer.cs",
+  "line": 232,
+  "event": "cell.View.MeasureInvalidated",
+  "handler": "OnMeasureInvalidated",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 159,
+    "lhs": "viewCell.View.MeasureInvalidated",
+    "method": "Dispose"
+   },
+   {
+    "line": 194,
+    "lhs": "oldCell.View.MeasureInvalidated",
+    "method": "UpdateCell"
+   }
+  ]
+ },
+ {
+  "finding_id": "21df9f4c53209ffa",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/NavigationPage/iOS/NavigationRenderer.cs",
+  "line": 243,
+  "event": "Element.PropertyChanged",
+  "handler": "HandlePropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 280,
+    "lhs": "navPage.PropertyChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "241d99553c1630e1",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/NavigationPage/iOS/NavigationRenderer.cs",
+  "line": 488,
+  "event": "parentViewController.Appearing",
+  "handler": "appearing",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 482,
+    "lhs": "parentViewController.Appearing",
+    "method": "GetAppearedOrDisappearedTask"
+   }
+  ]
+ },
+ {
+  "finding_id": "3dc1b5c7a092d1b4",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/NavigationPage/iOS/NavigationRenderer.cs",
+  "line": 489,
+  "event": "parentViewController.Disappearing",
+  "handler": "disappearing",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 483,
+    "lhs": "parentViewController.Disappearing",
+    "method": "GetAppearedOrDisappearedTask"
+   }
+  ]
+ },
+ {
+  "finding_id": "82eb70af7f414d84",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/NavigationPage/iOS/NavigationRenderer.cs",
+  "line": 759,
+  "event": "newGradientBrush.InvalidateGradientBrushRequested",
+  "handler": "OnBarBackgroundChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 270,
+    "lhs": "gb.InvalidateGradientBrushRequested",
+    "method": "Dispose"
+   },
+   {
+    "line": 750,
+    "lhs": "oldGradientBrush.InvalidateGradientBrushRequested",
+    "method": "UpdateBarBackground"
+   }
+  ]
+ },
+ {
+  "finding_id": "ada12f3180036764",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/NavigationPage/iOS/NavigationRenderer.cs",
+  "line": 1298,
+  "event": "value.PropertyChanged",
+  "handler": "HandleChildPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 1292,
+    "lhs": "child.PropertyChanged",
+    "method": "ParentingViewController"
+   },
+   {
+    "line": 1435,
+    "lhs": "child.PropertyChanged",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "d2b3509e0200a937",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/NavigationPage/iOS/NavigationRenderer.cs",
+  "line": 1298,
+  "event": "value.PropertyChanged",
+  "handler": "HandleChildPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 1292,
+    "lhs": "child.PropertyChanged",
+    "method": "ParentingViewController"
+   },
+   {
+    "line": 1435,
+    "lhs": "child.PropertyChanged",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "7b8a46d51cb388aa",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/NavigationPage/iOS/NavigationRenderer.cs",
+  "line": 1403,
+  "event": "_tracker.CollectionChanged",
+  "handler": "TrackerOnCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 1442,
+    "lhs": "_tracker.CollectionChanged",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "d0bfb0547e5cae2a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/NavigationPage/iOS/NavigationRenderer.cs",
+  "line": 1827,
+  "event": "item.PropertyChanged",
+  "handler": "OnToolbarItemPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 1794,
+    "lhs": "item.PropertyChanged",
+    "method": "CleanToolbarItems"
+   }
+  ]
+ },
+ {
+  "finding_id": "91b6ce6bf06800a5",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/NavigationPage/iOS/NavigationRenderer.cs",
+  "line": 2115,
+  "event": "_view.ParentSet",
+  "handler": "OnTitleViewParentSet",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 2145,
+    "lhs": "view.ParentSet",
+    "method": "OnTitleViewParentSet"
+   },
+   {
+    "line": 2279,
+    "lhs": "_view.ParentSet",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "656e2d41eab62e48",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellFlyoutRecyclerAdapter.cs",
+  "line": 32,
+  "event": "ShellController.FlyoutItemsChanged",
+  "handler": "OnFlyoutItemsChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 216,
+    "lhs": "scc.FlyoutItemsChanged",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "7db95e9b24c49232",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellFlyoutRecyclerAdapter.cs",
+  "line": 291,
+  "event": "_element.PropertyChanged",
+  "handler": "OnElementPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 276,
+    "lhs": "_element.PropertyChanged",
+    "method": "ElementViewHolder"
+   }
+  ]
+ },
+ {
+  "finding_id": "1e0224ad2b712278",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellFlyoutRecyclerAdapter.cs",
+  "line": 291,
+  "event": "_element.PropertyChanged",
+  "handler": "OnElementPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 276,
+    "lhs": "_element.PropertyChanged",
+    "method": "ElementViewHolder"
+   }
+  ]
+ },
+ {
+  "finding_id": "795fbff1f40f873c",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellFlyoutTemplatedContentRenderer.cs",
+  "line": 805,
+  "event": "view.PropertyChanged",
+  "handler": "OnViewPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 866,
+    "lhs": "View.PropertyChanged",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "71f84d6c71dadb58",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellFlyoutTemplatedContentRenderer.cs",
+  "line": 805,
+  "event": "view.PropertyChanged",
+  "handler": "OnViewPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 866,
+    "lhs": "View.PropertyChanged",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "2d039939c45d5a11",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellItemRenderer.cs",
+  "line": 285,
+  "event": "newPage.PropertyChanged",
+  "handler": "OnDisplayedElementPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 282,
+    "lhs": "oldPage.PropertyChanged",
+    "method": "OnDisplayedPageChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "962d6f139988b73d",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellItemRendererBase.cs",
+  "line": 267,
+  "event": "trackFragment.AnimationFinished",
+  "handler": "callback",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 263,
+    "lhs": "trackFragment.AnimationFinished",
+    "method": "callback"
+   }
+  ]
+ },
+ {
+  "finding_id": "5a6ae21d93ca9cc9",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellItemRendererBase.cs",
+  "line": 288,
+  "event": "shellItem.PropertyChanged",
+  "handler": "OnShellItemPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 366,
+    "lhs": "ShellItem.PropertyChanged",
+    "method": "UnhookEvents"
+   }
+  ]
+ },
+ {
+  "finding_id": "245d12a4167050ca",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellItemRendererBase.cs",
+  "line": 289,
+  "event": "((IShellItemController)shellItem).ItemsCollectionChanged",
+  "handler": "OnShellItemsChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 365,
+    "lhs": "((IShellItemController)shellItem).ItemsCollectionChanged",
+    "method": "UnhookEvents"
+   }
+  ]
+ },
+ {
+  "finding_id": "d39c915d58d78a5a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellItemRendererBase.cs",
+  "line": 300,
+  "event": "((IShellSectionController)shellSection).NavigationRequested",
+  "handler": "OnNavigationRequested",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 372,
+    "lhs": "((IShellSectionController)shellSection).NavigationRequested",
+    "method": "UnhookChildEvents"
+   }
+  ]
+ },
+ {
+  "finding_id": "d46b1e30119ab7db",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellItemRendererBase.cs",
+  "line": 301,
+  "event": "shellSection.PropertyChanged",
+  "handler": "OnShellSectionPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 373,
+    "lhs": "shellSection.PropertyChanged",
+    "method": "UnhookChildEvents"
+   }
+  ]
+ },
+ {
+  "finding_id": "196fad3931eb33e5",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellRenderer.cs",
+  "line": 194,
+  "event": "shell.SizeChanged",
+  "handler": "OnElementSizeChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 320,
+    "lhs": "Element.SizeChanged",
+    "method": "IElementHandler.DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "dfac3c885eabab8a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellRenderer.cs",
+  "line": 196,
+  "event": "shell.PropertyChanged",
+  "handler": "OnElementPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 319,
+    "lhs": "Element.PropertyChanged",
+    "method": "IElementHandler.DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "f6a3b64ab41187d3",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellRenderer.cs",
+  "line": 249,
+  "event": "previousView.Destroyed",
+  "handler": "OnDestroyed",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 243,
+    "lhs": "previousView.Destroyed",
+    "method": "OnDestroyed"
+   }
+  ]
+ },
+ {
+  "finding_id": "f1f512e1e5fd88bb",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellSearchView.cs",
+  "line": 225,
+  "event": "searchHandler.PropertyChanged",
+  "handler": "OnSearchHandlerPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 132,
+    "lhs": "SearchHandler.PropertyChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "68540171dde759af",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/Android/ShellToolbarTracker.cs",
+  "line": 263,
+  "event": "((INotifyCollectionChanged)newPage.ToolbarItems).CollectionChanged",
+  "handler": "OnPageToolbarItemsChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 252,
+    "lhs": "((INotifyCollectionChanged)oldPage.ToolbarItems).CollectionChanged",
+    "method": "OnPageChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "f918600e01d68602",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellFlyoutContentRenderer.cs",
+  "line": 143,
+  "event": "_footer.MeasureInvalidated",
+  "handler": "OnFooterMeasureInvalidated",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "3d1e4f5937dcbe6a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellFlyoutLayoutManager.cs",
+  "line": 35,
+  "event": "ShellController.StructureChanged",
+  "handler": "OnStructureChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 473,
+    "lhs": "ShellController.StructureChanged",
+    "method": "TearDown"
+   }
+  ]
+ },
+ {
+  "finding_id": "aef545ad40274bbc",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellFlyoutLayoutManager.cs",
+  "line": 78,
+  "event": "sv.Scrolled",
+  "handler": "ScrollViewScrolled",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 79,
+    "lhs": "sv.Scrolled",
+    "method": "SetCustomContent"
+   }
+  ]
+ },
+ {
+  "finding_id": "cc8eea2a83ded5c9",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellFlyoutLayoutManager.cs",
+  "line": 86,
+  "event": "cv.Scrolled",
+  "handler": "CollectionViewScrolled",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 87,
+    "lhs": "cv.Scrolled",
+    "method": "ScrollViewScrolled"
+   }
+  ]
+ },
+ {
+  "finding_id": "2508bb000064d6f6",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellFlyoutLayoutManager.cs",
+  "line": 95,
+  "event": "lv.Scrolled",
+  "handler": "ListViewScrolled",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 96,
+    "lhs": "lv.Scrolled",
+    "method": "CollectionViewScrolled"
+   }
+  ]
+ },
+ {
+  "finding_id": "fdd6aa3ee02e7b2e",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellFlyoutLayoutManager.cs",
+  "line": 165,
+  "event": "_headerView.HeaderSizeChanged",
+  "handler": "OnHeaderViewMeasureChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 160,
+    "lhs": "_headerView.HeaderSizeChanged",
+    "method": "SetDefaultContent"
+   }
+  ]
+ },
+ {
+  "finding_id": "c5864c09f91f1c44",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellItemRenderer.cs",
+  "line": 258,
+  "event": "shellItem.PropertyChanged",
+  "handler": "OnElementPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 155,
+    "lhs": "ShellItem.PropertyChanged",
+    "method": "IDisconnectable.Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "0e2a666272bc2190",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellItemRenderer.cs",
+  "line": 400,
+  "event": "_displayedPage.PropertyChanged",
+  "handler": "OnDisplayedPagePropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 148,
+    "lhs": "_displayedPage.PropertyChanged",
+    "method": "IDisconnectable.Disconnect"
+   },
+   {
+    "line": 394,
+    "lhs": "_displayedPage.PropertyChanged",
+    "method": "OnDisplayedPageChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "68744a8618d3b716",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellPageRendererTracker.cs",
+  "line": 246,
+  "event": "((INotifyCollectionChanged)newPage.ToolbarItems).CollectionChanged",
+  "handler": "OnToolbarItemsChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 234,
+    "lhs": "((INotifyCollectionChanged)oldPage.ToolbarItems).CollectionChanged",
+    "method": "OnPageSet"
+   },
+   {
+    "line": 1110,
+    "lhs": "((INotifyCollectionChanged)Page.ToolbarItems).CollectionChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "f5dc84d0c8cfe07e",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellPageRendererTracker.cs",
+  "line": 314,
+  "event": "titleView.ParentSet",
+  "handler": "OnTitleViewParentSet",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 323,
+    "lhs": "element.ParentSet",
+    "method": "OnTitleViewParentSet"
+   }
+  ]
+ },
+ {
+  "finding_id": "e774089339184ad9",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellPageRendererTracker.cs",
+  "line": 769,
+  "event": "_searchHandler.PropertyChanged",
+  "handler": "OnSearchHandlerPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 761,
+    "lhs": "_searchHandler.PropertyChanged",
+    "method": "SizeThatFits"
+   }
+  ]
+ },
+ {
+  "finding_id": "696db927776ae653",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellPageRendererTracker.cs",
+  "line": 888,
+  "event": "_resultsRenderer.ItemSelected",
+  "handler": "OnSearchItemSelected",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 757,
+    "lhs": "_resultsRenderer.ItemSelected",
+    "method": "SizeThatFits"
+   }
+  ]
+ },
+ {
+  "finding_id": "cc37a6d7aa590606",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellRenderer.cs",
+  "line": 288,
+  "event": "element.PropertyChanged",
+  "handler": "OnElementPropertyChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "8154cd4f60271d41",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellSearchResultsRenderer.cs",
+  "line": 180,
+  "event": "((INotifyCollectionChanged)e.NewList).CollectionChanged",
+  "handler": "OnProxyCollectionChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 99,
+    "lhs": "listProxy.CollectionChanged",
+    "method": "Dispose"
+   },
+   {
+    "line": 171,
+    "lhs": "((INotifyCollectionChanged)e.OldList).CollectionChanged",
+    "method": "OnListProxyChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "fe5d08f90da0748b",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellSectionRenderer.cs",
+  "line": 32,
+  "event": "_shellSection.PropertyChanged",
+  "handler": "HandlePropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 279,
+    "lhs": "_shellSection.PropertyChanged",
+    "method": "IDisconnectable.Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "224fe0d1598e1cf9",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellSectionRenderer.cs",
+  "line": 33,
+  "event": "((IShellSectionController)_shellSection).NavigationRequested",
+  "handler": "OnNavigationRequested",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 280,
+    "lhs": "((IShellSectionController)ShellSection).NavigationRequested",
+    "method": "IDisconnectable.Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "a65272a5b583b39b",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellSectionRenderer.cs",
+  "line": 386,
+  "event": "_displayedPage.PropertyChanged",
+  "handler": "OnDisplayedPagePropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 275,
+    "lhs": "_displayedPage.PropertyChanged",
+    "method": "IDisconnectable.Disconnect"
+   },
+   {
+    "line": 379,
+    "lhs": "_displayedPage.PropertyChanged",
+    "method": "OnDisplayedPageChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "5f35b882df66f87b",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellSectionRootHeader.cs",
+  "line": 308,
+  "event": "item.PropertyChanged",
+  "handler": "OnShellContentPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 226,
+    "lhs": "shellContent.PropertyChanged",
+    "method": "Dispose"
+   },
+   {
+    "line": 300,
+    "lhs": "item.PropertyChanged",
+    "method": "HandleEventsOnItemsChange"
+   }
+  ]
+ },
+ {
+  "finding_id": "6c764e2a54df6389",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellSectionRootRenderer.cs",
+  "line": 101,
+  "event": "ShellSection.PropertyChanged",
+  "handler": "OnShellSectionPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 159,
+    "lhs": "ShellSection.PropertyChanged",
+    "method": "IDisconnectable.Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "cab4f45450db70fa",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellSectionRootRenderer.cs",
+  "line": 102,
+  "event": "ShellSectionController.ItemsCollectionChanged",
+  "handler": "OnShellSectionItemsChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 162,
+    "lhs": "ShellSectionController.ItemsCollectionChanged",
+    "method": "IDisconnectable.Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "49e57950144564a0",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/UIContainerCell.cs",
+  "line": 21,
+  "event": "View.MeasureInvalidated",
+  "handler": "MeasureInvalidated",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 77,
+    "lhs": "View.MeasureInvalidated",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "e2022df505957336",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/UIContainerCell.cs",
+  "line": 114,
+  "event": "baseShell2.PropertyChanged",
+  "handler": "OnElementPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 79,
+    "lhs": "baseShell.PropertyChanged",
+    "method": "Disconnect"
+   },
+   {
+    "line": 107,
+    "lhs": "baseShell.PropertyChanged",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "4f64ee66861d6eda",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/TabbedPage/iOS/TabbedRenderer.cs",
+  "line": 342,
+  "event": "page.PropertyChanged",
+  "handler": "OnPagePropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 349,
+    "lhs": "page.PropertyChanged",
+    "method": "TeardownPage"
+   }
+  ]
+ },
+ {
+  "finding_id": "ee46944da3f609d2",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/TabbedPage/iOS/TabbedRenderer.cs",
+  "line": 397,
+  "event": "newGradientBrush.InvalidateGradientBrushRequested",
+  "handler": "OnBarBackgroundChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 389,
+    "lhs": "oldGradientBrush.InvalidateGradientBrushRequested",
+    "method": "UpdateBarBackground"
+   }
+  ]
+ },
+ {
+  "finding_id": "ce944238446f4f7c",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/TableView/Tizen/TableViewRenderer.cs",
+  "line": 36,
+  "event": "e.NewElement.ModelChanged",
+  "handler": "OnRootPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 31,
+    "lhs": "e.OldElement.ModelChanged",
+    "method": "OnElementChanged"
+   },
+   {
+    "line": 68,
+    "lhs": "Element.ModelChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "e03679f6977a94a0",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/TableView/Windows/TableViewRenderer.cs",
+  "line": 60,
+  "event": "e.NewElement.ModelChanged",
+  "handler": "OnModelChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 35,
+    "lhs": "e.OldElement.ModelChanged",
+    "method": "OnElementChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "9b1e33b83ee0b757",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/TableView/iOS/TableViewModelRenderer.cs",
+  "line": 53,
+  "event": "model.ModelChanged",
+  "handler": "(s, e) => PlatformView?.ReloadData()",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "2762282faf7c70c9",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/iOS/VisualElementRenderer.cs",
+  "line": 82,
+  "event": "newVe.SizeChanged",
+  "handler": "OnSizeChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 75,
+    "lhs": "oldVe.SizeChanged",
+    "method": "ElementChangedPartial"
+   }
+  ]
+ },
+ {
+  "finding_id": "bc153b0443bb38a2",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/Handlers/iOS/VisualElementRenderer.cs",
+  "line": 83,
+  "event": "newVe.BatchCommitted",
+  "handler": "OnBatchCommitted",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 76,
+    "lhs": "oldVe.BatchCommitted",
+    "method": "ElementChangedPartial"
+   }
+  ]
+ },
+ {
+  "finding_id": "19a53eeffeacf614",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/iOS/Extensions/ToolbarItemExtensions.cs",
+  "line": 107,
+  "event": "item.PropertyChanged",
+  "handler": "OnPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 129,
+    "lhs": "item.PropertyChanged",
+    "method": "Dispose"
+   },
+   {
+    "line": 310,
+    "lhs": "item.PropertyChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "b53d8f4750cc6f19",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/iOS/Extensions/ToolbarItemExtensions.cs",
+  "line": 227,
+  "event": "item.PropertyChanged",
+  "handler": "OnPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 129,
+    "lhs": "item.PropertyChanged",
+    "method": "Dispose"
+   },
+   {
+    "line": 310,
+    "lhs": "item.PropertyChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "b5246b1f2a6a2bbb",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/iOS/Extensions/ToolbarItemExtensions.cs",
+  "line": 227,
+  "event": "item.PropertyChanged",
+  "handler": "OnPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 129,
+    "lhs": "item.PropertyChanged",
+    "method": "Dispose"
+   },
+   {
+    "line": 310,
+    "lhs": "item.PropertyChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "6024d85a96ad8fea",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Compatibility/iOS/Extensions/ToolbarItemExtensions.cs",
+  "line": 289,
+  "event": "item.PropertyChanged",
+  "handler": "OnPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 129,
+    "lhs": "item.PropertyChanged",
+    "method": "Dispose"
+   },
+   {
+    "line": 310,
+    "lhs": "item.PropertyChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "92ecb3147e01d7ae",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/ContentPage/HideSoftInputOnTappedChanged/TapWindowTracker.Android.cs",
+  "line": 22,
+  "event": "_hideSoftInputOnTappedChangedManager.DispatchTouchEvent",
+  "handler": "OnDispatchTouchEvent",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 38,
+    "lhs": "_hideSoftInputOnTappedChangedManager.DispatchTouchEvent",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "8069bfe437f715e0",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/DefinitionCollection.cs",
+  "line": 22,
+  "event": "item.SizeChanged",
+  "handler": "OnItemSizeChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 29,
+    "lhs": "item.SizeChanged",
+    "method": "Clear"
+   },
+   {
+    "line": 56,
+    "lhs": "item.SizeChanged",
+    "method": "Remove"
+   },
+   {
+    "line": 91,
+    "lhs": "_internalList[index].SizeChanged",
+    "method": "Insert"
+   },
+   {
+    "line": 103,
+    "lhs": "item.SizeChanged",
+    "method": "RemoveAt"
+   }
+  ]
+ },
+ {
+  "finding_id": "30a6916c4b6ae5dc",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/DefinitionCollection.cs",
+  "line": 81,
+  "event": "item.SizeChanged",
+  "handler": "OnItemSizeChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 29,
+    "lhs": "item.SizeChanged",
+    "method": "Clear"
+   },
+   {
+    "line": 56,
+    "lhs": "item.SizeChanged",
+    "method": "Remove"
+   },
+   {
+    "line": 91,
+    "lhs": "_internalList[index].SizeChanged",
+    "method": "Insert"
+   },
+   {
+    "line": 103,
+    "lhs": "item.SizeChanged",
+    "method": "RemoveAt"
+   }
+  ]
+ },
+ {
+  "finding_id": "aa5f6dc91545e50c",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/DefinitionCollection.cs",
+  "line": 94,
+  "event": "value.SizeChanged",
+  "handler": "OnItemSizeChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 29,
+    "lhs": "item.SizeChanged",
+    "method": "Clear"
+   },
+   {
+    "line": 56,
+    "lhs": "item.SizeChanged",
+    "method": "Remove"
+   },
+   {
+    "line": 91,
+    "lhs": "_internalList[index].SizeChanged",
+    "method": "Insert"
+   },
+   {
+    "line": 103,
+    "lhs": "item.SizeChanged",
+    "method": "RemoveAt"
+   }
+  ]
+ },
+ {
+  "finding_id": "e292af80b2557d9c",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Controls/src/Core/DisplayRotationStateTrigger.cs",
+  "line": 126,
+  "event": "DeviceDisplay.MainDisplayInfoChanged",
+  "handler": "OnInfoPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 134,
+    "lhs": "DeviceDisplay.MainDisplayInfoChanged",
+    "method": "OnDetached"
+   }
+  ]
+ },
+ {
+  "finding_id": "6bc9bfa656ef22fd",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/FlyoutPage/FlyoutPage.cs",
+  "line": 315,
+  "event": "(this as IControlsVisualElement).WindowChanged",
+  "handler": "OnWindowChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "b264b11e06b1bbdb",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Controls/src/Core/FlyoutPage/FlyoutPage.cs",
+  "line": 346,
+  "event": "DeviceDisplay.MainDisplayInfoChanged",
+  "handler": "OnMainDisplayInfoChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 342,
+    "lhs": "DeviceDisplay.MainDisplayInfoChanged",
+    "method": "OnWindowChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "6fc2225377dbb3e7",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/FormattedString.cs",
+  "line": 64,
+  "event": "bo.PropertyChanging",
+  "handler": "OnItemPropertyChanging",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 49,
+    "lhs": "bo.PropertyChanging",
+    "method": "OnCollectionChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "4d582c574d5ba967",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/FormattedString.cs",
+  "line": 65,
+  "event": "bo.PropertyChanged",
+  "handler": "OnItemPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 50,
+    "lhs": "bo.PropertyChanged",
+    "method": "OnCollectionChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "e61553c4d9824c87",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/GradientBrush.cs",
+  "line": 71,
+  "event": "newStop.PropertyChanged",
+  "handler": "OnGradientStopPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 57,
+    "lhs": "oldStop.PropertyChanged",
+    "method": "UpdateGradientStops"
+   },
+   {
+    "line": 86,
+    "lhs": "oldStop.PropertyChanged",
+    "method": "OnGradientStopCollectionChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "7169346908623a02",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/GradientBrush.cs",
+  "line": 98,
+  "event": "newStop.PropertyChanged",
+  "handler": "OnGradientStopPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 57,
+    "lhs": "oldStop.PropertyChanged",
+    "method": "UpdateGradientStops"
+   },
+   {
+    "line": 86,
+    "lhs": "oldStop.PropertyChanged",
+    "method": "OnGradientStopCollectionChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "39fa8dfbf567128e",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/Android/Adapters/SelectableItemsViewAdapter.cs",
+  "line": 32,
+  "event": "selectable.Clicked",
+  "handler": "SelectableClicked",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 46,
+    "lhs": "selectable.Clicked",
+    "method": "OnViewRecycled"
+   }
+  ]
+ },
+ {
+  "finding_id": "9f0af6958465c4cc",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/Android/ItemContentView.cs",
+  "line": 51,
+  "event": "visualElement.MeasureInvalidated",
+  "handler": "ElementMeasureInvalidated",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 59,
+    "lhs": "visualElement.MeasureInvalidated",
+    "method": "Recycle"
+   },
+   {
+    "line": 218,
+    "lhs": "ve.MeasureInvalidated",
+    "method": "ElementMeasureInvalidated"
+   }
+  ]
+ },
+ {
+  "finding_id": "a00e1d5d07e0b987",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/Android/ItemsSources/ObservableGroupedSource.cs",
+  "line": 52,
+  "event": "incc.CollectionChanged",
+  "handler": "CollectionChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 218,
+    "lhs": "notifyCollectionChanged.CollectionChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "e796aef4a0afc3b4",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/Android/MauiCarouselRecyclerView.cs",
+  "line": 213,
+  "event": "oldObservableItemsSource.CollectionItemsSourceChanged",
+  "handler": "CollectionItemsSourceChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 207,
+    "lhs": "oldObservableItemsSource.CollectionItemsSourceChanged",
+    "method": "UnsubscribeCollectionItemsSourceChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "b514de4641ae763f",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/Android/MauiCarouselRecyclerView.cs",
+  "line": 569,
+  "event": "ItemsView.Scrolled",
+  "handler": "CarouselViewScrolled",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 103,
+    "lhs": "ItemsView.Scrolled",
+    "method": "TearDownOldElement"
+   }
+  ]
+ },
+ {
+  "finding_id": "3d3e31b688d58eca",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/Android/MauiRecyclerView.cs",
+  "line": 122,
+  "event": "ItemsView.ScrollToRequested",
+  "handler": "ScrollToRequested",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 70,
+    "lhs": "oldElement.ScrollToRequested",
+    "method": "TearDownOldElement"
+   }
+  ]
+ },
+ {
+  "finding_id": "4f7ccd9bd04ad0c7",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/ItemsViewHandler.Windows.cs",
+  "line": 260,
+  "event": "incc.CollectionChanged",
+  "handler": "ItemsChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 174,
+    "lhs": "incc.CollectionChanged",
+    "method": "CleanUpCollectionViewSource"
+   }
+  ]
+ },
+ {
+  "finding_id": "34d39de226c60990",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/Tizen/GroupItemSource.cs",
+  "line": 144,
+  "event": "groupCollectionChanged.CollectionChanged",
+  "handler": "OnGroupCollectionChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 129,
+    "lhs": "_groupColletionChanged.CollectionChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "69db67d11ccc1e5f",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/Tizen/GroupItemSource.cs",
+  "line": 297,
+  "event": "collectionChanged.CollectionChanged",
+  "handler": "OnCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 322,
+    "lhs": "collectionChanged.CollectionChanged",
+    "method": "RemoveGroupItem"
+   }
+  ]
+ },
+ {
+  "finding_id": "1b11b4e37b3383d0",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/Tizen/GroupItemSource.cs",
+  "line": 310,
+  "event": "collectionChanged.CollectionChanged",
+  "handler": "OnCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 322,
+    "lhs": "collectionChanged.CollectionChanged",
+    "method": "RemoveGroupItem"
+   }
+  ]
+ },
+ {
+  "finding_id": "814f5e3c1a7e40ae",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/Tizen/ItemTemplateAdaptor.cs",
+  "line": 203,
+  "event": "view.MeasureInvalidated",
+  "handler": "OnItemMeasureInvalidated",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 214,
+    "lhs": "view.MeasureInvalidated",
+    "method": "UnBinding"
+   }
+  ]
+ },
+ {
+  "finding_id": "f06f3a86b856ddf5",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/Tizen/MauiCollectionView.cs",
+  "line": 31,
+  "event": "ItemsView.ScrollToRequested",
+  "handler": "OnScrollToRequested",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 40,
+    "lhs": "oldElement.ScrollToRequested",
+    "method": "TearDownOldElement"
+   }
+  ]
+ },
+ {
+  "finding_id": "5d9598a42b7b28a6",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/Tizen/MauiCollectionView.cs",
+  "line": 59,
+  "event": "_observableSource.CollectionChanged",
+  "handler": "OnCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 56,
+    "lhs": "_observableSource.CollectionChanged",
+    "method": "UpdateItemsSource"
+   }
+  ]
+ },
+ {
+  "finding_id": "73cdd9477d0d8369",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/Tizen/MauiCollectionView.cs",
+  "line": 86,
+  "event": "adaptor.SelectionChanged",
+  "handler": "OnItemSelectedFromUI",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 72,
+    "lhs": "old.SelectionChanged",
+    "method": "UpdateAdaptor"
+   }
+  ]
+ },
+ {
+  "finding_id": "0dcb255ac8b59d44",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/Tizen/MauiCollectionView.cs",
+  "line": 100,
+  "event": "ItemsLayout.PropertyChanged",
+  "handler": "OnLayoutPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 38,
+    "lhs": "ItemsLayout.PropertyChanged",
+    "method": "TearDownOldElement"
+   },
+   {
+    "line": 94,
+    "lhs": "ItemsLayout.PropertyChanged",
+    "method": "UpdateLayoutManager"
+   }
+  ]
+ },
+ {
+  "finding_id": "0a3c814b4a8f432e",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/iOS/CarouselViewController.cs",
+  "line": 259,
+  "event": "carouselView.Scrolled",
+  "handler": "CarouselViewScrolled",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 244,
+    "lhs": "carouselView.Scrolled",
+    "method": "TearDown"
+   }
+  ]
+ },
+ {
+  "finding_id": "4157fd93ce7ad6e6",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Controls/src/Core/Handlers/Items/iOS/CarouselViewController.cs",
+  "line": 260,
+  "event": "DeviceDisplay.MainDisplayInfoChanged",
+  "handler": "OnDisplayInfoChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 245,
+    "lhs": "DeviceDisplay.MainDisplayInfoChanged",
+    "method": "TearDown"
+   }
+  ]
+ },
+ {
+  "finding_id": "3fcd1452451576de",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/iOS/CarouselViewController.cs",
+  "line": 427,
+  "event": "newItemsSource.CollectionViewUpdating",
+  "handler": "CollectionViewUpdating",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 436,
+    "lhs": "oldObservableItemsSource.CollectionViewUpdating",
+    "method": "UnsubscribeCollectionItemsSourceChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "7c30ae3546b0586b",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/iOS/CarouselViewController.cs",
+  "line": 428,
+  "event": "newItemsSource.CollectionViewUpdated",
+  "handler": "CollectionViewUpdated",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 437,
+    "lhs": "oldObservableItemsSource.CollectionViewUpdated",
+    "method": "UnsubscribeCollectionItemsSourceChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "72e9c974c2567e68",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/iOS/ItemsViewController.cs",
+  "line": 192,
+  "event": "((IUIViewLifeCycleEvents)collectionView).MovedToWindow",
+  "handler": "MovedToWindow",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 93,
+    "lhs": "((IUIViewLifeCycleEvents)CollectionView).MovedToWindow",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "f825f7eebb9fbd9a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/iOS/ItemsViewController.cs",
+  "line": 499,
+  "event": "cell.LayoutAttributesChanged",
+  "handler": "CellLayoutAttributesChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 483,
+    "lhs": "cell.LayoutAttributesChanged",
+    "method": "UpdateTemplatedCell"
+   },
+   {
+    "line": 491,
+    "lhs": "measurementCell.LayoutAttributesChanged",
+    "method": "UpdateTemplatedCell"
+   }
+  ]
+ },
+ {
+  "finding_id": "159836ff05733df4",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items/iOS/ObservableItemsSource.cs",
+  "line": 30,
+  "event": "((INotifyCollectionChanged)itemSource).CollectionChanged",
+  "handler": "CollectionChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 55,
+    "lhs": "((INotifyCollectionChanged)_itemsSource).CollectionChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "dup_group_size": 1,
+  "family": "C01",
+  "finding_id": "7f17a607a2442a13",
+  "known_defect_uids": "",
+  "level": "warning",
+  "message": "event 'itemsLayout.PropertyChanged' is subscribed (handler '(sender, args) =>\n\t\t\t\t{\n\t\t\t\t\tif (args.PropertyName == nameof(ItemsLayout.SnapPointsAlignment) ||\n\t\t\t\t\t\targs.PropertyName == nameof(ItemsLayout.SnapPointsType) ||\n\t\t\t\t\t\targs.PropertyName == nameof(GridItemsLayout.VerticalItemSpacing) ||\n\t\t\t\t\t\targs.PropertyName == nameof(GridItemsLayout.HorizontalItemSpacing) ||\n\t\t\t\t\t\targs.PropertyName == nameof(GridItemsLayout.Span) ||\n\t\t\t\t\t\targs.PropertyName == nameof(LinearItemsLayout.ItemSpacing))\n\n\t\t\t\t\t{\n\t\t\t\t\t\tUpdateLayout();\n\t\t\t\t\t}\n\t\t\t\t}') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'CollectionViewHandler2' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+  "ordinal_in_dup_group": 0,
+  "path": "src/Controls/src/Core/Handlers/Items2/CollectionViewHandler2.iOS.cs",
+  "phase5_excluded": "",
+  "resource_tag": "subscription token",
+  "ruleId": "OWN001",
+  "start_column": 5,
+  "start_line": 207,
+  "stratum": "C01-U",
+  "uri_raw": "maui/src/Controls/src/Core/Handlers/Items2/CollectionViewHandler2.iOS.cs",
+  "cls": "NO_PARSE"
+ },
+ {
+  "finding_id": "fd03c55876009c19",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items2/ItemsViewHandler2.iOS.cs",
+  "line": 53,
+  "event": "ItemsView.ScrollToRequested",
+  "handler": "ScrollToRequested",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 43,
+    "lhs": "ItemsView.ScrollToRequested",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "824c36b2b576b983",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items2/iOS/CarouselViewController2.cs",
+  "line": 351,
+  "event": "newItemsSource.CollectionViewUpdating",
+  "handler": "CollectionViewUpdating",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 360,
+    "lhs": "oldObservableItemsSource.CollectionViewUpdating",
+    "method": "UnsubscribeCollectionItemsSourceChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "e6713bda461336c0",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items2/iOS/CarouselViewController2.cs",
+  "line": 352,
+  "event": "newItemsSource.CollectionViewUpdated",
+  "handler": "CollectionViewUpdated",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 361,
+    "lhs": "oldObservableItemsSource.CollectionViewUpdated",
+    "method": "UnsubscribeCollectionItemsSourceChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "43075d7cfb9b4b81",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Items2/iOS/ItemsViewController2.cs",
+  "line": 191,
+  "event": "((IUIViewLifeCycleEvents)collectionView).MovedToWindow",
+  "handler": "MovedToWindow",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 93,
+    "lhs": "((IUIViewLifeCycleEvents)CollectionView).MovedToWindow",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "f64c22534fa18600",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shapes/Polygon/PolygonHandler.Android.cs",
+  "line": 12,
+  "event": "polygon.Points.CollectionChanged",
+  "handler": "OnPointsCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 20,
+    "lhs": "polygon.Points.CollectionChanged",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "84a2b869c1c097ff",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shapes/Polygon/PolygonHandler.Tizen.cs",
+  "line": 12,
+  "event": "polygon.Points.CollectionChanged",
+  "handler": "OnPointsCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 20,
+    "lhs": "polygon.Points.CollectionChanged",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "cce1a2e0008e7de7",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shapes/Polygon/PolygonHandler.Windows.cs",
+  "line": 14,
+  "event": "polygon.Points.CollectionChanged",
+  "handler": "OnPointsCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 22,
+    "lhs": "polygon.Points.CollectionChanged",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "1e8cc65004b0ee23",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shapes/Polygon/PolygonHandler.iOS.cs",
+  "line": 12,
+  "event": "polygon.Points.CollectionChanged",
+  "handler": "OnPointsCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 20,
+    "lhs": "polygon.Points.CollectionChanged",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "7ce67b45018d1d12",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shapes/Polyline/PolylineHandler.Android.cs",
+  "line": 12,
+  "event": "polyline.Points.CollectionChanged",
+  "handler": "OnPointsCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 20,
+    "lhs": "polyline.Points.CollectionChanged",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "147de81cf5672e0a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shapes/Polyline/PolylineHandler.Tizen.cs",
+  "line": 12,
+  "event": "polyline.Points.CollectionChanged",
+  "handler": "OnPointsCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 20,
+    "lhs": "polyline.Points.CollectionChanged",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "32930933932c2b8d",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shapes/Polyline/PolylineHandler.Windows.cs",
+  "line": 14,
+  "event": "polyline.Points.CollectionChanged",
+  "handler": "OnPointsCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 22,
+    "lhs": "polyline.Points.CollectionChanged",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "f0fe0ecd6b9fb237",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shapes/Polyline/PolylineHandler.iOS.cs",
+  "line": 12,
+  "event": "polyline.Points.CollectionChanged",
+  "handler": "OnPointsCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 20,
+    "lhs": "polyline.Points.CollectionChanged",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "23e043d6c317bf25",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/ShellHandler.Tizen.cs",
+  "line": 17,
+  "event": "platformView.Toggled",
+  "handler": "OnToggled",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 23,
+    "lhs": "platformView.Toggled",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "41e7dbad6cdb3544",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/ShellHandler.Windows.cs",
+  "line": 32,
+  "event": "mauiNavigationView.OnApplyTemplateFinished",
+  "handler": "OnApplyTemplateFinished",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 53,
+    "lhs": "mauiNavigationView.OnApplyTemplateFinished",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "b3e6719192ce9e6a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/ShellItemHandler.Windows.cs",
+  "line": 83,
+  "event": "shell.Navigated",
+  "handler": "OnShellNavigated",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 122,
+    "lhs": "shell.Navigated",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "6072e4476d81576a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/ShellItemHandler.Windows.cs",
+  "line": 143,
+  "event": "((IShellItemController)_shellItem).ItemsCollectionChanged",
+  "handler": "OnItemsChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 118,
+    "lhs": "shellItemController.ItemsCollectionChanged",
+    "method": "DisconnectHandler"
+   },
+   {
+    "line": 133,
+    "lhs": "((IShellItemController)_shellItem).ItemsCollectionChanged",
+    "method": "SetVirtualView"
+   }
+  ]
+ },
+ {
+  "finding_id": "caacbb50605eb915",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/ShellItemHandler.Windows.cs",
+  "line": 321,
+  "event": "_currentSearchHandler.PropertyChanged",
+  "handler": "OnCurrentSearchHandlerPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 110,
+    "lhs": "_currentSearchHandler.PropertyChanged",
+    "method": "DisconnectHandler"
+   },
+   {
+    "line": 295,
+    "lhs": "_currentSearchHandler.PropertyChanged",
+    "method": "UpdateSearchHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "d9244edaa889af61",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/ShellItemHandler.Windows.cs",
+  "line": 490,
+  "event": "_currentShellSection.PropertyChanged",
+  "handler": "OnCurrentShellSectionPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 107,
+    "lhs": "_currentShellSection.PropertyChanged",
+    "method": "DisconnectHandler"
+   },
+   {
+    "line": 465,
+    "lhs": "_currentShellSection.PropertyChanged",
+    "method": "UpdateCurrentItem"
+   }
+  ]
+ },
+ {
+  "finding_id": "8dc13b8167171a09",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/ShellItemHandler.Windows.cs",
+  "line": 575,
+  "event": "mauiNavView.OnApplyTemplateFinished",
+  "handler": "OnApplyTemplateFinished",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 605,
+    "lhs": "mauiNavView.OnApplyTemplateFinished",
+    "method": "OnApplyTemplateFinished"
+   }
+  ]
+ },
+ {
+  "finding_id": "4532f30a9d3ea5bf",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/ShellSectionHandler.Windows.cs",
+  "line": 86,
+  "event": "((IShellSectionController)_shellSection).NavigationRequested",
+  "handler": "OnNavigationRequested",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 56,
+    "lhs": "((IShellSectionController)_shellSection).NavigationRequested",
+    "method": "SetVirtualView"
+   }
+  ]
+ },
+ {
+  "finding_id": "ba2fa99d94b08e72",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/ShellSectionHandler.Windows.cs",
+  "line": 88,
+  "event": "((IShellSectionController)_shellSection).ItemsCollectionChanged",
+  "handler": "OnItemsCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 58,
+    "lhs": "((IShellSectionController)_shellSection).ItemsCollectionChanged",
+    "method": "SetVirtualView"
+   }
+  ]
+ },
+ {
+  "finding_id": "91c7aee1dc9195e0",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/Tizen/ShellItemView.cs",
+  "line": 54,
+  "event": "notifyCollectionChanged.CollectionChanged",
+  "handler": "OnShellItemsCollectionChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "e3433a6e970d010a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/Tizen/ShellItemView.cs",
+  "line": 244,
+  "event": "_adaptor.SelectionChanged",
+  "handler": "OnTabItemSelected",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 233,
+    "lhs": "_adaptor.SelectionChanged",
+    "method": "ShowTabBar"
+   }
+  ]
+ },
+ {
+  "finding_id": "8abba1257b7a0b15",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/Tizen/ShellSearchView.cs",
+  "line": 94,
+  "event": "_adaptor.SelectionChanged",
+  "handler": "OnItemSelected",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 91,
+    "lhs": "_adaptor.SelectionChanged",
+    "method": "ShowItems"
+   }
+  ]
+ },
+ {
+  "dup_group_size": 1,
+  "family": "C01",
+  "finding_id": "6a3be1352052ae60",
+  "known_defect_uids": "",
+  "level": "warning",
+  "message": "event 'ShellSection.PropertyChanged' is subscribed (handler '(s, e) =>\n\t\t\t{\n\t\t\t\tif (e.PropertyName == ShellSection.CurrentItemProperty.PropertyName)\n\t\t\t\t{\n\t\t\t\t\tUpdateCurrentItem();\n\t\t\t\t}\n\t\t\t}') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ShellSectionView' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+  "ordinal_in_dup_group": 0,
+  "path": "src/Controls/src/Core/Handlers/Shell/Tizen/ShellSectionView.cs",
+  "phase5_excluded": "",
+  "resource_tag": "subscription token",
+  "ruleId": "OWN001",
+  "start_column": 4,
+  "start_line": 51,
+  "stratum": "C01-U",
+  "uri_raw": "maui/src/Controls/src/Core/Handlers/Shell/Tizen/ShellSectionView.cs",
+  "cls": "NO_PARSE"
+ },
+ {
+  "finding_id": "83c58dfc68322400",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/Tizen/ShellSectionView.cs",
+  "line": 98,
+  "event": "_adaptor.SelectionChanged",
+  "handler": "OnTabItemSelected",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 95,
+    "lhs": "_adaptor.SelectionChanged",
+    "method": "CreateTabBar"
+   }
+  ]
+ },
+ {
+  "finding_id": "9bfda86a484d0f17",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/Tizen/ShellView.cs",
+  "line": 212,
+  "event": "_adaptor.SelectionChanged",
+  "handler": "OnTabItemSelected",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 209,
+    "lhs": "_adaptor.SelectionChanged",
+    "method": "UpdateItems"
+   }
+  ]
+ },
+ {
+  "finding_id": "fb9fe7f4397ce853",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/Tizen/ShellView.cs",
+  "line": 247,
+  "event": "_toolbar.IconPressed",
+  "handler": "OnIconPressed",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 238,
+    "lhs": "_toolbar.IconPressed",
+    "method": "SetToolbar"
+   }
+  ]
+ },
+ {
+  "finding_id": "8224fc3a245282b7",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/Tizen/ShellView.cs",
+  "line": 262,
+  "event": "_currentPage.PropertyChanged",
+  "handler": "OnPagePropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 259,
+    "lhs": "_currentPage.PropertyChanged",
+    "method": "UpdateSearchHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "957aa266bc1561ea",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/Tizen/ShellView.cs",
+  "line": 329,
+  "event": "_currentSearchHandler.PropertyChanged",
+  "handler": "OnCurrentSearchHandlerPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 303,
+    "lhs": "_currentSearchHandler.PropertyChanged",
+    "method": "SetSearchHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "786a5db469cc0242",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/Windows/ShellFlyoutItemView.cs",
+  "line": 68,
+  "event": "bo.PropertyChanged",
+  "handler": "ShellElementPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 43,
+    "lhs": "inpc.PropertyChanged",
+    "method": "OnDataContextChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "92a080292986afc1",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/Windows/ShellFooterView.cs",
+  "line": 38,
+  "event": "_shell.PropertyChanged",
+  "handler": "OnShellPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 33,
+    "lhs": "_shell.PropertyChanged",
+    "method": "SetElement"
+   }
+  ]
+ },
+ {
+  "finding_id": "c34af6064f774287",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/Windows/ShellHeaderView.cs",
+  "line": 35,
+  "event": "_shell.PropertyChanged",
+  "handler": "OnShellPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 30,
+    "lhs": "_shell.PropertyChanged",
+    "method": "SetElement"
+   }
+  ]
+ },
+ {
+  "finding_id": "35c83e466a4999b9",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/Windows/ViewToHandlerConverter.cs",
+  "line": 54,
+  "event": "_view.MeasureInvalidated",
+  "handler": "OnMeasureInvalidated",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 48,
+    "lhs": "_view.MeasureInvalidated",
+    "method": "CleanUp"
+   }
+  ]
+ },
+ {
+  "finding_id": "f5862aae5f09e155",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Handlers/Shell/Windows/ViewToHandlerConverter.cs",
+  "line": 54,
+  "event": "_view.MeasureInvalidated",
+  "handler": "OnMeasureInvalidated",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 48,
+    "lhs": "_view.MeasureInvalidated",
+    "method": "CleanUp"
+   }
+  ]
+ },
+ {
+  "finding_id": "85c94ece4dfa7ea4",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/ImageElement.cs",
+  "line": 33,
+  "event": "newSource.SourceChanged",
+  "handler": "image.OnImageSourceSourceChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 48,
+    "lhs": "oldSource.SourceChanged",
+    "method": "OnImageSourceChanging"
+   }
+  ]
+ },
+ {
+  "finding_id": "63347a42d886382e",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/IndicatorView/IndicatorStackLayout.cs",
+  "line": 14,
+  "event": "_indicatorView.PropertyChanged",
+  "handler": "IndicatorViewPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 170,
+    "lhs": "_indicatorView.PropertyChanged",
+    "method": "Remove"
+   }
+  ]
+ },
+ {
+  "finding_id": "b3d465ee9439de06",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/IndicatorView/IndicatorView.cs",
+  "line": 166,
+  "event": "collection.CollectionChanged",
+  "handler": "OnCollectionChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 163,
+    "lhs": "oldCollection.CollectionChanged",
+    "method": "ResetItemsSource"
+   }
+  ]
+ },
+ {
+  "finding_id": "3a00a9bf92847330",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Controls/src/Core/InputView/InputView.cs",
+  "line": 88,
+  "event": "Application.Current.RequestedThemeChanged",
+  "handler": "OnRequestedThemeChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 84,
+    "lhs": "Application.Current.RequestedThemeChanged",
+    "method": "OnHandlerChangingCore"
+   }
+  ]
+ },
+ {
+  "finding_id": "c346654ce5f9d97c",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Interactivity/PlatformBehavior.cs",
+  "line": 47,
+  "event": "ve.Loaded",
+  "handler": "OnLoaded",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 64,
+    "lhs": "ve.Loaded",
+    "method": "OnDetachingFrom"
+   }
+  ]
+ },
+ {
+  "finding_id": "e10d05bddd7e4bc0",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Interactivity/PlatformBehavior.cs",
+  "line": 48,
+  "event": "ve.Unloaded",
+  "handler": "OnUnloaded",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 65,
+    "lhs": "ve.Unloaded",
+    "method": "OnDetachingFrom"
+   }
+  ]
+ },
+ {
+  "finding_id": "730ffd16149d6aa8",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Interactivity/PlatformBehavior.cs",
+  "line": 55,
+  "event": "bindable.HandlerChanged",
+  "handler": "OnHandlerChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 69,
+    "lhs": "bindable.HandlerChanged",
+    "method": "OnDetachingFrom"
+   }
+  ]
+ },
+ {
+  "finding_id": "a177092943b0e3ee",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Interactivity/PropertyCondition.cs",
+  "line": 97,
+  "event": "bindable.PropertyChanged",
+  "handler": "OnAttachedObjectPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 103,
+    "lhs": "bindable.PropertyChanged",
+    "method": "TearDown"
+   }
+  ]
+ },
+ {
+  "finding_id": "8269ffaf4f85d4b9",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Internals/WeakEventProxy.cs",
+  "line": 93,
+  "event": "source.CollectionChanged",
+  "handler": "OnCollectionChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 90,
+    "lhs": "s.CollectionChanged",
+    "method": "Subscribe"
+   },
+   {
+    "line": 101,
+    "lhs": "s.CollectionChanged",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "30bb899b282cccc0",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Internals/WeakEventProxy.cs",
+  "line": 140,
+  "event": "source.PropertyChanged",
+  "handler": "OnPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 137,
+    "lhs": "s.PropertyChanged",
+    "method": "Subscribe"
+   },
+   {
+    "line": 149,
+    "lhs": "s.PropertyChanged",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "0fb8fc1d5ac18414",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Items/MarshalingObservableCollection.cs",
+  "line": 30,
+  "event": "incc.CollectionChanged",
+  "handler": "InternalCollectionChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "4add5b4b251c5532",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Items/SelectionList.cs",
+  "line": 26,
+  "event": "incc.CollectionChanged",
+  "handler": "OnCollectionChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "85711b043ef3bbaf",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Label/Label.Android.cs",
+  "line": 23,
+  "event": "_mauiTextView.LayoutChanged",
+  "handler": "OnLayoutChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 30,
+    "lhs": "_mauiTextView.LayoutChanged",
+    "method": "OnHandlerChangedCore"
+   }
+  ]
+ },
+ {
+  "finding_id": "d21a487f9ac1df17",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Label/Label.cs",
+  "line": 78,
+  "event": "formattedString.PropertyChanging",
+  "handler": "label.OnFormattedTextChanging",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 65,
+    "lhs": "formattedString.PropertyChanging",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "94a9065d09f4f2d1",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Label/Label.cs",
+  "line": 79,
+  "event": "formattedString.PropertyChanged",
+  "handler": "label.OnFormattedTextChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 64,
+    "lhs": "formattedString.PropertyChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "141e4dae4ea7ca19",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Label/Label.cs",
+  "line": 80,
+  "event": "formattedString.SpansCollectionChanged",
+  "handler": "label.Span_CollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 63,
+    "lhs": "formattedString.SpansCollectionChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "9ef11abe8ab18ba9",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Label/Label.cs",
+  "line": 290,
+  "event": "span.GestureRecognizersCollectionChanged",
+  "handler": "Span_GestureRecognizer_CollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 307,
+    "lhs": "span.GestureRecognizersCollectionChanged",
+    "method": "RemoveSpans"
+   }
+  ]
+ },
+ {
+  "finding_id": "654cd9d9480a3700",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Layout/Grid.cs",
+  "line": 394,
+  "event": "newColDefs.ItemSizeChanged",
+  "handler": "gridLayout.DefinitionsChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 385,
+    "lhs": "oldColDefs.ItemSizeChanged",
+    "method": "UpdateSizeChangedHandlers"
+   },
+   {
+    "line": 389,
+    "lhs": "oldRowDefs.ItemSizeChanged",
+    "method": "UpdateSizeChangedHandlers"
+   }
+  ]
+ },
+ {
+  "finding_id": "2669133f2d3c3c4c",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Layout/Grid.cs",
+  "line": 398,
+  "event": "newRowDefs.ItemSizeChanged",
+  "handler": "gridLayout.DefinitionsChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 385,
+    "lhs": "oldColDefs.ItemSizeChanged",
+    "method": "UpdateSizeChangedHandlers"
+   },
+   {
+    "line": 389,
+    "lhs": "oldRowDefs.ItemSizeChanged",
+    "method": "UpdateSizeChangedHandlers"
+   }
+  ]
+ },
+ {
+  "finding_id": "20ae10b226247c0c",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/LegacyLayouts/AbsoluteLayout.cs",
+  "line": 85,
+  "event": "child.PropertyChanged",
+  "handler": "ChildOnPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 90,
+    "lhs": "child.PropertyChanged",
+    "method": "OnChildRemoved"
+   }
+  ]
+ },
+ {
+  "finding_id": "cb45c47492b597f6",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/LegacyLayouts/FlexLayout.cs",
+  "line": 290,
+  "event": "view.PropertyChanged",
+  "handler": "OnChildPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 296,
+    "lhs": "view.PropertyChanged",
+    "method": "OnRemoved"
+   }
+  ]
+ },
+ {
+  "finding_id": "2b52b6243574ae66",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/LegacyLayouts/Grid.cs",
+  "line": 43,
+  "event": "((ColumnDefinitionCollection)newvalue).ItemSizeChanged",
+  "handler": "((Grid)bindable).OnDefinitionChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 41,
+    "lhs": "((ColumnDefinitionCollection)oldvalue).ItemSizeChanged",
+    "method": "?"
+   },
+   {
+    "line": 57,
+    "lhs": "((RowDefinitionCollection)oldvalue).ItemSizeChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "46f26bd0d9f5e242",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/LegacyLayouts/Grid.cs",
+  "line": 59,
+  "event": "((RowDefinitionCollection)newvalue).ItemSizeChanged",
+  "handler": "((Grid)bindable).OnDefinitionChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 41,
+    "lhs": "((ColumnDefinitionCollection)oldvalue).ItemSizeChanged",
+    "method": "?"
+   },
+   {
+    "line": 57,
+    "lhs": "((RowDefinitionCollection)oldvalue).ItemSizeChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "034082d6bb0bd6ff",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/LegacyLayouts/Grid.cs",
+  "line": 159,
+  "event": "view.PropertyChanged",
+  "handler": "OnItemPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 171,
+    "lhs": "view.PropertyChanged",
+    "method": "OnRemoved"
+   }
+  ]
+ },
+ {
+  "finding_id": "5115fd68fc2d4420",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Menu/MenuItem.cs",
+  "line": 184,
+  "event": "newImageSource.SourceChanged",
+  "handler": "((MenuItem)bindable).OnImageSourceSourceChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 181,
+    "lhs": "oldImageSource.SourceChanged",
+    "method": "OnImageSourceChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "58df9fd825099722",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Menu/MenuItemTracker.cs",
+  "line": 189,
+  "event": "((ObservableCollection<TMenuItem>)GetMenuItems(page)).CollectionChanged",
+  "handler": "OnCollectionChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 250,
+    "lhs": ")GetMenuItems(page)).CollectionChanged",
+    "method": "UnregisterChildPage"
+   },
+   {
+    "line": 270,
+    "lhs": ")GetMenuItems(page)).CollectionChanged",
+    "method": "UntrackTarget"
+   }
+  ]
+ },
+ {
+  "finding_id": "87cf4d5aeeee81a5",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Menu/MenuItemTracker.cs",
+  "line": 190,
+  "event": "page.PropertyChanged",
+  "handler": "OnPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 251,
+    "lhs": "page.PropertyChanged",
+    "method": "UnregisterChildPage"
+   },
+   {
+    "line": 275,
+    "lhs": "page.PropertyChanged",
+    "method": "UntrackTarget"
+   }
+  ]
+ },
+ {
+  "finding_id": "3fc631d393ecfbc1",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Menu/MenuItemTracker.cs",
+  "line": 191,
+  "event": "page.Appearing",
+  "handler": "OnPageAppearing",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 252,
+    "lhs": "page.Appearing",
+    "method": "UnregisterChildPage"
+   },
+   {
+    "line": 276,
+    "lhs": "page.Appearing",
+    "method": "UntrackTarget"
+   }
+  ]
+ },
+ {
+  "finding_id": "19a7c482e3484d6f",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Menu/MenuItemTracker.cs",
+  "line": 207,
+  "event": "((ObservableCollection<TMenuItem>)GetMenuItems(page)).CollectionChanged",
+  "handler": "OnCollectionChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 250,
+    "lhs": ")GetMenuItems(page)).CollectionChanged",
+    "method": "UnregisterChildPage"
+   },
+   {
+    "line": 270,
+    "lhs": ")GetMenuItems(page)).CollectionChanged",
+    "method": "UntrackTarget"
+   }
+  ]
+ },
+ {
+  "finding_id": "b8358617c764aa62",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Menu/MenuItemTracker.cs",
+  "line": 211,
+  "event": "shell.Navigated",
+  "handler": "OnShellNavigated",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 265,
+    "lhs": "shell.Navigated",
+    "method": "UntrackTarget"
+   }
+  ]
+ },
+ {
+  "finding_id": "5049f78254b6d1e0",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Menu/MenuItemTracker.cs",
+  "line": 212,
+  "event": "shell.Navigating",
+  "handler": "OnShellNavigating",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 266,
+    "lhs": "shell.Navigating",
+    "method": "UntrackTarget"
+   }
+  ]
+ },
+ {
+  "finding_id": "24e31a4b736d8525",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Menu/MenuItemTracker.cs",
+  "line": 222,
+  "event": "page.DescendantAdded",
+  "handler": "OnChildAdded",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 273,
+    "lhs": "page.DescendantAdded",
+    "method": "UntrackTarget"
+   }
+  ]
+ },
+ {
+  "finding_id": "a30d61f364845ec8",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Menu/MenuItemTracker.cs",
+  "line": 223,
+  "event": "page.DescendantRemoved",
+  "handler": "OnChildRemoved",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 274,
+    "lhs": "page.DescendantRemoved",
+    "method": "UntrackTarget"
+   }
+  ]
+ },
+ {
+  "finding_id": "843ec93caa2aaeb3",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Menu/MenuItemTracker.cs",
+  "line": 224,
+  "event": "page.PropertyChanged",
+  "handler": "OnPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 251,
+    "lhs": "page.PropertyChanged",
+    "method": "UnregisterChildPage"
+   },
+   {
+    "line": 275,
+    "lhs": "page.PropertyChanged",
+    "method": "UntrackTarget"
+   }
+  ]
+ },
+ {
+  "finding_id": "5c33a8192ab54913",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Menu/MenuItemTracker.cs",
+  "line": 225,
+  "event": "page.Appearing",
+  "handler": "OnPageAppearing",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 252,
+    "lhs": "page.Appearing",
+    "method": "UnregisterChildPage"
+   },
+   {
+    "line": 276,
+    "lhs": "page.Appearing",
+    "method": "UntrackTarget"
+   }
+  ]
+ },
+ {
+  "finding_id": "9a8d8793a2f32776",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/NavigationPage/NavigationPage.cs",
+  "line": 460,
+  "event": "(this as IControlsVisualElement).WindowChanged",
+  "handler": "OnWindowChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "35a4d96c657d206e",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/ObservableWrapper.cs",
+  "line": 21,
+  "event": "list.CollectionChanged",
+  "handler": "ListOnCollectionChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "bb5f32eff6278eed",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Controls/src/Core/OrientationStateTrigger.cs",
+  "line": 40,
+  "event": "DeviceDisplay.MainDisplayInfoChanged",
+  "handler": "OnInfoPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 48,
+    "lhs": "DeviceDisplay.MainDisplayInfoChanged",
+    "method": "OnDetached"
+   }
+  ]
+ },
+ {
+  "finding_id": "84bffc9e5475091f",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Page/Page.cs",
+  "line": 487,
+  "event": "window.PopCanceled",
+  "handler": "handler",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 492,
+    "lhs": "window.PopCanceled",
+    "method": "OnBackButtonPressed"
+   }
+  ]
+ },
+ {
+  "finding_id": "6f508517323e1507",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Page/Page.cs",
+  "line": 818,
+  "event": "newImageSource.SourceChanged",
+  "handler": "((Page)bindable).OnImageSourceSourceChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 815,
+    "lhs": "oldImageSource.SourceChanged",
+    "method": "OnImageSourceChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "b23029d292de626c",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Picker/Picker.cs",
+  "line": 78,
+  "event": "((INotifyCollectionChanged)Items).CollectionChanged",
+  "handler": "OnItemsCollectionChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "d4fa4bbaa99e4abe",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Picker/Picker.cs",
+  "line": 296,
+  "event": "newObservable.CollectionChanged",
+  "handler": "CollectionChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 291,
+    "lhs": "oldObservable.CollectionChanged",
+    "method": "OnItemsSourceChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "b8417414da743c73",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/Android/AdapterItemKey.cs",
+  "line": 21,
+  "event": "_page.HandlerChanging",
+  "handler": "OnHandlerChanging",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 36,
+    "lhs": "_page.HandlerChanging",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "2a32acc3fd725557",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/Android/AdapterItemKey.cs",
+  "line": 22,
+  "event": "_page.HandlerChanged",
+  "handler": "OnHandlerChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 37,
+    "lhs": "_page.HandlerChanged",
+    "method": "Disconnect"
+   },
+   {
+    "line": 61,
+    "lhs": "page.HandlerChanged",
+    "method": "OnHandlerChanged"
+   },
+   {
+    "line": 74,
+    "lhs": "_page.HandlerChanged",
+    "method": "SetToStableView"
+   }
+  ]
+ },
+ {
+  "finding_id": "b296cc23bd732208",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/Android/Extensions/ToolbarExtensions.cs",
+  "line": 289,
+  "event": "item.PropertyChanged",
+  "handler": "toolbarItemChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 220,
+    "lhs": "item.PropertyChanged",
+    "method": "DisposeMenuItems"
+   },
+   {
+    "line": 252,
+    "lhs": "toolbarItem.PropertyChanged",
+    "method": "UpdateMenuItems"
+   },
+   {
+    "line": 288,
+    "lhs": "item.PropertyChanged",
+    "method": "UpdateMenuItem"
+   }
+  ]
+ },
+ {
+  "finding_id": "a145acafe0596120",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/Android/TabbedPageManager.cs",
+  "line": 136,
+  "event": "Element.Appearing",
+  "handler": "OnTabbedPageAppearing",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 125,
+    "lhs": "Element.Appearing",
+    "method": "SetElement"
+   }
+  ]
+ },
+ {
+  "finding_id": "8ea4971dac751ee2",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/Android/TabbedPageManager.cs",
+  "line": 137,
+  "event": "Element.Disappearing",
+  "handler": "OnTabbedPageDisappearing",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 126,
+    "lhs": "Element.Disappearing",
+    "method": "SetElement"
+   }
+  ]
+ },
+ {
+  "finding_id": "4fc964464ce5e690",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/Android/TabbedPageManager.cs",
+  "line": 170,
+  "event": "((IPageController)tabbedPage).InternalChildren.CollectionChanged",
+  "handler": "OnChildrenCollectionChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 124,
+    "lhs": "((IPageController)Element).InternalChildren.CollectionChanged",
+    "method": "SetElement"
+   }
+  ]
+ },
+ {
+  "finding_id": "e6f18a67b10dae39",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/Android/TabbedPageManager.cs",
+  "line": 250,
+  "event": "rootManager.RootViewChanged",
+  "handler": "RootViewChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 233,
+    "lhs": "rootManager.RootViewChanged",
+    "method": "RootViewChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "65d2921519475578",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/Android/TabbedPageManager.cs",
+  "line": 402,
+  "event": "page.PropertyChanged",
+  "handler": "OnPagePropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 397,
+    "lhs": "page.PropertyChanged",
+    "method": "TeardownPage"
+   }
+  ]
+ },
+ {
+  "finding_id": "0e5bd30bae8a7046",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/Android/TabbedPageManager.cs",
+  "line": 596,
+  "event": "newGradientBrush.InvalidateGradientBrushRequested",
+  "handler": "OnBarBackgroundChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 588,
+    "lhs": "oldGradientBrush.InvalidateGradientBrushRequested",
+    "method": "UpdateBarBackground"
+   }
+  ]
+ },
+ {
+  "finding_id": "9e8ef6a93ea9789e",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/GestureManager/GestureManager.cs",
+  "line": 27,
+  "event": "view.HandlerChanging",
+  "handler": "OnHandlerChanging",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "ad29709a316a9c77",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/GestureManager/GestureManager.cs",
+  "line": 28,
+  "event": "view.HandlerChanged",
+  "handler": "OnHandlerChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "8baf2f674187b74d",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/GestureManager/GestureManager.cs",
+  "line": 29,
+  "event": "view.WindowChanged",
+  "handler": "OnWindowChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "14c0d7053a605386",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/GestureManager/GestureManager.cs",
+  "line": 30,
+  "event": "view.PlatformContainerViewChanged",
+  "handler": "OnPlatformContainerViewChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "9c596f70d35f4029",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/GestureManager/GesturePlatformManager.Android.cs",
+  "line": 317,
+  "event": "incc.CollectionChanged",
+  "handler": "GestureCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 305,
+    "lhs": "incc.CollectionChanged",
+    "method": "SetupElement"
+   }
+  ]
+ },
+ {
+  "finding_id": "d6c5a1a90f430f2a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/GestureManager/GesturePlatformManager.Tizen.cs",
+  "line": 40,
+  "event": "incc.CollectionChanged",
+  "handler": "OnGestureRecognizerCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 30,
+    "lhs": "incc.CollectionChanged",
+    "method": "SetupElement"
+   }
+  ]
+ },
+ {
+  "finding_id": "a352b7d323275ab4",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.Android.cs",
+  "line": 30,
+  "event": "_window.Activated",
+  "handler": "(_, _) => SyncModalStackWhenPlatformIsReady()",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "7e9e435bc761916f",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.Android.cs",
+  "line": 31,
+  "event": "_window.HandlerChanging",
+  "handler": "OnPlatformWindowHandlerChanging",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "a5d60a944ea17db6",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.Android.cs",
+  "line": 32,
+  "event": "_window.PropertyChanging",
+  "handler": "OnWindowPropertyChanging",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "de3757eef2300bea",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.Android.cs",
+  "line": 221,
+  "event": "_modal.PropertyChanged",
+  "handler": "OnModalPagePropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 272,
+    "lhs": "page.PropertyChanged",
+    "method": "OnModalPagePropertyChanged"
+   },
+   {
+    "line": 371,
+    "lhs": "_modal.PropertyChanged",
+    "method": "OnDismiss"
+   }
+  ]
+ },
+ {
+  "finding_id": "fce673164f66699e",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.Android.cs",
+  "line": 221,
+  "event": "_modal.PropertyChanged",
+  "handler": "OnModalPagePropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 272,
+    "lhs": "page.PropertyChanged",
+    "method": "OnModalPagePropertyChanged"
+   },
+   {
+    "line": 371,
+    "lhs": "_modal.PropertyChanged",
+    "method": "OnDismiss"
+   }
+  ]
+ },
+ {
+  "finding_id": "5b0f469b747ea4b6",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.Android.cs",
+  "line": 222,
+  "event": "_modal.HandlerChanged",
+  "handler": "OnPageHandlerChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 260,
+    "lhs": "page.HandlerChanged",
+    "method": "OnPageHandlerChanged"
+   },
+   {
+    "line": 273,
+    "lhs": "page.HandlerChanged",
+    "method": "OnModalPagePropertyChanged"
+   },
+   {
+    "line": 372,
+    "lhs": "_modal.HandlerChanged",
+    "method": "OnDismiss"
+   }
+  ]
+ },
+ {
+  "finding_id": "a88f2a96a0276848",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.Android.cs",
+  "line": 222,
+  "event": "_modal.HandlerChanged",
+  "handler": "OnPageHandlerChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 260,
+    "lhs": "page.HandlerChanged",
+    "method": "OnPageHandlerChanged"
+   },
+   {
+    "line": 273,
+    "lhs": "page.HandlerChanged",
+    "method": "OnModalPagePropertyChanged"
+   },
+   {
+    "line": 372,
+    "lhs": "_modal.HandlerChanged",
+    "method": "OnDismiss"
+   }
+  ]
+ },
+ {
+  "finding_id": "339be1e55ad45583",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.Windows.cs",
+  "line": 18,
+  "event": "_window.Created",
+  "handler": "(_, _) => SyncModalStackWhenPlatformIsReady()",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "ecf0f1624ee4863d",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.Windows.cs",
+  "line": 19,
+  "event": "_window.Destroying",
+  "handler": "(_, _) => _firstActivated = false",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "e4d04153bb1047fc",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.Windows.cs",
+  "line": 20,
+  "event": "_window.Activated",
+  "handler": "OnWindowActivated",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "dup_group_size": 1,
+  "family": "C01",
+  "finding_id": "f067ec6bd3eb2daf",
+  "known_defect_uids": "",
+  "level": "warning",
+  "message": "event '_window.PropertyChanged' is subscribed (handler '(_, args) =>\n\t\t\t{\n\t\t\t\tif (args.Is(Window.PageProperty))\n\t\t\t\t\tSettingNewPage();\n\t\t\t}') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ModalNavigationManager' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+  "ordinal_in_dup_group": 0,
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.cs",
+  "phase5_excluded": "",
+  "resource_tag": "subscription token",
+  "ruleId": "OWN001",
+  "start_column": 4,
+  "start_line": 49,
+  "stratum": "C01-U",
+  "uri_raw": "maui/src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.cs",
+  "cls": "NO_PARSE"
+ },
+ {
+  "finding_id": "166c46993747cb94",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.cs",
+  "line": 57,
+  "event": "_window.HandlerChanging",
+  "handler": "OnWindowHandlerChanging",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "dup_group_size": 1,
+  "family": "C01",
+  "finding_id": "110eb87ce1b9ff4d",
+  "known_defect_uids": "",
+  "level": "warning",
+  "message": "event '_window.Destroying' is subscribed (handler '(_, _) =>\n\t\t\t{\n\t\t\t\tClearModalPages(platform: true);\n\t\t\t}') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ModalNavigationManager' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+  "ordinal_in_dup_group": 0,
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.cs",
+  "phase5_excluded": "",
+  "resource_tag": "subscription token",
+  "ruleId": "OWN001",
+  "start_column": 4,
+  "start_line": 58,
+  "stratum": "C01-U",
+  "uri_raw": "maui/src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.cs",
+  "cls": "NO_PARSE"
+ },
+ {
+  "finding_id": "161c1bc10fcd8932",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.cs",
+  "line": 337,
+  "event": "_currentPage.HandlerChanged",
+  "handler": "OnCurrentPageHandlerChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 329,
+    "lhs": "previousPage.HandlerChanged",
+    "method": "SettingNewPage"
+   },
+   {
+    "line": 351,
+    "lhs": "_currentPage.HandlerChanged",
+    "method": "OnCurrentPageHandlerChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "b8076990a304f96c",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.iOS.cs",
+  "line": 24,
+  "event": "_window.Activated",
+  "handler": "OnWindowActivated",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "03654d8892a20d97",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.iOS.cs",
+  "line": 25,
+  "event": "_window.Resumed",
+  "handler": "(_, _) => SyncPlatformModalStack()",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "9899be2657c291e8",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.iOS.cs",
+  "line": 26,
+  "event": "_window.HandlerChanging",
+  "handler": "OnPlatformWindowHandlerChanging",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "9b5438eef0b548db",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.iOS.cs",
+  "line": 27,
+  "event": "_window.Destroying",
+  "handler": "(_, _) => _platformActivated = false",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "40a70b29c03cea80",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/ModalNavigationManager/ModalNavigationManager.iOS.cs",
+  "line": 28,
+  "event": "_window.PropertyChanging",
+  "handler": "OnWindowPropertyChanging",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "97a3da44226c2c54",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/Windows/CollectionView/ItemContentControl.cs",
+  "line": 141,
+  "event": "_visualElement.MeasureInvalidated",
+  "handler": "OnViewMeasureInvalidated",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 135,
+    "lhs": "_visualElement.MeasureInvalidated",
+    "method": "OnContentChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "d330ea758fcae8f6",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/Windows/CollectionView/ItemContentControl.cs",
+  "line": 142,
+  "event": "_visualElement.PropertyChanged",
+  "handler": "OnViewPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 136,
+    "lhs": "_visualElement.PropertyChanged",
+    "method": "OnContentChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "e3fd52b2ea189f81",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/Windows/MenuItemCommand.cs",
+  "line": 15,
+  "event": "_menuItem.PropertyChanged",
+  "handler": "OnElementPropertyChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "517862a72faec8db",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Platform/iOS/ControlsModalWrapper.cs",
+  "line": 73,
+  "event": "page.PropertyChanged",
+  "handler": "OnModalPagePropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 174,
+    "lhs": "modalPage.PropertyChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "dup_group_size": 1,
+  "family": "C01",
+  "finding_id": "c89b08e6c87a9a72",
+  "known_defect_uids": "",
+  "level": "warning",
+  "message": "event 'propertyChanged.PropertyChanged' is subscribed (handler '(sender, e) =>\n\t\t\t\t{\n\t\t\t\t\tif (e.PropertyName != targetProperty)\n\t\t\t\t\t\treturn;\n\t\t\t\t\tSetValueFromNative(sender as TPlatformView, targetProperty, bindableProperty);\n\t\t\t\t\t//we need to keep the listener around he same time we have the proxy\n\t\t\t\t\tproxy.NativeINPCListener = propertyChanged;\n\t\t\t\t}') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'PlatformBindingHelpers' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+  "ordinal_in_dup_group": 0,
+  "path": "src/Controls/src/Core/PlatformBindingHelpers.cs",
+  "phase5_excluded": "",
+  "resource_tag": "subscription token",
+  "ruleId": "OWN001",
+  "start_column": 5,
+  "start_line": 50,
+  "stratum": "C01-U",
+  "uri_raw": "maui/src/Controls/src/Core/PlatformBindingHelpers.cs",
+  "cls": "NO_PARSE"
+ },
+ {
+  "dup_group_size": 1,
+  "family": "C01",
+  "finding_id": "a91844a285d64c7c",
+  "known_defect_uids": "",
+  "level": "warning",
+  "message": "event 'recognizer.PointerEntered' is subscribed (handler '(s, e) =>\n\t\t\t\t{\n\t\t\t\t\tupdatePointerState.Invoke(true);\n\t\t\t\t}') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'PointerGestureRecognizer' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+  "ordinal_in_dup_group": 0,
+  "path": "src/Controls/src/Core/PointerGestureRecognizer.cs",
+  "phase5_excluded": "",
+  "resource_tag": "subscription token",
+  "ruleId": "OWN001",
+  "start_column": 5,
+  "start_line": 295,
+  "stratum": "C01-U",
+  "uri_raw": "maui/src/Controls/src/Core/PointerGestureRecognizer.cs",
+  "cls": "NO_PARSE"
+ },
+ {
+  "dup_group_size": 1,
+  "family": "C01",
+  "finding_id": "737dce9ac7ff4696",
+  "known_defect_uids": "",
+  "level": "warning",
+  "message": "event 'recognizer.PointerExited' is subscribed (handler '(s, e) =>\n\t\t\t\t{\n\t\t\t\t\tupdatePointerState.Invoke(false);\n\t\t\t\t}') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'PointerGestureRecognizer' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+  "ordinal_in_dup_group": 0,
+  "path": "src/Controls/src/Core/PointerGestureRecognizer.cs",
+  "phase5_excluded": "",
+  "resource_tag": "subscription token",
+  "ruleId": "OWN001",
+  "start_column": 5,
+  "start_line": 300,
+  "stratum": "C01-U",
+  "uri_raw": "maui/src/Controls/src/Core/PointerGestureRecognizer.cs",
+  "cls": "NO_PARSE"
+ },
+ {
+  "finding_id": "0a1254783b17ac79",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/RadioButton/RadioButtonGroupController.cs",
+  "line": 25,
+  "event": "_layout.ChildAdded",
+  "handler": "ChildAdded",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "3fda57680a940b9b",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/RadioButton/RadioButtonGroupController.cs",
+  "line": 26,
+  "event": "_layout.ChildRemoved",
+  "handler": "ChildRemoved",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "9ef6140bcbbd8332",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/RelativeBindingSource.cs",
+  "line": 158,
+  "event": "currentElement.ParentSet",
+  "handler": "onElementParentSet",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 155,
+    "lhs": "currentElement.ParentSet",
+    "method": "ApplyAncestorTypeBinding"
+   }
+  ]
+ },
+ {
+  "finding_id": "9e88c245fb661e06",
+  "stratum": "PHASE5",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/ResourceDictionary.cs",
+  "line": 155,
+  "event": "rd.ValuesChanged",
+  "handler": "Item_ValuesChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 142,
+    "lhs": "dictionary.ValuesChanged",
+    "method": "MergedDictionaries_CollectionChanged"
+   },
+   {
+    "line": 166,
+    "lhs": "rd.ValuesChanged",
+    "method": "MergedDictionaries_CollectionChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "0ff72b463e0de696",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/ScrollView/ScrollView.cs",
+  "line": 167,
+  "event": "_content.SizeChanged",
+  "handler": "ContentSizeChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 160,
+    "lhs": "_content.SizeChanged",
+    "method": "SetScrolledPosition"
+   }
+  ]
+ },
+ {
+  "finding_id": "2eb0a6b820e7c348",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Controls/src/Core/SearchBar/SearchBar.cs",
+  "line": 152,
+  "event": "Application.Current.RequestedThemeChanged",
+  "handler": "OnRequestedThemeChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 150,
+    "lhs": "Application.Current.RequestedThemeChanged",
+    "method": "OnHandlerChangingCore"
+   }
+  ]
+ },
+ {
+  "finding_id": "c371a281921aa2f8",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/SemanticProperties.cs",
+  "line": 70,
+  "event": "source.PropertyChanged",
+  "handler": "PropagateSemanticProperties",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "840f6f19c3552b53",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/GeometryGroup.cs",
+  "line": 67,
+  "event": "newChildren.PropertyChanged",
+  "handler": "OnChildrenPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 56,
+    "lhs": "oldChildren.PropertyChanged",
+    "method": "UpdateChildren"
+   },
+   {
+    "line": 80,
+    "lhs": "oldGeometry.PropertyChanged",
+    "method": "OnChildrenCollectionChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "cc0eaadbb3c8680b",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/GeometryGroup.cs",
+  "line": 91,
+  "event": "newGeometry.PropertyChanged",
+  "handler": "OnChildrenPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 56,
+    "lhs": "oldChildren.PropertyChanged",
+    "method": "UpdateChildren"
+   },
+   {
+    "line": 80,
+    "lhs": "oldGeometry.PropertyChanged",
+    "method": "OnChildrenCollectionChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "446f8bdc4ce45e9d",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/Path.cs",
+  "line": 59,
+  "event": "(newValue as Geometry).PropertyChanged",
+  "handler": "(bindable as Path).OnGeometryPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 51,
+    "lhs": "(oldValue as Geometry).PropertyChanged",
+    "method": "OnGeometryPropertyChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "46fcc042ca541811",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/Path.cs",
+  "line": 62,
+  "event": "pathGeometry.InvalidatePathGeometryRequested",
+  "handler": "(bindable as Path).OnInvalidatePathGeometryRequested",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 54,
+    "lhs": "pathGeometry.InvalidatePathGeometryRequested",
+    "method": "OnGeometryPropertyChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "60379ffe23e6516f",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/Path.cs",
+  "line": 75,
+  "event": "(newValue as Transform).PropertyChanged",
+  "handler": "(bindable as Path).OnTransformPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 70,
+    "lhs": "(oldValue as Transform).PropertyChanged",
+    "method": "OnTransformPropertyChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "074efdcdd3e25f1d",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/PathFigure.cs",
+  "line": 102,
+  "event": "newPathSegment.PropertyChanged",
+  "handler": "OnPathSegmentPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 91,
+    "lhs": "oldPathSegment.PropertyChanged",
+    "method": "UpdatePathSegmentCollection"
+   },
+   {
+    "line": 115,
+    "lhs": "oldPathSegment.PropertyChanged",
+    "method": "OnPathSegmentCollectionChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "7e7c265c17dac30d",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/PathFigure.cs",
+  "line": 126,
+  "event": "newPathSegment.PropertyChanged",
+  "handler": "OnPathSegmentPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 91,
+    "lhs": "oldPathSegment.PropertyChanged",
+    "method": "UpdatePathSegmentCollection"
+   },
+   {
+    "line": 115,
+    "lhs": "oldPathSegment.PropertyChanged",
+    "method": "OnPathSegmentCollectionChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "1015ab7c7f9034ba",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/PathGeometry.cs",
+  "line": 204,
+  "event": "newPathFigure.PropertyChanged",
+  "handler": "OnPathFigurePropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 192,
+    "lhs": "oldPathFigure.PropertyChanged",
+    "method": "UpdatePathFigureCollection"
+   },
+   {
+    "line": 218,
+    "lhs": "oldPathFigure.PropertyChanged",
+    "method": "OnPathFigureCollectionChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "0e2b0bc422580678",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/PathGeometry.cs",
+  "line": 205,
+  "event": "newPathFigure.InvalidatePathSegmentRequested",
+  "handler": "OnInvalidatePathSegmentRequested",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 193,
+    "lhs": "oldPathFigure.InvalidatePathSegmentRequested",
+    "method": "UpdatePathFigureCollection"
+   },
+   {
+    "line": 219,
+    "lhs": "oldPathFigure.InvalidatePathSegmentRequested",
+    "method": "OnPathFigureCollectionChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "fff65d186ea138e6",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/PathGeometry.cs",
+  "line": 230,
+  "event": "newPathFigure.PropertyChanged",
+  "handler": "OnPathFigurePropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 192,
+    "lhs": "oldPathFigure.PropertyChanged",
+    "method": "UpdatePathFigureCollection"
+   },
+   {
+    "line": 218,
+    "lhs": "oldPathFigure.PropertyChanged",
+    "method": "OnPathFigureCollectionChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "93b1e81964210565",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/PathGeometry.cs",
+  "line": 231,
+  "event": "newPathFigure.InvalidatePathSegmentRequested",
+  "handler": "OnInvalidatePathSegmentRequested",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 193,
+    "lhs": "oldPathFigure.InvalidatePathSegmentRequested",
+    "method": "UpdatePathFigureCollection"
+   },
+   {
+    "line": 219,
+    "lhs": "oldPathFigure.InvalidatePathSegmentRequested",
+    "method": "OnPathFigureCollectionChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "c7807580519b297d",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/Shape.cs",
+  "line": 494,
+  "event": "source.PropertyChanged",
+  "handler": "OnBrushChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 488,
+    "lhs": "s.PropertyChanged",
+    "method": "Subscribe"
+   },
+   {
+    "line": 505,
+    "lhs": "s.PropertyChanged",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "54ca5b4a5f8f558c",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/Shape.cs",
+  "line": 494,
+  "event": "source.PropertyChanged",
+  "handler": "OnBrushChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 488,
+    "lhs": "s.PropertyChanged",
+    "method": "Subscribe"
+   },
+   {
+    "line": 505,
+    "lhs": "s.PropertyChanged",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "f38a67da804f9e98",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/Shape.cs",
+  "line": 496,
+  "event": "gradientBrush.InvalidateGradientBrushRequested",
+  "handler": "OnBrushChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 491,
+    "lhs": "g.InvalidateGradientBrushRequested",
+    "method": "Subscribe"
+   },
+   {
+    "line": 508,
+    "lhs": "g.InvalidateGradientBrushRequested",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "da28e3d30ee0397a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/Shape.cs",
+  "line": 496,
+  "event": "gradientBrush.InvalidateGradientBrushRequested",
+  "handler": "OnBrushChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 491,
+    "lhs": "g.InvalidateGradientBrushRequested",
+    "method": "Subscribe"
+   },
+   {
+    "line": 508,
+    "lhs": "g.InvalidateGradientBrushRequested",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "21a1ec17334b9677",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/TransformGroup.cs",
+  "line": 38,
+  "event": "(newValue as TransformCollection).CollectionChanged",
+  "handler": "(bindable as TransformGroup).OnChildrenCollectionChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 33,
+    "lhs": "(oldValue as TransformCollection).CollectionChanged",
+    "method": "OnTransformGroupChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "22428238833653bb",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shapes/TransformGroup.cs",
+  "line": 49,
+  "event": "item.PropertyChanged",
+  "handler": "OnTransformPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 55,
+    "lhs": "item.PropertyChanged",
+    "method": "OnChildrenCollectionChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "b8d7813c5178c4bb",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/MenuItemCollection.cs",
+  "line": 16,
+  "event": "((INotifyCollectionChanged)_inner).CollectionChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 17,
+    "lhs": "((INotifyCollectionChanged)_inner).CollectionChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "d3f4eaa772ed12a9",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/MenuShellItem.cs",
+  "line": 23,
+  "event": "MenuItem.PropertyChanged",
+  "handler": "OnMenuItemPropertyChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "b5b430741edb2c96",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/Shell.cs",
+  "line": 971,
+  "event": "((ShellItemCollection)Items).VisibleItemsChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 972,
+    "lhs": "((ShellItemCollection)Items).VisibleItemsChanged",
+    "method": "IShellController.UpdateCurrentState"
+   }
+  ]
+ },
+ {
+  "finding_id": "5a4e20744fe7c968",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/Shell.cs",
+  "line": 1202,
+  "event": "ShellController.FlyoutItemsChanged",
+  "handler": "(_, __) => Handler?.UpdateValue(nameof(FlyoutItems))",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "dc5cec6e374d5e70",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/Shell.cs",
+  "line": 1203,
+  "event": "ShellController.ItemsCollectionChanged",
+  "handler": "(_, __) => Handler?.UpdateValue(nameof(Items))",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "80696f420d92d841",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Controls/src/Core/Shell/Shell.cs",
+  "line": 1218,
+  "event": "Application.Current.RequestedThemeChanged",
+  "handler": "OnRequestedThemeChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 1215,
+    "lhs": "Application.Current.RequestedThemeChanged",
+    "method": "OnHandlerChangingCore"
+   }
+  ]
+ },
+ {
+  "dup_group_size": 1,
+  "family": "C01",
+  "finding_id": "672b158d743d4110",
+  "known_defect_uids": "",
+  "level": "warning",
+  "message": "event '((ShellElementCollection)Items).VisibleItemsChangedInternal' is subscribed (handler 'async (s, e) =>\n\t\t\t{\n\t\t\t\tawait SetCurrentItem();\n\n\t\t\t\tSendStructureChanged();\n\t\t\t\tSendFlyoutItemsChanged();\n\t\t\t}') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'Shell' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+  "ordinal_in_dup_group": 0,
+  "path": "src/Controls/src/Core/Shell/Shell.cs",
+  "phase5_excluded": "",
+  "resource_tag": "subscription token",
+  "ruleId": "OWN001",
+  "start_column": 4,
+  "start_line": 1233,
+  "stratum": "C01-U",
+  "uri_raw": "maui/src/Controls/src/Core/Shell/Shell.cs",
+  "cls": "NO_PARSE"
+ },
+ {
+  "finding_id": "21e698faa4ad5281",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/Shell.cs",
+  "line": 1628,
+  "event": "CurrentPage.PropertyChanged",
+  "handler": "OnCurrentPagePropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 1594,
+    "lhs": "_previousPage.PropertyChanged",
+    "method": "SendNavigated"
+   }
+  ]
+ },
+ {
+  "finding_id": "6e0cc0e49446622b",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellContent.cs",
+  "line": 122,
+  "event": "((INotifyCollectionChanged)MenuItems).CollectionChanged",
+  "handler": "MenuItemsCollectionChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "d667caa22f4a63a0",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellContent.cs",
+  "line": 159,
+  "event": "page.ParentSet",
+  "handler": "OnPresentedPageParentSet",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 163,
+    "lhs": "(sender as Page).ParentSet",
+    "method": "OnPresentedPageParentSet"
+   }
+  ]
+ },
+ {
+  "finding_id": "34c6b4bdb5f38a74",
+  "stratum": "PHASE5",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellContent.cs",
+  "line": 177,
+  "event": "page.PropertyChanged",
+  "handler": "OnPagePropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 187,
+    "lhs": "page.PropertyChanged",
+    "method": "OnChildRemoved"
+   }
+  ]
+ },
+ {
+  "finding_id": "1f0bd3ed2611cec6",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellContent.cs",
+  "line": 220,
+  "event": "value.Unloaded",
+  "handler": "OnPageUnloaded",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 211,
+    "lhs": "oldCache.Unloaded",
+    "method": "OnPagePropertyChanged"
+   },
+   {
+    "line": 262,
+    "lhs": "_contentCache.Unloaded",
+    "method": "EvaluateDisconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "c454e87dbdce120d",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellContentCollection.cs",
+  "line": 35,
+  "event": "controller.IsPageVisibleChanged",
+  "handler": "OnIsPageVisibleChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 42,
+    "lhs": "controller.IsPageVisibleChanged",
+    "method": "OnElementControllerRemoving"
+   }
+  ]
+ },
+ {
+  "finding_id": "dcafe41f76b11ffa",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellElementCollection.cs",
+  "line": 41,
+  "event": "((INotifyCollectionChanged)_inner).CollectionChanged",
+  "handler": "InnerCollectionChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "a96b5cabf69ad1e4",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellElementCollection.cs",
+  "line": 70,
+  "event": "((INotifyCollectionChanged)_visibleItems).CollectionChanged",
+  "handler": "OnVisibleItemsChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "60b5ebd287f8a089",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellElementCollection.cs",
+  "line": 233,
+  "event": "sgi.ShellElementCollection.VisibleItemsChangedInternal",
+  "handler": "OnShellElementControllerItemsCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 244,
+    "lhs": "sgi.ShellElementCollection.VisibleItemsChangedInternal",
+    "method": "OnElementControllerRemoving"
+   }
+  ]
+ },
+ {
+  "finding_id": "8e5c931646087812",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellElementCollection.cs",
+  "line": 237,
+  "event": "bsi.PropertyChanged",
+  "handler": "BaseShellItemPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 248,
+    "lhs": "bsi.PropertyChanged",
+    "method": "OnElementControllerRemoving"
+   }
+  ]
+ },
+ {
+  "finding_id": "c0d5462b8a9a13ee",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellElementCollection.cs",
+  "line": 262,
+  "event": "bsi.ParentSet",
+  "handler": "OnParentSet",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 270,
+    "lhs": "baseShellItem.ParentSet",
+    "method": "OnParentSet"
+   }
+  ]
+ },
+ {
+  "finding_id": "91fe7612735361b9",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellItem.cs",
+  "line": 95,
+  "event": "((ShellSectionCollection)Items).VisibleItemsChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 96,
+    "lhs": "((ShellSectionCollection)Items).VisibleItemsChanged",
+    "method": "IShellItemController.ProposeSection"
+   }
+  ]
+ },
+ {
+  "dup_group_size": 1,
+  "family": "C01",
+  "finding_id": "33fe8c976e7c4b34",
+  "known_defect_uids": "",
+  "level": "warning",
+  "message": "event '((ShellElementCollection)Items).VisibleItemsChangedInternal' is subscribed (handler '(_, args) =>\n\t\t\t{\n\t\t\t\tif (args.OldItems != null)\n\t\t\t\t{\n\t\t\t\t\tforeach (Element item in args.OldItems)\n\t\t\t\t\t{\n\t\t\t\t\t\tOnVisibleChildRemoved(item);\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tif (args.NewItems != null)\n\t\t\t\t{\n\t\t\t\t\tforeach (Element item in args.NewItems)\n\t\t\t\t\t{\n\t\t\t\t\t\tOnVisibleChildAdded(item);\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tSendStructureChanged();\n\t\t\t}') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ShellItem' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+  "ordinal_in_dup_group": 0,
+  "path": "src/Controls/src/Core/Shell/ShellItem.cs",
+  "phase5_excluded": "",
+  "resource_tag": "subscription token",
+  "ruleId": "OWN001",
+  "start_column": 4,
+  "start_line": 156,
+  "stratum": "C01-U",
+  "uri_raw": "maui/src/Controls/src/Core/Shell/ShellItem.cs",
+  "cls": "NO_PARSE"
+ },
+ {
+  "finding_id": "495f04ded02161c5",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellItem.cs",
+  "line": 177,
+  "event": "(Items as INotifyCollectionChanged).CollectionChanged",
+  "handler": "ItemsCollectionChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "352515b46a93c5a7",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellNavigationManager.cs",
+  "line": 221,
+  "event": "_shell.PropertyChanged",
+  "handler": "WaitForWindowToSet",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 229,
+    "lhs": "_shell.PropertyChanged",
+    "method": "HandleNavigated"
+   }
+  ]
+ },
+ {
+  "finding_id": "5773fa615a826e52",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellNavigationManager.cs",
+  "line": 225,
+  "event": "shellContent.ChildAdded",
+  "handler": "WaitForWindowToSet",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 231,
+    "lhs": "shellContent.ChildAdded",
+    "method": "HandleNavigated"
+   }
+  ]
+ },
+ {
+  "finding_id": "c4ca0add8d854137",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellSection.cs",
+  "line": 229,
+  "event": "((ShellContentCollection)Items).VisibleItemsChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 230,
+    "lhs": "((ShellContentCollection)Items).VisibleItemsChanged",
+    "method": "IShellSectionController.SendPopped"
+   }
+  ]
+ },
+ {
+  "dup_group_size": 1,
+  "family": "C01",
+  "finding_id": "588ad87c7902dc25",
+  "known_defect_uids": "",
+  "level": "warning",
+  "message": "event '((ShellElementCollection)Items).VisibleItemsChangedInternal' is subscribed (handler '(_, args) =>\n\t\t\t{\n\t\t\t\tif (args.OldItems != null)\n\t\t\t\t{\n\t\t\t\t\tforeach (Element item in args.OldItems)\n\t\t\t\t\t{\n\t\t\t\t\t\tOnVisibleChildRemoved(item);\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tif (args.NewItems != null)\n\t\t\t\t{\n\t\t\t\t\tforeach (Element item in args.NewItems)\n\t\t\t\t\t{\n\t\t\t\t\t\tOnVisibleChildAdded(item);\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tSendStructureChanged();\n\t\t\t}') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ShellSection' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+  "ordinal_in_dup_group": 0,
+  "path": "src/Controls/src/Core/Shell/ShellSection.cs",
+  "phase5_excluded": "",
+  "resource_tag": "subscription token",
+  "ruleId": "OWN001",
+  "start_column": 4,
+  "start_line": 258,
+  "stratum": "C01-U",
+  "uri_raw": "maui/src/Controls/src/Core/Shell/ShellSection.cs",
+  "cls": "NO_PARSE"
+ },
+ {
+  "finding_id": "1c00fdee5a90239b",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellSection.cs",
+  "line": 729,
+  "event": "sc.Page.PlatformEnabledChanged",
+  "handler": "WaitForRendererToGetRemoved",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 732,
+    "lhs": "sc.Page.PlatformEnabledChanged",
+    "method": "WaitForRendererToGetRemoved"
+   }
+  ]
+ },
+ {
+  "finding_id": "23bf37704ec2edae",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Shell/ShellSection.cs",
+  "line": 1016,
+  "event": "presentedPage.ParentSet",
+  "handler": "OnPresentedPageParentSet",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 1021,
+    "lhs": "(sender as Page).ParentSet",
+    "method": "OnPresentedPageParentSet"
+   }
+  ]
+ },
+ {
+  "finding_id": "bc7ed4815dcf225e",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/ShellToolbar.cs",
+  "line": 29,
+  "event": "shell.Navigated",
+  "handler": "(_, __) => ApplyChanges()",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "dup_group_size": 1,
+  "family": "C01",
+  "finding_id": "16cb26c1edd31a43",
+  "known_defect_uids": "",
+  "level": "warning",
+  "message": "event 'shell.PropertyChanged' is subscribed (handler '(_, p) =>\n\t\t\t{\n\t\t\t\tif (p.IsOneOf(\n\t\t\t\t\tShell.CurrentItemProperty,\n\t\t\t\t\tShell.FlyoutBehaviorProperty,\n\t\t\t\t\tShell.BackButtonBehaviorProperty,\n\t\t\t\t\tShell.NavBarIsVisibleProperty,\n\t\t\t\t\tShell.TitleViewProperty))\n\t\t\t\t{\n\t\t\t\t\tApplyChanges();\n\t\t\t\t}\n\t\t\t\telse if (p.Is(Shell.TitleProperty))\n\t\t\t\t\tUpdateTitle();\n\t\t\t}') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ShellToolbar' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+  "ordinal_in_dup_group": 0,
+  "path": "src/Controls/src/Core/ShellToolbar.cs",
+  "phase5_excluded": "",
+  "resource_tag": "subscription token",
+  "ruleId": "OWN001",
+  "start_column": 4,
+  "start_line": 30,
+  "stratum": "C01-U",
+  "uri_raw": "maui/src/Controls/src/Core/ShellToolbar.cs",
+  "cls": "NO_PARSE"
+ },
+ {
+  "finding_id": "a455f139a7930ca2",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/ShellToolbar.cs",
+  "line": 45,
+  "event": "shell.HandlerChanged",
+  "handler": "(_, __) => ApplyChanges()",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "6d89962796d38b3a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/ShellToolbar.cs",
+  "line": 66,
+  "event": "_currentPage.PropertyChanged",
+  "handler": "OnCurrentPagePropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 61,
+    "lhs": "_currentPage.PropertyChanged",
+    "method": "ApplyChanges"
+   }
+  ]
+ },
+ {
+  "finding_id": "01628b6821b330d5",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/ShellToolbar.cs",
+  "line": 145,
+  "event": "_backButtonBehavior.PropertyChanged",
+  "handler": "OnBackButtonCommandPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 140,
+    "lhs": "_backButtonBehavior.PropertyChanged",
+    "method": "UpdateBackbuttonBehavior"
+   }
+  ]
+ },
+ {
+  "finding_id": "6431e5902dfbe430",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/SwipeView/SwipeItemView.cs",
+  "line": 54,
+  "event": "Command.CanExecuteChanged",
+  "handler": "OnCommandCanExecuteChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 62,
+    "lhs": "Command.CanExecuteChanged",
+    "method": "OnCommandChanging"
+   }
+  ]
+ },
+ {
+  "finding_id": "3cf01b50cc36352c",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/SwipeView/SwipeItems.cs",
+  "line": 28,
+  "event": "_swipeItems.CollectionChanged",
+  "handler": "OnSwipeItemsChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "2cf94f126ec86351",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/SwipeView/SwipeView.cs",
+  "line": 147,
+  "event": "newItems.CollectionChanged",
+  "handler": "SwipeItemsCollectionChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 140,
+    "lhs": "oldItems.CollectionChanged",
+    "method": "OnSwipeItemsChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "e97a7c7887f90efe",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/SwipeView/SwipeView.cs",
+  "line": 148,
+  "event": "newItems.PropertyChanged",
+  "handler": "SwipeItemsPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 141,
+    "lhs": "oldItems.PropertyChanged",
+    "method": "OnSwipeItemsChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "75da4d457da9fdcb",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/SwipeView/SwipeView.cs",
+  "line": 269,
+  "event": "child.PropertyChanged",
+  "handler": "OnPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 275,
+    "lhs": "child.PropertyChanged",
+    "method": "OnChildRemoved"
+   }
+  ]
+ },
+ {
+  "finding_id": "633ec7d3c8146ecd",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/SwipeView/SwipeView.cs",
+  "line": 319,
+  "event": "scrollView.Scrolled",
+  "handler": "OnParentScrolled",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 292,
+    "lhs": "scrollView.Scrolled",
+    "method": "OnParentChangedCore"
+   },
+   {
+    "line": 298,
+    "lhs": "listView.Scrolled",
+    "method": "OnParentChangedCore"
+   },
+   {
+    "line": 305,
+    "lhs": "collectionView.Scrolled",
+    "method": "OnParentChangedCore"
+   }
+  ]
+ },
+ {
+  "finding_id": "2d49ad942ff25771",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/SwipeView/SwipeView.cs",
+  "line": 330,
+  "event": "listView.Scrolled",
+  "handler": "OnParentScrolled",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 292,
+    "lhs": "scrollView.Scrolled",
+    "method": "OnParentChangedCore"
+   },
+   {
+    "line": 298,
+    "lhs": "listView.Scrolled",
+    "method": "OnParentChangedCore"
+   },
+   {
+    "line": 305,
+    "lhs": "collectionView.Scrolled",
+    "method": "OnParentChangedCore"
+   }
+  ]
+ },
+ {
+  "finding_id": "43907db10ad4c278",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/SwipeView/SwipeView.cs",
+  "line": 339,
+  "event": "collectionView.Scrolled",
+  "handler": "OnParentScrolled",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 292,
+    "lhs": "scrollView.Scrolled",
+    "method": "OnParentChangedCore"
+   },
+   {
+    "line": 298,
+    "lhs": "listView.Scrolled",
+    "method": "OnParentChangedCore"
+   },
+   {
+    "line": 305,
+    "lhs": "collectionView.Scrolled",
+    "method": "OnParentChangedCore"
+   }
+  ]
+ },
+ {
+  "finding_id": "67ba4a43626f4481",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TabbedPage/TabbedPage.Windows.cs",
+  "line": 111,
+  "event": "child.PropertyChanged",
+  "handler": "OnPagePropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 167,
+    "lhs": "child.PropertyChanged",
+    "method": "OnHandlerDisconnected"
+   }
+  ]
+ },
+ {
+  "finding_id": "554a58365737c12a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TabbedPage/TabbedPage.Windows.cs",
+  "line": 127,
+  "event": "wrv.ContentChanged",
+  "handler": "OnContentChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 134,
+    "lhs": "wrv.ContentChanged",
+    "method": "OnContentChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "ed2df195ff98b924",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TabbedPage/TabbedPage.cs",
+  "line": 119,
+  "event": "page.PropertyChanged",
+  "handler": "OnPagePropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 121,
+    "lhs": "page.PropertyChanged",
+    "method": "WireUnwireChanges"
+   }
+  ]
+ },
+ {
+  "finding_id": "7161894301eb1f81",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TableView/TableRoot.cs",
+  "line": 48,
+  "event": "section.CollectionChanged",
+  "handler": "ChildCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 57,
+    "lhs": "section.CollectionChanged",
+    "method": "SetupEvents"
+   }
+  ]
+ },
+ {
+  "finding_id": "f9ab08d4b585e4cc",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TableView/TableRoot.cs",
+  "line": 49,
+  "event": "section.PropertyChanged",
+  "handler": "ChildPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 58,
+    "lhs": "section.PropertyChanged",
+    "method": "SetupEvents"
+   }
+  ]
+ },
+ {
+  "finding_id": "04fc2dbe8e20426f",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TableView/TableView.cs",
+  "line": 87,
+  "event": "_tableModel.Root.SectionCollectionChanged",
+  "handler": "OnSectionCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 78,
+    "lhs": "_tableModel.Root.SectionCollectionChanged",
+    "method": "TableView"
+   }
+  ]
+ },
+ {
+  "finding_id": "b1d674b0a3164aa7",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TableView/TableView.cs",
+  "line": 88,
+  "event": "_tableModel.Root.PropertyChanged",
+  "handler": "OnTableModelRootPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 79,
+    "lhs": "_tableModel.Root.PropertyChanged",
+    "method": "TableView"
+   }
+  ]
+ },
+ {
+  "finding_id": "49f0c32c965bd060",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TableView/TableView.cs",
+  "line": 250,
+  "event": "tableRoot.CollectionChanged",
+  "handler": "_parent.CollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 259,
+    "lhs": "tableRoot.CollectionChanged",
+    "method": "RemoveEvents"
+   }
+  ]
+ },
+ {
+  "finding_id": "61435b4edd6a9b1f",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TableView/TableView.cs",
+  "line": 250,
+  "event": "tableRoot.CollectionChanged",
+  "handler": "_parent.CollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 259,
+    "lhs": "tableRoot.CollectionChanged",
+    "method": "RemoveEvents"
+   }
+  ]
+ },
+ {
+  "finding_id": "3c4572ebd2c12196",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TableView/TableView.cs",
+  "line": 251,
+  "event": "tableRoot.SectionCollectionChanged",
+  "handler": "_parent.OnSectionCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 260,
+    "lhs": "tableRoot.SectionCollectionChanged",
+    "method": "RemoveEvents"
+   }
+  ]
+ },
+ {
+  "finding_id": "ad1214c6dc42e933",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TableView/TableView.cs",
+  "line": 251,
+  "event": "tableRoot.SectionCollectionChanged",
+  "handler": "_parent.OnSectionCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 260,
+    "lhs": "tableRoot.SectionCollectionChanged",
+    "method": "RemoveEvents"
+   }
+  ]
+ },
+ {
+  "finding_id": "956f8c104bab168e",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TemplateUtilities.cs",
+  "line": 51,
+  "event": "element.ParentSet",
+  "handler": "handler",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 49,
+    "lhs": "element.ParentSet",
+    "method": "GetRealParentAsync"
+   }
+  ]
+ },
+ {
+  "finding_id": "8491946cb5e075c7",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TemplatedItemsList.cs",
+  "line": 94,
+  "event": "ListProxy.CollectionChanged",
+  "handler": "OnProxyCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 959,
+    "lhs": "ListProxy.CollectionChanged",
+    "method": "OnItemsSourceChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "a1df8215dc32069c",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TemplatedItemsList.cs",
+  "line": 967,
+  "event": "ListProxy.CollectionChanged",
+  "handler": "OnProxyCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 959,
+    "lhs": "ListProxy.CollectionChanged",
+    "method": "OnItemsSourceChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "3bd0680dfd640c47",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TemplatedItemsList.cs",
+  "line": 1244,
+  "event": "_itemsList.CollectionChanged",
+  "handler": "OnItemsListCollectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 1253,
+    "lhs": "_itemsList.CollectionChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "e406173bb6d1516a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TemplatedItemsList.cs",
+  "line": 1303,
+  "event": "list.PropertyChanging",
+  "handler": "OnChildListPropertyChanging",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 1374,
+    "lhs": "list.PropertyChanging",
+    "method": "ResetCore"
+   }
+  ]
+ },
+ {
+  "finding_id": "9f1def611d6c1443",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TemplatedItemsList.cs",
+  "line": 1304,
+  "event": "list.PropertyChanged",
+  "handler": "OnChildListPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 1373,
+    "lhs": "list.PropertyChanged",
+    "method": "ResetCore"
+   }
+  ]
+ },
+ {
+  "finding_id": "102a32681a61c100",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TitleBar/TitleBar.cs",
+  "line": 279,
+  "event": "Window.Activated",
+  "handler": "Window_Activated",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 267,
+    "lhs": "Window.Activated",
+    "method": "Cleanup"
+   },
+   {
+    "line": 276,
+    "lhs": "Window.Activated",
+    "method": "TitleBar_PropertyChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "32fa54079e4c9ebc",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TitleBar/TitleBar.cs",
+  "line": 280,
+  "event": "Window.Deactivated",
+  "handler": "Window_Deactivated",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 268,
+    "lhs": "Window.Deactivated",
+    "method": "Cleanup"
+   },
+   {
+    "line": 277,
+    "lhs": "Window.Deactivated",
+    "method": "TitleBar_PropertyChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "a81c8fa9eb3c368a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Toolbar/Toolbar.Android.cs",
+  "line": 121,
+  "event": "newBarBackground.InvalidateGradientBrushRequested",
+  "handler": "OnBarBackgroundChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 113,
+    "lhs": "oldBarBackground.InvalidateGradientBrushRequested",
+    "method": "UpdateBarBackground"
+   }
+  ]
+ },
+ {
+  "finding_id": "fae573533d6aa393",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Toolbar/Toolbar.Windows.cs",
+  "line": 82,
+  "event": "item.PropertyChanged",
+  "handler": "OnToolbarItemPropertyChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 25,
+    "lhs": "item.PropertyChanged",
+    "method": "OnHandlerChanging"
+   },
+   {
+    "line": 81,
+    "lhs": "item.PropertyChanged",
+    "method": "UpdateMenu"
+   }
+  ]
+ },
+ {
+  "finding_id": "303c986caff66a83",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TypedBinding.cs",
+  "line": 368,
+  "event": "elem.ParentSet",
+  "handler": "OnElementParentSet",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 386,
+    "lhs": "elem.ParentSet",
+    "method": "ClearAncestryChangeSubscriptions"
+   }
+  ]
+ },
+ {
+  "finding_id": "80500020ae04c96f",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/TypedBinding.cs",
+  "line": 370,
+  "event": "elem.BindingContextChanged",
+  "handler": "OnElementBindingContextChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 388,
+    "lhs": "elem.BindingContextChanged",
+    "method": "ClearAncestryChangeSubscriptions"
+   }
+  ]
+ },
+ {
+  "finding_id": "8df1cde377c81d99",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/VisualElement/VisualElement.cs",
+  "line": 153,
+  "event": "source.PropertyChanged",
+  "handler": "OnClipChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 147,
+    "lhs": "s.PropertyChanged",
+    "method": "Subscribe"
+   },
+   {
+    "line": 164,
+    "lhs": "s.PropertyChanged",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "22e72e1c42e9d0da",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/VisualElement/VisualElement.cs",
+  "line": 153,
+  "event": "source.PropertyChanged",
+  "handler": "OnClipChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 147,
+    "lhs": "s.PropertyChanged",
+    "method": "Subscribe"
+   },
+   {
+    "line": 164,
+    "lhs": "s.PropertyChanged",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "76b9236636455855",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/VisualElement/VisualElement.cs",
+  "line": 155,
+  "event": "geometryGroup.InvalidateGeometryRequested",
+  "handler": "OnClipChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 150,
+    "lhs": "g.InvalidateGeometryRequested",
+    "method": "Subscribe"
+   },
+   {
+    "line": 167,
+    "lhs": "g.InvalidateGeometryRequested",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "07aef765581f4732",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/VisualElement/VisualElement.cs",
+  "line": 155,
+  "event": "geometryGroup.InvalidateGeometryRequested",
+  "handler": "OnClipChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 150,
+    "lhs": "g.InvalidateGeometryRequested",
+    "method": "Subscribe"
+   },
+   {
+    "line": 167,
+    "lhs": "g.InvalidateGeometryRequested",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "ff12eb1d103129fb",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/VisualElement/VisualElement.cs",
+  "line": 372,
+  "event": "source.PropertyChanged",
+  "handler": "OnBackgroundChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 366,
+    "lhs": "s.PropertyChanged",
+    "method": "Subscribe"
+   },
+   {
+    "line": 383,
+    "lhs": "s.PropertyChanged",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "b780a0365a294000",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/VisualElement/VisualElement.cs",
+  "line": 372,
+  "event": "source.PropertyChanged",
+  "handler": "OnBackgroundChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 366,
+    "lhs": "s.PropertyChanged",
+    "method": "Subscribe"
+   },
+   {
+    "line": 383,
+    "lhs": "s.PropertyChanged",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "e412aa286b7cfcbf",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/VisualElement/VisualElement.cs",
+  "line": 374,
+  "event": "gradientBrush.InvalidateGradientBrushRequested",
+  "handler": "OnBackgroundChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 369,
+    "lhs": "g.InvalidateGradientBrushRequested",
+    "method": "Subscribe"
+   },
+   {
+    "line": 386,
+    "lhs": "g.InvalidateGradientBrushRequested",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "cac74aa7445b3281",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/VisualElement/VisualElement.cs",
+  "line": 374,
+  "event": "gradientBrush.InvalidateGradientBrushRequested",
+  "handler": "OnBackgroundChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 369,
+    "lhs": "g.InvalidateGradientBrushRequested",
+    "method": "Subscribe"
+   },
+   {
+    "line": 386,
+    "lhs": "g.InvalidateGradientBrushRequested",
+    "method": "Unsubscribe"
+   }
+  ]
+ },
+ {
+  "finding_id": "939c67979e159e6e",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/VisualElement/VisualElement.cs",
+  "line": 1177,
+  "event": "((IResourceDictionary)_resources).ValuesChanged",
+  "handler": "OnResourcesChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 1186,
+    "lhs": "((IResourceDictionary)_resources).ValuesChanged",
+    "method": "BatchCommit"
+   }
+  ]
+ },
+ {
+  "finding_id": "4ae4eaefc5067f36",
+  "stratum": "PHASE5",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/VisualElement/VisualElement.cs",
+  "line": 1190,
+  "event": "((IResourceDictionary)_resources).ValuesChanged",
+  "handler": "OnResourcesChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 1186,
+    "lhs": "((IResourceDictionary)_resources).ValuesChanged",
+    "method": "BatchCommit"
+   }
+  ]
+ },
+ {
+  "finding_id": "3cdb11e3267b3f42",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/VisualElement/VisualElement.cs",
+  "line": 2447,
+  "event": "newWindow.HandlerChanged",
+  "handler": "OnWindowHandlerChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 2421,
+    "lhs": "newWindow.HandlerChanged",
+    "method": "UpdatePlatformUnloadedLoadedWiring"
+   },
+   {
+    "line": 2433,
+    "lhs": "oldWindow.HandlerChanged",
+    "method": "UpdatePlatformUnloadedLoadedWiring"
+   }
+  ]
+ },
+ {
+  "finding_id": "3d72a183230c00bf",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/VisualStateManager.cs",
+  "line": 251,
+  "event": "item.StatesChanged",
+  "handler": "ValidateAndNotify",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 259,
+    "lhs": "group.StatesChanged",
+    "method": "Clear"
+   },
+   {
+    "line": 285,
+    "lhs": "item.StatesChanged",
+    "method": "Remove"
+   },
+   {
+    "line": 316,
+    "lhs": "_internalList[index].StatesChanged",
+    "method": "RemoveAt"
+   }
+  ]
+ },
+ {
+  "finding_id": "c03bd186eea65fb1",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/VisualStateManager.cs",
+  "line": 309,
+  "event": "item.StatesChanged",
+  "handler": "ValidateAndNotify",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 259,
+    "lhs": "group.StatesChanged",
+    "method": "Clear"
+   },
+   {
+    "line": 285,
+    "lhs": "item.StatesChanged",
+    "method": "Remove"
+   },
+   {
+    "line": 316,
+    "lhs": "_internalList[index].StatesChanged",
+    "method": "RemoveAt"
+   }
+  ]
+ },
+ {
+  "finding_id": "c793ee35cf4d4f2a",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/WeakCommandSubscription.cs",
+  "line": 48,
+  "event": "_command.CanExecuteChanged",
+  "handler": "CanExecuteChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 60,
+    "lhs": "_command.CanExecuteChanged",
+    "method": "Dispose"
+   }
+  ]
+ },
+ {
+  "finding_id": "9be4b6497e760c8d",
+  "stratum": "C01-K",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/WebView/WebView.cs",
+  "line": 39,
+  "event": "source.SourceChanged",
+  "handler": "webview.OnSourceChanged",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "d8a6246ce589797f",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Controls/src/Core/Window/Window.cs",
+  "line": 681,
+  "event": "newShell.PropertyChanged",
+  "handler": "ShellPropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 656,
+    "lhs": "shell.PropertyChanged",
+    "method": "OnPageChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "71266c63640e8fd6",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/CheckBox/CheckBoxHandler.iOS.cs",
+  "line": 22,
+  "event": "platformView.CheckedChanged",
+  "handler": "OnCheckedChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 29,
+    "lhs": "platformView.CheckedChanged",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "6fafb7f4d98b80e5",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Core/src/Handlers/DatePicker/DatePickerHandler.Android.cs",
+  "line": 53,
+  "event": "DeviceDisplay.MainDisplayInfoChanged",
+  "handler": "OnMainDisplayInfoChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 48,
+    "lhs": "DeviceDisplay.MainDisplayInfoChanged",
+    "method": "OnViewDetachedFromWindow"
+   }
+  ]
+ },
+ {
+  "finding_id": "ace2a9631b129b34",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/Editor/EditorHandler.iOS.cs",
+  "line": 157,
+  "event": "platformView.TextSetOrChanged",
+  "handler": "OnTextPropertySet",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 167,
+    "lhs": "platformView.TextSetOrChanged",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "3eb120c08f905dab",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/Editor/EditorHandler.iOS.cs",
+  "line": 157,
+  "event": "platformView.TextSetOrChanged",
+  "handler": "OnTextPropertySet",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 167,
+    "lhs": "platformView.TextSetOrChanged",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "b2589584dfe4515f",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/Entry/EntryHandler.iOS.cs",
+  "line": 138,
+  "event": "platformView.TextPropertySet",
+  "handler": "OnTextPropertySet",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 150,
+    "lhs": "platformView.TextPropertySet",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "f13f724cac41926c",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/Entry/EntryHandler.iOS.cs",
+  "line": 138,
+  "event": "platformView.TextPropertySet",
+  "handler": "OnTextPropertySet",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 150,
+    "lhs": "platformView.TextPropertySet",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "4ad8c7537c001791",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/Entry/EntryHandler.iOS.cs",
+  "line": 162,
+  "event": "platformView.SelectionChanged",
+  "handler": "OnSelectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 154,
+    "lhs": "platformView.SelectionChanged",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "9ce2ee39797c0c2b",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/Entry/EntryHandler.iOS.cs",
+  "line": 162,
+  "event": "platformView.SelectionChanged",
+  "handler": "OnSelectionChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 154,
+    "lhs": "platformView.SelectionChanged",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "dup_group_size": 1,
+  "family": "C01",
+  "finding_id": "7b791a9d533274a9",
+  "known_defect_uids": "",
+  "level": "warning",
+  "message": "event 'platformToolbar.IconPressed' is subscribed (handler '(s, e) =>\n\t\t\t\t{\n\t\t\t\t\tif (!toolbarElement.Toolbar.BackButtonVisible && (toolbarElement.Toolbar.IsVisible))\n\t\t\t\t\t\t_ = handler.PlatformView.OpenAsync(true);\n\t\t\t\t}') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'FlyoutViewHandler' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+  "ordinal_in_dup_group": 0,
+  "path": "src/Core/src/Handlers/FlyoutView/FlyoutViewHandler.Tizen.cs",
+  "phase5_excluded": "",
+  "resource_tag": "subscription token",
+  "ruleId": "OWN001",
+  "start_column": 5,
+  "start_line": 71,
+  "stratum": "C01-U",
+  "uri_raw": "maui/src/Core/src/Handlers/FlyoutView/FlyoutViewHandler.Tizen.cs",
+  "cls": "NO_PARSE"
+ },
+ {
+  "finding_id": "c825e693ee1d141e",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/ImageButton/ImageButtonHandler.Tizen.cs",
+  "line": 19,
+  "event": "platformView.Clicked",
+  "handler": "OnClicked",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 30,
+    "lhs": "platformView.Clicked",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "58540d78c3c34225",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/ImageButton/ImageButtonHandler.Tizen.cs",
+  "line": 20,
+  "event": "platformView.Pressed",
+  "handler": "OnPressed",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 31,
+    "lhs": "platformView.Pressed",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "3a67b5554af4adf9",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/ImageButton/ImageButtonHandler.Tizen.cs",
+  "line": 21,
+  "event": "platformView.Released",
+  "handler": "OnReleased",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 32,
+    "lhs": "platformView.Released",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "99e8bad2ca7a729e",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/SearchBar/SearchBarHandler.Tizen.cs",
+  "line": 12,
+  "event": "platformView.SearchButtonPressed",
+  "handler": "OnSearchButtonPressed",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 22,
+    "lhs": "platformView.SearchButtonPressed",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "964272e98a04b57d",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/SearchBar/SearchBarHandler.iOS.cs",
+  "line": 180,
+  "event": "platformView.TextSetOrChanged",
+  "handler": "OnTextPropertySet",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 197,
+    "lhs": "platformView.TextSetOrChanged",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "3160a0255c6c4bd8",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/SearchBar/SearchBarHandler.iOS.cs",
+  "line": 180,
+  "event": "platformView.TextSetOrChanged",
+  "handler": "OnTextPropertySet",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 197,
+    "lhs": "platformView.TextSetOrChanged",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "c07eacb161048579",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/SearchBar/SearchBarHandler.iOS.cs",
+  "line": 181,
+  "event": "platformView.OnMovedToWindow",
+  "handler": "OnMovedToWindow",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 199,
+    "lhs": "platformView.OnMovedToWindow",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "f52173623bdd8c8b",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/SearchBar/SearchBarHandler.iOS.cs",
+  "line": 181,
+  "event": "platformView.OnMovedToWindow",
+  "handler": "OnMovedToWindow",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 199,
+    "lhs": "platformView.OnMovedToWindow",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "a88fe81f88c6af59",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/SwipeItemMenuItem/SwipeItemMenuItemHandler.iOS.cs",
+  "line": 180,
+  "event": "platformView.FrameChanged",
+  "handler": "OnSwipeItemFrameChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 185,
+    "lhs": "platformView.FrameChanged",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "3fda5ae0edfa5ee5",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/SwipeItemMenuItem/SwipeItemMenuItemHandler.iOS.cs",
+  "line": 180,
+  "event": "platformView.FrameChanged",
+  "handler": "OnSwipeItemFrameChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 185,
+    "lhs": "platformView.FrameChanged",
+    "method": "Disconnect"
+   }
+  ]
+ },
+ {
+  "finding_id": "424b0b9bab1c5de4",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/Toolbar/ToolbarHandler.Tizen.cs",
+  "line": 12,
+  "event": "platformView.IconPressed",
+  "handler": "OnIconPressed",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 18,
+    "lhs": "platformView.IconPressed",
+    "method": "DisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "8dfc984aeb55a237",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Handlers/Window/WindowHandler.Android.cs",
+  "line": 91,
+  "event": "_rootManager.RootViewChanged",
+  "handler": "OnRootViewChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 101,
+    "lhs": "_rootManager.RootViewChanged",
+    "method": "OnDisconnectHandler"
+   }
+  ]
+ },
+ {
+  "finding_id": "ad3413a632e51b72",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Core/src/Hosting/EssentialsMauiAppBuilderExtensions.cs",
+  "line": 143,
+  "event": "AppActions.OnAppAction",
+  "handler": "HandleOnAppAction",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "8c3755c41617d810",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Core/src/Hosting/EssentialsMauiAppBuilderExtensions.cs",
+  "line": 143,
+  "event": "AppActions.OnAppAction",
+  "handler": "HandleOnAppAction",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "8333b620c4d7201c",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Platform/Windows/MauiWinUIWindow.cs",
+  "line": 129,
+  "event": "_windowManager.WindowMessage",
+  "handler": "OnWindowMessage",
+  "cls": "NO_MINUS",
+  "minus": []
+ },
+ {
+  "finding_id": "8431097576a4b353",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Platform/Windows/WindowRootView.cs",
+  "line": 344,
+  "event": "NavigationViewControl.OnApplyTemplateFinished",
+  "handler": "OnNavigationViewControlOnApplyTemplateFinished",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 373,
+    "lhs": "NavigationViewControl.OnApplyTemplateFinished",
+    "method": "OnNavigationViewControlOnApplyTemplateFinished"
+   }
+  ]
+ },
+ {
+  "finding_id": "2cfdac072efe1ea3",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Platform/Windows/WindowRootView.cs",
+  "line": 477,
+  "event": "tpc.PropertyChanged",
+  "handler": "TitlebarPropChanged_PropertyChanged",
+  "cls": "DIFF_TEXT",
+  "minus": [
+   {
+    "line": 441,
+    "lhs": "p.PropertyChanged",
+    "method": "SetTitleBar"
+   }
+  ]
+ },
+ {
+  "finding_id": "5a27b6f1de97850c",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Platform/iOS/ViewExtensions.cs",
+  "line": 700,
+  "event": "lifeCycleEvents.MovedToWindow",
+  "handler": "OnLifeCycleEventsMovedToWindow",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 704,
+    "lhs": "lifeCycleEvents.MovedToWindow",
+    "method": "OnLoaded"
+   },
+   {
+    "line": 787,
+    "lhs": "lifeCycleEvents.MovedToWindow",
+    "method": "OnUnloaded"
+   }
+  ]
+ },
+ {
+  "finding_id": "247153037213d3aa",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Platform/iOS/ViewExtensions.cs",
+  "line": 783,
+  "event": "lifeCycleEvents.MovedToWindow",
+  "handler": "OnLifeCycleEventsMovedToWindow",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 704,
+    "lhs": "lifeCycleEvents.MovedToWindow",
+    "method": "OnLoaded"
+   },
+   {
+    "line": 787,
+    "lhs": "lifeCycleEvents.MovedToWindow",
+    "method": "OnUnloaded"
+   }
+  ]
+ },
+ {
+  "finding_id": "97376f292ba75c8f",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Primitives/LockableObservableListWrapper.cs",
+  "line": 18,
+  "event": "((INotifyCollectionChanged)_list).CollectionChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 19,
+    "lhs": "((INotifyCollectionChanged)_list).CollectionChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "1aebf03c12e40315",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Core/src/Primitives/LockableObservableListWrapper.cs",
+  "line": 24,
+  "event": "((INotifyPropertyChanged)_list).PropertyChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 25,
+    "lhs": "((INotifyPropertyChanged)_list).PropertyChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "4908004df9db84dd",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Essentials/src/Accelerometer/Accelerometer.shared.cs",
+  "line": 58,
+  "event": "Default.ReadingChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 59,
+    "lhs": "Default.ReadingChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "96c273326009c1af",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Essentials/src/Accelerometer/Accelerometer.shared.cs",
+  "line": 67,
+  "event": "Default.ShakeDetected",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 68,
+    "lhs": "Default.ShakeDetected",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "bd028cc9aac30df5",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Essentials/src/AppActions/AppActions.shared.cs",
+  "line": 114,
+  "event": "Current.AppActionActivated",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 115,
+    "lhs": "Current.AppActionActivated",
+    "method": "SetAsync"
+   }
+  ]
+ },
+ {
+  "finding_id": "7080c97d30eab962",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Essentials/src/Barometer/Barometer.shared.cs",
+  "line": 49,
+  "event": "Default.ReadingChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 50,
+    "lhs": "Default.ReadingChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "13086639a57f2aa8",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Essentials/src/Battery/Battery.shared.cs",
+  "line": 80,
+  "event": "Default.BatteryInfoChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 81,
+    "lhs": "Default.BatteryInfoChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "7cb353097ad4aa0f",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Essentials/src/Battery/Battery.shared.cs",
+  "line": 89,
+  "event": "Default.EnergySaverStatusChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 90,
+    "lhs": "Default.EnergySaverStatusChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "6c70a9a9dad5d127",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Essentials/src/Clipboard/Clipboard.shared.cs",
+  "line": 69,
+  "event": "Default.ClipboardContentChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 70,
+    "lhs": "Default.ClipboardContentChanged",
+    "method": "GetTextAsync"
+   }
+  ]
+ },
+ {
+  "finding_id": "71cea8faf5a7b21f",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Essentials/src/Compass/Compass.shared.cs",
+  "line": 69,
+  "event": "Current.ReadingChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 70,
+    "lhs": "Current.ReadingChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "fef1b6e6fc347254",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Essentials/src/Connectivity/Connectivity.shared.cs",
+  "line": 58,
+  "event": "Current.ConnectivityChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 59,
+    "lhs": "Current.ConnectivityChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "592df35ab5958267",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Essentials/src/DeviceDisplay/DeviceDisplay.shared.cs",
+  "line": 69,
+  "event": "Current.MainDisplayInfoChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 70,
+    "lhs": "Current.MainDisplayInfoChanged",
+    "method": "DisplayInfoChangedEventArgs"
+   }
+  ]
+ },
+ {
+  "finding_id": "d56c96277b00ae5c",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Essentials/src/Geolocation/Geolocation.shared.cs",
+  "line": 132,
+  "event": "Current.LocationChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 133,
+    "lhs": "Current.LocationChanged",
+    "method": "GetLocationAsync"
+   }
+  ]
+ },
+ {
+  "finding_id": "d4b0c6240ee926d9",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Essentials/src/Geolocation/Geolocation.shared.cs",
+  "line": 143,
+  "event": "Current.ListeningFailed",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 144,
+    "lhs": "Current.ListeningFailed",
+    "method": "GetLocationAsync"
+   }
+  ]
+ },
+ {
+  "finding_id": "e22afdd5fcf1a9db",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Essentials/src/Gyroscope/Gyroscope.shared.cs",
+  "line": 50,
+  "event": "Current.ReadingChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 51,
+    "lhs": "Current.ReadingChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "9be46a1701e35f7a",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Essentials/src/Magnetometer/Magnetometer.shared.cs",
+  "line": 50,
+  "event": "Current.ReadingChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 51,
+    "lhs": "Current.ReadingChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "7543b3395d4a9c8e",
+  "stratum": "C01-U",
+  "ruleId": "OWN014",
+  "path": "src/Essentials/src/OrientationSensor/OrientationSensor.shared.cs",
+  "line": 50,
+  "event": "Current.ReadingChanged",
+  "handler": "value",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 51,
+    "lhs": "Current.ReadingChanged",
+    "method": "?"
+   }
+  ]
+ },
+ {
+  "finding_id": "75373aa4afe70c53",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Essentials/src/Platform/ActiveWindowTracker.windows.cs",
+  "line": 24,
+  "event": "_windowStateManager.ActiveWindowChanged",
+  "handler": "OnActiveWindowChanged",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 31,
+    "lhs": "_windowStateManager.ActiveWindowChanged",
+    "method": "Stop"
+   }
+  ]
+ },
+ {
+  "finding_id": "eb4d30db0b567f78",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Essentials/src/Platform/ActiveWindowTracker.windows.cs",
+  "line": 51,
+  "event": "_currentWindowManager.WindowMessage",
+  "handler": "OnWindowMessage",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 44,
+    "lhs": "_currentWindowManager.WindowMessage",
+    "method": "OnActiveWindowChanged"
+   }
+  ]
+ },
+ {
+  "finding_id": "9f4318736f7137cd",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Essentials/src/TextToSpeech/TextToSpeech.macos.cs",
+  "line": 40,
+  "event": "ssd.FinishedSpeaking",
+  "handler": "OnFinishedSpeaking",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 52,
+    "lhs": "ssd.FinishedSpeaking",
+    "method": "PlatformSpeakAsync"
+   }
+  ]
+ },
+ {
+  "finding_id": "2d4632469517e49d",
+  "stratum": "C01-U",
+  "ruleId": "OWN001",
+  "path": "src/Essentials/src/TextToSpeech/TextToSpeech.macos.cs",
+  "line": 41,
+  "event": "ssd.EncounteredError",
+  "handler": "OnEncounteredError",
+  "cls": "SAME_TEXT",
+  "minus": [
+   {
+    "line": 53,
+    "lhs": "ssd.EncounteredError",
+    "method": "PlatformSpeakAsync"
+   }
+  ]
+ }
+]

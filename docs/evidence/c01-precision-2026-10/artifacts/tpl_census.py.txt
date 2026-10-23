@@ -1,0 +1,53 @@
+"""Text census (diagnosis aid only): C01 'injected' findings whose receiver is a field that is
+assigned `= value` inside a property setter, where that property is assigned somewhere in the file
+from GetTemplateChild(...). Also reports the interface-cast teardown self-call shape."""
+import collections
+import json
+import re
+import sys
+
+sarif, src_root, prefix = sys.argv[1], sys.argv[2], sys.argv[3]
+MSG = re.compile(r"event '(?P<ev>.+?)' is subscribed \(handler '(?P<h>.+?)'\)")
+res = json.load(open(sarif, encoding="utf-8"))["runs"][0]["results"]
+cnt = collections.Counter()
+hits = []
+for r in res:
+    msg = r["message"]["text"]
+    if r["ruleId"] != "OWN001" or "injected dependency" not in msg:
+        continue
+    m = MSG.search(msg)
+    if not m:
+        cnt["noparse"] += 1
+        continue
+    loc = r["locations"][0]["physicalLocation"]
+    uri = loc["artifactLocation"]["uri"]
+    rel = uri.split(prefix, 1)[-1]
+    try:
+        text = open(f"{src_root}/{rel}", encoding="utf-8-sig", errors="replace").read()
+    except OSError:
+        cnt["nofile"] += 1
+        continue
+    cnt["injected"] += 1
+    recv = m.group("ev").rsplit(".", 1)[0].replace("this.", "")
+    if not re.fullmatch(r"_?\w+", recv):
+        cnt["complex_recv"] += 1
+        continue
+    has_tpl = "GetTemplateChild" in text
+    # property whose setter writes this field from `value`
+    setter = re.search(r"(\w+)\s*\{[^{}]*?(?:get[^{}]*?(?:\{[^{}]*\})?[^{}]*?)?set\s*\{[^}]*?\b" + re.escape(recv) + r"\s*=\s*value\s*;",
+                       text, re.S)
+    direct = re.search(r"\b" + re.escape(recv) + r"\s*=\s*(?:\([\w.<>]+\)\s*)?GetTemplateChild", text)
+    prop_tpl = False
+    if setter:
+        p = setter.group(1)
+        prop_tpl = re.search(r"\b" + re.escape(p) + r"\s*=\s*(?:\([\w.<>]+\)\s*)?(?:this\.)?GetTemplateChild", text) is not None
+    key = ("tplfile" if has_tpl else "notpl", "setter" if setter else "-", "prop<-tpl" if prop_tpl else "-",
+           "direct" if direct else "-")
+    cnt[key] += 1
+    if prop_tpl:
+        hits.append((rel, loc["region"]["startLine"], m.group("ev")))
+for k, v in sorted(cnt.items(), key=lambda kv: str(kv[0])):
+    print(v, k)
+print("prop<-tpl hits:", len(hits))
+for h in hits[:80]:
+    print("  ", *h)

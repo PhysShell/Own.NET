@@ -1,0 +1,77 @@
+"""Phase 0: Python reference engine vs Rust own-cli on the SAME frozen facts.json.
+Usage: parity.py <label> <facts.json> <outdir>
+Runs both engines (sarif + human formats, severity warning — the H1 invocation), then compares
+raw bytes, serialization-normalised JSON, and the semantic multiset of results."""
+import collections
+import hashlib
+import json
+import os
+import subprocess
+import sys
+
+label, facts, outdir = sys.argv[1], sys.argv[2], sys.argv[3]
+REPO = os.path.expanduser("~/Documents/ownnet-eng/Own.NET")
+RUST = os.path.join(REPO, "rust/target/release/own-cli")
+os.makedirs(outdir, exist_ok=True)
+
+
+def sha(b: bytes) -> str:
+    return hashlib.sha256(b).hexdigest()
+
+
+def run(engine: str, fmt: str) -> tuple[int, bytes, bytes]:
+    if engine == "python":
+        cmd = [sys.executable, "-s", "-m", "ownlang", "ownir", facts, "--format", fmt, "--severity", "warning"]
+    else:
+        cmd = [RUST, "ownir", facts, "--format", fmt, "--severity", "warning"]
+    p = subprocess.run(cmd, cwd=REPO, capture_output=True)
+    open(f"{outdir}/{engine}.{fmt}.out", "wb").write(p.stdout)
+    open(f"{outdir}/{engine}.{fmt}.err", "wb").write(p.stderr)
+    return p.returncode, p.stdout, p.stderr
+
+
+def sem(doc: dict) -> collections.Counter:
+    c: collections.Counter = collections.Counter()
+    for run_ in doc["runs"]:
+        for r in run_["results"]:
+            loc = r["locations"][0]["physicalLocation"]
+            reg = loc.get("region", {})
+            c[(r["ruleId"], r.get("level"), loc["artifactLocation"]["uri"], reg.get("startLine"),
+               reg.get("startColumn"), r["message"]["text"])] += 1
+    return c
+
+
+rep: dict = {"label": label, "facts": facts, "facts_sha256": sha(open(facts, "rb").read())}
+res = {}
+for eng in ("python", "rust"):
+    for fmt in ("sarif", "human"):
+        rc, out, err = run(eng, fmt)
+        res[(eng, fmt)] = (rc, out, err)
+        rep[f"{eng}_{fmt}"] = {"rc": rc, "stdout_sha256": sha(out), "stdout_bytes": len(out),
+                               "crlf": out.count(b"\r\n"), "stderr": err.decode("utf-8", "replace").strip()[-300:]}
+
+py, rs = res[("python", "sarif")][1], res[("rust", "sarif")][1]
+rep["sarif_bytes_identical"] = py == rs
+dp, dr = json.loads(py), json.loads(rs)
+rep["sarif_json_equal_after_parse"] = dp == dr
+if dp != dr:
+    # where does the parsed document differ? (top-level keys, rule table, results)
+    rep["tool_driver_equal"] = dp["runs"][0]["tool"] == dr["runs"][0]["tool"]
+    rep["result_count"] = {"python": len(dp["runs"][0]["results"]), "rust": len(dr["runs"][0]["results"])}
+sp, sr = sem(dp), sem(dr)
+rep["semantic_equal"] = sp == sr
+rep["semantic_only_python"] = [list(k) + [v] for k, v in (sp - sr).items()][:50]
+rep["semantic_only_rust"] = [list(k) + [v] for k, v in (sr - sp).items()][:50]
+rep["counts_by_rule_level"] = {
+    eng: dict(collections.Counter(f"{k[0]}/{k[1]}" for k in s.elements()))
+    for eng, s in (("python", sp), ("rust", sr))}
+# resource kind = the "[resource: ...]" tag at the end of the message
+rep["counts_by_resource"] = {
+    eng: dict(collections.Counter(k[5].rsplit("[resource: ", 1)[-1].rstrip("]") if "[resource: " in k[5] else "-"
+                                  for k in s.elements()))
+    for eng, s in (("python", sp), ("rust", sr))}
+hp, hr = res[("python", "human")][1], res[("rust", "human")][1]
+rep["human_bytes_identical"] = hp == hr
+rep["human_identical_after_newline_normalisation"] = hp.replace(b"\r\n", b"\n") == hr.replace(b"\r\n", b"\n")
+json.dump(rep, open(f"{outdir}/parity.json", "w"), indent=1, ensure_ascii=False)
+print(json.dumps({k: v for k, v in rep.items() if not k.startswith("semantic_only")}, indent=1, ensure_ascii=False)[:4000])

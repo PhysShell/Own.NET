@@ -1,0 +1,57 @@
+"""Heuristic text-level triage of H1 C01 findings: is there a `-=` for the same event member +
+handler in the same file, and with the same receiver text?  Diagnosis aid only (not a verdict)."""
+import collections
+import json
+import re
+import sys
+
+findings, src_root, out = sys.argv[1], sys.argv[2], sys.argv[3]
+MSG = re.compile(r"event '(?P<ev>.+?)' is subscribed \(handler '(?P<h>.+?)'\)")
+METHOD = re.compile(r"^\s*(?:(?:public|private|protected|internal|static|override|virtual|async|sealed|new|unsafe|partial|extern)\s+)*"
+                    r"[\w<>\[\],.?]+\s+(?P<name>[\w.]+)\s*\([^;]*$")
+
+
+def norm_handler(h: str) -> str:
+    m = re.match(r"new\s+[\w.<>]+\s*\((.*)\)\s*$", h.strip())
+    return (m.group(1) if m else h).strip()
+
+
+rows = []
+for line in open(findings, encoding="utf-8"):
+    d = json.loads(line)
+    if d["family"] != "C01":
+        continue
+    m = MSG.search(d["message"])
+    if not m:
+        rows.append({**d, "cls": "NO_PARSE"})
+        continue
+    ev, h = m.group("ev"), norm_handler(m.group("h"))
+    member = ev.split(".")[-1]
+    try:
+        text = open(f"{src_root}/{d['path']}", encoding="utf-8-sig", errors="replace").read().splitlines()
+    except OSError:
+        rows.append({**d, "cls": "NO_FILE"})
+        continue
+    minus = []
+    for i, ln in enumerate(text):
+        mm = re.search(r"([\w.()\[\]?! ]*?\b" + re.escape(member) + r")\s*-=\s*(.+?);", ln)
+        if mm and norm_handler(mm.group(2)) == h:
+            meth = "?"
+            for j in range(i, -1, -1):
+                mt = METHOD.match(text[j])
+                if mt and not text[j].strip().startswith(("if", "while", "for", "switch", "return", "else")):
+                    meth = mt.group("name")
+                    break
+            minus.append({"line": i + 1, "lhs": mm.group(1).strip(), "method": meth})
+    same = [x for x in minus if x["lhs"] == ev or x["lhs"].endswith(" " + ev)]
+    cls = "NO_MINUS" if not minus else ("SAME_TEXT" if same else "DIFF_TEXT")
+    rows.append({"finding_id": d["finding_id"], "stratum": d["stratum"], "ruleId": d["ruleId"],
+                 "path": d["path"], "line": d["start_line"], "event": ev, "handler": h,
+                 "cls": cls, "minus": minus})
+
+json.dump(rows, open(out, "w"), indent=1)
+c = collections.Counter((r["stratum"], r["cls"]) for r in rows)
+for k, v in sorted(c.items()):
+    print(v, k)
+meth = collections.Counter(x["method"] for r in rows if r["cls"] == "SAME_TEXT" for x in r["minus"])
+print("SAME_TEXT -= methods:", meth.most_common(40))

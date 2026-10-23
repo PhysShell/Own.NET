@@ -1,0 +1,12 @@
+uid=1000(job) gid=100(users) groups=100(users)
+Linux scanbox 6.12.85 #1-NixOS SMP PREEMPT_DYNAMIC Thu Apr 30 09:14:47 UTC 2026 x86_64 GNU/Linux
+job read-only: ok
+curl: (28) Connection timed out after 5002 milliseconds
+host 10.0.2.2 blocked: ok
+An issue was encountered verifying workloads. For more information, run "dotnet workload update".
+Registered Sources:
+  1.  nuget.org [Enabled]
+      https://api.nuget.org/v3/index.json
+8.0.420
+Python 3.12.13
+git version 2.51.2

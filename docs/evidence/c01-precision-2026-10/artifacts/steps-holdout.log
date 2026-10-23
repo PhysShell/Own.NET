@@ -1,0 +1,16 @@
+2026-10-23T18:39:38Z  start holdout job, patch 3c98df271e992abba5d57a2c7bfdbb0c0b1be805
+2026-10-23T18:40:01Z  built base: /var/lib/job/w/own-base/frontend/roslyn/OwnSharp.Extractor/bin/Release/net8.0/ownsharp-extract.dll
+2026-10-23T18:40:05Z  built patched: /var/lib/job/w/own-patched/frontend/roslyn/OwnSharp.Extractor/bin/Release/net8.0/ownsharp-extract.dll
+2026-10-23T18:40:08Z  stylet 6992976d1d567acfb832fc80085dbb5f894078e5 scope .cs files: 95
+2026-10-23T18:40:11Z  stylet/base extractor rc=0 core rc=1 14 findings, 6 advisory (OWN050).
+2026-10-23T18:40:14Z  stylet/patched extractor rc=0 core rc=1 14 findings, 6 advisory (OWN050).
+2026-10-23T18:41:30Z  gong-wpf-dragdrop f1d728ec873ca542a16b0cd66442c89dd407bd4b scope .cs files: 76
+2026-10-23T18:41:32Z  gong-wpf-dragdrop/base extractor rc=0 core rc=0 0 findings, 52 advisory (OWN050).
+2026-10-23T18:41:35Z  gong-wpf-dragdrop/patched extractor rc=0 core rc=0 0 findings, 52 advisory (OWN050).
+2026-10-23T18:42:21Z  wox ced76a7e3ef2f815f9ad9e83bca64ff8f867ca0d scope .cs files: 2
+2026-10-23T18:42:21Z  wox: < 50 .cs in scope -> replaced by the next reserve
+2026-10-23T18:42:25Z  shadowsocks-windows 891d971682eefcaa2e640258d3b352a3ad3b2233 scope .cs files: 79
+2026-10-23T18:42:29Z  shadowsocks-windows/base extractor rc=0 core rc=1 24 findings, 31 advisory (OWN050).
+2026-10-23T18:42:33Z  shadowsocks-windows/patched extractor rc=0 core rc=1 24 findings, 31 advisory (OWN050).
+2026-10-23T18:42:33Z  holdout repos analysed: 3
+2026-10-23T18:42:33Z  done

@@ -1,0 +1,22 @@
+2026-10-23T18:18:11Z start patched
+2026-10-23T18:18:11Z git: 978161c21a28ac7ac03979f11aaf472a37dab543 dirty=1
+2026-10-23T18:19:16Z run_tests rc=1
+2026-10-23T18:19:16Z ruff rc=0
+2026-10-23T18:19:16Z mypy rc=0
+2026-10-23T18:19:18Z extractor build rc=0
+2026-10-23T18:19:21Z test_extractor_columns rc=0
+2026-10-23T18:19:30Z test_extractor_deep_flow rc=0
+2026-10-23T18:19:31Z test_extractor_sibling_locals rc=0
+2026-10-23T18:19:35Z test_extractor_partial_dispose rc=0
+2026-10-23T18:19:36Z test_guarded_consume rc=0
+2026-10-23T18:19:39Z ci_samples rc=0
+2026-10-23T18:19:39Z done
+2026-10-23T18:19:57Z start patched
+2026-10-23T18:19:57Z git: 3c98df271e992abba5d57a2c7bfdbb0c0b1be805 dirty=0
+2026-10-23T18:21:13Z run_tests rc=1
+2026-10-23T18:21:13Z done
+2026-10-23T18:23:38Z start patched
+2026-10-23T18:23:38Z git: 3c98df271e992abba5d57a2c7bfdbb0c0b1be805 dirty=0
+2026-10-23T18:26:46Z benchmark rc=0
+2026-10-23T18:26:47Z rust build+test rc=0
+2026-10-23T18:26:47Z done

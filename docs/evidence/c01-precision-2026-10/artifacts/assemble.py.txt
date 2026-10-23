@@ -1,0 +1,69 @@
+"""Assemble before-after.json and copy reproducibility artifacts into the evidence dir."""
+import json
+import os
+import shutil
+
+W = os.path.expanduser("~/Documents/ownnet-eng/work")
+E = os.path.expanduser("~/Documents/ownnet-eng/Own.NET/docs/evidence/c01-precision-2026-10")
+A = f"{E}/artifacts"
+os.makedirs(A, exist_ok=True)
+
+
+def bm(p):
+    d = json.load(open(p))
+    cases = d.get("cases", [])
+    norm = sorted(json.dumps({k: v for k, v in c.items() if "second" not in k and "time" not in k},
+                             sort_keys=True) for c in cases)
+    return d, norm
+
+
+b, bc = bm(f"{W}/logs/baseline/benchmark.json")
+p, pc = bm(f"{W}/logs/patched/benchmark.json")
+print("benchmark top keys", list(b)[:15], "cases", len(bc), "per-case identical:", bc == pc)
+dev = json.load(open(f"{W}/dev-diff.json"))
+ho = json.load(open(f"{W}/holdout-diff.json"))
+key = json.load(open(f"{W}/eval-key/key.json"))
+labels = [json.loads(line) for line in open(f"{W}/eval-labels.jsonl")]
+ctl = {ph: json.load(open(f"{W}/logs/{d}/controls-{ph}.json"))
+       for ph, d in (("before", "baseline"), ("after", "patched"))}
+out = {
+    "baseline_sha": "175076925058b6b4eb60087a3b1e834e7315ebad",
+    "patch_sha": open(f"{W}/sb-dev/PATCH_SHA").read().strip(),
+    "extractor_dll_sha256": {
+        "base": "e169519b5d9aaf6df80b119952bbbbb50bc73a727f9a4c4e91cd94436369caf6",
+        "patched": "92e1d5f858ef8e3977cf5b4cbf4732bec34356efc12046d93daa1e6931945591"},
+    "engine": "Python reference core; Rust own-cli byte-identical on base and patched MAUI facts",
+    "dev_sets": dev,
+    "holdout": ho,
+    "independent_evaluator": {
+        "packet_sha256": "37f93776c57ed34081b2cbf17e13d0bd0ddfc79974d7909084d88d420ed9d4ef",
+        "key": key, "labels": labels},
+    "controls": {ph: {"mismatches": c["mismatches"],
+                      "rows": [{"file": x["file"], **r} for x in c["cases"] for r in x["rows"]]}
+                 for ph, c in ctl.items()},
+    "corpus_benchmark": {"baseline": {k: v for k, v in b.items() if k != "cases"},
+                         "patched": {k: v for k, v in p.items() if k != "cases"},
+                         "per_case_identical": bc == pc},
+}
+json.dump(out, open(f"{E}/before-after.json", "w"), indent=1, ensure_ascii=False)
+for f in ["gates.sh", "ci_samples.sh", "mk_ci_samples.py", "parity.py", "classify_minus.py",
+          "tpl_census.py", "iface_calls.sh", "used_repos.py", "check_candidates.sh", "mk_jobs.sh",
+          "sb-lib.sh", "diff_runs.py", "mk_packet.py", "controls.sh", "round7_check.sh",
+          "round7_base.sh", "assemble.py"]:
+    shutil.copy(f"{W}/{f}", f"{A}/{f}")
+for j in ("sb-dev", "sb-holdout"):
+    os.makedirs(f"{A}/{j}", exist_ok=True)
+    shutil.copy(f"{W}/{j}/run.sh", f"{A}/{j}/run.sh")
+shutil.copy(f"{W}/sb-holdout/holdout.tsv", f"{A}/sb-holdout/holdout.tsv")
+for n, s in (("steps-dev.log", "sb-dev-out/steps.log"), ("steps-holdout.log", "sb-holdout-out/steps.log"),
+             ("isolation-dev.txt", "sb-dev-out/isolation.txt"),
+             ("isolation-holdout.txt", "sb-holdout-out/isolation.txt"),
+             ("gates-baseline-steps.log", "logs/baseline/steps.log"),
+             ("gates-patched-steps.log", "logs/patched/steps.log"),
+             ("minus-triage.json", "minus-triage.json"),
+             ("eval-packet.jsonl", "../eval-packet/packet.jsonl"),
+             ("eval-labels.jsonl", "eval-labels.jsonl"), ("eval-key.json", "eval-key/key.json")):
+    shutil.copy(f"{W}/{s}", f"{A}/{n}")
+for t in ("h1", "opensilver", "maui-patched"):
+    shutil.copy(f"{W}/parity/{t}/parity.json", f"{A}/parity-{t}.json")
+print("ok")

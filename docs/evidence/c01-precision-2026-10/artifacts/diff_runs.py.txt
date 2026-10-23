@@ -1,0 +1,88 @@
+"""Base vs patched SARIF/facts diff per target, joined with H1 strata/labels for MAUI.
+Usage: diff_runs.py <out-dir-of-job> <targets,comma> <result.json> [h1_findings.jsonl h1_labels.csv]"""
+import collections
+import csv
+import hashlib
+import json
+import sys
+
+outdir, targets, res_path = sys.argv[1], sys.argv[2].split(","), sys.argv[3]
+h1f = sys.argv[4] if len(sys.argv) > 4 else None
+h1l = sys.argv[5] if len(sys.argv) > 5 else None
+
+
+def key(r):
+    loc = r["locations"][0]["physicalLocation"]
+    reg = loc.get("region", {})
+    return (r["ruleId"], r.get("level"), loc["artifactLocation"]["uri"], reg.get("startLine"),
+            reg.get("startColumn"), r["message"]["text"])
+
+
+def load(t, v):
+    d = json.load(open(f"{outdir}/run/{t}/{v}/findings.sarif", encoding="utf-8"))
+    return collections.Counter(key(r) for r in d["runs"][0]["results"])
+
+
+def sha(p):
+    return hashlib.sha256(open(p, "rb").read()).hexdigest()
+
+
+def subs(t, v):
+    d = json.load(open(f"{outdir}/run/{t}/{v}/facts.json", encoding="utf-8"))
+    return {(c["file"], s["line"], s["column"], s["event"]): s for c in d["components"]
+            for s in c.get("subscriptions", [])}
+
+
+h1 = {}
+if h1f:
+    for line in open(h1f, encoding="utf-8"):
+        d = json.loads(line)
+        h1[(d["ruleId"], d["uri_raw"], d["start_line"], d["start_column"], d["message"])] = d
+lab = {}
+if h1l:
+    for r in csv.DictReader(open(h1l, encoding="utf-8")):
+        lab[r["finding_id"]] = r
+
+out = {}
+for t in targets:
+    b, p = load(t, "base"), load(t, "patched")
+    removed, added = b - p, p - b
+    fb, fp = subs(t, "base"), subs(t, "patched")
+    fact_changes = [{"site": list(k), "base": fb.get(k), "patched": fp.get(k)}
+                    for k in sorted(set(fb) | set(fp), key=str) if fb.get(k) != fp.get(k)]
+
+    def describe(k):
+        row = {"rule": k[0], "level": k[1], "uri": k[2], "line": k[3], "column": k[4], "message": k[5]}
+        hk = (k[0], k[2], k[3], k[4], k[5])
+        if hk in h1:
+            d = h1[hk]
+            row.update({"h1_finding_id": d["finding_id"], "h1_stratum": d["stratum"],
+                        "h1_known_defect_uids": d["known_defect_uids"]})
+            if d["finding_id"] in lab:
+                L = lab[d["finding_id"]]
+                row.update({"h1_item": L["item_A"], "h1_label_A": L["label_A"],
+                            "h1_label_post_reveal": L["label_post_reveal"], "h1_basis": L["basis"]})
+        return row
+
+    def by_rule(c):
+        return dict(collections.Counter(f"{k[0]}/{k[1]}" for k in c.elements()))
+
+    out[t] = {
+        "facts_sha256": {v: sha(f"{outdir}/run/{t}/{v}/facts.json") for v in ("base", "patched")},
+        "sarif_sha256": {v: sha(f"{outdir}/run/{t}/{v}/findings.sarif") for v in ("base", "patched")},
+        "results_total": {"base": sum(b.values()), "patched": sum(p.values())},
+        "by_rule_level": {"base": by_rule(b), "patched": by_rule(p)},
+        "removed": [describe(k) for k in sorted(removed.elements(), key=str)],
+        "added": [describe(k) for k in sorted(added.elements(), key=str)],
+        "subscription_fact_changes": fact_changes,
+        "subscription_sites": {"base": len(fb), "patched": len(fp)},
+    }
+json.dump(out, open(res_path, "w"), indent=1, ensure_ascii=False)
+for t, r in out.items():
+    print(t, r["results_total"], "removed", len(r["removed"]), "added", len(r["added"]),
+          "fact changes", len(r["subscription_fact_changes"]))
+    for x in r["removed"]:
+        print("  -", x["rule"], x["uri"], x["line"], x.get("h1_stratum"), x.get("h1_item"),
+              x.get("h1_label_post_reveal"), x["message"][:70])
+    for x in r["added"]:
+        print("  +", x["rule"], x["uri"], x["line"], x["message"][:90])

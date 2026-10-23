@@ -1,0 +1,32 @@
+[
+ {
+  "item": "P01",
+  "finding_id": "0e2a666272bc2190",
+  "changed_by_patch": true
+ },
+ {
+  "item": "P02",
+  "finding_id": "fb9fe7f4397ce853",
+  "changed_by_patch": false
+ },
+ {
+  "item": "P03",
+  "finding_id": "0a3c814b4a8f432e",
+  "changed_by_patch": false
+ },
+ {
+  "item": "P04",
+  "finding_id": "a65272a5b583b39b",
+  "changed_by_patch": true
+ },
+ {
+  "item": "P05",
+  "finding_id": "cab4f45450db70fa",
+  "changed_by_patch": true
+ },
+ {
+  "item": "P06",
+  "finding_id": "f5862aae5f09e155",
+  "changed_by_patch": false
+ }
+]

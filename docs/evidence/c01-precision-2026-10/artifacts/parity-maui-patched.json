@@ -1,0 +1,68 @@
+{
+ "label": "maui-patched",
+ "facts": "/home/nixos/Documents/ownnet-eng/work/sb-dev-out/run/maui/patched/facts.json",
+ "facts_sha256": "a038fa65e997bbf66d9b5b842c8bc5d092f398fdb06b54c221474ab2bd4c05ee",
+ "python_sarif": {
+  "rc": 1,
+  "stdout_sha256": "55612eb5da80a15750f5f3e255c3a9bbd272b5054a5eff6405d6f8bd13385d68",
+  "stdout_bytes": 946172,
+  "crlf": 0,
+  "stderr": "411 findings, 548 advisory (OWN050)."
+ },
+ "python_human": {
+  "rc": 1,
+  "stdout_sha256": "49797652433de4c8a1e57f791f8e2016a6cc77a0b5205e887f05f792fa00141b",
+  "stdout_bytes": 304364,
+  "crlf": 0,
+  "stderr": ""
+ },
+ "rust_sarif": {
+  "rc": 1,
+  "stdout_sha256": "55612eb5da80a15750f5f3e255c3a9bbd272b5054a5eff6405d6f8bd13385d68",
+  "stdout_bytes": 946172,
+  "crlf": 0,
+  "stderr": "411 findings, 548 advisory (OWN050)."
+ },
+ "rust_human": {
+  "rc": 1,
+  "stdout_sha256": "49797652433de4c8a1e57f791f8e2016a6cc77a0b5205e887f05f792fa00141b",
+  "stdout_bytes": 304364,
+  "crlf": 0,
+  "stderr": ""
+ },
+ "sarif_bytes_identical": true,
+ "sarif_json_equal_after_parse": true,
+ "semantic_equal": true,
+ "semantic_only_python": [],
+ "semantic_only_rust": [],
+ "counts_by_rule_level": {
+  "python": {
+   "OWN001/warning": 386,
+   "OWN050/note": 548,
+   "OWN014/warning": 25
+  },
+  "rust": {
+   "OWN001/warning": 386,
+   "OWN050/note": 548,
+   "OWN014/warning": 25
+  }
+ },
+ "counts_by_resource": {
+  "python": {
+   "subscription token": 400,
+   "unresolved reference": 548,
+   "disposable field": 8,
+   "timer": 2,
+   "disposable": 1
+  },
+  "rust": {
+   "subscription token": 400,
+   "unresolved reference": 548,
+   "disposable field": 8,
+   "timer": 2,
+   "disposable": 1
+  }
+ },
+ "human_bytes_identical": true,
+ "human_identical_after_newline_normalisation": true
+}

@@ -1,0 +1,38 @@
+"""Collect every GitHub owner/repo mentioned in prior research and Own.NET mining lists
+(exclusion list for the holdout). Text scan only."""
+import os
+import re
+import sys
+
+roots = [os.path.expanduser(p) for p in [
+    "~/Documents/ownnet-research/runs",
+    "~/Documents/ownnet-research/refs/ownnet-direction-research",
+    "~/Documents/ownnet-eng/Own.NET/corpus",
+    "~/Documents/ownnet-eng/Own.NET/docs",
+    "~/Documents/ownnet-eng/Own.NET/frontend/roslyn/OwnSharp.Extractor",
+    "~/Documents/ownnet-eng/Own.NET/scripts",
+    "~/Documents/ownnet-explore",
+]]
+PAT = re.compile(r"(?:github\.com/|\b)([A-Za-z0-9][A-Za-z0-9-]{1,38})/([A-Za-z0-9._-]{2,80})(?:\.git)?\b")
+PAT2 = re.compile(r"\b([A-Za-z0-9][A-Za-z0-9-]{1,38})__([A-Za-z0-9._-]{2,80})\b")  # owner__repo dirs
+SKIP_DIRS = {"maui-src", "src", "node_modules", ".git", "target", "bin", "obj", "cache", "raw"}
+found: dict[str, set] = {}
+for root in roots:
+    for dp, dns, fns in os.walk(root):
+        dns[:] = [d for d in dns if d not in SKIP_DIRS]
+        for fn in fns:
+            if not fn.endswith((".md", ".txt", ".csv", ".tsv", ".jsonl", ".json", ".toml", ".yml", ".cs", ".py", ".sh")):
+                continue
+            p = os.path.join(dp, fn)
+            try:
+                if os.path.getsize(p) > 30_000_000:
+                    continue
+                t = open(p, encoding="utf-8", errors="replace").read()
+            except OSError:
+                continue
+            for m in list(PAT.finditer(t)) + list(PAT2.finditer(t)):
+                key = f"{m.group(1)}/{m.group(2)}".lower().rstrip(".")
+                found.setdefault(key, set()).add(os.path.relpath(p, os.path.expanduser("~/Documents")))
+names = sorted(found)
+open(sys.argv[1], "w").write("\n".join(f"{k}\t{len(found[k])}" for k in names) + "\n")
+print(len(names))

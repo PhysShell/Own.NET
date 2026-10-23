@@ -1,0 +1,68 @@
+{
+ "label": "opensilver",
+ "facts": "/home/nixos/Documents/ownnet-explore/opensilver/out/run/main/facts.json",
+ "facts_sha256": "4072c88299d03235cf35fd6e9345005e56cb2e6b4ec71efdebadcce3001d8292",
+ "python_sarif": {
+  "rc": 1,
+  "stdout_sha256": "b55283457dc2981a4a18c88a9d50287b4a8061c330dfed515fd23eed1c910d84",
+  "stdout_bytes": 447536,
+  "crlf": 0,
+  "stderr": "403 findings, 22 advisory (OWN050)."
+ },
+ "python_human": {
+  "rc": 1,
+  "stdout_sha256": "f6f25e03ea4f5d8cf85a1f14b6e7fdb5bd066ee362263bea6aa3fde0c0c2c534",
+  "stdout_bytes": 156025,
+  "crlf": 0,
+  "stderr": ""
+ },
+ "rust_sarif": {
+  "rc": 1,
+  "stdout_sha256": "b55283457dc2981a4a18c88a9d50287b4a8061c330dfed515fd23eed1c910d84",
+  "stdout_bytes": 447536,
+  "crlf": 0,
+  "stderr": "403 findings, 22 advisory (OWN050)."
+ },
+ "rust_human": {
+  "rc": 1,
+  "stdout_sha256": "f6f25e03ea4f5d8cf85a1f14b6e7fdb5bd066ee362263bea6aa3fde0c0c2c534",
+  "stdout_bytes": 156025,
+  "crlf": 0,
+  "stderr": ""
+ },
+ "sarif_bytes_identical": true,
+ "sarif_json_equal_after_parse": true,
+ "semantic_equal": true,
+ "semantic_only_python": [],
+ "semantic_only_rust": [],
+ "counts_by_rule_level": {
+  "python": {
+   "OWN014/warning": 7,
+   "OWN001/warning": 396,
+   "OWN050/note": 22
+  },
+  "rust": {
+   "OWN014/warning": 7,
+   "OWN001/warning": 396,
+   "OWN050/note": 22
+  }
+ },
+ "counts_by_resource": {
+  "python": {
+   "subscription token": 370,
+   "timer": 18,
+   "unresolved reference": 22,
+   "disposable field": 10,
+   "disposable": 5
+  },
+  "rust": {
+   "subscription token": 370,
+   "timer": 18,
+   "unresolved reference": 22,
+   "disposable field": 10,
+   "disposable": 5
+  }
+ },
+ "human_bytes_identical": true,
+ "human_identical_after_newline_normalisation": true
+}

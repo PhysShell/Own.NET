@@ -1,0 +1,10 @@
+2026-10-23T18:29:20Z  start dev job, patch 3c98df271e992abba5d57a2c7bfdbb0c0b1be805
+2026-10-23T18:29:48Z  built base: /var/lib/job/w/own-base/frontend/roslyn/OwnSharp.Extractor/bin/Release/net8.0/ownsharp-extract.dll
+2026-10-23T18:29:53Z  built patched: /var/lib/job/w/own-patched/frontend/roslyn/OwnSharp.Extractor/bin/Release/net8.0/ownsharp-extract.dll
+2026-10-23T18:33:05Z  maui 9d881e94b1c56692e40a16262897677a3bb46fcb
+2026-10-23T18:33:33Z  maui/base extractor rc=0 core rc=1 416 findings, 548 advisory (OWN050).
+2026-10-23T18:34:04Z  maui/patched extractor rc=0 core rc=1 411 findings, 548 advisory (OWN050).
+2026-10-23T18:37:38Z  opensilver fa7c4c5ac2205e759429f0b2f02d09eee26a6d8c
+2026-10-23T18:38:01Z  opensilver/base extractor rc=0 core rc=1 403 findings, 22 advisory (OWN050).
+2026-10-23T18:38:23Z  opensilver/patched extractor rc=0 core rc=1 403 findings, 22 advisory (OWN050).
+2026-10-23T18:38:23Z  done

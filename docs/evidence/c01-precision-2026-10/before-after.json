@@ -1,0 +1,925 @@
+{
+ "baseline_sha": "175076925058b6b4eb60087a3b1e834e7315ebad",
+ "patch_sha": "3c98df271e992abba5d57a2c7bfdbb0c0b1be805",
+ "extractor_dll_sha256": {
+  "base": "e169519b5d9aaf6df80b119952bbbbb50bc73a727f9a4c4e91cd94436369caf6",
+  "patched": "92e1d5f858ef8e3977cf5b4cbf4732bec34356efc12046d93daa1e6931945591"
+ },
+ "engine": "Python reference core; Rust own-cli byte-identical on base and patched MAUI facts",
+ "dev_sets": {
+  "maui": {
+   "facts_sha256": {
+    "base": "b539cd27416b442a5d3c92e8662ba23ad004b5c0f041e5ca800e9945471b0be0",
+    "patched": "a038fa65e997bbf66d9b5b842c8bc5d092f398fdb06b54c221474ab2bd4c05ee"
+   },
+   "sarif_sha256": {
+    "base": "db6d3a46e736cac58f548c192bad59eaac731c868e85f7d264fa428839eef035",
+    "patched": "55612eb5da80a15750f5f3e255c3a9bbd272b5054a5eff6405d6f8bd13385d68"
+   },
+   "results_total": {
+    "base": 964,
+    "patched": 959
+   },
+   "by_rule_level": {
+    "base": {
+     "OWN001/warning": 391,
+     "OWN050/note": 548,
+     "OWN014/warning": 25
+    },
+    "patched": {
+     "OWN001/warning": 386,
+     "OWN050/note": 548,
+     "OWN014/warning": 25
+    }
+   },
+   "removed": [
+    {
+     "rule": "OWN001",
+     "level": "warning",
+     "uri": "maui/src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellItemRenderer.cs",
+     "line": 400,
+     "column": 5,
+     "message": "event '_displayedPage.PropertyChanged' is subscribed (handler 'OnDisplayedPagePropertyChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ShellItemRenderer' alive (possible leak) [resource: subscription token]",
+     "h1_finding_id": "0e2a666272bc2190",
+     "h1_stratum": "C01-U",
+     "h1_known_defect_uids": ""
+    },
+    {
+     "rule": "OWN001",
+     "level": "warning",
+     "uri": "maui/src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellSectionRenderer.cs",
+     "line": 32,
+     "column": 5,
+     "message": "event '_shellSection.PropertyChanged' is subscribed (handler 'HandlePropertyChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ShellSectionRenderer' alive (possible leak) [resource: subscription token]",
+     "h1_finding_id": "fe5d08f90da0748b",
+     "h1_stratum": "C01-U",
+     "h1_known_defect_uids": "",
+     "h1_item": "H1-024",
+     "h1_label_A": "BENIGN",
+     "h1_label_post_reveal": "BENIGN",
+     "h1_basis": "REL"
+    },
+    {
+     "rule": "OWN001",
+     "level": "warning",
+     "uri": "maui/src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellSectionRenderer.cs",
+     "line": 386,
+     "column": 5,
+     "message": "event '_displayedPage.PropertyChanged' is subscribed (handler 'OnDisplayedPagePropertyChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ShellSectionRenderer' alive (possible leak) [resource: subscription token]",
+     "h1_finding_id": "a65272a5b583b39b",
+     "h1_stratum": "C01-U",
+     "h1_known_defect_uids": ""
+    },
+    {
+     "rule": "OWN001",
+     "level": "warning",
+     "uri": "maui/src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellSectionRootRenderer.cs",
+     "line": 101,
+     "column": 4,
+     "message": "event 'ShellSection.PropertyChanged' is subscribed (handler 'OnShellSectionPropertyChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ShellSectionRootRenderer' alive (possible leak) [resource: subscription token]",
+     "h1_finding_id": "6c764e2a54df6389",
+     "h1_stratum": "C01-U",
+     "h1_known_defect_uids": "",
+     "h1_item": "H1-065",
+     "h1_label_A": "BENIGN",
+     "h1_label_post_reveal": "BENIGN",
+     "h1_basis": "REL"
+    },
+    {
+     "rule": "OWN001",
+     "level": "warning",
+     "uri": "maui/src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellSectionRootRenderer.cs",
+     "line": 102,
+     "column": 4,
+     "message": "event 'ShellSectionController.ItemsCollectionChanged' is subscribed (handler 'OnShellSectionItemsChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ShellSectionRootRenderer' alive (possible leak) [resource: subscription token]",
+     "h1_finding_id": "cab4f45450db70fa",
+     "h1_stratum": "C01-U",
+     "h1_known_defect_uids": ""
+    }
+   ],
+   "added": [],
+   "subscription_fact_changes": [
+    {
+     "site": [
+      "maui/src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellItemRenderer.cs",
+      400,
+      5,
+      "_displayedPage.PropertyChanged"
+     ],
+     "base": {
+      "event": "_displayedPage.PropertyChanged",
+      "handler": "OnDisplayedPagePropertyChanged",
+      "line": 400,
+      "column": 5,
+      "released": false,
+      "resource": "subscription",
+      "source": "injected",
+      "lambda": false
+     },
+     "patched": {
+      "event": "_displayedPage.PropertyChanged",
+      "handler": "OnDisplayedPagePropertyChanged",
+      "line": 400,
+      "column": 5,
+      "released": true,
+      "resource": "subscription",
+      "source": "injected",
+      "lambda": false
+     }
+    },
+    {
+     "site": [
+      "maui/src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellSectionRenderer.cs",
+      32,
+      5,
+      "_shellSection.PropertyChanged"
+     ],
+     "base": {
+      "event": "_shellSection.PropertyChanged",
+      "handler": "HandlePropertyChanged",
+      "line": 32,
+      "column": 5,
+      "released": false,
+      "resource": "subscription",
+      "source": "injected",
+      "lambda": false
+     },
+     "patched": {
+      "event": "_shellSection.PropertyChanged",
+      "handler": "HandlePropertyChanged",
+      "line": 32,
+      "column": 5,
+      "released": true,
+      "resource": "subscription",
+      "source": "injected",
+      "lambda": false
+     }
+    },
+    {
+     "site": [
+      "maui/src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellSectionRenderer.cs",
+      386,
+      5,
+      "_displayedPage.PropertyChanged"
+     ],
+     "base": {
+      "event": "_displayedPage.PropertyChanged",
+      "handler": "OnDisplayedPagePropertyChanged",
+      "line": 386,
+      "column": 5,
+      "released": false,
+      "resource": "subscription",
+      "source": "injected",
+      "lambda": false
+     },
+     "patched": {
+      "event": "_displayedPage.PropertyChanged",
+      "handler": "OnDisplayedPagePropertyChanged",
+      "line": 386,
+      "column": 5,
+      "released": true,
+      "resource": "subscription",
+      "source": "injected",
+      "lambda": false
+     }
+    },
+    {
+     "site": [
+      "maui/src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellSectionRootRenderer.cs",
+      101,
+      4,
+      "ShellSection.PropertyChanged"
+     ],
+     "base": {
+      "event": "ShellSection.PropertyChanged",
+      "handler": "OnShellSectionPropertyChanged",
+      "line": 101,
+      "column": 4,
+      "released": false,
+      "resource": "subscription",
+      "source": "injected",
+      "lambda": false
+     },
+     "patched": {
+      "event": "ShellSection.PropertyChanged",
+      "handler": "OnShellSectionPropertyChanged",
+      "line": 101,
+      "column": 4,
+      "released": true,
+      "resource": "subscription",
+      "source": "injected",
+      "lambda": false
+     }
+    },
+    {
+     "site": [
+      "maui/src/Controls/src/Core/Compatibility/Handlers/Shell/iOS/ShellSectionRootRenderer.cs",
+      102,
+      4,
+      "ShellSectionController.ItemsCollectionChanged"
+     ],
+     "base": {
+      "event": "ShellSectionController.ItemsCollectionChanged",
+      "handler": "OnShellSectionItemsChanged",
+      "line": 102,
+      "column": 4,
+      "released": false,
+      "resource": "subscription",
+      "source": "injected",
+      "lambda": false
+     },
+     "patched": {
+      "event": "ShellSectionController.ItemsCollectionChanged",
+      "handler": "OnShellSectionItemsChanged",
+      "line": 102,
+      "column": 4,
+      "released": true,
+      "resource": "subscription",
+      "source": "injected",
+      "lambda": false
+     }
+    }
+   ],
+   "subscription_sites": {
+    "base": 949,
+    "patched": 949
+   }
+  },
+  "opensilver": {
+   "facts_sha256": {
+    "base": "ddcf752ad3774d30e158d06c47b45c5041a930f4d8709054eb99cdb0e2746281",
+    "patched": "ddcf752ad3774d30e158d06c47b45c5041a930f4d8709054eb99cdb0e2746281"
+   },
+   "sarif_sha256": {
+    "base": "b55283457dc2981a4a18c88a9d50287b4a8061c330dfed515fd23eed1c910d84",
+    "patched": "b55283457dc2981a4a18c88a9d50287b4a8061c330dfed515fd23eed1c910d84"
+   },
+   "results_total": {
+    "base": 425,
+    "patched": 425
+   },
+   "by_rule_level": {
+    "base": {
+     "OWN014/warning": 7,
+     "OWN001/warning": 396,
+     "OWN050/note": 22
+    },
+    "patched": {
+     "OWN014/warning": 7,
+     "OWN001/warning": 396,
+     "OWN050/note": 22
+    }
+   },
+   "removed": [],
+   "added": [],
+   "subscription_fact_changes": [],
+   "subscription_sites": {
+    "base": 416,
+    "patched": 416
+   }
+  }
+ },
+ "holdout": {
+  "stylet": {
+   "facts_sha256": {
+    "base": "aaf8c44009cfb8222b412511a23b025f0a2820a4b02845b3566438ccaafe8682",
+    "patched": "aaf8c44009cfb8222b412511a23b025f0a2820a4b02845b3566438ccaafe8682"
+   },
+   "sarif_sha256": {
+    "base": "f75d87948b6d4398e148c7902b7f138f0a93667fcd7d72a162b401b0811b3b02",
+    "patched": "f75d87948b6d4398e148c7902b7f138f0a93667fcd7d72a162b401b0811b3b02"
+   },
+   "results_total": {
+    "base": 20,
+    "patched": 20
+   },
+   "by_rule_level": {
+    "base": {
+     "OWN001/warning": 14,
+     "OWN050/note": 6
+    },
+    "patched": {
+     "OWN001/warning": 14,
+     "OWN050/note": 6
+    }
+   },
+   "removed": [],
+   "added": [],
+   "subscription_fact_changes": [],
+   "subscription_sites": {
+    "base": 13,
+    "patched": 13
+   }
+  },
+  "gong-wpf-dragdrop": {
+   "facts_sha256": {
+    "base": "b741b4e139c0c6374a3520e5efd5c77d2ab37cee6b3ff8f90c16e8759dcbc565",
+    "patched": "b741b4e139c0c6374a3520e5efd5c77d2ab37cee6b3ff8f90c16e8759dcbc565"
+   },
+   "sarif_sha256": {
+    "base": "7f944950f3173d15f8409eb33b4d0a313c394b0287d92c5330203671ef789b6f",
+    "patched": "7f944950f3173d15f8409eb33b4d0a313c394b0287d92c5330203671ef789b6f"
+   },
+   "results_total": {
+    "base": 52,
+    "patched": 52
+   },
+   "by_rule_level": {
+    "base": {
+     "OWN050/note": 52
+    },
+    "patched": {
+     "OWN050/note": 52
+    }
+   },
+   "removed": [],
+   "added": [],
+   "subscription_fact_changes": [],
+   "subscription_sites": {
+    "base": 52,
+    "patched": 52
+   }
+  },
+  "shadowsocks-windows": {
+   "facts_sha256": {
+    "base": "da4bc50db1b46274d493552d817e896c37caf78d8b4fa931ca472fc28a9b36f4",
+    "patched": "da4bc50db1b46274d493552d817e896c37caf78d8b4fa931ca472fc28a9b36f4"
+   },
+   "sarif_sha256": {
+    "base": "5b551c324084216cce82d2ac4809c7827d1602fca3d0089bad8be99c667e0247",
+    "patched": "5b551c324084216cce82d2ac4809c7827d1602fca3d0089bad8be99c667e0247"
+   },
+   "results_total": {
+    "base": 55,
+    "patched": 55
+   },
+   "by_rule_level": {
+    "base": {
+     "OWN001/warning": 22,
+     "OWN050/note": 31,
+     "OWN014/warning": 2
+    },
+    "patched": {
+     "OWN001/warning": 22,
+     "OWN050/note": 31,
+     "OWN014/warning": 2
+    }
+   },
+   "removed": [],
+   "added": [],
+   "subscription_fact_changes": [],
+   "subscription_sites": {
+    "base": 63,
+    "patched": 63
+   }
+  }
+ },
+ "independent_evaluator": {
+  "packet_sha256": "37f93776c57ed34081b2cbf17e13d0bd0ddfc79974d7909084d88d420ed9d4ef",
+  "key": [
+   {
+    "item": "P01",
+    "finding_id": "0e2a666272bc2190",
+    "changed_by_patch": true
+   },
+   {
+    "item": "P02",
+    "finding_id": "fb9fe7f4397ce853",
+    "changed_by_patch": false
+   },
+   {
+    "item": "P03",
+    "finding_id": "0a3c814b4a8f432e",
+    "changed_by_patch": false
+   },
+   {
+    "item": "P04",
+    "finding_id": "a65272a5b583b39b",
+    "changed_by_patch": true
+   },
+   {
+    "item": "P05",
+    "finding_id": "cab4f45450db70fa",
+    "changed_by_patch": true
+   },
+   {
+    "item": "P06",
+    "finding_id": "f5862aae5f09e155",
+    "changed_by_patch": false
+   }
+  ],
+  "labels": [
+   {
+    "item": "P01",
+    "label": "BENIGN",
+    "confidence": "high",
+    "depends_on_app": false,
+    "release_path": "ShellItemRenderer.cs:393-394 (old page unsubscribed when the displayed page changes); ShellItemRenderer.cs:147-148 in IDisconnectable.Disconnect(), reached from Dispose at ShellItemRenderer.cs:173; ShellRenderer.SetCurrentShellItemControllerAsync calls Disconnect on the old renderer (ShellRenderer.cs:319) and later Dispose (ShellRenderer.cs:339), and also Disconnect+Dispose on a rejected renderer (ShellRenderer.cs:313-314)",
+    "teardown_assumption": "IDisconnectable.Disconnect or Dispose must run on the ShellItemRenderer; the code shows ShellRenderer calls both when the current shell item renderer is replaced",
+    "reason": "The same delegate is removed from the same _displayedPage, both when the page changes and in Disconnect. ShellRenderer calls Disconnect/Dispose on the outgoing item renderer, so the teardown path is the one that actually runs. The 'never unsubscribed' text is wrong."
+   },
+   {
+    "item": "P02",
+    "label": "BENIGN",
+    "confidence": "medium",
+    "depends_on_app": true,
+    "release_path": "ShellView.cs:236-238 (the old toolbar's IconPressed is removed when a new toolbar is set); there is no Dispose/teardown method in ShellView",
+    "teardown_assumption": "None runs: ShellView has no teardown. The verdict relies on the toolbar (Shell.Toolbar's platform view, passed in via ViewHandler.Tizen.cs:71-75) being placed inside ShellView's own tree (ShellView.cs:248, _navigationContentView.TitleView) and sharing the Shell's lifetime",
+    "reason": "The publisher is a MauiToolbar hosted as a child of the subscriber's own view tree, and it comes from the same Shell, so it normally dies with the ShellView. The only case where it outlives an old ShellView is when an app re-creates the Shell handler while keeping the same Shell and toolbar instance; nothing unsubscribes then. That edge case is app-dependent and not a default leak."
+   },
+   {
+    "item": "P03",
+    "label": "BENIGN",
+    "confidence": "medium",
+    "depends_on_app": false,
+    "release_path": "CarouselViewController.cs:232-236 DetachingFromWindow -> TearDown(ItemsView) -> CarouselViewController.cs:244 carouselView.Scrolled -= CarouselViewScrolled; triggered by ItemsViewController.cs:192/196-205 (MovedToWindow with Window == null)",
+    "teardown_assumption": "The iOS MovedToWindow lifecycle event must fire when the collection view leaves the window; the code wires this at ItemsViewController.cs:192, and the platform raises it",
+    "reason": "Setup (attach to window) and TearDown (detach from window) are symmetric and target the same CarouselView. ItemsView is held through a WeakReference (ItemsViewController.cs:18,21), so the controller does not keep the publisher alive. The CarouselView keeps the controller alive only while the view is in a window, which matches the handler's lifetime. If the handler is disconnected while the view stays in the window, the controller lingers until the view detaches."
+   },
+   {
+    "item": "P04",
+    "label": "BENIGN",
+    "confidence": "high",
+    "depends_on_app": false,
+    "release_path": "ShellSectionRenderer.cs:377-379 (the old page is unsubscribed on page change); ShellSectionRenderer.cs:274-275 in IDisconnectable.Disconnect(), reached from Dispose at ShellSectionRenderer.cs:306; callers: ShellItemRenderer.Disconnect (ShellItemRenderer.cs:141-142) and ShellItemRenderer.RemoveRenderer -> renderer.Dispose() (ShellItemRenderer.cs:416, from Dispose at 175-178)",
+    "teardown_assumption": "Disconnect or Dispose must run on the ShellSectionRenderer; the code shows the parent ShellItemRenderer calls both during its own teardown, which ShellRenderer drives (see P01)",
+    "reason": "The same delegate is removed from the same _displayedPage, both on page change and in Disconnect. The parent renderer chain calls that Disconnect/Dispose, so the subscription is released when the section renderer is torn down."
+   },
+   {
+    "item": "P05",
+    "label": "BENIGN",
+    "confidence": "high",
+    "depends_on_app": false,
+    "release_path": "ShellSectionRootRenderer.cs:161-162 in IDisconnectable.Disconnect(), also reached from Dispose at ShellSectionRootRenderer.cs:185; callers: ShellSectionRenderer.Disconnect (ShellSectionRenderer.cs:272, (_renderer as IDisconnectable)?.Disconnect()) and ShellSectionRenderer.Dispose (ShellSectionRenderer.cs:304, _renderer.Dispose())",
+    "teardown_assumption": "The owning ShellSectionRenderer must be disconnected or disposed (see P04); the code shows that chain",
+    "reason": "ItemsCollectionChanged is removed from the same ShellSection, because ShellSection is still set when Disconnect runs; it is only cleared at line 212, after Disconnect. The owning ShellSectionRenderer disconnects and disposes this root renderer, so the subscriber is released when its parent is torn down."
+   },
+   {
+    "item": "P06",
+    "label": "ACTIONABLE",
+    "confidence": "medium",
+    "depends_on_app": true,
+    "release_path": "WrapperControl.CleanUp() at ViewToHandlerConverter.cs:43-49 removes the handler. It is called only from ShellHeaderView.cs:50-53 and ShellFooterView.cs:53-56 (when the header/footer content is replaced) and from ListViewRenderer.cs:355-361 (on ListView Dispose, only for wrappers still in the visual tree). Nothing cleans up wrappers made by the converter at ViewToHandlerConverter.cs:27 for page TitleView (MauiControlsPageControlStyle.xaml:38) or for ListView containers that were re-templated or recycled",
+    "teardown_assumption": "CleanUp must be called by the owner of every WrapperControl. For converter-created wrappers (TitleView binding, ListView ContentPresenter rebinding) the code shows no caller, and WrapperControl has no Unloaded or other self-cleanup",
+    "reason": "Each WrapperControl subscribes to the MAUI View's MeasureInvalidated, and only some creators ever call CleanUp. For a page TitleView, or a ListView cell view that gets re-converted, the old wrapper and its WinUI parent chain stay reachable from the View for as long as that View lives. That matters when an app keeps or shares the TitleView/cell View, so the verdict depends on the app; if the View is discarded too, both are collected together."
+   }
+  ]
+ },
+ "controls": {
+  "before": {
+   "mismatches": 0,
+   "rows": [
+    {
+     "file": "F01_OwnedPublisher.cs",
+     "line": 16,
+     "expected": "none",
+     "got": [
+      "none"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F02_SharedPublisherOutlives.cs",
+     "line": 23,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F03_SharedStaticMissingUnsubscribe.cs",
+     "line": 13,
+     "expected": "OWN014",
+     "got": [
+      "OWN014"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F04a_SharedCorrectDirectDispose.cs",
+     "line": 15,
+     "expected": "none",
+     "got": [
+      "none"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F04b_SharedCorrectViaInterfaceCast.cs",
+     "line": 21,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F04c_InterfaceCastSpellings.cs",
+     "line": 16,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F04c_InterfaceCastSpellings.cs",
+     "line": 34,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F04c_InterfaceCastSpellings.cs",
+     "line": 52,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F05_SetterRotationNoTeardown.cs",
+     "line": 23,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F06_ClearResetWithoutOldItems.cs",
+     "line": 24,
+     "expected": "none",
+     "got": [
+      "none"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F06_ClearResetWithoutOldItems.cs",
+     "line": 36,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F07_NewLambdaUnsubscribe.cs",
+     "line": 18,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F08_CorrectWeakEvent.cs",
+     "line": 17,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F09_UnresolvedPublisher.cs",
+     "line": 17,
+     "expected": "OWN050",
+     "got": [
+      "OWN050"
+     ],
+     "ok": true
+    },
+    {
+     "file": "N01_InterfaceCastFromNonTeardown.cs",
+     "line": 15,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "N02_ImplementationInBaseClass.cs",
+     "line": 17,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "N03_ParamGuardedInterfaceCall.cs",
+     "line": 18,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "N03_ParamGuardedInterfaceCall.cs",
+     "line": 42,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "N04_CastOfAnotherObject.cs",
+     "line": 18,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "N05_OtherInterfaceMember.cs",
+     "line": 16,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "N06_FinalizerOnly.cs",
+     "line": 16,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    }
+   ]
+  },
+  "after": {
+   "mismatches": 0,
+   "rows": [
+    {
+     "file": "F01_OwnedPublisher.cs",
+     "line": 16,
+     "expected": "none",
+     "got": [
+      "none"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F02_SharedPublisherOutlives.cs",
+     "line": 23,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F03_SharedStaticMissingUnsubscribe.cs",
+     "line": 13,
+     "expected": "OWN014",
+     "got": [
+      "OWN014"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F04a_SharedCorrectDirectDispose.cs",
+     "line": 15,
+     "expected": "none",
+     "got": [
+      "none"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F04b_SharedCorrectViaInterfaceCast.cs",
+     "line": 21,
+     "expected": "none",
+     "got": [
+      "none"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F04c_InterfaceCastSpellings.cs",
+     "line": 16,
+     "expected": "none",
+     "got": [
+      "none"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F04c_InterfaceCastSpellings.cs",
+     "line": 34,
+     "expected": "none",
+     "got": [
+      "none"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F04c_InterfaceCastSpellings.cs",
+     "line": 52,
+     "expected": "none",
+     "got": [
+      "none"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F05_SetterRotationNoTeardown.cs",
+     "line": 23,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F06_ClearResetWithoutOldItems.cs",
+     "line": 24,
+     "expected": "none",
+     "got": [
+      "none"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F06_ClearResetWithoutOldItems.cs",
+     "line": 36,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F07_NewLambdaUnsubscribe.cs",
+     "line": 18,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F08_CorrectWeakEvent.cs",
+     "line": 17,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "F09_UnresolvedPublisher.cs",
+     "line": 17,
+     "expected": "OWN050",
+     "got": [
+      "OWN050"
+     ],
+     "ok": true
+    },
+    {
+     "file": "N01_InterfaceCastFromNonTeardown.cs",
+     "line": 15,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "N02_ImplementationInBaseClass.cs",
+     "line": 17,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "N03_ParamGuardedInterfaceCall.cs",
+     "line": 18,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "N03_ParamGuardedInterfaceCall.cs",
+     "line": 42,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "N04_CastOfAnotherObject.cs",
+     "line": 18,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "N05_OtherInterfaceMember.cs",
+     "line": 16,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    },
+    {
+     "file": "N06_FinalizerOnly.cs",
+     "line": 16,
+     "expected": "OWN001",
+     "got": [
+      "OWN001"
+     ],
+     "ok": true
+    }
+   ]
+  }
+ },
+ "corpus_benchmark": {
+  "baseline": {
+   "benchmark": "own.net corpus (real C# through the extractor + core)",
+   "corpus": [
+    {
+     "cases": 33,
+     "dir": "corpus/real-world"
+    },
+    {
+     "cases": 28,
+     "dir": "corpus/wpf"
+    },
+    {
+     "cases": 1,
+     "dir": "corpus/di"
+    }
+   ],
+   "methodology": {
+    "gate": "specificity and zero FPs are unconditional; recall is gated against the pinned floor and ratchets up",
+    "recall": "a case is 'caught' when its before.cs yields >=1 SARIF result at error/warning level (note/none are advisory, not verdicts); code-agnostic on purpose",
+    "runner": "scripts/own-check.sh --engine python --format sarif per file",
+    "specificity": "a fix is 'clean' when its after.cs yields 0 verdict-level results (any verdict on a fix is a false positive)"
+   },
+   "revision": "175076925058b6b4eb60087a3b1e834e7315ebad",
+   "schema": 1,
+   "totals": {
+    "cases": 62,
+    "caught": 58,
+    "clean": 62,
+    "false_positives": 0,
+    "recall_floor": 25
+   }
+  },
+  "patched": {
+   "benchmark": "own.net corpus (real C# through the extractor + core)",
+   "corpus": [
+    {
+     "cases": 33,
+     "dir": "corpus/real-world"
+    },
+    {
+     "cases": 28,
+     "dir": "corpus/wpf"
+    },
+    {
+     "cases": 1,
+     "dir": "corpus/di"
+    }
+   ],
+   "methodology": {
+    "gate": "specificity and zero FPs are unconditional; recall is gated against the pinned floor and ratchets up",
+    "recall": "a case is 'caught' when its before.cs yields >=1 SARIF result at error/warning level (note/none are advisory, not verdicts); code-agnostic on purpose",
+    "runner": "scripts/own-check.sh --engine python --format sarif per file",
+    "specificity": "a fix is 'clean' when its after.cs yields 0 verdict-level results (any verdict on a fix is a false positive)"
+   },
+   "revision": "3c98df271e992abba5d57a2c7bfdbb0c0b1be805",
+   "schema": 1,
+   "totals": {
+    "cases": 62,
+    "caught": 58,
+    "clean": 62,
+    "false_positives": 0,
+    "recall_floor": 25
+   }
+  },
+  "per_case_identical": true
+ }
+}

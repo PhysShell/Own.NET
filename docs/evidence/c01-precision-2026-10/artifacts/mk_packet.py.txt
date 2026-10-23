@@ -1,0 +1,32 @@
+"""Blind packet for the implementation-independent evaluator: the 3 MAUI warnings the patch removes that
+H1 never labelled, mixed with 3 unchanged C01-U warnings never shown to H1 annotators
+(random.Random(20261023)). Items are shuffled; the key (which ones changed) stays in a separate file."""
+import json
+import random
+import sys
+
+diff, h1_findings, h1_packet, packet_out, key_out = sys.argv[1:6]
+d = json.load(open(diff))["maui"]
+removed = [r for r in d["removed"] if "h1_item" not in r]
+shown = {json.loads(line)["finding_id"] for line in open(h1_packet)}
+removed_ids = {r["h1_finding_id"] for r in d["removed"]}
+pool = sorted((json.loads(line) for line in open(h1_findings)),
+              key=lambda x: (x["path"], x["start_line"], x["start_column"], x["message"]))
+pool = [x for x in pool if x["stratum"] == "C01-U" and x["finding_id"] not in shown
+        and x["finding_id"] not in removed_ids]
+rng = random.Random(20261023)
+decoys = rng.sample(pool, 3)
+items = [{"path": r["uri"].removeprefix("maui/"), "line": r["line"], "rule": r["rule"],
+          "message": r["message"], "_changed": True, "_fid": r["h1_finding_id"]} for r in removed]
+items += [{"path": x["path"], "line": x["start_line"], "rule": x["ruleId"], "message": x["message"],
+           "_changed": False, "_fid": x["finding_id"]} for x in decoys]
+rng.shuffle(items)
+key = []
+with open(packet_out, "w") as f:
+    for i, it in enumerate(items, 1):
+        pid = f"P{i:02d}"
+        key.append({"item": pid, "finding_id": it["_fid"], "changed_by_patch": it["_changed"]})
+        f.write(json.dumps({"item": pid, "path": it["path"], "line": it["line"], "rule": it["rule"],
+                            "message": it["message"]}) + "\n")
+json.dump(key, open(key_out, "w"), indent=1)
+print(open(packet_out).read())
